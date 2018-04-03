@@ -5,6 +5,4 @@
 
 using namespace amrex;
 
-void main_driver ();
-
 #endif

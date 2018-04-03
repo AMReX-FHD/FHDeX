@@ -1,5 +1,10 @@
 
-#include "hydro.H"
+#include "common.H"
+
+#include "parameters.H"
+#include "parameters_defaults.H"
+
+using namespace parameters;
 
 void main_driver()
 {
@@ -8,7 +13,7 @@ void main_driver()
     Real strt_time = ParallelDescriptor::second();
 
     // AMREX_SPACEDIM: number of dimensions
-    int n_cell, max_grid_size, nsteps, plot_int;
+    int n_cell, max_grid_size, nsteps;
     Vector<int> is_periodic(AMREX_SPACEDIM,1);  // periodic in all direction by default
 
     // inputs parameters
@@ -16,23 +21,15 @@ void main_driver()
         // ParmParse is way of reading inputs from the inputs file
         ParmParse pp;
 
-        // We need to get n_cell from the inputs file - this is the number of cells on each side of 
-        //   a square (or cubic) domain.
-        pp.get("n_cell",n_cell);
+        pp.queryarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
+        pp.queryarr("prob_lo",prob_hi,0,AMREX_SPACEDIM);
 
-        // The domain is broken into boxes of size max_grid_size
-        pp.get("max_grid_size",max_grid_size);
+        Print() << "prob_lo ";
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            Print() << prob_lo[i] << " ";
+        }
+        Print() << endl;
 
-        // Default plot_int to -1, allow us to set it to something else in the inputs file
-        //  If plot_int < 0 then no plot files will be writtenq
-        plot_int = -1;
-        pp.query("plot_int",plot_int);
-
-        // Default nsteps to 0, allow us to set it to something else in the inputs file
-        nsteps = 10;
-        pp.query("nsteps",nsteps);
-
-        pp.queryarr("is_periodic", is_periodic);
     }
 
     // make BoxArray and Geometry
