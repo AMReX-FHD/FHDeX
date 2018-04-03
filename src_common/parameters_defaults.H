@@ -46,5 +46,5 @@ amrex::Vector<int>         parameters::bc_hi = {0, 0, 0};
 amrex::Vector<amrex::Real> parameters::wallspeed_lo = {0., 0., 0., 0., 0., 0.};
 amrex::Vector<amrex::Real> parameters::wallspeed_hi = {0., 0., 0., 0., 0., 0.};
 int                        parameters::histogram_unit = 0;
-amrex::Vector<amrex::Real> parameters::density_weights = 0.;
-amrex::Vector<int>         parameters::shift_cc_to_boundary = {0., 0., 0., 0., 0., 0.};
+amrex::Vector<amrex::Real> parameters::density_weights = {0., 0., 0., 0., 0., 0.};
+amrex::Vector<int>         parameters::shift_cc_to_boundary = {0, 0, 0, 0, 0, 0};
