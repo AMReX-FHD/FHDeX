@@ -1,5 +1,5 @@
-#ifndef COMMON_H_
-#define COMMON_H_
+#ifndef REACTDIFF_H_
+#define REACTDIFF_H_
 
 #include <AMReX.H>
 
