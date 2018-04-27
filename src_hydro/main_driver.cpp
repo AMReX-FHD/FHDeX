@@ -100,6 +100,9 @@ void main_driver()
         }
     }
 
+    // deallocate common parameters to quiet valgrind
+    finalize_common_params();
+
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
