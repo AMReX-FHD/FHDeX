@@ -1,3 +1,5 @@
+#ifndef _common_functions_H_
+#define _common_functions_H_
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -7,3 +9,5 @@
 using namespace amrex;
 
 void main_driver ();
+
+#endif
