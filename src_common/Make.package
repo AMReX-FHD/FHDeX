@@ -1,6 +1,5 @@
 CEXE_sources += main.cpp
 CEXE_sources += main_driver.cpp
 
-CEXE_headers += common.H
 CEXE_headers += parameters.H
 CEXE_headers += parameters_defaults.H

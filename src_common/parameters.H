@@ -15,7 +15,7 @@ namespace parameters {
     extern int                        plot_int;
     extern std::string                plot_base_name;
     extern int                        chk_int;
-    extern std::string                check_base_name;
+    extern std::string                chk_base_name;
     extern int                        prob_type;
     extern int                        restart;
     extern int                        print_int;
@@ -100,8 +100,13 @@ namespace parameters {
     // wallspeed_lo/hi(2,2) - zvel on y-face
     // wallspeed_lo/hi(1,3) - xvel on z-face
     // wallspeed_lo/hi(2,3) - yvel on z-face
-    extern amrex::Vector<amrex::Real> wallspeed_lo;
-    extern amrex::Vector<amrex::Real> wallspeed_hi;
+    extern amrex::Vector<amrex::Real> wallspeed_lo_x;
+    extern amrex::Vector<amrex::Real> wallspeed_hi_x;
+    extern amrex::Vector<amrex::Real> wallspeed_lo_y;
+    extern amrex::Vector<amrex::Real> wallspeed_hi_y;
+    extern amrex::Vector<amrex::Real> wallspeed_lo_z;
+    extern amrex::Vector<amrex::Real> wallspeed_hi_z;
+
 
     // Hydrogrid analysis (not available yet)
 /*
@@ -119,6 +124,7 @@ namespace parameters {
     extern int                        histogram_unit;
     extern amrex::Vector<amrex::Real> density_weights;
 
-    extern amrex::Vector<int>         shift_cc_to_boundary;
+    extern amrex::Vector<int>         shift_cc_to_boundary_lo;
+    extern amrex::Vector<int>         shift_cc_to_boundary_hi;
 }
 
