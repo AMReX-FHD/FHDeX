@@ -1,6 +1,5 @@
 #ifndef _common_F_H_
 #define _common_F_H_
-//#include <AMReX_BLFort.H>
 
 #ifdef __cplusplus
 extern "C" 

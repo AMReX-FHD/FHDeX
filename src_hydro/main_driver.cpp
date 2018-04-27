@@ -1,8 +1,8 @@
-#include "functions.H"
+#include "common_functions.H"
+#include "common_functions_F.H"
 
-#include "common.H"
-#include "common_defaults.H"
-#include "common_F.H"
+#include "common_params.H"
+#include "common_params_defaults.H"
 
 using namespace common;
 
@@ -13,7 +13,7 @@ void main_driver()
     Real strt_time = ParallelDescriptor::second();
 
     // read in common parameters from inputs file into C++ common namespace
-    #include "common_queries.H"
+    #include "common_params_queries.H"
     // read in common parameters from inputs file into common_params F90 module
     read_common_params();
 

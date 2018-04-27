@@ -1,4 +1,4 @@
-#include "functions.H"
+#include "common_functions.H"
 
 int main (int argc, char* argv[])
 {

@@ -1,11 +1,11 @@
 CEXE_sources += main.cpp
 CEXE_sources += main_driver.cpp
 
-CEXE_headers += functions.H
+CEXE_headers += common_params.H
+CEXE_headers += common_params_defaults.H
+CEXE_headers += common_params_queries.H
 
-CEXE_headers += common.H
-CEXE_headers += common_defaults.H
-CEXE_headers += common_queries.H
-CEXE_headers += common_F.H
+CEXE_headers += common_functions.H
+CEXE_headers += common_functions_F.H
 
 f90EXE_sources += common_params.f90
