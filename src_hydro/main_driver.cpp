@@ -2,6 +2,7 @@
 
 #include "common.H"
 #include "common_defaults.H"
+#include "common_F.H"
 
 using namespace common;
 
@@ -11,8 +12,10 @@ void main_driver()
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
-    // read in common parameters from inputs file
-#include "common_queries.H"
+    // read in common parameters from inputs file into C++ common namespace
+    #include "common_queries.H"
+    // read in common parameters from inputs file into common_params F90 module
+    read_common_params();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
