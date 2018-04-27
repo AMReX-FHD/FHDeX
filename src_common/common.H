@@ -1,4 +1,4 @@
-namespace parameters {
+namespace common {
 
     // Problem specification
     extern amrex::Vector<amrex::Real> prob_lo;       // physical lo coordinate

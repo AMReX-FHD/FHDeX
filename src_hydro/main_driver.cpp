@@ -1,17 +1,9 @@
+#include "functions.H"
 
-#include <AMReX.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_ParmParse.H>
+#include "common.H"
+#include "common_defaults.H"
 
-using namespace amrex;
-
-void main_driver ();
-
-#include "parameters.H"
-#include "parameters_defaults.H"
-
-using namespace parameters;
+using namespace common;
 
 void main_driver()
 {
@@ -19,7 +11,7 @@ void main_driver()
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
-    // common inputs parameters
+    // common common
     {
 
         // ParmParse is way of reading inputs from the inputs file
