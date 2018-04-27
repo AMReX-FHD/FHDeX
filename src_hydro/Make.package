@@ -1,1 +1,3 @@
+CEXE_sources += advance_timestep_inertial.cpp
+
 CEXE_headers += hydro_functions.H

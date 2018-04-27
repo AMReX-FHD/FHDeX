@@ -1,6 +1,8 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
 
+#include "hydro_functions.H"
+
 #include "common_params.H"
 #include "common_params_defaults.H"
 
@@ -84,6 +86,7 @@ void main_driver()
         MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
         // new_phi = old_phi + dt * (something)
+        advance_timestep_inertial();
         //
         //
         //

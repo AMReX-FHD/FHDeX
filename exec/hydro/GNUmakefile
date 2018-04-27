@@ -10,6 +10,10 @@ DIM       = 2
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
+include ../../src_gmres/Make.package
+VPATH_LOCATIONS   += ../../src_gmres/
+INCLUDE_LOCATIONS += ../../src_gmres/
+
 include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
