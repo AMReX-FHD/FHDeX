@@ -14,7 +14,7 @@
     amrex::Real gmres::mg_rel_tol = 1.e-9;
     amrex::Real gmres::mg_abs_tol = 1.e-14;
     int         gmres::stag_mg_verbosity = 0;
-    int         gmres::stag_mg_max_vcycles 1= ;
+    int         gmres::stag_mg_max_vcycles = 1;
     int         gmres::stag_mg_minwidth = 2;
     int         gmres::stag_mg_bottom_solver = 4;
     int         gmres::stag_mg_nsmooths_down = 2;

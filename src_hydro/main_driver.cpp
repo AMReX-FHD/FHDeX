@@ -1,12 +1,16 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
-
-#include "hydro_functions.H"
-
 #include "common_params.H"
 #include "common_params_defaults.H"
 
+#include "gmres_functions_F.H"
+#include "gmres_params.H"
+#include "gmres_params_defaults.H"
+
+#include "hydro_functions.H"
+
 using namespace common;
+using namespace gmres;
 
 void main_driver()
 {
@@ -14,10 +18,12 @@ void main_driver()
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
-    // read in common parameters from inputs file into C++ common namespace
+    // read in parameters from inputs file into C++ common namespace
     #include "common_params_queries.H"
-    // read in common parameters from inputs file into common_params F90 module
+    #include "gmres_params_queries.H"
+    // read in parameters from inputs file into common_params F90 module
     read_common_params();
+    read_gmres_params();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default

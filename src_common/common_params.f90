@@ -155,8 +155,7 @@ contains
     shift_cc_to_boundary_lo(:) = 0
     shift_cc_to_boundary_hi(:) = 0
 
-    ! read in from inputs file
-    
+    ! read in from inputs file    
     call amrex_parmparse_build(pp)
 
     call pp%queryarr("prob_lo",prob_lo);
@@ -214,6 +213,7 @@ contains
     call pp%queryarr("density_weights",density_weights);
     call pp%queryarr("shift_cc_to_boundary_lo",shift_cc_to_boundary_lo);
     call pp%queryarr("shift_cc_to_boundary_hi",shift_cc_to_boundary_hi);
+
     call amrex_parmparse_destroy(pp)
 
   end subroutine read_common_params
