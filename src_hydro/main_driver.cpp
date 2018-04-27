@@ -11,31 +11,8 @@ void main_driver()
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
-    // common common
-    {
-
-        // ParmParse is way of reading inputs from the inputs file
-        ParmParse pp;
-
-        pp.queryarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
-        pp.queryarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
-        pp.queryarr("n_cells",n_cells,0,AMREX_SPACEDIM);
-        pp.queryarr("max_grid_size",max_grid_size,0,AMREX_SPACEDIM);
-        pp.query("fixed_dt",fixed_dt);
-        pp.query("cfl",cfl);
-        pp.query("max_step",max_step);
-        pp.query("plot_int",plot_int);
-        pp.query("plot_base_name",plot_base_name);
-        pp.query("chk_int",chk_int);
-        pp.query("chk_base_name",chk_base_name);
-        pp.query("prob_type",prob_type);
-        pp.query("restart",restart);
-        pp.query("print_int",print_int);
-        pp.query("project_eos_int",project_eos_int);
-
-
-
-    }
+    // read in common parameters from inputs file
+#include "common_queries.H"
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default

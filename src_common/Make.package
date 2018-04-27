@@ -4,3 +4,4 @@ CEXE_sources += main_driver.cpp
 CEXE_headers += functions.H
 CEXE_headers += common.H
 CEXE_headers += common_defaults.H
+CEXE_headers += common_queries.H

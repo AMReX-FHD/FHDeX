@@ -91,15 +91,12 @@ namespace common {
     // Each no-slip wall may be moving with a specified tangential 
     // velocity along the tangential directions
     // In 2D:
-    // wallspeed_lo/hi(1,1) - yvel on x-face
-    // wallspeed_lo/hi(1,2) - xvel on y-face
+    // wallspeed_lo/hi_x - yvel
+    // wallspeed_lo/hi_y - xvel
     // In 3D:
-    // wallspeed_lo/hi(1,1) - yvel on x-face
-    // wallspeed_lo/hi(2,1) - zvel on x-face
-    // wallspeed_lo/hi(1,2) - xvel on y-face
-    // wallspeed_lo/hi(2,2) - zvel on y-face
-    // wallspeed_lo/hi(1,3) - xvel on z-face
-    // wallspeed_lo/hi(2,3) - yvel on z-face
+    // wallspeed_lo/hi_x - yvel,zvel
+    // wallspeed_lo/hi_y - xvel,zvel
+    // wallspeed_lo/hi_z - xvel,yvel
     extern amrex::Vector<amrex::Real> wallspeed_lo_x;
     extern amrex::Vector<amrex::Real> wallspeed_hi_x;
     extern amrex::Vector<amrex::Real> wallspeed_lo_y;

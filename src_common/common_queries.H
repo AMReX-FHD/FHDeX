@@ -1,0 +1,61 @@
+// read in common parameters
+{
+    // ParmParse is way of reading inputs from the inputs file
+    ParmParse pp;
+
+    pp.queryarr("prob_lo",prob_lo,0,AMREX_SPACEDIM);
+    pp.queryarr("prob_hi",prob_hi,0,AMREX_SPACEDIM);
+    pp.queryarr("n_cells",n_cells,0,AMREX_SPACEDIM);
+    pp.queryarr("max_grid_size",max_grid_size,0,AMREX_SPACEDIM);
+    pp.query("fixed_dt",fixed_dt);
+    pp.query("cfl",cfl);
+    pp.query("max_step",max_step);
+    pp.query("plot_int",plot_int);
+    pp.query("plot_base_name",plot_base_name);
+    pp.query("chk_int",chk_int);
+    pp.query("chk_base_name",chk_base_name);
+    pp.query("prob_type",prob_type);
+    pp.query("restart",restart);
+    pp.query("print_int",print_int);
+    pp.query("project_eos_int",project_eos_int);
+    pp.queryarr("grav",grav,0,AMREX_SPACEDIM);
+    pp.query("nspecies",nspecies);
+    pp.queryarr("molmass",molmass,0);
+    pp.queryarr("rhobar",rhobar,0);
+    pp.query("rho0",rho0);
+    pp.query("variance_coef_mom",variance_coef_mom);
+    pp.query("variance_coef_mass",variance_coef_mass);
+    pp.query("k_B",k_B);
+    pp.query("Runiv",Runiv);
+    pp.query("algorithm_type",algorithm_type);
+    pp.query("barodiffusion_type",barodiffusion_type);
+    pp.query("use_bl_rng",use_bl_rng);
+    pp.query("seed",seed);
+    pp.query("seed_momentum",seed_momentum);
+    pp.query("seed_diffusion",seed_diffusion);
+    pp.query("seed_reaction",seed_reaction);
+    pp.query("seed_init_mass",seed_init_mass);
+    pp.query("seed_init_momentum",seed_init_momentum);
+    pp.query("visc_coef",visc_coef);
+    pp.query("visc_type",visc_type);
+    pp.query("advection_type",advection_type);
+    pp.query("filtering_width",filtering_width);
+    pp.query("stoch_stress_form",stoch_stress_form);
+    pp.queryarr("u_init",u_init,0);
+    pp.query("perturb_width",perturb_width);
+    pp.query("smoothing_width",smoothing_width);
+    pp.query("initial_variance_mom",initial_variance_mom);
+    pp.query("initial_variance_mass",initial_variance_mass);
+    pp.queryarr("bc_lo",bc_lo,0,AMREX_SPACEDIM);
+    pp.queryarr("bc_hi",bc_hi,0,AMREX_SPACEDIM);
+    pp.queryarr("wallspeed_lo_x",wallspeed_lo_x,0);
+    pp.queryarr("wallspeed_hi_x",wallspeed_hi_x,0);
+    pp.queryarr("wallspeed_lo_y",wallspeed_lo_y,0);
+    pp.queryarr("wallspeed_hi_y",wallspeed_hi_y,0);
+    pp.queryarr("wallspeed_lo_z",wallspeed_lo_z,0);
+    pp.queryarr("wallspeed_hi_z",wallspeed_hi_z,0);
+    pp.query("histogram_unit",histogram_unit);
+    pp.queryarr("density_weights",density_weights,0);
+    pp.queryarr("shift_cc_to_boundary_lo",shift_cc_to_boundary_lo,0,AMREX_SPACEDIM);
+    pp.queryarr("shift_cc_to_boundary_hi",shift_cc_to_boundary_hi,0,AMREX_SPACEDIM);
+}
