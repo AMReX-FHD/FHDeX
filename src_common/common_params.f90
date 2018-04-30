@@ -1,5 +1,7 @@
 module common_params_module
 
+  use amrex_error_module
+
   implicit none
 
   integer, parameter :: MAX_SPECIES = 6
@@ -63,6 +65,9 @@ module common_params_module
   integer,           allocatable, save :: shift_cc_to_boundary_lo(:)
   integer,           allocatable, save :: shift_cc_to_boundary_hi(:)
 
+  integer, allocatable, save :: test_array(:,:,:)
+  namelist /probin_common/ test_array
+
   ! End the declarations of the ParmParse parameters
 
 contains
@@ -74,6 +79,12 @@ contains
                                       amrex_parmparse
 
     type (amrex_parmparse) :: pp
+
+    ! for reading in namelist from probin
+    integer :: un
+    logical :: lexist
+
+    integer :: i,j,k
 
     ! allocate arrays
     allocate(prob_lo(MAX_SPACEDIM))
@@ -97,6 +108,8 @@ contains
     allocate(density_weights(MAX_SPECIES))
     allocate(shift_cc_to_boundary_lo(MAX_SPACEDIM))
     allocate(shift_cc_to_boundary_hi(MAX_SPACEDIM))
+
+    allocate(test_array(3,3,3))
 
     ! default values
     prob_lo(:) = 0.d0
@@ -154,6 +167,8 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary_lo(:) = 0
     shift_cc_to_boundary_hi(:) = 0
+
+    test_array(:,:,:) = 0
 
     ! read in from inputs file    
     call amrex_parmparse_build(pp)
@@ -215,6 +230,19 @@ contains
     call pp%queryarr("shift_cc_to_boundary_hi",shift_cc_to_boundary_hi);
 
     call amrex_parmparse_destroy(pp)
+
+    ! now the multidimensional arrays in the namelist
+    ! these exist in common_params_module (fortran) only
+    ! if we end up needing these in C++ we'll have to make accessor functions
+    inquire(file = "probin_2d", exist = lexist )
+    if ( lexist ) then
+       un = 100 ! each namelist needs a different unit number
+       open(unit = un, file = "probin_2d", status = 'old', action = 'read')
+       read(unit = un, nml = probin_common)
+       close(unit = un)
+    else
+       call amrex_error("invalid probin file")
+    end if
 
   end subroutine read_common_params
 
