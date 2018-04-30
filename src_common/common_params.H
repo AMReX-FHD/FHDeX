@@ -124,4 +124,3 @@ namespace common {
     extern amrex::Vector<int>         shift_cc_to_boundary_lo;
     extern amrex::Vector<int>         shift_cc_to_boundary_hi;
 }
-

@@ -15,15 +15,16 @@ using namespace gmres;
 void main_driver()
 {
 
+    std::string probin_file;
+
+    ParmParse pp;
+    pp.query("probin_file",probin_file);
+
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
-    // read in parameters from inputs file into C++ common namespace
-    #include "common_params_queries.H"
-    #include "gmres_params_queries.H"
     // read in parameters from inputs file into common_params F90 module
-    read_common_params();
-    read_gmres_params();
+    read_common_params(probin_file.c_str(),probin_file.size());
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -108,9 +109,6 @@ void main_driver()
 
         }
     }
-
-    // deallocate common parameters to quiet valgrind
-    finalize_common_params();
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors

@@ -7,8 +7,7 @@ extern "C"
 #endif
 
     // these are interfaces to fortran subroutines
-    void read_common_params ();
-    void finalize_common_params ();
+    void read_common_params (const char* probin_file, const int length);
 
 #ifdef __cplusplus
 }
