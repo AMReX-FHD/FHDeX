@@ -1,7 +1,7 @@
 module common_params_module
 
   use iso_c_binding, only: c_char, c_null_char
-  use amrex_string_module, only: amrex_string_c_to_f
+  use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
 
   implicit none
 
@@ -182,11 +182,11 @@ contains
                                      cfl_in, &
                                      max_step_in, &
                                      plot_int_in, &
-!                                     plot_base_name_in, &
-!                                     plot_base_name_len, &
+                                     plot_base_name_in, &
+                                     plot_base_name_len, &
                                      chk_int_in, &
-!                                     chk_base_name_in, &
-!                                     chk_base_name_len, &
+                                     chk_base_name_in, &
+                                     chk_base_name_len, &
                                      prob_type_in, &
                                      restart_in, &
                                      print_int_in, &
@@ -236,11 +236,11 @@ contains
     double precision,       intent(inout) :: cfl_in
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
-!    integer               , value         :: plot_base_name_len
-!    character(kind=c_char), intent(inout) :: plot_base_name_in(plot_base_name_len)
+    integer               , value         :: plot_base_name_len
+    character(kind=c_char), intent(inout) :: plot_base_name_in(plot_base_name_len)
     integer,                intent(inout) :: chk_int_in
-!    integer               , value         :: chk_base_name_len
-!    character(kind=c_char), intent(inout) :: chk_base_name_in(chk_base_name_len)
+    integer               , value         :: chk_base_name_len
+    character(kind=c_char), intent(inout) :: chk_base_name_in(chk_base_name_len)
     integer,                intent(inout) :: prob_type_in
     integer,                intent(inout) :: restart_in
     integer,                intent(inout) :: print_int_in
@@ -289,9 +289,9 @@ contains
     cfl_in = cfl
     max_step_in = max_step
     plot_int_in = plot_int
-!    plot_base_name_in = plot_base_name
+    plot_base_name_in = amrex_string_f_to_c(plot_base_name)
     chk_int_in = chk_int
-!    chk_base_name_in = chk_base_name
+    chk_base_name_in = amrex_string_f_to_c(chk_base_name)
     prob_type_in = prob_type
     restart_in = restart
     print_int_in = print_int

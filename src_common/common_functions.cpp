@@ -10,6 +10,8 @@ void set_common_params() {
     prob_hi.resize(AMREX_SPACEDIM);
     n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
+    plot_base_name.resize(128);
+    chk_base_name.resize(128);
     grav.resize(AMREX_SPACEDIM);
     molmass.resize(MAX_SPECIES);
     rhobar.resize(MAX_SPECIES);
@@ -29,9 +31,9 @@ void set_common_params() {
                             &cfl,
                             &max_step,
                             &plot_int,
-//                            plot_base_name.c_str(), plot_base_name.size()+1,
+                            plot_base_name.c_str(), plot_base_name.size()+1,
                             &chk_int,
-//                            chk_base_name.c_str(), chk_base_name.size()+1,
+                            chk_base_name.c_str(), chk_base_name.size()+1,
                             &prob_type,
                             &restart,
                             &print_int,
@@ -71,6 +73,5 @@ void set_common_params() {
                             &histogram_unit,
                             density_weights.dataPtr(),
                             shift_cc_to_boundary.dataPtr());
-
 
 }
