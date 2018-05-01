@@ -2,14 +2,13 @@ module common_params_module
 
   implicit none
 
-  integer, parameter :: MAX_SPACEDIM = 3
-  integer, parameter :: MAX_SPECIES = 6
+  integer, parameter :: MAX_SPECIES = 10
   integer, parameter :: LOHI = 2
 
-  double precision,   save :: prob_lo(MAX_SPACEDIM)
-  double precision,   save :: prob_hi(MAX_SPACEDIM)
-  integer,            save :: n_cells(MAX_SPACEDIM)
-  integer,            save :: max_grid_size(MAX_SPACEDIM)
+  double precision,   save :: prob_lo(AMREX_SPACEDIM)
+  double precision,   save :: prob_hi(AMREX_SPACEDIM)
+  integer,            save :: n_cells(AMREX_SPACEDIM)
+  integer,            save :: max_grid_size(AMREX_SPACEDIM)
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
   integer,            save :: max_step
@@ -21,7 +20,7 @@ module common_params_module
   integer,            save :: restart
   integer,            save :: print_int
   integer,            save :: project_eos_int
-  double precision,   save :: grav(MAX_SPACEDIM)
+  double precision,   save :: grav(AMREX_SPACEDIM)
   integer,            save :: nspecies
   double precision,   save :: molmass(MAX_SPECIES)
   double precision,   save :: rhobar(MAX_SPECIES)
@@ -49,13 +48,13 @@ module common_params_module
   double precision,   save :: smoothing_width
   double precision,   save :: initial_variance_mom
   double precision,   save :: initial_variance_mass
-  integer,            save :: bc_lo(MAX_SPACEDIM)
-  integer,            save :: bc_hi(MAX_SPACEDIM)
-  double precision,   save :: wallspeed_lo(MAX_SPACEDIM-1,MAX_SPACEDIM)
-  double precision,   save :: wallspeed_hi(MAX_SPACEDIM-1,MAX_SPACEDIM)
+  integer,            save :: bc_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_hi(AMREX_SPACEDIM)
+  double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+  double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
-  integer,            save :: shift_cc_to_boundary(MAX_SPACEDIM,LOHI)
+  integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
   
   namelist /probin_common/ prob_lo
   namelist /probin_common/ prob_hi
@@ -110,6 +109,7 @@ module common_params_module
 
 contains
 
+  ! read in fortran namelists into common_params_module
   subroutine read_common_params(probin_file,length) bind(C, name="read_common_params")
 
     use iso_c_binding, only: c_char, c_null_char
@@ -117,9 +117,6 @@ contains
 
     integer               , value         :: length
     character(kind=c_char), intent(in   ) :: probin_file(length)
-
-    integer :: i
-    character(len=length) :: probin_file_f
 
     ! default values
     prob_lo(:) = 0.d0
@@ -173,16 +170,22 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
-    ! convert c string to a fortran string
-    do i=1,length
-       if (probin_file(i) == c_null_char) exit
-       probin_file_f(i:i) = probin_file(i)
-    end do
-
-    open(unit=100, file=probin_file_f, status='old', action='read')
+    open(unit=100, file=amrex_string_c_to_f(probin_file), status='old', action='read')
     read(unit=100, nml=probin_common)
     close(unit=100)
 
   end subroutine read_common_params
+
+  ! copy contents of common_params_module to C++ common namespace
+  subroutine copy_common_params_to_c(prob_lo_in, prob_hi_in) &
+       bind(C, name="copy_common_params_to_c")
+
+    double precision, intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
+    double precision, intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
+
+    prob_lo_in = prob_lo
+    prob_hi_in = prob_hi
+
+  end subroutine copy_common_params_to_c 
 
 end module common_params_module

@@ -97,13 +97,8 @@ namespace common {
     // wallspeed_lo/hi_x - yvel,zvel
     // wallspeed_lo/hi_y - xvel,zvel
     // wallspeed_lo/hi_z - xvel,yvel
-    extern amrex::Vector<amrex::Real> wallspeed_lo_x;
-    extern amrex::Vector<amrex::Real> wallspeed_hi_x;
-    extern amrex::Vector<amrex::Real> wallspeed_lo_y;
-    extern amrex::Vector<amrex::Real> wallspeed_hi_y;
-    extern amrex::Vector<amrex::Real> wallspeed_lo_z;
-    extern amrex::Vector<amrex::Real> wallspeed_hi_z;
-
+    extern amrex::Vector<amrex::Real> wallspeed_lo;
+    extern amrex::Vector<amrex::Real> wallspeed_hi;
 
     // Hydrogrid analysis (not available yet)
 /*
@@ -121,6 +116,6 @@ namespace common {
     extern int                        histogram_unit;
     extern amrex::Vector<amrex::Real> density_weights;
 
-    extern amrex::Vector<int>         shift_cc_to_boundary_lo;
-    extern amrex::Vector<int>         shift_cc_to_boundary_hi;
+    extern amrex::Vector<int>         shift_cc_to_boundary;
 }
+

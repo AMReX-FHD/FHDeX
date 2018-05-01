@@ -1,7 +1,7 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
 #include "common_params.H"
-#include "common_params_defaults.H"
+#include "common_params_declarations.H"
 
 #include "gmres_functions_F.H"
 #include "gmres_params.H"
@@ -24,7 +24,11 @@ void main_driver()
     Real strt_time = ParallelDescriptor::second();
 
     // read in parameters from inputs file into common_params F90 module
-    read_common_params(probin_file.c_str(),probin_file.size());
+    // we use "+1" because of amrex_string_c_to_f expects a null char termination
+    read_common_params(probin_file.c_str(),probin_file.size()+1);
+
+    // copy contents of common_params_module to C++ common namespace
+    set_common_params();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
