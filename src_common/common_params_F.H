@@ -1,5 +1,5 @@
-#ifndef _common_functions_F_H_
-#define _common_functions_F_H_
+#ifndef _common_params_F_H_
+#define _common_params_F_H_
 
 #ifdef __cplusplus
 extern "C" 
@@ -7,10 +7,6 @@ extern "C"
 #endif
 
     // these are interfaces to fortran subroutines
-
-    //////////////////////
-    // in common_params.F90
-
     // read in fortran namelists into common_params_module
     void read_common_params (const char* inputs_file, const int length);
 
@@ -39,13 +35,6 @@ extern "C"
                                   amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
                                   int* histogram_unit, amrex::Real* density_weights,
                                   int* shift_cc_to_boundary);
-    //////////////////////
-
-    //////////////////////
-    // in common_functions.F90
-
-
-    //////////////////////
 
 #ifdef __cplusplus
 }

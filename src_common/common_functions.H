@@ -11,8 +11,6 @@ using namespace amrex;
 #define MAX_SPECIES 10
 #define LOHI 2
 
-void main_driver (const char* argv);
-
 // copy contents of common_params_module to C++ common namespace
 void set_common_params();
 

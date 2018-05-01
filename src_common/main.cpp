@@ -1,4 +1,7 @@
-#include "common_functions.H"
+#include <AMReX.H>
+
+// function declaration
+void main_driver (const char* argv);
 
 int main (int argc, char* argv[])
 {
