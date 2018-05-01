@@ -113,10 +113,10 @@ module common_params_module
 contains
 
   ! read in fortran namelists into common_params_module
-  subroutine read_common_params(probin_file,length) bind(C, name="read_common_params")
+  subroutine read_common_params(inputs_file,length) bind(C, name="read_common_params")
 
     integer               , value         :: length
-    character(kind=c_char), intent(in   ) :: probin_file(length)
+    character(kind=c_char), intent(in   ) :: inputs_file(length)
 
     ! default values
     prob_lo(:) = 0.d0
@@ -170,7 +170,7 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
-    open(unit=100, file=amrex_string_c_to_f(probin_file), status='old', action='read')
+    open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=probin_common)
     close(unit=100)
 

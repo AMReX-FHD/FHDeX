@@ -12,20 +12,18 @@
 using namespace common;
 using namespace gmres;
 
-void main_driver()
+// argv contains the name of the inputs file entered at the command line
+void main_driver(const char* argv)
 {
-
-    std::string probin_file;
-
-    ParmParse pp;
-    pp.query("probin_file",probin_file);
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
+    std::string inputs_file = argv;
+
     // read in parameters from inputs file into common_params F90 module
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_params(probin_file.c_str(),probin_file.size()+1);
+    read_common_params(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of common_params_module to C++ common namespace
     set_common_params();
