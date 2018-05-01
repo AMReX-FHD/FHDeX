@@ -26,7 +26,7 @@
   Runiv = 8.314462175e7
   algorithm_type = 0
   barodiffusion_type = 0
-  use_bl_rng = false
+  use_bl_rng = 0
   seed = 1
   seed_momentum = 1
   seed_diffusion = 1

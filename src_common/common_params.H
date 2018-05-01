@@ -37,7 +37,7 @@ namespace common {
     // Algorithm control / selection
     extern int                        algorithm_type;
     extern int                        barodiffusion_type;
-    extern bool                       use_bl_rng;
+    extern int                        use_bl_rng;
 
     // random number seed (for HydroGrid RNGs)
     // 0        = unpredictable seed based on clock

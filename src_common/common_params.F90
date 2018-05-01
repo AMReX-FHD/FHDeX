@@ -1,5 +1,8 @@
 module common_params_module
 
+  use iso_c_binding, only: c_char, c_null_char
+  use amrex_string_module, only: amrex_string_c_to_f
+
   implicit none
 
   integer, parameter :: MAX_SPECIES = 10
@@ -31,7 +34,7 @@ module common_params_module
   double precision,   save :: Runiv
   integer,            save :: algorithm_type
   integer,            save :: barodiffusion_type
-  logical,            save :: use_bl_rng
+  integer,            save :: use_bl_rng
   integer,            save :: seed
   integer,            save :: seed_momentum
   integer,            save :: seed_diffusion
@@ -112,9 +115,6 @@ contains
   ! read in fortran namelists into common_params_module
   subroutine read_common_params(probin_file,length) bind(C, name="read_common_params")
 
-    use iso_c_binding, only: c_char, c_null_char
-    use amrex_string_module, only: amrex_string_c_to_f
-
     integer               , value         :: length
     character(kind=c_char), intent(in   ) :: probin_file(length)
 
@@ -145,7 +145,7 @@ contains
     Runiv = 8.314462175d7
     algorithm_type = 0
     barodiffusion_type = 0
-    use_bl_rng = .false.
+    use_bl_rng = 0
     seed = 1
     seed_momentum = 1
     seed_diffusion = 1
@@ -177,14 +177,160 @@ contains
   end subroutine read_common_params
 
   ! copy contents of common_params_module to C++ common namespace
-  subroutine copy_common_params_to_c(prob_lo_in, prob_hi_in) &
-       bind(C, name="copy_common_params_to_c")
+  subroutine copy_common_params_to_c(prob_lo_in, prob_hi_in, n_cells_in, max_grid_size_in, &
+                                     fixed_dt_in, &
+                                     cfl_in, &
+                                     max_step_in, &
+                                     plot_int_in, &
+!                                     plot_base_name_in, &
+!                                     plot_base_name_len, &
+                                     chk_int_in, &
+!                                     chk_base_name_in, &
+!                                     chk_base_name_len, &
+                                     prob_type_in, &
+                                     restart_in, &
+                                     print_int_in, &
+                                     project_eos_int_in, &
+                                     grav_in, &
+                                     nspecies_in, &
+                                     molmass_in, &
+                                     rhobar_in, &
+                                     rho0_in, &
+                                     variance_coef_mom_in, &
+                                     variance_coef_mass_in, &
+                                     k_B_in, &
+                                     Runiv_in, &
+                                     algorithm_type_in, &
+                                     barodiffusion_type_in, &
+                                     use_bl_rng_in, &
+                                     seed_in, &
+                                     seed_momentum_in, &
+                                     seed_diffusion_in, &
+                                     seed_reaction_in, &
+                                     seed_init_mass_in, &
+                                     seed_init_momentum_in, &
+                                     visc_coef_in, &
+                                     visc_type_in, &
+                                     advection_type_in, &
+                                     filtering_width_in, &
+                                     stoch_stress_form_in, &
+                                     u_init_in, &
+                                     perturb_width_in, &
+                                     smoothing_width_in, &
+                                     initial_variance_mom_in, &
+                                     initial_variance_mass_in, &
+                                     bc_lo_in, &
+                                     bc_hi_in, &
+                                     wallspeed_lo_in, &
+                                     wallspeed_hi_in, &
+                                     histogram_unit_in, &
+                                     density_weights_in, &
+                                     shift_cc_to_boundary_in) &
+                                     bind(C, name="copy_common_params_to_c")
 
-    double precision, intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
-    double precision, intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: fixed_dt_in
+    double precision,       intent(inout) :: cfl_in
+    integer,                intent(inout) :: max_step_in
+    integer,                intent(inout) :: plot_int_in
+!    integer               , value         :: plot_base_name_len
+!    character(kind=c_char), intent(inout) :: plot_base_name_in(plot_base_name_len)
+    integer,                intent(inout) :: chk_int_in
+!    integer               , value         :: chk_base_name_len
+!    character(kind=c_char), intent(inout) :: chk_base_name_in(chk_base_name_len)
+    integer,                intent(inout) :: prob_type_in
+    integer,                intent(inout) :: restart_in
+    integer,                intent(inout) :: print_int_in
+    integer,                intent(inout) :: project_eos_int_in
+    double precision,       intent(inout) :: grav_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: nspecies_in
+    double precision,       intent(inout) :: molmass_in(MAX_SPECIES)
+    double precision,       intent(inout) :: rhobar_in(MAX_SPECIES)
+    double precision,       intent(inout) :: rho0_in
+    double precision,       intent(inout) :: variance_coef_mom_in
+    double precision,       intent(inout) :: variance_coef_mass_in
+    double precision,       intent(inout) :: k_B_in
+    double precision,       intent(inout) :: Runiv_in
+    integer,                intent(inout) :: algorithm_type_in
+    integer,                intent(inout) :: barodiffusion_type_in
+    integer,                intent(inout) :: use_bl_rng_in
+    integer,                intent(inout) :: seed_in
+    integer,                intent(inout) :: seed_momentum_in
+    integer,                intent(inout) :: seed_diffusion_in
+    integer,                intent(inout) :: seed_reaction_in
+    integer,                intent(inout) :: seed_init_mass_in
+    integer,                intent(inout) :: seed_init_momentum_in
+    double precision,       intent(inout) :: visc_coef_in
+    integer,                intent(inout) :: visc_type_in
+    integer,                intent(inout) :: advection_type_in
+    integer,                intent(inout) :: filtering_width_in
+    integer,                intent(inout) :: stoch_stress_form_in
+    double precision,       intent(inout) :: u_init_in(2)
+    double precision,       intent(inout) :: perturb_width_in
+    double precision,       intent(inout) :: smoothing_width_in
+    double precision,       intent(inout) :: initial_variance_mom_in
+    double precision,       intent(inout) :: initial_variance_mass_in
+    integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+    double precision,       intent(inout) :: wallspeed_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+    integer,                intent(inout) :: histogram_unit_in
+    double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
+    integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
+    n_cells_in = n_cells
+    max_grid_size_in = max_grid_size
+    fixed_dt_in = fixed_dt
+    cfl_in = cfl
+    max_step_in = max_step
+    plot_int_in = plot_int
+!    plot_base_name_in = plot_base_name
+    chk_int_in = chk_int
+!    chk_base_name_in = chk_base_name
+    prob_type_in = prob_type
+    restart_in = restart
+    print_int_in = print_int
+    project_eos_int_in = project_eos_int
+    grav_in = grav
+    nspecies_in = nspecies
+    molmass_in = molmass
+    rhobar_in = rhobar
+    rho0_in= rho0
+    variance_coef_mom_in = variance_coef_mom
+    variance_coef_mass_in = variance_coef_mass
+    k_B_in = k_B
+    Runiv_in = Runiv
+    algorithm_type_in = algorithm_type
+    barodiffusion_type_in = barodiffusion_type
+    use_bl_rng_in = use_bl_rng
+    seed_in = seed
+    seed_momentum_in = seed_momentum
+    seed_diffusion_in = seed_diffusion
+    seed_reaction_in = seed_reaction
+    seed_init_mass_in = seed_init_mass
+    seed_init_momentum_in = seed_init_momentum
+    visc_coef_in = visc_coef
+    visc_type_in = visc_type
+    advection_type_in = advection_type
+    filtering_width_in = filtering_width
+    stoch_stress_form_in = stoch_stress_form
+    u_init_in = u_init
+    perturb_width_in = perturb_width
+    smoothing_width_in = smoothing_width
+    initial_variance_mom_in = initial_variance_mom
+    initial_variance_mass_in = initial_variance_mass
+    bc_lo_in = bc_lo
+    bc_hi_in = bc_hi
+    wallspeed_lo_in = wallspeed_lo
+    wallspeed_hi_in = wallspeed_hi
+    histogram_unit_in = histogram_unit
+    density_weights_in = density_weights
+    shift_cc_to_boundary_in = shift_cc_to_boundary
 
   end subroutine copy_common_params_to_c 
 
