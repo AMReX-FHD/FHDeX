@@ -1,6 +1,6 @@
 module common_params_module
 
-  use iso_c_binding, only: c_char, c_null_char
+  use iso_c_binding, only: c_char
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
 
   implicit none
@@ -170,6 +170,7 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
+    ! read in probin_common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=probin_common)
     close(unit=100)
@@ -178,53 +179,22 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine copy_common_params_to_c(prob_lo_in, prob_hi_in, n_cells_in, max_grid_size_in, &
-                                     fixed_dt_in, &
-                                     cfl_in, &
-                                     max_step_in, &
-                                     plot_int_in, &
-                                     plot_base_name_in, &
-                                     plot_base_name_len, &
-                                     chk_int_in, &
-                                     chk_base_name_in, &
-                                     chk_base_name_len, &
-                                     prob_type_in, &
-                                     restart_in, &
-                                     print_int_in, &
-                                     project_eos_int_in, &
-                                     grav_in, &
-                                     nspecies_in, &
-                                     molmass_in, &
-                                     rhobar_in, &
-                                     rho0_in, &
-                                     variance_coef_mom_in, &
-                                     variance_coef_mass_in, &
-                                     k_B_in, &
-                                     Runiv_in, &
-                                     algorithm_type_in, &
-                                     barodiffusion_type_in, &
-                                     use_bl_rng_in, &
-                                     seed_in, &
-                                     seed_momentum_in, &
-                                     seed_diffusion_in, &
-                                     seed_reaction_in, &
-                                     seed_init_mass_in, &
-                                     seed_init_momentum_in, &
-                                     visc_coef_in, &
-                                     visc_type_in, &
-                                     advection_type_in, &
-                                     filtering_width_in, &
-                                     stoch_stress_form_in, &
-                                     u_init_in, &
-                                     perturb_width_in, &
-                                     smoothing_width_in, &
-                                     initial_variance_mom_in, &
-                                     initial_variance_mass_in, &
-                                     bc_lo_in, &
-                                     bc_hi_in, &
-                                     wallspeed_lo_in, &
-                                     wallspeed_hi_in, &
-                                     histogram_unit_in, &
-                                     density_weights_in, &
+                                     fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
+                                     plot_base_name_in, plot_base_name_len, chk_int_in, &
+                                     chk_base_name_in, chk_base_name_len, prob_type_in, &
+                                     restart_in, print_int_in, project_eos_int_in, &
+                                     grav_in, nspecies_in, molmass_in, rhobar_in, &
+                                     rho0_in, variance_coef_mom_in, variance_coef_mass_in, &
+                                     k_B_in, Runiv_in, algorithm_type_in, &
+                                     barodiffusion_type_in, use_bl_rng_in, seed_in, &
+                                     seed_momentum_in, seed_diffusion_in, seed_reaction_in, &
+                                     seed_init_mass_in, seed_init_momentum_in, &
+                                     visc_coef_in, visc_type_in, advection_type_in, &
+                                     filtering_width_in, stoch_stress_form_in, &
+                                     u_init_in, perturb_width_in, smoothing_width_in, &
+                                     initial_variance_mom_in, initial_variance_mass_in, &
+                                     bc_lo_in, bc_hi_in, wallspeed_lo_in, wallspeed_hi_in, &
+                                     histogram_unit_in, density_weights_in, &
                                      shift_cc_to_boundary_in) &
                                      bind(C, name="copy_common_params_to_c")
 
