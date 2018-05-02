@@ -1,4 +1,4 @@
-module common_params_module
+module common_namelist_module
 
   use iso_c_binding, only: c_char
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
@@ -59,61 +59,61 @@ module common_params_module
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
   
-  namelist /probin_common/ prob_lo
-  namelist /probin_common/ prob_hi
-  namelist /probin_common/ n_cells
-  namelist /probin_common/ max_grid_size
-  namelist /probin_common/ fixed_dt
-  namelist /probin_common/ cfl
-  namelist /probin_common/ max_step
-  namelist /probin_common/ plot_int
-  namelist /probin_common/ plot_base_name
-  namelist /probin_common/ chk_int
-  namelist /probin_common/ chk_base_name
-  namelist /probin_common/ prob_type
-  namelist /probin_common/ restart
-  namelist /probin_common/ print_int
-  namelist /probin_common/ project_eos_int
-  namelist /probin_common/ grav
-  namelist /probin_common/ nspecies
-  namelist /probin_common/ molmass
-  namelist /probin_common/ rhobar
-  namelist /probin_common/ rho0
-  namelist /probin_common/ variance_coef_mom
-  namelist /probin_common/ variance_coef_mass
-  namelist /probin_common/ k_B
-  namelist /probin_common/ Runiv
-  namelist /probin_common/ algorithm_type
-  namelist /probin_common/ barodiffusion_type
-  namelist /probin_common/ use_bl_rng
-  namelist /probin_common/ seed
-  namelist /probin_common/ seed_momentum
-  namelist /probin_common/ seed_diffusion
-  namelist /probin_common/ seed_reaction
-  namelist /probin_common/ seed_init_mass
-  namelist /probin_common/ seed_init_momentum
-  namelist /probin_common/ visc_coef
-  namelist /probin_common/ visc_type
-  namelist /probin_common/ advection_type
-  namelist /probin_common/ filtering_width
-  namelist /probin_common/ stoch_stress_form
-  namelist /probin_common/ u_init
-  namelist /probin_common/ perturb_width
-  namelist /probin_common/ smoothing_width
-  namelist /probin_common/ initial_variance_mom
-  namelist /probin_common/ initial_variance_mass
-  namelist /probin_common/ bc_lo
-  namelist /probin_common/ bc_hi
-  namelist /probin_common/ wallspeed_lo
-  namelist /probin_common/ wallspeed_hi
-  namelist /probin_common/ histogram_unit
-  namelist /probin_common/ density_weights
-  namelist /probin_common/ shift_cc_to_boundary
+  namelist /common/ prob_lo
+  namelist /common/ prob_hi
+  namelist /common/ n_cells
+  namelist /common/ max_grid_size
+  namelist /common/ fixed_dt
+  namelist /common/ cfl
+  namelist /common/ max_step
+  namelist /common/ plot_int
+  namelist /common/ plot_base_name
+  namelist /common/ chk_int
+  namelist /common/ chk_base_name
+  namelist /common/ prob_type
+  namelist /common/ restart
+  namelist /common/ print_int
+  namelist /common/ project_eos_int
+  namelist /common/ grav
+  namelist /common/ nspecies
+  namelist /common/ molmass
+  namelist /common/ rhobar
+  namelist /common/ rho0
+  namelist /common/ variance_coef_mom
+  namelist /common/ variance_coef_mass
+  namelist /common/ k_B
+  namelist /common/ Runiv
+  namelist /common/ algorithm_type
+  namelist /common/ barodiffusion_type
+  namelist /common/ use_bl_rng
+  namelist /common/ seed
+  namelist /common/ seed_momentum
+  namelist /common/ seed_diffusion
+  namelist /common/ seed_reaction
+  namelist /common/ seed_init_mass
+  namelist /common/ seed_init_momentum
+  namelist /common/ visc_coef
+  namelist /common/ visc_type
+  namelist /common/ advection_type
+  namelist /common/ filtering_width
+  namelist /common/ stoch_stress_form
+  namelist /common/ u_init
+  namelist /common/ perturb_width
+  namelist /common/ smoothing_width
+  namelist /common/ initial_variance_mom
+  namelist /common/ initial_variance_mass
+  namelist /common/ bc_lo
+  namelist /common/ bc_hi
+  namelist /common/ wallspeed_lo
+  namelist /common/ wallspeed_hi
+  namelist /common/ histogram_unit
+  namelist /common/ density_weights
+  namelist /common/ shift_cc_to_boundary
 
 contains
 
   ! read in fortran namelist into common_params_module
-  subroutine read_common_params(inputs_file,length) bind(C, name="read_common_params")
+  subroutine read_common_namelist(inputs_file,length) bind(C, name="read_common_namelist")
 
     integer               , value         :: length
     character(kind=c_char), intent(in   ) :: inputs_file(length)
@@ -170,33 +170,34 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
-    ! read in probin_common namelist
+    ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
-    read(unit=100, nml=probin_common)
+    read(unit=100, nml=common)
     close(unit=100)
 
-  end subroutine read_common_params
+  end subroutine read_common_namelist
 
   ! copy contents of common_params_module to C++ common namespace
-  subroutine copy_common_params_to_c(prob_lo_in, prob_hi_in, n_cells_in, max_grid_size_in, &
-                                     fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
-                                     plot_base_name_in, plot_base_name_len, chk_int_in, &
-                                     chk_base_name_in, chk_base_name_len, prob_type_in, &
-                                     restart_in, print_int_in, project_eos_int_in, &
-                                     grav_in, nspecies_in, molmass_in, rhobar_in, &
-                                     rho0_in, variance_coef_mom_in, variance_coef_mass_in, &
-                                     k_B_in, Runiv_in, algorithm_type_in, &
-                                     barodiffusion_type_in, use_bl_rng_in, seed_in, &
-                                     seed_momentum_in, seed_diffusion_in, seed_reaction_in, &
-                                     seed_init_mass_in, seed_init_momentum_in, &
-                                     visc_coef_in, visc_type_in, advection_type_in, &
-                                     filtering_width_in, stoch_stress_form_in, &
-                                     u_init_in, perturb_width_in, smoothing_width_in, &
-                                     initial_variance_mom_in, initial_variance_mass_in, &
-                                     bc_lo_in, bc_hi_in, wallspeed_lo_in, wallspeed_hi_in, &
-                                     histogram_unit_in, density_weights_in, &
-                                     shift_cc_to_boundary_in) &
-                                     bind(C, name="copy_common_params_to_c")
+  subroutine copy_common_namelist_to_c(prob_lo_in, prob_hi_in, n_cells_in, max_grid_size_in, &
+                                       fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
+                                       plot_base_name_in, plot_base_name_len, chk_int_in, &
+                                       chk_base_name_in, chk_base_name_len, prob_type_in, &
+                                       restart_in, print_int_in, project_eos_int_in, &
+                                       grav_in, nspecies_in, molmass_in, rhobar_in, &
+                                       rho0_in, variance_coef_mom_in, variance_coef_mass_in, &
+                                       k_B_in, Runiv_in, algorithm_type_in, &
+                                       barodiffusion_type_in, use_bl_rng_in, seed_in, &
+                                       seed_momentum_in, seed_diffusion_in, &
+                                       seed_reaction_in, &
+                                       seed_init_mass_in, seed_init_momentum_in, &
+                                       visc_coef_in, visc_type_in, advection_type_in, &
+                                       filtering_width_in, stoch_stress_form_in, &
+                                       u_init_in, perturb_width_in, smoothing_width_in, &
+                                       initial_variance_mom_in, initial_variance_mass_in, &
+                                       bc_lo_in, bc_hi_in, wallspeed_lo_in, wallspeed_hi_in, &
+                                       histogram_unit_in, density_weights_in, &
+                                       shift_cc_to_boundary_in) &
+                                       bind(C, name="copy_common_namelist_to_c")
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
@@ -302,6 +303,6 @@ contains
     density_weights_in = density_weights
     shift_cc_to_boundary_in = shift_cc_to_boundary
 
-  end subroutine copy_common_params_to_c 
+  end subroutine copy_common_namelist_to_c
 
-end module common_params_module
+end module common_namelist_module
