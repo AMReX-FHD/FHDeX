@@ -4,7 +4,6 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_ParmParse.H>
 
 using namespace amrex;
 
@@ -12,6 +11,6 @@ using namespace amrex;
 #define LOHI 2
 
 // copy contents of common_params_module to C++ common namespace
-void set_common_params();
+void initialize_common_namespace();
 
 #endif

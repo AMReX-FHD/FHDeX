@@ -1,8 +1,9 @@
 module gmres_params_module
 
-  implicit none
+  use iso_c_binding, only: c_char
+  use amrex_string_module, only: amrex_string_c_to_f
 
-  ! Begin the declarations of the ParmParse parameters
+  implicit none
 
   integer,          save :: precon_type
   integer,          save :: visc_schur_approx
@@ -38,20 +39,49 @@ module gmres_params_module
   integer,          save :: gmres_max_iter
   integer,          save :: gmres_min_iter
   integer,          save :: gmres_spatial_order
-
-  ! End the declarations of the ParmParse parameters
+  
+  namelist /probin_gmres/ precon_type
+  namelist /probin_gmres/ visc_schur_approx
+  namelist /probin_gmres/ p_norm_weight
+  namelist /probin_gmres/ scale_factor
+  namelist /probin_gmres/ mg_verbose
+  namelist /probin_gmres/ cg_verbose
+  namelist /probin_gmres/ mg_max_vcycles
+  namelist /probin_gmres/ mg_minwidth
+  namelist /probin_gmres/ mg_bottom_solver
+  namelist /probin_gmres/ mg_nsmooths_down
+  namelist /probin_gmres/ mg_nsmooths_up
+  namelist /probin_gmres/ mg_nsmooths_bottom
+  namelist /probin_gmres/ mg_max_bottom_nlevels
+  namelist /probin_gmres/ mg_rel_tol
+  namelist /probin_gmres/ mg_abs_tol
+  namelist /probin_gmres/ stag_mg_verbosity
+  namelist /probin_gmres/ stag_mg_max_vcycles
+  namelist /probin_gmres/ stag_mg_minwidth
+  namelist /probin_gmres/ stag_mg_bottom_solver
+  namelist /probin_gmres/ stag_mg_nsmooths_down
+  namelist /probin_gmres/ stag_mg_nsmooths_up
+  namelist /probin_gmres/ stag_mg_nsmooths_bottom
+  namelist /probin_gmres/ stag_mg_max_bottom_nlevels
+  namelist /probin_gmres/ stag_mg_omega
+  namelist /probin_gmres/ stag_mg_smoother
+  namelist /probin_gmres/ stag_mg_rel_tol
+  namelist /probin_gmres/ gmres_rel_tol
+  namelist /probin_gmres/ gmres_abs_tol
+  namelist /probin_gmres/ gmres_verbose
+  namelist /probin_gmres/ gmres_max_outer
+  namelist /probin_gmres/ gmres_max_inner
+  namelist /probin_gmres/ gmres_max_iter
+  namelist /probin_gmres/ gmres_min_iter
+  namelist /probin_gmres/ gmres_spatial_order
 
 contains
 
-  subroutine read_gmres_params() bind(C, name="read_gmres_params")
+  ! read in fortran namelist into gmres_params_module
+  subroutine read_gmres_params(inputs_file,length) bind(C, name="read_gmres_params")
 
-    use amrex_parmparse_module, only: amrex_parmparse_build, &
-                                      amrex_parmparse_destroy, &
-                                      amrex_parmparse
-
-    type (amrex_parmparse) :: pp
-
-    ! allocate arrays (if needed)
+    integer               , value         :: length
+    character(kind=c_char), intent(in   ) :: inputs_file(length)
 
     ! default values
     precon_type = 1
@@ -89,52 +119,17 @@ contains
     gmres_min_iter = 1
     gmres_spatial_order = 2
 
-    ! read in from inputs file
-    call amrex_parmparse_build(pp)
-
-    call pp%query("precon_type",precon_type);
-    call pp%query("visc_schur_approx",visc_schur_approx);
-    call pp%query("p_norm_weight",p_norm_weight);
-    call pp%query("scale_factor",scale_factor);
-    call pp%query("mg_verbose",mg_verbose);
-    call pp%query("cg_verbose",cg_verbose);             
-    call pp%query("mg_max_vcycles",mg_max_vcycles);
-    call pp%query("mg_minwidth",mg_minwidth);
-    call pp%query("mg_bottom_solver",mg_bottom_solver);
-    call pp%query("mg_nsmooths_down",mg_nsmooths_down);
-    call pp%query("mg_nsmooths_up",mg_nsmooths_up);
-    call pp%query("mg_nsmooths_bottom",mg_nsmooths_bottom);
-    call pp%query("mg_max_bottom_nlevels",mg_max_bottom_nlevels);
-    call pp%query("mg_rel_tol",mg_rel_tol);
-    call pp%query("mg_abs_tol",mg_abs_tol);
-    call pp%query("stag_mg_verbosity",stag_mg_verbosity);
-    call pp%query("stag_mg_max_vcycles",stag_mg_max_vcycles);
-    call pp%query("stag_mg_minwidth",stag_mg_minwidth);
-    call pp%query("stag_mg_bottom_solver",stag_mg_bottom_solver);
-    call pp%query("stag_mg_nsmooths_down",stag_mg_nsmooths_down);
-    call pp%query("stag_mg_nsmooths_up",stag_mg_nsmooths_up);
-    call pp%query("stag_mg_nsmooths_bottom",stag_mg_nsmooths_bottom);
-    call pp%query("stag_mg_max_bottom_nlevels",stag_mg_max_bottom_nlevels);
-    call pp%query("stag_mg_omega",stag_mg_omega);
-    call pp%query("stag_mg_smoother",stag_mg_smoother);
-    call pp%query("stag_mg_rel_tol",stag_mg_rel_tol);
-    call pp%query("gmres_rel_tol",gmres_rel_tol);
-    call pp%query("gmres_abs_tol",gmres_abs_tol);
-    call pp%query("gmres_verbose",gmres_verbose);
-    call pp%query("gmres_max_outer",gmres_max_outer);
-    call pp%query("gmres_max_inner",gmres_max_inner);
-    call pp%query("gmres_max_iter",gmres_max_iter);
-    call pp%query("gmres_min_iter",gmres_min_iter);
-    call pp%query("gmres_spatial_order",gmres_spatial_order);
-
-    call amrex_parmparse_destroy(pp)
+    ! read in probin_gmres namelist
+    open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
+    read(unit=100, nml=probin_gmres)
+    close(unit=100)
 
   end subroutine read_gmres_params
 
-  subroutine finalize_gmres_params() bind(C, name="finalize_gmres_params")
+  ! copy contents of gmres_params_module to C++ gmres namespace
+  subroutine copy_gmres_params_to_c() &
+                                     bind(C, name="copy_gmres_params_to_c")
 
-    ! deallocate parameters to quiet valgrind
-
-  end subroutine finalize_gmres_params
+  end subroutine copy_gmres_params_to_c 
 
 end module gmres_params_module

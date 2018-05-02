@@ -53,3 +53,7 @@
   shift_cc_to_boundary(2,1:2) = 0 0
 
 /
+
+&probin_gmres
+
+/

@@ -1,13 +1,15 @@
 #include "common_functions.H"
+#include "hydro_functions.H"
+
 #include "common_params_F.H"
 #include "common_params.H"
 #include "common_params_declarations.H"
 
-#include "gmres_functions_F.H"
+#include "gmres_params_F.H"
 #include "gmres_params.H"
-#include "gmres_params_defaults.H"
+#include "gmres_params_declarations.H"
 
-#include "hydro_functions.H"
+
 
 using namespace common;
 using namespace gmres;
@@ -21,12 +23,14 @@ void main_driver(const char* argv)
 
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into common_params F90 module
+    // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_params(inputs_file.c_str(),inputs_file.size()+1);
+    read_gmres_params(inputs_file.c_str(),inputs_file.size()+1);
 
-    // copy contents of common_params_module to C++ common namespace
-    set_common_params();
+    // copy contents of F90 modules to C++ namespaces
+    initialize_common_namespace();
+//    initialize_gmres_namespace();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default

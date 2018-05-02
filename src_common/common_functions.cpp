@@ -4,7 +4,7 @@
 
 using namespace common;
 
-void set_common_params() {
+void initialize_common_namespace() {
 
     prob_lo.resize(AMREX_SPACEDIM);
     prob_hi.resize(AMREX_SPACEDIM);

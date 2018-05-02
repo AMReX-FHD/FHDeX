@@ -112,7 +112,7 @@ module common_params_module
 
 contains
 
-  ! read in fortran namelists into common_params_module
+  ! read in fortran namelist into common_params_module
   subroutine read_common_params(inputs_file,length) bind(C, name="read_common_params")
 
     integer               , value         :: length

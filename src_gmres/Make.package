@@ -1,10 +1,7 @@
-CEXE_sources += main.cpp
-CEXE_sources += main_driver.cpp
+CEXE_sources   += gmres_functions.cpp
+CEXE_headers   += gmres_functions.H
 
-CEXE_headers += gmres_params.H
-CEXE_headers += gmres_params_defaults.H
-CEXE_headers += gmres_params_queries.H
-
-CEXE_headers += gmres_functions_F.H
-
+CEXE_headers   += gmres_params_F.H
+CEXE_headers   += gmres_params.H
+CEXE_headers   += gmres_params_declarations.H
 f90EXE_sources += gmres_params.f90
