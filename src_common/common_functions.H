@@ -11,6 +11,6 @@ using namespace amrex;
 #define LOHI 2
 
 // copy contents of common_params_module to C++ common namespace
-void initialize_common_namespace();
+void InitializeCommonNamespace();
 
 #endif

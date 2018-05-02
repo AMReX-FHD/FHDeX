@@ -28,8 +28,8 @@ void main_driver(const char* argv)
     read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
-    initialize_common_namespace();
-    initialize_gmres_namespace();
+    InitializeCommonNamespace();
+    InitializeGmresNamespace();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default

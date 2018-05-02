@@ -8,6 +8,6 @@
 using namespace amrex;
 
 // copy contents of gmres_params_module to C++ gmres namespace
-void initialize_gmres_namespace();
+void InitializeGmresNamespace();
 
 #endif
