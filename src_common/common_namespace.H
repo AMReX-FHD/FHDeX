@@ -36,6 +36,7 @@ namespace common {
 
     // Algorithm control / selection
     extern int                        algorithm_type;
+    extern int                        advection_type;
     extern int                        barodiffusion_type;
     extern int                        use_bl_rng;
 
@@ -63,8 +64,6 @@ namespace common {
     extern amrex::Real                visc_coef;
     extern int                        visc_type;
 
-    extern int                        advection_type;
-
     // Stochastic momentum flux controls:
     extern int                        filtering_width;
     extern int                        stoch_stress_form;
@@ -84,7 +83,7 @@ namespace common {
     // 101 = no-slip reservoir (Dir condition for normal vel; Dir velocity condition for trans vel)
     // 200 = slip wall         (Dir condition for normal vel; Dir traction condition for trans vel)
     // 201 = slip reservoir    (Dir condition for normal vel; Dir traction condition for trans vel)
-    // For a complete list see bc.f90
+    // For a complete list see ???
     extern amrex::Vector<int>         bc_lo;
     extern amrex::Vector<int>         bc_hi;
 
@@ -115,7 +114,6 @@ namespace common {
     // These are mostly used for reaction-diffusion: 
     extern int                        histogram_unit;
     extern amrex::Vector<amrex::Real> density_weights;
-
     extern amrex::Vector<int>         shift_cc_to_boundary;
 }
 
