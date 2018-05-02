@@ -7,14 +7,16 @@ extern "C"
 #endif
 
     // these are interfaces to fortran subroutines
-    // read in fortran namelists into common_params_module
+
+    // read in fortran namelist into common_params_module
     void read_common_params (const char* inputs_file, const int length);
 
     // copy contents of common_params_module to C++ common namespace
     void copy_common_params_to_c (amrex::Real* prob_lo, amrex::Real* prob_hi, int* n_cells,
                                   int* max_grid_size, amrex::Real* fixed_dt, amrex::Real* cfl,
-                                  int* max_step, int* plot_int, const char* plot_base_name,
-                                  const int plot_base_name_len, int* chk_int,
+                                  int* max_step, int* plot_int, 
+                                  const char* plot_base_name, const int plot_base_name_len, 
+                                  int* chk_int,
                                   const char* chk_base_name, const int chk_base_name_len,
                                   int* prob_type, int* restart, int* print_int,
                                   int* project_eos_int, amrex::Real* grav, int* nspecies,

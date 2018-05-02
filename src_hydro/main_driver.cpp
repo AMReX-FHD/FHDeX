@@ -1,4 +1,5 @@
 #include "common_functions.H"
+#include "gmres_functions.H"
 #include "hydro_functions.H"
 
 #include "common_params_F.H"
@@ -8,8 +9,6 @@
 #include "gmres_params_F.H"
 #include "gmres_params.H"
 #include "gmres_params_declarations.H"
-
-
 
 using namespace common;
 using namespace gmres;
@@ -30,7 +29,7 @@ void main_driver(const char* argv)
 
     // copy contents of F90 modules to C++ namespaces
     initialize_common_namespace();
-//    initialize_gmres_namespace();
+    initialize_gmres_namespace();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default

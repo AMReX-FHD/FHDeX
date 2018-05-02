@@ -127,8 +127,92 @@ contains
   end subroutine read_gmres_params
 
   ! copy contents of gmres_params_module to C++ gmres namespace
-  subroutine copy_gmres_params_to_c() &
-                                     bind(C, name="copy_gmres_params_to_c")
+  subroutine copy_gmres_params_to_c(precon_type_in, visc_schur_approx_in, p_norm_weight_in, &
+                                    scale_factor_in, mg_verbose_in, cg_verbose_in, &
+                                    mg_max_vcycles_in, mg_minwidth_in, mg_bottom_solver_in, &
+                                    mg_nsmooths_down_in, mg_nsmooths_up_in, &
+                                    mg_nsmooths_bottom_in, mg_max_bottom_nlevels_in, &
+                                    mg_rel_tol_in, mg_abs_tol_in, stag_mg_verbosity_in, &
+                                    stag_mg_max_vcycles_in, stag_mg_minwidth_in, &
+                                    stag_mg_bottom_solver_in, stag_mg_nsmooths_down_in, &
+                                    stag_mg_nsmooths_up_in, stag_mg_nsmooths_bottom_in, &
+                                    stag_mg_max_bottom_nlevels_in, stag_mg_omega_in, &
+                                    stag_mg_smoother_in, stag_mg_rel_tol_in, &
+                                    gmres_rel_tol_in, gmres_abs_tol_in, gmres_verbose_in, &
+                                    gmres_max_outer_in, gmres_max_inner_in, &
+                                    gmres_max_iter_in, gmres_min_iter_in, &
+                                    gmres_spatial_order_in) &
+                                    bind(C, name="copy_gmres_params_to_c")
+    
+    integer,          intent(inout) :: precon_type_in
+    integer,          intent(inout) :: visc_schur_approx_in
+    double precision, intent(inout) :: p_norm_weight_in
+    double precision, intent(inout) :: scale_factor_in
+    integer,          intent(inout) :: mg_verbose_in
+    integer,          intent(inout) :: cg_verbose_in
+    integer,          intent(inout) :: mg_max_vcycles_in
+    integer,          intent(inout) :: mg_minwidth_in
+    integer,          intent(inout) :: mg_bottom_solver_in
+    integer,          intent(inout) :: mg_nsmooths_down_in
+    integer,          intent(inout) :: mg_nsmooths_up_in
+    integer,          intent(inout) :: mg_nsmooths_bottom_in
+    integer,          intent(inout) :: mg_max_bottom_nlevels_in
+    double precision, intent(inout) :: mg_rel_tol_in
+    double precision, intent(inout) :: mg_abs_tol_in
+    integer,          intent(inout) :: stag_mg_verbosity_in
+    integer,          intent(inout) :: stag_mg_max_vcycles_in
+    integer,          intent(inout) :: stag_mg_minwidth_in
+    integer,          intent(inout) :: stag_mg_bottom_solver_in
+    integer,          intent(inout) :: stag_mg_nsmooths_down_in
+    integer,          intent(inout) :: stag_mg_nsmooths_up_in
+    integer,          intent(inout) :: stag_mg_nsmooths_bottom_in
+    integer,          intent(inout) :: stag_mg_max_bottom_nlevels_in
+    double precision, intent(inout) :: stag_mg_omega_in
+    integer,          intent(inout) :: stag_mg_smoother_in
+    double precision, intent(inout) :: stag_mg_rel_tol_in
+    double precision, intent(inout) :: gmres_rel_tol_in
+    double precision, intent(inout) :: gmres_abs_tol_in
+    integer,          intent(inout) :: gmres_verbose_in
+    integer,          intent(inout) :: gmres_max_outer_in
+    integer,          intent(inout) :: gmres_max_inner_in
+    integer,          intent(inout) :: gmres_max_iter_in
+    integer,          intent(inout) :: gmres_min_iter_in
+    integer,          intent(inout) :: gmres_spatial_order_in
+
+    precon_type_in = precon_type
+    visc_schur_approx_in = visc_schur_approx
+    p_norm_weight_in = p_norm_weight
+    scale_factor_in = scale_factor
+    mg_verbose_in = mg_verbose
+    cg_verbose_in = cg_verbose
+    mg_max_vcycles_in = mg_max_vcycles
+    mg_minwidth_in = mg_minwidth
+    mg_bottom_solver_in = mg_bottom_solver
+    mg_nsmooths_down_in = mg_nsmooths_down
+    mg_nsmooths_up_in = mg_nsmooths_up
+    mg_nsmooths_bottom_in = mg_nsmooths_bottom
+    mg_max_bottom_nlevels_in = mg_max_bottom_nlevels
+    mg_rel_tol_in = mg_rel_tol
+    mg_abs_tol_in = mg_abs_tol
+    stag_mg_verbosity_in = stag_mg_verbosity
+    stag_mg_max_vcycles_in = stag_mg_max_vcycles
+    stag_mg_minwidth_in = stag_mg_minwidth
+    stag_mg_bottom_solver_in = stag_mg_bottom_solver
+    stag_mg_nsmooths_down_in = stag_mg_nsmooths_down
+    stag_mg_nsmooths_up_in = stag_mg_nsmooths_up
+    stag_mg_nsmooths_bottom_in = stag_mg_nsmooths_bottom
+    stag_mg_max_bottom_nlevels_in = stag_mg_max_bottom_nlevels
+    stag_mg_omega_in = stag_mg_omega
+    stag_mg_smoother_in = stag_mg_smoother
+    stag_mg_rel_tol_in = stag_mg_rel_tol
+    gmres_rel_tol_in = gmres_rel_tol
+    gmres_abs_tol_in = gmres_abs_tol
+    gmres_verbose_in = gmres_verbose
+    gmres_max_outer_in = gmres_max_outer
+    gmres_max_inner_in = gmres_max_inner
+    gmres_max_iter_in = gmres_max_iter
+    gmres_min_iter_in = gmres_min_iter
+    gmres_spatial_order_in = gmres_spatial_order
 
   end subroutine copy_gmres_params_to_c 
 
