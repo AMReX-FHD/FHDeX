@@ -40,40 +40,69 @@ module gmres_namelist_module
   integer,          save :: gmres_min_iter
   integer,          save :: gmres_spatial_order
   
+  ! preconditioner type
+  ! 1 = projection preconditioner
+  !-1 = projection preconditioner with expensive pressure update
+  ! 2 = lower triangular preconditioner
+  !-2 = lower triangular preconditioner with negative sign
+  ! 3 = upper triangular preconditioner
+  !-3 = upper triangular preconditioner with negative sign
+  ! 4 = Block diagonal preconditioner
+  !-4 = Block diagonal preconditioner with negative sign
   namelist /gmres/ precon_type
+
+  ! use the viscosity-based BFBt Schur complement (from Georg Stadler)
   namelist /gmres/ visc_schur_approx
+
+  ! weighting of pressure when computing norms and inner products
   namelist /gmres/ p_norm_weight
+
+  ! scale theta_alpha, beta, gamma, and b_u by this, and then scale x_p by the inverse
   namelist /gmres/ scale_factor
-  namelist /gmres/ mg_verbose
-  namelist /gmres/ cg_verbose
-  namelist /gmres/ mg_max_vcycles
-  namelist /gmres/ mg_minwidth
-  namelist /gmres/ mg_bottom_solver
-  namelist /gmres/ mg_nsmooths_down
-  namelist /gmres/ mg_nsmooths_up
-  namelist /gmres/ mg_nsmooths_bottom
-  namelist /gmres/ mg_max_bottom_nlevels
-  namelist /gmres/ mg_rel_tol
-  namelist /gmres/ mg_abs_tol
-  namelist /gmres/ stag_mg_verbosity
-  namelist /gmres/ stag_mg_max_vcycles
-  namelist /gmres/ stag_mg_minwidth
-  namelist /gmres/ stag_mg_bottom_solver
-  namelist /gmres/ stag_mg_nsmooths_down
-  namelist /gmres/ stag_mg_nsmooths_up
-  namelist /gmres/ stag_mg_nsmooths_bottom
-  namelist /gmres/ stag_mg_max_bottom_nlevels
-  namelist /gmres/ stag_mg_omega
-  namelist /gmres/ stag_mg_smoother
-  namelist /gmres/ stag_mg_rel_tol
-  namelist /gmres/ gmres_rel_tol
-  namelist /gmres/ gmres_abs_tol
-  namelist /gmres/ gmres_verbose
-  namelist /gmres/ gmres_max_outer
-  namelist /gmres/ gmres_max_inner
-  namelist /gmres/ gmres_max_iter
-  namelist /gmres/ gmres_min_iter
-  namelist /gmres/ gmres_spatial_order
+
+  ! MAC projection solver parameters:
+  namelist /gmres/ mg_verbose            ! multigrid verbosity
+  namelist /gmres/ cg_verbose            ! BiCGStab (mg_bottom_solver=1) verbosity
+  namelist /gmres/ mg_max_vcycles        ! maximum number of V-cycles
+  namelist /gmres/ mg_minwidth           ! length of box at coarsest multigrid level
+  namelist /gmres/ mg_bottom_solver      ! bottom solver type
+  ! 0 = smooths only, controlled by mg_nsmooths_bottom
+  ! 1 = BiCGStab
+  ! 4 = Fancy bottom solve that coarsens down additionally
+  !     and then applies mg_nsmooths_bottom smooths
+  namelist /gmres/ mg_nsmooths_down      ! number of smooths at each level on the way down
+  namelist /gmres/ mg_nsmooths_up        ! number of smooths at each level on the way up
+  namelist /gmres/ mg_nsmooths_bottom    ! number of smooths at the bottom (only if mg_bottom_solver=0)
+  namelist /gmres/ mg_max_bottom_nlevels ! for mg_bottom_solver=4, number of additional levels of multigrid
+  namelist /gmres/ mg_rel_tol            ! rel_tol for Poisson solve
+  namelist /gmres/ mg_abs_tol            ! abs_tol for Poisson solve
+
+  ! Staggered multigrid solver parameters
+  namelist /gmres/ stag_mg_verbosity          ! verbosity
+  namelist /gmres/ stag_mg_max_vcycles        ! max number of v-cycles
+  namelist /gmres/ stag_mg_minwidth           ! length of box at coarsest multigrid level
+  namelist /gmres/ stag_mg_bottom_solver      ! bottom solver type
+  ! 0 = smooths only, controlled by mg_nsmooths_bottom
+  ! 4 = Fancy bottom solve that coarsens additionally
+  !     and then applies stag_mg_nsmooths_bottom smooths
+  namelist /gmres/ stag_mg_nsmooths_down      ! number of smooths at each level on the way down
+  namelist /gmres/ stag_mg_nsmooths_up        ! number of smooths at each level on the way up
+  namelist /gmres/ stag_mg_nsmooths_bottom    ! number of smooths at the bottom
+  namelist /gmres/ stag_mg_max_bottom_nlevels ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
+  namelist /gmres/ stag_mg_omega              ! weighted-jacobi omega coefficient
+  namelist /gmres/ stag_mg_smoother           ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
+  namelist /gmres/ stag_mg_rel_tol            ! relative tolerance stopping criteria
+
+  ! GMRES solver parameters
+  namelist /gmres/ gmres_rel_tol         ! relative tolerance stopping criteria
+  namelist /gmres/ gmres_abs_tol         ! absolute tolerance stopping criteria
+  namelist /gmres/ gmres_verbose         ! gmres verbosity; if greater than 1, more residuals will be printed out
+  namelist /gmres/ gmres_max_outer       ! max number of outer iterations
+  namelist /gmres/ gmres_max_inner       ! max number of inner iterations, or restart number
+  namelist /gmres/ gmres_max_iter        ! max number of gmres iterations
+  namelist /gmres/ gmres_min_iter        ! min number of gmres iterations
+
+  namelist /gmres/ gmres_spatial_order   ! spatial order of viscous and gradient operators in matrix "A"
 
 contains
 

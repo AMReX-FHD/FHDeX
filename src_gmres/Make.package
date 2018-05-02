@@ -1,7 +1,8 @@
 CEXE_sources   += gmres_functions.cpp
 CEXE_headers   += gmres_functions.H
+CEXE_headers   += gmres_functions_F.H
 
-CEXE_headers   += gmres_params_F.H
 CEXE_headers   += gmres_namespace.H
 CEXE_headers   += gmres_namespace_declarations.H
+
 F90EXE_sources += gmres_namelist.F90

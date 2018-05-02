@@ -33,6 +33,7 @@ module common_namelist_module
   double precision,   save :: k_B
   double precision,   save :: Runiv
   integer,            save :: algorithm_type
+  integer,            save :: advection_type
   integer,            save :: barodiffusion_type
   integer,            save :: use_bl_rng
   integer,            save :: seed
@@ -43,7 +44,6 @@ module common_namelist_module
   integer,            save :: seed_init_momentum
   double precision,   save :: visc_coef
   integer,            save :: visc_type
-  integer,            save :: advection_type
   integer,            save :: filtering_width
   integer,            save :: stoch_stress_form
   double precision,   save :: u_init(2)
@@ -59,12 +59,17 @@ module common_namelist_module
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
   
-  namelist /common/ prob_lo
-  namelist /common/ prob_hi
-  namelist /common/ n_cells
-  namelist /common/ max_grid_size
+  ! Problem specification
+  namelist /common/ prob_lo       ! physical lo coordinate
+  namelist /common/ prob_hi       ! physical hi coordinate
+  namelist /common/ n_cells       ! number of cells in domain
+  namelist /common/ max_grid_size ! max number of cells in a box
+
+  ! Time-step control
   namelist /common/ fixed_dt
   namelist /common/ cfl
+
+  ! Controls for number of steps between actions
   namelist /common/ max_step
   namelist /common/ plot_int
   namelist /common/ plot_base_name
@@ -74,38 +79,86 @@ module common_namelist_module
   namelist /common/ restart
   namelist /common/ print_int
   namelist /common/ project_eos_int
+
+  ! Physical parameters
   namelist /common/ grav
   namelist /common/ nspecies
   namelist /common/ molmass
   namelist /common/ rhobar
   namelist /common/ rho0
+
+  ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
   namelist /common/ variance_coef_mom
   namelist /common/ variance_coef_mass
   namelist /common/ k_B
   namelist /common/ Runiv
+
+  ! Algorithm control / selection
   namelist /common/ algorithm_type
+  namelist /common/ advection_type
   namelist /common/ barodiffusion_type
   namelist /common/ use_bl_rng
+
+  ! random number seed (for HydroGrid RNGs)
+  ! 0        = unpredictable seed based on clock
+  ! positive = fixed seed
   namelist /common/ seed
+
+  ! Random number seeds for each physical process for use_bl_rng=T
+  ! for positive value, the value is assigned as seed value
+  ! for 0, a positive value is randomly chosen
+  ! if -1 (only for restart), RNGs status is restored from checkpoint data
   namelist /common/ seed_momentum
   namelist /common/ seed_diffusion
   namelist /common/ seed_reaction
   namelist /common/ seed_init_mass
   namelist /common/ seed_init_momentum
+
+  ! Viscous friction L phi operator
+  ! if abs(visc_type) = 1, L = div beta grad
+  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  ! positive = assume constant coefficients
+  ! negative = assume spatially-varying coefficients
   namelist /common/ visc_coef
   namelist /common/ visc_type
-  namelist /common/ advection_type
+
+  ! Stochastic momentum flux controls:
   namelist /common/ filtering_width
   namelist /common/ stoch_stress_form
+
+  ! Initial conditions
   namelist /common/ u_init
   namelist /common/ perturb_width
   namelist /common/ smoothing_width
   namelist /common/ initial_variance_mom
   namelist /common/ initial_variance_mass
+
+  ! Boundary conditions
+  ! ----------------------
+  ! BC specifications:
+  ! -1 = periodic
+  ! 100 = no-slip wall      (Dir condition for normal vel; Dir velocity condition for trans vel)
+  ! 101 = no-slip reservoir (Dir condition for normal vel; Dir velocity condition for trans vel)
+  ! 200 = slip wall         (Dir condition for normal vel; Dir traction condition for trans vel)
+  ! 201 = slip reservoir    (Dir condition for normal vel; Dir traction condition for trans vel)
+  ! For a complete list see ???
   namelist /common/ bc_lo
   namelist /common/ bc_hi
+
+  ! Each no-slip wall may be moving with a specified tangential 
+  ! velocity along the tangential directions
+  ! In 2D:
+  ! wallspeed_lo/hi_x - yvel
+  ! wallspeed_lo/hi_y - xvel
+  ! In 3D:
+  ! wallspeed_lo/hi_x - yvel,zvel
+  ! wallspeed_lo/hi_y - xvel,zvel
+  ! wallspeed_lo/hi_z - xvel,yvel
   namelist /common/ wallspeed_lo
   namelist /common/ wallspeed_hi
+
+  ! These are mostly used for reaction-diffusion: 
   namelist /common/ histogram_unit
   namelist /common/ density_weights
   namelist /common/ shift_cc_to_boundary
@@ -144,6 +197,7 @@ contains
     k_B = 1.
     Runiv = 8.314462175d7
     algorithm_type = 0
+    advection_type = 0
     barodiffusion_type = 0
     use_bl_rng = 0
     seed = 1
@@ -154,7 +208,6 @@ contains
     seed_init_momentum = 1
     visc_coef = 1.
     visc_type = 1
-    advection_type = 0
     filtering_width = 0
     stoch_stress_form = 1
     u_init(:) = 0.d0
@@ -187,12 +240,13 @@ contains
                                          grav_in, nspecies_in, molmass_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
-                                         k_B_in, Runiv_in, algorithm_type_in, &
+                                         k_B_in, Runiv_in, algorithm_type_in, & 
+                                         advection_type_in, &
                                          barodiffusion_type_in, use_bl_rng_in, seed_in, &
                                          seed_momentum_in, seed_diffusion_in, &
                                          seed_reaction_in, &
                                          seed_init_mass_in, seed_init_momentum_in, &
-                                         visc_coef_in, visc_type_in, advection_type_in, &
+                                         visc_coef_in, visc_type_in, &
                                          filtering_width_in, stoch_stress_form_in, &
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
@@ -229,6 +283,7 @@ contains
     double precision,       intent(inout) :: k_B_in
     double precision,       intent(inout) :: Runiv_in
     integer,                intent(inout) :: algorithm_type_in
+    integer,                intent(inout) :: advection_type_in
     integer,                intent(inout) :: barodiffusion_type_in
     integer,                intent(inout) :: use_bl_rng_in
     integer,                intent(inout) :: seed_in
@@ -239,7 +294,6 @@ contains
     integer,                intent(inout) :: seed_init_momentum_in
     double precision,       intent(inout) :: visc_coef_in
     integer,                intent(inout) :: visc_type_in
-    integer,                intent(inout) :: advection_type_in
     integer,                intent(inout) :: filtering_width_in
     integer,                intent(inout) :: stoch_stress_form_in
     double precision,       intent(inout) :: u_init_in(2)
@@ -280,6 +334,7 @@ contains
     k_B_in = k_B
     Runiv_in = Runiv
     algorithm_type_in = algorithm_type
+    advection_type_in = advection_type
     barodiffusion_type_in = barodiffusion_type
     use_bl_rng_in = use_bl_rng
     seed_in = seed
@@ -290,7 +345,6 @@ contains
     seed_init_momentum_in = seed_init_momentum
     visc_coef_in = visc_coef
     visc_type_in = visc_type
-    advection_type_in = advection_type
     filtering_width_in = filtering_width
     stoch_stress_form_in = stoch_stress_form
     u_init_in = u_init
