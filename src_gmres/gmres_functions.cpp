@@ -5,7 +5,7 @@
 using namespace gmres;
 
 void InitializeGmresNamespace() {
-    
+
     initialize_gmres_namespace(&precon_type, &visc_schur_approx, &p_norm_weight, 
                                &scale_factor,
                                &mg_verbose, &cg_verbose, &mg_max_vcycles, &mg_minwidth, 
