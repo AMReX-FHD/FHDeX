@@ -6,9 +6,9 @@
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_params_F.H"
-#include "gmres_params.H"
-#include "gmres_params_declarations.H"
+#include "gmres_functions_F.H"
+#include "gmres_namespace.H"
+#include "gmres_namespace_declarations.H"
 
 using namespace common;
 using namespace gmres;
@@ -25,7 +25,7 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_params(inputs_file.c_str(),inputs_file.size()+1);
+    read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     initialize_common_namespace();

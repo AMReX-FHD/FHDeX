@@ -1,4 +1,4 @@
-&probin_common
+&common
 
   prob_lo(1:2) = 0.0 0.0
   prob_hi(1:2) = 1.0 1.0
@@ -54,6 +54,6 @@
 
 /
 
-&probin_gmres
+&gmres
 
 /

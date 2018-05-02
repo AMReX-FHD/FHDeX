@@ -1,4 +1,4 @@
-module gmres_params_module
+module gmres_namelist_module
 
   use iso_c_binding, only: c_char
   use amrex_string_module, only: amrex_string_c_to_f
@@ -40,45 +40,45 @@ module gmres_params_module
   integer,          save :: gmres_min_iter
   integer,          save :: gmres_spatial_order
   
-  namelist /probin_gmres/ precon_type
-  namelist /probin_gmres/ visc_schur_approx
-  namelist /probin_gmres/ p_norm_weight
-  namelist /probin_gmres/ scale_factor
-  namelist /probin_gmres/ mg_verbose
-  namelist /probin_gmres/ cg_verbose
-  namelist /probin_gmres/ mg_max_vcycles
-  namelist /probin_gmres/ mg_minwidth
-  namelist /probin_gmres/ mg_bottom_solver
-  namelist /probin_gmres/ mg_nsmooths_down
-  namelist /probin_gmres/ mg_nsmooths_up
-  namelist /probin_gmres/ mg_nsmooths_bottom
-  namelist /probin_gmres/ mg_max_bottom_nlevels
-  namelist /probin_gmres/ mg_rel_tol
-  namelist /probin_gmres/ mg_abs_tol
-  namelist /probin_gmres/ stag_mg_verbosity
-  namelist /probin_gmres/ stag_mg_max_vcycles
-  namelist /probin_gmres/ stag_mg_minwidth
-  namelist /probin_gmres/ stag_mg_bottom_solver
-  namelist /probin_gmres/ stag_mg_nsmooths_down
-  namelist /probin_gmres/ stag_mg_nsmooths_up
-  namelist /probin_gmres/ stag_mg_nsmooths_bottom
-  namelist /probin_gmres/ stag_mg_max_bottom_nlevels
-  namelist /probin_gmres/ stag_mg_omega
-  namelist /probin_gmres/ stag_mg_smoother
-  namelist /probin_gmres/ stag_mg_rel_tol
-  namelist /probin_gmres/ gmres_rel_tol
-  namelist /probin_gmres/ gmres_abs_tol
-  namelist /probin_gmres/ gmres_verbose
-  namelist /probin_gmres/ gmres_max_outer
-  namelist /probin_gmres/ gmres_max_inner
-  namelist /probin_gmres/ gmres_max_iter
-  namelist /probin_gmres/ gmres_min_iter
-  namelist /probin_gmres/ gmres_spatial_order
+  namelist /gmres/ precon_type
+  namelist /gmres/ visc_schur_approx
+  namelist /gmres/ p_norm_weight
+  namelist /gmres/ scale_factor
+  namelist /gmres/ mg_verbose
+  namelist /gmres/ cg_verbose
+  namelist /gmres/ mg_max_vcycles
+  namelist /gmres/ mg_minwidth
+  namelist /gmres/ mg_bottom_solver
+  namelist /gmres/ mg_nsmooths_down
+  namelist /gmres/ mg_nsmooths_up
+  namelist /gmres/ mg_nsmooths_bottom
+  namelist /gmres/ mg_max_bottom_nlevels
+  namelist /gmres/ mg_rel_tol
+  namelist /gmres/ mg_abs_tol
+  namelist /gmres/ stag_mg_verbosity
+  namelist /gmres/ stag_mg_max_vcycles
+  namelist /gmres/ stag_mg_minwidth
+  namelist /gmres/ stag_mg_bottom_solver
+  namelist /gmres/ stag_mg_nsmooths_down
+  namelist /gmres/ stag_mg_nsmooths_up
+  namelist /gmres/ stag_mg_nsmooths_bottom
+  namelist /gmres/ stag_mg_max_bottom_nlevels
+  namelist /gmres/ stag_mg_omega
+  namelist /gmres/ stag_mg_smoother
+  namelist /gmres/ stag_mg_rel_tol
+  namelist /gmres/ gmres_rel_tol
+  namelist /gmres/ gmres_abs_tol
+  namelist /gmres/ gmres_verbose
+  namelist /gmres/ gmres_max_outer
+  namelist /gmres/ gmres_max_inner
+  namelist /gmres/ gmres_max_iter
+  namelist /gmres/ gmres_min_iter
+  namelist /gmres/ gmres_spatial_order
 
 contains
 
-  ! read in fortran namelist into gmres_params_module
-  subroutine read_gmres_params(inputs_file,length) bind(C, name="read_gmres_params")
+  ! read in fortran namelist into gmres_namelist_module
+  subroutine read_gmres_namelist(inputs_file,length) bind(C, name="read_gmres_namelist")
 
     integer               , value         :: length
     character(kind=c_char), intent(in   ) :: inputs_file(length)
@@ -119,30 +119,32 @@ contains
     gmres_min_iter = 1
     gmres_spatial_order = 2
 
-    ! read in probin_gmres namelist
+    ! read in gmres namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
-    read(unit=100, nml=probin_gmres)
+    read(unit=100, nml=gmres)
     close(unit=100)
 
-  end subroutine read_gmres_params
+  end subroutine read_gmres_namelist
 
-  ! copy contents of gmres_params_module to C++ gmres namespace
-  subroutine copy_gmres_params_to_c(precon_type_in, visc_schur_approx_in, p_norm_weight_in, &
-                                    scale_factor_in, mg_verbose_in, cg_verbose_in, &
-                                    mg_max_vcycles_in, mg_minwidth_in, mg_bottom_solver_in, &
-                                    mg_nsmooths_down_in, mg_nsmooths_up_in, &
-                                    mg_nsmooths_bottom_in, mg_max_bottom_nlevels_in, &
-                                    mg_rel_tol_in, mg_abs_tol_in, stag_mg_verbosity_in, &
-                                    stag_mg_max_vcycles_in, stag_mg_minwidth_in, &
-                                    stag_mg_bottom_solver_in, stag_mg_nsmooths_down_in, &
-                                    stag_mg_nsmooths_up_in, stag_mg_nsmooths_bottom_in, &
-                                    stag_mg_max_bottom_nlevels_in, stag_mg_omega_in, &
-                                    stag_mg_smoother_in, stag_mg_rel_tol_in, &
-                                    gmres_rel_tol_in, gmres_abs_tol_in, gmres_verbose_in, &
-                                    gmres_max_outer_in, gmres_max_inner_in, &
-                                    gmres_max_iter_in, gmres_min_iter_in, &
-                                    gmres_spatial_order_in) &
-                                    bind(C, name="copy_gmres_params_to_c")
+  ! copy contents of gmres_namelist_module to C++ gmres namespace
+  subroutine copy_gmres_namelist_to_c(precon_type_in, visc_schur_approx_in, &
+                                      p_norm_weight_in, &
+                                      scale_factor_in, mg_verbose_in, cg_verbose_in, &
+                                      mg_max_vcycles_in, mg_minwidth_in, &
+                                      mg_bottom_solver_in, &
+                                      mg_nsmooths_down_in, mg_nsmooths_up_in, &
+                                      mg_nsmooths_bottom_in, mg_max_bottom_nlevels_in, &
+                                      mg_rel_tol_in, mg_abs_tol_in, stag_mg_verbosity_in, &
+                                      stag_mg_max_vcycles_in, stag_mg_minwidth_in, &
+                                      stag_mg_bottom_solver_in, stag_mg_nsmooths_down_in, &
+                                      stag_mg_nsmooths_up_in, stag_mg_nsmooths_bottom_in, &
+                                      stag_mg_max_bottom_nlevels_in, stag_mg_omega_in, &
+                                      stag_mg_smoother_in, stag_mg_rel_tol_in, &
+                                      gmres_rel_tol_in, gmres_abs_tol_in, gmres_verbose_in, &
+                                      gmres_max_outer_in, gmres_max_inner_in, &
+                                      gmres_max_iter_in, gmres_min_iter_in, &
+                                      gmres_spatial_order_in) &
+                                      bind(C, name="copy_gmres_namelist_to_c")
     
     integer,          intent(inout) :: precon_type_in
     integer,          intent(inout) :: visc_schur_approx_in
@@ -214,6 +216,6 @@ contains
     gmres_min_iter_in = gmres_min_iter
     gmres_spatial_order_in = gmres_spatial_order
 
-  end subroutine copy_gmres_params_to_c 
+  end subroutine copy_gmres_namelist_to_c 
 
-end module gmres_params_module
+end module gmres_namelist_module
