@@ -8,4 +8,4 @@ CEXE_headers   += common_functions_F.H
 CEXE_headers   += common_namespace.H
 CEXE_headers   += common_namespace_declarations.H
 
-F90EXE_sources += common_namelist.F90
+CEXE_sources += ConvertStag.cpp

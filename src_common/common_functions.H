@@ -6,10 +6,22 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ArrayLim.H>
 
 using namespace amrex;
 
 // copy contents of common_params_module to C++ common namespace
 void InitializeCommonNamespace();
+
+///////////////////////////
+// in ConvertStag.cpp
+
+void AverageFaceToCC(MultiFab& face, int face_comp,
+                     MultiFab cc, int cc_comp,
+                     int ncomp);
+
+///////////////////////////
+
+
 
 #endif

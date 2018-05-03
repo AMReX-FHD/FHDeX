@@ -61,55 +61,57 @@ void main_driver(const char* argv)
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
   
-    // How Boxes are distrubuted among MPI processes
-    DistributionMapping dm(ba);
+    // how boxes are distrubuted among MPI processes
+    DistributionMapping dmap(ba);
 
-    // we allocate two phi multifabs; one will store the old state, the other the new.
-    MultiFab phi_old(ba, dm, 1, 1);
-    MultiFab phi_new(ba, dm, 1, 1);
+    std::array< MultiFab, AMREX_SPACEDIM > umac_exact;
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    std::array< MultiFab, AMREX_SPACEDIM > umac_tmp;
+    std::array< MultiFab, AMREX_SPACEDIM > rhs_u;
+    std::array< MultiFab, AMREX_SPACEDIM > grad_pres;
+    std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
 
-    phi_old.setVal(0.);
-    phi_new.setVal(0.);
+#if (AMREX_SPACEDIM == 2)
+    std::array< MultiFab, 1 > beta_ed;
+    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 3)
+    std::array< MultiFab, 3 > beta_ed;
+    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#endif
 
-    // build the flux multifabs
-    std::array<MultiFab, AMREX_SPACEDIM> flux;
-    // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
-    AMREX_D_TERM(flux[0].define(convert(ba,nodal_flag_x),dm,1,0);,
-                 flux[1].define(convert(ba,nodal_flag_y),dm,1,0);,
-                 flux[2].define(convert(ba,nodal_flag_z),dm,1,0););
+    AMREX_D_TERM(umac_exact[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umac_exact[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umac_exact[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(umac[0]      .define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umac[1]      .define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umac[2]      .define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(umac_tmp[0]  .define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umac_tmp[1]  .define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umac_tmp[2]  .define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(rhs_u[0]     .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 rhs_u[1]     .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 rhs_u[2]     .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(grad_pres[0] .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 grad_pres[1] .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 grad_pres[2] .define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(alpha_fc[0]  .define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 alpha_fc[1]  .define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 alpha_fc[2]  .define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
-    // compute the time step
-    Real dt = fixed_dt;
+    MultiFab rhs_p     (ba, dmap, 1, 0);
+    MultiFab pres_exact(ba, dmap, 1, 1);
+    MultiFab pres      (ba, dmap, 1, 1);
+    MultiFab pres_tmp  (ba, dmap, 1, 1);
+    MultiFab alpha     (ba, dmap, 1, 1);
+    MultiFab beta      (ba, dmap, 1, 1);
+    MultiFab gamma     (ba, dmap, 1, 1);
 
-    // time = starting time in the simulation
-    Real time = 0.0;
 
-    // Write a plotfile of the initial data if plot_int > 0 (plot_int was defined in the inputs file)
-    if (plot_int > 0)
-    {
 
-    }
 
-    for (int n = 1; n <= max_step; ++n)
-    {
-        MultiFab::Copy(phi_old, phi_new, 0, 0, 1, 0);
 
-        // new_phi = old_phi + dt * (something)
-        //
-        //
-        //
-
-        time = time + dt;
-        
-        // Tell the I/O Processor to write out which step we're doing
-        amrex::Print() << "Advanced step " << n << "\n";
-
-        // Write a plotfile of the current data (plot_int was defined in the inputs file)
-        if (plot_int > 0 && n%plot_int == 0)
-        {
-
-        }
-    }
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors

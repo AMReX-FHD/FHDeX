@@ -2,6 +2,9 @@ amrex::IntVect             common::nodal_flag;
 amrex::IntVect             common::nodal_flag_x;
 amrex::IntVect             common::nodal_flag_y;
 amrex::IntVect             common::nodal_flag_z;
+amrex::IntVect             common::nodal_flag_xy;
+amrex::IntVect             common::nodal_flag_xz;
+amrex::IntVect             common::nodal_flag_yz;
 
 amrex::Vector<amrex::Real> common::prob_lo;
 amrex::Vector<amrex::Real> common::prob_hi;

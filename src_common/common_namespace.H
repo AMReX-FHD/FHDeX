@@ -5,6 +5,9 @@ namespace common {
     extern amrex::IntVect nodal_flag_x;
     extern amrex::IntVect nodal_flag_y;
     extern amrex::IntVect nodal_flag_z;
+    extern amrex::IntVect nodal_flag_xy;
+    extern amrex::IntVect nodal_flag_xz;
+    extern amrex::IntVect nodal_flag_yz;
 
     // Below are items that are read in from the common namelist
 

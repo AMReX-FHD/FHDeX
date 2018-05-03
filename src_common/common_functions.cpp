@@ -10,9 +10,10 @@ void InitializeCommonNamespace() {
         nodal_flag[i] = 1;
         nodal_flag_x[i] = int(i==0);
         nodal_flag_y[i] = int(i==1);
-#if AMREX_SPACEDIM == 3
         nodal_flag_z[i] = int(i==2);
-#endif
+        nodal_flag_xy[i] = int(i==0 || i==1);
+        nodal_flag_xz[i] = int(i==0 || i==2);
+        nodal_flag_yz[i] = int(i==1 || i==2);
     }
 
     prob_lo.resize(AMREX_SPACEDIM);
