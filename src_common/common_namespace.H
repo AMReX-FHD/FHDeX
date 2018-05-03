@@ -1,5 +1,13 @@
 namespace common {
 
+    // misc global variables
+    extern amrex::IntVect nodal_flag;
+    extern amrex::IntVect nodal_flag_x;
+    extern amrex::IntVect nodal_flag_y;
+    extern amrex::IntVect nodal_flag_z;
+
+    // Below are items that are read in from the common namelist
+
     // Problem specification
     extern amrex::Vector<amrex::Real> prob_lo;       // physical lo coordinate
     extern amrex::Vector<amrex::Real> prob_hi;       // physical hi coordinate

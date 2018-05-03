@@ -73,12 +73,10 @@ void main_driver(const char* argv)
 
     // build the flux multifabs
     std::array<MultiFab, AMREX_SPACEDIM> flux;
-    for (int dir=0; dir<AMREX_SPACEDIM; ++dir) {
-        // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
-        BoxArray edge_ba = ba;
-        edge_ba.surroundingNodes(dir);
-        flux[dir].define(edge_ba, dm, 1, 0);
-    }
+    // flux(dir) has one component, zero ghost cells, and is nodal in direction dir
+    AMREX_D_TERM(flux[0].define(convert(ba,nodal_flag_x),dm,1,0);,
+                 flux[1].define(convert(ba,nodal_flag_y),dm,1,0);,
+                 flux[2].define(convert(ba,nodal_flag_z),dm,1,0););
 
     // compute the time step
     Real dt = fixed_dt;

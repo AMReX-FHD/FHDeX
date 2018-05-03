@@ -6,6 +6,15 @@ using namespace common;
 
 void InitializeCommonNamespace() {
 
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        nodal_flag[i] = 1;
+        nodal_flag_x[i] = int(i==0);
+        nodal_flag_y[i] = int(i==1);
+#if AMREX_SPACEDIM == 3
+        nodal_flag_z[i] = int(i==2);
+#endif
+    }
+
     prob_lo.resize(AMREX_SPACEDIM);
     prob_hi.resize(AMREX_SPACEDIM);
     n_cells.resize(AMREX_SPACEDIM);
