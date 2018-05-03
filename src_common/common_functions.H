@@ -16,9 +16,14 @@ void InitializeCommonNamespace();
 ///////////////////////////
 // in ConvertStag.cpp
 
-void AverageFaceToCC(MultiFab& face, int face_comp,
+void AverageFaceToCC(const MultiFab& face, int face_comp,
                      MultiFab cc, int cc_comp,
                      int ncomp);
+
+void AverageFaceToCC(const MultiFab& cc, int cc_comp,
+                     std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
+                     int ncomp);
+
 
 ///////////////////////////
 

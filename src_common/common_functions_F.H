@@ -56,6 +56,19 @@ extern "C"
                             const int* face_comp, const int* cc_comp, const int* ncomp,
                             const int* av_dim);
 
+    void average_cc_to_face(const int* lo, const int* hi,
+                            const amrex::Real* cc, 
+                            const int* c_lo, const int* c_hi, const int* nc_c,
+                            amrex::Real* facex, 
+                            const int* x_lo, const int* x_hi, const int* nc_x,
+                            amrex::Real* facey, 
+                            const int* y_lo, const int* y_hi, const int* nc_y,
+#if (AMREX_SPACEDIM == 3)
+                            amrex::Real* facez, 
+                            const int* z_lo, const int* z_hi, const int* nc_z,
+#endif
+                            const int* cc_comp, const int* face_comp, const int* ncomp);
+
 ///////////////////////////
 
 #ifdef __cplusplus
