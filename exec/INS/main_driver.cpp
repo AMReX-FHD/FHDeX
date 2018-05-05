@@ -66,29 +66,36 @@ void main_driver(const char* argv)
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
+    // total density
+    MultiFab rhotot(ba, dmap, 1, 1);
+
+    // set density to 1
+    rhotot.setVal(1.);
+
+    // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
-    MultiFab rhotot(ba, dmap, 1, 1);
-
+    // replace this routine with a function that sets the initial velocity
     AMREX_D_TERM(umac[0].setVal(0.);,
                  umac[1].setVal(0.);,
                  umac[2].setVal(0.););
-
-    rhotot.setVal(0.);
-
-    // write a routine to initialize data in umac and rhotot
-
-
-
 
     int step = 0;
     Real time = 0.;
 
     // write out rhotot and umac to a plotfile
     WritePlotFile(step,time,geom,rhotot,umac);
+
+    // write a loop here to advance the solution in time
+
+
+
+
+
+
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
