@@ -1,3 +1,5 @@
+CEXE_sources   += StagMGSolver.cpp
+
 CEXE_sources   += gmres_functions.cpp
 CEXE_headers   += gmres_functions.H
 CEXE_headers   += gmres_functions_F.H
