@@ -17,12 +17,12 @@ void InitializeGmresNamespace();
 // alpha_fc, phi_fc, and rhs_fc are face-centered
 // beta_ed is nodal (2d) or edge-centered (3d)
 // phi_fc must come in initialized to some value, preferably a reasonable guess
-void StagMGSolver(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+void StagMGSolver(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const amrex::MultiFab& beta_cc,
 #if (AMREX_SPACEDIM == 2)
-                  const std::array<amrex::MultiFab, 1>& beta_ed,
+                  const std::array< amrex::MultiFab, 1 >& beta_ed,
 #elif (AMREX_SPACEDIM == 3)
-                  const std::array<amrex::MultiFab, 3>& beta_ed,
+                  const std::array< amrex::MultiFab, 3 >& beta_ed,
 #endif
                   const amrex::MultiFab& gamma_cc,
                   const amrex::Real& theta,
@@ -31,5 +31,13 @@ void StagMGSolver(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
 // compute the number of multigrid levels assuming minwidth is the length of the
 // smallest dimension of the smallest grid at the coarsest multigrid level
 int ComputeNlevsMG(const amrex::BoxArray& ba);
+
+void CCRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
+
+void StagRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
+
+void EdgeRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
+
+void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
 
 #endif
