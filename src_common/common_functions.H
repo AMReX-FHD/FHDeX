@@ -17,7 +17,7 @@ void InitializeCommonNamespace();
 // in ConvertStag.cpp
 
 void AverageFaceToCC(const MultiFab& face, int face_comp,
-                     MultiFab cc, int cc_comp,
+                     MultiFab& cc, int cc_comp,
                      int ncomp);
 
 void AverageFaceToCC(const MultiFab& cc, int cc_comp,

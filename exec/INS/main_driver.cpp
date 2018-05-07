@@ -78,10 +78,11 @@ void main_driver(const char* argv)
                  umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
-    // replace this routine with a function that sets the initial velocity
-    AMREX_D_TERM(umac[0].setVal(0.);,
-                 umac[1].setVal(0.);,
-                 umac[2].setVal(0.););
+    // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
+    // ***SETTING THESE TO DUMMY VALUES FOR NOW***
+    AMREX_D_TERM(umac[0].setVal(111.);,
+                 umac[1].setVal(222.);,
+                 umac[2].setVal(333.););
 
     int step = 0;
     Real time = 0.;

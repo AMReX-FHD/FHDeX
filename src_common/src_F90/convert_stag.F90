@@ -16,8 +16,8 @@ contains
     integer         , intent(in   ) :: lo(3), hi(3)
     integer         , intent(in   ) :: f_lo(3), f_hi(3), nc_f
     integer         , intent(in   ) :: c_lo(3), c_hi(3), nc_c
-    double precision, intent(in   ) :: face(f_lo(1):f_hi(1),f_lo(2):f_hi(2),f_lo(3):f_hi(3),nc_f)
-    double precision, intent(inout) ::   cc(c_lo(1):c_hi(1),c_lo(2):c_hi(2),c_lo(3):c_hi(3),nc_c)
+    double precision, intent(in   ) :: face(f_lo(1):f_hi(1),f_lo(2):f_hi(2),f_lo(3):f_hi(3),0:nc_f-1)
+    double precision, intent(inout) ::   cc(c_lo(1):c_hi(1),c_lo(2):c_hi(2),c_lo(3):c_hi(3),0:nc_c-1)
     integer         , intent(in   ) :: face_comp, cc_comp, ncomp, av_dim
 
     ! local
@@ -31,11 +31,11 @@ contains
        do j=lo(2),hi(2)
        do i=lo(1),hi(1)
           select case (av_dim)
-          case (1)
+          case (0)
              cc(i,j,k,c_comp) = 0.5d0*(face(i+1,j,k,f_comp)+face(i,j,k,f_comp))
-          case (2)
+          case (1)
              cc(i,j,k,c_comp) = 0.5d0*(face(i,j+1,k,f_comp)+face(i,j,k,f_comp))
-          case (3)
+          case (2)
              cc(i,j,k,c_comp) = 0.5d0*(face(i,j,k+1,f_comp)+face(i,j,k,f_comp))
           case default
              call amrex_error("invalid av_dim in average_face_to_cc")
@@ -64,11 +64,11 @@ contains
 #if (AMREX_SPACEDIM == 3)
     integer         , intent(in   ) :: z_lo(3), z_hi(3), nc_z
 #endif
-    double precision, intent(in   ) ::    cc(c_lo(1):c_hi(1),c_lo(2):c_hi(2),c_lo(3):c_hi(3),nc_c)
-    double precision, intent(inout) :: facex(x_lo(1):x_hi(1),x_lo(2):x_hi(2),x_lo(3):x_hi(3),nc_x)
-    double precision, intent(inout) :: facey(y_lo(1):y_hi(1),y_lo(2):y_hi(2),y_lo(3):y_hi(3),nc_y)
+    double precision, intent(in   ) ::    cc(c_lo(1):c_hi(1),c_lo(2):c_hi(2),c_lo(3):c_hi(3),0:nc_c-1)
+    double precision, intent(inout) :: facex(x_lo(1):x_hi(1),x_lo(2):x_hi(2),x_lo(3):x_hi(3),0:nc_x-1)
+    double precision, intent(inout) :: facey(y_lo(1):y_hi(1),y_lo(2):y_hi(2),y_lo(3):y_hi(3),0:nc_y-1)
 #if (AMREX_SPACEDIM == 3)
-    double precision, intent(inout) :: facez(z_lo(1):z_hi(1),z_lo(2):z_hi(2),z_lo(3):z_hi(3),nc_z)
+    double precision, intent(inout) :: facez(z_lo(1):z_hi(1),z_lo(2):z_hi(2),z_lo(3):z_hi(3),0:nc_z-1)
 #endif
     integer         , intent(in   ) :: cc_comp, face_comp, ncomp
 
