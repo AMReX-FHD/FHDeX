@@ -1,10 +1,13 @@
 #include "gmres_functions.H"
-#include "common_namespace.H"
+#include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 
+#include "common_functions.H"
+#include "common_namespace.H"
+
 using namespace amrex;
-using namespace common;
 using namespace gmres;
+using namespace common;
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Jacobi relaxation
 // if abs(visc_type) = 1, L = div beta grad
@@ -183,20 +186,21 @@ int ComputeNlevsMG(const BoxArray& ba) {
 
 void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 {
-
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
         const Box& validBox = mfi.validbox();
 
-
+        cc_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                       BL_TO_FORTRAN_3D(phi_c[mfi]),
+                       BL_TO_FORTRAN_3D(phi_f[mfi]));
     }
-
 }
 
 void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
-                     const std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
+                     const std::array< MultiFab, AMREX_SPACEDIM >& phi_f,
+                     int simple_stencil)
 {
 
     // loop over boxes (note we are not passing in a cell-centered MultiFab)

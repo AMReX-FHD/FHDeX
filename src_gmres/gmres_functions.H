@@ -35,7 +35,8 @@ int ComputeNlevsMG(const amrex::BoxArray& ba);
 void CCRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
 
 void StagRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
-                     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f);
+                     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f,
+                     int simple_stencil=0);
 
 void EdgeRestriction(std::array< amrex::MultiFab, 3 >& phi_c, 
                       const std::array< amrex::MultiFab, 3 >& phi_f);
