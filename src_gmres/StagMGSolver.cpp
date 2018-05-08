@@ -195,17 +195,52 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 
 }
 
-void StagRestriction(MultiFab& phi_c, const MultiFab& phi_f)
+void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
+                     const std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
 {
 
+    // loop over boxes (note we are not passing in a cell-centered MultiFab)
+    for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
+
+        // Get the index space of the valid region
+        // there are no cell-centered MultiFabs so use this to get
+        // a cell-centered box
+        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+
+
+
+    }
 }
 
-void EdgeRestriction(MultiFab& phi_c, const MultiFab& phi_f)
+void EdgeRestriction(std::array< MultiFab, 3 >& phi_c, 
+                      const std::array< MultiFab, 3 >& phi_f)
 {
+    if (AMREX_SPACEDIM != 3) {
+        Abort("Edge restriction can only be called for 3D!");
+    }
 
+    // loop over boxes (note we are not passing in a cell-centered MultiFab)
+    for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
+
+        // Get the index space of the valid region
+        // there are no cell-centered MultiFabs so use this to get
+        // a cell-centered box
+        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+
+
+
+    }
 }
 
 void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 {
+    // loop over boxes (note we are not passing in a cell-centered MultiFab)
+    for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
 
+        // Get the index space of the valid region
+        // there are no cell-centered MultiFabs so use this to get
+        // a cell-centered box
+        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+
+    }
 }
