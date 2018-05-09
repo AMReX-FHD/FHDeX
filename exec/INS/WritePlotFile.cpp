@@ -7,7 +7,8 @@ void WritePlotFile(const int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const MultiFab& rhotot,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& umac) {
+                   const std::array< MultiFab, AMREX_SPACEDIM >& umac,
+				   const MultiFab& div) {
 
     std::string plotfilename = Concatenate("plt",step,7);
 
@@ -15,7 +16,8 @@ void WritePlotFile(const int step,
     DistributionMapping dmap = rhotot.DistributionMap();
 
     // rhotot plus velocity
-    int nPlot = 1+AMREX_SPACEDIM;
+    //int nPlot = 1+AMREX_SPACEDIM;
+	int nPlot = 2+AMREX_SPACEDIM;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -32,6 +34,8 @@ void WritePlotFile(const int step,
         varNames[cnt++] = x;
     }
 
+	varNames[cnt++] = "div";
+
     // reset plotfile variable counter
     cnt = 0;
 
@@ -44,6 +48,8 @@ void WritePlotFile(const int step,
         AverageFaceToCC(umac[i],0,plotfile,cnt,1);
         cnt++;
     }
+
+    plotfile.copy(div,0,cnt,1);
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);

@@ -69,6 +69,33 @@ extern "C"
 #endif
                             const int* cc_comp, const int* face_comp, const int* ncomp);
 
+    void init_rho_2d(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+
+
+    void init_vel_2d(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
+
+    void init_vel(const int* lo, const int* hi,
+                  amrex_real* data, const int* dlo, const int* dhi,
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
+
+    void compute_div2d(const int* lo, const int* hi,
+                  amrex_real* xdata, const int* xdlo, const int* xdhi,
+                  amrex_real* ydata, const int* ydlo, const int* ydhi,
+                  amrex_real* div, const int* divlo, const int* divhi,
+                  const amrex_real* dx);
+
+    void compute_div3d(const int* lo, const int* hi,
+                  amrex_real* xdata, const int* xdlo, const int* xdhi,
+                  amrex_real* ydata, const int* ydlo, const int* ydhi,
+                  amrex_real* zdata, const int* zdlo, const int* zdhi,
+                  amrex_real* div, const int* divlo, const int* divhi,
+                  const amrex_real* dx);
+
+
 ///////////////////////////
 
 #ifdef __cplusplus

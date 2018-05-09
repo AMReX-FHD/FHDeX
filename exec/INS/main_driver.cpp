@@ -69,6 +69,9 @@ void main_driver(const char* argv)
     // total density
     MultiFab rhotot(ba, dmap, 1, 1);
 
+    // divergence
+    MultiFab div(ba, dmap, 1, 1);
+
     // set density to 1
     rhotot.setVal(1.);
 
@@ -80,22 +83,51 @@ void main_driver(const char* argv)
 
     // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
     // ***SETTING THESE TO DUMMY VALUES FOR NOW***
-    AMREX_D_TERM(umac[0].setVal(111.);,
-                 umac[1].setVal(222.);,
-                 umac[2].setVal(333.););
+    AMREX_D_TERM(umac[0].setVal(100.);,
+                 umac[1].setVal(100.);,
+                 umac[2].setVal(100.););
+
+	int dm = 0;
+	for ( MFIter mfi(rhotot); mfi.isValid(); ++mfi )
+    {
+        const Box& bx = mfi.validbox();
+
+		AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
+							BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
+            				geom.ProbLo(), geom.ProbHi() ,&dm);,
+					dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
+            			    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
+            			    geom.ProbLo(), geom.ProbHi() ,&dm);,
+					dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
+                  			BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
+                   			geom.ProbLo(), geom.ProbHi() ,&dm););
+    }
+
+	for ( MFIter mfi(div); mfi.isValid(); ++mfi )
+    {
+        const Box& bx = mfi.validbox();
+#if AMREX_SPACEDIM == 2
+		compute_div2d(BL_TO_FORTRAN_BOX(bx),
+					BL_TO_FORTRAN_ANYD(umac[0][mfi]), BL_TO_FORTRAN_ANYD(umac[1][mfi]), BL_TO_FORTRAN_ANYD(div[mfi]), 
+					geom.CellSize());
+#endif
+
+#if AMREX_SPACEDIM == 3
+		compute_div2d(BL_TO_FORTRAN_BOX(bx),
+					BL_TO_FORTRAN_ANYD(umac[0][mfi]), BL_TO_FORTRAN_ANYD(umac[1][mfi]), BL_TO_FORTRAN_ANYD(umac[2][mfi]), BL_TO_FORTRAN_ANYD(div[mfi]), 
+					geom.CellSize());
+#endif
+
+    }
+
 
     int step = 0;
     Real time = 0.;
 
     // write out rhotot and umac to a plotfile
-    WritePlotFile(step,time,geom,rhotot,umac);
+    WritePlotFile(step,time,geom,rhotot,umac,div);
 
     // write a loop here to advance the solution in time
-
-
-
-
-
 
 
     // Call the timer again and compute the maximum difference between the start time 
