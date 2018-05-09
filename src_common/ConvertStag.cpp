@@ -30,7 +30,7 @@ void AverageFaceToCC(const MultiFab& face, int face_comp,
 }
 
 
-void AverageFaceToCC(const MultiFab& cc, int cc_comp,
+void AverageCCToFace(const MultiFab& cc, int cc_comp,
                      std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
                      int ncomp)
 {

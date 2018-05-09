@@ -83,6 +83,44 @@ contains
 #if (AMREX_SPACEDIM == 2)
 
 
+
+      if (simple_stencil .eq. 1) then
+
+         ! 2 point stencils
+         do j=lo_c(2),hi_c(2)
+            do i=lo_c(1),hi_c(1)+1
+               phix_c(i,j,k) = 0.5d0*(phix_f(2*i,2*j,k) + phix_f(2*i,2*j+1,k))
+            end do
+         end do
+
+         do j=lo_c(2),hi_c(2)+1
+            do i=lo_c(1),hi_c(1)
+               phiy_c(i,j,k) = 0.5d0*(phiy_f(2*i,2*j,k) + phiy_f(2*i+1,2*j,k))
+            end do
+         end do
+
+      else
+
+         ! 6 point stencils
+         do j=lo_c(2),hi_c(2)
+            do i=lo_c(1),hi_c(1)+1
+               phix_c(i,j,k) = 0.25d0*(phix_f(2*i,2*j,k) + phix_f(2*i,2*j+1,k)) &
+                    + 0.125d0*( phix_f(2*i+1,2*j,k) + phix_f(2*i+1,2*j+1,k) &
+                    +phix_f(2*i-1,2*j,k) + phix_f(2*i-1,2*j+1,k))
+            end do
+         end do
+
+         do j=lo_c(2),hi_c(2)+1
+            do i=lo_c(1),hi_c(1)
+               phiy_c(i,j,k) = 0.25d0*(phiy_f(2*i,2*j,k) + phiy_f(2*i+1,2*j,k)) &
+                    + 0.125d0*( phiy_f(2*i,2*j+1,k) + phiy_f(2*i+1,2*j+1,k) &
+                    +phiy_f(2*i,2*j-1,k) + phiy_f(2*i+1,2*j-1,k))
+            end do
+         end do
+
+      end if
+
+
 #elif (AMREX_SPACEDIM == 3)
 
 
