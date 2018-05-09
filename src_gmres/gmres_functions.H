@@ -41,6 +41,6 @@ void FaceRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c,
 void EdgeRestriction(std::array< amrex::MultiFab, 3 >& phi_c, 
                       const std::array< amrex::MultiFab, 3 >& phi_f);
 
-void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
+void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f); 
 
 #endif
