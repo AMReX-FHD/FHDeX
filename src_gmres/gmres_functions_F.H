@@ -44,7 +44,7 @@ extern "C"
                          const amrex::Real* phi_f,
                          const int* f_lo, const int* f_hi);
 
-    void stag_restriction( const int* lo_c, const int* hi_c,
+    void face_restriction( const int* lo_c, const int* hi_c,
                            const amrex::Real* phi_cx,
                            const int* cx_lo, const int* cx_hi,
                            const amrex::Real* phix_f,
@@ -60,6 +60,26 @@ extern "C"
                            const int* fz_lo, const int* fz_hi,
 #endif
                            const int* simple_stencil);
+
+    void edge_restriction( const int* lo_c, const int* hi_c,
+                           const amrex::Real* phi_cxy,
+                           const int* cxy_lo, const int* cxy_hi,
+                           const amrex::Real* phixy_f,
+                           const int* fxy_lo, const int* fxy_hi,
+                           const amrex::Real* phi_cxz,
+                           const int* cxz_lo, const int* cxz_hi,
+                           const amrex::Real* phixz_f,
+                           const int* fxz_lo, const int* fxz_hi,
+                           const amrex::Real* phi_cyz,
+                           const int* cyz_lo, const int* cyz_hi,
+                           const amrex::Real* phiyz_f,
+                           const int* fyz_lo, const int* fyz_hi);
+
+    void nodal_restriction( const int* lo_c, const int* hi_c,
+                            const amrex::Real* phi_c,
+                            const int* c_lo, const int* c_hi,
+                            const amrex::Real* phi_f,
+                            const int* f_lo, const int* f_hi);
 
 
 ///////////////////////////

@@ -198,7 +198,7 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     }
 }
 
-void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
+void FaceRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
                      const std::array< MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil)
 {
@@ -211,8 +211,16 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
         // a cell-centered box
         const Box& validBox = amrex::enclosedCells(mfi.validbox());
 
-
-
+        face_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                         BL_TO_FORTRAN_3D(phi_c[0][mfi]),
+                         BL_TO_FORTRAN_3D(phi_f[0][mfi]),
+                         BL_TO_FORTRAN_3D(phi_c[1][mfi]),
+                         BL_TO_FORTRAN_3D(phi_f[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(phi_c[2][mfi]),
+                         BL_TO_FORTRAN_3D(phi_f[2][mfi]),
+#endif
+                         &simple_stencil);
     }
 }
 
@@ -231,8 +239,13 @@ void EdgeRestriction(std::array< MultiFab, 3 >& phi_c,
         // a cell-centered box
         const Box& validBox = amrex::enclosedCells(mfi.validbox());
 
-
-
+        edge_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                         BL_TO_FORTRAN_3D(phi_c[0][mfi]),
+                         BL_TO_FORTRAN_3D(phi_f[0][mfi]),
+                         BL_TO_FORTRAN_3D(phi_c[1][mfi]),
+                         BL_TO_FORTRAN_3D(phi_f[1][mfi]),
+                         BL_TO_FORTRAN_3D(phi_c[2][mfi]),
+                         BL_TO_FORTRAN_3D(phi_f[2][mfi]));
     }
 }
 
@@ -245,6 +258,10 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
         const Box& validBox = amrex::enclosedCells(mfi.validbox());
+
+        nodal_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                          BL_TO_FORTRAN_3D(phi_c[mfi]),
+                          BL_TO_FORTRAN_3D(phi_f[mfi]));
 
     }
 }
