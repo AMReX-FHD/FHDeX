@@ -24,7 +24,16 @@ void AverageCCToFace(const MultiFab& cc, int cc_comp,
                      std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
                      int ncomp);
 
+void ShiftFaceToCC(const MultiFab& face, int face_comp,
+                     MultiFab& cc, int cc_comp,
+                     int ncomp);
 
+///////////////////////////
+// in ComputeDivAndGrad.cpp
+
+void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& umac, const Geometry geom, int increment);
+
+void ComputeGrad(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& umac, const Geometry geom);
 ///////////////////////////
 
 

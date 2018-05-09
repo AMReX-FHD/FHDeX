@@ -3,8 +3,8 @@
   ! Problem specification
   prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
-  n_cells(1:2) = 64 64         ! number of cells in domain
-  max_grid_size(1:2) = 32 32   ! max number of cells in a box
+  n_cells(1:2) = 512 512         ! number of cells in domain
+  max_grid_size(1:2) = 16 16   ! max number of cells in a box
 
   ! Time-step control
   fixed_dt = 1.

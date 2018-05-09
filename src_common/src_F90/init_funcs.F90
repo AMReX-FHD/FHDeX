@@ -145,7 +145,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 					rad = DOT_PRODUCT(relpos,relpos)
 
 					if (rad .LT. partdom) then
-							vel(i,j,k) = -(partdom-rad)*relpos(1)
+							vel(i,j,k) = -exp(-rad/(partdom*partdom))*relpos(2)
 							!vel(i,j,k) = 2d0
 					else
 					vel(i,j,k) = 0
@@ -168,7 +168,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 					rad = DOT_PRODUCT(relpos,relpos)
 
 					if (rad .LT. partdom) then
-							vel(i,j,k) = (partdom-rad)*relpos(2)
+							vel(i,j,k) = -exp(-rad/(partdom*partdom))*relpos(1)
 							!vel(i,j,k) = 1d0
 					else
 					vel(i,j,k) = 0
@@ -202,68 +202,5 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 	endif
 
 end subroutine init_vel
-
-subroutine compute_div2d(lo, hi, velx, velxlo, velxhi, vely, velylo, velyhi, div, divlo, divhi, dx) bind(C, name="compute_div2d")
-
-  use amrex_fort_module, only : amrex_real
-  implicit none
-
-	integer, intent(in) :: lo(2), hi(2), velxlo(2), velxhi(2), velylo(2), velyhi(2), divlo(2), divhi(2)
-  real(amrex_real), intent(inout) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2))
-  real(amrex_real), intent(inout) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2))
-  real(amrex_real), intent(inout) :: div(divlo(1):divhi(1),divlo(2):divhi(2))
-	real(amrex_real), intent(in   ) :: dx(2) 
-
-  ! local variables
-  integer i,j
-
-	double precision vol
-	vol = dx(1)*dx(2)
-
-	!compute divergence
-  do j = lo(2), hi(2)
-  	do i = lo(1), hi(1)
-     div(i,j) = ((-velx(i,j) + velx(i+1,j))*dx(1) + (-vely(i,j) + vely(i,j+1))*dx(2))/vol
-  	end do
-  end do
-end subroutine compute_div2d
-
-subroutine compute_div3d(lo, hi, velx, velxlo, velxhi, vely, velylo, velyhi, velz, velzlo, velzhi, div, divlo, divhi, dx) bind(C, name="compute_div3d")
-
-  use amrex_fort_module, only : amrex_real
-  implicit none
-
-	integer, intent(in) :: lo(3), hi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), velzlo(3), velzhi(3), divlo(3), divhi(3)
-  real(amrex_real), intent(inout) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
-  real(amrex_real), intent(inout) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
-  real(amrex_real), intent(inout) :: velz(velzlo(1):velzhi(1),velzlo(2):velzhi(2),velzlo(3):velzhi(3))
-  real(amrex_real), intent(inout) :: div(divlo(1):divhi(1),divlo(2):divhi(2),divlo(3):divhi(3))
-	real(amrex_real), intent(in   ) :: dx(3) 
-
-  ! local variables
-  integer i,j,k
-
-	double precision vol
-	vol = dx(1)*dx(2)*dx(3)
-
-	!compute divergence
-	do k = lo(3), hi(3)
-		do j = lo(2), hi(2)
-			do i = lo(1), hi(1)
-		   div(i,j,k) = ((-velx(i,j,k) + velx(i+1,j,k))*dx(1) + (-vely(i,j,k) + vely(i,j+1,k))*dx(2) + (-velz(i,j,k) + vely(i,j,k+1))*dx(3))/vol
-			end do
-		end do
-	end do
-end subroutine compute_div3d
-
-
-
-
-
-
-
-
-
-
 
 

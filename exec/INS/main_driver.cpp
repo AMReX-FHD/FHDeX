@@ -72,6 +72,18 @@ void main_driver(const char* argv)
     // divergence
     MultiFab div(ba, dmap, 1, 1);
 
+    // potential
+    MultiFab phi(ba, dmap, 1, 1);
+
+    //Replace with proper initialiser
+    phi.setVal(100.);
+
+    // temporary placeholder for potential gradients on cell faces
+    std::array< MultiFab, AMREX_SPACEDIM > umacT;
+    AMREX_D_TERM(umacT[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacT[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacT[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
     // set density to 1
     rhotot.setVal(1.);
 
@@ -83,9 +95,9 @@ void main_driver(const char* argv)
 
     // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
     // ***SETTING THESE TO DUMMY VALUES FOR NOW***
-    AMREX_D_TERM(umac[0].setVal(100.);,
-                 umac[1].setVal(100.);,
-                 umac[2].setVal(100.););
+    //AMREX_D_TERM(umac[0].setVal(100.);,
+    //             umac[1].setVal(100.);,
+     //            umac[2].setVal(100.););
 
 	int dm = 0;
 	for ( MFIter mfi(rhotot); mfi.isValid(); ++mfi )
@@ -103,23 +115,12 @@ void main_driver(const char* argv)
                    			geom.ProbLo(), geom.ProbHi() ,&dm););
     }
 
-	for ( MFIter mfi(div); mfi.isValid(); ++mfi )
-    {
-        const Box& bx = mfi.validbox();
-#if AMREX_SPACEDIM == 2
-		compute_div2d(BL_TO_FORTRAN_BOX(bx),
-					BL_TO_FORTRAN_ANYD(umac[0][mfi]), BL_TO_FORTRAN_ANYD(umac[1][mfi]), BL_TO_FORTRAN_ANYD(div[mfi]), 
-					geom.CellSize());
-#endif
+    //Compute divergence, last arguement is flag for increment
+    
+    ComputeDiv(div,umac,geom,0);
 
-#if AMREX_SPACEDIM == 3
-		compute_div2d(BL_TO_FORTRAN_BOX(bx),
-					BL_TO_FORTRAN_ANYD(umac[0][mfi]), BL_TO_FORTRAN_ANYD(umac[1][mfi]), BL_TO_FORTRAN_ANYD(umac[2][mfi]), BL_TO_FORTRAN_ANYD(div[mfi]), 
-					geom.CellSize());
-#endif
-
-    }
-
+    //Compute gradient
+    ComputeGrad(phi,umacT,geom);
 
     int step = 0;
     Real time = 0.;

@@ -69,31 +69,44 @@ extern "C"
 #endif
                             const int* cc_comp, const int* face_comp, const int* ncomp);
 
+    void shift_face_to_cc(const int* lo, const int* hi,
+                            const amrex::Real* face, 
+                            const int* f_lo, const int* f_hi, const int* nc_f,
+                            amrex::Real* cc, 
+                            const int* c_lo, const int* c_hi, const int* nc_c,
+                            const int* face_comp, const int* cc_comp, const int* ncomp,
+                            const int* av_dim);
+
     void init_rho_2d(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
+                     amrex_real* data, const int* dlo, const int* dhi,
+                     const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi);
 
 
     void init_vel_2d(const int* lo, const int* hi,
-                  amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
+                     amrex_real* data, const int* dlo, const int* dhi,
+                     const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
 
     void init_vel(const int* lo, const int* hi,
                   amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
 
-    void compute_div2d(const int* lo, const int* hi,
-                  amrex_real* xdata, const int* xdlo, const int* xdhi,
-                  amrex_real* ydata, const int* ydlo, const int* ydhi,
-                  amrex_real* div, const int* divlo, const int* divhi,
-                  const amrex_real* dx);
+    void compute_div(const int* lo, const int* hi,
+                    amrex_real* xdata, const int* xdlo, const int* xdhi,
+                    amrex_real* ydata, const int* ydlo, const int* ydhi,
+#if (AMREX_SPACEDIM == 3)
+                    amrex_real* zdata, const int* zdlo, const int* zdhi,
+#endif
+                    amrex_real* div, const int* divlo, const int* divhi,
+                    const amrex_real* dx, int* increment);
 
-    void compute_div3d(const int* lo, const int* hi,
-                  amrex_real* xdata, const int* xdlo, const int* xdhi,
-                  amrex_real* ydata, const int* ydlo, const int* ydhi,
-                  amrex_real* zdata, const int* zdlo, const int* zdhi,
-                  amrex_real* div, const int* divlo, const int* divhi,
-                  const amrex_real* dx);
+    void compute_grad(const int* lo, const int* hi,
+                    amrex_real* xdata, const int* xdlo, const int* xdhi,
+                    amrex_real* ydata, const int* ydlo, const int* ydhi,
+#if (AMREX_SPACEDIM == 3)
+                    amrex_real* zdata, const int* zdlo, const int* zdhi,
+#endif
+                    amrex_real* div, const int* divlo, const int* divhi,
+                    const amrex_real* dx);
 
 
 ///////////////////////////
