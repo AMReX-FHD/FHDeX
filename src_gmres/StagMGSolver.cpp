@@ -132,25 +132,55 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         beta_cc_mg[n].setVal(0.);
         gamma_cc_mg[n].setVal(0.);
 
-        // cc_restriction on beta_cc_mg
-
-        // cc_restriction on gamma_cc_mg
+        // cc_restriction on beta_cc_mg and gamma_cc_mg
+        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1]);
+        CCRestriction(gamma_cc_mg[n],gamma_cc_mg[n-1]);
 
         // stag_restriction on alpha_fc_mg
+        StagRestriction(alpha_fc_mg[n],alpha_fc_mg[n-1],1);
 
-        if (AMREX_SPACEDIM == 2) {
+#if (AMREX_SPACEDIM == 2)
             // nodal_restriction on beta_ed_mg
-
-        }
-        else {
+            NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
+#elif (AMREX_SPACEDIM == 3)
             // edge_restriction on beta_ed_mg
-
-        }
+            EdgeRestriction(beta_ed_mg[n],beta_ed_mg[n-1]);
+#endif
     }
 
     /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // Now we wolve the homogeneous problem
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        
+        // initialize phi_fc_mg = phi_fc as an initial guess
+
+        // fill periodic ghost cells
+
+    }
+
+    // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
+
+
+    // compute norm of initial residual
+    // first compute Lphi
+
+
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+        // compute Lphi - rhs
+
+
+
+        // compute L0 norm of Lphi - rhs
+
+
+    }
+
+
+
 
 }
 
@@ -198,7 +228,7 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     }
 }
 
-void FaceRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
+void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
                      const std::array< MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil)
 {
@@ -211,7 +241,7 @@ void FaceRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
         // a cell-centered box
         const Box& validBox = amrex::enclosedCells(mfi.validbox());
 
-        face_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+        stag_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
                          BL_TO_FORTRAN_3D(phi_c[0][mfi]),
                          BL_TO_FORTRAN_3D(phi_f[0][mfi]),
                          BL_TO_FORTRAN_3D(phi_c[1][mfi]),
@@ -224,8 +254,25 @@ void FaceRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
     }
 }
 
+void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
+{
+    // loop over boxes (note we are not passing in a cell-centered MultiFab)
+    for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
+
+        // Get the index space of the valid region
+        // there are no cell-centered MultiFabs so use this to get
+        // a cell-centered box
+        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+
+        nodal_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                          BL_TO_FORTRAN_3D(phi_c[mfi]),
+                          BL_TO_FORTRAN_3D(phi_f[mfi]));
+
+    }
+}
+
 void EdgeRestriction(std::array< MultiFab, 3 >& phi_c, 
-                      const std::array< MultiFab, 3 >& phi_f)
+                     const std::array< MultiFab, 3 >& phi_f)
 {
     if (AMREX_SPACEDIM != 3) {
         Abort("Edge restriction can only be called for 3D!");
@@ -249,19 +296,29 @@ void EdgeRestriction(std::array< MultiFab, 3 >& phi_c,
     }
 }
 
-void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
+void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
+                      std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
 {
+
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
-    for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
         const Box& validBox = amrex::enclosedCells(mfi.validbox());
 
-        nodal_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                          BL_TO_FORTRAN_3D(phi_c[mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[mfi]));
-
+        stag_prolongation(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                          BL_TO_FORTRAN_3D(phi_c[0][mfi]),
+                          BL_TO_FORTRAN_3D(phi_f[0][mfi]),
+                          BL_TO_FORTRAN_3D(phi_c[1][mfi]),
+                          BL_TO_FORTRAN_3D(phi_f[1][mfi])
+#if (AMREX_SPACEDIM == 3)
+                        , BL_TO_FORTRAN_3D(phi_c[2][mfi]),
+                          BL_TO_FORTRAN_3D(phi_f[2][mfi])
+#endif
+                          );
     }
+
 }
+

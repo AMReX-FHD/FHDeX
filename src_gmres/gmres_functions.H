@@ -34,13 +34,16 @@ int ComputeNlevsMG(const amrex::BoxArray& ba);
 
 void CCRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
 
-void FaceRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
+void StagRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
                      const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil=0);
+
+void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f); 
 
 void EdgeRestriction(std::array< amrex::MultiFab, 3 >& phi_c, 
                       const std::array< amrex::MultiFab, 3 >& phi_f);
 
-void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f); 
+void StagProlongation(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
+                      std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f);
 
 #endif
