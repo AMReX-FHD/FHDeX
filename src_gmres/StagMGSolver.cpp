@@ -21,11 +21,7 @@ using namespace common;
 // phi_fc must come in initialized to some value, preferably a reasonable guess
 void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const MultiFab& beta_cc,
-#if (AMREX_SPACEDIM == 2)
-                  const std::array< MultiFab, 1 >& beta_ed,
-#elif (AMREX_SPACEDIM == 3)
-                  const std::array< MultiFab, 3 >& beta_ed,
-#endif
+                  const std::array< MultiFab, NUM_EDGE >& beta_ed,
                   const MultiFab& gamma_cc,
                   const MultiFab& phi_fc,
                   const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
@@ -53,9 +49,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >   phi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >  Lphi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > resid_fc_mg(nlevs_mg);
-
-    const int num_beta_fc = ( AMREX_SPACEDIM == 2 ) ? 1 : 3;
-    Vector<std::array< MultiFab, num_beta_fc > >  beta_ed_mg(nlevs_mg); // nodal
+    Vector<std::array< MultiFab, NUM_EDGE > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge-based in 3D
 
     const Real* dx = geom.CellSize();
 
@@ -271,8 +265,8 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     }
 }
 
-void EdgeRestriction(std::array< MultiFab, 3 >& phi_c, 
-                     const std::array< MultiFab, 3 >& phi_f)
+void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c, 
+                     const std::array< MultiFab, NUM_EDGE >& phi_f)
 {
     if (AMREX_SPACEDIM != 3) {
         Abort("Edge restriction can only be called for 3D!");
@@ -301,7 +295,7 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
 {
 
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
-    for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_f[0]); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
         // there are no cell-centered MultiFabs so use this to get
@@ -322,3 +316,58 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
 
 }
 
+void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
+                  const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
+                  const std::array< MultiFab, AMREX_SPACEDIM >& Lphi_fc,
+                  const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                  const MultiFab& beta_cc,
+                  const std::array< MultiFab, NUM_EDGE >& beta_ed,
+                  const MultiFab& gamma_cc,
+                  const Real* dx,
+                  const int& color)
+{
+
+    // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
+    for ( MFIter mfi(beta_cc); mfi.isValid(); ++mfi ) {
+
+        // Get the index space of the valid region
+        const Box& validBox = mfi.validbox();
+
+
+        stag_mg_update(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                       BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
+                       BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                       BL_TO_FORTRAN_3D(phi_fc[2][mfi]),
+#endif
+                       BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
+                       BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                       BL_TO_FORTRAN_3D(rhs_fc[2][mfi]),
+#endif
+                       BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
+                       BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                       BL_TO_FORTRAN_3D(Lphi_fc[2][mfi]),
+#endif
+                       BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
+                       BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                       BL_TO_FORTRAN_3D(alpha_fc[2][mfi]),
+#endif
+                       BL_TO_FORTRAN_3D(beta_cc[mfi]),
+#if (AMREX_SPACEDIM == 2)
+                       BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
+#elif (AMREX_SPACEDIM == 3)
+                       BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
+                       BL_TO_FORTRAN_3D(beta_ed[1][mfi]),
+                       BL_TO_FORTRAN_3D(beta_ed[2][mfi]),
+#endif
+                       BL_TO_FORTRAN_3D(gamma_cc[mfi]),
+                       dx, &color);
+
+
+
+    }
+
+}

@@ -98,6 +98,58 @@ extern "C"
 #endif
                             );
 
+    void stag_mg_update (const int* lo, const int* hi,
+                         const amrex::Real* phix,
+                         const int* px_lo, const int* px_hi,
+                         const amrex::Real* phiy,
+                         const int* py_lo, const int* py_hi,
+#if (AMREX_SPACEDIM == 3)
+                         const amrex::Real* phiz,
+                         const int* pz_lo, const int* pz_hi,
+#endif
+                         const amrex::Real* rhsx,
+                         const int* rx_lo, const int* rx_hi,
+                         const amrex::Real* rhsy,
+                         const int* ry_lo, const int* ry_hi,
+#if (AMREX_SPACEDIM == 3)
+                         const amrex::Real* rhsz,
+                         const int* rz_lo, const int* rz_hi,
+#endif
+                         const amrex::Real* Lpx,
+                         const int* Lx_lo, const int* Lx_hi,
+                         const amrex::Real* Lpy,
+                         const int* Ly_lo, const int* Ly_hi,
+#if (AMREX_SPACEDIM == 3)
+                         const amrex::Real* Lpz,
+                         const int* Lz_lo, const int* Lz_hi,
+#endif
+                         const amrex::Real* alphax,
+                         const int* ax_lo, const int* ax_hi,
+                         const amrex::Real* alphay,
+                         const int* ay_lo, const int* ay_hi,
+#if (AMREX_SPACEDIM == 3)
+                         const amrex::Real* alphaz,
+                         const int* az_lo, const int* az_hi,
+#endif
+                         const amrex::Real* beta,
+                         const int* b_lo, const int* b_hi,
+#if (AMREX_SPACEDIM == 2)
+                         const amrex::Real* beta_ed,
+                         const int* w_lo, const int* w_hi,
+#elif (AMREX_SPACEDIM == 3)
+                         const amrex::Real* beta_xy,
+                         const int* w_lo, const int* w_hi,
+                         const amrex::Real* beta_xz,
+                         const int* x_lo, const int* x_hi,
+                         const amrex::Real* beta_yz,
+                         const int* y_lo, const int* y_hi,
+#endif
+                         const amrex::Real* gamma,
+                         const int* g_lo, const int* g_hi,
+                         const amrex::Real* dx,
+                         const int* color);
+
+
 ///////////////////////////
 
 

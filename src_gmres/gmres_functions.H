@@ -4,6 +4,12 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 
+#if (AMREX_SPACEDIM == 2)
+const int NUM_EDGE = 1;
+#elif (AMREX_SPACEDIM == 3)
+const int NUM_EDGE = 3;
+#endif
+
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();
 
@@ -19,11 +25,7 @@ void InitializeGmresNamespace();
 // phi_fc must come in initialized to some value, preferably a reasonable guess
 void StagMGSolver(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const amrex::MultiFab& beta_cc,
-#if (AMREX_SPACEDIM == 2)
-                  const std::array< amrex::MultiFab, 1 >& beta_ed,
-#elif (AMREX_SPACEDIM == 3)
-                  const std::array< amrex::MultiFab, 3 >& beta_ed,
-#endif
+                  const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
                   const amrex::MultiFab& gamma_cc,
                   const amrex::Real& theta,
                   const amrex::Geometry& geom);
@@ -40,10 +42,20 @@ void StagRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c,
 
 void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f); 
 
-void EdgeRestriction(std::array< amrex::MultiFab, 3 >& phi_c, 
-                      const std::array< amrex::MultiFab, 3 >& phi_f);
+void EdgeRestriction(std::array< amrex::MultiFab, NUM_EDGE >& phi_c, 
+                      const std::array< amrex::MultiFab, NUM_EDGE >& phi_f);
 
 void StagProlongation(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
                       std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f);
+
+void StagMGUpdate(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
+                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& rhs_fc,
+                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& Lphi_fc,
+                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                  const amrex::MultiFab& beta_cc,
+                  const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
+                  const amrex::MultiFab& gamma_cc,
+                  const amrex::Real* dx,
+                  const int& color = 0);
 
 #endif
