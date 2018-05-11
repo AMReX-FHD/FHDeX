@@ -58,4 +58,12 @@ void StagMGUpdate(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
                   const amrex::Real* dx,
                   const int& color = 0);
 
+//In StagApplyOp.cpp
+
+void StagApplyOp(const amrex::MultiFab& betaCC, const amrex::MultiFab& gammaCC, 
+                 const amrex::MultiFab& betaNodal, const amrex::MultiFab& gammaNodal, 
+                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn, 
+                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
+                 const amrex::Real* alpha, const int viscType);
+
 #endif

@@ -149,6 +149,24 @@ extern "C"
                          const amrex::Real* dx,
                          const int* color);
 
+    void stag_apply_op  (const int* lo, const int* hi,
+                         const amrex_real* betaCC, const int* betaCClo, const int* betaCChi,
+                         const amrex_real* gammaCC, const int* gammaCClo, const int* gammaCChi,
+                         const amrex_real* betaNodal, const int* betaNodallo, const int* betaNodalhi,
+                         const amrex_real* gammaNodal, const int* gammaNodallo, const int* gammaNodalhi,
+                         const amrex_real* velxin, const int* velxinlo, const int* velxinhi,
+                         const amrex_real* velyin, const int* velyinlo, const int* velyinhi,
+        #if (AMREX_SPACEDIM == 3)
+                         const amrex_real* velzin, const int* velzinlo, const int* velzinhi,
+        #endif
+                         const amrex_real* velxout, const int* velxoutlo, const int* velxouthi,
+                         const amrex_real* velyout, const int* velyoutlo, const int* velyouthi,
+        #if (AMREX_SPACEDIM == 3)
+                         const amrex_real* velzout, const int* velzoutlo, const int* velzouthi,
+        #endif
+                         const amrex_real* alpha,
+                         const int* viscType);
+
 
 ///////////////////////////
 
