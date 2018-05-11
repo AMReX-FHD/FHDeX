@@ -127,9 +127,10 @@ subroutine compute_grad(lo, hi, velx, velxlo, velxhi, vely, velylo, velyhi, velz
   use amrex_fort_module, only : amrex_real
   implicit none
 
-	integer, intent(in) :: lo(3), hi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), philo(3), phihi(3)
+	integer, intent(in) :: lo(3), hi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), velzlo(3), velzhi(3), philo(3), phihi(3)
   real(amrex_real), intent(inout) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
   real(amrex_real), intent(inout) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
+  real(amrex_real), intent(inout) :: velz(velzlo(1):velzhi(1),velzlo(2):velzhi(2),velzlo(3):velzhi(3))
   real(amrex_real), intent(inout) :: phi(philo(1):phihi(1),philo(2):phihi(2),philo(3):phihi(3))
 	real(amrex_real), intent(in   ) :: dx(3) 
 
