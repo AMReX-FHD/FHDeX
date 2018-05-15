@@ -108,11 +108,40 @@ extern "C"
                     amrex_real* div, const int* divlo, const int* divhi,
                     const amrex_real* dx);
 
-
 ///////////////////////////
 
+///////////////////////////
+// in time_step.F90
+
+    void euler_step_stag(const int* lo, const int* hi,
+                    amrex_real* old, const int* oldlo, const int* oldhi,
+                    amrex_real* stagop, const int* stagoplo, const int* stagophi,
+                    amrex_real* newdata, const int* newdatahi, const int* newdatalo,
+                    const int* offset, const amrex_real* dt);
+
+
+///////////////////////////
 #ifdef __cplusplus
 }
 #endif
 
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

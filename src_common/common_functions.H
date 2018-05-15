@@ -34,6 +34,19 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
 void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& umac, const Geometry geom, int increment);
 
 void ComputeGrad(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& umac, const Geometry geom);
+
+///////////////////////////
+// in timeStep.cpp
+
+void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC, 
+                 const MultiFab& betaNodal, const MultiFab& gammaNodal, 
+                 std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
+                 std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
+                 std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
+                 std::array<MultiFab, AMREX_SPACEDIM>& alpha,
+                 const Geometry geom,
+                 int viscType, Real* dt);
+
 ///////////////////////////
 
 

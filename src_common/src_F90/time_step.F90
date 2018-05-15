@@ -53,8 +53,8 @@ contains
     do k = lo(3), hi(3)+offset(3)
       do j = lo(2), hi(2)+offset(2)
       	do i = lo(1), hi(1)+offset(1)
-          newdata(i,j,k) = old(i,j,k)+stagop(i,j,k)*dt
-          !old(i,j) = newdata(i,j)
+          !minus sign due to operator construction
+          newdata(i,j,k) = old(i,j,k)-stagop(i,j,k)*dt
       	end do
       end do
     end do

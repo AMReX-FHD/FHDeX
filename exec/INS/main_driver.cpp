@@ -75,8 +75,36 @@ void main_driver(const char* argv)
     // potential
     MultiFab phi(ba, dmap, 1, 1);
 
+    // beta cell centred
+    MultiFab betaCC(ba, dmap, 1, 1);
+
+    // gamma cell centred
+    MultiFab gammaCC(ba, dmap, 1, 1);
+
+    //Print() << nodal_flag_xy << "\n";
+    //while(true);
+
+    // beta and gamma on nodes in 2d
+#if (AMREX_SPACEDIM == 2)
+    MultiFab betaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    MultiFab gammaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
+#endif
+
+    // beta and gamma on edges in 3d - not implemented yet
+#if (AMREX_SPACEDIM == 3)
+    MultiFab betaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    MultiFab gammaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
+#endif
+
     //Replace with proper initialiser
     phi.setVal(100.);
+
+    betaCC.setVal(1.);
+    betaNodal.setVal(1.);
+
+    gammaCC.setVal(0);
+    gammaNodal.setVal(0);
+
 
     // temporary placeholder for potential gradients on cell faces
     std::array< MultiFab, AMREX_SPACEDIM > umacT;
@@ -92,6 +120,28 @@ void main_driver(const char* argv)
     AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    // alpha arrays
+    std::array< MultiFab, AMREX_SPACEDIM > alpha;
+    AMREX_D_TERM(alpha[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+                 alpha[0].setVal(0);,
+                 alpha[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+                 alpha[1].setVal(0);,
+                 alpha[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
+                 alpha[2].setVal(0););
+
+    // For testing timestepping
+    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
+    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    // For testing StagApplyOp
+    std::array< MultiFab, AMREX_SPACEDIM > umacOut;
+    AMREX_D_TERM(umacOut[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacOut[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacOut[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
 
     // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
     // ***SETTING THESE TO DUMMY VALUES FOR NOW***
@@ -115,20 +165,54 @@ void main_driver(const char* argv)
                    			geom.ProbLo(), geom.ProbHi() ,&dm););
     }
 
-    //Compute divergence, last arguement is flag for increment
-    
-    ComputeDiv(div,umac,geom,0);
-
-    //Compute gradient
-    ComputeGrad(phi,umacT,geom);
+    // compute the time step
+    const Real* dx = geom.CellSize();
+    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     int step = 0;
     Real time = 0.;
 
-    // write out rhotot and umac to a plotfile
+    // write out initial state
     WritePlotFile(step,time,geom,rhotot,umac,div);
 
-    // write a loop here to advance the solution in time
+
+    //Time stepping loop
+    for(step=1;step<=max_step;++step)
+    {
+        AMREX_D_TERM(
+        umac[0].FillBoundary(geom.periodicity());,
+        umac[1].FillBoundary(geom.periodicity());,
+        umac[2].FillBoundary(geom.periodicity()););
+
+        eulerStep(betaCC, gammaCC, betaNodal, gammaNodal, umac, umacOut, umacNew, alpha, geom, visc_type, &dt);
+
+
+        AMREX_D_TERM(
+        MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
+        MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
+        MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+
+
+        amrex::Print() << "Advanced step " << step << "\n";
+
+        time = time + dt;
+
+        if (plot_int > 0 && step%plot_int == 0)
+        {
+            // write out rhotot and umac to a plotfile
+            WritePlotFile(step,time,geom,rhotot,umac,div);
+        }
+
+
+    }
+
+
+    //Compute divergence, last arguement is flag for increment
+    
+    //ComputeDiv(div,umac,geom,0);
+
+    //Compute gradient
+    //ComputeGrad(phi,umacT,geom);
 
 
     // Call the timer again and compute the maximum difference between the start time 

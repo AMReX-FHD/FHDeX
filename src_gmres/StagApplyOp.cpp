@@ -11,10 +11,10 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
                  const MultiFab& betaNodal, const MultiFab& gammaNodal, 
                  std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
-                 const Real alpha, int viscType)
+                 std::array<MultiFab, AMREX_SPACEDIM>& alpha,
+                 const Geometry geom,
+                 int viscType)
 {
-
-    const Real a = alpha;
     const int v = viscType;
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(betaCC); mfi.isValid(); ++mfi) {
@@ -36,7 +36,14 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
 #if (AMREX_SPACEDIM == 3)
                            BL_TO_FORTRAN_ANYD(umacOut[2][mfi]),
 #endif
-                           &a, &v);
+
+                           BL_TO_FORTRAN_ANYD(alpha[0][mfi]),
+                           BL_TO_FORTRAN_ANYD(alpha[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                           BL_TO_FORTRAN_ANYD(alpha[2][mfi]),
+#endif
+
+                           geom.CellSize(),&v);
 
     }
 

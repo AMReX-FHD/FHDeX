@@ -11,11 +11,12 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
+                 std::array<MultiFab, AMREX_SPACEDIM>& alpha,
                  const Geometry geom,
-                 const Real alpha, int viscType, Real* dt)
+                 int viscType, Real* dt)
 {
  
-    StagApplyOp(betaCC, gammaCC, betaNodal, gammaNodal, umacIn, umacOut, geom, alpha, viscType);
+    StagApplyOp(betaCC, gammaCC, betaNodal, gammaNodal, umacIn, umacOut, alpha, geom, viscType);
     const int xOff[3] = {1,0,0};
     const int yOff[3] = {0,1,0};
     const int zOff[3] = {0,0,1};

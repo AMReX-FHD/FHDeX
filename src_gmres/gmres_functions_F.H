@@ -164,7 +164,12 @@ extern "C"
         #if (AMREX_SPACEDIM == 3)
                          const amrex_real* velzout, const int* velzoutlo, const int* velzouthi,
         #endif
-                         const amrex_real* alpha,
+                         const amrex_real* alphax, const int* alphaxlo, const int* alphaxhi,
+                         const amrex_real* alphay, const int* alphaylo, const int* alphayhi,
+        #if (AMREX_SPACEDIM == 3)
+                         const amrex_real* alphaz, const int* alphazlo, const int* alphazhi,
+        #endif
+                         const amrex_real* dx,
                          const int* viscType);
 
 
