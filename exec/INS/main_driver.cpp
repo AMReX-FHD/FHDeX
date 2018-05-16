@@ -88,23 +88,38 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 2)
     MultiFab betaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
     MultiFab gammaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
+
+    betaNodal.setVal(1.);
+    gammaNodal.setVal(0);
 #endif
 
-    // beta and gamma on edges in 3d - not implemented yet
+    // beta and gamma on edges in 3d
 #if (AMREX_SPACEDIM == 3)
-    MultiFab betaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    MultiFab gammaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    std::array< MultiFab, AMREX_SPACEDIM > betaEdge;
+    AMREX_D_TERM(betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);,
+                 betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);,
+                 betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1););
+
+    std::array< MultiFab, AMREX_SPACEDIM > gammaEdge;
+    AMREX_D_TERM(gammaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);,
+                 gammaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);,
+                 gammaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1););
+
+    betaEdge[0].setVal(1.);  
+    betaEdge[1].setVal(1.);
+    betaEdge[2].setVal(1.);
+
+    gammaEdge[0].setVal(0.);    
+    gammaEdge[1].setVal(0.);
+    gammaEdge[2].setVal(0.);
+
 #endif
 
     //Replace with proper initialiser
     phi.setVal(100.);
 
     betaCC.setVal(1.);
-    betaNodal.setVal(1.);
-
     gammaCC.setVal(0);
-    gammaNodal.setVal(0);
-
 
     // temporary placeholder for potential gradients on cell faces
     std::array< MultiFab, AMREX_SPACEDIM > umacT;
@@ -184,7 +199,14 @@ void main_driver(const char* argv)
         umac[1].FillBoundary(geom.periodicity());,
         umac[2].FillBoundary(geom.periodicity()););
 
-        eulerStep(betaCC, gammaCC, betaNodal, gammaNodal, umac, umacOut, umacNew, alpha, geom, visc_type, &dt);
+        eulerStep(betaCC, gammaCC, 
+#if (AMREX_SPACEDIM == 2)
+        betaNodal, gammaNodal,
+#endif
+#if (AMREX_SPACEDIM == 3)
+        betaEdge, gammaEdge,
+#endif
+        umac, umacOut, umacNew, alpha, geom, visc_type, &dt);
 
 
         AMREX_D_TERM(

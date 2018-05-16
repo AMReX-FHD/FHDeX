@@ -6,8 +6,14 @@
 
 
 //Explicit Euler
-void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC, 
-                 const MultiFab& betaNodal, const MultiFab& gammaNodal, 
+void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
+#if (AMREX_SPACEDIM == 2) 
+                 const MultiFab& betaNodal, const MultiFab& gammaNodal,
+#endif
+#if(AMREX_SPACEDIM == 3)
+                 std::array<MultiFab, AMREX_SPACEDIM>& betaEdge,
+                 std::array<MultiFab, AMREX_SPACEDIM>& gammaEdge,
+#endif
                  std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
@@ -15,12 +21,19 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
                  const Geometry geom,
                  int viscType, Real* dt)
 {
- 
-    StagApplyOp(betaCC, gammaCC, betaNodal, gammaNodal, umacIn, umacOut, alpha, geom, viscType);
+
+    StagApplyOp(betaCC, gammaCC,
+#if (AMREX_SPACEDIM == 2)
+                betaNodal, gammaNodal,
+#endif
+#if (AMREX_SPACEDIM == 3)
+                betaEdge, gammaEdge,
+#endif
+                umacIn, umacOut, alpha, geom, viscType);
+
     const int xOff[3] = {1,0,0};
     const int yOff[3] = {0,1,0};
     const int zOff[3] = {0,0,1};
-    const int noOff[3] = {0,0,0};
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(betaCC); mfi.isValid(); ++mfi) 

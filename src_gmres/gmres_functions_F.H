@@ -150,10 +150,21 @@ extern "C"
                          const int* color);
 
     void stag_apply_op  (const int* lo, const int* hi,
-                         const amrex_real* betaCC, const int* betaCClo, const int* betaCChi,
-                         const amrex_real* gammaCC, const int* gammaCClo, const int* gammaCChi,
-                         const amrex_real* betaNodal, const int* betaNodallo, const int* betaNodalhi,
-                         const amrex_real* gammaNodal, const int* gammaNodallo, const int* gammaNodalhi,
+                         const amrex_real* betacc, const int* betacclo, const int* betacchi,
+                         const amrex_real* gammacc, const int* gammacclo, const int* gammacchi,
+#if (AMREX_SPACEDIM == 2)
+                         const amrex_real* betanodal, const int* betanodallo, const int* betanodalhi,
+                         const amrex_real* gammanodal, const int* gammanodallo, const int* gammanodalhi,
+#endif
+#if (AMREX_SPACEDIM == 3)
+                         const amrex_real* betaxy, const int* betaxylo, const int* betaxyhi,
+                         const amrex_real* betaxz, const int* betaxzlo, const int* betaxzhi,
+                         const amrex_real* betayz, const int* betayzlo, const int* betayzhi,
+                         const amrex_real* gammaxy, const int* gammaxylo, const int* gammaxyhi,
+                         const amrex_real* gammaxz, const int* gammaxzlo, const int* gammaxzhi,
+                         const amrex_real* gammayz, const int* gammayzlo, const int* gammayzhi,
+
+#endif
                          const amrex_real* velxin, const int* velxinlo, const int* velxinhi,
                          const amrex_real* velyin, const int* velyinlo, const int* velyinhi,
         #if (AMREX_SPACEDIM == 3)
