@@ -23,7 +23,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const MultiFab& beta_cc,
                   const std::array< MultiFab, NUM_EDGE >& beta_ed,
                   const MultiFab& gamma_cc,
-                  const MultiFab& phi_fc,
+                  std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                   const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
                   const Real& theta,
                   const Geometry& geom)
@@ -54,6 +54,15 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     const Real* dx = geom.CellSize();
 
     Vector<std::array< Real, AMREX_SPACEDIM > > dx_mg;
+
+    // initial and current residuals
+    Vector<Real> resid0(AMREX_SPACEDIM);
+    Vector<Real> resid0_l2(AMREX_SPACEDIM);
+    Vector<Real> resid(AMREX_SPACEDIM);
+    Vector<Real> resid_l2(AMREX_SPACEDIM);
+    Real resid_temp;
+
+    int color_start, color_end;
 
     DistributionMapping dmap = beta_cc.DistributionMap();
 
@@ -149,26 +158,84 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         
         // initialize phi_fc_mg = phi_fc as an initial guess
+        MultiFab::Copy(phi_fc_mg[0][d],phi_fc[d],0,0,1,0);
 
         // fill periodic ghost cells
+        phi_fc_mg[0][d].FillBoundary(geom.periodicity());
+
+        // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
+        MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,0);
 
     }
 
-    // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
-
-
     // compute norm of initial residual
     // first compute Lphi
-
+    // FIXME
+    
 
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
         // compute Lphi - rhs
-
-
+        MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
 
         // compute L0 norm of Lphi - rhs
+        resid0[d] = Lphi_fc_mg[0][d].norm0(); 
+        resid0_l2[d] = Lphi_fc_mg[0][d].norm2(); 
+        if (stag_mg_verbosity >= 2) {
+            Print() << "Initial residual " << d << " " << resid0[d] << std::endl;
+        }
+    }
+
+    if ( std::all_of(resid0.begin(), resid0.end(), [](Real x){return x==0.;}) ) {
+        if (stag_mg_verbosity >= 1) {
+            Print() << "Initial residual is zero; exiting staggered multigrid solver" << std::endl;
+        }
+        return;
+    }
+
+    // if some (but not all) of the residuals are zero
+    // set the zero residuals to the maximum so the multigrid will begin work
+    if ( std::any_of(resid0.begin(), resid0.end(), [](Real x){return x==0.;}) ) {
+        std::fill(resid0.begin(),    resid0.end(),    *max_element(resid0.begin(),    resid0.end()));
+        std::fill(resid0_l2.begin(), resid0_l2.end(), *max_element(resid0_l2.begin(), resid0_l2.end()));
+    }
+      
+    if (stag_mg_smoother == 0) {
+        color_start = 0;
+        color_end = 0;
+    }
+    else {
+        color_start = 1;
+        color_end = 2*AMREX_SPACEDIM;
+    }
+    
+    for (int vcycle=1; vcycle<=stag_mg_max_vcycles; ++vcycle) {
+
+        if (stag_mg_verbosity >= 2) {
+            Print() << std::endl << "Begin V-Cycle " << vcycle << std::endl;
+        }
+
+        // set phi to zero at coarser levels as initial guess for residual equation
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            for (int n=1; n<nlevs_mg; ++n) {
+                phi_fc_mg[n][d].setVal(0.);
+            }
+        }
+
+        // down the V-cycle
+        for (int n=0; n<nlevs_mg-1; ++n) {
+
+            // print out residual
+            if (stag_mg_verbosity >= 3) {
+
+            }
+
+
+
+        }
+            
+
+
 
 
     }
@@ -369,5 +436,4 @@ void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
 
 
     }
-
 }
