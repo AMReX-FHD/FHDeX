@@ -191,7 +191,7 @@ void main_driver(const char* argv)
 
     //Particles!
 
-    //ParticleContainer<2*AMREX_SPACEDIM,0> particles(geom, dmap, ba);
+    ParticleContainer<AMREX_SPACEDIM+1,0> particles(geom, dmap, ba);
 
     // write out initial state
     WritePlotFile(step,time,geom,rhotot,umac,div);
@@ -205,7 +205,7 @@ void main_driver(const char* argv)
         umac[1].FillBoundary(geom.periodicity());,
         umac[2].FillBoundary(geom.periodicity()););
 
-        eulerStep(betaCC, gammaCC, 
+/*        eulerStep(betaCC, gammaCC, 
 #if (AMREX_SPACEDIM == 2)
         betaNodal, gammaNodal,
 #endif
@@ -214,6 +214,9 @@ void main_driver(const char* argv)
 #endif
         umac, umacOut, umacNew, alpha, geom, visc_type, &dt);
 
+*/
+
+        Print() << ParticleType::NextID() << "\n";
 
         AMREX_D_TERM(
         MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
