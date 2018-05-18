@@ -9,7 +9,6 @@ module time_step_module
 
 contains
 
-!Computes divergence at cell centres from velcocities at cell faces
 #if AMREX_SPACEDIM == 2
   subroutine euler_step_stag(lo, hi, old, oldlo, oldhi, stagop, stagoplo, stagophi, newdata, newdatalo, newdatahi, offset, dt) bind(C, name="euler_step_stag")
 
@@ -27,7 +26,7 @@ contains
 
     do j = lo(2), hi(2)+offset(2)
     	do i = lo(1), hi(1)+offset(1)
-        newdata(i,j) = old(i,j)+stagop(i,j)*dt
+        newdata(i,j) = old(i,j)-stagop(i,j)*dt
         !old(i,j) = newdata(i,j)
     	end do
     end do

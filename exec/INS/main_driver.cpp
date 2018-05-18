@@ -216,7 +216,7 @@ void main_driver(const char* argv)
 
 */
 
-        Print() << ParticleType::NextID() << "\n";
+        //Print() << ParticleType::NextID() << "\n";
 
         AMREX_D_TERM(
         MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
