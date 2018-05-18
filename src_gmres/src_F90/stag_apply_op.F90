@@ -1,6 +1,7 @@
 module stag_apply_op_module
 
   use amrex_error_module
+  use common_namelist_module, only: visc_type
 
   implicit none
 
@@ -14,32 +15,29 @@ contains
                            betacc, betacclo, betacchi, &
                            gammacc, gammacclo, gammacchi, &
                            betanodal, betanodallo, betanodalhi, &  
-                           gammanodal, gammanodallo, gammanodalhi, &  
                            velxin, velxinlo, velxinhi, &
                            velyin, velyinlo, velyinhi, &
                            velxout, velxoutlo, velxouthi, &
                            velyout, velyoutlo, velyouthi, &
                            alphax, alphaxlo, alphaxhi, &
                            alphay, alphaylo, alphayhi, &
-                           dx, visctype) &
+                           dx,color) &
                            bind (C,name="stag_apply_op")
 
     integer         , intent(in   ) :: lo(2), hi(2), betacclo(2), betacchi(2), gammacclo(2), gammacchi(2), betanodallo(2), betanodalhi(2)
-    integer         , intent(in   ) :: gammanodallo(2), gammanodalhi(2), alphaxlo(2), alphaxhi(2), alphaylo(2), alphayhi(2)
+    integer         , intent(in   ) :: alphaxlo(2), alphaxhi(2), alphaylo(2), alphayhi(2)
     integer         , intent(in   ) :: velxinlo(2), velxinhi(2), velyinlo(2), velyinhi(2), velxoutlo(2), velxouthi(2), velyoutlo(2), velyouthi(2)
-    integer         , intent(in   ) :: visctype
     double precision, intent(in   ) :: dx(2)
     double precision, intent(in   ) :: betacc(betacclo(1):betacchi(1),betacclo(2):betacchi(2))
     double precision, intent(in   ) :: gammacc(gammacclo(1):gammacchi(1),gammacclo(2):gammacchi(2))
     double precision, intent(in   ) :: betanodal(betanodallo(1):betanodalhi(1),betanodallo(2):betanodalhi(2))
-    double precision, intent(in   ) :: gammanodal(gammanodallo(1):gammanodalhi(1),gammanodallo(2):gammanodalhi(2))
     double precision, intent(in   ) :: alphax(alphaxlo(1):alphaxhi(1),alphaxlo(2):alphaxhi(2))
     double precision, intent(in   ) :: alphay(alphaylo(1):alphayhi(1),alphaylo(2):alphayhi(2))
-
     double precision, intent(in   ) :: velxin(velxinlo(1):velxinhi(1),velxinlo(2):velxinhi(2))
     double precision, intent(in   ) :: velyin(velyinlo(1):velyinhi(1),velyinlo(2):velyinhi(2))
     double precision, intent(inout) :: velxout(velxoutlo(1):velxouthi(1),velxoutlo(2):velxouthi(2))
     double precision, intent(inout) :: velyout(velyoutlo(1):velyouthi(1),velyoutlo(2):velyouthi(2))
+    integer         , intent(in   ) :: color
 
     ! local
     integer :: i,j
@@ -57,7 +55,7 @@ contains
 
     !Type 1
 
-    if (visctype .eq. -1) then
+    if (visc_type .eq. -1) then
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)+1
 
@@ -84,7 +82,7 @@ contains
 
     endif
 
-    if (visctype .eq. 1) then
+    if (visc_type .eq. 1) then
 
       term1 = 2.d0*bt*(dxsqinv+dysqinv)
       term2 = bt*dxsqinv
@@ -117,7 +115,7 @@ contains
 
     !Type 2
 
-    if (visctype .eq. -2) then
+    if (visc_type .eq. -2) then
 
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)+1
@@ -154,7 +152,7 @@ contains
       enddo
     endif
 
-    if (visctype .eq. 2) then
+    if (visc_type .eq. 2) then
 
       term1 = 2.d0*bt*(2.d0*dxsqinv+dysqinv)
 
@@ -208,9 +206,6 @@ contains
                            betaxy, betaxylo, betaxyhi, &  
                            betaxz, betaxzlo, betaxzhi, &  
                            betayz, betayzlo, betayzhi, &  
-                           gammaxy, gammaxylo, gammaxyhi, &  
-                           gammaxz, gammaxzlo, gammaxzhi, &  
-                           gammayz, gammayzlo, gammayzhi, &  
                            velxin, velxinlo, velxinhi, &
                            velyin, velyinlo, velyinhi, &
                            velzin, velzinlo, velzinhi, &
@@ -220,24 +215,20 @@ contains
                            alphax, alphaxlo, alphaxhi, &
                            alphay, alphaylo, alphayhi, &
                            alphaz, alphazlo, alphazhi, &
-                           dx, visctype) &
+                           dx,color) &
                            bind (C,name="stag_apply_op")
 
     integer         , intent(in   ) :: lo(3), hi(3), betacclo(3), betacchi(3), gammacclo(3), gammacchi(3)
     integer         , intent(in   ) :: betaxylo(3), betaxyhi(3), betayzlo(3), betayzhi(3), betaxzlo(3), betaxzhi(3)
-    integer         , intent(in   ) :: gammaxylo(3), gammaxyhi(3), gammayzlo(3), gammayzhi(3), gammaxzlo(3), gammaxzhi(3)
     integer         , intent(in   ) :: alphaxlo(3), alphaxhi(3), alphaylo(3), alphayhi(3), alphazlo(3), alphazhi(3)
-    integer         , intent(in   ) :: velxinlo(3), velxinhi(3), velyinlo(3), velyinhi(3), velzinlo(3), velzinhi(3), velxoutlo(3), velxouthi(3), velyoutlo(3), velyouthi(3), velzoutlo(3), velzouthi(3)
-    integer         , intent(in   ) :: visctype
+    integer         , intent(in   ) :: velxinlo(3), velxinhi(3), velyinlo(3), velyinhi(3), velzinlo(3), velzinhi(3)
+    integer         , intent(in   ) :: velxoutlo(3), velxouthi(3), velyoutlo(3), velyouthi(3), velzoutlo(3), velzouthi(3)
     double precision, intent(in   ) :: dx(3)
     double precision, intent(in   ) :: betacc(betacclo(1):betacchi(1),betacclo(2):betacchi(2),betacclo(3):betacchi(3))
     double precision, intent(in   ) :: gammacc(gammacclo(1):gammacchi(1),gammacclo(2):gammacchi(2),gammacclo(3):gammacchi(3))
     double precision, intent(in   ) :: betaxy(betaxylo(1):betaxyhi(1),betaxylo(2):betaxyhi(2),betaxylo(3):betaxyhi(3))
     double precision, intent(in   ) :: betaxz(betaxylo(1):betaxzhi(1),betaxzlo(2):betaxzhi(2),betaxzlo(3):betaxzhi(3))
     double precision, intent(in   ) :: betayz(betayzlo(1):betayzhi(1),betayzlo(2):betayzhi(2),betayzlo(3):betayzhi(3))
-    double precision, intent(in   ) :: gammaxy(gammaxylo(1):gammaxyhi(1),gammaxylo(2):gammaxyhi(2),gammaxylo(3):gammaxyhi(3))
-    double precision, intent(in   ) :: gammaxz(gammaxylo(1):gammaxzhi(1),gammaxzlo(2):gammaxzhi(2),gammaxzlo(3):gammaxzhi(3))
-    double precision, intent(in   ) :: gammayz(gammayzlo(1):gammayzhi(1),gammayzlo(2):gammayzhi(2),gammayzlo(3):gammayzhi(3))
     double precision, intent(in   ) :: alphax(alphaxlo(1):alphaxhi(1),alphaxlo(2):alphaxhi(2),alphaxlo(3):alphaxhi(3))
     double precision, intent(in   ) :: alphay(alphaylo(1):alphayhi(1),alphaylo(2):alphayhi(2),alphaylo(3):alphayhi(3))
     double precision, intent(in   ) :: alphaz(alphazlo(1):alphazhi(1),alphazlo(2):alphazhi(2),alphazlo(3):alphazhi(3))
@@ -248,6 +239,7 @@ contains
     double precision, intent(inout) :: velxout(velxoutlo(1):velxouthi(1),velxoutlo(2):velxouthi(2),velxoutlo(3):velxouthi(3))
     double precision, intent(inout) :: velyout(velyoutlo(1):velyouthi(1),velyoutlo(2):velyouthi(2),velyoutlo(3):velyouthi(3))
     double precision, intent(inout) :: velzout(velzoutlo(1):velzouthi(1),velzoutlo(2):velzouthi(2),velzoutlo(3):velzouthi(3))
+    integer         , intent(in   ) :: color
 
     ! local
     integer :: i,j,k
@@ -265,7 +257,7 @@ contains
 
     !Type 1
 
-    if (visctype .eq. -1) then
+    if (visc_type .eq. -1) then
 
       do k = lo(3), hi(3)      
         do j = lo(2), hi(2)
@@ -320,7 +312,7 @@ contains
 
     !Type 2
 
-    if (visctype .eq. -2) then
+    if (visc_type .eq. -2) then
 
       do k = lo(3), hi(3)      
         do j = lo(2), hi(2)

@@ -53,7 +53,7 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
                  std::array<MultiFab, AMREX_SPACEDIM>& alpha,
                  const Geometry geom,
-                 int viscType, Real* dt);
+                 Real* dt);
 
 ///////////////////////////
 
