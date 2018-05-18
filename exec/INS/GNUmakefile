@@ -8,6 +8,9 @@ USE_OMP   = FALSE
 COMP      = gnu
 DIM       = 2
 
+USE_PARTICLES = TRUE
+TINY_PROFILE = TRUE
+
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
@@ -29,6 +32,10 @@ INCLUDE_LOCATIONS += ../../src_common/src_F90
 include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
+
+include ../../src_particles/Make.package
+VPATH_LOCATIONS   += ../../src_particles/
+INCLUDE_LOCATIONS += ../../src_particles/
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

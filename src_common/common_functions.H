@@ -8,7 +8,6 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
-#include <AMReX_Particles.H>
 
 using namespace amrex;
 

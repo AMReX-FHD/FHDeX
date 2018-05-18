@@ -13,6 +13,8 @@
 
 #include "INS_functions.H"
 
+#include "FhdParticleContainer.H"
+
 using namespace common;
 using namespace gmres;
 
@@ -171,7 +173,7 @@ void main_driver(const char* argv)
     {
         const Box& bx = mfi.validbox();
 
-		AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
+	    AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
 							BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
             				geom.ProbLo(), geom.ProbHi() ,&dm);,
 					dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
@@ -188,10 +190,6 @@ void main_driver(const char* argv)
 
     int step = 0;
     Real time = 0.;
-
-    //Particles!
-
-    ParticleContainer<AMREX_SPACEDIM+1,0> particles(geom, dmap, ba);
 
     // write out initial state
     WritePlotFile(step,time,geom,rhotot,umac,div);
@@ -223,7 +221,6 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
 
-
         amrex::Print() << "Advanced step " << step << "\n";
 
         time = time + dt;
@@ -233,8 +230,6 @@ void main_driver(const char* argv)
             // write out rhotot and umac to a plotfile
             WritePlotFile(step,time,geom,rhotot,umac,div);
         }
-
-
     }
 
 
