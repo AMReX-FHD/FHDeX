@@ -86,35 +86,20 @@ void main_driver(const char* argv)
     //Print() << nodal_flag_xy << "\n";
     //while(true);
 
-    // beta and gamma on nodes in 2d
+    // beta on nodes in 2d
+    // beta on edges in 3d
+    std::array< MultiFab, NUM_EDGE > betaEdge;
+
 #if (AMREX_SPACEDIM == 2)
-    MultiFab betaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    MultiFab gammaNodal(convert(ba,nodal_flag_xy), dmap, 1, 1);
-
-    betaNodal.setVal(1.);
-    gammaNodal.setVal(0);
-#endif
-
-    // beta and gamma on edges in 3d
-#if (AMREX_SPACEDIM == 3)
-    std::array< MultiFab, AMREX_SPACEDIM > betaEdge;
-    AMREX_D_TERM(betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);,
-                 betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);,
-                 betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1););
-
-    std::array< MultiFab, AMREX_SPACEDIM > gammaEdge;
-    AMREX_D_TERM(gammaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);,
-                 gammaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);,
-                 gammaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1););
-
+    betaEdge[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    betaEdge[0].setVal(1.);
+#elif (AMREX_SPACEDIM == 3)
+    betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
     betaEdge[0].setVal(1.);  
     betaEdge[1].setVal(1.);
     betaEdge[2].setVal(1.);
-
-    gammaEdge[0].setVal(0.);    
-    gammaEdge[1].setVal(0.);
-    gammaEdge[2].setVal(0.);
-
 #endif
 
     //Replace with proper initialiser
@@ -171,15 +156,15 @@ void main_driver(const char* argv)
     {
         const Box& bx = mfi.validbox();
 
-		AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-							BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-            				geom.ProbLo(), geom.ProbHi() ,&dm);,
-					dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
+        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
+                                    geom.ProbLo(), geom.ProbHi() ,&dm);,
+                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
             			    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
             			    geom.ProbLo(), geom.ProbHi() ,&dm);,
-					dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                  			BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                   			geom.ProbLo(), geom.ProbHi() ,&dm););
+                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
+                                    geom.ProbLo(), geom.ProbHi() ,&dm););
     }
 
     // compute the time step
@@ -205,16 +190,11 @@ void main_driver(const char* argv)
         umac[1].FillBoundary(geom.periodicity());,
         umac[2].FillBoundary(geom.periodicity()););
 
-/*        eulerStep(betaCC, gammaCC, 
-#if (AMREX_SPACEDIM == 2)
-        betaNodal, gammaNodal,
-#endif
-#if (AMREX_SPACEDIM == 3)
-        betaEdge, gammaEdge,
-#endif
-        umac, umacOut, umacNew, alpha, geom, &dt);
+        eulerStep(betaCC, gammaCC, 
+                 betaEdge,
+                 umac, umacOut, umacNew, alpha, geom, &dt);
 
-*/
+
 
         //Print() << ParticleType::NextID() << "\n";
 

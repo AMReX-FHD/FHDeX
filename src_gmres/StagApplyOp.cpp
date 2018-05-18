@@ -8,11 +8,7 @@
 //Takes cell centred and nodal viscosity multifabs, and face centred velcoity multifab, and outputs to 
 
 void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
-#if (AMREX_SPACEDIM == 2) 
-                 const MultiFab& betaNodal,
-#elif (AMREX_SPACEDIM == 3) 
-                 const std::array<MultiFab, AMREX_SPACEDIM>& betaEdge, 
-#endif
+                 const std::array<MultiFab, NUM_EDGE>& betaEdge, 
                  const std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
                  const std::array<MultiFab, AMREX_SPACEDIM>& alpha,
@@ -27,10 +23,8 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
         stag_apply_op(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
                            BL_TO_FORTRAN_ANYD(betaCC[mfi]),
                            BL_TO_FORTRAN_ANYD(gammaCC[mfi]),
-#if (AMREX_SPACEDIM == 2)
-                           BL_TO_FORTRAN_ANYD(betaNodal[mfi]),
-#elif (AMREX_SPACEDIM == 3)
                            BL_TO_FORTRAN_ANYD(betaEdge[0][mfi]),
+#if (AMREX_SPACEDIM == 3)
                            BL_TO_FORTRAN_ANYD(betaEdge[1][mfi]),
                            BL_TO_FORTRAN_ANYD(betaEdge[2][mfi]),
 #endif

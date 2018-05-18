@@ -2,6 +2,7 @@
 #define _INS_functions_H_
 
 #include "common_functions.H"
+#include "gmres_functions.H"
 
 ///////////////////////////
 // in WritePlotFile.cpp
@@ -17,19 +18,13 @@ void WritePlotFile(const int step,
 
 
 void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
-#if AMREX_SPACEDIM == 2
-                 const amrex::MultiFab& betaNodal, const amrex::MultiFab& gammaNodal, 
-#endif
-#if AMREX_SPACEDIM == 3
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& betaEdge, 
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& gammaEdge, 
-#endif
-                 std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
-                 std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
-                 std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
-                 std::array<MultiFab, AMREX_SPACEDIM>& alpha,
-                 const Geometry geom,
-                 Real* dt);
+               std::array<amrex::MultiFab, NUM_EDGE>& betaEdge, 
+               std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
+               std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
+               std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
+               std::array<MultiFab, AMREX_SPACEDIM>& alpha,
+               const Geometry geom,
+               Real* dt);
 
 ///////////////////////////
 
