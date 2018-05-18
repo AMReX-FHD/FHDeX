@@ -1,3 +1,5 @@
+
+
 #include "common_functions.H"
 #include "gmres_functions.H"
 
@@ -186,6 +188,10 @@ void main_driver(const char* argv)
 
     int step = 0;
     Real time = 0.;
+
+    //Particles!
+
+    //ParticleContainer<2*AMREX_SPACEDIM,0> particles(geom, dmap, ba);
 
     // write out initial state
     WritePlotFile(step,time,geom,rhotot,umac,div);

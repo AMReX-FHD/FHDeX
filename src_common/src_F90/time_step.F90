@@ -55,6 +55,7 @@ contains
       	do i = lo(1), hi(1)+offset(1)
           !minus sign due to operator construction
           newdata(i,j,k) = old(i,j,k)-stagop(i,j,k)*dt
+          !newdata(i,j,k) = old(i,j,k)
       	end do
       end do
     end do

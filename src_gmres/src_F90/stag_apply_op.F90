@@ -46,8 +46,8 @@ contains
     double precision dxsqinv, dysqinv, dxdyinv, term1, term2, term3
     double precision bt, gm
 
-    bt = betacc(1,1)
-    gm = gammacc(1,1)
+    bt = betacc(betacclo(1),betacclo(2))
+    gm = gammacc(gammacclo(1),gammacclo(2))
 
     !note that operators are implemented as in FHDfortran, i.e. the negative of the operator
 

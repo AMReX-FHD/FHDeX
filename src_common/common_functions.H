@@ -4,9 +4,11 @@
 #define MAX_SPECIES 10
 #define LOHI 2
 
+
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
+#include <AMReX_Particles.H>
 
 using namespace amrex;
 
