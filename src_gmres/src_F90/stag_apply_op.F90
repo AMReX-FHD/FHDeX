@@ -220,15 +220,15 @@ contains
                            alphax, alphaxlo, alphaxhi, &
                            alphay, alphaylo, alphayhi, &
                            alphaz, alphazlo, alphazhi, &
-                           dx, visc_type) &
+                           dx) &
                            bind (C,name="stag_apply_op")
 
     integer         , intent(in   ) :: lo(3), hi(3), betacclo(3), betacchi(3), gammacclo(3), gammacchi(3)
     integer         , intent(in   ) :: betaxylo(3), betaxyhi(3), betayzlo(3), betayzhi(3), betaxzlo(3), betaxzhi(3)
     integer         , intent(in   ) :: gammaxylo(3), gammaxyhi(3), gammayzlo(3), gammayzhi(3), gammaxzlo(3), gammaxzhi(3)
     integer         , intent(in   ) :: alphaxlo(3), alphaxhi(3), alphaylo(3), alphayhi(3), alphazlo(3), alphazhi(3)
-    integer         , intent(in   ) :: velxinlo(3), velxinhi(3), velyinlo(3), velyinhi(3), velzinlo(3), velzinhi(3), velxoutlo(3), velxouthi(3), velyoutlo(3), velyouthi(3), velzoutlo(3), velzouthi(3)
-    integer         , intent(in   ) :: visc_type
+    integer         , intent(in   ) :: velxinlo(3), velxinhi(3), velyinlo(3), velyinhi(3), velzinlo(3), velzinhi(3)
+    integer         , intent(in   ) :: velxoutlo(3), velxouthi(3), velyoutlo(3), velyouthi(3), velzoutlo(3), velzouthi(3)
     double precision, intent(in   ) :: dx(3)
     double precision, intent(in   ) :: betacc(betacclo(1):betacchi(1),betacclo(2):betacchi(2),betacclo(3):betacchi(3))
     double precision, intent(in   ) :: gammacc(gammacclo(1):gammacchi(1),gammacclo(2):gammacchi(2),gammacclo(3):gammacchi(3))
