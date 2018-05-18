@@ -19,7 +19,7 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
                  std::array<MultiFab, AMREX_SPACEDIM>& alpha,
                  const Geometry geom,
-                 int viscType, Real* dt)
+                 Real* dt)
 {
 
     StagApplyOp(betaCC, gammaCC,
@@ -29,7 +29,7 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
 #if (AMREX_SPACEDIM == 3)
                 betaEdge, gammaEdge,
 #endif
-                umacIn, umacOut, alpha, geom, viscType);
+                umacIn, umacOut, alpha, geom);
 
     const int xOff[3] = {1,0,0};
     const int yOff[3] = {0,1,0};

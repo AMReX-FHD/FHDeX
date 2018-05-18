@@ -1,6 +1,7 @@
 module stag_apply_op_module
 
   use amrex_error_module
+  use common_namelist_module, only: visc_type
 
   implicit none
 
@@ -21,13 +22,12 @@ contains
                            velyout, velyoutlo, velyouthi, &
                            alphax, alphaxlo, alphaxhi, &
                            alphay, alphaylo, alphayhi, &
-                           dx, visctype) &
+                           dx) &
                            bind (C,name="stag_apply_op")
 
     integer         , intent(in   ) :: lo(2), hi(2), betacclo(2), betacchi(2), gammacclo(2), gammacchi(2), betanodallo(2), betanodalhi(2)
     integer         , intent(in   ) :: gammanodallo(2), gammanodalhi(2), alphaxlo(2), alphaxhi(2), alphaylo(2), alphayhi(2)
     integer         , intent(in   ) :: velxinlo(2), velxinhi(2), velyinlo(2), velyinhi(2), velxoutlo(2), velxouthi(2), velyoutlo(2), velyouthi(2)
-    integer         , intent(in   ) :: visctype
     double precision, intent(in   ) :: dx(2)
     double precision, intent(in   ) :: betacc(betacclo(1):betacchi(1),betacclo(2):betacchi(2))
     double precision, intent(in   ) :: gammacc(gammacclo(1):gammacchi(1),gammacclo(2):gammacchi(2))
@@ -57,7 +57,7 @@ contains
 
     !Type 1
 
-    if (visctype .eq. -1) then
+    if (visc_type .eq. -1) then
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)+1
 
@@ -84,7 +84,7 @@ contains
 
     endif
 
-    if (visctype .eq. 1) then
+    if (visc_type .eq. 1) then
 
       term1 = 2.d0*bt*(dxsqinv+dysqinv)
       term2 = bt*dxsqinv
@@ -117,7 +117,7 @@ contains
 
     !Type 2
 
-    if (visctype .eq. -2) then
+    if (visc_type .eq. -2) then
 
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)+1
@@ -154,7 +154,7 @@ contains
       enddo
     endif
 
-    if (visctype .eq. 2) then
+    if (visc_type .eq. 2) then
 
       term1 = 2.d0*bt*(2.d0*dxsqinv+dysqinv)
 
@@ -220,7 +220,7 @@ contains
                            alphax, alphaxlo, alphaxhi, &
                            alphay, alphaylo, alphayhi, &
                            alphaz, alphazlo, alphazhi, &
-                           dx, visctype) &
+                           dx, visc_type) &
                            bind (C,name="stag_apply_op")
 
     integer         , intent(in   ) :: lo(3), hi(3), betacclo(3), betacchi(3), gammacclo(3), gammacchi(3)
@@ -228,7 +228,7 @@ contains
     integer         , intent(in   ) :: gammaxylo(3), gammaxyhi(3), gammayzlo(3), gammayzhi(3), gammaxzlo(3), gammaxzhi(3)
     integer         , intent(in   ) :: alphaxlo(3), alphaxhi(3), alphaylo(3), alphayhi(3), alphazlo(3), alphazhi(3)
     integer         , intent(in   ) :: velxinlo(3), velxinhi(3), velyinlo(3), velyinhi(3), velzinlo(3), velzinhi(3), velxoutlo(3), velxouthi(3), velyoutlo(3), velyouthi(3), velzoutlo(3), velzouthi(3)
-    integer         , intent(in   ) :: visctype
+    integer         , intent(in   ) :: visc_type
     double precision, intent(in   ) :: dx(3)
     double precision, intent(in   ) :: betacc(betacclo(1):betacchi(1),betacclo(2):betacchi(2),betacclo(3):betacchi(3))
     double precision, intent(in   ) :: gammacc(gammacclo(1):gammacchi(1),gammacclo(2):gammacchi(2),gammacclo(3):gammacchi(3))
@@ -265,7 +265,7 @@ contains
 
     !Type 1
 
-    if (visctype .eq. -1) then
+    if (visc_type .eq. -1) then
 
       do k = lo(3), hi(3)      
         do j = lo(2), hi(2)
@@ -320,7 +320,7 @@ contains
 
     !Type 2
 
-    if (visctype .eq. -2) then
+    if (visc_type .eq. -2) then
 
       do k = lo(3), hi(3)      
         do j = lo(2), hi(2)

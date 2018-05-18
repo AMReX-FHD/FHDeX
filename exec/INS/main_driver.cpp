@@ -212,7 +212,7 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 3)
         betaEdge, gammaEdge,
 #endif
-        umac, umacOut, umacNew, alpha, geom, visc_type, &dt);
+        umac, umacOut, umacNew, alpha, geom, &dt);
 
 
         AMREX_D_TERM(

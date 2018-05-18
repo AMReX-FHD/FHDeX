@@ -180,8 +180,7 @@ extern "C"
         #if (AMREX_SPACEDIM == 3)
                          const amrex_real* alphaz, const int* alphazlo, const int* alphazhi,
         #endif
-                         const amrex_real* dx,
-                         const int* viscType);
+                         const amrex_real* dx);
 
 
 ///////////////////////////
