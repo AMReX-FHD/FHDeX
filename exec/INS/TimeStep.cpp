@@ -7,13 +7,7 @@
 
 //Explicit Euler
 void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
-#if (AMREX_SPACEDIM == 2) 
-                 const MultiFab& betaNodal, const MultiFab& gammaNodal,
-#endif
-#if(AMREX_SPACEDIM == 3)
-                 std::array<MultiFab, AMREX_SPACEDIM>& betaEdge,
-                 std::array<MultiFab, AMREX_SPACEDIM>& gammaEdge,
-#endif
+                 std::array<MultiFab, NUM_EDGE>& betaEdge,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
@@ -23,11 +17,7 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
 {
 
     StagApplyOp(betaCC, gammaCC,
-#if (AMREX_SPACEDIM == 2)
-                betaNodal,
-#elif (AMREX_SPACEDIM == 3)
                 betaEdge,
-#endif
                 umacIn, umacOut, alpha, geom);
 
     const int xOff[3] = {1,0,0};

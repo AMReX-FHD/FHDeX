@@ -163,9 +163,11 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         // fill periodic ghost cells
         phi_fc_mg[0][d].FillBoundary(geom.periodicity());
 
-        // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
-        MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,0);
+    }
 
+    // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,0);
     }
 
     // compute norm of initial residual
