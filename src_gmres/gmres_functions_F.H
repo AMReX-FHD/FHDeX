@@ -154,33 +154,28 @@ extern "C"
                          const amrex_real* gammacc, const int* gammacclo, const int* gammacchi,
 #if (AMREX_SPACEDIM == 2)
                          const amrex_real* betanodal, const int* betanodallo, const int* betanodalhi,
-                         const amrex_real* gammanodal, const int* gammanodallo, const int* gammanodalhi,
-#endif
-#if (AMREX_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
                          const amrex_real* betaxy, const int* betaxylo, const int* betaxyhi,
                          const amrex_real* betaxz, const int* betaxzlo, const int* betaxzhi,
                          const amrex_real* betayz, const int* betayzlo, const int* betayzhi,
-                         const amrex_real* gammaxy, const int* gammaxylo, const int* gammaxyhi,
-                         const amrex_real* gammaxz, const int* gammaxzlo, const int* gammaxzhi,
-                         const amrex_real* gammayz, const int* gammayzlo, const int* gammayzhi,
-
 #endif
                          const amrex_real* velxin, const int* velxinlo, const int* velxinhi,
                          const amrex_real* velyin, const int* velyinlo, const int* velyinhi,
-        #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                          const amrex_real* velzin, const int* velzinlo, const int* velzinhi,
-        #endif
+#endif
                          const amrex_real* velxout, const int* velxoutlo, const int* velxouthi,
                          const amrex_real* velyout, const int* velyoutlo, const int* velyouthi,
-        #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                          const amrex_real* velzout, const int* velzoutlo, const int* velzouthi,
-        #endif
+#endif
                          const amrex_real* alphax, const int* alphaxlo, const int* alphaxhi,
                          const amrex_real* alphay, const int* alphaylo, const int* alphayhi,
-        #if (AMREX_SPACEDIM == 3)
+#if (AMREX_SPACEDIM == 3)
                          const amrex_real* alphaz, const int* alphazlo, const int* alphazhi,
-        #endif
-                         const amrex_real* dx);
+#endif
+                         const amrex_real* dx,
+                         const int* color);
 
 
 ///////////////////////////

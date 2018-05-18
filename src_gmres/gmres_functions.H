@@ -62,17 +62,18 @@ void StagMGUpdate(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
 
 //In StagApplyOp.cpp
 
-void StagApplyOp(const amrex::MultiFab& betaCC, const amrex::MultiFab& gammaCC, 
+void StagApplyOp(const amrex::MultiFab& betaCC, 
+                 const amrex::MultiFab& gammaCC, 
 #if AMREX_SPACEDIM == 2
-                 const amrex::MultiFab& betaNodal, const amrex::MultiFab& gammaNodal, 
+                 const amrex::MultiFab& betaNodal,
 #endif
 #if AMREX_SPACEDIM == 3
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& betaEdge, 
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& gammaEdge, 
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& betaEdge, 
 #endif
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn, 
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha,
-                 const amrex::Geometry geom);
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha,
+                 const amrex::Geometry geom,
+                 const int& color=0);
 
 #endif

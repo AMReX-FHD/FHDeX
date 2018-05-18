@@ -24,10 +24,9 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
 
     StagApplyOp(betaCC, gammaCC,
 #if (AMREX_SPACEDIM == 2)
-                betaNodal, gammaNodal,
-#endif
-#if (AMREX_SPACEDIM == 3)
-                betaEdge, gammaEdge,
+                betaNodal,
+#elif (AMREX_SPACEDIM == 3)
+                betaEdge,
 #endif
                 umacIn, umacOut, alpha, geom);
 

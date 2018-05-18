@@ -9,16 +9,15 @@
 
 void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
 #if (AMREX_SPACEDIM == 2) 
-                 const MultiFab& betaNodal, const MultiFab& gammaNodal, 
+                 const MultiFab& betaNodal,
+#elif (AMREX_SPACEDIM == 3) 
+                 const std::array<MultiFab, AMREX_SPACEDIM>& betaEdge, 
 #endif
-#if (AMREX_SPACEDIM == 3) 
-                 std::array<MultiFab, AMREX_SPACEDIM>& betaEdge, 
-                 std::array<MultiFab, AMREX_SPACEDIM>& gammaEdge, 
-#endif
-                 std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
+                 const std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
-                 std::array<MultiFab, AMREX_SPACEDIM>& alpha,
-                 const Geometry geom)
+                 const std::array<MultiFab, AMREX_SPACEDIM>& alpha,
+                 const Geometry geom,
+                 const int& color)
 {
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(betaCC); mfi.isValid(); ++mfi) {
@@ -30,16 +29,10 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
                            BL_TO_FORTRAN_ANYD(gammaCC[mfi]),
 #if (AMREX_SPACEDIM == 2)
                            BL_TO_FORTRAN_ANYD(betaNodal[mfi]),
-                           BL_TO_FORTRAN_ANYD(gammaNodal[mfi]),
-#endif
-#if (AMREX_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
                            BL_TO_FORTRAN_ANYD(betaEdge[0][mfi]),
                            BL_TO_FORTRAN_ANYD(betaEdge[1][mfi]),
-                           BL_TO_FORTRAN_ANYD(betaEdge[1][mfi]),
-                           BL_TO_FORTRAN_ANYD(gammaEdge[0][mfi]),
-                           BL_TO_FORTRAN_ANYD(gammaEdge[1][mfi]),
-                           BL_TO_FORTRAN_ANYD(gammaEdge[1][mfi]),
-
+                           BL_TO_FORTRAN_ANYD(betaEdge[2][mfi]),
 #endif
                            BL_TO_FORTRAN_ANYD(umacIn[0][mfi]),
                            BL_TO_FORTRAN_ANYD(umacIn[1][mfi]),
@@ -51,14 +44,13 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
 #if (AMREX_SPACEDIM == 3)
                            BL_TO_FORTRAN_ANYD(umacOut[2][mfi]),
 #endif
-
                            BL_TO_FORTRAN_ANYD(alpha[0][mfi]),
                            BL_TO_FORTRAN_ANYD(alpha[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
                            BL_TO_FORTRAN_ANYD(alpha[2][mfi]),
 #endif
 
-                           geom.CellSize());
+                      geom.CellSize(), &color);
 
     }
 
