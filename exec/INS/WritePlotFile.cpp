@@ -8,7 +8,9 @@ void WritePlotFile(const int step,
                    const amrex::Geometry geom,
                    const MultiFab& rhotot,
                    const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-				   const MultiFab& div) {
+	               const MultiFab& div,
+                   const FhdParticleContainer& particles) 
+{
 
     std::string plotfilename = Concatenate("plt",step,7);
 
@@ -53,5 +55,7 @@ void WritePlotFile(const int step,
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
+
+    //particles.Checkpoint(plotfilename, "particle0",true);
 
 }
