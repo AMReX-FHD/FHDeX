@@ -3,6 +3,7 @@
 
 #include "common_functions.H"
 #include "gmres_functions.H"
+#include "FhdParticleContainer.H"
 
 ///////////////////////////
 // in WritePlotFile.cpp
@@ -12,7 +13,8 @@ void WritePlotFile(const int step,
                    const amrex::Geometry geom,
                    const MultiFab& rhotot,
                    const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-					const MultiFab& div);
+		   const MultiFab& div,
+                   const FhdParticleContainer& particles);
 
 ///////////////////////////
 

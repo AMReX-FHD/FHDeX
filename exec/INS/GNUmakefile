@@ -6,10 +6,9 @@ DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
-DIM       = 2
+DIM       = 3
 
 USE_PARTICLES = TRUE
-TINY_PROFILE = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
