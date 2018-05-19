@@ -36,6 +36,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     // compute the number of multigrid levels assuming stag_mg_minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
     int nlevs_mg = ComputeNlevsMG(ba_base);
+    int n;
 
     // allocate multifabs used in multigrid coarsening
 
@@ -62,11 +63,11 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     Vector<Real> resid_l2(AMREX_SPACEDIM);
     Real resid_temp;
 
-    int color_start, color_end;
+    int color_start, color_end, nsmooths;
 
     DistributionMapping dmap = beta_cc.DistributionMap();
 
-    for (int n=0; n<nlevs_mg; ++n) {
+    for (n=0; n<nlevs_mg; ++n) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // compute dx at this level of multigrid
             dx_mg[n][d] = dx[d] * pow(2,n);
@@ -129,7 +130,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     }
     
     // coarsen coefficients
-    for (int n=1; n<nlevs_mg; ++n) {
+    for (n=1; n<nlevs_mg; ++n) {
         // need ghost cells set to zero to prevent intermediate NaN states
         // that cause some compilers to fail
         beta_cc_mg[n].setVal(0.);
@@ -172,10 +173,9 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
     // compute norm of initial residual
     // first compute Lphi
-    // FIXME
+    StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
+                phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],geom);
     
-
-
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // compute Lphi - rhs
         MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
@@ -219,31 +219,256 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
         // set phi to zero at coarser levels as initial guess for residual equation
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            for (int n=1; n<nlevs_mg; ++n) {
+            for (n=1; n<nlevs_mg; ++n) {
                 phi_fc_mg[n][d].setVal(0.);
             }
         }
 
         // down the V-cycle
-        for (int n=0; n<nlevs_mg-1; ++n) {
+        for (n=0; n<nlevs_mg-1; ++n) {
 
             // print out residual
             if (stag_mg_verbosity >= 3) {
 
+                // compute Lphi
+                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                            phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom);
+    
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // compute Lphi - rhs, and report residual
+                    MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                    resid_temp = Lphi_fc_mg[n][d].norm0();
+                    Print() << "Residual for comp " << d << " before   smooths at level " 
+                            << n << " " << resid_temp << std::endl;
+                }
             }
 
+            // control to do a different number of smooths for the bottom solver
+            nsmooths = stag_mg_nsmooths_down;
+
+            for (int m=1; m<=nsmooths; ++m) {
+
+                // do the smooths
+                for (int color=color_start; color<=color_end; ++color) {
+
+                    // the form of weighted Jacobi we are using is
+                    // phi^{k+1} = phi^k + omega*D^{-1}*(rhs-Lphi)
+                    // where D is the diagonal matrix containing the diagonal elements of L
+
+                    // compute Lphi
+                    //
+                    //
+
+                    // update phi = phi + omega*D^{-1}*(rhs-Lphi)
+                    //
+                    //
+
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+                        // fill periodic ghost cells
+                        //
+                        //
+
+                    }
+                } // end loop over colors
+            } // end loop over nsmooths
+
+            /////////////////
+            // compute residual
+
+            // compute Lphi
+            //
+            //
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+                // compute Lphi - rhs, and then multiply by -1
+                //
+                //
+                if (stag_mg_verbosity >= 3) {
+
+                }
+
+                // fill periodic ghost cells
+                //
+                //
+            }
+
+            // restrict/coarsen residual and put it in rhs_fc
+            //
+            //
 
 
-        }
+
+        }  // end loop over nlevs_mg (bottom of V-cycle)
+
+        // bottom solve
+        n = nlevs_mg;
             
+        ////////////////////////////
+        // just do smooths at the current level as the bottom solve
+
+        // print out residual
+        if (stag_mg_verbosity >= 3) {
+
+            // compute Lphi
+            //
+            //
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // compute Lphi - rhs, and report residual
+                //
+                //
+            }
+        }
+
+        // control to do a different number of smooths for the bottom solver
+        nsmooths = stag_mg_nsmooths_bottom;
+
+        for (int m=1; m<=nsmooths; ++m) {
+
+            // do the smooths
+            for (int color=color_start; color<=color_end; ++color) {
+
+                // the form of weighted Jacobi we are using is
+                // phi^{k+1} = phi^k + omega*D^{-1}*(rhs-Lphi)
+                // where D is the diagonal matrix containing the diagonal elements of L
+
+                // compute Lphi
+                //
+                //
+
+
+                // update phi = phi + omega*D^{-1}*(rhs-Lphi)
+                //
+                //
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+                    // fill periodic ghost cells
+                    //
+                    //
+
+                }
+            } // end loop over colors
+        } // end loop over nsmooths
+
+        ////////////////////
+        // compute residual
+
+        // compute Lphi
+        //
+        //
+        
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            
+            // compute Lphi - rhs, and then multiply by -1
+            //
+            //
+
+            // fill periodic ghost cells
+            //
+            //
+        }
+
+        // up the V-cycle
+        for (n=nlevs_mg-2; n>=0; --n) {
+
+            // prolongate/interpolate correction to update phi
+            
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
 
 
+
+
+            }
+
+        } // end loop over nlevs_mg (top of V-cycle)
+
+        if (stag_mg_verbosity >= 2) {
+            Print() << "End   V-Cycle " << vcycle << std::endl;
+        }
+
+        // compute norm of residual
+
+        // compute Lphi
+        StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
+                    phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],geom);
+
+        // compute Lphi - rhs
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // compute Lphi - rhs
+            MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
+        }
+
+        // compute L0 norm of Lphi - rhs and determine if the problem is solved
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            resid[d] = Lphi_fc_mg[0][d].norm0(); 
+            resid_l2[d] = Lphi_fc_mg[0][d].norm2(); 
+            if (stag_mg_verbosity >= 2) {
+                Print() << "Residual     " << d << " " << resid[d] << std::endl;
+                Print() << "resid/resid0 " << d << " " << resid[d]/resid0[d] << std::endl;
+            }
+        }
+        if (stag_mg_verbosity >= 1) {
+            Real sum1=0., sum2=0.;
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                sum1 += pow(resid_l2[d],2.0);
+                sum2 += pow(resid0_l2[d],2.0);
+            }
+            Print() << "StagMG: L2 |r|/|r0|: " << vcycle
+                    << sqrt(sum1)/sqrt(sum2);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                Print() << " " << resid_l2[d]/resid0_l2[d];
+            }
+            Print() << std::endl;
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            resid[d] /= resid0[d];
+        }
+        
+        if ( std::all_of(resid.begin(), resid.end(), [](Real x){return x <= stag_mg_rel_tol;}) ) {
+            if (stag_mg_verbosity >= 1) {
+                Print() << "Solved in " << vcycle << " staggered V-cycles" << std::endl;
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    Print() << "resid/resid0 " << d << " " << resid[d] << std::endl;
+                }
+            }
+            return;
+        }
+        
+        if (vcycle == stag_mg_max_vcycles) {
+            if (stag_mg_verbosity >= 1) {
+                Print() << "Exiting staggered multigrid; maximum number of V-Cycles reached" << std::endl;
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    Print() << "resid/resid0 " << d << " " << resid[d] << std::endl;
+                }
+            }
+        }
+
+    } // end loop over stag_mg_max_vcycles
+
+    //////////////////////////////////
+    // Done with multigrid
+    //////////////////////////////////
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+        // copy solution back into phi_fc
+        MultiFab::Copy(phi_fc[d],phi_fc_mg[0][d],0,0,1,0);
+
+        // fill periodic ghost cells
+        phi_fc[d].FillBoundary(geom.periodicity());
 
     }
 
+    // vcycle_counter += AMREX_SPACEDIM*stag_mg_max_vcycles;
 
-
+    if (stag_mg_verbosity >= 1) {
+        Print() << "\nEnd call to stag_mg_solver\n";
+    }
 
 }
 
