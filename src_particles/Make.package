@@ -1,0 +1,2 @@
+CEXE_headers   += FhdParticleContainer.H
+CEXE_sources   += FhdParticleContainer.cpp
