@@ -310,17 +310,17 @@ contains
     integer         , intent(in   ) :: lo_f(3), hi_f(3)
     integer         , intent(in   ) :: cx_lo(3), cx_hi(3)
     integer         , intent(in   ) :: fx_lo(3), fx_hi(3)
-    double precision, intent(in   ) :: phix_c(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
-    double precision, intent(inout) :: phix_f(cx_lo(1):cx_hi(1),cx_lo(2):cx_hi(2),cx_lo(3):cx_hi(3))
+    double precision, intent(in   ) :: phix_c(cx_lo(1):cx_hi(1),cx_lo(2):cx_hi(2),cx_lo(3):cx_hi(3))
+    double precision, intent(inout) :: phix_f(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
     integer         , intent(in   ) :: cy_lo(3), cy_hi(3)
     integer         , intent(in   ) :: fy_lo(3), fy_hi(3)
-    double precision, intent(in   ) :: phiy_c(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
-    double precision, intent(inout) :: phiy_f(cy_lo(1):cy_hi(1),cy_lo(2):cy_hi(2),cy_lo(3):cy_hi(3))
+    double precision, intent(in   ) :: phiy_c(cy_lo(1):cy_hi(1),cy_lo(2):cy_hi(2),cy_lo(3):cy_hi(3))
+    double precision, intent(inout) :: phiy_f(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
 #if (AMREX_SPACEDIM == 3)
     integer         , intent(in   ) :: cz_lo(3), cz_hi(3)
     integer         , intent(in   ) :: fz_lo(3), fz_hi(3)
-    double precision, intent(in   ) :: phiz_c(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
-    double precision, intent(inout) :: phiz_f(cz_lo(1):cz_hi(1),cz_lo(2):cz_hi(2),cz_lo(3):cz_hi(3))
+    double precision, intent(in   ) :: phiz_c(cz_lo(1):cz_hi(1),cz_lo(2):cz_hi(2),cz_lo(3):cz_hi(3))
+    double precision, intent(inout) :: phiz_f(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
 #endif
 
     ! local
