@@ -182,7 +182,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
         // compute L0 norm of Lphi - rhs
         resid0[d] = Lphi_fc_mg[0][d].norm0(); 
-        resid0_l2[d] = Lphi_fc_mg[0][d].norm2(); 
+//        resid0_l2[d] = Lphi_fc_mg[0][d].norm2(); 
         if (stag_mg_verbosity >= 2) {
             Print() << "Initial residual " << d << " " << resid0[d] << std::endl;
         }
@@ -199,7 +199,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     // set the zero residuals to the maximum so the multigrid will begin work
     if ( std::any_of(resid0.begin(), resid0.end(), [](Real x){return x==0.;}) ) {
         std::fill(resid0.begin(),    resid0.end(),    *max_element(resid0.begin(),    resid0.end()));
-        std::fill(resid0_l2.begin(), resid0_l2.end(), *max_element(resid0_l2.begin(), resid0_l2.end()));
+//        std::fill(resid0_l2.begin(), resid0_l2.end(), *max_element(resid0_l2.begin(), resid0_l2.end()));
     }
       
     if (stag_mg_smoother == 0) {
@@ -462,13 +462,14 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         // compute L0 norm of Lphi - rhs and determine if the problem is solved
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             resid[d] = Lphi_fc_mg[0][d].norm0(); 
-            resid_l2[d] = Lphi_fc_mg[0][d].norm2(); 
+//            resid_l2[d] = Lphi_fc_mg[0][d].norm2(); 
             if (stag_mg_verbosity >= 2) {
                 Print() << "Residual     " << d << " " << resid[d] << std::endl;
                 Print() << "resid/resid0 " << d << " " << resid[d]/resid0[d] << std::endl;
             }
         }
         if (stag_mg_verbosity >= 1) {
+/*
             Real sum1=0., sum2=0.;
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 sum1 += pow(resid_l2[d],2.0);
@@ -480,6 +481,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 Print() << " " << resid_l2[d]/resid0_l2[d];
             }
             Print() << std::endl;
+*/
         }
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
