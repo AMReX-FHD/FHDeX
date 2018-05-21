@@ -294,7 +294,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             }
 
             // restrict/coarsen residual and put it in rhs_fc
-            StagRestriction(Lphi_fc_mg[n+1],Lphi_fc_mg[n]);
+            StagRestriction(rhs_fc_mg[n+1],Lphi_fc_mg[n]);
 
         }  // end loop over nlevs_mg (bottom of V-cycle)
 
