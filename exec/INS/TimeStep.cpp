@@ -18,7 +18,7 @@ void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
 
     StagApplyOp(betaCC, gammaCC,
                 betaEdge,
-                umacIn, umacOut, alpha, geom);
+                umacIn, umacOut, alpha, geom.CellSize());
 
     const int xOff[3] = {1,0,0};
     const int yOff[3] = {0,1,0};

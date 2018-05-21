@@ -68,7 +68,7 @@ void StagApplyOp(const amrex::MultiFab& betaCC,
                  const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn, 
                  std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
                  const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha,
-                 const amrex::Geometry geom,
+                 const amrex::Real* dx,
                  const int& color=0);
 
 #endif
