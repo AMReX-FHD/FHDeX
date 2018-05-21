@@ -101,7 +101,7 @@ contains
              if ( offset .eq. 2 .and. mod(lo(1)+j,2) .ne. mod(color+1,2) ) ioff = 1
              do i=lo(1)+ioff,hi(1),offset
 
-                velyout(i,j) = velyin(i,j)*(alphax(i,j)+ &
+                velyout(i,j) = velyin(i,j)*(alphay(i,j)+ &
                                (betacc(i,j)+betacc(i,j-1))*dysqinv+(betanodal(i+1,j)+betanodal(i,j))*dxsqinv) &
                                +(-velyin(i,j+1)*betacc(i,j) &
                                -velyin(i,j-1)*betacc(i,j-1))*dysqinv &

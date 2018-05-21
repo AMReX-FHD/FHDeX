@@ -9,7 +9,7 @@ using namespace amrex;
 using namespace gmres;
 using namespace common;
 
-// solve "(theta*alpha*I - L) phi = rhs" using multigrid with Jacobi relaxation
+// solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
 // if abs(visc_type) = 1, L = div beta grad
 // if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
 // if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
@@ -54,7 +54,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
     const Real* dx = geom.CellSize();
 
-    Vector<std::array< Real, AMREX_SPACEDIM > > dx_mg;
+    Vector<std::array< Real, AMREX_SPACEDIM > > dx_mg(nlevs_mg);
 
     // initial and current residuals
     Vector<Real> resid0(AMREX_SPACEDIM);
