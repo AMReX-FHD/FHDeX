@@ -50,7 +50,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >   phi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >  Lphi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > resid_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, NUM_EDGE > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge-based in 3D
+    Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge-based in 3D
 
     const Real* dx = geom.CellSize();
 
@@ -63,7 +63,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     Vector<Real> resid_l2(AMREX_SPACEDIM);
     Real resid_temp;
 
-    int color_start, color_end, nsmooths;
+    int color_start, color_end;
 
     DistributionMapping dmap = beta_cc.DistributionMap();
 
@@ -225,7 +225,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         }
 
         // down the V-cycle
-        for (n=0; n<nlevs_mg-1; ++n) {
+        for (n=0; n<=nlevs_mg-2; ++n) {
 
             // print out residual
             if (stag_mg_verbosity >= 3) {
@@ -243,10 +243,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 }
             }
 
-            // control to do a different number of smooths for the bottom solver
-            nsmooths = stag_mg_nsmooths_down;
-
-            for (int m=1; m<=nsmooths; ++m) {
+            for (int m=1; m<=stag_mg_nsmooths_down; ++m) {
 
                 // do the smooths
                 for (int color=color_start; color<=color_end; ++color) {
@@ -256,20 +253,20 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     // where D is the diagonal matrix containing the diagonal elements of L
 
                     // compute Lphi
-                    //
-                    //
+                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                                phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom,color);
 
                     // update phi = phi + omega*D^{-1}*(rhs-Lphi)
-                    //
-                    //
+                    StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
+                                 beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                         // fill periodic ghost cells
-                        //
-                        //
+                        phi_fc_mg[n][d].FillBoundary(geom.periodicity());
 
                     }
+
                 } // end loop over colors
             } // end loop over nsmooths
 
@@ -277,33 +274,32 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             // compute residual
 
             // compute Lphi
-            //
-            //
+            StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                        phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                 // compute Lphi - rhs, and then multiply by -1
-                //
-                //
+                MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                Lphi_fc_mg[n][d].mult(-1.,0,1,0);
                 if (stag_mg_verbosity >= 3) {
-
+                    resid_temp = Lphi_fc_mg[n][d].norm0();
+                    Print() << "Residual for comp " << d << " after   smooths at level " 
+                            << n << " " << resid_temp << std::endl;
                 }
 
                 // fill periodic ghost cells
-                //
-                //
+                Lphi_fc_mg[n][d].FillBoundary(geom.periodicity());
+
             }
 
             // restrict/coarsen residual and put it in rhs_fc
-            //
-            //
-
-
+            StagRestriction(Lphi_fc_mg[n+1],Lphi_fc_mg[n]);
 
         }  // end loop over nlevs_mg (bottom of V-cycle)
 
         // bottom solve
-        n = nlevs_mg;
+        n = nlevs_mg-1;
             
         ////////////////////////////
         // just do smooths at the current level as the bottom solve
@@ -312,20 +308,19 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         if (stag_mg_verbosity >= 3) {
 
             // compute Lphi
-            //
-            //
+            StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                        phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 // compute Lphi - rhs, and report residual
-                //
-                //
+                MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                resid_temp = Lphi_fc_mg[n][d].norm0();
+                Print() << "Residual for comp " << d << " before   smooths at level " 
+                        << n << " " << resid_temp << std::endl;
             }
         }
 
-        // control to do a different number of smooths for the bottom solver
-        nsmooths = stag_mg_nsmooths_bottom;
-
-        for (int m=1; m<=nsmooths; ++m) {
+        for (int m=1; m<=stag_mg_nsmooths_bottom; ++m) {
 
             // do the smooths
             for (int color=color_start; color<=color_end; ++color) {
@@ -335,19 +330,17 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 // where D is the diagonal matrix containing the diagonal elements of L
 
                 // compute Lphi
-                //
-                //
-
+                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                            phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom,color);
 
                 // update phi = phi + omega*D^{-1}*(rhs-Lphi)
-                //
-                //
+                StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
+                             beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                     // fill periodic ghost cells
-                    //
-                    //
+                    phi_fc_mg[n][d].FillBoundary(geom.periodicity());
 
                 }
             } // end loop over colors
@@ -357,31 +350,95 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         // compute residual
 
         // compute Lphi
-        //
-        //
+        StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                    phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom);
         
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             
             // compute Lphi - rhs, and then multiply by -1
-            //
-            //
+            MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+            Lphi_fc_mg[n][d].mult(-1.,0,1,0);
+            if (stag_mg_verbosity >= 3) {
+                resid_temp = Lphi_fc_mg[n][d].norm0();
+                Print() << "Residual for comp " << d << " after   smooths at level " 
+                        << n << " " << resid_temp << std::endl;
+            }
 
             // fill periodic ghost cells
-            //
-            //
+            Lphi_fc_mg[n][d].FillBoundary(geom.periodicity());
+
         }
 
         // up the V-cycle
         for (n=nlevs_mg-2; n>=0; --n) {
 
             // prolongate/interpolate correction to update phi
-            
+            StagProlongation(phi_fc_mg[n+1],phi_fc_mg[n]);
+
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
+                // fill periodic ghost cells
+                phi_fc_mg[n][d].FillBoundary(geom.periodicity());
 
+            }
 
+            // print out residual
+            if (stag_mg_verbosity >= 3) {
 
+                // compute Lphi
+                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                            phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom);
+    
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // compute Lphi - rhs, and report residual
+                    MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                    resid_temp = Lphi_fc_mg[n][d].norm0();
+                    Print() << "Residual for comp " << d << " before   smooths at level " 
+                            << n << " " << resid_temp << std::endl;
+                }
+            }
 
+            for (int m=1; m<=stag_mg_nsmooths_up; ++m) {
+
+                // do the smooths
+                for (int color=color_start; color<=color_end; ++color) {
+
+                    // the form of weighted Jacobi we are using is
+                    // phi^{k+1} = phi^k + omega*D^{-1}*(rhs-Lphi)
+                    // where D is the diagonal matrix containing the diagonal elements of L
+
+                    // compute Lphi
+                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                                phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom,color);
+
+                    // update phi = phi + omega*D^{-1}*(rhs-Lphi)
+                    StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
+                                 beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
+
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+                        // fill periodic ghost cells
+                        phi_fc_mg[n][d].FillBoundary(geom.periodicity());
+
+                    }
+
+                } // end loop over colors
+
+            } // end loop over stag_mg_nsmooths_up
+
+            if (stag_mg_verbosity >= 3) {
+
+                // compute Lphi
+                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                            phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],geom);
+        
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // compute Lphi - rhs, and report residual
+                    MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                    resid_temp = Lphi_fc_mg[n][d].norm0();
+                    Print() << "Residual for comp " << d << " after all smooths at level " 
+                            << n << " " << resid_temp << std::endl;
+                }
             }
 
         } // end loop over nlevs_mg (top of V-cycle)
