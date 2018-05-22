@@ -254,10 +254,10 @@ contains
                                +velyin(i,j+1) &
                                +velyin(i,j-1)) &
                      
-                               +bt*dxdyinv*(+velxin(i,j+1) &
+                               +bt*dxdyinv*(+velxin(i+1,j) &
                                -velxin(i,j) &
-                               -velxin(i-1,j+1) &
-                               +velxin(i-1,j)))
+                               -velxin(i+1,j-1) &
+                               +velxin(i,j-1)))
              enddo
           enddo
 
