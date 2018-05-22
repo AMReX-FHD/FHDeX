@@ -215,7 +215,7 @@ contains
 
        if (do_x) then
 
-          term1 = 2.d0*bt*(2.d0*dxsqinv+dysqinv)
+          term1 =  (2.d0*bt)*2.d0*dxsqinv+(2.d0*bt)*dysqinv
 
           do j = lo(2), hi(2)
              ioff = 0
@@ -224,15 +224,15 @@ contains
 
                 velxout(i,j) = +velxin(i,j)*(alphax(i,j) + term1) &
                      
-                               -( bt*dxsqinv*(2.d0*velxin(i+1,j) &
-                               +2.d0*velxin(i-1,j) &
-                               +velxin(i,j+1) &
-                               +velxin(i,j-1)) &
+                               -bt*( (velxin(i+1,j) &
+                               +velxin(i-1,j))*2.d0*dxsqinv &
+                               +(+velxin(i,j+1) &
+                               +velxin(i,j-1))*dysqinv &
                      
-                               +bt*dxdyinv*(+velyin(i,j+1) &
+                               +(+velyin(i,j+1) &
                                -velyin(i,j) &
                                -velyin(i-1,j+1) &
-                               +velyin(i-1,j)))
+                               +velyin(i-1,j))*dxdyinv)
              enddo
           enddo
 
@@ -240,7 +240,7 @@ contains
 
        if (do_y) then
 
-          term1 = 2.d0*bt*(2.d0*dysqinv+dxsqinv)
+          term1 = (2.d0*bt)*2.d0*dysqinv+(2.d0*bt)*dxsqinv
 
           do j = lo(2), hi(2)+1
              ioff = 0
@@ -249,15 +249,15 @@ contains
 
                 velyout(i,j) = +velyin(i,j)*(alphay(i,j) + term1) &
                      
-                               -( bt*dysqinv*(2.d0*velyin(i+1,j) &
-                               +2.d0*velyin(i-1,j) &
-                               +velyin(i,j+1) &
-                               +velyin(i,j-1)) &
+                               -bt*( (velyin(i,j+1) &
+                               +velyin(i,j-1))*2.d0*dysqinv &
+                               +(+velyin(i+1,j) &
+                               +velyin(i-1,j))*dxsqinv &
                      
-                               +bt*dxdyinv*(+velxin(i+1,j) &
+                               +(+velxin(i+1,j) &
                                -velxin(i,j) &
                                -velxin(i+1,j-1) &
-                               +velxin(i,j-1)))
+                               +velxin(i,j-1))*dxdyinv)
              enddo
           enddo
 
@@ -352,6 +352,76 @@ contains
     !Type 1
 
     if (visc_type .eq. -1) then
+
+       if (do_x) then
+
+          do k = lo(3), hi(3)      
+             do j = lo(2), hi(2)
+                ioff = 0
+                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
+                do i=lo(1)+ioff,hi(1)+1,offset
+
+                   velxout(i,j,k) = velxin(i,j,k)*(alphax(i,j,k) + &
+                                    (betacc(i,j,k)+betacc(i-1,j,k))*dxsqinv+(betaxy(i,j,k)+betaxy(i,j+1,k))*dysqinv+(betaxz(i,j,k)+betaxz(i,j,k+1))*dzsqinv) &
+                                    -velxin(i+1,j,k)*betacc(i,j,k)*dxsqinv &
+                                    -velxin(i-1,j,k)*betacc(i-1,j,k)*dxsqinv &
+                                    -velxin(i,j+1,k)*betaxy(i,j+1,k)*dysqinv &
+                                    -velxin(i,j-1,k)*betaxy(i,j,k)*dysqinv &
+                                    -velxin(i,j,k+1)*betaxz(i,j,k+1)*dzsqinv &
+                                    -velxin(i,j,k-1)*betaxz(i,j,k)*dysqinv
+                enddo
+             enddo
+          enddo
+
+       end if
+
+       if (do_y) then
+
+          do k = lo(3), hi(3)      
+             do j = lo(2), hi(2)+1
+                ioff = 0
+                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
+                do i=lo(1)+ioff,hi(1),offset
+                   velyout(i,j,k) = velyin(i,j,k)*(alphay(i,j,k) + &
+                                    (betacc(i,j,k)+betacc(i,j-1,k))*dysqinv+(betaxy(i,j,k)+betaxy(i+1,j,k))*dxsqinv+(betayz(i,j,k)+betayz(i,j,k+1))*dzsqinv ) &
+                                    -velyin(i,j+1,k)*betacc(i,j,k)*dysqinv &
+                                    -velyin(i,j-1,k)*betacc(i,j-1,k)*dysqinv &
+                                    -velyin(i+1,j,k)*betaxy(i+1,j,k)*dxsqinv &
+                                    -velyin(i-1,j,k)*betaxy(i,j,k)*dxsqinv &
+                                    -velyin(i,j,k+1)*betayz(i,j,k+1)*dzsqinv &
+                                    -velyin(i,j,k-1)*betayz(i,j,k)*dzsqinv 
+                enddo
+             enddo
+          enddo
+
+       end if
+
+       if (do_z) then
+
+          do k = lo(3), hi(3)+1      
+             do j = lo(2), hi(2)
+                ioff = 0
+                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
+                do i=lo(1)+ioff,hi(1),offset
+
+                   velzout(i,j,k) = velzin(i,j,k)*(alphaz(i,j,k) + &
+                                    (betacc(i,j,k)+betacc(i,j,k-1))*dzsqinv+(betaxz(i,j,k)+betaxz(i+1,j,k))*dxsqinv+(betayz(i,j,k)+betayz(i,j+1,k))*dysqinv) &
+                                    -velzin(i,j,k+1)*betacc(i,j,k)*dzsqinv &
+                                    -velzin(i,j,k-1)*betacc(i,j,k-1)*dzsqinv &
+                                    -velzin(i+1,j,k)*betaxz(i+1,j,k)*dxsqinv &
+                                    -velzin(i-1,j,k)*betaxz(i,j,k)*dxsqinv &
+                                    -velzin(i,j+1,k)*betayz(i,j+1,k)*dysqinv &
+                                    -velzin(i,j-1,k)*betayz(i,j,k)*dysqinv 
+                enddo
+             enddo
+          enddo
+
+       end if
+
+    end if
+
+
+    if (visc_type .eq. 1) then
 
        if (do_x) then
 
@@ -524,6 +594,111 @@ contains
        end if
 
     end if
+
+
+    if (visc_type .eq. 2) then
+
+       if (do_x) then
+
+          do k = lo(3), hi(3)      
+             do j = lo(2), hi(2)
+                ioff = 0
+                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
+                do i=lo(1)+ioff,hi(1)+1,offset
+
+                   velxout(i,j,k) = velxin(i,j,k)*( alphax(i,j,k) + & 
+                                    2.d0*(betacc(i,j,k)+betacc(i-1,j,k))*dxsqinv + (betaxy(i,j,k)+betaxy(i,j+1,k))*dxsqinv+(betaxz(i,j,k)+betaxz(i,j,k+1))*dzsqinv  ) &
+                        
+                                    -2.d0*velxin(i+1,j,k)*betacc(i,j,k)*dxsqinv &
+                                    -2.d0*velxin(i-1,j,k)*betacc(i-1,j,k)*dxsqinv &
+                                    -velxin(i,j+1,k)*betaxy(i,j+1,k)*dysqinv &
+                                    -velxin(i,j-1,k)*betaxy(i,j,k)*dysqinv &
+                                    -velxin(i,j,k+1)*betaxz(i,j,k+1)*dzsqinv &
+                                    -velxin(i,j,k-1)*betaxz(i,j,k)*dzsqinv &
+                        
+                                    -velyin(i,j+1,k)*betaxy(i,j+1,k)*dxdyinv &
+                                    +velyin(i,j,k)*betaxy(i,j,k)*dxdyinv &
+                                    +velyin(i-1,j+1,k)*betaxy(i,j+1,k)*dxdyinv &
+                                    -velyin(i-1,j,k)*betaxy(i,j,k)*dxdyinv &
+                                    
+                                    -velzin(i,j,k+1)*betaxz(i,j,k+1)*dxdzinv &
+                                    +velzin(i,j,k)*betaxz(i,j,k)*dxdzinv &
+                                    +velzin(i-1,j,k+1)*betaxz(i,j,k+1)*dxdzinv &
+                                    -velzin(i-1,j,k)*betaxz(i,j,k)*dxdzinv
+                enddo
+             enddo
+          enddo
+
+       end if
+
+       if (do_y) then
+
+          do k = lo(3), hi(3)      
+             do j = lo(2), hi(2)+1
+                ioff = 0
+                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
+                do i=lo(1)+ioff,hi(1),offset
+
+                   velyout(i,j,k) = velyin(i,j,k)*( alphay(i,j,k) + &
+                                    2.d0*(betacc(i,j,k)+betacc(i,j-1,k))*dysqinv + (betaxy(i,j,k)+betaxy(i+1,j,k))*dxsqinv + (betayz(i,j,k)+betayz(i,j,k+1))*dzsqinv ) &
+                        
+                                    -2.d0*velyin(i,j+1,k)*betacc(i,j,k)*dysqinv &
+                                    -2.d0*velyin(i,j-1,k)*betacc(i,j-1,k)*dysqinv &
+                                    -velyin(i+1,j,k)*betaxy(i+1,j,k)*dxsqinv &
+                                    -velyin(i-1,j,k)*betaxy(i,j,k)*dxsqinv &
+                                    -velyin(i,j,k+1)*betayz(i,j,k+1)*dzsqinv &
+                                    -velyin(i,j,k-1)*betayz(i,j,k)*dzsqinv &
+                            
+                                    -velxin(i+1,j,k)*betaxy(i+1,j,k)*dxdyinv &
+                                    +velxin(i,j,k)*betaxy(i,j,k)*dxdyinv &
+                                    +velxin(i+1,j-1,k)*betaxy(i+1,j,k)*dxdyinv &
+                                    -velxin(i,j-1,k)*betaxy(i,j,k)*dxdyinv &
+                            
+                                    -velzin(i,j,k+1)*betayz(i,j,k+1)*dydzinv &
+                                    +velzin(i,j,k)*betayz(i,j,k)*dydzinv &
+                                    +velzin(i,j-1,k+1)*betayz(i,j,k+1)*dydzinv &
+                                    -velzin(i,j-1,k)*betayz(i,j,k)*dydzinv
+                enddo
+             enddo
+          enddo
+
+       end if
+
+       if (do_z) then
+
+          do k = lo(3), hi(3)+1      
+             do j = lo(2), hi(2)
+                ioff = 0
+                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
+                do i=lo(1)+ioff,hi(1),offset
+
+                   velzout(i,j,k) = velzin(i,j,k)*( alphaz(i,j,k) + &
+                                    2.d0*(betacc(i,j,k)+betacc(i,j,k-1))*dzsqinv + (betaxz(i,j,k)+betaxz(i+1,j,k))*dxsqinv + (betayz(i,j,k)+betayz(i,j+1,k))*dysqinv ) &
+                        
+                                    -2.d0*velzin(i,j,k+1)*betacc(i,j,k)*dzsqinv &
+                                    -2.d0*velzin(i,j,k-1)*betacc(i,j,k-1)*dzsqinv &
+                                    -velzin(i+1,j,k)*betaxz(i+1,j,k)*dxsqinv &
+                                    -velzin(i-1,j,k)*betaxz(i,j,k)*dxsqinv &
+                                    -velzin(i,j+1,k)*betayz(i,j+1,k)*dysqinv &
+                                    -velzin(i,j-1,k)*betayz(i,j,k)*dysqinv &
+                            
+                                    -velxin(i+1,j,k)*betaxz(i+1,j,k)*dxdzinv &
+                                    +velxin(i,j,k)*betaxz(i,j,k)*dxdzinv &
+                                    +velxin(i+1,j,k-1)*betaxz(i+1,j,k)*dxdzinv &
+                                    -velxin(i,j,k-1)*betaxz(i,j,k)*dxdzinv &
+                            
+                                    -velyin(i,j+1,k)*betayz(i,j+1,k)*dydzinv &
+                                    +velyin(i,j,k)*betayz(i,j,k)*dydzinv &
+                                    +velyin(i,j+1,k-1)*betayz(i,j+1,k)*dydzinv &
+                                    -velyin(i,j,k-1)*betayz(i,j,k)*dydzinv
+                enddo
+             enddo
+          enddo
+
+       end if
+
+    end if
+
   
   end subroutine stag_apply_op
 
