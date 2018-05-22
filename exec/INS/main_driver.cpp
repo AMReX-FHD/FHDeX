@@ -13,8 +13,6 @@
 
 #include "INS_functions.H"
 
-#include "FhdParticleContainer.H"
-
 using namespace common;
 using namespace gmres;
 
@@ -171,7 +169,10 @@ void main_driver(const char* argv)
 
     // compute the time step
     const Real* dx = geom.CellSize();
-    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    Real dt = 50*0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    
+    Print() << "Step size: " << dt << "\n";
+        
 
     int step = 0;
     Real time = 0.;
@@ -211,6 +212,9 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+
+       // particles.moveParticles(dt);
+       // particles.Redistribute();
 
 
         amrex::Print() << "Advanced step " << step << "\n";

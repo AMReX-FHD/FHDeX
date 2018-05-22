@@ -13,8 +13,8 @@ void WritePlotFile(const int step,
                    const amrex::Geometry geom,
                    const MultiFab& rhotot,
                    const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& div,
-                   const FhdParticleContainer& particles);
+        		   const MultiFab& div,
+                   FhdParticleContainer& particles);
 
 ///////////////////////////
 

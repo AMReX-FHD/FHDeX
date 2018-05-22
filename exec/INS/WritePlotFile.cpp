@@ -3,13 +3,13 @@
 
 #include "AMReX_PlotFileUtil.H"
 
-void WritePlotFile(const int step,
+void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const MultiFab& rhotot,
                    const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	               const MultiFab& div,
-                   const FhdParticleContainer& particles) 
+	           const MultiFab& div,
+                   FhdParticleContainer& particles) 
 {
 
     std::string plotfilename = Concatenate("plt",step,7);
@@ -56,6 +56,17 @@ void WritePlotFile(const int step,
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 
-    //particles.Checkpoint(plotfilename, "particle0",true);
+    //particles.WriteParticlesAscii(step);
+
+    Vector<std::string> particle_varnames;
+    particle_varnames.push_back("weight");
+    particle_varnames.push_back("vx");
+    particle_varnames.push_back("vy");
+#if BL_SPACEDIM == 3
+    particle_varnames.push_back("vz");
+#endif
+
+
+    particles.Checkpoint(plotfilename, "particle0");
 
 }

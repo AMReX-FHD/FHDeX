@@ -6,7 +6,7 @@ DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
-DIM       = 3
+DIM       = 2
 
 USE_PARTICLES = TRUE
 
@@ -35,6 +35,10 @@ INCLUDE_LOCATIONS += ../../src_common/
 include ../../src_particles/Make.package
 VPATH_LOCATIONS   += ../../src_particles/
 INCLUDE_LOCATIONS += ../../src_particles/
+
+include ../../src_particles/src_F90/Make.package
+VPATH_LOCATIONS   += ../../src_particles/src_F90
+INCLUDE_LOCATIONS += ../../src_particles/src_F90
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
