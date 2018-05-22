@@ -214,7 +214,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     for (int vcycle=1; vcycle<=stag_mg_max_vcycles; ++vcycle) {
 
         if (stag_mg_verbosity >= 2) {
-            Print() << std::endl << "Begin V-Cycle " << vcycle << std::endl;
+            Print() << "Begin V-Cycle " << vcycle << std::endl;
         }
 
         // set phi to zero at coarser levels as initial guess for residual equation
@@ -238,7 +238,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " before   smooths at level " 
+                    Print() << "Residual for comp " << d << " before    smooths at level " 
                             << n << " " << resid_temp << std::endl;
                 }
             }
@@ -284,7 +284,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 Lphi_fc_mg[n][d].mult(-1.,0,1,0);
                 if (stag_mg_verbosity >= 3) {
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " after   smooths at level " 
+                    Print() << "Residual for comp " << d << " after     smooths at level " 
                             << n << " " << resid_temp << std::endl;
                 }
 
@@ -315,7 +315,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 // compute Lphi - rhs, and report residual
                 MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                 resid_temp = Lphi_fc_mg[n][d].norm0();
-                Print() << "Residual for comp " << d << " before   smooths at level " 
+                Print() << "Residual for comp " << d << " before    smooths at level " 
                         << n << " " << resid_temp << std::endl;
             }
         }
@@ -360,7 +360,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             Lphi_fc_mg[n][d].mult(-1.,0,1,0);
             if (stag_mg_verbosity >= 3) {
                 resid_temp = Lphi_fc_mg[n][d].norm0();
-                Print() << "Residual for comp " << d << " after   smooths at level " 
+                Print() << "Residual for comp " << d << " after     smooths at level " 
                         << n << " " << resid_temp << std::endl;
             }
 
@@ -393,7 +393,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " before   smooths at level " 
+                    Print() << "Residual for comp " << d << " before    smooths at level " 
                             << n << " " << resid_temp << std::endl;
                 }
             }
