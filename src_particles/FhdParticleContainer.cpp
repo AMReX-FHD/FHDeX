@@ -6,7 +6,7 @@ using namespace amrex;
 FhdParticleContainer::FhdParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba)
-    : ParticleContainer<BL_SPACEDIM> (geom, dmap, ba)
+    : ParticleContainer<15, 2+BL_SPACEDIM> (geom, dmap, ba)
 {}
 
 void FhdParticleContainer::InitParticles()
@@ -17,7 +17,7 @@ void FhdParticleContainer::InitParticles()
     
     std::mt19937 mt(0451);
     std::uniform_real_distribution<double> unit(0, 1.0);
-    std::uniform_real_distribution<double> dist(-1.0, 1.0);
+    std::uniform_real_distribution<double> dist(-10, 10);
 
     int boxes = 0;
 
@@ -65,7 +65,7 @@ void FhdParticleContainer::InitParticles()
         }*/
 
 //Place 2 particles (per box) randomly in the domain
-        for(int i = 0; i<2; i++)
+        for(int i = 0; i<20; i++)
         {
             p.id() = ParticleType::NextID();
             p.cpu() = ParallelDescriptor::MyProc();
@@ -75,36 +75,89 @@ void FhdParticleContainer::InitParticles()
 #if (BL_SPACEDIM == 3)
             p.pos(2) = (lovect[2]+(hivect[2] - lovect[2])*unit(mt))*dx[2];
 #endif
-            p.rdata(0) = dist(mt);
-            p.rdata(1) = dist(mt);
-            p.rdata(2) = dist(mt);
+            //Some of these particle properties are future proofing, must match fortran struct defined in particle_functions.F90
+            //Also, number of real and int particle properties is set in class definition.
+
+            p.rdata(0) = 1; //mass
+            p.rdata(1) = 1; //fluid density at particle location
+
+            p.rdata(2) = 1; //temperature
+            p.rdata(3) = 1; //fluid temperature at particle location
+
+            p.rdata(4) = 0; //fluid viscosity at particle location
+
+            p.rdata(5) = 1; //radius
+            p.rdata(6) = -6*3.14159265359*p.rdata(5)/p.rdata(0); //drag factor (replace with amrex c++ constant for pi...)
+
+            //Particle velocity is always 3D
+
+            p.rdata(7) = dist(mt); //particle xVel
+            p.rdata(8) = dist(mt); //particle yVel
+            p.rdata(9) = dist(mt); //particle zVel
+
+            p.rdata(10) = dist(mt); //angular velocity 1
+            p.rdata(11) = dist(mt); //angular velocity 2
+
+            p.rdata(12) = 0; //fluid xVel
+            p.rdata(13) = 0; //fluid yVel
+            p.rdata(14) = 0; //fluid zVel
+
+            p.idata(0) = 0; //cell list index - for reverse lookup, depending on how we implement particle cell tracking
+            p.idata(1) = 0; //species
+
+            p.idata(2) = 0; //cell index i
+            p.idata(3) = 0; //cell index j
+
 #if (BL_SPACEDIM == 3)
-            //p.rdata(3) = dist(mt);
+            p.idata(4) = 0; //cell index k
 #endif
+ 
             particle_grid.push_back(p);
-
         }
-
-
-
     }
 
     Redistribute(); //Not necessary?
 }
 
-void FhdParticleContainer::moveParticles(const Real dt)
+
+//Computes drag on particles, updates particle velocities, updates particle positions, updates source Multifab for velocity change in fluid
+void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& betaEdge,
+                                           const MultiFab& rho, //Not necessary but may use later
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
     const int lev = 0;
-    const RealBox& prob_domain = Geom(lev).ProbDomain();
-
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) 
+    const RealBox& realDomain = Geom(lev).ProbDomain();
+   
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         AoS& parts = pti.GetArrayOfStructs();
         int Np = parts.size();
 
-        Print() << "size: " << Np << "\n";
+        const Box& validBox = pti.validbox();
 
-        move_particles(parts.data(), &Np, &dt, prob_domain.lo(), prob_domain.hi());
+        update_particles(parts.data(), &Np, &dt, ZFILL(dx), 
+                         ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                         ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
+                         BL_TO_FORTRAN_3D(umac[0][pti]),
+                         BL_TO_FORTRAN_3D(umac[1][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(umac[2][pti]),
+#endif
+                         BL_TO_FORTRAN_3D(betaEdge[0][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(betaEdge[1][pti]),
+                         BL_TO_FORTRAN_3D(betaEdge[2][pti]),
+#endif
+                         BL_TO_FORTRAN_3D(rho[pti]),
+
+                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
+#if (AMREX_SPACEDIM == 3)
+                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
+#endif
+                        );
     }
 }
 

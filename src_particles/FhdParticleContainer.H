@@ -10,11 +10,11 @@
 namespace amrex {
 
 class FhdParticleContainer
-    : public ParticleContainer<BL_SPACEDIM>
+    : public ParticleContainer<15, 2+BL_SPACEDIM>
 {
 public:
 
-    using MyParIter = ParIter<BL_SPACEDIM>;
+    using FhdParIter = ParIter<15, 2+BL_SPACEDIM>;
 
     FhdParticleContainer(const Geometry            & geom, 
                                   const DistributionMapping & dmap,
@@ -22,7 +22,11 @@ public:
 
     void InitParticles();
 
-    void moveParticles(const Real dt);
+    void updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& betaEdge,
+                                           const MultiFab& rho, //Not necessary but may use later
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
 
     void WriteParticlesAscii(int n);
 

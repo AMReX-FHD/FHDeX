@@ -58,13 +58,11 @@ void WritePlotFile(int step,
 
     //particles.WriteParticlesAscii(step);
 
-    Vector<std::string> particle_varnames;
+    /*Vector<std::string> particle_varnames;
     particle_varnames.push_back("weight");
     particle_varnames.push_back("vx");
     particle_varnames.push_back("vy");
-#if BL_SPACEDIM == 3
-    particle_varnames.push_back("vz");
-#endif
+    particle_varnames.push_back("vz");*/
 
 
     particles.Checkpoint(plotfilename, "particle0");

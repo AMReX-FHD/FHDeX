@@ -123,6 +123,18 @@ void main_driver(const char* argv)
                  umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
+    // staggered source terms
+    std::array< MultiFab, AMREX_SPACEDIM > source;
+    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    // staggered temporary holder for calculating source terms - This may not be necesssary, review later.
+    std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
+    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
     // alpha arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha;
     AMREX_D_TERM(alpha[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
@@ -169,7 +181,7 @@ void main_driver(const char* argv)
 
     // compute the time step
     const Real* dx = geom.CellSize();
-    Real dt = 50*0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
     
     Print() << "Step size: " << dt << "\n";
         
@@ -179,14 +191,9 @@ void main_driver(const char* argv)
 
  
   //Particles!
-
-
     FhdParticleContainer particles(geom, dmap, ba);
 
     particles.InitParticles();
-
-  //  ParticleContainer<AMREX_SPACEDIM+1,0> particles(geom, dmap, ba);
-   // InitialiseParticles(particles, rhotot);
 
     // write out initial state
     WritePlotFile(step,time,geom,rhotot,umac,div,particles);
@@ -204,8 +211,6 @@ void main_driver(const char* argv)
                  betaEdge,
                  umac, umacOut, umacNew, alpha, geom, &dt);
 
-
-
         //Print() << ParticleType::NextID() << "\n";
 
         AMREX_D_TERM(
@@ -213,8 +218,9 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
 
-       // particles.moveParticles(dt);
-       // particles.Redistribute();
+        //For now pass moveParticles a cell centred multiFab. Fix this later.
+        //particles.moveParticles(dt, dx);
+        //particles.Redistribute();
 
 
         amrex::Print() << "Advanced step " << step << "\n";
