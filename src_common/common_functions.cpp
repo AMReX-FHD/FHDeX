@@ -54,3 +54,4 @@ void InitializeCommonNamespace() {
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr());
 
 }
+

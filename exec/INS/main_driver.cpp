@@ -117,6 +117,12 @@ void main_driver(const char* argv)
     // set density to 1
     rhotot.setVal(1.);
 
+    // staggered real coordinates
+    std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
+    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 1);,
+                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 1);,
+                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 1););
+
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
@@ -172,8 +178,8 @@ void main_driver(const char* argv)
                                     BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
                                     geom.ProbLo(), geom.ProbHi() ,&dm);,
                      dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-            			    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-            			    geom.ProbLo(), geom.ProbHi() ,&dm);,
+            			            BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
+            			            geom.ProbLo(), geom.ProbHi() ,&dm);,
                      dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
                                     geom.ProbLo(), geom.ProbHi() ,&dm););
@@ -190,8 +196,12 @@ void main_driver(const char* argv)
     Real time = 0.;
 
  
-  //Particles!
+    //Particles!
     FhdParticleContainer particles(geom, dmap, ba);
+
+    //Find coordinates of cell faces. Used for interpolating fields to particle locations
+    FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
+
 
     particles.InitParticles();
 
@@ -218,9 +228,8 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
 
-        //For now pass moveParticles a cell centred multiFab. Fix this later.
-        //particles.moveParticles(dt, dx);
-        //particles.Redistribute();
+        
+        particles.updateParticles(dt, dx, umac, RealFaceCoords, betaEdge, rhotot, source, sourceTemp);
 
 
         amrex::Print() << "Advanced step " << step << "\n";

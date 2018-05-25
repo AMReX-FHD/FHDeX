@@ -90,6 +90,10 @@ extern "C"
                   amrex_real* data, const int* dlo, const int* dhi,
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
 
+///////////////////////////
+// in compute_div_and_grad.F90
+
+
     void compute_div(const int* lo, const int* hi,
                     amrex_real* xdata, const int* xdlo, const int* xdhi,
                     amrex_real* ydata, const int* ydlo, const int* ydhi,
@@ -119,7 +123,16 @@ extern "C"
                     amrex_real* newdata, const int* newdatahi, const int* newdatalo,
                     const int* offset, const amrex_real* dt);
 
+///////////////////////////
+// in find_coords.F90
 
+    void find_face_coords(const amrex_real* real_lo, const amrex_real* real_hi,
+                    amrex_real* xface, const int* xfacelo, const int* xfacehi,
+                    amrex_real* yface, const int* yfacelo, const int* yfacehi,
+#if (AMREX_SPACEDIM == 3)
+                    amrex_real* zface, const int* zfacelo, const int* zfacehi,
+#endif
+                    const amrex_real* dx);
 ///////////////////////////
 #ifdef __cplusplus
 }

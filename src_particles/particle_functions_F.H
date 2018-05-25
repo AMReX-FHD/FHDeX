@@ -15,6 +15,11 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* velz, const int* velzlo, const int* velzhi,
 #endif
+                         const amrex_real* coordsx, const int* coordsxlo, const int* coordsxhi,
+                         const amrex_real* coordsy, const int* coordsylo, const int* coordsyhi,
+#if (AMREX_SPACEDIM == 3)
+                         const amrex_real* coordsz, const int* coordszlo, const int* coordszhi,
+#endif
 #if (AMREX_SPACEDIM == 2)
                          const amrex_real* betanodal, const int* betanodallo, const int* betanodalhi,
 #endif

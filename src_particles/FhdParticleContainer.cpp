@@ -64,7 +64,7 @@ void FhdParticleContainer::InitParticles()
 
         }*/
 
-//Place 2 particles (per box) randomly in the domain
+        //Place 2 particles (per box?) randomly in the domain
         for(int i = 0; i<20; i++)
         {
             p.id() = ParticleType::NextID();
@@ -122,7 +122,8 @@ void FhdParticleContainer::InitParticles()
 
 //Computes drag on particles, updates particle velocities, updates particle positions, updates source Multifab for velocity change in fluid
 void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& betaEdge,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           const std::array<MultiFab, NUM_EDGE>& betaEdge,
                                            const MultiFab& rho, //Not necessary but may use later
                                            const std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
@@ -145,6 +146,11 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(umac[2][pti]),
 #endif
+                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+#endif
                          BL_TO_FORTRAN_3D(betaEdge[0][pti]),
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(betaEdge[1][pti]),
@@ -158,6 +164,8 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
                         );
+
+        Redistribute();
     }
 }
 
