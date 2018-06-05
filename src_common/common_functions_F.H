@@ -134,23 +134,20 @@ extern "C"
 #endif
                     const amrex_real* dx);
 ///////////////////////////
+
+///////////////////////////
+// in find_nodal_values.F90
+
+    void find_nodal_values(const int* lo, const int* hi,
+                    const amrex_real* fabIn, const int* inlo, const int* inhi,
+                    amrex_real* fabOut, const int* outlo, const int* outhi,
+                    const int* xCheck, const int* yCheck, const int* zCheck);
+///////////////////////////
 #ifdef __cplusplus
 }
 #endif
 
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

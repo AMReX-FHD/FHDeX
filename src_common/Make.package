@@ -13,3 +13,5 @@ CEXE_sources += ComputeDivAndGrad.cpp
 
 CEXE_sources += FindCoords.cpp
 
+CEXE_sources += FindNodalValues.cpp
+

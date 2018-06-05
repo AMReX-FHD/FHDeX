@@ -25,7 +25,7 @@ module particle_functions_module
 
      real(amrex_particle_real)   :: fluid_viscosity
      real(amrex_particle_real)   :: radius
-     real(amrex_particle_real)   :: drag_factor
+     real(amrex_particle_real)   :: accel_factor
 
 
      real(amrex_particle_real)   :: vel(3)
@@ -60,14 +60,8 @@ contains
 #if (BL_SPACEDIM == 3)
                                        coordsz, coordszlo, coordszhi, &
 #endif
-#if (AMREX_SPACEDIM == 2)
                                        beta, betalo, betahi, &
-#endif
-#if (AMREX_SPACEDIM == 3)
-                                       betaxy, betaxylo, betaxyhi, &
-                                       betaxz, betaxzlo, betaxzhi, &
-                                       betayz, betayzlo, betayzhi, &
-#endif
+
                                        rho, rholo, rhohi, &
 
                                        sourcex, sourcexlo, sourcexhi, &
@@ -83,12 +77,9 @@ contains
     integer,          intent(in   )         :: np, index_lo(3), index_hi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3)
     integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3), rholo(3), rhohi(3)
     integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
-#if (AMREX_SPACEDIM == 2)
     integer,          intent(in   )         :: betalo(3), betahi(3)
-#endif
 #if (AMREX_SPACEDIM == 3)
     integer,          intent(in   )         :: velzlo(3), velzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
-    integer,          intent(in   )         :: betaxylo(3), betaxyhi(3), betaxzlo(3), betaxzhi(3), betayzlo(3), betayzhi(3)
 #endif
     type(f_particle), intent(inout), target :: particles(np)
     double precision, intent(in   )         :: dt
@@ -109,14 +100,7 @@ contains
     double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
 #endif
 
-#if (AMREX_SPACEDIM == 2)
-    double precision, intent(in   ) :: beta(betalo(1):betahi(1),betalo(2):betahi(2),betalo(3):betahi(3)) !nodal
-#endif
-#if (AMREX_SPACEDIM == 3)
-    double precision, intent(in   ) :: betaxy(betaxylo(1):betaxyhi(1),betaxylo(2):betaxyhi(2),betaxylo(3):betaxyhi(3))
-    double precision, intent(in   ) :: betaxz(betaxzlo(1):betaxzhi(1),betaxzlo(2):betaxzhi(2),betaxzlo(3):betaxzhi(3))
-    double precision, intent(in   ) :: betayz(betayzlo(1):betayzhi(1),betayzlo(2):betayzhi(2),betayzlo(3):betayzhi(3))
-#endif
+    double precision, intent(in   ) :: beta(betalo(1):betahi(1),betalo(2):betahi(2),betalo(3):betahi(3))
 
     double precision, intent(in   ) :: rho(rholo(1):rhohi(1),rholo(2):rhohi(2),rholo(3):rhohi(3))
 
@@ -126,44 +110,49 @@ contains
     double precision, intent(inout) :: sourcez(sourcezlo(1):sourcezhi(1),sourcezlo(2):sourcezhi(2),sourcezlo(3):sourcezhi(3))
 #endif
 
-    integer l,i,j,k, pindex(3)
+    integer l,i,j,k
     type(f_particle), pointer :: p
-    double precision drag(3)
-    double precision fluidvel(3)
+    double precision visc
+    double precision localvel(3)
+    double precision localbeta
     double precision dxinv(3)
+    double precision onemxd(3)
 
-    double precision cx(3)
+#if (BL_SPACEDIM == 3)
+    double precision c000,c001,c010,c011,c100,c101,c110,c111
+#endif
+
+#if (BL_SPACEDIM == 2)
+    double precision c00,c01,c10,c11
+#endif
+
+    double precision xd(3)
 
     dxinv = 1.0d0/dx
-
-
+    onemxd = 1.0d0-dx
     
     do l = 1, np
        
       p => particles(l)
 
-#if (BL_SPACEDIM == 3)
       !Find cell index, and position within cell, of particle
       !This can probably be further optimised
 
-      cx(1) = (p%pos(1) - real_lo(1))*dxinv(1)
-      cx(2) = (p%pos(2) - real_lo(2))*dxinv(2)
+      i = floor((p%pos(1) - real_lo(1))*dxinv(1))
+      j = floor((p%pos(2) - real_lo(2))*dxinv(2))
 #if (BL_SPACEDIM == 3)
-      cx(3) = (p%pos(3) - real_lo(3))*dxinv(3)
+      k = floor((p%pos(3) - real_lo(3))*dxinv(3))
+#else
+      k = 0
 #endif
 
-      i = ceiling(cx(1))
-      j = ceiling(cx(2))
+      p%cell_index(1) = i;
+      p%cell_index(2) = j;
 #if (BL_SPACEDIM == 3)
-     k = ceiling(cx(3))
-#endif
-
-      cx(1) = p%pos(1) - (i-1)*dx(1)
-      cx(2) = p%pos(2) - (j-1)*dx(2)
-#if (BL_SPACEDIM == 3)
-      cx(3) = p%pos(3) - (k-1)*dx(3)
+      p%cell_index(3) = k;
 #endif
         
+#if (BL_SPACEDIM == 3)
       !Abort if particle is out of bounds
       if (i .lt. index_lo(1) .or. i .gt. index_hi(1) .or. &
           j .lt. index_lo(2) .or. j .gt. index_hi(1) .or. &
@@ -173,31 +162,75 @@ contains
             print *,'Position: ', p%pos(1), p%pos(2), p%pos(3)
             call bl_error('Aborting in update_particles')
       end if
-
-      !First order one directional interpolation
-      fluidvel(1) = velx(i,j,k)
-#endif
-!       drag(1) = p%drag_factor*p%fluid_viscosity*(p%vel(1)-p%fluid_vel(1))
-!       drag(2) = p%drag_factor*p%fluid_viscosity*(p%vel(2)-p%fluid_vel(2))
-!       drag(3) = p%drag_factor*p%fluid_viscosity*(p%vel(3)-p%fluid_vel(3))
-
-!       p%vel(1) = p%vel(1) + drag(1)*dt 
-!       p%vel(2) = p%vel(2) + drag(2)*dt 
-!       p%vel(3) = p%vel(3) + drag(3)*dt 
-
-!       p%pos(1) = p%pos(1) + p%vel(1)*dt 
-!       p%pos(2) = p%pos(2) + p%vel(2)*dt 
-#if (BL_SPACEDIM == 3) 
-!       p%pos(3) = p%pos(3) + p%vel(3)*dt
 #endif
 
-       !Remove division from this
-       !Cell indicies use fortran convention
+      !Interpolate fields
 
-!       p%cell_index(1) = floor((p%pos(1) - real_lo(1))/dx(1)) + 1
-!       p%cell_index(2) = floor((p%pos(2) - real_lo(2))/dx(2)) + 1
+      xd(1) = (p%pos(1) - coordsx(i,j,k,1))*dxInv(1)
+      xd(2) = (p%pos(2) - coordsy(i,j,k,2))*dxInv(2)
+#if (BL_SPACEDIM == 3)
+      xd(3) = (p%pos(3) - coordsx(i,j,k,3))*dxInv(3)
+#endif
+
+
+
+#if (BL_SPACEDIM == 3)
+
+      c000 = onemxd(1)*onemxd(2)*onemxd(3)
+      c001 = onemxd(1)*onemxd(2)*xd(3)
+      c010 = onemxd(1)*onemxd(3)*xd(2)
+      c011 = onemxd(1)*xd(2)*xd(3)
+      c101 = onemxd(2)*onemxd(3)*xd(1)
+      c100 = onemxd(2)*xd(1)*xd(3)
+      c110 = onemxd(3)*xd(1)*xd(2)
+      c111 = xd(1)*xd(2)*xd(3)
+
+      if (visc_type .gt. 0) then
+        visc = beta(i,j,k)
+      else
+        !3d visc
+        localbeta = c000*beta(i,j,k) + c001*beta(i,j,k+1) + c010*beta(i,j+1,k) + c011*beta(i,j+1,k+1) + c100*beta(i+1,j,k) + c101*beta(i+1,j,k+1) + c110*beta(i+1,j+1,k) + c111*beta(i+1,j+1,k+1)
+      endif
+
+      localvel(1) = c000*velx(i,j,k) + c001*velx(i,j,k+1) + c010*velx(i,j+1,k) + c011*velx(i,j+1,k+1) + c100*velx(i+1,j,k) + c101*velx(i+1,j,k+1) + c110*velx(i+1,j+1,k) + c111*velx(i+1,j+1,k+1)
+      localvel(2) = c000*vely(i,j,k) + c001*vely(i,j,k+1) + c010*vely(i,j+1,k) + c011*vely(i,j+1,k+1) + c100*vely(i+1,j,k) + c101*vely(i+1,j,k+1) + c110*vely(i+1,j+1,k) + c111*vely(i+1,j+1,k+1)
+      localvel(3) = c000*velz(i,j,k) + c001*velz(i,j,k+1) + c010*velz(i,j+1,k) + c011*velz(i,j+1,k+1) + c100*velz(i+1,j,k) + c101*velz(i+1,j,k+1) + c110*velz(i+1,j+1,k) + c111*velz(i+1,j+1,k+1)
+
+#endif
+
+#if (BL_SPACEDIM == 2)
+
+      c00 = onemxd(1)*onemxd(2)
+      c01 = onemxd(1)*xd(2)
+      c10 = xd(1)*onemxd(2)
+      c11 = xd(1)*xd(2)
+
+      if (visc_type .gt. 0) then
+        visc = beta(i,j,k)
+      else
+        localbeta = beta(i,j,k)*c00 + beta(i,j+1,k)*c01 + beta(i+1,j,k)*c10 + beta(i+1,j+1,k)*c11
+      endif
+      !2d xvel
+      localvel(1) = velx(i,j,k)*c00 + velx(i,j+1,k)*c01 + velx(i+1,j,k)*c10 + velx(i+1,j+1,k)*c11
+      localvel(2) = vely(i,j,k)*c00 + vely(i,j+1,k)*c01 + vely(i+1,j,k)*c10 + vely(i+1,j+1,k)*c11
+
+#endif
+
+      !Semi-implicit Euler velocity and position update
+
+      print *,  p%pos
+      !print *,  p%vel
+
+      p%vel(1) = -p%accel_factor*localbeta*(p%vel(1)-localvel(1))*dt + p%vel(1)
+      p%vel(2) = -p%accel_factor*localbeta*(p%vel(2)-localvel(2))*dt + p%vel(2)
+#if (BL_SPACEDIM == 3)
+      p%vel(3) = -p%accel_factor*localbeta*(p%vel(3)-localvel(3))*dt + p%vel(3)
+#endif
+
+       p%pos(1) = p%pos(1) + p%vel(1)*dt 
+       p%pos(2) = p%pos(2) + p%vel(2)*dt 
 #if (BL_SPACEDIM == 3) 
-!       p%cell_index(3) = floor((p%pos(3) - real_lo(3))/dx(3)) + 1
+       p%pos(3) = p%pos(3) + p%vel(3)*dt
 #endif
 
     end do
@@ -205,4 +238,34 @@ contains
   end subroutine update_particles
   
 end module particle_functions_module
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

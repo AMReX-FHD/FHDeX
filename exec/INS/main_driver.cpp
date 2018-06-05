@@ -80,6 +80,12 @@ void main_driver(const char* argv)
     // beta cell centred
     MultiFab betaCC(ba, dmap, 1, 1);
 
+    // Nodal velocity for interpolations
+    std::array< MultiFab, AMREX_SPACEDIM > umacNodal;
+    AMREX_D_TERM(umacNodal[0].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
+                 umacNodal[1].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
+                 umacNodal[2].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1););
+
     // gamma cell centred
     MultiFab gammaCC(ba, dmap, 1, 1);
 
@@ -100,6 +106,12 @@ void main_driver(const char* argv)
     betaEdge[0].setVal(1.);  
     betaEdge[1].setVal(1.);
     betaEdge[2].setVal(1.);
+#endif
+
+    //Nodal beta. If running in 2D, betaEdge is already nodal.
+
+#if (AMREX_SPACEDIM == 3)
+    MultiFab betaNodal(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);
 #endif
 
     //Replace with proper initialiser
@@ -185,9 +197,14 @@ void main_driver(const char* argv)
                                     geom.ProbLo(), geom.ProbHi() ,&dm););
     }
 
+    AMREX_D_TERM(
+    MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
+    MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
+    MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+
     // compute the time step
     const Real* dx = geom.CellSize();
-    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
     
     Print() << "Step size: " << dt << "\n";
         
@@ -227,11 +244,15 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
-
         
-        particles.updateParticles(dt, dx, umac, RealFaceCoords, betaEdge, rhotot, source, sourceTemp);
+#if (AMREX_SPACEDIM == 2)
+        //particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
+#endif
 
-
+#if (AMREX_SPACEDIM == 3)
+        //particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
+#endif
+        
         amrex::Print() << "Advanced step " << step << "\n";
 
         time = time + dt;

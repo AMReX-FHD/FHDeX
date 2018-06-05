@@ -24,11 +24,4 @@ void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geom
 
     }
 
-
-
-
-
-
-
-
 }

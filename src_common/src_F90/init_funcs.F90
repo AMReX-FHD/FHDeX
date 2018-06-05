@@ -146,7 +146,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 
 					if (rad .LT. partdom) then
 
-				    vel(i,j,k) = -exp(-rad/(10*partdom*partdom))*relpos(2)
+				    !vel(i,j,k) = -100*exp(-rad/(10*partdom*partdom))*relpos(2)
+            vel(i,j,k) = 1d0
             !print *, vel(i,j,k)
  
 					else
@@ -170,9 +171,9 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 					rad = DOT_PRODUCT(relpos,relpos)
 
 					if (rad .LT. partdom) then
-							vel(i,j,k) = exp(-rad/(10*partdom*partdom))*relpos(1)
+							!vel(i,j,k) = 100*exp(-rad/(10*partdom*partdom))*relpos(1)
 							!vel(i,j,k) = 1d0
-
+              vel(i,j,k) = 0d0
               !print *, vel(i,j,k)
 					else
 					vel(i,j,k) = 0

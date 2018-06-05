@@ -17,7 +17,7 @@ void FhdParticleContainer::InitParticles()
     
     std::mt19937 mt(0451);
     std::uniform_real_distribution<double> unit(0, 1.0);
-    std::uniform_real_distribution<double> dist(-10, 10);
+    std::uniform_real_distribution<double> dist(-0.0001, 0.0001);
 
     int boxes = 0;
 
@@ -65,20 +65,20 @@ void FhdParticleContainer::InitParticles()
         }*/
 
         //Place 2 particles (per box?) randomly in the domain
-        for(int i = 0; i<20; i++)
+        for(int i = 0; i<1; i++)
         {
             p.id() = ParticleType::NextID();
             p.cpu() = ParallelDescriptor::MyProc();
 
-            p.pos(0) = (lovect[0]+(hivect[0] - lovect[0])*unit(mt))*dx[0];
-            p.pos(1) = (lovect[1]+(hivect[1] - lovect[1])*unit(mt))*dx[1];
+            p.pos(0) = (lovect[0]+(hivect[0] - lovect[0] +1)*0.5)*dx[0];
+            p.pos(1) = (lovect[1]+(hivect[1] - lovect[1] +1)*0.5)*dx[1];
 #if (BL_SPACEDIM == 3)
-            p.pos(2) = (lovect[2]+(hivect[2] - lovect[2])*unit(mt))*dx[2];
+            p.pos(2) = (lovect[2]+(hivect[2] - lovect[2] +1)*0.5)*dx[2];
 #endif
-            //Some of these particle properties are future proofing, must match fortran struct defined in particle_functions.F90
+            //Remove properties that aren't being used when we're done coding the rest of the algorithm, must match fortran struct defined in particle_functions.F90
             //Also, number of real and int particle properties is set in class definition.
 
-            p.rdata(0) = 1; //mass
+            p.rdata(0) = 0.01; //mass
             p.rdata(1) = 1; //fluid density at particle location
 
             p.rdata(2) = 1; //temperature
@@ -87,13 +87,13 @@ void FhdParticleContainer::InitParticles()
             p.rdata(4) = 0; //fluid viscosity at particle location
 
             p.rdata(5) = 1; //radius
-            p.rdata(6) = -6*3.14159265359*p.rdata(5)/p.rdata(0); //drag factor (replace with amrex c++ constant for pi...)
+            p.rdata(6) = 6*3.14159265359*p.rdata(5)/p.rdata(0); //acceleration factor (replace with amrex c++ constant for pi...)
 
             //Particle velocity is always 3D
 
-            p.rdata(7) = dist(mt); //particle xVel
-            p.rdata(8) = dist(mt); //particle yVel
-            p.rdata(9) = dist(mt); //particle zVel
+            p.rdata(7) = 0; //particle xVel
+            p.rdata(8) = 0; //particle yVel
+            p.rdata(9) = 0; //particle zVel
 
             p.rdata(10) = dist(mt); //angular velocity 1
             p.rdata(11) = dist(mt); //angular velocity 2
@@ -122,14 +122,19 @@ void FhdParticleContainer::InitParticles()
 
 //Computes drag on particles, updates particle velocities, updates particle positions, updates source Multifab for velocity change in fluid
 void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                           const std::array<MultiFab, NUM_EDGE>& betaEdge,
+                                           const MultiFab& betaCC, //Not necessary but may use later
+                                           MultiFab& betaNodal, //Not necessary but may use later
                                            const MultiFab& rho, //Not necessary but may use later
                                            const std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
     const int lev = 0;
     const RealBox& realDomain = Geom(lev).ProbDomain();
+
+    //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (can probably change this).
+    FindNodalValues(umac[0], umacNodal[0], betaCC);
    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -151,11 +156,7 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(betaEdge[0][pti]),
-#if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(betaEdge[1][pti]),
-                         BL_TO_FORTRAN_3D(betaEdge[2][pti]),
-#endif
+                         BL_TO_FORTRAN_3D(betaCC[pti]),
                          BL_TO_FORTRAN_3D(rho[pti]),
 
                          BL_TO_FORTRAN_3D(sourceTemp[0][pti]),

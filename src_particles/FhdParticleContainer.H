@@ -9,6 +9,8 @@
 
 #include "gmres_functions.H"
 
+#include "common_functions.H"
+
 namespace amrex {
 
 class FhdParticleContainer
@@ -25,8 +27,10 @@ public:
     void InitParticles();
 
     void updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                           const std::array<MultiFab, NUM_EDGE>& betaEdge,
+                                           const MultiFab& betaCC, //Not necessary but may use later
+                                           MultiFab& betaNodal, //Not necessary but may use later
                                            const MultiFab& rho, //Not necessary but may use later
                                            const std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);

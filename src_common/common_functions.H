@@ -42,4 +42,6 @@ void ComputeGrad(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& umac, cons
 
 void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geometry geom);
 
+void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& ccFab);
+
 #endif

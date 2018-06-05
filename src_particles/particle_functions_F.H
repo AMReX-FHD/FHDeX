@@ -20,14 +20,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* coordsz, const int* coordszlo, const int* coordszhi,
 #endif
-#if (AMREX_SPACEDIM == 2)
-                         const amrex_real* betanodal, const int* betanodallo, const int* betanodalhi,
-#endif
-#if (AMREX_SPACEDIM == 3)
-                         const amrex_real* betaxy, const int* betaxylo, const int* betaxyhi,
-                         const amrex_real* betaxz, const int* betaxzlo, const int* betaxzhi,
-                         const amrex_real* betayz, const int* betayzlo, const int* betayzhi,
-#endif
+                         const amrex_real* beta, const int* betalo, const int* betahi,
                          const amrex_real* rho, const int* rholo, const int* rhohi,
 
                          const amrex_real* sourcex, const int* sourcexlo, const int* sourcexhi,

@@ -3,7 +3,7 @@
   ! Problem specification
   prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
-  n_cells(1:2) = 128 128         ! number of cells in domain
+  n_cells(1:2) = 32 32         ! number of cells in domain
   max_grid_size(1:2) = 64 64   ! max number of cells in a box
 
   ! Time-step control
@@ -11,7 +11,7 @@
   cfl = 0.5
 
   ! Controls for number of steps between actions
-  max_step = 300
+  max_step = 2
   plot_int = 1
   plot_base_name = "plt"
   chk_int = 0
@@ -58,7 +58,7 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
   visc_coef = 1.
-  visc_type = -1
+  visc_type = 2
 
   ! Stochastic momentum flux controls:
   filtering_width = 0
