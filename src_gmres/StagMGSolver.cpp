@@ -4,6 +4,7 @@
 
 #include "common_functions.H"
 #include "common_namespace.H"
+#include <AMReX_VisMF.H>
 
 using namespace amrex;
 using namespace gmres;
@@ -137,8 +138,8 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         gamma_cc_mg[n].setVal(0.);
 
         // cc_restriction on beta_cc_mg and gamma_cc_mg
-        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1]);
-        CCRestriction(gamma_cc_mg[n],gamma_cc_mg[n-1]);
+        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1],geom);
+        CCRestriction(gamma_cc_mg[n],gamma_cc_mg[n-1],geom);
 
         // stag_restriction on alpha_fc_mg
         StagRestriction(alpha_fc_mg[n],alpha_fc_mg[n-1],1);
@@ -268,6 +269,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     }
 
                 } // end loop over colors
+
             } // end loop over nsmooths
 
             /////////////////
@@ -284,7 +286,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 Lphi_fc_mg[n][d].mult(-1.,0,1,0);
                 if (stag_mg_verbosity >= 3) {
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " after     smooths at level " 
+                    Print() << "Residual for comp " << d << " after all smooths at level " 
                             << n << " " << resid_temp << std::endl;
                 }
 
@@ -360,7 +362,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             Lphi_fc_mg[n][d].mult(-1.,0,1,0);
             if (stag_mg_verbosity >= 3) {
                 resid_temp = Lphi_fc_mg[n][d].norm0();
-                Print() << "Residual for comp " << d << " after     smooths at level " 
+                Print() << "Residual for comp " << d << " after all smooths at level " 
                         << n << " " << resid_temp << std::endl;
             }
 
@@ -561,7 +563,7 @@ int ComputeNlevsMG(const BoxArray& ba) {
     return nlevs_mg;
 }
 
-void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f)
+void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom)
 {
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
@@ -573,6 +575,9 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f)
                        BL_TO_FORTRAN_3D(phi_c[mfi]),
                        BL_TO_FORTRAN_3D(phi_f[mfi]));
     }
+
+    phi_c.FillBoundary(geom.periodicity());
+
 }
 
 void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 

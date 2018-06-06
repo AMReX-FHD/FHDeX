@@ -36,7 +36,8 @@ void StagMGSolver(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
 // smallest dimension of the smallest grid at the coarsest multigrid level
 int ComputeNlevsMG(const amrex::BoxArray& ba);
 
-void CCRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
+void CCRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f,
+                   const amrex::Geometry& geom);
 
 void StagRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
                      const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f,
