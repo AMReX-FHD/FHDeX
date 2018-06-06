@@ -238,7 +238,6 @@ void main_driver(const char* argv)
                  betaEdge,
                  umac, umacOut, umacNew, alpha, geom, &dt);
 
-        //Print() << ParticleType::NextID() << "\n";
 
         AMREX_D_TERM(
         MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
@@ -246,11 +245,11 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
 #if (AMREX_SPACEDIM == 2)
-        //particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
+        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        //particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
+        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
 #endif
         
         amrex::Print() << "Advanced step " << step << "\n";

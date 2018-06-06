@@ -111,11 +111,9 @@ void FhdParticleContainer::InitParticles()
 #if (BL_SPACEDIM == 3)
             p.idata(4) = 0; //cell index k
 #endif
- 
             particle_grid.push_back(p);
         }
     }
-
     Redistribute(); //Not necessary?
 }
 
@@ -135,6 +133,12 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
 
     //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (can probably change this).
     FindNodalValues(umac[0], umacNodal[0], betaCC);
+    FindNodalValues(umac[1], umacNodal[1], betaCC);
+
+#if (AMREX_SPACEDIM == 3)
+    FindNodalValues(umac[2], umacNodal[2], betaCC);
+    FindNodalValues(betaCC, betaNodal, betaCC);
+#endif
    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -146,7 +150,7 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
         update_particles(parts.data(), &Np, &dt, ZFILL(dx), 
                          ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
                          ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
-                         BL_TO_FORTRAN_3D(umac[0][pti]),
+                         BL_TO_FORTRAN_3D(umacNodal[0][pti]),
                          BL_TO_FORTRAN_3D(umac[1][pti]),
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(umac[2][pti]),
@@ -165,9 +169,14 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
                         );
-
         Redistribute();
     }
+
+    //sourceTemp.SumBoundary(Geom(lev).periodicity());
+
+    //MultiFab::Add(source,sourceTemp,0,0,source.nComp(),source.nGrow());
+
+   // source.FillBoundary(Geom(lev).periodicity());
 }
 
 void FhdParticleContainer::WriteParticlesAscii(int n)
