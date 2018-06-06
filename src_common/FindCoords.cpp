@@ -11,7 +11,7 @@ void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geom
 
     for (MFIter mfi(RealFaceCoords[0]); mfi.isValid(); ++mfi) 
     {
-        const Box& validBox = mfi.validbox();
+        //const Box& validBox = mfi.validbox();
 
         find_face_coords(ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
                          BL_TO_FORTRAN_3D(RealFaceCoords[0][mfi]),

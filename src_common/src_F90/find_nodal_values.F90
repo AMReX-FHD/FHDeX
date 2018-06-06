@@ -101,7 +101,7 @@ subroutine find_nodal_values(lo, hi, fabin, inlo, inhi, fabout, outlo, outhi, xc
 #endif
 
 #if (AMREX_SPACEDIM == 2) 
-  if (xCheck .eq. 1 .and. yCheck .eq. 0)  then 
+  if (xCheck .eq. 0 .and. yCheck .eq. 1)  then 
       do j = lo(2), hi(2)+1
         do i = lo(1), hi(1)+1
 
