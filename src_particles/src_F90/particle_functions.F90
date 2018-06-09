@@ -4,6 +4,7 @@ module particle_functions_module
   use amrex_fort_module
   use amrex_constants_module
   use common_namelist_module
+  !use bl_random_module
 
   implicit none
   private
@@ -189,14 +190,14 @@ contains
         
 #if (BL_SPACEDIM == 3)
       !Abort if particle is out of bounds
-      if (i .lt. index_lo(1) .or. i .gt. index_hi(1) .or. &
-          j .lt. index_lo(2) .or. j .gt. index_hi(1) .or. &
-          k .lt. index_lo(3) .or. k .gt. index_hi(1)) then
-            print *,'PARTICLE ID ', p%id,'OUT OF BOUNDS: ',i,j,k
-            print *,'Array bounds: ', index_lo(:), index_hi(:)
-            print *,'Position: ', p%pos(1), p%pos(2), p%pos(3)
-            call bl_error('Aborting in update_particles')
-      end if
+      !if (i .lt. index_lo(1) .or. i .gt. index_hi(1) .or. &
+      !    j .lt. index_lo(2) .or. j .gt. index_hi(1) .or. &
+      !    k .lt. index_lo(3) .or. k .gt. index_hi(1)) then
+      !      print *,'PARTICLE ID ', p%id,'OUT OF BOUNDS: ',i,j,k
+      !      print *,'Array bounds: ', index_lo(:), index_hi(:)
+      !      print *,'Position: ', p%pos(1), p%pos(2), p%pos(3)
+      !      call bl_error('Aborting in update_particles')
+      !end if
 #endif
 
       !Interpolate fields
@@ -275,6 +276,8 @@ contains
       deltap(3) = p%vel(3)
 #endif
 
+      !print *, velx(i,j,k)
+      !print *, p%pos
       p%vel(1) = -p%accel_factor*localbeta*(p%vel(1)-localvel(1))*dt + p%vel(1)
       p%vel(2) = -p%accel_factor*localbeta*(p%vel(2)-localvel(2))*dt + p%vel(2)
 #if (BL_SPACEDIM == 3)

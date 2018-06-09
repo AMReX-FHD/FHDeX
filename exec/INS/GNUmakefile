@@ -36,6 +36,10 @@ include ../../src_particles/Make.package
 VPATH_LOCATIONS   += ../../src_particles/
 INCLUDE_LOCATIONS += ../../src_particles/
 
+include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
+VPATH_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib
+
 include ../../src_particles/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_particles/src_F90
 INCLUDE_LOCATIONS += ../../src_particles/src_F90

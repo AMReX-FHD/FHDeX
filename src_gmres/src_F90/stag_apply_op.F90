@@ -316,7 +316,7 @@ contains
     integer :: i,j,k
 
     double precision dxsqinv, dysqinv, dzsqinv, dxdyinv, dxdzinv, dydzinv
-    double precision bt, gm
+    !double precision bt, gm
 
     ! coloring parameters
     logical :: do_x, do_y, do_z

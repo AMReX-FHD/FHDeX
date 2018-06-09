@@ -32,8 +32,8 @@ public:
                                            const MultiFab& betaCC, //Not necessary but may use later
                                            MultiFab& betaNodal, //Not necessary but may use later
                                            const MultiFab& rho, //Not necessary but may use later
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
 
     void WriteParticlesAscii(int n);
 

@@ -2,6 +2,7 @@
 #define _particle_functions_F_H_
 
 #ifdef __cplusplus
+
 extern "C" 
 {
 #endif

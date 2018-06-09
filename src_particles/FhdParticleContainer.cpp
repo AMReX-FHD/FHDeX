@@ -70,15 +70,15 @@ void FhdParticleContainer::InitParticles()
             p.id() = ParticleType::NextID();
             p.cpu() = ParallelDescriptor::MyProc();
 
-            p.pos(0) = (lovect[0]+(hivect[0] - lovect[0] +1)*0.5)*dx[0];
-            p.pos(1) = (lovect[1]+(hivect[1] - lovect[1] +1)*0.5)*dx[1];
+            p.pos(0) = 0.5;
+            p.pos(1) = 0.6;
 #if (BL_SPACEDIM == 3)
-            p.pos(2) = (lovect[2]+(hivect[2] - lovect[2] +1)*0.5)*dx[2];
+            p.pos(2) = 0.1;
 #endif
             //Remove properties that aren't being used when we're done coding the rest of the algorithm, must match fortran struct defined in particle_functions.F90
             //Also, number of real and int particle properties is set in class definition.
 
-            p.rdata(0) = 0.01; //mass
+            p.rdata(0) = 1; //mass
             p.rdata(1) = 1; //fluid density at particle location
 
             p.rdata(2) = 1; //temperature
@@ -93,7 +93,7 @@ void FhdParticleContainer::InitParticles()
 
             p.rdata(7) = 0; //particle xVel
             p.rdata(8) = 0; //particle yVel
-            p.rdata(9) = 0; //particle zVel
+            p.rdata(9) = 10; //particle zVel
 
             p.rdata(10) = dist(mt); //angular velocity 1
             p.rdata(11) = dist(mt); //angular velocity 2
@@ -125,8 +125,8 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                                            const MultiFab& betaCC, //Not necessary but may use later
                                            MultiFab& betaNodal, //Not necessary but may use later
                                            const MultiFab& rho, //Not necessary but may use later
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
     const int lev = 0;
     const RealBox& realDomain = Geom(lev).ProbDomain();
@@ -169,14 +169,26 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
                         );
-        Redistribute();
     }
 
-    //sourceTemp.SumBoundary(Geom(lev).periodicity());
+    Redistribute();
 
-    //MultiFab::Add(source,sourceTemp,0,0,source.nComp(),source.nGrow());
+    sourceTemp[0].SumBoundary(Geom(lev).periodicity());
+    sourceTemp[1].SumBoundary(Geom(lev).periodicity());
+#if (AMREX_SPACEDIM == 3)
+    sourceTemp[2].SumBoundary(Geom(lev).periodicity());
+#endif
+    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+#if (AMREX_SPACEDIM == 3)
+    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+#endif
+    source[0].FillBoundary(Geom(lev).periodicity());
+    source[1].FillBoundary(Geom(lev).periodicity());
+#if (AMREX_SPACEDIM == 3)
+    source[2].FillBoundary(Geom(lev).periodicity());
+#endif
 
-   // source.FillBoundary(Geom(lev).periodicity());
 }
 
 void FhdParticleContainer::WriteParticlesAscii(int n)
@@ -184,4 +196,5 @@ void FhdParticleContainer::WriteParticlesAscii(int n)
     const std::string& pltfile = amrex::Concatenate("particles", n, 5);
     WriteAsciiFile(pltfile);
 }
+
 

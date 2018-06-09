@@ -88,7 +88,7 @@ extern "C"
 
     void init_vel(const int* lo, const int* hi,
                   amrex_real* data, const int* dlo, const int* dhi,
-                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di);
+                  const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di, const amrex::Real* real_lo, const amrex::Real* real_hi);
 
 ///////////////////////////
 // in compute_div_and_grad.F90
