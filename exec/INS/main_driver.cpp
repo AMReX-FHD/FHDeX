@@ -238,9 +238,9 @@ void main_driver(const char* argv)
         umac[1].FillBoundary(geom.periodicity());,
         umac[2].FillBoundary(geom.periodicity()););
 
-        eulerStep(betaCC, gammaCC, 
-                 betaEdge,
-                 umac, umacOut, umacNew, alpha, geom, &dt);
+        //eulerStep(betaCC, gammaCC, 
+         //        betaEdge,
+         //        umac, umacOut, umacNew, alpha, geom, &dt);
 
 
         AMREX_D_TERM(

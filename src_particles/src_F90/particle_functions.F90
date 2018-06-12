@@ -19,9 +19,9 @@ module particle_functions_module
      real(amrex_particle_real)   :: pos(3)
 #endif
      real(amrex_particle_real)   :: mass
-
      real(amrex_particle_real)   :: radius
      real(amrex_particle_real)   :: accel_factor
+     real(amrex_particle_real)   :: drag_factor
      real(amrex_particle_real)   :: vel(3)
      real(amrex_particle_real)   :: angular_vel(2)
 
@@ -110,7 +110,7 @@ contains
     double precision localbeta, deltap(3), nodalp
     double precision dxinv(3)
     double precision onemxd(3)
-    double precision test
+    double precision bfac(3), normalrand(3), std
 
 #if (BL_SPACEDIM == 3)
     double precision c000,c001,c010,c011,c100,c101,c110,c111, ctotal
@@ -260,6 +260,18 @@ contains
       localvel(2) = vely(i,j,k)*c00 + vely(i,j+1,k)*c01 + vely(i+1,j,k)*c10 + vely(i+1,j+1,k)*c11
 
 #endif
+      !Brownian forcing
+
+      call get_particle_normal(normalrand(1))
+      call get_particle_normal(normalrand(2))
+      call get_particle_normal(normalrand(3))
+
+      !Assuming T=1 for now
+      std = sqrt(p%drag_factor*localbeta*k_B*2d0*dt*1d0)/p%mass
+
+      bfac(1) = std*normalrand(1)
+      bfac(2) = std*normalrand(2)
+      bfac(3) = std*normalrand(3)
 
       !Semi-implicit Euler velocity and position update
 
@@ -268,12 +280,21 @@ contains
 #if (BL_SPACEDIM == 3)
       deltap(3) = p%vel(3)
 #endif
+ 
+      !print *, -p%accel_factor*localbeta*(p%vel(1)-localvel(1))*dt
+      !print *, bfac(1)
 
-      p%vel(1) = -p%accel_factor*localbeta*(p%vel(1)-localvel(1))*dt + p%vel(1)
-      p%vel(2) = -p%accel_factor*localbeta*(p%vel(2)-localvel(2))*dt + p%vel(2)
+      p%vel(1) = -p%accel_factor*localbeta*(p%vel(1)-localvel(1))*dt + bfac(1) + p%vel(1)
+      p%vel(2) = -p%accel_factor*localbeta*(p%vel(2)-localvel(2))*dt + bfac(2) + p%vel(2)
 #if (BL_SPACEDIM == 3)
-      p%vel(3) = -p%accel_factor*localbeta*(p%vel(3)-localvel(3))*dt + p%vel(3)
+      p%vel(3) = -p%accel_factor*localbeta*(p%vel(3)-localvel(3))*dt + bfac(3) + p%vel(3)
 #endif
+
+      !p%vel(1) = -p%accel_factor*localbeta*(p%vel(1)-localvel(1))*dt + p%vel(1)
+      !p%vel(2) = -p%accel_factor*localbeta*(p%vel(2)-localvel(2))*dt + p%vel(2)
+!#if (BL_SPACEDIM == 3)
+      !p%vel(3) = -p%accel_factor*localbeta*(p%vel(3)-localvel(3))*dt  + p%vel(3)
+!#endif
       deltap(1) = p%mass*(p%vel(1) - deltap(1))
       deltap(2) = p%mass*(p%vel(2) - deltap(2))
 #if (BL_SPACEDIM == 3)
@@ -285,6 +306,10 @@ contains
 #if (BL_SPACEDIM == 3) 
       p%pos(3) = p%pos(3) + p%vel(3)*dt
 #endif
+
+      !print *, "Particle ", p%id, " pos: ", p%pos
+      !print *, "Particle ", p%id, " vel: ", p%vel
+      !print *, "Particle ", p%id, " xforce: ", -p%accel_factor*localbeta*(p%vel(1)-localvel(1))
 
 #if (BL_SPACEDIM == 3)
       !distribute x momentum change 
@@ -474,38 +499,9 @@ contains
 
     end do
 
-    !call get_particle_normal(test)
-
   end subroutine update_particles
   
 end module particle_functions_module
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

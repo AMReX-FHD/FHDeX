@@ -6,7 +6,7 @@ using namespace amrex;
 FhdParticleContainer::FhdParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba)
-    : ParticleContainer<8, 2+BL_SPACEDIM> (geom, dmap, ba)
+    : ParticleContainer<9, 2+BL_SPACEDIM> (geom, dmap, ba)
 {}
 
 void FhdParticleContainer::InitParticles()
@@ -73,25 +73,26 @@ void FhdParticleContainer::InitParticles()
             p.pos(0) = 0.5;
             p.pos(1) = 0.6;
 #if (BL_SPACEDIM == 3)
-            p.pos(2) = 0.1;
+            p.pos(2) = 0.3;
 #endif
             //Remove properties that aren't being used when we're done coding the rest of the algorithm, must match fortran struct defined in particle_functions.F90
             //Also, number of real and int particle properties is set in class definition.
 
-            p.rdata(0) = 1; //mass
+            p.rdata(0) = 0.1; //mass
  
 
             p.rdata(1) = 1; //radius
             p.rdata(2) = 6*3.14159265359*p.rdata(1)/p.rdata(0); //acceleration factor (replace with amrex c++ constant for pi...)
+            p.rdata(3) = 6*3.14159265359*p.rdata(1); //drag factor
 
             //Particle velocity is always 3D
 
-            p.rdata(3) = 0; //particle xVel
-            p.rdata(4) = 0; //particle yVel
-            p.rdata(5) = 10; //particle zVel
+            p.rdata(4) = 0; //particle xVel
+            p.rdata(5) = 0; //particle yVel
+            p.rdata(6) = 50; //particle zVel
 
-            p.rdata(6) = dist(mt); //angular velocity 1
-            p.rdata(7) = dist(mt); //angular velocity 2
+            p.rdata(7) = dist(mt); //angular velocity 1
+            p.rdata(8) = dist(mt); //angular velocity 2
 
 
             p.idata(0) = 0; //cell list index - for reverse lookup, depending on how we implement particle cell tracking

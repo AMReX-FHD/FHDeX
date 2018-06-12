@@ -14,11 +14,11 @@
 namespace amrex {
 
 class FhdParticleContainer
-    : public ParticleContainer<8, 2+BL_SPACEDIM>
+    : public ParticleContainer<9, 2+BL_SPACEDIM>
 {
 public:
 
-    using FhdParIter = ParIter<8, 2+BL_SPACEDIM>;
+    using FhdParIter = ParIter<9, 2+BL_SPACEDIM>;
 
     FhdParticleContainer(const Geometry            & geom, 
                                   const DistributionMapping & dmap,
