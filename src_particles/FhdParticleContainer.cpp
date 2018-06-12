@@ -6,7 +6,7 @@ using namespace amrex;
 FhdParticleContainer::FhdParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba)
-    : ParticleContainer<15, 2+BL_SPACEDIM> (geom, dmap, ba)
+    : ParticleContainer<8, 2+BL_SPACEDIM> (geom, dmap, ba)
 {}
 
 void FhdParticleContainer::InitParticles()
@@ -64,43 +64,35 @@ void FhdParticleContainer::InitParticles()
 
         }*/
 
-        //Place 2 particles (per box?) randomly in the domain
+        //Place 1 particles (per box?) randomly in the domain
         for(int i = 0; i<1; i++)
         {
             p.id() = ParticleType::NextID();
             p.cpu() = ParallelDescriptor::MyProc();
 
-            p.pos(0) = (lovect[0]+(hivect[0] - lovect[0] +1)*0.5)*dx[0];
-            p.pos(1) = (lovect[1]+(hivect[1] - lovect[1] +1)*0.5)*dx[1];
+            p.pos(0) = 0.5;
+            p.pos(1) = 0.6;
 #if (BL_SPACEDIM == 3)
-            p.pos(2) = (lovect[2]+(hivect[2] - lovect[2] +1)*0.5)*dx[2];
+            p.pos(2) = 0.1;
 #endif
             //Remove properties that aren't being used when we're done coding the rest of the algorithm, must match fortran struct defined in particle_functions.F90
             //Also, number of real and int particle properties is set in class definition.
 
-            p.rdata(0) = 0.01; //mass
-            p.rdata(1) = 1; //fluid density at particle location
+            p.rdata(0) = 1; //mass
+ 
 
-            p.rdata(2) = 1; //temperature
-            p.rdata(3) = 1; //fluid temperature at particle location
-
-            p.rdata(4) = 0; //fluid viscosity at particle location
-
-            p.rdata(5) = 1; //radius
-            p.rdata(6) = 6*3.14159265359*p.rdata(5)/p.rdata(0); //acceleration factor (replace with amrex c++ constant for pi...)
+            p.rdata(1) = 1; //radius
+            p.rdata(2) = 6*3.14159265359*p.rdata(1)/p.rdata(0); //acceleration factor (replace with amrex c++ constant for pi...)
 
             //Particle velocity is always 3D
 
-            p.rdata(7) = 0; //particle xVel
-            p.rdata(8) = 0; //particle yVel
-            p.rdata(9) = 0; //particle zVel
+            p.rdata(3) = 0; //particle xVel
+            p.rdata(4) = 0; //particle yVel
+            p.rdata(5) = 10; //particle zVel
 
-            p.rdata(10) = dist(mt); //angular velocity 1
-            p.rdata(11) = dist(mt); //angular velocity 2
+            p.rdata(6) = dist(mt); //angular velocity 1
+            p.rdata(7) = dist(mt); //angular velocity 2
 
-            p.rdata(12) = 0; //fluid xVel
-            p.rdata(13) = 0; //fluid yVel
-            p.rdata(14) = 0; //fluid zVel
 
             p.idata(0) = 0; //cell list index - for reverse lookup, depending on how we implement particle cell tracking
             p.idata(1) = 0; //species
@@ -125,8 +117,8 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                                            const MultiFab& betaCC, //Not necessary but may use later
                                            MultiFab& betaNodal, //Not necessary but may use later
                                            const MultiFab& rho, //Not necessary but may use later
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
 {
     const int lev = 0;
     const RealBox& realDomain = Geom(lev).ProbDomain();
@@ -169,14 +161,28 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
                         );
-        Redistribute();
     }
 
-    //sourceTemp.SumBoundary(Geom(lev).periodicity());
+    Redistribute();
 
-    //MultiFab::Add(source,sourceTemp,0,0,source.nComp(),source.nGrow());
+    sourceTemp[0].SumBoundary(Geom(lev).periodicity());
+    sourceTemp[1].SumBoundary(Geom(lev).periodicity());
+#if (AMREX_SPACEDIM == 3)
+    sourceTemp[2].SumBoundary(Geom(lev).periodicity());
+#endif
+    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+#if (AMREX_SPACEDIM == 3)
+    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+#endif
+    source[0].FillBoundary(Geom(lev).periodicity());
+    source[1].FillBoundary(Geom(lev).periodicity());
+#if (AMREX_SPACEDIM == 3)
+    source[2].FillBoundary(Geom(lev).periodicity());
+#endif
 
-   // source.FillBoundary(Geom(lev).periodicity());
+
+
 }
 
 void FhdParticleContainer::WriteParticlesAscii(int n)
@@ -184,4 +190,5 @@ void FhdParticleContainer::WriteParticlesAscii(int n)
     const std::string& pltfile = amrex::Concatenate("particles", n, 5);
     WriteAsciiFile(pltfile);
 }
+
 

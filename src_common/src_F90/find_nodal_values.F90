@@ -14,6 +14,8 @@ subroutine find_nodal_values(lo, hi, fabin, inlo, inhi, fabout, outlo, outhi, xc
   integer k
 #endif
 
+!print *, fabin(1,1,1)
+
 #if (AMREX_SPACEDIM == 3) 
   if (xCheck .eq. 0 .and. yCheck .eq. 0 .and. zCheck .eq. 0)  then
     do k = lo(3), hi(3)+1
@@ -35,7 +37,7 @@ subroutine find_nodal_values(lo, hi, fabin, inlo, inhi, fabout, outlo, outhi, xc
       do j = lo(2), hi(2)+1
         do i = lo(1), hi(1)+1
 
-          fabout(i,j,k) = 0.25*(fabin(i,j,k) + fabin(i,j-1,k) + fabin(i,j,k-1) + fabin(i,j-1,k-1))
+          fabout(i,j,k) = 0.25*(fabin(i,j,k) + fabin(i,j-1,k) + fabin(i,j,k-1) + fabin(i,j-1,k-1))      
 
         enddo
       enddo

@@ -12,6 +12,7 @@
 #include "gmres_namespace_declarations.H"
 
 #include "INS_functions.H"
+#include "rng_functions_F.H"
 
 using namespace common;
 using namespace gmres;
@@ -33,6 +34,8 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+
+    rng_initialize();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -57,10 +60,8 @@ void main_driver(const char* argv)
         // note we are converting "Vector<int> max_grid_size" to an IntVect
         ba.maxSize(IntVect(max_grid_size));
 
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                         {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-
+        RealBox real_box({AMREX_D_DECL(0,0,0)},
+                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
@@ -177,9 +178,12 @@ void main_driver(const char* argv)
 
     // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
     // ***SETTING THESE TO DUMMY VALUES FOR NOW***
-    //AMREX_D_TERM(umac[0].setVal(100.);,
-    //             umac[1].setVal(100.);,
-     //            umac[2].setVal(100.););
+    //AMREX_D_TERM(umac[0].setVal(1.);,
+    //             umac[1].setVal(0);,
+    //             umac[2].setVal(0););
+
+    const RealBox& realDomain = geom.ProbDomain();
+
 
 	int dm = 0;
 	for ( MFIter mfi(rhotot); mfi.isValid(); ++mfi )
@@ -188,13 +192,13 @@ void main_driver(const char* argv)
 
         AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm);,
+                                    geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
                      dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
             			            BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-            			            geom.ProbLo(), geom.ProbHi() ,&dm);,
+            			            geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
                      dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm););
+                                    geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
     }
 
     AMREX_D_TERM(
@@ -227,7 +231,7 @@ void main_driver(const char* argv)
 
 
     //Time stepping loop
-    for(step=1;step<=max_step;++step)
+   for(step=1;step<=max_step;++step)
     {
         AMREX_D_TERM(
         umac[0].FillBoundary(geom.periodicity());,

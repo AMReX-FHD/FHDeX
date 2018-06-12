@@ -85,7 +85,7 @@ subroutine init_vel_2d(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind
 
 end subroutine init_vel_2d
 
-subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C, name="init_vel")
+subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo, realhi) bind(C, name="init_vel")
 
   use amrex_fort_module, only : amrex_real
 
@@ -95,63 +95,40 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
   real(amrex_real), intent(inout) :: vel(vello(1):velhi(1),vello(2):velhi(2),vello(3):velhi(3))
 	integer          :: i,j,k
 
- double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad
-#if (AMREX_SPACEDIM == 3)
+  real(amrex_real), intent(in) :: reallo(3), realhi(3)
+
+  double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad
+
   real(amrex_real), intent(in   ) :: prob_lo(3) 
   real(amrex_real), intent(in   ) :: prob_hi(3)
 	real(amrex_real), intent(in   ) :: dx(3) 
-	
-	double precision :: probLo(3), probHi(3), dex(3)
-	probLo = prob_lo
-	probHi = prob_hi
-	dex = dx
-#endif
 
-#if (AMREX_SPACEDIM == 2)
-  real(amrex_real), intent(in   ) :: prob_lo(2) 
-  real(amrex_real), intent(in   ) :: prob_hi(2) 
-	real(amrex_real), intent(in   ) :: dx(2) 
-	
-	double precision :: probLo(3), probHi(3), dex(3)
-	probLo = (/prob_lo(1),prob_lo(2),0d0/)
-	probHi = (/prob_hi(1),prob_hi(2),0d0/)
-	dex = (/dx(1),dx(2),0d0/)
-#endif
 
-#if (AMREX_SPACEDIM == 1)
-  real(amrex_real), intent(in   ) :: prob_lo(1) 
-  real(amrex_real), intent(in   ) :: prob_hi(1)
-	real(amrex_real), intent(in   ) :: dx(1)  
-	
-	double precision :: probLo(3), probHi(3), dex(3)
-	probLo = (/prob_lo(1),0d0,0d0/)
-	probHi = (/prob_hi(1),0d0,0d0/)
-	dex = (/dx(1),0d0,0d0/)
-#endif 
+	center = (realhi - reallo)/2d0;
+	partdom = ((realhi(1) - reallo(1))/4d0)**2;
 
-	center = (probHi - probLo)/2d0;
-	partdom = ((probHi(1) - probLo(1))/4d0)**2;
-
+  !print *, partdom
 	
 	if (di .EQ. 0) then
 		do k = lo(3), hi(3)
 			do j = lo(2), hi(2)
 				 do i = lo(1), hi(1) + 1
 
-					itVec=(/dble(i)*dex(1),dble(j)*dex(2),dble(k)*dex(3)/)
+          itVec(1) = dble(i)*dx(1)
+          itVec(2) = dble(j)*dx(2)
+          itVec(3) = dble(k)*dx(3)
 
-					pos = probLo + itVec
+					pos = reallo + itVec
 					relpos = pos - center
 					rad = DOT_PRODUCT(relpos,relpos)
 
 					if (rad .LT. partdom) then
 
-				    !vel(i,j,k) = -100*exp(-rad/(10*partdom*partdom))*relpos(2)
-            vel(i,j,k) = 1d0
-            !print *, vel(i,j,k)
+				    vel(i,j,k) = -20*exp(-rad/(10*partdom*partdom))*relpos(2)
  
 					else
-					vel(i,j,k) = 0
+					vel(i,j,k) = 0d0
+           
 					endif
 
 				 end do
@@ -164,17 +141,16 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 			do j = lo(2), hi(2) + 1
 				 do i = lo(1), hi(1)
 
-					itVec=(/dble(i)*dex(1),dble(j)*dex(2),dble(k)*dex(3)/)
+          itVec(1) = dble(i)*dx(1)
+          itVec(2) = dble(j)*dx(2)
+          itVec(3) = dble(k)*dx(3)
 
-					pos = probLo + itVec
+					pos = reallo + itVec
 					relpos = pos - center
 					rad = DOT_PRODUCT(relpos,relpos)
 
 					if (rad .LT. partdom) then
-							!vel(i,j,k) = 100*exp(-rad/(10*partdom*partdom))*relpos(1)
-							!vel(i,j,k) = 1d0
-              vel(i,j,k) = 0d0
-              !print *, vel(i,j,k)
+							vel(i,j,k) = 20*exp(-rad/(10*partdom*partdom))*relpos(1)
 					else
 					vel(i,j,k) = 0
 					endif
@@ -189,9 +165,11 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 			do j = lo(2), hi(2)
 				 do i = lo(1), hi(1)
 
-					itVec=(/dble(i)*dex(1),dble(j)*dex(2),dble(k)*dex(3)/)
+          itVec(1) = dble(i)*dx(1)
+          itVec(2) = dble(j)*dx(2)
+          itVec(3) = dble(k)*dx(3)
 
-					pos = probLo + itVec
+					pos = reallo + itVec
 					relpos = pos - center
 					rad = DOT_PRODUCT(relpos,relpos)
 
@@ -205,6 +183,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind(C,
 			end do
 		end do
 	endif
+
 
 end subroutine init_vel
 
