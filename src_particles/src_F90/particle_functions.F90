@@ -4,7 +4,7 @@ module particle_functions_module
   use amrex_fort_module
   use amrex_constants_module
   use common_namelist_module
-  !use bl_random_module
+  use rng_functions_module
 
   implicit none
   private
@@ -19,19 +19,12 @@ module particle_functions_module
      real(amrex_particle_real)   :: pos(3)
 #endif
      real(amrex_particle_real)   :: mass
-     real(amrex_particle_real)   :: fluid_density
 
-     real(amrex_particle_real)   :: temperature
-     real(amrex_particle_real)   :: fluid_temperature
-
-     real(amrex_particle_real)   :: fluid_viscosity
      real(amrex_particle_real)   :: radius
      real(amrex_particle_real)   :: accel_factor
-
-
      real(amrex_particle_real)   :: vel(3)
      real(amrex_particle_real)   :: angular_vel(2)
-     real(amrex_particle_real)   :: fluid_vel(3)
+
 
      integer(c_int)              :: id
      integer(c_int)              :: cpu
@@ -117,6 +110,7 @@ contains
     double precision localbeta, deltap(3), nodalp
     double precision dxinv(3)
     double precision onemxd(3)
+    double precision test
 
 #if (BL_SPACEDIM == 3)
     double precision c000,c001,c010,c011,c100,c101,c110,c111, ctotal
@@ -201,7 +195,6 @@ contains
 #endif
 
       !Interpolate fields
-
       xd(1) = (p%pos(1) - coordsx(i,j,k,1))*dxInv(1)
       xd(2) = (p%pos(2) - coordsy(i,j,k,2))*dxInv(2)
 #if (BL_SPACEDIM == 3)
@@ -276,8 +269,6 @@ contains
       deltap(3) = p%vel(3)
 #endif
 
-      !print *, velx(i,j,k)
-      !print *, p%pos
       p%vel(1) = -p%accel_factor*localbeta*(p%vel(1)-localvel(1))*dt + p%vel(1)
       p%vel(2) = -p%accel_factor*localbeta*(p%vel(2)-localvel(2))*dt + p%vel(2)
 #if (BL_SPACEDIM == 3)
@@ -482,6 +473,8 @@ contains
 #endif
 
     end do
+
+    !call get_particle_normal(test)
 
   end subroutine update_particles
   

@@ -125,8 +125,6 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
 					if (rad .LT. partdom) then
 
 				    vel(i,j,k) = -20*exp(-rad/(10*partdom*partdom))*relpos(2)
-
-            !print *, vel(i,j,k)
  
 					else
 					vel(i,j,k) = 0d0
@@ -162,7 +160,6 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
 		end do
 	endif
 
-#if (AMREX_SPACEDIM == 2)
 	if (di .EQ. 2) then
 		do k = lo(3), hi(3) + 1
 			do j = lo(2), hi(2)
@@ -186,7 +183,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
 			end do
 		end do
 	endif
-#endif
+
 
 end subroutine init_vel
 

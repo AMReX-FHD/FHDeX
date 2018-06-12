@@ -6,7 +6,7 @@ using namespace amrex;
 FhdParticleContainer::FhdParticleContainer(const Geometry            & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba)
-    : ParticleContainer<15, 2+BL_SPACEDIM> (geom, dmap, ba)
+    : ParticleContainer<8, 2+BL_SPACEDIM> (geom, dmap, ba)
 {}
 
 void FhdParticleContainer::InitParticles()
@@ -64,7 +64,7 @@ void FhdParticleContainer::InitParticles()
 
         }*/
 
-        //Place 2 particles (per box?) randomly in the domain
+        //Place 1 particles (per box?) randomly in the domain
         for(int i = 0; i<1; i++)
         {
             p.id() = ParticleType::NextID();
@@ -79,28 +79,20 @@ void FhdParticleContainer::InitParticles()
             //Also, number of real and int particle properties is set in class definition.
 
             p.rdata(0) = 1; //mass
-            p.rdata(1) = 1; //fluid density at particle location
+ 
 
-            p.rdata(2) = 1; //temperature
-            p.rdata(3) = 1; //fluid temperature at particle location
-
-            p.rdata(4) = 0; //fluid viscosity at particle location
-
-            p.rdata(5) = 1; //radius
-            p.rdata(6) = 6*3.14159265359*p.rdata(5)/p.rdata(0); //acceleration factor (replace with amrex c++ constant for pi...)
+            p.rdata(1) = 1; //radius
+            p.rdata(2) = 6*3.14159265359*p.rdata(1)/p.rdata(0); //acceleration factor (replace with amrex c++ constant for pi...)
 
             //Particle velocity is always 3D
 
-            p.rdata(7) = 0; //particle xVel
-            p.rdata(8) = 0; //particle yVel
-            p.rdata(9) = 10; //particle zVel
+            p.rdata(3) = 0; //particle xVel
+            p.rdata(4) = 0; //particle yVel
+            p.rdata(5) = 10; //particle zVel
 
-            p.rdata(10) = dist(mt); //angular velocity 1
-            p.rdata(11) = dist(mt); //angular velocity 2
+            p.rdata(6) = dist(mt); //angular velocity 1
+            p.rdata(7) = dist(mt); //angular velocity 2
 
-            p.rdata(12) = 0; //fluid xVel
-            p.rdata(13) = 0; //fluid yVel
-            p.rdata(14) = 0; //fluid zVel
 
             p.idata(0) = 0; //cell list index - for reverse lookup, depending on how we implement particle cell tracking
             p.idata(1) = 0; //species
@@ -188,6 +180,8 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
 #if (AMREX_SPACEDIM == 3)
     source[2].FillBoundary(Geom(lev).periodicity());
 #endif
+
+
 
 }
 

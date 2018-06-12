@@ -12,6 +12,7 @@
 #include "gmres_namespace_declarations.H"
 
 #include "INS_functions.H"
+#include "rng_functions_F.H"
 
 using namespace common;
 using namespace gmres;
@@ -33,6 +34,8 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+
+    rng_initialize();
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -205,7 +208,7 @@ void main_driver(const char* argv)
 
     // compute the time step
     const Real* dx = geom.CellSize();
-    Real dt = 50*0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
     
     Print() << "Step size: " << dt << "\n";
         

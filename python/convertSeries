@@ -1,0 +1,17 @@
+#!/bin/bash
+
+rm -r ../exec/INS/particlePlots
+mkdir ../exec/INS/particlePlots
+
+it=0
+
+for f in ../exec/INS/plt*
+do
+	echo "Processing $f/ directory"
+
+	python amrex_to_vtp.py "$f/" particle0
+
+	cp "$f/particles.vtp" "../exec/INS/particlePlots/par$it.vtp"
+
+	it=$(($it+1))
+done
