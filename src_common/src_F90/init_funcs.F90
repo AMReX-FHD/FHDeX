@@ -150,7 +150,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
 					rad = DOT_PRODUCT(relpos,relpos)
 
 					if (rad .LT. partdom) then
-							vel(i,j,k) = 200*exp(-rad/(10*partdom*partdom))*relpos(1)
+							vel(i,j,k) = 100*exp(-rad/(10*partdom*partdom))*relpos(1)
 					else
 					vel(i,j,k) = 0
 					endif

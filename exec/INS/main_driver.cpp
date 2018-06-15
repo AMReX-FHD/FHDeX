@@ -35,6 +35,7 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
+    //Initialise two Gaussian rngs
     rng_initialize();
 
     // is the problem periodic?
@@ -47,11 +48,14 @@ void main_driver(const char* argv)
 
     // make BoxArray and Geometry
     BoxArray ba;
+    BoxArray bc;
     Geometry geom;
+    Geometry geomC;
     {
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
         Box domain(dom_lo, dom_hi);
+        Box domainC = domain;
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
@@ -60,10 +64,22 @@ void main_driver(const char* argv)
         // note we are converting "Vector<int> max_grid_size" to an IntVect
         ba.maxSize(IntVect(max_grid_size));
 
-        RealBox real_box({AMREX_D_DECL(0,0,0)},
-                         {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+        //RealBox real_box({AMREX_D_DECL(0,0,0)},
+        //                 {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+
+
+        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                         {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+
+        //This must be an even number for now?
+        int sizeRatio = 2;
+
+        bc = ba;
+        bc.coarsen(sizeRatio);
+        domainC.coarsen(sizeRatio);
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
     }
   
     // how boxes are distrubuted among MPI processes
@@ -176,6 +192,16 @@ void main_driver(const char* argv)
                  umacOut[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
 
+    //These structures are temporary until Andrew modifies amrex to include a more suitiable type of Multifab
+    //Build collision cells off coarsened or refined box array from fluid cells. This ensures particle and fluid information is split the same way.
+
+
+    iMultiFab collisionCellMembers(bc, dmap, 1, 0);
+    iMultiFab collisionCellLists(bc, dmap, 20, 0);
+
+    collisionCellMembers.setVal(0);
+
+
     // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
     // ***SETTING THESE TO DUMMY VALUES FOR NOW***
     //AMREX_D_TERM(umac[0].setVal(1.);,
@@ -206,8 +232,12 @@ void main_driver(const char* argv)
     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
-    // compute the time step
+
     const Real* dx = geom.CellSize();
+    const Real* dxc = geomC.CellSize();
+
+
+    // compute the time step
     Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
     
     Print() << "Step size: " << dt << "\n";
@@ -224,11 +254,12 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
 
-    particles.InitParticles();
+    particles.InitParticles(collisionCellMembers, collisionCellLists, dxc);
+
+
 
     // write out initial state
-    WritePlotFile(step,time,geom,rhotot,umac,div,particles);
-
+    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,collisionCellMembers,particles);
 
     //Time stepping loop
    for(step=1;step<=max_step;++step)
@@ -242,18 +273,17 @@ void main_driver(const char* argv)
          //        betaEdge,
          //        umac, umacOut, umacNew, alpha, geom, &dt);
 
-
         AMREX_D_TERM(
         MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
 #if (AMREX_SPACEDIM == 2)
-        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
+        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc);
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
+        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc);
 #endif
         
         amrex::Print() << "Advanced step " << step << "\n";
@@ -263,7 +293,7 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
             // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,rhotot,umac,div,particles);
+            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,collisionCellMembers,particles);
         }
 
 
