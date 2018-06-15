@@ -47,15 +47,15 @@ module particle_functions_module
 
 contains
 
-  subroutine init_particles(particles, np, dx, real_lo, real_hi, cellmembers, cmlo, cmhi,  celllists, cllo, clhi) bind(c,name='init_particles')
+  subroutine init_particles(particles, np, dx, real_lo, real_hi, cellmembers, cmlo, cmhi,  celllists, cllo, clhi, ppc) bind(c,name='init_particles')
 
     implicit none
 
-    integer,          intent(in   )         :: np, cmlo(3), cmhi(3), cllo(3), clhi(3)
+    integer,          intent(in   )         :: np, cmlo(3), cmhi(3), cllo(3), clhi(3), ppc
     double precision, intent(in   )         :: dx(3), real_lo(3), real_hi(3)
 
     integer         , intent(inout   ) :: cellmembers(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3))
-    integer         , intent(inout   ) :: celllists(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3),1:20)
+    integer         , intent(inout   ) :: celllists(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3),1:ppc)
 
     type(f_particle), intent(inout), target :: particles(np)
 
@@ -126,15 +126,15 @@ contains
                                        sourcez, sourcezlo, sourcezhi, &
 #endif
 
-                                       cellmembers, cmlo, cmhi,  celllists, cllo, clhi, cdx) bind(c,name='update_particles')
+                                       cellmembers, cmlo, cmhi,  celllists, cllo, clhi, cdx, hivect, ppc) bind(c,name='update_particles')
 
 
     implicit none
 
-    integer,          intent(in   )         :: np, index_lo(3), index_hi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3)
+    integer,          intent(in   )         :: np, index_lo(3), index_hi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), ppc
     integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3), rholo(3), rhohi(3)
     integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
-    integer,          intent(in   )         :: betalo(3), betahi(3), cmlo(3), cmhi(3), cllo(3), clhi(3)
+    integer,          intent(in   )         :: betalo(3), betahi(3), cmlo(3), cmhi(3), cllo(3), clhi(3), hivect(3)
 #if (AMREX_SPACEDIM == 3)
     integer,          intent(in   )         :: velzlo(3), velzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
 #endif
@@ -167,9 +167,10 @@ contains
 #endif
 
     integer         , intent(inout   ) :: cellmembers(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3))
-    integer         , intent(inout   ) :: celllists(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3),1:20)
+    integer         , intent(inout   ) :: celllists(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3),1:ppc)
 
-    integer l,i,j,k
+    integer l,i,j,k,io,jo,ko,endIndex,currentIndex,endParticle
+    integer hivect1(3)
     type(f_particle), pointer :: p
     double precision localvel(3)
     double precision localbeta, deltap(3), nodalp
@@ -190,12 +191,11 @@ contains
 
     double precision xd(3)
 
+    hivect1 = hivect + 1
+
     cdxinv = 1.0d0/cdx
     dxinv = 1.0d0/dx
     onemxd = 1.0d0-dx
-
-    !print *, betalo+1
-    !print *, betahi-1
 
     !Zero source terms
     do k = sourcexlo(3), sourcexhi(3)
@@ -576,12 +576,40 @@ contains
 #else
       k = 0
 #endif
+      !print *, p%collision_cell_index, " :: " , i, j, k
 
-      if ((i .NE. p%collision_cell_index(1)) .AND. (j .NE. p%collision_cell_index(2)) &
+      if ((i .NE. p%collision_cell_index(1)) .OR. (j .NE. p%collision_cell_index(2)) &
 #if (BL_SPACEDIM == 3)
-      .AND. (k .NE. p%collision_cell_index(3)) & 
+      .OR. (k .NE. p%collision_cell_index(3)) & 
 #endif
       ) then
+
+        !print *, "Removing particle: ", l
+
+        do while (k .GT. hivect(3))        
+          k = k - hivect1(3)
+        enddo
+
+        do while (k .LT. 0)        
+          k = k + hivect1(3)
+        enddo
+
+        do while (j .GT. hivect(2))        
+          j = j - hivect1(2)
+        enddo
+
+        do while (j .LT. 0)        
+          j = j + hivect1(2)
+        enddo
+
+        do while (i .GT. hivect(1))        
+          i = i - hivect1(1)
+        enddo
+
+        do while (i .LT. 0)        
+          i = i + hivect1(1)
+        enddo
+
 
         p%old_collision_cell_index(1) = p%collision_cell_index(1);
         p%old_collision_cell_index(2) = p%collision_cell_index(2);
@@ -595,16 +623,106 @@ contains
         p%collision_cell_index(3) = k
 #endif
 
-        !celllists(p%old_collision_cell_index(1),p%old_collision_cell_index(1),p%old_collision_cell_index(1),1:20)
+        io = p%old_collision_cell_index(1)
+        jo = p%old_collision_cell_index(2)
+#if (BL_SPACEDIM == 3)
+        ko = p%old_collision_cell_index(3)
+#else
+        ko = 0
+#endif
 
+        !print *, p%pos
+       ! print *, io, jo, ko, " -> ", i, j, k
 
+       ! print *, betalo+1, betahi-1
+       ! print *, cmlo, cmhi
+
+        endIndex = cellmembers(io,jo,ko)
+        currentIndex = p%cell_reverse_index
+
+        endParticle = celllists(io,jo,ko,endIndex)
+        
+        celllists(io,jo,ko,currentIndex) = endParticle
+
+        !print *, "before: ", cellmembers(io,jo,ko)
+        
+        cellmembers(io,jo,ko) = cellmembers(io,jo,ko) - 1
+
+        !print *, "after: ", cellmembers(io,jo,ko)
+        
       endif
 
     end do
 
   end subroutine update_particles
+
+  subroutine insert_particles(particles, np, cellmembers, cmlo, cmhi,  celllists, cllo, clhi, ppc) bind(c,name='insert_particles')
+
+    implicit none
+
+    integer,          intent(in   )         :: np, cmlo(3), cmhi(3), cllo(3), clhi(3), ppc
+
+    integer         , intent(inout   ) :: cellmembers(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3))
+    integer         , intent(inout   ) :: celllists(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3),1:ppc)
+
+    type(f_particle), intent(inout), target :: particles(np)
+
+    type(f_particle), pointer :: p
+
+    integer l,i,j,k,io,jo,ko
+    
+    !print *, cmlo
+    !print *, cmhi
+
+    do l = 1, np
+       
+      p => particles(l)
+
+      io = p%old_collision_cell_index(1)
+      jo = p%old_collision_cell_index(2)
+#if (BL_SPACEDIM == 3)
+      ko = p%old_collision_cell_index(3)
+#else
+      ko = 0
+#endif
+
+      i = p%collision_cell_index(1)
+      j = p%collision_cell_index(2)
+#if (BL_SPACEDIM == 3)
+      k = p%collision_cell_index(3)
+#else
+      k = 0
+#endif
+
+      if ((i .NE. io) .OR. (j .NE. jo) &
+#if (BL_SPACEDIM == 3)
+      .OR. (k .NE. ko) & 
+#endif
+      ) then
+
+       ! print *, "Adding particle: ", l
+       ! print *, p%pos
+       ! print *, io, jo, ko, "->", i, j, k
+       ! print *, cmlo, cmhi
+
+        cellmembers(i,j,k) = cellmembers(i,j,k)+1
+        p%cell_reverse_index = cellmembers(i,j,k)
+        celllists(i,j,k,cellmembers(i,j,k)) = l
+
+       ! print *, "Here2!"
+
+        p%old_collision_cell_index(1) = p%collision_cell_index(1)
+        p%old_collision_cell_index(2) = p%collision_cell_index(2)
+#if (BL_SPACEDIM == 3)
+        p%old_collision_cell_index(3) = p%collision_cell_index(3)
+#endif
+
+      endif
+    enddo
+  end subroutine insert_particles
   
 end module particle_functions_module
+
 
 
 

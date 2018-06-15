@@ -51,37 +51,54 @@ void main_driver(const char* argv)
     BoxArray bc;
     Geometry geom;
     Geometry geomC;
-    {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-        Box domain(dom_lo, dom_hi);
-        Box domainC = domain;
+    
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
+    Box domainC = domain;
 
-        // Initialize the boxarray "ba" from the single box "bx"
-        ba.define(domain);
+    // Initialize the boxarray "ba" from the single box "bx"
+    ba.define(domain);
 
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        // note we are converting "Vector<int> max_grid_size" to an IntVect
-        ba.maxSize(IntVect(max_grid_size));
+    // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+    // note we are converting "Vector<int> max_grid_size" to an IntVect
+    ba.maxSize(IntVect(max_grid_size));
 
-        //RealBox real_box({AMREX_D_DECL(0,0,0)},
-        //                 {AMREX_D_DECL( 1.0, 1.0, 1.0)});
+    //RealBox real_box({AMREX_D_DECL(0,0,0)},
+    //                 {AMREX_D_DECL( 1.0, 1.0, 1.0)});
 
 
-        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                         {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-        //This must be an even number for now?
-        int sizeRatio = 2;
+    //This must be an even number for now?
+    int sizeRatio = 2;
 
-        bc = ba;
-        bc.coarsen(sizeRatio);
-        domainC.coarsen(sizeRatio);
-        // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-        geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
-    }
-  
+    bc = ba;
+    bc.coarsen(sizeRatio);
+    domainC.coarsen(sizeRatio);
+    // This defines a Geometry object
+    geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
+
+    const int* lims = domainC.hiVect();
+
+#if (AMREX_SPACEDIM == 2)
+    int totalCollisionCells = (lims[0]+1)*(lims[1]+1);
+#elif (AMREX_SPACEDIM == 3)
+    int totalCollisionCells = (lims[0]+1)*(lims[1]+1)*(lims[2]+1);
+#endif
+
+    const int totalParticles = 100000;
+    const int ppc  = 5*(int)ceil(((double)totalParticles)/((double)totalCollisionCells));
+    const int ppb = (int)ceil(((double)totalParticles)/((double)ba.size()));
+
+    Print() << "Total particles: " << totalParticles << "\n";
+    Print() << "Particles per box: " << ppb << "\n";
+
+    Print() << "Collision cells: " << totalCollisionCells << "\n";
+    Print() << "Collision cell list length: " << ppc << "\n";
+    
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
@@ -197,9 +214,25 @@ void main_driver(const char* argv)
 
 
     iMultiFab collisionCellMembers(bc, dmap, 1, 0);
-    iMultiFab collisionCellLists(bc, dmap, 20, 0);
+    iMultiFab collisionCellLists(bc, dmap, ppc, 0);
+
+
+    iMultiFab collisionPairs(bc, dmap, 1, 0);    
+    MultiFab collisionFactor(bc, dmap, ppc, 0);
 
     collisionCellMembers.setVal(0);
+
+
+    const Real* dx = geom.CellSize();
+    const Real* dxc = geomC.CellSize();
+
+    MultiFab cellVols(bc, dmap, 1, 0);
+
+#if (AMREX_SPACEDIM == 2)
+    cellVols.setVal(dxc[0]*dxc[1]);
+#elif (AMREX_SPACEDIM == 3)
+    cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
+#endif
 
 
     // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
@@ -233,10 +266,6 @@ void main_driver(const char* argv)
     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
 
-    const Real* dx = geom.CellSize();
-    const Real* dxc = geomC.CellSize();
-
-
     // compute the time step
     Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
     
@@ -246,6 +275,14 @@ void main_driver(const char* argv)
     int step = 0;
     Real time = 0.;
 
+    /*const Box test = geomC.Domain();
+    const int* lov = domainC.loVect();
+    const int* hiv = domainC.hiVect();
+
+    Print() << lov[0] << "\n";
+    Print() << hiv[0] << "\n";
+
+    while(true);*/
  
     //Particles!
     FhdParticleContainer particles(geom, dmap, ba);
@@ -254,7 +291,7 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
 
-    particles.InitParticles(collisionCellMembers, collisionCellLists, dxc);
+    particles.InitParticles(collisionCellMembers, collisionCellLists, dxc, ppc, ppb);
 
 
 
@@ -279,11 +316,11 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
 #if (AMREX_SPACEDIM == 2)
-        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc);
+        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc, domainC.hiVect(), ppc);
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc);
+        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc, domainC.hiVect(), ppc);
 #endif
         
         amrex::Print() << "Advanced step " << step << "\n";

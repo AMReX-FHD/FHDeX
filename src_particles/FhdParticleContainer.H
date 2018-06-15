@@ -24,7 +24,7 @@ public:
                                   const DistributionMapping & dmap,
                                   const BoxArray            & ba);
 
-    void InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc);
+    void InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int ppc, const int ppb);
 
     void updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                            std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
@@ -34,7 +34,7 @@ public:
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc);
+                                           iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int* hiVect, const int ppc);
 
     void WriteParticlesAscii(int n);
 

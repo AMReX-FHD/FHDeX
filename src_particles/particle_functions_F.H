@@ -30,14 +30,18 @@ extern "C"
                          const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
                          const int* cellmembers, const int* cmlo, const int* cmhi,
-                         const int* celllists, const int* cllo, const int* clhi, const amrex::Real* cdx
+                         const int* celllists, const int* cllo, const int* clhi, const amrex::Real* cdx, const int* hivect, const int* ppc
                         );
 
 
     void init_particles(void* particles, const int* np, const amrex::Real* dx,
                         const amrex::Real* real_lo, const amrex::Real* real_hi,
                         const int* cellmembers, const int* cmlo, const int* cmhi,
-                        const int* celllists, const int* cllo, const int* clhi);
+                        const int* celllists, const int* cllo, const int* clhi, const int* ppc);
+
+    void insert_particles(void* particles, const int* np,
+                        const int* cellmembers, const int* cmlo, const int* cmhi,
+                        const int* celllists, const int* cllo, const int* clhi, const int* ppc);
 
 
 

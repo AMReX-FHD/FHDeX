@@ -9,7 +9,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     : ParticleContainer<10, 2+3*BL_SPACEDIM> (geom, dmap, ba)
 {}
 
-void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc)
+void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int ppc, const int ppb)
 {
     const int lev = 0;
     //const Geometry& geom = Geom(lev); //Linking to geom given to constructor?
@@ -19,9 +19,10 @@ void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMulti
     std::uniform_real_distribution<double> unit(0, 1.0);
     std::uniform_real_distribution<double> dist(-0.0001, 0.0001);
 
+
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) 
     {
-
+        
         //const Box& validBox = mfi.validbox();
 
         ParticleType p;
@@ -31,7 +32,7 @@ void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMulti
 
 
         //Place 1 particles (per box?) randomly in the domain
-        for(int i = 0; i<1; i++)
+        for(int i = 0; i<ppb; i++)
         {
             p.id() = ParticleType::NextID();
             p.cpu() = ParallelDescriptor::MyProc();
@@ -113,7 +114,7 @@ void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMulti
         init_particles(parts.data(), &Np, ZFILL(dxc),
                          ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
                          BL_TO_FORTRAN_3D(collisionCellMembers[pti]),
-                         BL_TO_FORTRAN_3D(collisionCellLists[pti]));
+                         BL_TO_FORTRAN_3D(collisionCellLists[pti]),&ppc);
        
     }
 }
@@ -128,7 +129,7 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc)
+                                           iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int* hiVect, const int ppc)
 {
     const int lev = 0;
     const RealBox& realDomain = Geom(lev).ProbDomain();
@@ -171,12 +172,23 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
                          BL_TO_FORTRAN_3D(sourceTemp[2][pti]),
 #endif
                          BL_TO_FORTRAN_3D(collisionCellMembers[pti]),
-                         BL_TO_FORTRAN_3D(collisionCellLists[pti]), ZFILL(dxc)
+                         BL_TO_FORTRAN_3D(collisionCellLists[pti]), ZFILL(dxc), ARLIM_3D(hiVect), &ppc
 
                         );
     }
 
     Redistribute();
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+        AoS& parts = pti.GetArrayOfStructs();
+        int Np = parts.size();
+
+        insert_particles(parts.data(), &Np,
+                         BL_TO_FORTRAN_3D(collisionCellMembers[pti]),
+                         BL_TO_FORTRAN_3D(collisionCellLists[pti]), &ppc);
+
+    }
 
     sourceTemp[0].SumBoundary(Geom(lev).periodicity());
     sourceTemp[1].SumBoundary(Geom(lev).periodicity());
