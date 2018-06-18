@@ -145,11 +145,11 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         StagRestriction(alpha_fc_mg[n],alpha_fc_mg[n-1],1);
 
 #if (AMREX_SPACEDIM == 2)
-            // nodal_restriction on beta_ed_mg
-            NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
+        // nodal_restriction on beta_ed_mg
+        NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
 #elif (AMREX_SPACEDIM == 3)
-            // edge_restriction on beta_ed_mg
-            EdgeRestriction(beta_ed_mg[n],beta_ed_mg[n-1]);
+        // edge_restriction on beta_ed_mg
+        EdgeRestriction(beta_ed_mg[n],beta_ed_mg[n-1]);
 #endif
     }
 
