@@ -87,9 +87,9 @@ void main_driver(const char* argv)
     betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    betaEdge[0].setVal(dt);  
-    betaEdge[1].setVal(dt);
-    betaEdge[2].setVal(dt);
+    betaEdge[0].setVal(visc_coef*dt);  
+    betaEdge[1].setVal(visc_coef*dt);
+    betaEdge[2].setVal(visc_coef*dt);
 #endif
 
     betaCC.setVal(visc_coef*dt);

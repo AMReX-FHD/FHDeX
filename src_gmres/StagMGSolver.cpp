@@ -183,6 +183,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
         // compute L0 norm of Lphi - rhs
         resid0[d] = Lphi_fc_mg[0][d].norm0(); 
+// FIXME - need to write an L2 norm for staggered fields
 //        resid0_l2[d] = Lphi_fc_mg[0][d].norm2(); 
         if (stag_mg_verbosity >= 2) {
             Print() << "Initial residual " << d << " " << resid0[d] << std::endl;
@@ -200,6 +201,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     // set the zero residuals to the maximum so the multigrid will begin work
     if ( std::any_of(resid0.begin(), resid0.end(), [](Real x){return x==0.;}) ) {
         std::fill(resid0.begin(),    resid0.end(),    *max_element(resid0.begin(),    resid0.end()));
+// FIXME - need to write an L2 norm for staggered fields
 //        std::fill(resid0_l2.begin(), resid0_l2.end(), *max_element(resid0_l2.begin(), resid0_l2.end()));
     }
       
@@ -464,6 +466,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         // compute L0 norm of Lphi - rhs and determine if the problem is solved
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             resid[d] = Lphi_fc_mg[0][d].norm0(); 
+// FIXME - need to write an L2 norm for staggered fields
 //            resid_l2[d] = Lphi_fc_mg[0][d].norm2(); 
             if (stag_mg_verbosity >= 2) {
                 Print() << "Residual     " << d << " " << resid[d] << std::endl;
@@ -471,6 +474,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             }
         }
         if (stag_mg_verbosity >= 1) {
+// FIXME - need to write an L2 norm for staggered fields
 /*
             Real sum1=0., sum2=0.;
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
