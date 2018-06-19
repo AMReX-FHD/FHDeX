@@ -37,8 +37,13 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     // compute the number of multigrid levels assuming stag_mg_minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
     int nlevs_mg = ComputeNlevsMG(ba_base);
+    if (stag_mg_verbosity >= 3) {
+        Print() << "Total number of multigrid levels: " << nlevs_mg << std::endl;
+    }
+
     int n;
 
+    //////////////////////////////////
     // allocate multifabs used in multigrid coarsening
 
     // cell-centered
@@ -52,10 +57,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >  Lphi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > resid_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge-based in 3D
-
-    const Real* dx = geom.CellSize();
-
-    Vector<std::array< Real, AMREX_SPACEDIM > > dx_mg(nlevs_mg);
+    //////////////////////////////////
 
     // initial and current residuals
     Vector<Real> resid0(AMREX_SPACEDIM);
@@ -67,6 +69,9 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     int color_start, color_end;
 
     DistributionMapping dmap = beta_cc.DistributionMap();
+
+    const Real* dx = geom.CellSize();
+    Vector<std::array< Real, AMREX_SPACEDIM > > dx_mg(nlevs_mg);
 
     for (n=0; n<nlevs_mg; ++n) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -145,11 +150,11 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         StagRestriction(alpha_fc_mg[n],alpha_fc_mg[n-1],1);
 
 #if (AMREX_SPACEDIM == 2)
-            // nodal_restriction on beta_ed_mg
-            NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
+        // nodal_restriction on beta_ed_mg
+        NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
 #elif (AMREX_SPACEDIM == 3)
-            // edge_restriction on beta_ed_mg
-            EdgeRestriction(beta_ed_mg[n],beta_ed_mg[n-1]);
+        // edge_restriction on beta_ed_mg
+        EdgeRestriction(beta_ed_mg[n],beta_ed_mg[n-1]);
 #endif
     }
 
@@ -183,6 +188,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
         // compute L0 norm of Lphi - rhs
         resid0[d] = Lphi_fc_mg[0][d].norm0(); 
+// FIXME - need to write an L2 norm for staggered fields
 //        resid0_l2[d] = Lphi_fc_mg[0][d].norm2(); 
         if (stag_mg_verbosity >= 2) {
             Print() << "Initial residual " << d << " " << resid0[d] << std::endl;
@@ -200,6 +206,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     // set the zero residuals to the maximum so the multigrid will begin work
     if ( std::any_of(resid0.begin(), resid0.end(), [](Real x){return x==0.;}) ) {
         std::fill(resid0.begin(),    resid0.end(),    *max_element(resid0.begin(),    resid0.end()));
+// FIXME - need to write an L2 norm for staggered fields
 //        std::fill(resid0_l2.begin(), resid0_l2.end(), *max_element(resid0_l2.begin(), resid0_l2.end()));
     }
       
@@ -302,6 +309,10 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
         // bottom solve
         n = nlevs_mg-1;
+
+        if (stag_mg_verbosity >= 3) {
+            Print() << "Begin bottom solve" << std::endl;
+        }
             
         ////////////////////////////
         // just do smooths at the current level as the bottom solve
@@ -369,6 +380,10 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             // fill periodic ghost cells
             Lphi_fc_mg[n][d].FillBoundary(geom.periodicity());
 
+        }
+
+        if (stag_mg_verbosity >= 3) {
+            Print() << "End bottom solve" << std::endl;
         }
 
         // up the V-cycle
@@ -464,6 +479,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         // compute L0 norm of Lphi - rhs and determine if the problem is solved
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             resid[d] = Lphi_fc_mg[0][d].norm0(); 
+// FIXME - need to write an L2 norm for staggered fields
 //            resid_l2[d] = Lphi_fc_mg[0][d].norm2(); 
             if (stag_mg_verbosity >= 2) {
                 Print() << "Residual     " << d << " " << resid[d] << std::endl;
@@ -471,6 +487,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             }
         }
         if (stag_mg_verbosity >= 1) {
+// FIXME - need to write an L2 norm for staggered fields
 /*
             Real sum1=0., sum2=0.;
             for (int d=0; d<AMREX_SPACEDIM; ++d) {

@@ -1,17 +1,18 @@
 
 
-#include "common_functions.H"
-#include "gmres_functions.H"
+#include "DiffusionTest_functions.H"
 
+#include "common_functions.H"
 #include "common_functions_F.H"
+
+#include "gmres_functions.H"
+#include "gmres_functions_F.H"
+
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
-
-#include "DiffusionTest_functions.H"
 
 using namespace common;
 using namespace gmres;
@@ -68,47 +69,31 @@ void main_driver(const char* argv)
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
-    // total density
-    MultiFab rhotot(ba, dmap, 1, 1);
-
-    // divergence
-    MultiFab div(ba, dmap, 1, 1);
-
     // beta cell centred
     MultiFab betaCC(ba, dmap, 1, 1);
 
     // gamma cell centred
     MultiFab gammaCC(ba, dmap, 1, 1);
 
-    //Print() << nodal_flag_xy << "\n";
-    //while(true);
-
-    // compute the time step
-    const Real* dx = geom.CellSize();
-    Real dt = 0.9*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    Real dt = fixed_dt;
 
     // beta on nodes in 2d
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > betaEdge;
-
 #if (AMREX_SPACEDIM == 2)
     betaEdge[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    betaEdge[0].setVal(1.);
+    betaEdge[0].setVal(visc_coef*dt);
 #elif (AMREX_SPACEDIM == 3)
     betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    betaEdge[0].setVal(dt);  
-    betaEdge[1].setVal(dt);
-    betaEdge[2].setVal(dt);
+    betaEdge[0].setVal(visc_coef*dt);  
+    betaEdge[1].setVal(visc_coef*dt);
+    betaEdge[2].setVal(visc_coef*dt);
 #endif
 
-    betaCC.setVal(dt);
-
+    betaCC.setVal(visc_coef*dt);
     gammaCC.setVal(0);
-
-    // set density to 1
-    rhotot.setVal(1.);
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
@@ -118,11 +103,12 @@ void main_driver(const char* argv)
 
     // alpha arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha;
-    AMREX_D_TERM(alpha[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-                 alpha[0].setVal(1.);,
-                 alpha[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+    AMREX_D_TERM(alpha[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 alpha[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 alpha[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    AMREX_D_TERM(alpha[0].setVal(1.);,
                  alpha[1].setVal(1.);,
-                 alpha[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
                  alpha[2].setVal(1.););
 
     // For testing timestepping
@@ -131,16 +117,10 @@ void main_driver(const char* argv)
                  umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
-    // For testing StagApplyOp
-    std::array< MultiFab, AMREX_SPACEDIM > umacOut;
-    AMREX_D_TERM(umacOut[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacOut[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacOut[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
     const RealBox& realDomain = geom.ProbDomain();
 
     int dm = 0;
-    for ( MFIter mfi(rhotot); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(betaCC); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
         
         AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
@@ -161,40 +141,34 @@ void main_driver(const char* argv)
     Real time = 0.;
 
      // write out initial state
-    WritePlotFile(step,time,geom,rhotot,umac,div);
+    WritePlotFile(step,time,geom,umac);
 
     // initial guess for updated velocity
-    AMREX_D_TERM(
-        MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-        MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-        MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
+                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
+                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
     //Time stepping loop
-    for(step=1;step<=max_step;++step)
-    {
+    for(step=1;step<=max_step;++step) {
 
-        AMREX_D_TERM(
-        umac[0].FillBoundary(geom.periodicity());,
-        umac[1].FillBoundary(geom.periodicity());,
-        umac[2].FillBoundary(geom.periodicity()););
+        AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
+                     umac[1].FillBoundary(geom.periodicity());,
+                     umac[2].FillBoundary(geom.periodicity()););
 
         StagMGSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
 
-        AMREX_D_TERM(
-        MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+        AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
+                     MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
+                     MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
 
         amrex::Print() << "Advanced step " << step << "\n";
 
         time = time + dt;
 
-        if (plot_int > 0 && step%plot_int == 0)
-        {
-            // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,rhotot,umac,div);
+        if (plot_int > 0 && step%plot_int == 0) {
+            // write out umac to a plotfile
+            WritePlotFile(step,time,geom,umac);
         }
-
     }
 
     // Call the timer again and compute the maximum difference between the start time 
