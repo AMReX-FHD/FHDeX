@@ -107,7 +107,13 @@ void main_driver(const char* argv)
 
     nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
     
+#if (AMREX_SPACEDIM == 2)
+    double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1]);
+#endif
+#if (AMREX_SPACEDIM == 3)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
+#endif
+
     double realParticles = domainVol*nitrogen.n0;
     const int totalParticles = 100000;
     nitrogen.Neff = realParticles/totalParticles;
