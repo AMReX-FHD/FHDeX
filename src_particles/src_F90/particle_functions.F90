@@ -47,7 +47,7 @@ module particle_functions_module
 
 contains
 
-  subroutine init_particles(particles, np, dx, real_lo, real_hi, cellmembers, cmlo, cmhi,  celllists, cllo, clhi, ppc) bind(c,name='init_particles')
+  subroutine init_particles(particles, np, dx, real_lo, real_hi, cellmembers, cmlo, cmhi, celllists, cllo, clhi, ppc) bind(c,name='init_particles')
 
     implicit none
 
@@ -238,6 +238,8 @@ contains
       !Find cell index, and position within cell, of particle
       !This can probably be further optimised
 
+      print *, p%pos
+
       i = floor((p%pos(1) - real_lo(1))*dxinv(1))
       j = floor((p%pos(2) - real_lo(2))*dxinv(2))
 #if (BL_SPACEDIM == 3)
@@ -245,6 +247,8 @@ contains
 #else
       k = 0
 #endif
+
+
 
       p%fluid_cell_index(1) = i;
       p%fluid_cell_index(2) = j;
@@ -376,6 +380,8 @@ contains
 #if (BL_SPACEDIM == 3) 
       p%pos(3) = p%pos(3) + p%vel(3)*dt
 #endif
+
+      print *, p%pos
 
       !print *, "Particle ", p%id, " pos: ", p%pos
       !print *, "Particle ", p%id, " vel: ", p%vel
@@ -569,14 +575,21 @@ contains
 
       !Remove from collision cell if particle has moved to new cell
 
+
+
+
       i = floor((p%pos(1) - real_lo(1))*cdxinv(1))
+      print *, "Here1!", p%pos(2)
       j = floor((p%pos(2) - real_lo(2))*cdxinv(2))
+      print *, "Here2!" 
 #if (BL_SPACEDIM == 3)
       k = floor((p%pos(3) - real_lo(3))*cdxinv(3))
 #else
       k = 0
 #endif
       !print *, p%collision_cell_index, " :: " , i, j, k
+
+
 
       if ((i .NE. p%collision_cell_index(1)) .OR. (j .NE. p%collision_cell_index(2)) &
 #if (BL_SPACEDIM == 3)
@@ -655,6 +668,169 @@ contains
     end do
 
   end subroutine update_particles
+
+
+  subroutine update_particles_dsmc(particles, np, dt, dx, index_lo, index_hi, real_lo, real_hi, &
+                                       velx, velxlo, velxhi, &
+                                       vely, velylo, velyhi, &
+#if (BL_SPACEDIM == 3)
+                                       velz, velzlo, velzhi, &
+#endif
+                                       coordsx, coordsxlo, coordsxhi, &
+                                       coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                                       coordsz, coordszlo, coordszhi, &
+#endif
+                                       beta, betalo, betahi, &
+
+                                       rho, rholo, rhohi, &
+
+                                       sourcex, sourcexlo, sourcexhi, &
+                                       sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                       sourcez, sourcezlo, sourcezhi, &
+#endif
+
+                                       cellmembers, cmlo, cmhi,  celllists, cllo, clhi, cdx, hivect, ppc) bind(c,name='update_particles_dsmc')
+
+
+    implicit none
+
+    integer,          intent(in   )         :: np, index_lo(3), index_hi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), ppc
+    integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3), rholo(3), rhohi(3)
+    integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
+    integer,          intent(in   )         :: betalo(3), betahi(3), cmlo(3), cmhi(3), cllo(3), clhi(3), hivect(3)
+#if (AMREX_SPACEDIM == 3)
+    integer,          intent(in   )         :: velzlo(3), velzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
+#endif
+    type(f_particle), intent(inout), target :: particles(np)
+
+    double precision, intent(in   )         :: dx(3), cdx(3), dt
+
+    double precision, intent(in   )         :: real_lo(3), real_hi(3)
+
+    double precision, intent(in   ) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
+    double precision, intent(in   ) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
+#if (AMREX_SPACEDIM == 3)
+    double precision, intent(in   ) :: velz(velzlo(1):velzhi(1),velzlo(2):velzhi(2),velzlo(3):velzhi(3))
+#endif
+
+    double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
+    double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
+#if (AMREX_SPACEDIM == 3)
+    double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
+#endif
+
+    double precision, intent(in   ) :: beta(betalo(1):betahi(1),betalo(2):betahi(2),betalo(3):betahi(3))
+
+    double precision, intent(in   ) :: rho(rholo(1):rhohi(1),rholo(2):rhohi(2),rholo(3):rhohi(3))
+
+    double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
+    double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
+#if (AMREX_SPACEDIM == 3)
+    double precision, intent(inout) :: sourcez(sourcezlo(1):sourcezhi(1),sourcezlo(2):sourcezhi(2),sourcezlo(3):sourcezhi(3))
+#endif
+
+    integer         , intent(inout   ) :: cellmembers(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3))
+    integer         , intent(inout   ) :: celllists(cmlo(1):cmhi(1),cmlo(2):cmhi(2),cmlo(3):cmhi(3),1:ppc)
+
+    integer l,i,j,k,io,jo,ko,endIndex,currentIndex,endParticle,hivect1(3)
+
+    type(f_particle), pointer :: p
+
+    double precision cdxinv(3)
+
+
+    cdxinv = 1.0d0/cdx
+    hivect1 = hivect + 1
+
+    do l = 1, np
+       
+      p => particles(l)
+
+      p%pos(1) = p%pos(1) + p%vel(1)*dt 
+      p%pos(2) = p%pos(2) + p%vel(2)*dt 
+#if (BL_SPACEDIM == 3) 
+      p%pos(3) = p%pos(3) + p%vel(3)*dt
+#endif
+
+      i = floor((p%pos(1) - real_lo(1))*cdxinv(1))
+      j = floor((p%pos(2) - real_lo(2))*cdxinv(2))
+#if (BL_SPACEDIM == 3)
+      k = floor((p%pos(3) - real_lo(3))*cdxinv(3))
+#else
+      k = 0
+#endif
+      !print *, p%collision_cell_index, " :: " , i, j, k
+
+      if ((i .NE. p%collision_cell_index(1)) .OR. (j .NE. p%collision_cell_index(2)) &
+#if (BL_SPACEDIM == 3)
+      .OR. (k .NE. p%collision_cell_index(3)) & 
+#endif
+      ) then
+
+        !print *, "Removing particle: ", l
+
+        do while (k .GT. hivect(3))        
+          k = k - hivect1(3)
+        enddo
+
+        do while (k .LT. 0)        
+          k = k + hivect1(3)
+        enddo
+
+        do while (j .GT. hivect(2))        
+          j = j - hivect1(2)
+        enddo
+
+        do while (j .LT. 0)        
+          j = j + hivect1(2)
+        enddo
+
+        do while (i .GT. hivect(1))        
+          i = i - hivect1(1)
+        enddo
+
+        do while (i .LT. 0)        
+          i = i + hivect1(1)
+        enddo
+
+
+        p%old_collision_cell_index(1) = p%collision_cell_index(1);
+        p%old_collision_cell_index(2) = p%collision_cell_index(2);
+#if (BL_SPACEDIM == 3)
+        p%old_collision_cell_index(3) = p%collision_cell_index(3);
+#endif
+
+        p%collision_cell_index(1) = i
+        p%collision_cell_index(2) = j
+#if (BL_SPACEDIM == 3)
+        p%collision_cell_index(3) = k
+#endif
+
+        io = p%old_collision_cell_index(1)
+        jo = p%old_collision_cell_index(2)
+#if (BL_SPACEDIM == 3)
+        ko = p%old_collision_cell_index(3)
+#else
+        ko = 0
+#endif
+
+        endIndex = cellmembers(io,jo,ko)
+        currentIndex = p%cell_reverse_index
+
+        endParticle = celllists(io,jo,ko,endIndex)
+        
+        celllists(io,jo,ko,currentIndex) = endParticle
+  
+        cellmembers(io,jo,ko) = cellmembers(io,jo,ko) - 1
+    
+      endif
+
+    end do
+
+  end subroutine update_particles_dsmc
+
 
   subroutine insert_particles(particles, np, cellmembers, cmlo, cmhi,  celllists, cllo, clhi, ppc) bind(c,name='insert_particles')
 

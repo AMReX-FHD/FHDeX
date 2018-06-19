@@ -9,15 +9,17 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     : ParticleContainer<10, 2+3*BL_SPACEDIM> (geom, dmap, ba)
 {}
 
-void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int ppc, const int ppb)
+void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int ppc, const int ppb, species particleInfo)
 {
     const int lev = 0;
     //const Geometry& geom = Geom(lev); //Linking to geom given to constructor?
     //const Real* dx  = geom.CellSize();
+
     
     std::mt19937 mt(ParallelDescriptor::MyProc()*1000);
     std::uniform_real_distribution<double> unit(0, 1.0);
     std::uniform_real_distribution<double> dist(-0.0001, 0.0001);
+    std::normal_distribution<double> ndist(0, sqrt(2.0*particleInfo.R*particleInfo.T));
 
 
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi) 
@@ -29,7 +31,6 @@ void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMulti
 
         const int grid_id = mfi.index();
         auto& particle_grid = GetParticles(lev)[std::make_pair(grid_id,0)];
-
 
         //Place 1 particles (per box?) randomly in the domain
         for(int i = 0; i<ppb; i++)
@@ -45,22 +46,22 @@ void FhdParticleContainer::InitParticles(iMultiFab& collisionCellMembers, iMulti
             //Remove properties that aren't being used when we're done coding the rest of the algorithm, must match fortran struct defined in particle_functions.F90
             //Also, number of real and int particle properties is set in class definition.
 
-            p.rdata(0) = 0.1; //mass
+            p.rdata(0) = particleInfo.m; //mass
  
 
-            p.rdata(1) = 1; //radius
+            p.rdata(1) = particleInfo.d/2.0; //radius
             p.rdata(2) = 6*3.14159265359*p.rdata(1)/p.rdata(0); //acceleration factor (replace with amrex c++ constant for pi...)
             p.rdata(3) = 6*3.14159265359*p.rdata(1); //drag factor
 
             //Particle velocity is always 3D
 
-            p.rdata(4) = 0; //particle xVel
-            p.rdata(5) = 0; //particle yVel
-            p.rdata(6) = 50; //particle zVel
+            p.rdata(4) = ndist(mt); //particle xVel
+            p.rdata(5) = ndist(mt); //particle yVel
+            p.rdata(6) = ndist(mt); //particle zVel
 
             p.rdata(7) = dist(mt); //angular velocity 1
             p.rdata(8) = dist(mt); //angular velocity 2
-           // p.rdata(9) = dist(mt); //angular velocity 2
+            p.rdata(9) = dist(mt); //angular velocity 2
 
 
             p.idata(0) = 0; //Collision cell list index - for reverse lookup, depending on how we implement particle cell tracking
@@ -150,7 +151,7 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
 
         const Box& validBox = pti.validbox();
 
-        update_particles(parts.data(), &Np, &dt, ZFILL(dx), 
+        update_particles_dsmc(parts.data(), &Np, &dt, ZFILL(dx), 
                          ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
                          ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
                          BL_TO_FORTRAN_3D(umacNodal[0][pti]),
@@ -206,9 +207,54 @@ void FhdParticleContainer::updateParticles(const Real dt, const Real* dx, const 
     source[2].FillBoundary(Geom(lev).periodicity());
 #endif
 
-
-
 }
+
+void FhdParticleContainer::InitCollisionCells(const iMultiFab& collisionCellMembers,
+                              const iMultiFab& collisionCellLists,
+                              MultiFab& collisionPairs,
+                              MultiFab& collisionFactor, 
+                              MultiFab& cellVols, const int ppc, const Real Neff, const Real delt)
+{
+    const int lev = 0;
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+        AoS& parts = pti.GetArrayOfStructs();
+        int Np = parts.size();
+
+        init_cells(parts.data(),
+                         BL_TO_FORTRAN_3D(collisionCellMembers[pti]),
+                         BL_TO_FORTRAN_3D(collisionCellLists[pti]),
+                         BL_TO_FORTRAN_3D(collisionPairs[pti]),
+                         BL_TO_FORTRAN_3D(collisionFactor[pti]),
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&ppc,&Np,&Neff,&delt
+                        );
+    }
+}
+
+void FhdParticleContainer::CollideParticles(const iMultiFab& collisionCellMembers,
+                              const iMultiFab& collisionCellLists,
+                              MultiFab& collisionPairs,
+                              MultiFab& collisionFactor, 
+                              MultiFab& cellVols, const int ppc, const Real Neff, const Real delt)
+{
+    const int lev = 0;
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+        AoS& parts = pti.GetArrayOfStructs();
+        int Np = parts.size();
+
+        collide_cells(parts.data(),
+                         BL_TO_FORTRAN_3D(collisionCellMembers[pti]),
+                         BL_TO_FORTRAN_3D(collisionCellLists[pti]),
+                         BL_TO_FORTRAN_3D(collisionPairs[pti]),
+                         BL_TO_FORTRAN_3D(collisionFactor[pti]),
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&ppc,&Np,&Neff,&delt
+                        );
+    }
+}
+
 
 void FhdParticleContainer::WriteParticlesAscii(int n)
 {

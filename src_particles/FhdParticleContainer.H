@@ -8,8 +8,8 @@
 #include <AMReX_ArrayLim.H>
 
 #include "gmres_functions.H"
-
 #include "common_functions.H"
+#include "species.H"
 
 namespace amrex {
 
@@ -24,7 +24,7 @@ public:
                                   const DistributionMapping & dmap,
                                   const BoxArray            & ba);
 
-    void InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int ppc, const int ppb);
+    void InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int ppc, const int ppb, species particleInfo);
 
     void updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                            std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
@@ -35,6 +35,18 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int* hiVect, const int ppc);
+
+    void InitCollisionCells(const iMultiFab& collisionCellMembers,
+                                          const iMultiFab& collisionCellLists,
+                                          MultiFab& collisionPairs,
+                                          MultiFab& collisionFactor, 
+                                          MultiFab& cellVols, const int ppc, const Real Neff, const Real delt);
+
+    void CollideParticles(const iMultiFab& collisionCellMembers,
+                                          const iMultiFab& collisionCellLists,
+                                          MultiFab& collisionPairs,
+                                          MultiFab& collisionFactor, 
+                                          MultiFab& cellVols, const int ppc, const Real Neff, const Real delt);
 
     void WriteParticlesAscii(int n);
 

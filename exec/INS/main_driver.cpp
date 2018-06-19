@@ -14,6 +14,8 @@
 #include "INS_functions.H"
 #include "rng_functions_F.H"
 
+#include "species.H"
+
 using namespace common;
 using namespace gmres;
 
@@ -35,7 +37,7 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-    //Initialise two Gaussian rngs
+    //Initialise rngs
     rng_initialize();
 
     // is the problem periodic?
@@ -89,7 +91,29 @@ void main_driver(const char* argv)
     int totalCollisionCells = (lims[0]+1)*(lims[1]+1)*(lims[2]+1);
 #endif
 
+    species nitrogen;
+
+    //Hard sphere nitrogen gas
+    nitrogen.gamma1 = 1.27;
+    nitrogen.m = 4.65E-26;
+    nitrogen.R = 1.3806E-23/nitrogen.m;
+    nitrogen.T = 293;
+    nitrogen.mu = 1.757E-5;
+    nitrogen.d = sqrt((nitrogen.gamma1*nitrogen.m*sqrt(nitrogen.R*nitrogen.T))/(4*sqrt(3.14159265359)*nitrogen.mu));    
+
+    nitrogen.mfp = 0.1;
+
+    nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
+
+    nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
+    
+    double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
+    double realParticles = domainVol*nitrogen.n0;
     const int totalParticles = 100000;
+    nitrogen.Neff = realParticles/totalParticles;
+
+    Print() << "Neff: " << nitrogen.Neff << "\n";
+
     const int ppc  = 5*(int)ceil(((double)totalParticles)/((double)totalCollisionCells));
     const int ppb = (int)ceil(((double)totalParticles)/((double)ba.size()));
 
@@ -217,10 +241,12 @@ void main_driver(const char* argv)
     iMultiFab collisionCellLists(bc, dmap, ppc, 0);
 
 
-    iMultiFab collisionPairs(bc, dmap, 1, 0);    
-    MultiFab collisionFactor(bc, dmap, ppc, 0);
+    MultiFab collisionPairs(bc, dmap, 1, 0);    
+    MultiFab collisionFactor(bc, dmap, 1, 0);
 
     collisionCellMembers.setVal(0);
+
+    collisionFactor.setVal(0);
 
 
     const Real* dx = geom.CellSize();
@@ -267,7 +293,10 @@ void main_driver(const char* argv)
 
 
     // compute the time step
-    Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+    //Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
+
+    // kinetic time step
+    Real dt = 0.25*nitrogen.mfp/sqrt(2.0*nitrogen.R*nitrogen.T);
     
     Print() << "Step size: " << dt << "\n";
         
@@ -275,15 +304,7 @@ void main_driver(const char* argv)
     int step = 0;
     Real time = 0.;
 
-    /*const Box test = geomC.Domain();
-    const int* lov = domainC.loVect();
-    const int* hiv = domainC.hiVect();
 
-    Print() << lov[0] << "\n";
-    Print() << hiv[0] << "\n";
-
-    while(true);*/
- 
     //Particles!
     FhdParticleContainer particles(geom, dmap, ba);
 
@@ -291,9 +312,9 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
 
-    particles.InitParticles(collisionCellMembers, collisionCellLists, dxc, ppc, ppb);
+    particles.InitParticles(collisionCellMembers, collisionCellLists, dxc, ppc, ppb, nitrogen);
 
-
+    particles.InitCollisionCells(collisionCellMembers, collisionCellLists, collisionPairs, collisionFactor, cellVols, ppc, nitrogen.Neff, dt);
 
     // write out initial state
     WritePlotFile(step,time,geom,geomC,rhotot,umac,div,collisionCellMembers,particles);
@@ -322,6 +343,8 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 3)
         particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc, domainC.hiVect(), ppc);
 #endif
+
+        particles.CollideParticles(collisionCellMembers, collisionCellLists, collisionPairs, collisionFactor, cellVols, ppc, nitrogen.Neff, dt);
         
         amrex::Print() << "Advanced step " << step << "\n";
 

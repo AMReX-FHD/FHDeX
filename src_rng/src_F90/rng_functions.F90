@@ -15,15 +15,17 @@ module rng_functions_module
   private
 
   public :: rng_initialize, &
-            get_particle_normal, &
-            rng_eng_fhd, &
-            rng_eng_particle
-
+            get_particle_normal, get_selector
+ 
   type(bl_rng_engine)      , save :: rng_eng_fhd
   type(bl_rng_engine)      , save :: rng_eng_particle
+  type(bl_rng_engine)      , save :: rng_eng_select
+  type(bl_rng_engine)      , save :: rng_eng_scatter
 
   type(bl_rng_normal)      , save :: nm_fhd
   type(bl_rng_normal)      , save :: nm_particle
+  type(bl_rng_uniform_real), save :: un_select
+  type(bl_rng_uniform_real), save :: un_scatter
 
 contains
 
@@ -31,13 +33,17 @@ contains
 
     implicit none
 
-    double precision :: test
+    !double precision :: test
 
     call bl_rng_build_engine(rng_eng_fhd, 2)
     call bl_rng_build_engine(rng_eng_particle, 2)       
+    call bl_rng_build_engine(rng_eng_select, 2)
+    call bl_rng_build_engine(rng_eng_scatter, 2)
 
     call bl_rng_build_distro(nm_fhd, 0.0d0, 1.0d0)
     call bl_rng_build_distro(nm_particle, 0.0d0, 1.0d0)
+    call bl_rng_build_distro(un_select, 0.0d0, 1.0d0)
+    call bl_rng_build_distro(un_scatter, 0.0d0, 1.0d0)
 
   end subroutine rng_initialize
 
@@ -49,8 +55,18 @@ contains
       test = bl_rng_get(nm_particle, rng_eng_particle)
 
   end subroutine get_particle_normal
+
+  subroutine get_selector(test, length)
+
+      integer, intent(inout) :: test
+      integer, intent(in)    :: length
+
+      test = ceiling(bl_rng_get(un_select, rng_eng_select)*length)
+
+  end subroutine get_selector
   
 end module rng_functions_module
+
 
 
 

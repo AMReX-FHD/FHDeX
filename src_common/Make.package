@@ -8,6 +8,8 @@ CEXE_headers   += common_functions_F.H
 CEXE_headers   += common_namespace.H
 CEXE_headers   += common_namespace_declarations.H
 
+CEXE_headers   += species.H
+
 CEXE_sources += ConvertStag.cpp
 CEXE_sources += ComputeDivAndGrad.cpp
 
