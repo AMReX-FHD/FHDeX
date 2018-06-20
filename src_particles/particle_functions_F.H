@@ -76,7 +76,7 @@ extern "C"
                         amrex_real* cellpairs, const int* cplo, const int* cphi, 
                         amrex_real* cellfactor, const int* cflo, const int* cfhi,
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
-                        const int* ppc, const int* np, const amrex_real* neff, const amrex_real* delt);
+                        const int* ppc, const int* np, const amrex_real* neff, const amrex_real* cp, const amrex_real* d, const amrex_real* delt);
 
     void collide_cells(void* particles,
                         const int* cellmembers, const int* cmlo, const int* cmhi,

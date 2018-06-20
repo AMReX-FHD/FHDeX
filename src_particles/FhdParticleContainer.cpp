@@ -213,7 +213,7 @@ void FhdParticleContainer::InitCollisionCells(const iMultiFab& collisionCellMemb
                               const iMultiFab& collisionCellLists,
                               MultiFab& collisionPairs,
                               MultiFab& collisionFactor, 
-                              MultiFab& cellVols, const int ppc, const Real Neff, const Real delt)
+                              MultiFab& cellVols, const int ppc, const species particleInfo, const Real delt)
 {
     const int lev = 0;
 
@@ -227,7 +227,7 @@ void FhdParticleContainer::InitCollisionCells(const iMultiFab& collisionCellMemb
                          BL_TO_FORTRAN_3D(collisionCellLists[pti]),
                          BL_TO_FORTRAN_3D(collisionPairs[pti]),
                          BL_TO_FORTRAN_3D(collisionFactor[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&ppc,&Np,&Neff,&delt
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&ppc,&Np,&particleInfo.Neff,&particleInfo.cp,&particleInfo.d,&delt
                         );
     }
 }
@@ -252,6 +252,30 @@ void FhdParticleContainer::CollideParticles(const iMultiFab& collisionCellMember
                          BL_TO_FORTRAN_3D(collisionFactor[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&ppc,&Np,&Neff,&delt
                         );
+    }
+}
+
+void FhdParticleContainer::EvaluateFields(const iMultiFab& collisionCellMembers,
+                              const iMultiFab& collisionCellLists,
+                              MultiFab& particleDensity,
+                              std::array<MultiFab, 3>& particleVelocity,
+                              MultiFab& particleTemperature,
+                              MultiFab& cellVols, const int ppc, const Real Neff, const Real delt)
+{
+    const int lev = 0;
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+        AoS& parts = pti.GetArrayOfStructs();
+        int Np = parts.size();
+
+        /*collide_cells(parts.data(),
+                         BL_TO_FORTRAN_3D(collisionCellMembers[pti]),
+                         BL_TO_FORTRAN_3D(collisionCellLists[pti]),
+                         BL_TO_FORTRAN_3D(collisionPairs[pti]),
+                         BL_TO_FORTRAN_3D(collisionFactor[pti]),
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&ppc,&Np,&Neff,&delt
+                        );*/
     }
 }
 

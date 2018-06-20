@@ -106,6 +106,8 @@ void main_driver(const char* argv)
     nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
 
     nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
+
+    nitrogen.cp = sqrt(2.0*nitrogen.R*nitrogen.T);
     
 #if (AMREX_SPACEDIM == 2)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1]);
@@ -254,6 +256,14 @@ void main_driver(const char* argv)
 
     collisionFactor.setVal(0);
 
+    MultiFab particleDensity(bc, dmap, 1, 0);
+    MultiFab particleTemperature(bc, dmap, 1, 0);
+
+    std::array< MultiFab, 3> particleVelocity;
+    particleVelocity[0].define(bc, dmap, 1, 0);
+    particleVelocity[1].define(bc, dmap, 1, 0);
+    particleVelocity[2].define(bc, dmap, 1, 0);
+
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
@@ -320,7 +330,7 @@ void main_driver(const char* argv)
 
     particles.InitParticles(collisionCellMembers, collisionCellLists, dxc, ppc, ppb, nitrogen);
 
-    particles.InitCollisionCells(collisionCellMembers, collisionCellLists, collisionPairs, collisionFactor, cellVols, ppc, nitrogen.Neff, dt);
+    particles.InitCollisionCells(collisionCellMembers, collisionCellLists, collisionPairs, collisionFactor, cellVols, ppc, nitrogen, dt);
 
     // write out initial state
     WritePlotFile(step,time,geom,geomC,rhotot,umac,div,collisionCellMembers,particles);
@@ -351,6 +361,8 @@ void main_driver(const char* argv)
 #endif
 
         particles.CollideParticles(collisionCellMembers, collisionCellLists, collisionPairs, collisionFactor, cellVols, ppc, nitrogen.Neff, dt);
+
+        particles.EvaluateFields(collisionCellMembers, collisionCellLists, particleDensity, particleVelocity, particleTemperature, cellVols, ppc, nitrogen.Neff, dt);
         
         amrex::Print() << "Advanced step " << step << "\n";
 

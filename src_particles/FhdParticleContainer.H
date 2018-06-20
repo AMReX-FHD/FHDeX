@@ -40,13 +40,20 @@ public:
                                           const iMultiFab& collisionCellLists,
                                           MultiFab& collisionPairs,
                                           MultiFab& collisionFactor, 
-                                          MultiFab& cellVols, const int ppc, const Real Neff, const Real delt);
+                                          MultiFab& cellVols, const int ppc, const species particleInfo, const Real delt);
 
     void CollideParticles(const iMultiFab& collisionCellMembers,
                                           const iMultiFab& collisionCellLists,
                                           MultiFab& collisionPairs,
                                           MultiFab& collisionFactor, 
                                           MultiFab& cellVols, const int ppc, const Real Neff, const Real delt);
+
+    void EvaluateFields(const iMultiFab& collisionCellMembers,
+                              const iMultiFab& collisionCellLists,
+                              MultiFab& particleDensity,
+                              std::array<MultiFab, 3>& particleVelocity,
+                              MultiFab& particleTemperature,
+                              MultiFab& cellVols, const int ppc, const Real Neff, const Real delt);
 
     void WriteParticlesAscii(int n);
 
