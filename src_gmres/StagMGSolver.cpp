@@ -277,6 +277,22 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
                 } // end loop over colors
 
+                // print out residual
+                if (stag_mg_verbosity >= 3) {
+
+                    // compute Lphi
+                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                                phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data());
+    
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        // compute Lphi - rhs, and report residual
+                        MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                        resid_temp = Lphi_fc_mg[n][d].norm0();
+                        Print() << "Residual for comp " << d << " after    smooth " << m << " at level " 
+                                << n << " " << resid_temp << std::endl;
+                    }
+                }
+
             } // end loop over nsmooths
 
             /////////////////
@@ -357,6 +373,23 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
                 }
             } // end loop over colors
+
+            // print out residual
+            if (stag_mg_verbosity >= 3) {
+                
+                // compute Lphi
+                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                            phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data());
+                
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // compute Lphi - rhs, and report residual
+                    MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                    resid_temp = Lphi_fc_mg[n][d].norm0();
+                    Print() << "Residual for comp " << d << " after    smooth " << m << " at level " 
+                            << n << " " << resid_temp << std::endl;
+                }
+            }
+
         } // end loop over nsmooths
 
         ////////////////////
@@ -440,6 +473,22 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     }
 
                 } // end loop over colors
+
+                // print out residual
+                if (stag_mg_verbosity >= 3) {
+
+                    // compute Lphi
+                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                                phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data());
+    
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        // compute Lphi - rhs, and report residual
+                        MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
+                        resid_temp = Lphi_fc_mg[n][d].norm0();
+                        Print() << "Residual for comp " << d << " after    smooth " << m << " at level " 
+                                << n << " " << resid_temp << std::endl;
+                    }
+                }
 
             } // end loop over stag_mg_nsmooths_up
 
