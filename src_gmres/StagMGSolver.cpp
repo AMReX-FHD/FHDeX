@@ -25,7 +25,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const std::array< MultiFab, NUM_EDGE >& beta_ed,
                   const MultiFab& gamma_cc,
                   std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
-                  const std::array< MultiFab, AMREX_SPACEDIM >& phiorig_fc,
+                  const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
                   const Real& theta,
                   const Geometry& geom)
 {
@@ -54,7 +54,6 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > alpha_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >   rhs_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >   phi_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >   phiorig_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >  Lphi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > resid_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge-based in 3D
@@ -66,7 +65,6 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     Vector<Real> resid(AMREX_SPACEDIM);
     Vector<Real> resid_l2(AMREX_SPACEDIM);
     Real resid_temp;
-    Real weight_lap;
 
     int color_start, color_end;
 
@@ -105,9 +103,6 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         AMREX_D_TERM(  phi_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                        phi_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                        phi_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-        AMREX_D_TERM(  phiorig_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                       phiorig_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                       phiorig_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
         AMREX_D_TERM( Lphi_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                       Lphi_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                       Lphi_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
@@ -171,56 +166,19 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         
         // initialize phi_fc_mg = phi_fc as an initial guess
         MultiFab::Copy(phi_fc_mg[0][d],phi_fc[d],0,0,1,0);
-        MultiFab::Copy(phiorig_fc_mg[0][d],phiorig_fc[d],0,0,1,0);
 
         // fill periodic ghost cells
         phi_fc_mg[0][d].FillBoundary(geom.periodicity());
-        phiorig_fc_mg[0][d].FillBoundary(geom.periodicity());
 
     }
 
     // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
-
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        // MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,0);
-    	// MultiFab::Copy(rhs_fc_mg[0][d],phiorig_fc[d],0,0,1,0);
-        MultiFab::Copy(phiorig_fc_mg[0][d],phiorig_fc[d],0,0,1,0);
-    }
-
-    weight_lap = -0.5;
-     beta_cc_mg[0].mult(weight_lap,0,1,0);
-    gamma_cc_mg[0].mult(weight_lap,0,1,0);
-    for (int d=0; d<NUM_EDGE; ++d) {
-      // multiply alpha_fc_mg by -1/2
-      beta_ed_mg[0][d].mult(weight_lap,0,1,0);
-    }
-
-    StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
-                phiorig_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],dx_mg[0].data());
-
-    weight_lap = -2.0;
-     beta_cc_mg[0].mult(weight_lap,0,1,0);
-    gamma_cc_mg[0].mult(weight_lap,0,1,0);
-    for (int d=0; d<NUM_EDGE; ++d) {
-      // multiply beta by -1/2
-      beta_ed_mg[0][d].mult(weight_lap,0,1,0);
-    }
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      MultiFab::Copy(rhs_fc_mg[0][d],Lphi_fc_mg[0][d],0,0,1,0);
+        MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,0);
     }
 
     // compute norm of initial residual
     // first compute Lphi
-    weight_lap = 0.5;
-    for (n=1; n<nlevs_mg; ++n) {
-      beta_cc_mg[n].mult(weight_lap,0,1,0);
-      gamma_cc_mg[n].mult(weight_lap,0,1,0);
-      for (int d=0; d<NUM_EDGE; ++d) {
-    	// multiply beta by 1/2
-    	beta_ed_mg[n][d].mult(weight_lap,0,1,0);
-      }
-    }
     StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
                 phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],dx_mg[0].data());
     
