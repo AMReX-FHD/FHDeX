@@ -10,7 +10,7 @@
   fixed_dt = 1.
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 40
   plot_int = 1
 
   ! Viscous friction L phi operator
@@ -20,7 +20,7 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
   visc_coef = 1.
-  visc_type = 1
+  visc_type = -2
 
   ! Boundary conditions
   ! ----------------------
@@ -28,6 +28,10 @@
   ! -1 = periodic
   bc_lo(1:2) = -1 -1
   bc_hi(1:2) = -1 -1
+
+  ! 0 - explicit trapezoidal
+  ! 1 - implicit backward Euler
+  algorithm_type = 0
 
 /
 

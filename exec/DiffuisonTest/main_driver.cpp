@@ -77,7 +77,7 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     const Real* dx = geom.CellSize();
-    dt = 0.9*(dx[0]*dx[0])/(2.0*AMREX_SPACEDIM*1.0);
+    dt = 0.5*(dx[0]*dx[0])/(2.0*AMREX_SPACEDIM*1.0);
 
     // beta on nodes in 2d
     // beta on edges in 3d

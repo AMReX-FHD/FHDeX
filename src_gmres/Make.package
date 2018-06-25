@@ -1,7 +1,5 @@
 CEXE_sources   += StagMGSolver.cpp
-CEXE_sources   += StagExpSolver.cpp
 CEXE_sources   += StagApplyOp.cpp
-CEXE_sources   += StagApplyOpWeighted.cpp
 
 CEXE_sources   += gmres_functions.cpp
 CEXE_headers   += gmres_functions.H

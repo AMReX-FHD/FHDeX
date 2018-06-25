@@ -177,36 +177,6 @@ extern "C"
                          const amrex_real* dx,
                          const int* color);
 
-    void stag_apply_op_weighted  (const int* lo, const int* hi,
-                         const amrex_real* betacc, const int* betacclo, const int* betacchi,
-                         const amrex_real* gammacc, const int* gammacclo, const int* gammacchi,
-#if (AMREX_SPACEDIM == 2)
-                         const amrex_real* betanodal, const int* betanodallo, const int* betanodalhi,
-#elif (AMREX_SPACEDIM == 3)
-                         const amrex_real* betaxy, const int* betaxylo, const int* betaxyhi,
-                         const amrex_real* betaxz, const int* betaxzlo, const int* betaxzhi,
-                         const amrex_real* betayz, const int* betayzlo, const int* betayzhi,
-#endif
-                         const amrex_real* velxin, const int* velxinlo, const int* velxinhi,
-                         const amrex_real* velyin, const int* velyinlo, const int* velyinhi,
-#if (AMREX_SPACEDIM == 3)
-                         const amrex_real* velzin, const int* velzinlo, const int* velzinhi,
-#endif
-                         const amrex_real* velxout, const int* velxoutlo, const int* velxouthi,
-                         const amrex_real* velyout, const int* velyoutlo, const int* velyouthi,
-#if (AMREX_SPACEDIM == 3)
-                         const amrex_real* velzout, const int* velzoutlo, const int* velzouthi,
-#endif
-                         const amrex_real* alphax, const int* alphaxlo, const int* alphaxhi,
-                         const amrex_real* alphay, const int* alphaylo, const int* alphayhi,
-#if (AMREX_SPACEDIM == 3)
-                         const amrex_real* alphaz, const int* alphazlo, const int* alphazhi,
-#endif
-                         const amrex_real* dx,
-			 const amrex_real weight_lap,
-                         const int* color);
-
-
 ///////////////////////////
 
 

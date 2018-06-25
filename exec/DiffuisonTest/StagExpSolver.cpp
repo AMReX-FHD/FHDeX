@@ -87,8 +87,8 @@ void StagExpSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
       MultiFab::Add(phipred_fc[d],Lphipred_fc[d],0,0,1,0);
     }
 
-    VisMF::Write(Lphipred_fc[0],"a_Lphipred0");
-    Abort();
+    // VisMF::Write(Lphipred_fc[0],"a_Lphipred0");
+    // Abort();
 
     AMREX_D_TERM(phipred_fc[0].FillBoundary(geom.periodicity());,
 		 phipred_fc[1].FillBoundary(geom.periodicity());,
@@ -96,12 +96,12 @@ void StagExpSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
     StagApplyOp(beta_cc,gamma_cc,beta_ed,
                 phipred_fc,Lphi_fc,alpha_fc,dx);
-    weight_lap = 1.0;
+    weight_lap = 0.5;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       Lphipred_fc[d].mult(weight_lap,0,1,0);
       Lphi_fc[d].mult(weight_lap,0,1,0);
       MultiFab::Add(phi_fc[d],Lphipred_fc[d],0,0,1,0);
-      // MultiFab::Add(phi_fc[d],Lphi_fc[d],0,0,1,0);
+      MultiFab::Add(phi_fc[d],Lphi_fc[d],0,0,1,0);
     }
 
     AMREX_D_TERM(phi_fc[0].FillBoundary(geom.periodicity());,
