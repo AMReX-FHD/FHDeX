@@ -21,7 +21,7 @@ contains
                            velyout, velyoutlo, velyouthi, &
                            alphax, alphaxlo, alphaxhi, &
                            alphay, alphaylo, alphayhi, &
-                           dx,color) &
+                           dx, color) &
                            bind (C,name="stag_apply_op")
 
     integer         , intent(in   ) :: lo(2), hi(2)
@@ -83,11 +83,11 @@ contains
              do i=lo(1)+ioff,hi(1)+1,offset
 
                 velxout(i,j) = velxin(i,j)*(alphax(i,j)+ &
-                               (betacc(i-1,j)+betacc(i,j))*dxsqinv+(betanodal(i,j)+betanodal(i,j+1))*dysqinv) &
-                               +(-velxin(i+1,j)*betacc(i,j) &
-                               -velxin(i-1,j)*betacc(i-1,j))*dxsqinv &
-                               +(-velxin(i,j+1)*betanodal(i,j+1) &
-                               -velxin(i,j-1)*betanodal(i,j))*dysqinv
+                     (betacc(i-1,j)+betacc(i,j))*dxsqinv+(betanodal(i,j)+betanodal(i,j+1))*dysqinv) &
+                     +(-velxin(i+1,j)*betacc(i,j) &
+                     -velxin(i-1,j)*betacc(i-1,j))*dxsqinv &
+                     +(-velxin(i,j+1)*betanodal(i,j+1) &
+                     -velxin(i,j-1)*betanodal(i,j))*dysqinv
 
              enddo
           enddo
@@ -102,11 +102,12 @@ contains
              do i=lo(1)+ioff,hi(1),offset
 
                 velyout(i,j) = velyin(i,j)*(alphay(i,j)+ &
-                               (betacc(i,j)+betacc(i,j-1))*dysqinv+(betanodal(i+1,j)+betanodal(i,j))*dxsqinv) &
-                               +(-velyin(i,j+1)*betacc(i,j) &
-                               -velyin(i,j-1)*betacc(i,j-1))*dysqinv &
-                               +(-velyin(i+1,j)*betanodal(i+1,j) &
-                               -velyin(i-1,j)*betanodal(i,j))*dxsqinv
+                     (betacc(i,j)+betacc(i,j-1))*dysqinv+(betanodal(i+1,j)+betanodal(i,j))*dxsqinv) &
+                     +(-velyin(i,j+1)*betacc(i,j) &
+                     -velyin(i,j-1)*betacc(i,j-1))*dysqinv &
+                     +(-velyin(i+1,j)*betanodal(i+1,j) &
+                     -velyin(i-1,j)*betanodal(i,j))*dxsqinv
+
              enddo
           enddo
 

@@ -53,6 +53,3 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
 
 
 
-
-
-

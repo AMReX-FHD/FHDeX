@@ -28,7 +28,16 @@ void StagMGSolver(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
                   const amrex::MultiFab& gamma_cc,
                   std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
-                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& rhs_fc,
+                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phiorig_fc,
+                  const amrex::Real& theta,
+                  const amrex::Geometry& geom);
+
+void StagExpSolver(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                  const amrex::MultiFab& beta_cc,
+                  const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
+                  const amrex::MultiFab& gamma_cc,
+                  std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
+                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phiorig_fc,
                   const amrex::Real& theta,
                   const amrex::Geometry& geom);
 
@@ -70,6 +79,16 @@ void StagApplyOp(const amrex::MultiFab& betaCC,
                  std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
                  const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha,
                  const amrex::Real* dx,
+                 const int& color=0);
+
+void StagApplyOpWeighted(const amrex::MultiFab& betaCC, 
+                 const amrex::MultiFab& gammaCC, 
+                 const std::array<amrex::MultiFab, NUM_EDGE>& betaEdge, 
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn, 
+                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha,
+                 const amrex::Real* dx,
+		 amrex::Real weightLap,
                  const int& color=0);
 
 #endif

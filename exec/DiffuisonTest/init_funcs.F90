@@ -31,11 +31,13 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               relpos = pos - center
               rad = DOT_PRODUCT(relpos,relpos)
 
-              if (rad .LT. partdom) then
-                 vel(i,j,k) = -200*exp(-rad/(10*partdom*partdom))*relpos(2)
-              else
-                 vel(i,j,k) = 0d0
-              endif
+              ! if (rad .LT. partdom) then
+              !    vel(i,j,k) = -200*exp(-rad/(10*partdom*partdom))*relpos(2)
+              ! else
+              !    vel(i,j,k) = 0d0
+              ! endif
+
+              vel(i,j,k) = 1.d0 + exp(-rad**2/(10*partdom*partdom))
 
            end do
         end do
@@ -55,11 +57,13 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               relpos = pos - center
               rad = DOT_PRODUCT(relpos,relpos)
 
-              if (rad .LT. partdom) then
-                 vel(i,j,k) = -200*exp(-rad/(10*partdom*partdom))*relpos(1)
-              else
-                 vel(i,j,k) = 0
-              endif
+              ! if (rad .LT. partdom) then
+              !    vel(i,j,k) = -200*exp(-rad/(10*partdom*partdom))*relpos(1)
+              ! else
+              !    vel(i,j,k) = 0
+              ! endif
+
+              vel(i,j,k) = 1.d0 + exp(-rad**2/(10*partdom*partdom))
 
            end do
         end do
@@ -79,11 +83,13 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               relpos = pos - center
               rad = DOT_PRODUCT(relpos,relpos)
 
-              if (rad .LT. partdom) then
-                 vel(i,j,k) = 0
-              else
-                 vel(i,j,k) = 0
-              endif
+              ! if (rad .LT. partdom) then
+              !    vel(i,j,k) = 0
+              ! else
+              !    vel(i,j,k) = 0
+              ! endif
+
+              vel(i,j,k) = 1.d0 + exp(-rad**2/(10*partdom*partdom))
 
            end do
         end do

@@ -41,6 +41,7 @@ subroutine init_vel_2d(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di) bind
 
   integer          :: i,j
   double precision :: x,y,rad,cx,cy,partdom
+  double precision :: r2
   
   cx = (prob_hi(1) - prob_lo(1))/2d0;
   cy = (prob_hi(2) - prob_lo(2))/2d0;

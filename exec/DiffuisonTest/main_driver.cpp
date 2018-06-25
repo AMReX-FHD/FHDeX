@@ -76,23 +76,35 @@ void main_driver(const char* argv)
     MultiFab gammaCC(ba, dmap, 1, 1);
 
     Real dt = fixed_dt;
+    const Real* dx = geom.CellSize();
+    dt = 0.9*(dx[0]*dx[0])/(2.0*AMREX_SPACEDIM*1.0);
 
     // beta on nodes in 2d
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > betaEdge;
 #if (AMREX_SPACEDIM == 2)
     betaEdge[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    betaEdge[0].setVal(visc_coef*dt);
+    // betaEdge[0].setVal(visc_coef*dt);
+    betaEdge[0].setVal(-dt);
 #elif (AMREX_SPACEDIM == 3)
     betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    betaEdge[0].setVal(visc_coef*dt);  
-    betaEdge[1].setVal(visc_coef*dt);
-    betaEdge[2].setVal(visc_coef*dt);
+    // betaEdge[0].setVal(visc_coef*dt);  
+    // betaEdge[1].setVal(visc_coef*dt);
+    // betaEdge[2].setVal(visc_coef*dt);
+    betaEdge[0].setVal(-dt);  
+    betaEdge[1].setVal(-dt);
+    betaEdge[2].setVal(-dt);
+    // betaEdge[0].setVal(0.0);  
+    // betaEdge[1].setVal(0.0);
+    // betaEdge[2].setVal(0.0);
 #endif
 
-    betaCC.setVal(visc_coef*dt);
+    // betaCC.setVal(visc_coef*dt);
+    // gammaCC.setVal(0);
+    betaCC.setVal(-dt);
+    // betaCC.setVal(0);
     gammaCC.setVal(0);
 
     // staggered velocities
@@ -107,9 +119,12 @@ void main_driver(const char* argv)
                  alpha[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  alpha[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
-    AMREX_D_TERM(alpha[0].setVal(1.);,
-                 alpha[1].setVal(1.);,
-                 alpha[2].setVal(1.););
+    // AMREX_D_TERM(alpha[0].setVal(1.);,
+    //              alpha[1].setVal(1.);,
+    //              alpha[2].setVal(1.););
+    AMREX_D_TERM(alpha[0].setVal(0.);,
+                 alpha[1].setVal(0.);,
+                 alpha[2].setVal(0.););
 
     // For testing timestepping
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
@@ -154,8 +169,15 @@ void main_driver(const char* argv)
         AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
-
-        StagMGSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
+	
+	// betaCC.setVal(-dt);
+	// for (int i=0; i<AMREX_SPACEDIM; ++i) {
+	//   betaEdge[i].setVal(-dt);
+	//   alpha[i].setVal(1.0);
+	// }
+	// gammaCC.setVal(0.0);
+        // StagMGSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
+	StagExpSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
