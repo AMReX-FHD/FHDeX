@@ -84,24 +84,31 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE > betaEdge;
 #if (AMREX_SPACEDIM == 2)
     betaEdge[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    // betaEdge[0].setVal(visc_coef*dt);
-    betaEdge[0].setVal(-dt);
+
+    if (algorithm_type == 1) {
+      betaEdge[0].setVal(visc_coef*dt);
+    } else if (algorithm_type == 0) {
+      betaEdge[0].setVal(-dt);
+    } else {
+      Print() << "Error: Invalid choice of algorithm_type\n";
+    }
 #elif (AMREX_SPACEDIM == 3)
     betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    // betaEdge[0].setVal(visc_coef*dt);  
-    // betaEdge[1].setVal(visc_coef*dt);
-    // betaEdge[2].setVal(visc_coef*dt);
-    betaEdge[0].setVal(-dt);  
-    betaEdge[1].setVal(-dt);
-    betaEdge[2].setVal(-dt);
-#endif
 
-    // betaCC.setVal(visc_coef*dt);
-    // gammaCC.setVal(0);
-    betaCC.setVal(-dt);
-    gammaCC.setVal(0.);
+    if (algorithm_type == 1) {
+      betaEdge[0].setVal(visc_coef*dt);  
+      betaEdge[1].setVal(visc_coef*dt);
+      betaEdge[2].setVal(visc_coef*dt);
+    } else if (algorithm_type == 0) {
+      betaEdge[0].setVal(-dt);  
+      betaEdge[1].setVal(-dt);
+      betaEdge[2].setVal(-dt);
+    } else {
+      Print() << "Error: Invalid choice of algorithm_type\n";
+    }
+#endif
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
@@ -115,27 +122,22 @@ void main_driver(const char* argv)
                  alpha[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  alpha[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
-    // AMREX_D_TERM(alpha[0].setVal(1.);,
-    //              alpha[1].setVal(1.);,
-    //              alpha[2].setVal(1.););
+
+    if (algorithm_type == 1) {
+    betaCC.setVal(visc_coef*dt);
+    gammaCC.setVal(0.);
+    AMREX_D_TERM(alpha[0].setVal(1.);,
+                 alpha[1].setVal(1.);,
+                 alpha[2].setVal(1.););
+    } else if (algorithm_type == 0) {
+    betaCC.setVal(-dt);
+    gammaCC.setVal(0.);
     AMREX_D_TERM(alpha[0].setVal(0.);,
                  alpha[1].setVal(0.);,
                  alpha[2].setVal(0.););
-
-    //////////////////////////////////
-
-    AMREX_D_TERM(betaEdge[0].FillBoundary(geom.periodicity());,
-    		 betaEdge[1].FillBoundary(geom.periodicity());,
-    		 betaEdge[2].FillBoundary(geom.periodicity()););
-
-    betaCC.FillBoundary(geom.periodicity());
-    gammaCC.FillBoundary(geom.periodicity());
-
-    AMREX_D_TERM(alpha[0].FillBoundary(geom.periodicity());,
-    		 alpha[1].FillBoundary(geom.periodicity());,
-    		 alpha[2].FillBoundary(geom.periodicity()););
-
-    //////////////////////////////////
+    } else {
+      Print() << "Error: Invalid choice of algorithm_type\n";
+    }
 
     // For testing timestepping
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
@@ -180,8 +182,14 @@ void main_driver(const char* argv)
         AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
-	
-	StagExpSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
+
+	if (algorithm_type == 1) {
+	  StagMGSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
+	} else if (algorithm_type == 0) {
+	  StagExpSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
+	} else {
+	  Print() << "Error: Invalid choice of algorithm_type\n";
+	}
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
