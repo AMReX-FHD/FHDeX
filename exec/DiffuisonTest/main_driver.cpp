@@ -38,7 +38,7 @@ void main_driver(const char* argv)
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_lo[i] == 0 && bc_hi[i] == 0) {
+        if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
         }
     }
@@ -96,16 +96,12 @@ void main_driver(const char* argv)
     betaEdge[0].setVal(-dt);  
     betaEdge[1].setVal(-dt);
     betaEdge[2].setVal(-dt);
-    // betaEdge[0].setVal(0.0);  
-    // betaEdge[1].setVal(0.0);
-    // betaEdge[2].setVal(0.0);
 #endif
 
     // betaCC.setVal(visc_coef*dt);
     // gammaCC.setVal(0);
     betaCC.setVal(-dt);
-    // betaCC.setVal(0);
-    gammaCC.setVal(0);
+    gammaCC.setVal(0.);
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
@@ -125,6 +121,21 @@ void main_driver(const char* argv)
     AMREX_D_TERM(alpha[0].setVal(0.);,
                  alpha[1].setVal(0.);,
                  alpha[2].setVal(0.););
+
+    //////////////////////////////////
+
+    AMREX_D_TERM(betaEdge[0].FillBoundary(geom.periodicity());,
+    		 betaEdge[1].FillBoundary(geom.periodicity());,
+    		 betaEdge[2].FillBoundary(geom.periodicity()););
+
+    betaCC.FillBoundary(geom.periodicity());
+    gammaCC.FillBoundary(geom.periodicity());
+
+    AMREX_D_TERM(alpha[0].FillBoundary(geom.periodicity());,
+    		 alpha[1].FillBoundary(geom.periodicity());,
+    		 alpha[2].FillBoundary(geom.periodicity()););
+
+    //////////////////////////////////
 
     // For testing timestepping
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
@@ -170,13 +181,6 @@ void main_driver(const char* argv)
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
 	
-	// betaCC.setVal(-dt);
-	// for (int i=0; i<AMREX_SPACEDIM; ++i) {
-	//   betaEdge[i].setVal(-dt);
-	//   alpha[i].setVal(1.0);
-	// }
-	// gammaCC.setVal(0.0);
-        // StagMGSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
 	StagExpSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
