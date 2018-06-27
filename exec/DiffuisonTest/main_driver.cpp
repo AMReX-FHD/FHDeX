@@ -77,7 +77,9 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     const Real* dx = geom.CellSize();
-    dt = 0.5*(dx[0]*dx[0])/(2.0*AMREX_SPACEDIM*1.0);
+    if (fixed_dt == 0.) {
+      dt = 0.5*(dx[0]*dx[0])/(2.0*AMREX_SPACEDIM*1.0);
+    }
 
     // beta on nodes in 2d
     // beta on edges in 3d
@@ -210,4 +212,6 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+    amrex::Print() << "dt = " << dt << "\n";
+
 }

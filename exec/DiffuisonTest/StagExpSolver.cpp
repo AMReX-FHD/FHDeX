@@ -110,13 +110,6 @@ void StagExpSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
     //////////////////////////////////
 
-    // for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
-    //     // fill periodic ghost cells
-    //     phi_fc[d].FillBoundary(geom.periodicity());
-
-    // }
-
     if (stag_mg_verbosity >= 1) {
         Print() << "\nEnd call to stag_exp_solver\n";
     }
