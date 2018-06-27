@@ -29,10 +29,17 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const Real& theta,
                   const Geometry& geom)
 {
+    Vector<int> is_periodic(AMREX_SPACEDIM);
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        is_periodic[i] = geom.isPeriodic(i);
+    }
 
     // get the problem domain and boxarray at level 0
     Box pd_base = geom.Domain();
     BoxArray ba_base = beta_cc.boxArray();
+
+    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     // compute the number of multigrid levels assuming stag_mg_minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
@@ -41,6 +48,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         Print() << "Total number of multigrid levels: " << nlevs_mg << std::endl;
     }
 
+    Vector<Geometry> geom_mg(nlevs_mg);
     int n;
 
     //////////////////////////////////
@@ -81,6 +89,8 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
         // create the problem domain for this multigrid level
         Box pd = pd_base.coarsen(pow(2,n));
+
+        geom_mg[n].define(pd,&real_box,CoordSys::cartesian,is_periodic.data());
 
         // create the boxarray for this multigrid level
         BoxArray ba(ba_base); 
@@ -143,8 +153,8 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         gamma_cc_mg[n].setVal(0.);
 
         // cc_restriction on beta_cc_mg and gamma_cc_mg
-        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1],geom);
-        CCRestriction(gamma_cc_mg[n],gamma_cc_mg[n-1],geom);
+        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1],geom_mg[n]);
+        CCRestriction(gamma_cc_mg[n],gamma_cc_mg[n-1],geom_mg[n]);
 
         // stag_restriction on alpha_fc_mg
         StagRestriction(alpha_fc_mg[n],alpha_fc_mg[n-1],1);
@@ -163,12 +173,12 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        
+
         // initialize phi_fc_mg = phi_fc as an initial guess
         MultiFab::Copy(phi_fc_mg[0][d],phi_fc[d],0,0,1,0);
 
         // fill periodic ghost cells
-        phi_fc_mg[0][d].FillBoundary(geom.periodicity());
+        phi_fc_mg[0][d].FillBoundary(geom_mg[0].periodicity());
 
     }
 
@@ -271,14 +281,14 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                         // fill periodic ghost cells
-                        phi_fc_mg[n][d].FillBoundary(geom.periodicity());
+                        phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                     }
 
                 } // end loop over colors
 
                 // print out residual
-                if (stag_mg_verbosity >= 3) {
+                if (stag_mg_verbosity >= 4) {
 
                     // compute Lphi
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
@@ -314,7 +324,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 }
 
                 // fill periodic ghost cells
-                Lphi_fc_mg[n][d].FillBoundary(geom.periodicity());
+                Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
             }
 
@@ -369,13 +379,13 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                     // fill periodic ghost cells
-                    phi_fc_mg[n][d].FillBoundary(geom.periodicity());
+                    phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                 }
             } // end loop over colors
 
             // print out residual
-            if (stag_mg_verbosity >= 3) {
+            if (stag_mg_verbosity >= 4) {
                 
                 // compute Lphi
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
@@ -411,7 +421,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             }
 
             // fill periodic ghost cells
-            Lphi_fc_mg[n][d].FillBoundary(geom.periodicity());
+            Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
         }
 
@@ -428,7 +438,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                 // fill periodic ghost cells
-                phi_fc_mg[n][d].FillBoundary(geom.periodicity());
+                phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
             }
 
@@ -468,14 +478,14 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                         // fill periodic ghost cells
-                        phi_fc_mg[n][d].FillBoundary(geom.periodicity());
+                        phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                     }
 
                 } // end loop over colors
 
                 // print out residual
-                if (stag_mg_verbosity >= 3) {
+                if (stag_mg_verbosity >= 4) {
 
                     // compute Lphi
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
@@ -629,7 +639,7 @@ int ComputeNlevsMG(const BoxArray& ba) {
     return nlevs_mg;
 }
 
-void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom)
+void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_c)
 {
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
@@ -642,7 +652,7 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom)
                        BL_TO_FORTRAN_3D(phi_f[mfi]));
     }
 
-    phi_c.FillBoundary(geom.periodicity());
+    phi_c.FillBoundary(geom_c.periodicity());
 
 }
 
