@@ -12,6 +12,15 @@ void WritePlotFile(const int step,
                    const amrex::Geometry geom,
                    const std::array< MultiFab, AMREX_SPACEDIM >& umac);
 
+void StagExpSolver(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                  const amrex::MultiFab& beta_cc,
+                  const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
+                  const amrex::MultiFab& gamma_cc,
+                  std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
+                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phiorig_fc,
+                  const amrex::Real& theta,
+                  const amrex::Geometry& geom);
+
 ///////////////////////////
 
 #endif

@@ -177,7 +177,6 @@ extern "C"
                          const amrex_real* dx,
                          const int* color);
 
-
 ///////////////////////////
 
 
