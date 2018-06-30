@@ -37,7 +37,7 @@ subroutine find_nodal_values(lo, hi, fabin, inlo, inhi, fabout, outlo, outhi, xc
       do j = lo(2), hi(2)+1
         do i = lo(1), hi(1)+1
 
-          fabout(i,j,k) = 0.25*(fabin(i,j,k) + fabin(i,j-1,k) + fabin(i,j,k-1) + fabin(i,j-1,k-1))      
+          fabout(i,j,k) = 0.25*(fabin(i,j,k) + fabin(i,j-1,k) + fabin(i,j,k-1) + fabin(i,j-1,k-1)) 
 
         enddo
       enddo

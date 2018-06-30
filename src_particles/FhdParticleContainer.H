@@ -13,18 +13,48 @@
 
 namespace amrex {
 
+struct RealData
+{
+    enum {
+        vx = 0,
+        vy,
+        vz,
+        mass,
+        R,
+        radius,
+        accelFactor,
+        dragFactor,
+        angularVel1,
+        angularVel2,
+        angularVel3,
+        ncomps
+    };
+};
+
+struct IntData
+{
+    enum {
+        sorted = 0,
+        species,
+        ncomps
+    };
+};
+
+
+
 class FhdParticleContainer
-    : public ParticleContainer<10, 2+3*BL_SPACEDIM>
+    : public amrex::ParticleContainer<RealData::ncomps, IntData::ncomps>
 {
 public:
 
-    using FhdParIter = ParIter<10, 2+3*BL_SPACEDIM>;
+    using FhdParIter = ParIter<RealData::ncomps, IntData::ncomps>;
 
     FhdParticleContainer(const Geometry            & geom, 
                                   const DistributionMapping & dmap,
                                   const BoxArray            & ba);
 
-    void InitParticles(iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int ppc, const int ppb, species particleInfo);
+    void InitParticles(const int ppc, species particleInfo);
+    //void InitParticles(const IntVect& a_num_particles_per_cell);
 
     void updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                            std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
@@ -36,26 +66,71 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int* hiVect, const int ppc);
 
-    void InitCollisionCells(const iMultiFab& collisionCellMembers,
-                                          const iMultiFab& collisionCellLists,
-                                          MultiFab& collisionPairs,
+    void InitCollisionCells(              MultiFab& collisionPairs,
                                           MultiFab& collisionFactor, 
-                                          MultiFab& cellVols, const int ppc, const species particleInfo, const Real delt);
+                                          MultiFab& cellVols, const species particleInfo, const Real delt);
 
-    void CollideParticles(const iMultiFab& collisionCellMembers,
-                                          const iMultiFab& collisionCellLists,
-                                          MultiFab& collisionPairs,
+    void CollideParticles(              MultiFab& collisionPairs,
                                           MultiFab& collisionFactor, 
-                                          MultiFab& cellVols, const int ppc, const Real Neff, const Real delt);
+                                          MultiFab& cellVols, const species particleInfo, const Real delt);
 
-    void EvaluateFields(const iMultiFab& collisionCellMembers,
-                              const iMultiFab& collisionCellLists,
+    void EvaluateFields(      MultiFab& particleMembers,
                               MultiFab& particleDensity,
                               std::array<MultiFab, 3>& particleVelocity,
                               MultiFab& particleTemperature,
-                              MultiFab& cellVols, const int ppc, const Real Neff, const Real delt);
+                              MultiFab& particleSpeed,
+                              MultiFab& cellVols, const Real Neff);
+
+    void EvaluateStats(       MultiFab& particleMembers,
+                              MultiFab& particleDensity,
+                              std::array<MultiFab, 3>& particleVelocity,
+                              MultiFab& particleTemperature,
+
+                              MultiFab& particleMembersMean,
+                              MultiFab& particleDensityMean,
+                              std::array<MultiFab, 3>& particleVelocityMean,
+                              MultiFab& particleTemperatureMean,
+                              MultiFab& particleSpeedMean,
+
+                              MultiFab& particleMembersVar,
+                              MultiFab& particleDensityVar,
+                              std::array<MultiFab, 3>& particleVelocityVar,
+                              MultiFab& particleTemperatureVar,
+                              MultiFab& particleSpeedVar,
+
+                              MultiFab& cellVols, const Real Neff, const Real delt, int steps);
 
     void WriteParticlesAscii(int n);
+
+    void MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           const MultiFab& betaCC, //Not necessary but may use later
+                                           MultiFab& betaNodal, //Not necessary but may use later
+                                           const MultiFab& rho, //Not necessary but may use later
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
+
+    void ReBin();
+
+    void UpdateCellVectors();
+    //void MoveParticles();
+
+protected:
+    
+    void UpdateFortranStructures();
+
+    // used to store vectors of particle indices on a cell-by-cell basis
+    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+
+    // primitive data for passing the above into Fortran
+    std::map<int, amrex::BaseFab<int> > m_vector_size;
+    std::map<int, amrex::BaseFab<int*> > m_vector_ptrs;
+
+    // used to keep track of whether we need to rebuild the above or not
+    bool m_vectors_initialized = false;
+    amrex::BoxArray::RefID m_BARef;
+    amrex::DistributionMapping::RefID m_DMRef;
 
 };
     

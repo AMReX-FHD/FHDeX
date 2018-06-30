@@ -8,14 +8,17 @@
 ///////////////////////////
 // in WritePlotFile.cpp
 
-void WritePlotFile(const int step,
+void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const amrex::Geometry cgeom,
                    const MultiFab& rhotot,
                    const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-        	       const MultiFab& div,
-                   const iMultiFab& collisionCellMembers,
+	           const MultiFab& div,
+                   const MultiFab& particleMembers,
+                   const MultiFab& particleDensity,
+                   const std::array< MultiFab, 3 >& particleVelocity,
+                   const MultiFab& particleTemperature,
                    FhdParticleContainer& particles);
 
 ///////////////////////////

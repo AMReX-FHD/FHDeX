@@ -194,7 +194,7 @@ contains
     rho0 = 1.
     variance_coef_mom = 1.
     variance_coef_mass = 1.
-    k_B = 1.
+    k_B = 1.38064852e-23
     Runiv = 8.314462175d7
     algorithm_type = 0
     advection_type = 0

@@ -8,6 +8,7 @@ USE_OMP   = FALSE
 COMP      = gnu
 DIM       = 3
 
+TINY_PROFILE  = FALSE
 USE_PARTICLES = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs

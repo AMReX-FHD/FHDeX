@@ -83,6 +83,8 @@ void main_driver(const char* argv)
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
 
+    //DistributionMapping dmapc(bc);
+
     const int* lims = domainC.hiVect();
 
 #if (AMREX_SPACEDIM == 2)
@@ -122,14 +124,14 @@ void main_driver(const char* argv)
 
     Print() << "Neff: " << nitrogen.Neff << "\n";
 
-    const int ppc  = 5*(int)ceil(((double)totalParticles)/((double)totalCollisionCells));
+    const int ppc  = (int)ceil(((double)totalParticles)/((double)totalCollisionCells));
     const int ppb = (int)ceil(((double)totalParticles)/((double)ba.size()));
 
     Print() << "Total particles: " << totalParticles << "\n";
     Print() << "Particles per box: " << ppb << "\n";
 
     Print() << "Collision cells: " << totalCollisionCells << "\n";
-    Print() << "Collision cell list length: " << ppc << "\n";
+    Print() << "Particles per cell: " << ppc << "\n";
     
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
@@ -241,7 +243,7 @@ void main_driver(const char* argv)
                  umacOut[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
 
-    //These structures are temporary until Andrew modifies amrex to include a more suitiable type of Multifab
+    //These objects are temporary until Andrew modifies amrex to include a more suitiable type of Multifab
     //Build collision cells off coarsened or refined box array from fluid cells. This ensures particle and fluid information is split the same way.
 
 
@@ -256,13 +258,56 @@ void main_driver(const char* argv)
 
     collisionFactor.setVal(0);
 
+    MultiFab particleMembers(bc, dmap, 1, 0);
     MultiFab particleDensity(bc, dmap, 1, 0);
     MultiFab particleTemperature(bc, dmap, 1, 0);
-
     std::array< MultiFab, 3> particleVelocity;
     particleVelocity[0].define(bc, dmap, 1, 0);
     particleVelocity[1].define(bc, dmap, 1, 0);
     particleVelocity[2].define(bc, dmap, 1, 0);
+    MultiFab particleSpeed(bc, dmap, 1, 0);
+
+    MultiFab particleMembersMean(bc, dmap, 1, 0);
+    MultiFab particleDensityMean(bc, dmap, 1, 0);
+    MultiFab particleTemperatureMean(bc, dmap, 1, 0);
+    MultiFab particleSpeedMean(bc, dmap, 1, 0);
+    std::array< MultiFab, 3> particleVelocityMean;
+    particleVelocityMean[0].define(bc, dmap, 1, 0);
+    particleVelocityMean[1].define(bc, dmap, 1, 0);
+    particleVelocityMean[2].define(bc, dmap, 1, 0);
+
+    MultiFab particleMembersVar(bc, dmap, 1, 0);
+    MultiFab particleDensityVar(bc, dmap, 1, 0);
+    MultiFab particleTemperatureVar(bc, dmap, 1, 0);
+    MultiFab particleSpeedVar(bc, dmap, 1, 0);
+    std::array< MultiFab, 3> particleVelocityVar;
+    particleVelocityVar[0].define(bc, dmap, 1, 0);
+    particleVelocityVar[1].define(bc, dmap, 1, 0);
+    particleVelocityVar[2].define(bc, dmap, 1, 0);
+
+    particleMembers.setVal(0.0);
+    particleDensity.setVal(0.0);
+    particleVelocity[0].setVal(0.0);
+    particleVelocity[1].setVal(0.0);
+    particleVelocity[2].setVal(0.0);
+    particleTemperature.setVal(0.0);
+    particleSpeed.setVal(0.0);
+
+    particleMembersMean.setVal(0.0);
+    particleDensityMean.setVal(0);
+    particleVelocityMean[0].setVal(0);
+    particleVelocityMean[1].setVal(0);
+    particleVelocityMean[2].setVal(0);
+    particleTemperatureMean.setVal(0);
+    particleSpeedMean.setVal(0);
+
+    particleMembersVar.setVal(0.0);
+    particleDensityVar.setVal(0);
+    particleVelocityVar[0].setVal(0);
+    particleVelocityVar[1].setVal(0);
+    particleVelocityVar[2].setVal(0);
+    particleTemperatureVar.setVal(0);
+    particleSpeedVar.setVal(0);
 
 
     const Real* dx = geom.CellSize();
@@ -275,13 +320,6 @@ void main_driver(const char* argv)
 #elif (AMREX_SPACEDIM == 3)
     cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
 #endif
-
-
-    // ***REPLACE THIS WITH A FUNCTION THAT SETS THE INITIAL VELOCITY***
-    // ***SETTING THESE TO DUMMY VALUES FOR NOW***
-    //AMREX_D_TERM(umac[0].setVal(1.);,
-    //             umac[1].setVal(0);,
-    //             umac[2].setVal(0););
 
     const RealBox& realDomain = geom.ProbDomain();
 
@@ -302,10 +340,17 @@ void main_driver(const char* argv)
                                     geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
     }
 
+    /*AMREX_D_TERM(umac[0].setVal(1.0);,
+                 umac[1].setVal(2.0);,
+                 umac[2].setVal(3.0););*/
+
     AMREX_D_TERM(
     MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+
+    
+
 
 
     // compute the time step
@@ -319,21 +364,27 @@ void main_driver(const char* argv)
 
     int step = 0;
     Real time = 0.;
+    int statsCount = 1;
 
 
-    //Particles!
-    FhdParticleContainer particles(geom, dmap, ba);
+    //Particles! Build on geom & box array for collision cells
+    FhdParticleContainer particles(geomC, dmap, bc);
 
     //Find coordinates of cell faces. Used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
+   // Print() << "Here!\n";
 
-    particles.InitParticles(collisionCellMembers, collisionCellLists, dxc, ppc, ppb, nitrogen);
+    particles.InitParticles(ppc, nitrogen);
 
-    particles.InitCollisionCells(collisionCellMembers, collisionCellLists, collisionPairs, collisionFactor, cellVols, ppc, nitrogen, dt);
+
+
+    particles.UpdateCellVectors();
+
+    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
     // write out initial state
-    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,collisionCellMembers,particles);
+    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particles);
 
     //Time stepping loop
    for(step=1;step<=max_step;++step)
@@ -352,18 +403,31 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
+    //Print() << "Here2!\n";
+
 #if (AMREX_SPACEDIM == 2)
-        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc, domainC.hiVect(), ppc);
+        //particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
 #endif
-
 #if (AMREX_SPACEDIM == 3)
-        particles.updateParticles(dt, dx, umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, collisionCellMembers, collisionCellLists, dxc, domainC.hiVect(), ppc);
+        //particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
 #endif
 
-        particles.CollideParticles(collisionCellMembers, collisionCellLists, collisionPairs, collisionFactor, cellVols, ppc, nitrogen.Neff, dt);
+    //Print() << "Here3!\n";
+        //particles.Redistribute();
+        //particles.ReBin();
+        //particles.UpdateCellVectors();
 
-        particles.EvaluateFields(collisionCellMembers, collisionCellLists, particleDensity, particleVelocity, particleTemperature, cellVols, ppc, nitrogen.Neff, dt);
-        
+        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+
+        //particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleSpeed, cellVols, nitrogen.Neff);
+
+        if(step >=50 )
+        {
+          //  particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleSpeedMean,
+            //                        particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleSpeedVar, cellVols, nitrogen.Neff, dt,statsCount);
+
+            statsCount++;
+        }    
         amrex::Print() << "Advanced step " << step << "\n";
 
         time = time + dt;
@@ -371,7 +435,7 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
             // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,collisionCellMembers,particles);
+            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particles);
         }
 
 
