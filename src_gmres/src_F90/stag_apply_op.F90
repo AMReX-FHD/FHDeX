@@ -117,11 +117,11 @@ contains
 
     if (visc_type .eq. 1) then
 
-       if (do_x) then
+       term1 = 2.d0*bt*(dxsqinv+dysqinv)
+       term2 = bt*dxsqinv
+       term3 = bt*dysqinv
 
-          term1 = 2.d0*bt*(dxsqinv+dysqinv)
-          term2 = bt*dxsqinv
-          term3 = bt*dysqinv
+       if (do_x) then
 
           do j = lo(2), hi(2)
              ioff = 0
