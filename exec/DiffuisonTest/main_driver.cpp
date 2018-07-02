@@ -14,6 +14,9 @@
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
+#include <AMReX_VisMF.H>
+
+using namespace amrex;
 using namespace common;
 using namespace gmres;
 
@@ -77,7 +80,7 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     const Real* dx = geom.CellSize();
-    if (fixed_dt == 0.) {
+    if (fixed_dt < 0.) {
       dt = 0.5*(dx[0]*dx[0])/(2.0*AMREX_SPACEDIM*1.0);
     }
 
@@ -87,29 +90,31 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 2)
     betaEdge[0].define(convert(ba,nodal_flag), dmap, 1, 1);
 
-    if (algorithm_type == 1) {
+    if ( algorithm_type == 1 || algorithm_type == 2) {
       betaEdge[0].setVal(visc_coef*dt);
     } else if (algorithm_type == 0) {
-      betaEdge[0].setVal(-dt);
+      betaEdge[0].setVal(-visc_coef*dt);
     } else {
       Print() << "Error: Invalid choice of algorithm_type\n";
     }
+
 #elif (AMREX_SPACEDIM == 3)
     betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
 
-    if (algorithm_type == 1) {
+    if ( algorithm_type == 1 || algorithm_type == 2) {
       betaEdge[0].setVal(visc_coef*dt);  
       betaEdge[1].setVal(visc_coef*dt);
       betaEdge[2].setVal(visc_coef*dt);
     } else if (algorithm_type == 0) {
-      betaEdge[0].setVal(-dt);  
-      betaEdge[1].setVal(-dt);
-      betaEdge[2].setVal(-dt);
+      betaEdge[0].setVal(-visc_coef*dt);  
+      betaEdge[1].setVal(-visc_coef*dt);
+      betaEdge[2].setVal(-visc_coef*dt);
     } else {
       Print() << "Error: Invalid choice of algorithm_type\n";
     }
+
 #endif
 
     // staggered velocities
@@ -125,14 +130,14 @@ void main_driver(const char* argv)
                  alpha[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
 
-    if (algorithm_type == 1) {
+    if ( algorithm_type == 1 || algorithm_type == 2) {
     betaCC.setVal(visc_coef*dt);
     gammaCC.setVal(0.);
     AMREX_D_TERM(alpha[0].setVal(1.);,
                  alpha[1].setVal(1.);,
                  alpha[2].setVal(1.););
     } else if (algorithm_type == 0) {
-    betaCC.setVal(-dt);
+    betaCC.setVal(-visc_coef*dt);
     gammaCC.setVal(0.);
     AMREX_D_TERM(alpha[0].setVal(0.);,
                  alpha[1].setVal(0.);,
@@ -178,6 +183,94 @@ void main_driver(const char* argv)
                  MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
                  MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
+    // definitions for Crank-Nicolson:
+
+    // right hand side of poisson eqn
+    std::array< MultiFab, AMREX_SPACEDIM > rhs;
+    AMREX_D_TERM(rhs[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+		 rhs[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+		 rhs[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    MultiFab betaCC_hlf(ba, dmap, 1, 1);
+    MultiFab gammaCC_hlf(ba, dmap, 1, 1);
+    std::array< MultiFab, NUM_EDGE > betaEdge_hlf;
+#if (AMREX_SPACEDIM == 2)
+    betaEdge_hlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+#elif (AMREX_SPACEDIM == 3)
+    betaEdge_hlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    betaEdge_hlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    betaEdge_hlf[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+#endif
+
+    MultiFab betaCC_neghlf(ba, dmap, 1, 1);
+    MultiFab gammaCC_neghlf(ba, dmap, 1, 1);
+    std::array< MultiFab, NUM_EDGE > betaEdge_neghlf;
+#if (AMREX_SPACEDIM == 2)
+    betaEdge_neghlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+#elif (AMREX_SPACEDIM == 3)
+    betaEdge_neghlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    betaEdge_neghlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    betaEdge_neghlf[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+#endif
+
+    if (algorithm_type == 2) {
+      
+      AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
+		   umac[1].FillBoundary(geom.periodicity());,
+		   umac[2].FillBoundary(geom.periodicity()););
+
+      Real weight_lap;
+
+      // multiply beta & gamma by weight_lap = -1/2 : to compute rhs
+      weight_lap = -0.5;
+      MultiFab::Copy( betaCC_neghlf, betaCC,0,0,1,1);
+      MultiFab::Copy(gammaCC_neghlf,gammaCC,0,0,1,1);
+      betaCC_neghlf.mult(weight_lap,0,1,1);
+      gammaCC_neghlf.mult(weight_lap,0,1,1);
+#if (AMREX_SPACEDIM == 2)
+      MultiFab::Copy( betaEdge_neghlf[0],betaEdge[0],0,0,1,1);
+      betaEdge_neghlf[0].mult(weight_lap,0,1,1);
+#elif (AMREX_SPACEDIM == 3)
+      MultiFab::Copy(betaEdge_neghlf[0],betaEdge[0],0,0,1,1);
+      MultiFab::Copy(betaEdge_neghlf[1],betaEdge[1],0,0,1,1);
+      MultiFab::Copy(betaEdge_neghlf[2],betaEdge[2],0,0,1,1);
+      betaEdge_neghlf[0].mult(weight_lap,0,1,1);
+      betaEdge_neghlf[1].mult(weight_lap,0,1,1);
+      betaEdge_neghlf[2].mult(weight_lap,0,1,1);
+#endif
+      // Fill ghost cells for good measure
+      betaCC_neghlf.FillBoundary(geom.periodicity());
+      gammaCC_neghlf.FillBoundary(geom.periodicity());
+      AMREX_D_TERM(betaEdge_neghlf[0].FillBoundary(geom.periodicity());,
+      		   betaEdge_neghlf[1].FillBoundary(geom.periodicity());,
+      		   betaEdge_neghlf[2].FillBoundary(geom.periodicity()););
+
+      // multiply beta & gamma by weight_lap = 1/2 : to correct L-matrix
+      weight_lap = 0.5;
+      MultiFab::Copy( betaCC_hlf, betaCC,0,0,1,1);
+      MultiFab::Copy(gammaCC_hlf,gammaCC,0,0,1,1);
+      betaCC_hlf.mult(weight_lap,0,1,1);
+      gammaCC_hlf.mult(weight_lap,0,1,1);
+#if (AMREX_SPACEDIM == 2)
+      MultiFab::Copy( betaEdge_hlf[0],betaEdge[0],0,0,1,1);
+      betaEdge_hlf[0].mult(weight_lap,0,1,1);
+#elif (AMREX_SPACEDIM == 3)
+      MultiFab::Copy(betaEdge_hlf[0],betaEdge[0],0,0,1,1);
+      MultiFab::Copy(betaEdge_hlf[1],betaEdge[1],0,0,1,1);
+      MultiFab::Copy(betaEdge_hlf[2],betaEdge[2],0,0,1,1);
+      betaEdge_hlf[0].mult(weight_lap,0,1,1);
+      betaEdge_hlf[1].mult(weight_lap,0,1,1);
+      betaEdge_hlf[2].mult(weight_lap,0,1,1);
+#endif
+      // Fill ghost cells for good measure
+      betaCC_hlf.FillBoundary(geom.periodicity());
+      gammaCC_hlf.FillBoundary(geom.periodicity());
+      AMREX_D_TERM(betaEdge_hlf[0].FillBoundary(geom.periodicity());,
+      		   betaEdge_hlf[1].FillBoundary(geom.periodicity());,
+      		   betaEdge_hlf[2].FillBoundary(geom.periodicity()););
+
+    }
+
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
@@ -185,7 +278,19 @@ void main_driver(const char* argv)
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
 
-	if (algorithm_type == 1) {
+	if (algorithm_type == 2) {
+	  // compute rhs of poisson eqn
+  	  StagApplyOp(betaCC_neghlf,gammaCC_neghlf,betaEdge_neghlf,umac,rhs,alpha,dx);
+
+	  AMREX_D_TERM(rhs[0].FillBoundary(geom.periodicity());,
+	  	       rhs[1].FillBoundary(geom.periodicity());,
+	  	       rhs[2].FillBoundary(geom.periodicity()););
+
+	  // VisMF::Write(rhs[0],"a_rhs0");
+	  // exit(0);
+	  
+	  StagMGSolver(alpha,betaCC_hlf,betaEdge_hlf,gammaCC_hlf,umacNew,rhs,1.0,geom);
+	} else if (algorithm_type == 1) {
 	  StagMGSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);
 	} else if (algorithm_type == 0) {
 	  StagExpSolver(alpha,betaCC,betaEdge,gammaCC,umacNew,umac,1.0,geom);

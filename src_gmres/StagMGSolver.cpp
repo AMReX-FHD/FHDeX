@@ -169,7 +169,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     }
 
     /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // Now we wolve the homogeneous problem
+    // Now we solve the homogeneous problem
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -573,7 +573,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     Print() << "resid/resid0 " << d << " " << resid[d] << std::endl;
                 }
             }
-            return;
+	    break;
         }
         
         if (vcycle == stag_mg_max_vcycles) {
