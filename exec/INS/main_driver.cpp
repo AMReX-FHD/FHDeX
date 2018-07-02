@@ -406,20 +406,20 @@ void main_driver(const char* argv)
     //Print() << "Here2!\n";
 
 #if (AMREX_SPACEDIM == 2)
-        //particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
 #endif
 #if (AMREX_SPACEDIM == 3)
-        //particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
 #endif
 
     //Print() << "Here3!\n";
-        //particles.Redistribute();
-        //particles.ReBin();
-        //particles.UpdateCellVectors();
+        particles.Redistribute();
+        particles.ReBin();
+        particles.UpdateCellVectors();
 
-        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
-        //particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleSpeed, cellVols, nitrogen.Neff);
+        particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleSpeed, cellVols, nitrogen.Neff);
 
         if(step >=50 )
         {

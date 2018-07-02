@@ -8,7 +8,14 @@ module cell_sorted_particle_module
   public particle_t, remove_particle_from_cell
   
   type, bind(C) :: particle_t
-     real(amrex_particle_real) :: pos(3)     
+#if (BL_SPACEDIM == 3)
+     real(amrex_particle_real) :: pos(3)
+#endif
+#if (BL_SPACEDIM == 2)
+     real(amrex_particle_real) :: pos(2)
+#endif
+
+
      real(amrex_particle_real) :: vel(3)     
      real(amrex_particle_real) :: mass
      real(amrex_particle_real) :: R
@@ -71,8 +78,6 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   real(amrex_real) inv_dx(3)
 
-  print *, "Fhere!"
-
   inv_dx = 1.d0/dx
   
   do k = lo(3), hi(3)
@@ -81,13 +86,11 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
            cell_np = cell_part_cnt(i,j,k)
            call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
-  print *, "Fhere2!"
-
            new_np = cell_np
            p = 1
            do while (p <= new_np)
               part => particles(cell_parts(p))
-              
+
               ! move the particle in a straight line
               part%pos(1) = part%pos(1) + dt*part%vel(1)
               part%pos(2) = part%pos(2) + dt*part%vel(2)
@@ -96,6 +99,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #endif
               ! if it has changed cells, remove from vector.
               ! otherwise continue
+
               cell(1) = floor((part%pos(1) - plo(1))*inv_dx(1))              
               cell(2) = floor((part%pos(2) - plo(2))*inv_dx(2))
 #if (BL_SPACEDIM == 3)
@@ -103,11 +107,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #else
               cell(3) = 0
 #endif
-  print *, "Fhere3!"
-
               if ((cell(1) /= i) .or. (cell(2) /= j) .or. (cell(3) /= k)) then
-
-  print *, "Fhere4!"
                  part%sorted = 0
                  call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
               else
