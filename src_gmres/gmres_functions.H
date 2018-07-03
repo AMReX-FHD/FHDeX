@@ -3,6 +3,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_Vector.H>
 
 #if (AMREX_SPACEDIM == 2)
 const int NUM_EDGE = 1;
@@ -12,6 +13,13 @@ const int NUM_EDGE = 3;
 
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();
+
+// In NormInnerProduct.cpp
+void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
+                   const int& comp1, 
+                   const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m2,
+                   const int& comp2,
+                   amrex::Vector<amrex::Real> prod_val);
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Jacobi relaxation
 // if abs(visc_type) = 1, L = div beta grad
@@ -61,8 +69,7 @@ void StagMGUpdate(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
                   const amrex::Real* dx,
                   const int& color = 0);
 
-//In StagApplyOp.cpp
-
+// In StagApplyOp.cpp
 void StagApplyOp(const amrex::MultiFab& betaCC, 
                  const amrex::MultiFab& gammaCC, 
                  const std::array<amrex::MultiFab, NUM_EDGE>& betaEdge, 
