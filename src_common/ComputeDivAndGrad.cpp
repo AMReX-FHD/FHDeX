@@ -5,7 +5,7 @@
 //Computes divergence at cell centres from velcocities at cell faces
 void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc, 
                 int start_incomp, int start_outcomp, int ncomp, 
-                const Geometry geom, int increment)
+                const Geometry& geom, int increment)
 {
     for ( MFIter mfi(div); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
@@ -27,19 +27,25 @@ void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
 }
 
 //Computes gradient at cell faces of cell centred scalar
-void ComputeGrad(MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc, const Geometry geom)
+void ComputeGrad(MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, 
+                 int start_incomp, int start_outcomp, int ncomp, const Geometry& geom)
 {
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        compute_grad(BL_TO_FORTRAN_BOX(bx),
-                     BL_TO_FORTRAN_ANYD(phi_fc[0][mfi]), 
-                     BL_TO_FORTRAN_ANYD(phi_fc[1][mfi]),
+        for (int incomp=start_incomp; incomp<start_incomp+ncomp; ++incomp) {
+
+            int outcomp = incomp + start_outcomp - start_incomp;
+
+            compute_grad(BL_TO_FORTRAN_BOX(bx),
+                         BL_TO_FORTRAN_N_ANYD(gphi[0][mfi],outcomp), 
+                         BL_TO_FORTRAN_N_ANYD(gphi[1][mfi],outcomp),
 #if (AMREX_SPACEDIM==3)
-                     BL_TO_FORTRAN_ANYD(phi_fc[2][mfi]),
+                         BL_TO_FORTRAN_N_ANYD(gphi[2][mfi],outcomp),
 #endif
-                     BL_TO_FORTRAN_ANYD(phi[mfi]),					
-                     geom.CellSize());
+                         BL_TO_FORTRAN_N_ANYD(phi[mfi],incomp),					
+                         geom.CellSize());
+        }
     }
 }
 

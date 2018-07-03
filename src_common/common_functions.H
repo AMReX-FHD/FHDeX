@@ -34,9 +34,10 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
 
 void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc, 
                 int start_incomp, int start_outcomp, int ncomp, 
-                const Geometry geom, int increment);
+                const Geometry& geom, int increment);
 
-void ComputeGrad(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc, const Geometry geom);
+void ComputeGrad(MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, 
+                 int start_incomp, int start_outcomp, int ncomp, const Geometry& geom);
 
 
 ///////////////////////////
