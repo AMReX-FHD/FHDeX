@@ -14,6 +14,18 @@ const int NUM_EDGE = 3;
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();
 
+// In ApplyPrecon.cpp
+void ApplyPrecon(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
+                 const amrex::MultiFab& b_p,
+                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+                 amrex::MultiFab& x_p,
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+                 const amrex::MultiFab& beta,
+                 const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
+                 const amrex::MultiFab& gamma,
+                 const amrex::Real& theta_alpha,
+                 const amrex::Real* dx);
+
 // In NormInnerProduct.cpp
 void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp1, 

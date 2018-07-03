@@ -38,7 +38,7 @@
 &gmres
 
   ! Staggered multigrid solver parameters
-  stag_mg_verbosity = 3           ! verbosity
+  stag_mg_verbosity = 4           ! verbosity
   stag_mg_max_vcycles = 10        ! max number of v-cycles
   stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
   stag_mg_bottom_solver = 0       ! bottom solver type
