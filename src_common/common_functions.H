@@ -32,9 +32,11 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
 ///////////////////////////
 // in ComputeDivAndGrad.cpp
 
-void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& umac, const Geometry geom, int increment);
+void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc, 
+                int start_incomp, int start_outcomp, int ncomp, 
+                const Geometry geom, int increment);
 
-void ComputeGrad(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& umac, const Geometry geom);
+void ComputeGrad(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc, const Geometry geom);
 
 
 ///////////////////////////
