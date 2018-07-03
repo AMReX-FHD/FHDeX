@@ -24,7 +24,8 @@ void ApplyPrecon(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
                  const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
                  const amrex::MultiFab& gamma,
                  const amrex::Real& theta_alpha,
-                 const amrex::Real* dx);
+                 const amrex::Real* dx,
+                 const amrex::Geometry geom);
 
 // In NormInnerProduct.cpp
 void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
