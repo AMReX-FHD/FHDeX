@@ -43,7 +43,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               !    vel(i,j,k) = 0d0
               ! endif
 
-              vel(i,j,k) = 1.d0 + exp(-rad**2/(10*partdom*partdom))
+              vel(i,j,k) = 1.d0 + exp(-rad**2/(1.0d0*partdom*partdom))
 
            end do
         end do
@@ -69,7 +69,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               !    vel(i,j,k) = 0
               ! endif
 
-              vel(i,j,k) = 1.d0 + exp(-rad**2/(10*partdom*partdom))
+              vel(i,j,k) = 1.d0 + exp(-rad**2/(1.0d0*partdom*partdom))
 
            end do
         end do
@@ -95,7 +95,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               !    vel(i,j,k) = 0
               ! endif
 
-              vel(i,j,k) = 1.d0 + exp(-rad**2/(10*partdom*partdom))
+              vel(i,j,k) = 1.d0 + exp(-rad**2/(1.0d0*partdom*partdom))
 
            end do
         end do
