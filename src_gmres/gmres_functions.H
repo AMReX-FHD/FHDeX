@@ -24,8 +24,31 @@ void ApplyPrecon(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
                  const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
                  const amrex::MultiFab& gamma,
                  const amrex::Real& theta_alpha,
-                 const amrex::Real* dx,
                  const amrex::Geometry& geom);
+
+// In GMRES.cpp
+void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
+           const amrex::MultiFab& b_p,
+           std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+           amrex::MultiFab& x_p,
+           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+           amrex::MultiFab& beta,
+           std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
+           amrex::MultiFab& gamma,
+           amrex::Real theta_alpha,
+           const amrex::Geometry& geom);
+
+void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
+           const amrex::MultiFab& b_p,
+           std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+           amrex::MultiFab& x_p,
+           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+           amrex::MultiFab& beta,
+           std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
+           amrex::MultiFab& gamma,
+           amrex::Real theta_alpha,
+           const amrex::Geometry& geom,
+           amrex::Real& norm_pre_rhs);
 
 // In MacProj.cpp
 void MacProj(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
@@ -37,7 +60,6 @@ void MacProj(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
 void SubtractWeightedGradP(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
                            const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
                            amrex::MultiFab& phi,
-                           const amrex::Real* dx,
                            const amrex::Geometry& geom);
 
 void CCApplyOp(amrex::MultiFab& phi,

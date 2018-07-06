@@ -18,7 +18,6 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                  const std::array<MultiFab, NUM_EDGE>& beta_ed,
                  const MultiFab& gamma,
                  const Real& theta_alpha,
-                 const Real* dx,
                  const Geometry& geom)
 {
     BoxArray ba = b_p.boxArray();
@@ -105,7 +104,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         MacProj(alphainv_fc,mac_rhs,phi,geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi
-        SubtractWeightedGradP(x_u,alphainv_fc,phi,dx,geom);
+        SubtractWeightedGradP(x_u,alphainv_fc,phi,geom);
 
         ////////////////////
         // STEP 4: Compute x_p by applying the Schur complement approximation

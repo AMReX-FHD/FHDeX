@@ -70,7 +70,6 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
 void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
                            const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
                            MultiFab& phi,
-                           const Real* dx,
                            const Geometry& geom)
 {
     BoxArray ba = phi.boxArray();
