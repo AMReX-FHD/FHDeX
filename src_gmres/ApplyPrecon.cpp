@@ -102,8 +102,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
         // use multigrid to solve for Phi
         // x_u^star is only passed in to get a norm for absolute residual criteria
-        //
-        //
+        MacProj(alphainv_fc,mac_rhs,phi,geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi
         SubtractWeightedGradP(x_u,alphainv_fc,phi,dx,geom);

@@ -26,7 +26,14 @@ void ApplyPrecon(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
                  const amrex::Real& theta_alpha,
                  const amrex::Real* dx,
                  const amrex::Geometry& geom);
+
 // In MacProj.cpp
+void MacProj(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
+             amrex::MultiFab& mac_rhs,
+             amrex::MultiFab& phi,
+             const amrex::Geometry& geom,
+             bool full_solve=false);
+
 void SubtractWeightedGradP(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
                            const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
                            amrex::MultiFab& phi,

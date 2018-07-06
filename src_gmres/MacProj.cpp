@@ -13,6 +13,60 @@
 using namespace common;
 using namespace gmres;
 
+void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
+             MultiFab& mac_rhs,
+             MultiFab& phi,
+             const Geometry& geom,
+             bool full_solve)
+{
+    int lev=0;
+
+    BoxArray ba = phi.boxArray();
+    DistributionMapping dmap = phi.DistributionMap();
+    LPInfo info;
+
+    MLABecLaplacian mlabec({geom}, {ba}, {dmap}, info);
+
+
+
+    // order of stencil
+    int stencil_order = 2;
+    mlabec.setMaxOrder(stencil_order);
+
+    mlabec.setScalars(0.0, -1.0);
+
+    // build array of boundary conditions needed by MLABecLaplacian
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (geom.isPeriodic(i)) {
+            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;            
+        }
+        else {
+            Abort("ApplyPrecon only works for periodic");
+        }        
+    }
+    mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
+    mlabec.setLevelBC(lev, &phi);
+
+    // coefficients for solver (alpha already set to zero via setScalars)
+    mlabec.setBCoeffs(lev,amrex::GetArrOfConstPtrs(alphainv_fc));
+
+    MLMG mlmg(mlabec);
+
+    // for the preconditioner, we do 1 v-cycle and the bottom solver is smooths
+    if (!full_solve) {
+        mlmg.setBottomSolver(amrex::MLMG::BottomSolver::smoother);
+        mlmg.setFixedIter(1);
+        mlmg.setBottomSmooth(8);
+    }
+   
+    mlmg.solve({&phi}, {&mac_rhs}, mg_rel_tol, mg_abs_tol);
+
+    phi.FillBoundary(geom.periodicity());
+}
+
 void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
                            const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
                            MultiFab& phi,
@@ -77,11 +131,5 @@ void CCApplyOp(MultiFab& phi,
 
     MLMG mlmg(mlabec);
 
-    Vector<MultiFab*> Lphi_vec(1);
-    Vector<MultiFab*> phi_vec(1);
-
-    Lphi_vec[0] = &Lphi;
-    phi_vec[0] = &phi;
-   
-    mlmg.apply(Lphi_vec,phi_vec);
+    mlmg.apply({&Lphi},{&phi});
 }
