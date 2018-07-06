@@ -33,6 +33,12 @@ void SubtractWeightedGradP(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
                            const amrex::Real* dx,
                            const amrex::Geometry& geom);
 
+void CCApplyOp(amrex::MultiFab& phi,
+               amrex::MultiFab& Lphi,
+               const amrex::MultiFab& alpha,
+               const std::array<amrex::MultiFab, AMREX_SPACEDIM>& beta_fc,
+               const amrex::Geometry& geom);
+
 // In NormInnerProduct.cpp
 void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp1, 

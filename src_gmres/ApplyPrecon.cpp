@@ -29,6 +29,9 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     MultiFab zero_fab(ba,dmap,1,0);
     MultiFab x_p_tmp (ba,dmap,1,1);
 
+    // set zero_fab_fc to 0
+    zero_fab.setVal(0.);
+
     std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
     std::array< MultiFab, AMREX_SPACEDIM > one_fab_fc;
     std::array< MultiFab, AMREX_SPACEDIM > zero_fab_fc;
@@ -49,8 +52,8 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                  b_u_tmp[2].    define(convert(ba,nodal_flag_z), dmap, 1, 0););
     
     // set alphainv_fc to 1/alpha_fc
-    // set one_fab_fc to 1.
-    // set zero_fab_fc to 0.
+    // set one_fab_fc to 1
+    // set zero_fab_fc to 0
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         alphainv_fc[i].setVal(1.);
         alphainv_fc[i].divide(alpha_fc[i],0,1,0);
@@ -120,8 +123,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
             }
             else {
                 // first set x_p = -L_alpha Phi
-                //
-                //
+                CCApplyOp(phi,x_p,zero_fab,alphainv_fc,geom);
             }
 
             if ( abs(visc_type) == 1 || abs(visc_type) == 2) {
