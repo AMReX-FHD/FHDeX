@@ -103,8 +103,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         //
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi
-        //
-        //
+        SubtractWeightedGradP(x_u,alphainv_fc,phi,dx,geom);
 
         ////////////////////
         // STEP 4: Compute x_p by applying the Schur complement approximation
@@ -116,8 +115,8 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
            
             if (precon_type == 1 || theta_alpha == 0) {
                 // first set x_p = -mac_rhs 
-                //
-                //
+                MultiFab::Copy(x_p,mac_rhs,0,0,1,0);
+                x_p.mult(-1.,0,1,0);                
             }
             else {
                 // first set x_p = -L_alpha Phi
@@ -127,38 +126,31 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
             if ( abs(visc_type) == 1 || abs(visc_type) == 2) {
                 // multiply x_p by beta; x_p = -beta L_alpha Phi
-                //
-                //
+                MultiFab::Multiply(x_p,beta,0,0,1,0);
 
                 if (abs(visc_type) == 2) {
                     // multiply by c=2; x_p = -2*beta L_alpha Phi
-                    //
-                    //
+                    x_p.mult(2.,0,1,0);
                 }
             }
             else if (abs(visc_type) == 3) {
 
                 // multiply x_p by gamma, use mac_rhs a temparary to save x_p 
-                //
-                //
+                MultiFab::Copy(mac_rhs,x_p,0,0,1,0);
+                MultiFab::Multiply(mac_rhs,gamma,0,0,1,0);
                 // multiply x_p by beta; x_p = -beta L_alpha Phi
-                //
-                //
+                MultiFab::Multiply(x_p,beta,0,0,1,0);
                 // multiply by c=4/3; x_p = -(4/3) beta L_alpha Phi
-                //
-                //
+                x_p.mult(4./3.,0,1,0);
                 // x_p = -(4/3) beta L_alpha Phi - gamma L_alpha Phi
-                //
-                //
+                MultiFab::Add(x_p,mac_rhs,0,0,1,0);
             }
 
             // multiply Phi by theta_alpha
-            //
-            //
+            phi.mult(theta_alpha,0,1,0);
 
             // add theta_alpha*Phi to x_p
-            //
-            //
+            MultiFab::Add(x_p,phi,0,0,1,0);
         }
         else {
             Abort("StagApplyOp: visc_schur_approx != 0 not supported");
@@ -166,6 +158,25 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     }
     else {
         Abort("StagApplyOp: unsupposed precon_type");
+    }
+
+    ////////////////////
+    // STEP 4: Handle null-space issues in MG solvers
+    ////////////////////
+    
+    // subtract off mean value: Single level only! No need for ghost cells
+    //
+    //
+
+    // The pressure Poisson problem is always singular:
+    //
+    //
+
+    // The velocity problem is also singular under these cases
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (!geom.isPeriodic(i)) {
+            Abort("ApplyPrecon only works for periodic");
+        }        
     }
 
 }
