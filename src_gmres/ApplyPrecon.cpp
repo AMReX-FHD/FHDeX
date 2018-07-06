@@ -167,17 +167,22 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     
     // subtract off mean value: Single level only! No need for ghost cells
     //
+    // call sum_umac_press(mla,x_p,x_u,mean_val_pres,mean_val_umac)
     //
 
     // The pressure Poisson problem is always singular:
     //
+    // call multifab_sub_sub_s_c(x_p(1),1,mean_val_pres,1,0)
     //
 
     // The velocity problem is also singular under these cases
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (!geom.isPeriodic(i)) {
-            Abort("ApplyPrecon only works for periodic");
-        }        
+    if (theta_alpha == 0.) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            if (geom.isPeriodic(i)) {
+                // 
+                // call multifab_sub_sub_s_c(x_u(1,i),1,mean_val_umac(i),1,0)
+                //
+            }
+        }
     }
-
 }
