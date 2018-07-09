@@ -13,6 +13,7 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp2,
                    Vector<Real>& prod_val)
 {
+  std::fill(prod_val.begin(), prod_val.end(), 0.);
 
   // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
   for (MFIter mfi(m1[0]); mfi.isValid(); ++mfi) {
@@ -40,7 +41,7 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   ////////////////////////////////////////////////
 
   for (int d = 0; d < AMREX_SPACEDIM; d++) {
-    ParallelDescriptor:: ReduceRealSum(prod_val[d]);
+      ParallelDescriptor::ReduceRealSum(prod_val.dataPtr(),AMREX_SPACEDIM);
   }
 
   //////////////// Debug ////////////////////////

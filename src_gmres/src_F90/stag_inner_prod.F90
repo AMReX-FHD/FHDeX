@@ -41,9 +41,6 @@ contains
        print*, "Error: y-component bounds mismatch"
     end if
 
-    ! Initialize to zero
-    prod_val = 0.0d0;
-
     ! Inner product of x-component
     ! Loop over interior values & cell-centered boundaries
     do j = m1xlo(2), m1xhi(2)
