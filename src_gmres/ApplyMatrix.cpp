@@ -63,4 +63,20 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         Abort("ApplyMatrix.cpp: gmres_spatial_order=4 not supported yet");
     }
 
+    // compute G x_p and add to b_u
+    if (gmres_spatial_order == 2) {
+        ComputeGrad(x_p,gx_p,0,0,1,geom);
+    }
+    else if (gmres_spatial_order == 4) {
+        Abort("ApplyMatrix.cpp: gmres_spatial_order=4 not supported yet");
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MultiFab::Add(b_u[i],gx_p[i],0,0,1,0);
+    }
+
+    // set b_p = -D x_u
+    ComputeDiv(b_p,x_u,0,0,1,geom,0);
+    b_p.mult(-1.,0,1,0);
+
 }
