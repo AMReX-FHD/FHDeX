@@ -14,6 +14,60 @@ const int NUM_EDGE = 3;
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();
 
+// In ApplyPrecon.cpp
+void ApplyPrecon(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
+                 const amrex::MultiFab& b_p,
+                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+                 amrex::MultiFab& x_p,
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+                 const amrex::MultiFab& beta,
+                 const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
+                 const amrex::MultiFab& gamma,
+                 const amrex::Real& theta_alpha,
+                 const amrex::Geometry& geom);
+
+// In GMRES.cpp
+void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
+           const amrex::MultiFab& b_p,
+           std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+           amrex::MultiFab& x_p,
+           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+           amrex::MultiFab& beta,
+           std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
+           amrex::MultiFab& gamma,
+           amrex::Real theta_alpha,
+           const amrex::Geometry& geom);
+
+void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
+           const amrex::MultiFab& b_p,
+           std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+           amrex::MultiFab& x_p,
+           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+           amrex::MultiFab& beta,
+           std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
+           amrex::MultiFab& gamma,
+           amrex::Real theta_alpha,
+           const amrex::Geometry& geom,
+           amrex::Real& norm_pre_rhs);
+
+// In MacProj.cpp
+void MacProj(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
+             amrex::MultiFab& mac_rhs,
+             amrex::MultiFab& phi,
+             const amrex::Geometry& geom,
+             bool full_solve=false);
+
+void SubtractWeightedGradP(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+                           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
+                           amrex::MultiFab& phi,
+                           const amrex::Geometry& geom);
+
+void CCApplyOp(amrex::MultiFab& phi,
+               amrex::MultiFab& Lphi,
+               const amrex::MultiFab& alpha,
+               const std::array<amrex::MultiFab, AMREX_SPACEDIM>& beta_fc,
+               const amrex::Geometry& geom);
+
 // In NormInnerProduct.cpp
 void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp1, 
