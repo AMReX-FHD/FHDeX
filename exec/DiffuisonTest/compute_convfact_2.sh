@@ -6,13 +6,13 @@ unset ALL_PROXY
 rm -r plt* stag*
 
 ## Select grids
-# Nsteps=("005" "010" "020")
-# Spacedim=("064" "128" "256")
-# dim="2"
+Nsteps=("005" "010" "020")
+Spacedim=("064" "128" "256")
+dim="2"
 
-Nsteps=("002" "004" "008")
-Spacedim=("032" "064" "128")
-dim="3"
+# Nsteps=("002" "004" "008")
+# Spacedim=("032" "064" "128")
+# dim="3"
 
 Visctype=("1" "2" "neg1" "neg2")
 Visc=("1" "2" "-1" "-2")
@@ -29,7 +29,8 @@ do
 
     visctype=${Visctype[$visc_ind]}
 
-    dir_top="Data_Convergence_CrankNicolson/Data_visc_${visctype}/${dim}D"
+    # dir_top="Data_Convergence_CrankNicolson/Data_visc_${visctype}/${dim}D"
+    dir_top="Data_Convergence_CrankNicolson_GS/Data_visc_${visctype}/${dim}D"
 
     for grid in 0 1 2
     do
@@ -37,7 +38,6 @@ do
 	dir=$dir_top/$folder
 	filename=$plottype$zeros_plt${Nsteps[$grid]}
 	file[$grid]=$dir/$filename
-	# echo ${file[$grid]}
     done
 
     ## Run convergence computations

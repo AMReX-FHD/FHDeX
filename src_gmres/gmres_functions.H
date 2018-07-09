@@ -19,7 +19,7 @@ void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp1, 
                    const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m2,
                    const int& comp2,
-                   amrex::Vector<amrex::Real> prod_val);
+                   amrex::Vector<amrex::Real>& prod_val);
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Jacobi relaxation
 // if abs(visc_type) = 1, L = div beta grad
