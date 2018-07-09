@@ -1,4 +1,4 @@
-CEXE_sources   += NormInnerProduct.cpp
+CEXE_sources   += StagInnerProduct.cpp
 CEXE_sources   += StagMGSolver.cpp
 CEXE_sources   += StagApplyOp.cpp
 
