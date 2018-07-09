@@ -98,7 +98,8 @@ extern "C"
 #endif
                             );
 
-    void stag_inner_prod(const amrex_real* m1x, const int* m1xlo, const int* m1xhi,
+  void stag_inner_prod(const int* lo, const int* hi,
+			 const amrex_real* m1x, const int* m1xlo, const int* m1xhi,
                          const amrex_real* m1y, const int* m1ylo, const int* m1yhi,
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* m1z, const int* m1zlo, const int* m1zhi,
@@ -108,7 +109,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* m2z, const int* m2zlo, const int* m2zhi,
 #endif
-                         const amrex::Vector<amrex::Real>* prod_val);
+                         const amrex::Real* prod_val);
 
     void stag_mg_update (const int* lo, const int* hi,
                          const amrex::Real* phix,

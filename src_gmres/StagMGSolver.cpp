@@ -535,14 +535,15 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
         }
 	
-        // compute L0 norm of Lphi - rhs and determine if the problem is solved
+	//////// TEST L2 /////////////////////
 	StagInnerProd(Lphi_fc_mg[0],0,Lphi_fc_mg[0],0,resid_l2);
-	// Print() << resid_l2[0];
-	exit(0);
 	for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	  // Print() << resid_l2[d];
+	  Print() << resid_l2[d] << "\n";
 	}
+	exit(0);
+	//////////////////////////////////////
 
+        // compute L0 norm of Lphi - rhs and determine if the problem is solved
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             resid[d] = Lphi_fc_mg[0][d].norm0(); 
 // FIXME - need to write an L2 norm for staggered fields

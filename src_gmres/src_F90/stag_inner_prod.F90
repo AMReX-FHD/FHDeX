@@ -11,13 +11,15 @@ contains
 
 #if (AMREX_SPACEDIM == 2)
 
-  subroutine stag_inner_prod(m1x, m1xlo, m1xhi, &
+  subroutine stag_inner_prod(lo, hi, &
+                           m1x, m1xlo, m1xhi, &
                            m1y, m1ylo, m1yhi, &
                            m2x, m2xlo, m2xhi, &
                            m2y, m2ylo, m2yhi, &
                            prod_val) &
                            bind (C,name="stag_inner_prod")
-
+    
+    integer         , intent(in   ) :: lo(2), hi(2)
     integer         , intent(in   ) :: m1xlo(2),m1xhi(2)
     integer         , intent(in   ) :: m1ylo(2),m1yhi(2)
     integer         , intent(in   ) :: m2xlo(2),m2xhi(2)
