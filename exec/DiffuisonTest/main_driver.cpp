@@ -280,7 +280,7 @@ void main_driver(const char* argv)
 
 	if (algorithm_type == 2) {
 	  // compute rhs of poisson eqn
-  	  StagApplyOp(betaCC_neghlf,gammaCC_neghlf,betaEdge_neghlf,umac,rhs,alpha,dx);
+          StagApplyOp(betaCC_neghlf,gammaCC_neghlf,betaEdge_neghlf,umac,rhs,alpha,dx,1.);
 
 	  AMREX_D_TERM(rhs[0].FillBoundary(geom.periodicity());,
 	  	       rhs[1].FillBoundary(geom.periodicity());,
