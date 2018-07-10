@@ -62,6 +62,27 @@ void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
            const amrex::Geometry& geom,
            amrex::Real& norm_pre_rhs);
 
+void UpdateSol(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+               amrex::MultiFab& x_p,
+               std::array<amrex::MultiFab, AMREX_SPACEDIM>& V_u,
+               amrex::MultiFab& V_p,
+               amrex::Vector<amrex::Real>& y,
+               int i);
+
+void LeastSquares(int i, 
+                  amrex::Vector<amrex::Vector<amrex::Real>>& H,
+                  amrex::Vector<amrex::Real>& cs,
+                  amrex::Vector<amrex::Real>& sn,
+                  amrex::Vector<amrex::Real>& s);
+
+void RotMat(amrex::Real a, amrex::Real b,
+            amrex::Real& cs, amrex::Real& sn);
+
+void SolveUTriangular(int k,
+                      amrex::Vector<amrex::Vector<amrex::Real>>& H, 
+                      amrex::Vector<amrex::Real>& s, 
+                      amrex::Vector<amrex::Real>& y);
+
 // In MacProj.cpp
 void MacProj(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
              amrex::MultiFab& mac_rhs,
