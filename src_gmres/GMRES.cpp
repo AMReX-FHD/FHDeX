@@ -43,6 +43,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     
     Vector<Vector<Real>> H(gmres_max_inner+1,Vector<Real>(gmres_max_inner));
 
+    int iter, total_iter, i_copy; // for looping iteration
+
     Real norm_b;            // |b|;           computed once at beginning
     Real norm_pre_b;        // |M^-1 b|;      computed once at beginning
     Real norm_resid;        // |M^-1 (b-Ax)|; computed at beginning of each outer iteration
@@ -105,6 +107,42 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
     // preconditioned norm_b: norm_pre_b
     ApplyPrecon(b_u,b_p,tmp_u,tmp_p,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom);
+    // call stag_l2_norm(mla,tmp_u,norm_u)
+    // call cc_l2_norm(mla,tmp_p,norm_p)
+    norm_p = p_norm_weight*norm_p;
+    norm_pre_b = sqrt(norm_u*norm_u+norm_p*norm_p);
 
+    //! If norm_b=0 we should return zero as the solution and "return" from this routine
+    // It is important to use gmres_abs_tol and not 0 since sometimes due to roundoff we 
+    // get a nonzero number that should really be zero
+    if (gmres_verbose >= 1) {
+        // Useful to print out to give expected scale for gmres_abs_tol
+        Print() << "GMRES.cpp: GMRES called with ||rhs||=" << norm_b << std::endl; 
+    } 
+    if (norm_b <= gmres_abs_tol) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            x_u[i].setVal(0.);
+        }
+        x_p.setVal(0.);
+        if (gmres_verbose >= 1) {
+            Print() << "GMRES.cpp: converged in 0 iterations since rhs=0" << std::endl;
+        }
+        return;
+    }
+
+    ///////////////////
+    // begin outer iteration
+    ///////////////////
+
+    total_iter = 0;
+    iter = 0;
+
+
+    do {
+
+
+
+
+    } while (true); // end of outer loop (do iter=1,gmres_max_outer)
 
 }

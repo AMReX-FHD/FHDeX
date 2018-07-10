@@ -14,6 +14,18 @@ const int NUM_EDGE = 3;
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();
 
+// In ApplyMatrix.cpp
+void ApplyMatrix(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
+                 amrex::MultiFab& b_p,
+                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
+                 amrex::MultiFab& x_p,
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
+                 const amrex::MultiFab& beta,
+                 const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
+                 const amrex::MultiFab& gamma,
+                 const amrex::Real& theta_alpha,
+                 const amrex::Geometry& geom);
+
 // In ApplyPrecon.cpp
 void ApplyPrecon(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
                  const amrex::MultiFab& b_p,
@@ -131,6 +143,7 @@ void StagApplyOp(const amrex::MultiFab& betaCC,
                  std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
                  const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha,
                  const amrex::Real* dx,
+                 const amrex::Real& theta_alpha,
                  const int& color=0);
 
 #endif

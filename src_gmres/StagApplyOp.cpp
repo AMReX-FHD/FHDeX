@@ -13,6 +13,7 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
                  const std::array<MultiFab, AMREX_SPACEDIM>& alpha,
                  const Real* dx,
+                 const amrex::Real& theta_alpha,
                  const int& color)
 {
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
@@ -21,29 +22,29 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
         const Box& validBox = mfi.validbox();
 
         stag_apply_op(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                           BL_TO_FORTRAN_ANYD(betaCC[mfi]),
-                           BL_TO_FORTRAN_ANYD(gammaCC[mfi]),
-                           BL_TO_FORTRAN_ANYD(betaEdge[0][mfi]),
+                      BL_TO_FORTRAN_ANYD(betaCC[mfi]),
+                      BL_TO_FORTRAN_ANYD(gammaCC[mfi]),
+                      BL_TO_FORTRAN_ANYD(betaEdge[0][mfi]),
 #if (AMREX_SPACEDIM == 3)
-                           BL_TO_FORTRAN_ANYD(betaEdge[1][mfi]),
-                           BL_TO_FORTRAN_ANYD(betaEdge[2][mfi]),
+                      BL_TO_FORTRAN_ANYD(betaEdge[1][mfi]),
+                      BL_TO_FORTRAN_ANYD(betaEdge[2][mfi]),
 #endif
-                           BL_TO_FORTRAN_ANYD(umacIn[0][mfi]),
-                           BL_TO_FORTRAN_ANYD(umacIn[1][mfi]),
+                      BL_TO_FORTRAN_ANYD(umacIn[0][mfi]),
+                      BL_TO_FORTRAN_ANYD(umacIn[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-                           BL_TO_FORTRAN_ANYD(umacIn[2][mfi]),
+                      BL_TO_FORTRAN_ANYD(umacIn[2][mfi]),
 #endif
-                           BL_TO_FORTRAN_ANYD(umacOut[0][mfi]),
-                           BL_TO_FORTRAN_ANYD(umacOut[1][mfi]),
+                      BL_TO_FORTRAN_ANYD(umacOut[0][mfi]),
+                      BL_TO_FORTRAN_ANYD(umacOut[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-                           BL_TO_FORTRAN_ANYD(umacOut[2][mfi]),
+                      BL_TO_FORTRAN_ANYD(umacOut[2][mfi]),
 #endif
-                           BL_TO_FORTRAN_ANYD(alpha[0][mfi]),
-                           BL_TO_FORTRAN_ANYD(alpha[1][mfi]),
+                      BL_TO_FORTRAN_ANYD(alpha[0][mfi]),
+                      BL_TO_FORTRAN_ANYD(alpha[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-                           BL_TO_FORTRAN_ANYD(alpha[2][mfi]),
+                      BL_TO_FORTRAN_ANYD(alpha[2][mfi]),
 #endif
-
+                      
                       dx, &color);
 
     }
