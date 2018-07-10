@@ -535,13 +535,18 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
         }
 	
-	//////// TEST L2 /////////////////////
-	StagInnerProd(Lphi_fc_mg[0],0,Lphi_fc_mg[0],0,resid_l2);
-	for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	  Print() << resid_l2[d] << "\n";
-	}
-	exit(0);
-	//////////////////////////////////////
+	//////// TEST L2 INNER PROD /////////////////////
+	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	//   phi_fc_mg[0][d].setVal(1.);
+	//   Lphi_fc_mg[0][d].setVal(1.);
+	// }
+	// StagInnerProd(phi_fc_mg[0],0,Lphi_fc_mg[0],0,resid_l2);
+	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	//   Print() << resid_l2[d] << "\n";
+	// }
+	// // amrex::Abort("Exit L2 Test");
+	// exit(0);
+	//////////////////////////////////////////////////
 
         // compute L0 norm of Lphi - rhs and determine if the problem is solved
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
