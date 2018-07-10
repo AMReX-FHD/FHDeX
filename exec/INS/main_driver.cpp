@@ -15,6 +15,7 @@
 #include "rng_functions_F.H"
 
 #include "species.H"
+#include "surfaces.H"
 
 using namespace common;
 using namespace gmres;
@@ -431,6 +432,10 @@ void main_driver(const char* argv)
     Real time = 0.;
     int statsCount = 1;
 
+    //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
+    surface surfaceList[6];
+
+    BuildSurfaces(surfaceList,6);
 
     //Particles! Build on geom & box array for collision cells
     FhdParticleContainer particles(geomC, dmap, bc);
