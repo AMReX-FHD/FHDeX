@@ -174,7 +174,6 @@ contains
                m1z(i,j,hi(3)+1)*m2z(i,j,hi(3)+1))
        enddo
     enddo
-
   
   end subroutine stag_inner_prod
 
