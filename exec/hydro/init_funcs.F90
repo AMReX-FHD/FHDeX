@@ -13,7 +13,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   real(amrex_real), intent(in   ) :: dx(3) 
 
   integer          :: i,j,k
-  double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,zshft
+  double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2,zshft
+  double precision :: L_hlf, r_a, r_b, k1, k1_inv, k2, k2_inv
 
 #if (AMREX_SPACEDIM == 2)
   zshft = 0.0d0
@@ -21,8 +22,19 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   zshft = 0.5d0
 #endif
 
-  center = (realhi - reallo)/2d0;
-  partdom = ((realhi(1) - reallo(1))/4d0)**2;
+  center = (realhi - reallo)/2d0
+  ! partdom = ((realhi(1) - reallo(1))/4d0)**2
+  L_hlf = (realhi(1) - reallo(1))/2d0
+  
+  !! IC parameters
+  ! [r_a r_b] defines radial bounds of velocity bump:
+  r_a = 0.35d0*L_hlf
+  r_b = L_hlf - r_a
+  ! k1 & k2 determine steepness of velocity profile:
+  k1 = 4d-2*L_hlf
+  k2 = k1
+  k1_inv = 1/k1
+  k2_inv = 1/k2
 
   if (di .EQ. 0) then
      do k = lo(3), hi(3)
@@ -35,15 +47,12 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
               pos = reallo + itVec
               relpos = pos - center
-              rad = DOT_PRODUCT(relpos,relpos)
-
-              ! if (rad .LT. partdom) then
-              !    vel(i,j,k) = -200*exp(-rad/(10*partdom*partdom))*relpos(2)
-              ! else
-              !    vel(i,j,k) = 0d0
-              ! endif
-
-              vel(i,j,k) = 1.d0 + exp(-rad**2/(1.0d0*partdom*partdom))
+              rad2 = DOT_PRODUCT(relpos,relpos)
+              rad = SQRT(rad2)
+              
+              ! Multiply velocity magnitude by sin(theta)
+              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                   *(relpos(2)/rad);
 
            end do
         end do
@@ -61,15 +70,12 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
               pos = reallo + itVec
               relpos = pos - center
-              rad = DOT_PRODUCT(relpos,relpos)
-
-              ! if (rad .LT. partdom) then
-              !    vel(i,j,k) = -200*exp(-rad/(10*partdom*partdom))*relpos(1)
-              ! else
-              !    vel(i,j,k) = 0
-              ! endif
-
-              vel(i,j,k) = 1.d0 + exp(-rad**2/(1.0d0*partdom*partdom))
+              rad2 = DOT_PRODUCT(relpos,relpos)
+              rad = SQRT(rad2)
+              
+              ! Multiply velocity magnitude by -cos(theta)
+              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                   *(-relpos(1)/rad);
 
            end do
         end do
@@ -87,15 +93,10 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
               pos = reallo + itVec
               relpos = pos - center
-              rad = DOT_PRODUCT(relpos,relpos)
+              rad2 = DOT_PRODUCT(relpos,relpos)
+              rad = SQRT(rad2)
 
-              ! if (rad .LT. partdom) then
-              !    vel(i,j,k) = 0
-              ! else
-              !    vel(i,j,k) = 0
-              ! endif
-
-              vel(i,j,k) = 1.d0 + exp(-rad**2/(1.0d0*partdom*partdom))
+              vel(i,j,k) = 0d0
 
            end do
         end do
