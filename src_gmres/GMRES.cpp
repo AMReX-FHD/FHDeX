@@ -112,6 +112,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
     // preconditioned norm_b: norm_pre_b
     ApplyPrecon(b_u,b_p,tmp_u,tmp_p,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom);
+    StagL2Norm(tmp_u,0,norm_u);
 //    call stag_l2_norm(mla,tmp_u,norm_u)
 //    call cc_l2_norm(mla,tmp_p,norm_p)
     norm_p = p_norm_weight*norm_p;

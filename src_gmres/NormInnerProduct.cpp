@@ -96,13 +96,11 @@ void CCInnerProd(const amrex::MultiFab& m1,
 
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
-		amrex::Vector<amrex::Real>& norm_l2)
+		Real& norm_l2)
 {
-  std::fill(norm_l2.begin(), norm_l2.end(), 0.);
-  StagInnerProd(m1, comp, m1, comp, norm_l2);
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-    norm_l2[d] = sqrt(norm_l2[d]);
-  }
+    Vector<Real> inner_prod(AMREX_SPACEDIM);
+    StagInnerProd(m1, comp, m1, comp, inner_prod);
+    norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
 }
 
 void CCL2Norm(const amrex::MultiFab& m1,

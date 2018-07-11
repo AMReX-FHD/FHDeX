@@ -126,7 +126,7 @@ void CCInnerProd(const amrex::MultiFab& m1,
 
 void StagL2Norm(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
-		amrex::Vector<amrex::Real>& norm_l2);
+		amrex::Real& norm_l2);
 
 void CCL2Norm(const amrex::MultiFab& m1,
 	      const int& comp,
