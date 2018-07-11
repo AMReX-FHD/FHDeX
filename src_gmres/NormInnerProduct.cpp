@@ -42,7 +42,6 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
       sum[d] = sum[d]/(double)(numpts);
     }
   }
-
 }
 
 void SumCC(const amrex::MultiFab& m1,
@@ -58,7 +57,6 @@ void SumCC(const amrex::MultiFab& m1,
     long numpts = ba.numPts();
     sum = sum/(double)(numpts);
   }
-
 }
 
 void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
@@ -77,20 +75,13 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
     dmap = m1[d].DistributionMap();
     m1_temp[d].define(ba, dmap, 1, 0);
     m2_temp[d].define(ba, dmap, 1, 0);
-  }
-
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(m1_temp[d],m1[d],comp1,0,1,0);
     MultiFab::Copy(m2_temp[d],m2[d],comp2,0,1,0);
-  }
-
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Multiply(m1_temp[d],m2_temp[d],0,0,1,0);
   }
   
   std::fill(prod_val.begin(), prod_val.end(), 0.);
   SumStag(m1_temp,0,prod_val,false);
-
 }
 
 void CCInnerProd(const amrex::MultiFab& m1,
@@ -111,15 +102,16 @@ void CCInnerProd(const amrex::MultiFab& m1,
   MultiFab::Copy(m1_temp,m1,comp1,0,1,0);
   MultiFab::Copy(m2_temp,m2,comp2,0,1,0);
   MultiFab::Multiply(m1_temp,m2_temp,0,0,1,0);
-
-  SumCC(m1_temp, 0, prod_val,false);
-
+  
+  prod_val = 0.;
+  SumCC(m1_temp,0,prod_val,false);
 }
 
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
 		amrex::Vector<amrex::Real>& norm_l2)
 {
+  std::fill(norm_l2.begin(), norm_l2.end(), 0.);
   StagInnerProd(m1, comp, m1, comp, norm_l2);
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     norm_l2[d] = sqrt(norm_l2[d]);
@@ -130,6 +122,7 @@ void CCL2Norm(const amrex::MultiFab& m1,
 	      const int& comp,
 	      amrex::Real& norm_l2)
 {
+  norm_l2 = 0.;
   CCInnerProd(m1,comp,m1,comp,norm_l2);
   norm_l2 = sqrt(norm_l2);
 }
