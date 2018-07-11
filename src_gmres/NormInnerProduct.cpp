@@ -34,11 +34,11 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 
   ParallelDescriptor::ReduceRealSum(sum.dataPtr(),AMREX_SPACEDIM);
 
-  if (divide_by_ncells == 1) {
+  if (divide_by_ncells == true) {
+    BoxArray ba_temp = m1[0].boxArray();
+    ba_temp.enclosedCells();
+    long numpts = ba_temp.numPts();
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      BoxArray ba = m1[0].boxArray();
-      ba.enclosedCells();
-      long numpts = ba.numPts();
       sum[d] = sum[d]/(double)(numpts);
     }
   }
@@ -53,8 +53,8 @@ void SumCC(const amrex::MultiFab& m1,
   sum = m1.MultiFab::sum(comp, false);
 
   if (divide_by_ncells == 1) {
-    BoxArray ba = m1.boxArray();
-    long numpts = ba.numPts();
+    BoxArray ba_temp = m1.boxArray();
+    long numpts = ba_temp.numPts();
     sum = sum/(double)(numpts);
   }
 }
@@ -65,23 +65,17 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp2,
                    amrex::Vector<amrex::Real>& prod_val)
 {
-  std::array<MultiFab, AMREX_SPACEDIM> m1_temp;
-  std::array<MultiFab, AMREX_SPACEDIM> m2_temp;
+  std::array<MultiFab, AMREX_SPACEDIM> prod_temp;
 
-  BoxArray ba;
-  DistributionMapping dmap;
+  DistributionMapping dmap = m1[0].DistributionMap();
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    ba = m1[d].boxArray();
-    dmap = m1[d].DistributionMap();
-    m1_temp[d].define(ba, dmap, 1, 0);
-    m2_temp[d].define(ba, dmap, 1, 0);
-    MultiFab::Copy(m1_temp[d],m1[d],comp1,0,1,0);
-    MultiFab::Copy(m2_temp[d],m2[d],comp2,0,1,0);
-    MultiFab::Multiply(m1_temp[d],m2_temp[d],0,0,1,0);
+    prod_temp[d].define(m1[d].boxArray(), dmap, 1, 0);
+    MultiFab::Copy(prod_temp[d],m1[d],comp1,0,1,0);
+    MultiFab::Multiply(prod_temp[d],m2[d],0,0,1,0);
   }
   
   std::fill(prod_val.begin(), prod_val.end(), 0.);
-  SumStag(m1_temp,0,prod_val,false);
+  SumStag(prod_temp,0,prod_val,false);
 }
 
 void CCInnerProd(const amrex::MultiFab& m1,
@@ -90,21 +84,14 @@ void CCInnerProd(const amrex::MultiFab& m1,
 		 const int& comp2,
 		 amrex::Real& prod_val)
 {
+  amrex::MultiFab prod_temp;
+  prod_temp.define(m1.boxArray(), m1.DistributionMap(), 1, 0);
 
-  amrex::MultiFab m1_temp;
-  amrex::MultiFab m2_temp;
-
-  BoxArray ba = m1.boxArray();
-  DistributionMapping dmap = m1.DistributionMap();
-  m1_temp.define(ba, dmap, 1, 0);
-  m2_temp.define(ba, dmap, 1, 0);
-
-  MultiFab::Copy(m1_temp,m1,comp1,0,1,0);
-  MultiFab::Copy(m2_temp,m2,comp2,0,1,0);
-  MultiFab::Multiply(m1_temp,m2_temp,0,0,1,0);
+  MultiFab::Copy(prod_temp,m1,comp1,0,1,0);
+  MultiFab::Multiply(prod_temp,m2,0,0,1,0);
   
   prod_val = 0.;
-  SumCC(m1_temp,0,prod_val,false);
+  SumCC(prod_temp,0,prod_val,false);
 }
 
 void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
