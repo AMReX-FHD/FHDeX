@@ -98,18 +98,13 @@ extern "C"
 #endif
                             );
 
-  void stag_inner_prod(const int* lo, const int* hi,
+           void sum_stag(const int* lo, const int* hi,
 			 const amrex_real* m1x, const int* m1xlo, const int* m1xhi,
                          const amrex_real* m1y, const int* m1ylo, const int* m1yhi,
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* m1z, const int* m1zlo, const int* m1zhi,
 #endif
-			 const amrex_real* m2x, const int* m2xlo, const int* m2xhi,
-                         const amrex_real* m2y, const int* m2ylo, const int* m2yhi,
-#if (AMREX_SPACEDIM == 3)
-                         const amrex_real* m2z, const int* m2zlo, const int* m2zhi,
-#endif
-                         const amrex::Real* prod_val);
+                         const amrex::Real* sum);
 
     void stag_mg_update (const int* lo, const int* hi,
                          const amrex::Real* phix,

@@ -1,3 +1,3 @@
 F90EXE_sources += stag_mg_solver.F90
 F90EXE_sources += stag_apply_op.F90
-F90EXE_sources += stag_inner_prod.F90
+F90EXE_sources += norm_inner_prod.F90

@@ -538,13 +538,38 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	//////// TEST L2 INNER PROD /////////////////////
 	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	//   phi_fc_mg[0][d].setVal(1.);
-	//   Lphi_fc_mg[0][d].setVal(1.);
+	//   Lphi_fc_mg[0][d].setVal(2.);
+	//   beta_cc_mg[0].setVal(3.);
+	//   gamma_cc_mg[0].setVal(1.5);
 	// }
+
 	// StagInnerProd(phi_fc_mg[0],0,Lphi_fc_mg[0],0,resid_l2);
 	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	//   Print() << resid_l2[d] << "\n";
 	// }
-	// // amrex::Abort("Exit L2 Test");
+
+	// SumStag(phi_fc_mg[0],0,resid_l2,true);
+	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	//   Print() << resid_l2[d] << "\n";
+	// }
+
+        // double sum_cc = 0.;
+	// SumCC(beta_cc_mg[0],0,sum_cc,1);
+	// Print() << sum_cc << "\n";
+
+	// amrex::Real prod_cc = 0.;
+	// CCInnerProd(beta_cc_mg[0],0,gamma_cc_mg[0],0,prod_cc);
+	// Print() << prod_cc << "\n";
+
+	// StagL2Norm(phi_fc_mg[0],0,resid_l2);
+	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
+	//   Print() << resid_l2[d] << "\n";
+	// }
+
+	// CCL2Norm(beta_cc_mg[0],0,prod_cc);
+	// Print() << prod_cc << "\n";
+
+	// // amrex::Abort("Exit Norm Test");
 	// exit(0);
 	//////////////////////////////////////////////////
 
