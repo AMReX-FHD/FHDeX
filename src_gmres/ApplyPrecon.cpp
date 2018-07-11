@@ -23,6 +23,10 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     BoxArray ba = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
 
+    Real         mean_val_pres;
+    Vector<Real> mean_val_umac(AMREX_SPACEDIM);
+    
+
     MultiFab phi     (ba,dmap,1,1);
     MultiFab mac_rhs (ba,dmap,1,0);
     MultiFab zero_fab(ba,dmap,1,0);
@@ -53,18 +57,18 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     // set alphainv_fc to 1/alpha_fc
     // set one_fab_fc to 1
     // set zero_fab_fc to 0
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        alphainv_fc[i].setVal(1.);
-        alphainv_fc[i].divide(alpha_fc[i],0,1,0);
-        one_fab_fc[i].setVal(1.);
-        zero_fab_fc[i].setVal(0.);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].setVal(1.);
+        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+        one_fab_fc[d].setVal(1.);
+        zero_fab_fc[d].setVal(0.);
     }
 
     // set the initial guess for Phi in the Poisson solve to 0
     // set x_u = 0 as initial guess
     phi.setVal(0.);
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        x_u[i].setVal(0.);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        x_u[d].setVal(0.);
     }
 
     // 1 = projection preconditioner
@@ -165,22 +169,17 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     ////////////////////
     
     // subtract off mean value: Single level only! No need for ghost cells
-    //
-    // call sum_umac_press(mla,x_p,x_u,mean_val_pres,mean_val_umac)
-    //
+    SumStag(x_u,0,mean_val_umac,true);
+    SumCC(x_p,0,mean_val_pres,true);
 
     // The pressure Poisson problem is always singular:
-    //
-    // call multifab_sub_sub_s_c(x_p(1),1,mean_val_pres,1,0)
-    //
+    x_p.plus(-mean_val_pres,0,1,0);
 
     // The velocity problem is also singular under these cases
     if (theta_alpha == 0.) {
-        for (int i=0; i<AMREX_SPACEDIM; ++i) {
-            if (geom.isPeriodic(i)) {
-                // 
-                // call multifab_sub_sub_s_c(x_u(1,i),1,mean_val_umac(i),1,0)
-                //
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            if (geom.isPeriodic(d)) {
+                x_u[d].plus(-mean_val_umac[d],0,1,0);
             }
         }
     }
