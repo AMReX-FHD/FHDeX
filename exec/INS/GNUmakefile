@@ -53,6 +53,10 @@ include ../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_rng/src_F90
 INCLUDE_LOCATIONS += ../../src_rng/src_F90
 
+include ../../src_surfaces/Make.package
+VPATH_LOCATIONS   += ../../src_surfaces
+INCLUDE_LOCATIONS += ../../src_surfaces
+
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package

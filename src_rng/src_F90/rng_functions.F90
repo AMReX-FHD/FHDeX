@@ -39,12 +39,12 @@ contains
 
     !Seed these properly.
 
-    call bl_rng_build_engine(rng_eng_fhd, 2)
-    call bl_rng_build_engine(rng_eng_particle, 2)       
-    call bl_rng_build_engine(rng_eng_select, 2)
-    call bl_rng_build_engine(rng_eng_scatter_theta, 2)
-    call bl_rng_build_engine(rng_eng_scatter_phi, 2)
-    call bl_rng_build_engine(rng_eng_general, 2)
+    call bl_rng_build_engine(rng_eng_fhd, 1)
+    call bl_rng_build_engine(rng_eng_particle, 20)       
+    call bl_rng_build_engine(rng_eng_select, 300)
+    call bl_rng_build_engine(rng_eng_scatter_theta, 4000)
+    call bl_rng_build_engine(rng_eng_scatter_phi, 50000)
+    call bl_rng_build_engine(rng_eng_general, 600000)
 
     call bl_rng_build_distro(nm_fhd, 0.0d0, 1.0d0)
     call bl_rng_build_distro(nm_particle, 0.0d0, 1.0d0)

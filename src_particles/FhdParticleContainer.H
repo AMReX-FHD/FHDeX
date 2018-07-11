@@ -78,27 +78,44 @@ public:
                               MultiFab& particleDensity,
                               std::array<MultiFab, 3>& particleVelocity,
                               MultiFab& particleTemperature,
-                              MultiFab& particleSpeed,
+                              std::array<MultiFab, 3>& particleMomentum,
+                              MultiFab& particleEnergy,
                               MultiFab& cellVols, const Real Neff);
 
-    void EvaluateStats(       MultiFab& particleMembers,
+    void InitializeFields(      MultiFab& particleMembers,
                               MultiFab& particleDensity,
                               std::array<MultiFab, 3>& particleVelocity,
                               MultiFab& particleTemperature,
+                              MultiFab& cellVols, const species particleInfo);
+
+    void EvaluateStats(
+                              MultiFab& particleMembers,
+                              MultiFab& particleDensity,
+                              std::array<MultiFab, 3>& particleVelocity,
+                              MultiFab& particleTemperature,
+                              std::array<MultiFab, 3>& particleMomentum,
+                              MultiFab& particleEnergy,
 
                               MultiFab& particleMembersMean,
                               MultiFab& particleDensityMean,
                               std::array<MultiFab, 3>& particleVelocityMean,
                               MultiFab& particleTemperatureMean,
-                              MultiFab& particleSpeedMean,
+                              std::array<MultiFab, 3>& particleMomentumMean,
+                              MultiFab& particleEnergyMean,
 
                               MultiFab& particleMembersVar,
                               MultiFab& particleDensityVar,
                               std::array<MultiFab, 3>& particleVelocityVar,
                               MultiFab& particleTemperatureVar,
-                              MultiFab& particleSpeedVar,
+                              std::array<MultiFab, 3>& particleMomentumVar,
+                              MultiFab& particleEnergyVar,
 
-                              MultiFab& cellVols, const Real Neff, const Real delt, int steps);
+                              MultiFab& particleGVar, 
+                              MultiFab& particleKGCross,
+                              MultiFab& particleKRhoCross, 
+                              MultiFab& particleRhoGCross,
+
+                              MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
     void WriteParticlesAscii(int n);
 

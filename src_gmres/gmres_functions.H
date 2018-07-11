@@ -102,11 +102,35 @@ void CCApplyOp(amrex::MultiFab& phi,
                const amrex::Geometry& geom);
 
 // In NormInnerProduct.cpp
+void SumStag(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
+	     const int& comp,
+	     amrex::Vector<amrex::Real>& sum,
+	     const bool& divide_by_ncells = false);
+
+void SumCC(const amrex::MultiFab& m1,
+	   const int& comp,
+	   amrex::Real& sum,
+	   const bool& divide_by_ncells = false);
+
 void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp1, 
                    const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m2,
                    const int& comp2,
                    amrex::Vector<amrex::Real>& prod_val);
+
+void CCInnerProd(const amrex::MultiFab& m1,
+		 const int& comp1,
+		 const amrex::MultiFab& m2,
+		 const int& comp2,
+		 amrex::Real& prod_val);
+
+void StagL2Norm(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
+		const int& comp,
+		amrex::Vector<amrex::Real>& norm_l2);
+
+void CCL2Norm(const amrex::MultiFab& m1,
+	      const int& comp,
+	      amrex::Real& norm_l2);
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Jacobi relaxation
 // if abs(visc_type) = 1, L = div beta grad

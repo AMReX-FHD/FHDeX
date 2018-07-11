@@ -15,6 +15,7 @@
 #include "rng_functions_F.H"
 
 #include "species.H"
+#include "surfaces.H"
 
 using namespace common;
 using namespace gmres;
@@ -96,16 +97,36 @@ void main_driver(const char* argv)
     species nitrogen;
 
     //Hard sphere nitrogen gas
-    nitrogen.gamma1 = 1.27;
+    /*nitrogen.gamma1 = 1.27;
     nitrogen.m = 4.65E-26;
     nitrogen.R = 1.3806E-23/nitrogen.m;
     nitrogen.T = 293;
     nitrogen.mu = 1.757E-5;
     nitrogen.d = sqrt((nitrogen.gamma1*nitrogen.m*sqrt(nitrogen.R*nitrogen.T))/(4*sqrt(3.14159265359)*nitrogen.mu));    
 
-    nitrogen.mfp = 0.1;
+    nitrogen.mfp = 5e-7;
 
     nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
+
+    nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
+
+    nitrogen.cp = sqrt(2.0*nitrogen.R*nitrogen.T);*/
+
+    nitrogen.gamma1 = 1.27;
+    nitrogen.m = 6.63E-26;
+    nitrogen.R = 1.3806E-23/nitrogen.m;
+    nitrogen.T = 273;
+    nitrogen.mu = 2.1E-5;
+    nitrogen.d = sqrt((nitrogen.gamma1*nitrogen.m*sqrt(nitrogen.R*nitrogen.T))/(4*sqrt(3.14159265359)*nitrogen.mu));
+    nitrogen.d = 3.66e-10;        
+
+    nitrogen.mfp = (6.26e-8);
+
+    //nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
+
+    nitrogen.n0 = 1.78/nitrogen.m;
+
+    //Print() << nitrogen.n0*nitrogen.m << "\n";
 
     nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
 
@@ -119,8 +140,13 @@ void main_driver(const char* argv)
 #endif
 
     double realParticles = domainVol*nitrogen.n0;
-    const int totalParticles = 100000;
-    nitrogen.Neff = realParticles/totalParticles;
+    //nitrogen.Neff = realParticles/totalParticles;
+    //const int totalParticles = 1000000;
+
+    Print() << "Real particles: " << realParticles << "\n";
+
+    nitrogen.Neff = 1;
+    const int totalParticles = realParticles;
 
     Print() << "Neff: " << nitrogen.Neff << "\n";
 
@@ -132,7 +158,11 @@ void main_driver(const char* argv)
 
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Particles per cell: " << ppc << "\n";
+
+    Print() << "rho0: " << nitrogen.m*nitrogen.n0 << "\n";
+    Print() << "Adjusted rho0: " << nitrogen.m*nitrogen.Neff*totalParticles/domainVol << "\n";
     
+
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
@@ -265,7 +295,11 @@ void main_driver(const char* argv)
     particleVelocity[0].define(bc, dmap, 1, 0);
     particleVelocity[1].define(bc, dmap, 1, 0);
     particleVelocity[2].define(bc, dmap, 1, 0);
-    MultiFab particleSpeed(bc, dmap, 1, 0);
+    std::array< MultiFab, 3> particleMomentum;
+    particleMomentum[0].define(bc, dmap, 1, 0);
+    particleMomentum[1].define(bc, dmap, 1, 0);
+    particleMomentum[2].define(bc, dmap, 1, 0);
+    MultiFab particleEnergy(bc, dmap, 1, 0);
 
     MultiFab particleMembersMean(bc, dmap, 1, 0);
     MultiFab particleDensityMean(bc, dmap, 1, 0);
@@ -275,7 +309,13 @@ void main_driver(const char* argv)
     particleVelocityMean[0].define(bc, dmap, 1, 0);
     particleVelocityMean[1].define(bc, dmap, 1, 0);
     particleVelocityMean[2].define(bc, dmap, 1, 0);
+    std::array< MultiFab, 3> particleMomentumMean;
+    particleMomentumMean[0].define(bc, dmap, 1, 0);
+    particleMomentumMean[1].define(bc, dmap, 1, 0);
+    particleMomentumMean[2].define(bc, dmap, 1, 0);
+    MultiFab particleEnergyMean(bc, dmap, 1, 0);
 
+    
     MultiFab particleMembersVar(bc, dmap, 1, 0);
     MultiFab particleDensityVar(bc, dmap, 1, 0);
     MultiFab particleTemperatureVar(bc, dmap, 1, 0);
@@ -284,6 +324,17 @@ void main_driver(const char* argv)
     particleVelocityVar[0].define(bc, dmap, 1, 0);
     particleVelocityVar[1].define(bc, dmap, 1, 0);
     particleVelocityVar[2].define(bc, dmap, 1, 0);
+    std::array< MultiFab, 3> particleMomentumVar;
+    particleMomentumVar[0].define(bc, dmap, 1, 0);
+    particleMomentumVar[1].define(bc, dmap, 1, 0);
+    particleMomentumVar[2].define(bc, dmap, 1, 0);
+    MultiFab particleEnergyVar(bc, dmap, 1, 0);
+
+    MultiFab particleGVar(bc, dmap, 1, 0);
+    MultiFab particleKGCross(bc, dmap, 1, 0);
+    MultiFab particleKRhoCross(bc, dmap, 1, 0);
+    MultiFab particleRhoGCross(bc, dmap, 1, 0);
+
 
     particleMembers.setVal(0.0);
     particleDensity.setVal(0.0);
@@ -291,7 +342,10 @@ void main_driver(const char* argv)
     particleVelocity[1].setVal(0.0);
     particleVelocity[2].setVal(0.0);
     particleTemperature.setVal(0.0);
-    particleSpeed.setVal(0.0);
+    particleMomentum[0].setVal(0.0);
+    particleMomentum[1].setVal(0.0);
+    particleMomentum[2].setVal(0.0);
+    particleEnergy.setVal(0.0);
 
     particleMembersMean.setVal(0.0);
     particleDensityMean.setVal(0);
@@ -299,7 +353,10 @@ void main_driver(const char* argv)
     particleVelocityMean[1].setVal(0);
     particleVelocityMean[2].setVal(0);
     particleTemperatureMean.setVal(0);
-    particleSpeedMean.setVal(0);
+    particleMomentumMean[0].setVal(0.0);
+    particleMomentumMean[1].setVal(0.0);
+    particleMomentumMean[2].setVal(0.0);
+    particleEnergyMean.setVal(0.0);
 
     particleMembersVar.setVal(0.0);
     particleDensityVar.setVal(0);
@@ -307,7 +364,15 @@ void main_driver(const char* argv)
     particleVelocityVar[1].setVal(0);
     particleVelocityVar[2].setVal(0);
     particleTemperatureVar.setVal(0);
-    particleSpeedVar.setVal(0);
+    particleMomentumVar[0].setVal(0.0);
+    particleMomentumVar[1].setVal(0.0);
+    particleMomentumVar[2].setVal(0.0);
+    particleEnergyVar.setVal(0.0);
+
+    particleGVar.setVal(0.0);
+    particleKGCross.setVal(0.0);
+    particleKRhoCross.setVal(0.0);
+    particleRhoGCross.setVal(0.0);
 
 
     const Real* dx = geom.CellSize();
@@ -350,22 +415,27 @@ void main_driver(const char* argv)
     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
     
-
-
-
     // compute the time step
     //Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     // kinetic time step
-    Real dt = 0.25*nitrogen.mfp/sqrt(2.0*nitrogen.R*nitrogen.T);
-    
+    Real dt = 0.1*nitrogen.mfp/sqrt(2.0*nitrogen.R*nitrogen.T);
     Print() << "Step size: " << dt << "\n";
         
+    dt = 1e-12;
+    dt = dt;
+    Print() << "Step size: " << dt << "\n";
+
+    //while(true);
 
     int step = 0;
     Real time = 0.;
     int statsCount = 1;
 
+    //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
+    surface surfaceList[6];
+
+    BuildSurfaces(surfaceList,6);
 
     //Particles! Build on geom & box array for collision cells
     FhdParticleContainer particles(geomC, dmap, bc);
@@ -377,17 +447,17 @@ void main_driver(const char* argv)
 
     particles.InitParticles(ppc, nitrogen);
 
-
-
     particles.UpdateCellVectors();
 
-    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+    particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, nitrogen);
+
+    //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
     // write out initial state
     WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particles);
 
     //Time stepping loop
-   for(step=1;step<=max_step;++step)
+    for(step=1;step<=max_step;++step)
     {
         AMREX_D_TERM(
         umac[0].FillBoundary(geom.periodicity());,
@@ -419,12 +489,13 @@ void main_driver(const char* argv)
 
         particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
-        particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleSpeed, cellVols, nitrogen.Neff);
+        particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, cellVols, nitrogen.Neff);
 
-        if(step >=50 )
+        if(step >= 0 )
         {
-          //  particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleSpeedMean,
-            //                        particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleSpeedVar, cellVols, nitrogen.Neff, dt,statsCount);
+            //particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean,
+            //                        particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, cellVols, nitrogen, dt,statsCount);
+
 
             statsCount++;
         }    
