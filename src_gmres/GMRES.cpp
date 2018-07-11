@@ -113,8 +113,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     // preconditioned norm_b: norm_pre_b
     ApplyPrecon(b_u,b_p,tmp_u,tmp_p,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom);
     StagL2Norm(tmp_u,0,norm_u);
-//    call stag_l2_norm(mla,tmp_u,norm_u)
-//    call cc_l2_norm(mla,tmp_p,norm_p)
+    CCL2Norm(tmp_p,0,norm_p);
     norm_p = p_norm_weight*norm_p;
     norm_pre_b = sqrt(norm_u*norm_u+norm_p*norm_p);
 
@@ -157,8 +156,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         tmp_p.mult(-1.,0,1,0);
         
         // un-preconditioned residuals
-//       call stag_l2_norm(mla,tmp_u, norm_u_noprecon)
-//       call cc_l2_norm(mla,tmp_p,norm_p_noprecon)
+        StagL2Norm(tmp_u,0,norm_u_noprecon);
+        CCL2Norm(tmp_p,0,norm_p_noprecon);
         norm_p_noprecon = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes=sqrt(norm_u_noprecon*norm_u_noprecon+norm_p_noprecon*norm_p_noprecon);
         if(iter==0) {
@@ -181,8 +180,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         ApplyPrecon(tmp_u,tmp_p,r_u,r_p,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom);
 
         // resid = sqrt(dot_product(r, r))
-//       call stag_l2_norm(mla,r_u,norm_u)
-//       call cc_l2_norm(mla,r_p,norm_p)
+        StagL2Norm(r_u,0,norm_u);
+        CCL2Norm(r_p,0,norm_p);
         norm_p = p_norm_weight*norm_p;
         norm_resid = sqrt(norm_u*norm_u+norm_p*norm_p);
         // If first iteration, save the initial preconditioned residual
@@ -276,8 +275,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                 // form H(k,i) Hessenberg matrix
                 // H(k,i) = dot_product(w, V(k))
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
-//                call stag_inner_prod(mla,w_u,1,V_u,k,inner_prod_vel)
-//                call cc_inner_prod(mla,w_p,1,V_p,k,inner_prod_pres)
+                StagInnerProd(w_u,0,V_u,k,inner_prod_vel);
+                CCInnerProd(w_p,0,V_p,k,inner_prod_pres);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0) +
                           pow(p_norm_weight,2.0)*inner_prod_pres;
 
@@ -294,8 +293,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
             }
 
             // H(i+1,i) = norm(w)
-//            call stag_l2_norm(mla,w_u,norm_u)
-//            call cc_l2_norm(mla,w_p,norm_p)
+            StagL2Norm(w_u,0,norm_u);
+            CCL2Norm(w_p,0,norm_p);
             norm_p = p_norm_weight*norm_p;
             H[i+1][i] = sqrt(norm_u*norm_u+norm_p*norm_p);
 
@@ -312,7 +311,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                 Abort("GMRES.cpp: error in orthogonalization");
             }
 
-//            call least_squares(i, H, cs, sn, s)   ! solve least square problem
+            LeastSquares(i,H,cs,sn,s); // solve least square problem
             norm_resid_est = abs(s[i+1]);
 
             if (gmres_verbose >= 2) {
