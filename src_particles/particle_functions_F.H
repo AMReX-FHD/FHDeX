@@ -20,7 +20,9 @@ extern "C"
                         const int* chi,
                         const amrex_real* plo,
                         const amrex_real* dx,
-                        const amrex_real* dt);
+                        const amrex_real* dt,
+                        const void* surfaces,
+                        const int* ns);
 
     void move_particles_fhd(void* particles,
                         const int *np,

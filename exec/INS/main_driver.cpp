@@ -433,9 +433,20 @@ void main_driver(const char* argv)
     int statsCount = 1;
 
     //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
-    surface surfaceList[6];
 
-    BuildSurfaces(surfaceList,6);
+
+#if (BL_SPACEDIM == 3)
+    int surfaceCount = 6;
+    surface surfaceList[surfaceCount];
+    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+#endif
+#if (BL_SPACEDIM == 2)
+    int surfaceCount = 4;
+    surface surfaceList[surfaceCount];
+    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+#endif
+
+
 
     //Particles! Build on geom & box array for collision cells
     FhdParticleContainer particles(geomC, dmap, bc);
@@ -451,7 +462,7 @@ void main_driver(const char* argv)
 
     particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, nitrogen);
 
-    //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
     // write out initial state
     WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particles);
@@ -476,10 +487,10 @@ void main_driver(const char* argv)
     //Print() << "Here2!\n";
 
 #if (AMREX_SPACEDIM == 2)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount);
 #endif
 #if (AMREX_SPACEDIM == 3)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount);
 #endif
 
     //Print() << "Here3!\n";
@@ -494,7 +505,7 @@ void main_driver(const char* argv)
         if(step >= 0 )
         {
             //particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean,
-            //                        particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, cellVols, nitrogen, dt,statsCount);
+              //                      particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, cellVols, nitrogen, dt,statsCount);
 
 
             statsCount++;

@@ -86,7 +86,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                                            MultiFab& betaNodal, //Not necessary but may use later
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp)
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const surface* surfaceList, const int surfaceCount)
 {
     
 
@@ -126,7 +127,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                        m_vector_size[grid_id].dataPtr(),
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                       ZFILL(plo), ZFILL(dx), &dt);
+                       ZFILL(plo), ZFILL(dx), &dt,
+                       surfaceList, &surfaceCount);
 
         /*move_particles_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),

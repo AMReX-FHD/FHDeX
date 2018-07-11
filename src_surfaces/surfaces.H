@@ -1,8 +1,16 @@
 #ifndef _surfaces_H_
 #define _surfaces_H_
 
+#include <AMReX.H>
+#include <AMReX_MultiFab.H>
+
+using namespace amrex;
+
+//Parametric plane
+
 typedef struct {
 
+#if (BL_SPACEDIM == 3)
     double x0;
     double y0;
     double z0;
@@ -15,20 +23,44 @@ typedef struct {
     double vy;
     double vz;
 
-    double nx;
-    double ny;
-    double nz;
+    double lnx;
+    double lny;
+    double lnz;
 
-    double utop;
-    double vtop;
+    double rnx;
+    double rny;
+    double rnz;
 
-    double porosity;
-    double specularity;
+    double uTop;
+    double vTop;
+#endif
 
-    double temperature;
+#if (BL_SPACEDIM == 2)
+    double x0;
+    double y0;
+
+    double ux;
+    double uy;
+
+    double lnx;
+    double lny;
+
+    double rnx;
+    double rny;
+
+    double uTop;
+#endif
+
+    double porosityLeft;
+    double specularityLeft;
+    double temperatureLeft;
+
+    double porosityRight;
+    double specularityRight;
+    double temperatureRight;
 
 } surface;
 
-void BuildSurfaces(surface* surfaceList, int surfaces);
+void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainLo, const Real* domainHi);
 
 #endif

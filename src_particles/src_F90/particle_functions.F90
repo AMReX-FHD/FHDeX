@@ -53,17 +53,19 @@ contains
 end module cell_sorted_particle_module
 
 subroutine move_particles_dsmc(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt) &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt, surfaces, ns) &
      bind(c,name="move_particles_dsmc")
   
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+  use surfaces_module
   
   implicit none
 
   type(particle_t), intent(inout), target :: particles(np)
-  integer(c_int), intent(in) :: np
+  type(surface_t), intent(in), target :: surfaces(ns)
+  integer(c_int), intent(in) :: np, ns
   integer(c_int), intent(in) :: lo(3), hi(3)
   integer(c_int), intent(in) :: clo(3), chi(3)
   type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -72,13 +74,23 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   real(amrex_real), intent(in) :: dx(3)
   real(amrex_real), intent(in) :: dt
   
-  integer :: i, j, k, p, cell_np, new_np
+  integer :: i, j, k, p, cell_np, new_np, intsurf, intside
   integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
-  real(amrex_real) inv_dx(3)
+  type(surface_t), pointer :: surf
+  real(amrex_real) inv_dx(3), proj(3), runtime, inttime, adj
+
+  adj = 0.999999
 
   inv_dx = 1.d0/dx
+
+  surf => surfaces(1)
+
+  part => particles(1)
+
+  !print *, surf%ux, surf%uy, surf%uz
+  !call find_intersect_3d(part%vel(1),part%vel(2),part%vel(3),part%pos(1),part%pos(2),part%pos(3), dt,surfaces,ns)
   
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -89,14 +101,30 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
            new_np = cell_np
            p = 1
            do while (p <= new_np)
+              
               part => particles(cell_parts(p))
 
-              ! move the particle in a straight line
-              part%pos(1) = part%pos(1) + dt*part%vel(1)
-              part%pos(2) = part%pos(2) + dt*part%vel(2)
-#if (BL_SPACEDIM == 3)
-              part%pos(3) = part%pos(3) + dt*part%vel(3)
+              runtime = dt
+
+              do while (runtime .gt. 0)
+#if (BL_SPACEDIM == 3)                
+                call find_intersect(part%vel(1),part%vel(2),part%vel(3),part%pos(1),part%pos(2),part%pos(3),runtime, surfaces, ns, intsurf, inttime, intside)
 #endif
+                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+                part%pos(1) = part%pos(1) + runtime*part%vel(1)*adj
+                part%pos(2) = part%pos(2) + runtime*part%vel(2)*adj
+#if (BL_SPACEDIM == 3)
+                part%pos(3) = part%pos(3) + runtime*part%vel(3)*adj
+#endif
+                if(intsurf .gt. 0) then
+
+                !apply_bc()
+
+                endif
+
+
+              end do
+
               ! if it has changed cells, remove from vector.
               ! otherwise continue
 
@@ -122,78 +150,6 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   end do
   
 end subroutine move_particles_dsmc
-
-subroutine move_particles_thermal_gradient(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt) &
-     bind(c,name="move_particles_thermal_gradient")
-  
-  use amrex_fort_module, only: amrex_real
-  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
-  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  
-  implicit none
-
-  type(particle_t), intent(inout), target :: particles(np)
-  integer(c_int), intent(in) :: np
-  integer(c_int), intent(in) :: lo(3), hi(3)
-  integer(c_int), intent(in) :: clo(3), chi(3)
-  type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  real(amrex_real), intent(in) :: plo(3), phi(3)
-  real(amrex_real), intent(in) :: dx(3)
-  real(amrex_real), intent(in) :: dt
-  
-  integer :: i, j, k, p, cell_np, new_np
-  integer :: cell(3)
-  integer(c_int), pointer :: cell_parts(:)
-  type(particle_t), pointer :: part
-  real(amrex_real) inv_dx(3)
-
-  inv_dx = 1.d0/dx
-  
-  do k = lo(3), hi(3)
-     do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-           cell_np = cell_part_cnt(i,j,k)
-           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
-
-           new_np = cell_np
-           p = 1
-           do while (p <= new_np)
-              part => particles(cell_parts(p))
-
-              ! move the particle in a straight line
-              part%pos(1) = part%pos(1) + dt*part%vel(1)
-              part%pos(2) = part%pos(2) + dt*part%vel(2)
-#if (BL_SPACEDIM == 3)
-              part%pos(3) = part%pos(3) + dt*part%vel(3)
-#endif
-              ! if it has changed cells, remove from vector.
-              ! otherwise continue
-
-              cell(1) = floor((part%pos(1) - plo(1))*inv_dx(1))              
-              cell(2) = floor((part%pos(2) - plo(2))*inv_dx(2))
-#if (BL_SPACEDIM == 3)
-              cell(3) = floor((part%pos(3) - plo(3))*inv_dx(3))
-#else
-              cell(3) = 0
-#endif
-              if ((cell(1) /= i) .or. (cell(2) /= j) .or. (cell(3) /= k)) then
-                 part%sorted = 0
-                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
-              else
-                 p = p + 1
-              end if
-           end do
-
-           cell_part_cnt(i,j,k) = new_np
-           
-        end do
-     end do
-  end do
-  
-end subroutine move_particles_thermal_gradient
-
 
 subroutine move_particles_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt, plof, dxf, &

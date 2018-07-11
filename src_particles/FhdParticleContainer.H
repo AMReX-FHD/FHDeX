@@ -10,6 +10,7 @@
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "species.H"
+#include "surfaces.H"
 
 namespace amrex {
 
@@ -126,7 +127,8 @@ public:
                                            MultiFab& betaNodal, //Not necessary but may use later
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp);
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const surface* surfaceList, const int surfaceCount);
 
     void ReBin();
 
