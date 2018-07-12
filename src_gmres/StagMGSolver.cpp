@@ -559,14 +559,13 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	// SumCC(beta_cc_mg[0],0,sum_cc,1);
 	// Print() << "\t sum_cc = " << sum_cc << "\n";
 
-	// amrex::Real prod_cc = 0.;
+        // double prod_cc = 0.;
 	// CCInnerProd(beta_cc_mg[0],0,gamma_cc_mg[0],0,prod_cc);
 	// Print() << "\t cc_inner_prod = " << prod_cc << "\n";
 
-	// StagL2Norm(phi_fc_mg[0],0,resid_l2);
-	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	//   Print() << "\t stag_norm_l2 " << "along dim " << d << " = " << resid_l2[d] << "\n";
-	// }
+	// double prod_stag = 0.;
+	// StagL2Norm(phi_fc_mg[0],0,prod_stag);
+	// Print() << "\t stag_norm_l2 = " << prod_stag << "\n";
 
 	// CCL2Norm(beta_cc_mg[0],0,prod_cc);
 	// Print() << "\t cc_norm_l2 = " << prod_cc << "\n";
