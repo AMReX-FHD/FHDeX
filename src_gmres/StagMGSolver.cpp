@@ -29,6 +29,10 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const Real& theta,
                   const Geometry& geom)
 {
+    if (stag_mg_verbosity >= 1) {
+        Print() << "Begin call to stag_mg_solver\n";
+    }
+
     Vector<int> is_periodic(AMREX_SPACEDIM);
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         is_periodic[i] = geom.isPeriodic(i);
@@ -644,7 +648,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     // vcycle_counter += AMREX_SPACEDIM*stag_mg_max_vcycles;
 
     if (stag_mg_verbosity >= 1) {
-        Print() << "\nEnd call to stag_mg_solver\n";
+        Print() << "End call to stag_mg_solver\n";
     }
 
 }
