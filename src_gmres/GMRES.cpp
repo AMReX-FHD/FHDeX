@@ -1,3 +1,5 @@
+#include <AMReX_VisMF.H>
+
 #include "common_functions.H"
 #include "common_functions_F.H"
 #include "common_namespace.H"
@@ -268,9 +270,9 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
             // tmp=A*V(i)
             // we use r_p and r_u as temporaries to hold ith component of V
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                MultiFab::Copy(r_u[d],V_u[d],0,i,1,0);
+                MultiFab::Copy(r_u[d],V_u[d],i,0,1,0);
             }
-            MultiFab::Copy(r_p,V_p,0,i,1,0);
+            MultiFab::Copy(r_p,V_p,i,0,1,0);
 
             ApplyMatrix(tmp_u,tmp_p,r_u,r_p,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom);
 
@@ -289,11 +291,11 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                 // w = w - H(k,i) * V(k)
                 //use tmp_u and tmp_p as temporaries to hold kth component of V(k)
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    MultiFab::Copy(tmp_u[d],V_u[d],0,k,1,0);
+                    MultiFab::Copy(tmp_u[d],V_u[d],k,0,1,0);
                     tmp_u[d].mult(H[k][i],0,1,0);
                     MultiFab::Subtract(w_u[d],tmp_u[d],0,0,1,0);
                 }
-                MultiFab::Copy(tmp_p,V_p,0,k,1,0);
+                MultiFab::Copy(tmp_p,V_p,k,0,1,0);
                 tmp_p.mult(H[k][i],0,1,0);
                 MultiFab::Subtract(w_p,tmp_p,0,0,1,0);
             }
@@ -307,10 +309,10 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
             // V(i+1) = w / H(i+1,i)
             if (H[i+1][i] != 0.) {
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    MultiFab::Copy(V_u[d],w_u[d],i+1,0,1,0);
+                    MultiFab::Copy(V_u[d],w_u[d],0,i+1,1,0);
                     V_u[d].mult(1./H[i+1][i],i+1,1,0);
                 }
-                MultiFab::Copy(V_p,w_p,i+1,0,1,0);
+                MultiFab::Copy(V_p,w_p,0,1,1,0);
                 V_p.mult(1./H[i+1][i],i+1,1,0);
             }
             else {
@@ -390,10 +392,10 @@ void UpdateSol(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
     // set x = x + V(i)
     for (int iter=0; iter<=i; ++iter) {
         V_p.mult(y[iter],iter,1,0);
-        MultiFab::Add(x_p,V_p,0,iter,1,0);
+        MultiFab::Add(x_p,V_p,iter,0,1,0);
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             V_u[d].mult(y[iter],iter,1,0);
-            MultiFab::Add(x_u[d],V_u[d],0,iter,1,0);
+            MultiFab::Add(x_u[d],V_u[d],iter,0,1,0);
         }
     }
 }
