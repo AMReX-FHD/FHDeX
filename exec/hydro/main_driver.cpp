@@ -161,7 +161,7 @@ void main_driver(const char* argv)
                      umac[2].FillBoundary(geom.periodicity()););
 
         // call GMRES here
-        GMRES(umac,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
+        GMRES(umac,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
