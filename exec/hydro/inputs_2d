@@ -13,7 +13,7 @@
   fixed_dt = 1.e-3
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 100
   plot_int = 1
 
   ! Viscous friction L phi operator
@@ -36,8 +36,10 @@
 
 &gmres
 
+  mg_verbose = 0                  ! multigrid verbosity
+
   ! Staggered multigrid solver parameters
-  stag_mg_verbosity = 2           ! verbosity
+  stag_mg_verbosity = 0          ! verbosity
   stag_mg_max_vcycles = 1         ! max number of v-cycles
   stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
   stag_mg_bottom_solver = 0       ! bottom solver type
@@ -56,7 +58,7 @@
   ! GMRES solver parameters
   gmres_rel_tol = 1.e-12                ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
-  gmres_verbose = 2                     ! gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_verbose = 1                     ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20                  ! max number of outer iterations
   gmres_max_inner = 5                   ! max number of inner iterations, or restart number
   gmres_max_iter = 100                  ! max number of gmres iterations
