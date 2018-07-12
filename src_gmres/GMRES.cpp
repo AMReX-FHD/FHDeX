@@ -117,6 +117,12 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     norm_p = p_norm_weight*norm_p;
     norm_pre_b = sqrt(norm_u*norm_u+norm_p*norm_p);
 
+    // calculate the l2 norm of rhs
+    StagL2Norm(b_u,0,norm_u);
+    CCL2Norm(b_p,0,norm_p);
+    norm_p = p_norm_weight*norm_p;
+    norm_b = sqrt(norm_u*norm_u+norm_p*norm_p);
+
     //! If norm_b=0 we should return zero as the solution and "return" from this routine
     // It is important to use gmres_abs_tol and not 0 since sometimes due to roundoff we 
     // get a nonzero number that should really be zero
