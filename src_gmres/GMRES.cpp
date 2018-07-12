@@ -45,7 +45,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     Vector<Real> cs(gmres_max_inner);
     Vector<Real> sn(gmres_max_inner);
     Vector<Real>  y(gmres_max_inner);
-    Vector<Real>  s(gmres_max_inner);
+    Vector<Real>  s(gmres_max_inner+1);
     
     Vector<Vector<Real>> H(gmres_max_inner+1,Vector<Real>(gmres_max_inner));
 
