@@ -297,7 +297,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
                 StagInnerProd(w_u,0,V_u,k,inner_prod_vel);
                 CCInnerProd(w_p,0,V_p,k,inner_prod_pres);
-                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0) +
+                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) +
                           pow(p_norm_weight,2.0)*inner_prod_pres;
 
                 // w = w - H(k,i) * V(k)
@@ -332,7 +332,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
             }
 
             LeastSquares(i,H,cs,sn,s); // solve least square problem
-            norm_resid_est = abs(s[i+1]);
+            norm_resid_est = std::abs(s[i+1]);
 
             if (gmres_verbose >= 2) {
                 Print() << "Total iter " << total_iter << ",  est. rel. resid. |Pr|/(Pr0,b)= "
@@ -448,7 +448,7 @@ void RotMat(Real a, Real b,
         cs = 1.;
         sn = 0.;
     }
-    else if (abs(b) > abs(a)) {
+    else if (std::abs(b) > std::abs(a)) {
         temp = a/b;
         sn = 1./sqrt(1.+temp*temp);
         cs = temp*sn;
