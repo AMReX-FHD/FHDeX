@@ -102,17 +102,17 @@ void main_driver(const char* argv)
     beta_ed[2].setVal(visc_coef*dt);
 #endif
 
-    // gamma cell centred
+    // cell-centered gamma
     MultiFab gamma(ba, dmap, 1, 1);
     gamma.setVal(0.);
 
-
-    // for GMRES solve
+    // rhs_p GMRES solve
     MultiFab gmres_rhs_p(ba, dmap, 1, 0);
-    gmres_rhs_p.setVal(.0);
+    gmres_rhs_p.setVal(0.);
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
+    pres.setVal(0.);  // initial guess
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
@@ -144,6 +144,11 @@ void main_driver(const char* argv)
                                     geom.ProbLo(), geom.ProbHi() ,&dm, 
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
     }
+
+    // initial guess for new solution
+    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
+                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
+                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
     int step = 0;
     Real time = 0.;
