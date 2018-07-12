@@ -324,7 +324,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                     MultiFab::Copy(V_u[d],w_u[d],0,i+1,1,0);
                     V_u[d].mult(1./H[i+1][i],i+1,1,0);
                 }
-                MultiFab::Copy(V_p,w_p,0,1,1,0);
+                MultiFab::Copy(V_p,w_p,0,i+1,1,0);
                 V_p.mult(1./H[i+1][i],i+1,1,0);
             }
             else {
