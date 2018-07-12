@@ -27,8 +27,6 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
 
     MLABecLaplacian mlabec({geom}, {ba}, {dmap}, info);
 
-
-
     // order of stencil
     int stencil_order = 2;
     mlabec.setMaxOrder(stencil_order);
@@ -54,6 +52,8 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
     mlabec.setBCoeffs(lev,amrex::GetArrOfConstPtrs(alphainv_fc));
 
     MLMG mlmg(mlabec);
+
+    mlmg.setVerbose(mg_verbose);
 
     // for the preconditioner, we do 1 v-cycle and the bottom solver is smooths
     if (!full_solve) {
