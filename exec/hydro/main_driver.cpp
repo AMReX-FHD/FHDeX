@@ -1,6 +1,8 @@
 
+#include "hydro_test_functions.H"
 
 #include "hydro_functions.H"
+#include "hydro_functions_F.H"
 
 #include "common_functions.H"
 #include "common_functions_F.H"
@@ -46,8 +48,6 @@ void main_driver(const char* argv)
         }
     }
 
-    Real dt = fixed_dt;
-
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
@@ -70,6 +70,9 @@ void main_driver(const char* argv)
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
+
+    Real dt = fixed_dt;
+    const Real* dx = geom.CellSize();
   
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
@@ -125,6 +128,18 @@ void main_driver(const char* argv)
                  umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
+    // advective terms
+    std::array< MultiFab, AMREX_SPACEDIM > advFluxdiv;
+    AMREX_D_TERM(advFluxdiv[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 advFluxdiv[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 advFluxdiv[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    // staggered momentum
+    std::array< MultiFab, AMREX_SPACEDIM > uMom;
+    AMREX_D_TERM(uMom[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 uMom[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 uMom[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
 
@@ -164,6 +179,18 @@ void main_driver(const char* argv)
         AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
+
+	// compute advective term
+	// let rho = 1
+        AMREX_D_TERM(MultiFab::Copy(uMom[0], umac[0], 0, 0, 1, 0);,
+                     MultiFab::Copy(uMom[1], umac[1], 0, 0, 1, 0);,
+                     MultiFab::Copy(uMom[2], umac[2], 0, 0, 1, 0););
+
+        AMREX_D_TERM(uMom[0].FillBoundary(geom.periodicity());,
+                     uMom[1].FillBoundary(geom.periodicity());,
+                     uMom[2].FillBoundary(geom.periodicity()););
+
+	// MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
 
         // call GMRES here
         GMRES(umac,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);

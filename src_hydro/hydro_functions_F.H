@@ -9,25 +9,25 @@ extern "C"
     // these are interfaces to fortran subroutines
 
 ///////////////////////////
-// in mk_advective_m_fluxdiv.f90
+// in mk_advective_m_fluxdiv.F90
 
-  subroutine mk_advective_m_fluxdiv(lo,hi, &
-				    umac, umaclo, umachi, &
-				    vmac, vmaclo, vmachi, &
+  void mk_advective_m_fluxdiv(const int* lo, const int* hi,
+			      const amrex_real* umac, const int* umaclo, const int* umachi,
+			      const amrex_real* vmac, const int* vmaclo, const int* vmachi,
 #if (AMREX_SPACEDIM == 3)
-				    wmac, wmaclo, wmachi, &
+			      const amrex_real* wmac, const int* wmaclo, const int* wmachi,
 #endif
-				    mx, mxlo, mxhi, &
-				    my, mylo, myhi, &
+			      const amrex_real* mx, const int* mxlo, const int* mxhi,
+			      const amrex_real* my, const int* mylo, const int* myhi,
 #if (AMREX_SPACEDIM == 3)
-				    mz, mzlo, mzhi, &
+			      const amrex_real* mz, const int* mzlo, const int* mzhi,
 #endif
-				    m_updatex, mudxlo, mudxhi, &
-				    m_updatey, mudylo, mudyhi, &
+			      const amrex_real* m_updatex, const int* mudxlo, const int* mudxhi,
+			      const amrex_real* m_updatey, const int* mudylo, const int* mudyhi,
 #if (AMREX_SPACEDIM == 3)
-				    m_updatez, mudzlo, mudzhi, &
+			      const amrex_real* m_updatez, const int* mudzlo, const int* mudzhi,
 #endif
-				    dx, increment);
+			      const amrex_real* dx, const bool* increment);
 
 ///////////////////////////
 
