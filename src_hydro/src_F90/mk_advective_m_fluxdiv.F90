@@ -18,7 +18,7 @@ contains
                                       my, mylo, myhi, &
                                       m_updatex, mudxlo, mudxhi, &
                                       m_updatey, mudylo, mudyhi, &
-                                      dx, increment)
+                                      dx, increment) bind(C,name="mk_advective_m_fluxdiv")
 
       integer         , intent(in   ) :: lo(2),hi(2)
       integer         , intent(in   ) :: umaclo(2),umachi(2), vmaclo(2),vmachi(2)
