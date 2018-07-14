@@ -31,7 +31,7 @@ contains
       double precision, intent(inout) :: m_updatex(mudxlo(1):mudxhi(1),mudxlo(2):mudxhi(2))
       double precision, intent(inout) :: m_updatey(mudylo(1):mudyhi(1),mudylo(2):mudyhi(2))
       double precision, intent(in   ) :: dx(2)
-      logical         , intent(in   ) :: increment
+      integer         , intent(in   ) :: increment
 
       ! local
       integer :: i,j
@@ -61,14 +61,14 @@ contains
       end do
       end do
 
-      if (increment) then
+      if (increment==1) then
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
             m_updatex(i,j) = m_updatex(i,j) - ( (mx_fluxx(i+1,j)-mx_fluxx(i,j)) * dxinv + &
                                                 (mx_fluxy(i,j+1)-mx_fluxy(i,j)) * dxinv )
          end do
          end do
-      else
+      else if (increment==0) then
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
             m_updatex(i,j) = -( (mx_fluxx(i+1,j)-mx_fluxx(i,j)) * dxinv + &
@@ -92,14 +92,14 @@ contains
       end do
       end do
 
-      if (increment) then
+      if (increment==1) then
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
             m_updatey(i,j) = m_updatey(i,j) - ( (my_fluxx(i+1,j)-my_fluxx(i,j)) * dxinv + &
                                                 (my_fluxy(i,j+1)-my_fluxy(i,j)) * dxinv )
          end do
          end do
-      else
+      else if (increment==0) then
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
             m_updatey(i,j) = -( (my_fluxx(i+1,j)-my_fluxx(i,j)) * dxinv + &
@@ -124,7 +124,7 @@ contains
                                       m_updatex, mudxlo, mudxhi, &
                                       m_updatey, mudylo, mudyhi, &
                                       m_updatez, mudzlo, mudzhi, &
-                                      dx, increment)
+                                      dx, increment) bind(C,name="mk_advective_m_fluxdiv")
 
       integer         , intent(in   ) :: lo(3),hi(3)
       integer         , intent(in   ) :: umaclo(3),umachi(3), vmaclo(3),vmachi(3), wmaclo(3),wmachi(3)
@@ -140,7 +140,7 @@ contains
       double precision, intent(inout) :: m_updatey(mudylo(1):mudyhi(1),mudylo(2):mudyhi(2),mudylo(3):mudyhi(3))
       double precision, intent(inout) :: m_updatez(mudzlo(1):mudzhi(1),mudzlo(2):mudzhi(2),mudzlo(3):mudzhi(3))
       double precision, intent(in   ) :: dx(3)
-      logical         , intent(in   ) :: increment
+      integer         , intent(in   ) :: increment
 
       ! local
       integer :: i,j,k
@@ -181,7 +181,7 @@ contains
       end do
       end do
 
-      if (increment) then
+      if (increment==1) then
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
@@ -191,7 +191,7 @@ contains
          end do
          end do
          end do
-      else
+      else if (increment==0) then
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
@@ -223,7 +223,7 @@ contains
       end do
       end do
 
-      if (increment) then
+      if (increment==1) then
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
@@ -233,7 +233,7 @@ contains
          end do
          end do
          end do
-      else
+      else if (increment==0) then
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
@@ -265,7 +265,7 @@ contains
       end do
       end do
 
-      if (increment) then
+      if (increment==1) then
          do k=lo(3),hi(3)+1
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)
@@ -275,7 +275,7 @@ contains
          end do
          end do
          end do
-      else
+      else if (increment==0) then
          do k=lo(3),hi(3)+1
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)

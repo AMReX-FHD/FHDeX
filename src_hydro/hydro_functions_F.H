@@ -27,7 +27,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
 			      const amrex_real* m_updatez, const int* mudzlo, const int* mudzhi,
 #endif
-			      const amrex_real* dx, const bool* increment);
+			      const amrex_real* dx, const int* increment=0);
 
 ///////////////////////////
 

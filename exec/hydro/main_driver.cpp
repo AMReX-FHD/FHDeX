@@ -117,6 +117,12 @@ void main_driver(const char* argv)
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
 
+    // rhs_u GMRES solve
+    std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
+    AMREX_D_TERM(gmres_rhs_u[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 gmres_rhs_u[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 gmres_rhs_u[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
@@ -190,10 +196,33 @@ void main_driver(const char* argv)
                      uMom[1].FillBoundary(geom.periodicity());,
                      uMom[2].FillBoundary(geom.periodicity()););
 
-	// MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
+	MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
+
+	for (int d=0; d<AMREX_SPACEDIM; d++) {
+	  // advFluxdiv[d].mult(dt);
+	  advFluxdiv[d].mult(-1.);
+	}
+
+	/////////////// Hack /////////////////////////////
+	// VisMF::Write(advFluxdiv[0],"a_advFluxdiv0");
+
+	// StagApplyOp(beta,gamma,beta_ed,umac,advFluxdiv,alpha_fc,dx,1.);
+
+	// VisMF::Write(advFluxdiv[0],"a_Lumac0");
+	// exit(0);
+	//////////////////////////////////////////////////
+
+	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
+                     MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
+                     MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
+
+	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
+                     MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
+                     MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
 
         // call GMRES here
-        GMRES(umac,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
+	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
+        // GMRES(umac,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,

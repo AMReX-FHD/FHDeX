@@ -11,6 +11,6 @@ void MkAdvMFluxdiv(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umac,
 		   const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m,
 		   std::array<amrex::MultiFab, AMREX_SPACEDIM>& m_update,
 		   const amrex::Real* dx,
-		   const bool& increment);
+		   const int& increment=0);
 
 #endif

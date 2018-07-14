@@ -11,7 +11,7 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 		   const std::array<MultiFab, AMREX_SPACEDIM>& m,
 		   std::array<MultiFab, AMREX_SPACEDIM>& m_update,
 		   const amrex::Real* dx,
-		   const bool& increment)
+		   const int& increment)
 {
     // Loop over boxes
     for (MFIter mfi(umac[0]); mfi.isValid(); ++mfi) {
