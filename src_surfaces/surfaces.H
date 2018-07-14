@@ -33,6 +33,18 @@ typedef struct {
 
     double uTop;
     double vTop;
+
+    double cosThetaLeft;
+    double sinThetaLeft;
+    double cosPhiLeft;
+    double sinPhiLeft;
+
+    double cosThetaRight;
+    double sinThetaRight;
+    double cosPhiRight;
+    double sinPhiRight;
+
+
 #endif
 
 #if (BL_SPACEDIM == 2)
@@ -49,6 +61,12 @@ typedef struct {
     double rny;
 
     double uTop;
+
+    double cosThetaLeft;
+    double sinThetaLeft;
+
+    double cosThetaRight;
+    double sinThetaRight;
 #endif
 
     double porosityLeft;

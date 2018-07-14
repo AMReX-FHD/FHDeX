@@ -124,7 +124,7 @@ void main_driver(const char* argv)
 
     //nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
 
-    nitrogen.n0 = 1.78/nitrogen.m;
+    nitrogen.n0 = 0.000001*1.78/nitrogen.m;
 
     //Print() << nitrogen.n0*nitrogen.m << "\n";
 
@@ -422,7 +422,7 @@ void main_driver(const char* argv)
     Real dt = 0.1*nitrogen.mfp/sqrt(2.0*nitrogen.R*nitrogen.T);
     Print() << "Step size: " << dt << "\n";
         
-    dt = 1e-12;
+    dt = 5e-12;
     dt = dt;
     Print() << "Step size: " << dt << "\n";
 
@@ -498,7 +498,7 @@ void main_driver(const char* argv)
         particles.ReBin();
         particles.UpdateCellVectors();
 
-        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
         particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, cellVols, nitrogen.Neff);
 

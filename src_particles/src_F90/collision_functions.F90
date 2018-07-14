@@ -31,11 +31,12 @@ contains
     type(particle_t), intent(in), target :: particles(np)
 
     type(particle_t), pointer :: p1
-    type(particle_t), pointer :: p2
+    !type(particle_t), pointer :: p2
 
 
     double precision fac
-    integer i,j,k,l,m, cell_np
+    integer i,j,k,l,cell_np
+    !integer m
 
     !fac1 = delt*neff/4d0
 
@@ -423,14 +424,14 @@ contains
 
     type(particle_t), intent(inout), target :: particles(np)
 
-    type(particle_t), pointer :: part
-    integer(c_int), pointer :: cell_parts(:)
+    !type(particle_t), pointer :: part
+    !integer(c_int), pointer :: cell_parts(:)
 
 
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k,cell_np,p
+    integer i,j,k
     double precision stepsminusone, stepsinv, lhs, cellcount, rhs, tempcm, cv, ncm, velcm, energycm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, densitymeaninvC
 
     stepsminusone = steps - 1
@@ -605,7 +606,7 @@ contains
 
     !double precision fac1, fac2, fac3, test, pairfrac
     integer i,j,k,p,cell_np
-    double precision membersinv, tempratio, varx, vary, varz, ratiox, ratioy, ratioz, totalenergy
+    double precision membersinv, varx, vary, varz, ratiox, ratioy, ratioz, totalenergy
 
     totalenergy = 0
 

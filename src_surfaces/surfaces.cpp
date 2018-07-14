@@ -1,11 +1,31 @@
 #include "surfaces.H"
+#include <math.h>
 
 using namespace amrex;
+
+double getTheta(double nx, double ny, double nz)
+{
+
+#if (BL_SPACEDIM == 3)
+    double r = sqrt(nx*nx+ny*ny+nz*nz);
+    return acos(nz/r);
+#endif
+#if (BL_SPACEDIM == 2)
+    double r = sqrt(nx*nx+ny*ny+nz*nz);
+    return acos(nx/r);
+#endif
+}
+
+double getPhi(double nx, double ny, double nz)
+{
+    return atan2(ny,nx);
+}
 
 void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainLo, const Real* domainHi)
 {
 #if (BL_SPACEDIM == 3)
 
+    double theta, phi;
 //Domain boundaries
 
 //domainLo x plane
@@ -24,22 +44,37 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].uTop = domainHi[1];
     surfaceList[0].vTop = domainHi[2];
 
-    surfaceList[0].lnx = 1;
+    surfaceList[0].lnx = -1;
     surfaceList[0].lny = 0;
     surfaceList[0].lnz = 0;
     
-    surfaceList[0].rnx = -1;
+    surfaceList[0].rnx = 1;
     surfaceList[0].rny = 0;
     surfaceList[0].rnz = 0;
 
-    surfaceList[0].porosityLeft = 1;
-    surfaceList[0].specularityLeft = 1;
+    surfaceList[0].porosityLeft = 0;
+    surfaceList[0].specularityLeft = 0;
     surfaceList[0].temperatureLeft = 273;
 
-    surfaceList[0].porosityRight = 1;
-    surfaceList[0].specularityRight = 1;
+    surfaceList[0].porosityRight = 0;
+    surfaceList[0].specularityRight = 0;
     surfaceList[0].temperatureRight = 273;
 
+    theta = getTheta(surfaceList[0].lnx, surfaceList[0].lny, surfaceList[0].lnz);
+    phi   = getPhi(surfaceList[0].lnx, surfaceList[0].lny, surfaceList[0].lnz);
+
+    surfaceList[0].cosThetaLeft = cos(theta);
+    surfaceList[0].sinThetaLeft = sin(theta);
+    surfaceList[0].cosPhiLeft = cos(phi);
+    surfaceList[0].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[0].rnx, surfaceList[0].rny, surfaceList[0].rnz);
+    phi   = getPhi(surfaceList[0].rnx, surfaceList[0].rny, surfaceList[0].rnz);
+
+    surfaceList[0].cosThetaRight = cos(theta);
+    surfaceList[0].sinThetaRight = sin(theta);
+    surfaceList[0].cosPhiRight = cos(phi);
+    surfaceList[0].sinPhiRight = sin(phi);
 
 //domianHi x plane
     surfaceList[1].x0 = domainHi[0];
@@ -57,21 +92,37 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[1].uTop = domainHi[1];
     surfaceList[1].vTop = domainHi[2];
 
-    surfaceList[1].lnx = 1;
+    surfaceList[1].lnx = -1;
     surfaceList[1].lny = 0;
     surfaceList[1].lnz = 0;
     
-    surfaceList[1].rnx = -1;
+    surfaceList[1].rnx = 1;
     surfaceList[1].rny = 0;
     surfaceList[1].rnz = 0;
 
-    surfaceList[1].porosityLeft = 1;
-    surfaceList[1].specularityLeft = 1;
+    surfaceList[1].porosityLeft = 0;
+    surfaceList[1].specularityLeft = 0;
     surfaceList[1].temperatureLeft = 273;
 
-    surfaceList[1].porosityRight = 1;
-    surfaceList[1].specularityRight = 1;
+    surfaceList[1].porosityRight = 0;
+    surfaceList[1].specularityRight = 0;
     surfaceList[1].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[1].lnx, surfaceList[1].lny, surfaceList[1].lnz);
+    phi   = getPhi(surfaceList[1].lnx, surfaceList[1].lny, surfaceList[1].lnz);
+
+    surfaceList[1].cosThetaLeft = cos(theta);
+    surfaceList[1].sinThetaLeft = sin(theta);
+    surfaceList[1].cosPhiLeft = cos(phi);
+    surfaceList[1].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[1].rnx, surfaceList[1].rny, surfaceList[1].rnz);
+    phi   = getPhi(surfaceList[1].rnx, surfaceList[1].rny, surfaceList[1].rnz);
+
+    surfaceList[1].cosThetaRight = cos(theta);
+    surfaceList[1].sinThetaRight = sin(theta);
+    surfaceList[1].cosPhiRight = cos(phi);
+    surfaceList[1].sinPhiRight = sin(phi);
 
 //domainLo y plane
     surfaceList[2].x0 = domainLo[0];
@@ -97,13 +148,29 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].rny = -1;
     surfaceList[2].rnz = 0;
 
-    surfaceList[2].porosityLeft = 1;
-    surfaceList[2].specularityLeft = 1;
+    surfaceList[2].porosityLeft = 0;
+    surfaceList[2].specularityLeft = 0;
     surfaceList[2].temperatureLeft = 273;
 
-    surfaceList[2].porosityRight = 1;
-    surfaceList[2].specularityRight = 1;
+    surfaceList[2].porosityRight = 0;
+    surfaceList[2].specularityRight = 0;
     surfaceList[2].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[2].lnx, surfaceList[2].lny, surfaceList[2].lnz);
+    phi   = getPhi(surfaceList[2].lnx, surfaceList[2].lny, surfaceList[2].lnz);
+
+    surfaceList[2].cosThetaLeft = cos(theta);
+    surfaceList[2].sinThetaLeft = sin(theta);
+    surfaceList[2].cosPhiLeft = cos(phi);
+    surfaceList[2].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[2].rnx, surfaceList[2].rny, surfaceList[2].rnz);
+    phi   = getPhi(surfaceList[2].rnx, surfaceList[2].rny, surfaceList[2].rnz);
+
+    surfaceList[2].cosThetaRight = cos(theta);
+    surfaceList[2].sinThetaRight = sin(theta);
+    surfaceList[2].cosPhiRight = cos(phi);
+    surfaceList[2].sinPhiRight = sin(phi);
 
 
 //domianHi y plane
@@ -130,13 +197,29 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].rny = -1;
     surfaceList[3].rnz = 0;
 
-    surfaceList[3].porosityLeft = 1;
-    surfaceList[3].specularityLeft = 1;
+    surfaceList[3].porosityLeft = 0;
+    surfaceList[3].specularityLeft = 0;
     surfaceList[3].temperatureLeft = 273;
 
-    surfaceList[3].porosityRight = 1;
-    surfaceList[3].specularityRight = 1;
+    surfaceList[3].porosityRight = 0;
+    surfaceList[3].specularityRight = 0;
     surfaceList[3].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[3].lnx, surfaceList[3].lny, surfaceList[3].lnz);
+    phi   = getPhi(surfaceList[3].lnx, surfaceList[3].lny, surfaceList[3].lnz);
+
+    surfaceList[3].cosThetaLeft = cos(theta);
+    surfaceList[3].sinThetaLeft = sin(theta);
+    surfaceList[3].cosPhiLeft = cos(phi);
+    surfaceList[3].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[3].rnx, surfaceList[3].rny, surfaceList[3].rnz);
+    phi   = getPhi(surfaceList[3].rnx, surfaceList[3].rny, surfaceList[3].rnz);
+
+    surfaceList[3].cosThetaRight = cos(theta);
+    surfaceList[3].sinThetaRight = sin(theta);
+    surfaceList[3].cosPhiRight = cos(phi);
+    surfaceList[3].sinPhiRight = sin(phi);
 
 //domainLo z plane
     surfaceList[4].x0 = domainLo[0];
@@ -162,19 +245,35 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[4].rny = 0;
     surfaceList[4].rnz = -1;
 
-    surfaceList[4].porosityLeft = 1;
-    surfaceList[4].specularityLeft = 1;
+    surfaceList[4].porosityLeft = 0;
+    surfaceList[4].specularityLeft = 0;
     surfaceList[4].temperatureLeft = 273;
 
-    surfaceList[4].porosityRight = 1;
-    surfaceList[4].specularityRight = 1;
+    surfaceList[4].porosityRight = 0;
+    surfaceList[4].specularityRight = 0;
     surfaceList[4].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[4].lnx, surfaceList[4].lny, surfaceList[4].lnz);
+    phi   = getPhi(surfaceList[4].lnx, surfaceList[4].lny, surfaceList[4].lnz);
+
+    surfaceList[4].cosThetaLeft = cos(theta);
+    surfaceList[4].sinThetaLeft = sin(theta);
+    surfaceList[4].cosPhiLeft = cos(phi);
+    surfaceList[4].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[4].rnx, surfaceList[4].rny, surfaceList[4].rnz);
+    phi   = getPhi(surfaceList[4].rnx, surfaceList[4].rny, surfaceList[4].rnz);
+
+    surfaceList[4].cosThetaRight = cos(theta);
+    surfaceList[4].sinThetaRight = sin(theta);
+    surfaceList[4].cosPhiRight = cos(phi);
+    surfaceList[4].sinPhiRight = sin(phi);
 
 
 //domianHi z plane
     surfaceList[5].x0 = domainLo[0];
     surfaceList[5].y0 = domainLo[1];
-    surfaceList[5].z0 = domainHi[3];
+    surfaceList[5].z0 = domainHi[2];
 
     surfaceList[5].ux = 1;
     surfaceList[5].uy = 0;
@@ -195,17 +294,35 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].rny = 0;
     surfaceList[5].rnz = -1;
 
-    surfaceList[5].porosityLeft = 1;
-    surfaceList[5].specularityLeft = 1;
+    surfaceList[5].porosityLeft = 0;
+    surfaceList[5].specularityLeft = 0;
     surfaceList[5].temperatureLeft = 273;
 
-    surfaceList[5].porosityRight = 1;
-    surfaceList[5].specularityRight = 1;
+    surfaceList[5].porosityRight = 0;
+    surfaceList[5].specularityRight = 0;
     surfaceList[5].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[5].lnx, surfaceList[5].lny, surfaceList[5].lnz);
+    phi   = getPhi(surfaceList[5].lnx, surfaceList[5].lny, surfaceList[5].lnz);
+
+    surfaceList[5].cosThetaLeft = cos(theta);
+    surfaceList[5].sinThetaLeft = sin(theta);
+    surfaceList[5].cosPhiLeft = cos(phi);
+    surfaceList[5].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[5].rnx, surfaceList[5].rny, surfaceList[5].rnz);
+    phi   = getPhi(surfaceList[5].rnx, surfaceList[5].rny, surfaceList[5].rnz);
+
+    surfaceList[5].cosThetaRight = cos(theta);
+    surfaceList[5].sinThetaRight = sin(theta);
+    surfaceList[5].cosPhiRight = cos(phi);
+    surfaceList[5].sinPhiRight = sin(phi);
 
 #endif
 
 #if (BL_SPACEDIM == 2)
+
+    double theta;
 
 //Domain boundaries
 
@@ -224,85 +341,124 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].rnx = -1;
     surfaceList[0].rny = 0;
 
-    surfaceList[0].porosityLeft = 1;
+    surfaceList[0].porosityLeft = 0;
     surfaceList[0].specularityLeft = 1;
     surfaceList[0].temperatureLeft = 273;
 
-    surfaceList[0].porosityRight = 1;
+    surfaceList[0].porosityRight = 0;
     surfaceList[0].specularityRight = 1;
     surfaceList[0].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[0].lnx, surfaceList[0].lny, 0);
+
+    surfaceList[0].cosThetaLeft = cos(theta);
+    surfaceList[0].sinThetaLeft = sin(theta);
+
+    theta = getTheta(surfaceList[0].rnx, surfaceList[0].rny, 0);
+
+    surfaceList[0].cosThetaRight = cos(theta);
+    surfaceList[0].sinThetaRight = sin(theta);
 
 
 //domianHi x plane
-    surfaceList[0].x0 = domainHi[0];
-    surfaceList[0].y0 = domainLo[1];
+    surfaceList[1].x0 = domainHi[0];
+    surfaceList[1].y0 = domainLo[1];
 
-    surfaceList[0].ux = 0;
-    surfaceList[0].uy = 1;
+    surfaceList[1].ux = 0;
+    surfaceList[1].uy = 1;
 
-    surfaceList[0].uTop = domainHi[1];
+    surfaceList[1].uTop = domainHi[1];
 
-    surfaceList[0].lnx = 1;
-    surfaceList[0].lny = 0;
+    surfaceList[1].lnx = 1;
+    surfaceList[1].lny = 0;
     
-    surfaceList[0].rnx = -1;
-    surfaceList[0].rny = 0;
+    surfaceList[1].rnx = -1;
+    surfaceList[1].rny = 0;
 
-    surfaceList[0].porosityLeft = 1;
-    surfaceList[0].specularityLeft = 1;
-    surfaceList[0].temperatureLeft = 273;
+    surfaceList[1].porosityLeft = 0;
+    surfaceList[1].specularityLeft = 1;
+    surfaceList[1].temperatureLeft = 273;
 
-    surfaceList[0].porosityRight = 1;
-    surfaceList[0].specularityRight = 1;
-    surfaceList[0].temperatureRight = 273;
+    surfaceList[1].porosityRight = 0;
+    surfaceList[1].specularityRight = 1;
+    surfaceList[1].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[1].lnx, surfaceList[1].lny, 0);
+
+    surfaceList[1].cosThetaLeft = cos(theta);
+    surfaceList[1].sinThetaLeft = sin(theta);
+
+    theta = getTheta(surfaceList[1].rnx, surfaceList[1].rny, 0);
+
+    surfaceList[1].cosThetaRight = cos(theta);
+    surfaceList[1].sinThetaRight = sin(theta);
 
 //domainLo y plane
-    surfaceList[0].x0 = domainLo[0];
-    surfaceList[0].y0 = domainLo[1];
+    surfaceList[2].x0 = domainLo[0];
+    surfaceList[2].y0 = domainLo[1];
 
-    surfaceList[0].ux = 1;
-    surfaceList[0].uy = 0;
+    surfaceList[2].ux = 1;
+    surfaceList[2].uy = 0;
 
-    surfaceList[0].uTop = domainHi[0];
+    surfaceList[2].uTop = domainHi[0];
 
-    surfaceList[0].lnx = 0;
-    surfaceList[0].lny = 1;
+    surfaceList[2].lnx = 0;
+    surfaceList[2].lny = 1;
     
-    surfaceList[0].rnx = 0;
-    surfaceList[0].rny = -1;
+    surfaceList[2].rnx = 0;
+    surfaceList[2].rny = -1;
 
-    surfaceList[0].porosityLeft = 1;
-    surfaceList[0].specularityLeft = 1;
-    surfaceList[0].temperatureLeft = 273;
+    surfaceList[2].porosityLeft = 0;
+    surfaceList[2].specularityLeft = 1;
+    surfaceList[2].temperatureLeft = 273;
 
-    surfaceList[0].porosityRight = 1;
-    surfaceList[0].specularityRight = 1;
-    surfaceList[0].temperatureRight = 273;
+    surfaceList[2].porosityRight = 0;
+    surfaceList[2].specularityRight = 1;
+    surfaceList[2].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[2].lnx, surfaceList[2].lny, 0);
+
+    surfaceList[2].cosThetaLeft = cos(theta);
+    surfaceList[2].sinThetaLeft = sin(theta);
+
+    theta = getTheta(surfaceList[2].rnx, surfaceList[2].rny, 0);
+
+    surfaceList[2].cosThetaRight = cos(theta);
+    surfaceList[2].sinThetaRight = sin(theta);
 
 //domianHi y plane
-    surfaceList[0].x0 = domainLo[0];
-    surfaceList[0].y0 = domainHi[1];
+    surfaceList[3].x0 = domainLo[0];
+    surfaceList[3].y0 = domainHi[1];
 
-    surfaceList[0].ux = 1;
-    surfaceList[0].uy = 0;
+    surfaceList[3].ux = 1;
+    surfaceList[3].uy = 0;
 
-    surfaceList[0].uTop = domainHi[0];
+    surfaceList[3].uTop = domainHi[0];
 
-    surfaceList[0].lnx = 0;
-    surfaceList[0].lny = 1;
+    surfaceList[3].lnx = 0;
+    surfaceList[3].lny = 1;
     
-    surfaceList[0].rnx = 0;
-    surfaceList[0].rny = -1;
+    surfaceList[3].rnx = 0;
+    surfaceList[3].rny = -1;
 
-    surfaceList[0].porosityLeft = 1;
-    surfaceList[0].specularityLeft = 1;
-    surfaceList[0].temperatureLeft = 273;
+    surfaceList[3].porosityLeft = 0;
+    surfaceList[3].specularityLeft = 1;
+    surfaceList[3].temperatureLeft = 273;
 
-    surfaceList[0].porosityRight = 1;
-    surfaceList[0].specularityRight = 1;
-    surfaceList[0].temperatureRight = 273;
+    surfaceList[3].porosityRight = 0;
+    surfaceList[3].specularityRight = 1;
+    surfaceList[3].temperatureRight = 273;
+
+    theta = getTheta(surfaceList[3].lnx, surfaceList[3].lny, 0);
+
+    surfaceList[3].cosThetaLeft = cos(theta);
+    surfaceList[3].sinThetaLeft = sin(theta);
+
+    theta = getTheta(surfaceList[3].rnx, surfaceList[3].rny, 0);
+
+    surfaceList[3].cosThetaRight = cos(theta);
+    surfaceList[3].sinThetaRight = sin(theta);
 
 #endif
-
 
 }

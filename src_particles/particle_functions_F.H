@@ -51,11 +51,12 @@ extern "C"
                          const amrex_real* rho, const int* rholo, const int* rhohi,
 
                          const amrex_real* sourcex, const int* sourcexlo, const int* sourcexhi,
-                         const amrex_real* sourcey, const int* sourceylo, const int* sourceyhi
+                         const amrex_real* sourcey, const int* sourceylo, const int* sourceyhi,
 #if (AMREX_SPACEDIM == 3)
-                         , const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi
+                        const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
-                        );
+                        const void* surfaces,
+                        const int* ns);
 
 
     void init_particles(void* particles, const int* np, const amrex::Real* dx,

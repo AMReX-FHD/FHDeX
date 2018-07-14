@@ -42,7 +42,6 @@ struct IntData
 };
 
 
-
 class FhdParticleContainer
     : public amrex::ParticleContainer<RealData::ncomps, IntData::ncomps>
 {
