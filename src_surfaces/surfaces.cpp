@@ -102,11 +102,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
 
     surfaceList[1].porosityLeft = 0;
     surfaceList[1].specularityLeft = 0;
-    surfaceList[1].temperatureLeft = 273;
+    surfaceList[1].temperatureLeft = 819;
 
     surfaceList[1].porosityRight = 0;
     surfaceList[1].specularityRight = 0;
-    surfaceList[1].temperatureRight = 273;
+    surfaceList[1].temperatureRight = 819;
 
     theta = getTheta(surfaceList[1].lnx, surfaceList[1].lny, surfaceList[1].lnz);
     phi   = getPhi(surfaceList[1].lnx, surfaceList[1].lny, surfaceList[1].lnz);
@@ -148,11 +148,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].rny = -1;
     surfaceList[2].rnz = 0;
 
-    surfaceList[2].porosityLeft = 0;
+    surfaceList[2].porosityLeft = 1;
     surfaceList[2].specularityLeft = 0;
     surfaceList[2].temperatureLeft = 273;
 
-    surfaceList[2].porosityRight = 0;
+    surfaceList[2].porosityRight = 1;
     surfaceList[2].specularityRight = 0;
     surfaceList[2].temperatureRight = 273;
 
@@ -197,11 +197,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].rny = -1;
     surfaceList[3].rnz = 0;
 
-    surfaceList[3].porosityLeft = 0;
+    surfaceList[3].porosityLeft = 1;
     surfaceList[3].specularityLeft = 0;
     surfaceList[3].temperatureLeft = 273;
 
-    surfaceList[3].porosityRight = 0;
+    surfaceList[3].porosityRight = 1;
     surfaceList[3].specularityRight = 0;
     surfaceList[3].temperatureRight = 273;
 
@@ -245,11 +245,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[4].rny = 0;
     surfaceList[4].rnz = -1;
 
-    surfaceList[4].porosityLeft = 0;
+    surfaceList[4].porosityLeft = 1;
     surfaceList[4].specularityLeft = 0;
     surfaceList[4].temperatureLeft = 273;
 
-    surfaceList[4].porosityRight = 0;
+    surfaceList[4].porosityRight = 1;
     surfaceList[4].specularityRight = 0;
     surfaceList[4].temperatureRight = 273;
 
@@ -294,11 +294,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].rny = 0;
     surfaceList[5].rnz = -1;
 
-    surfaceList[5].porosityLeft = 0;
+    surfaceList[5].porosityLeft = 1;
     surfaceList[5].specularityLeft = 0;
     surfaceList[5].temperatureLeft = 273;
 
-    surfaceList[5].porosityRight = 0;
+    surfaceList[5].porosityRight = 1;
     surfaceList[5].specularityRight = 0;
     surfaceList[5].temperatureRight = 273;
 

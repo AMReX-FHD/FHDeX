@@ -155,6 +155,7 @@ extern "C"
                         amrex_real* kgcross, const int* kgclo, const int* kgchi, 
                         amrex_real* krcross, const int* krclo, const int* krchi, 
                         amrex_real* rgcross, const int* rgclo, const int* rgchi, 
+                        amrex_real* spatialcross, const int* sclo, const int* schi,
 
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
                         const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps);

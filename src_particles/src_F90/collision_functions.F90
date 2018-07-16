@@ -364,6 +364,7 @@ contains
                              kgcross, kgclo, kgchi, &
                              krcross, krclo, krchi, &
                              rgcross, rgclo, rgchi, &
+                             spatialcross, sclo, schi, &
 
                              cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps) bind(c,name='evaluate_stats')
 
@@ -372,7 +373,7 @@ contains
 
     implicit none
 
-    integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3)
+    integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), sclo(3), schi(3)
     integer,          intent(in      ) :: mlo(3), mhi(3), dlo(3), dhi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), velzlo(3), velzhi(3), templo(3), temphi(3), pxlo(3), pxhi(3), pylo(3), pyhi(3), pzlo(3), pzhi(3), energylo(3), energyhi(3)
     integer,          intent(in      ) :: dmlo(3), dmhi(3), mmlo(3), mmhi(3), velxmlo(3), velxmhi(3), velymlo(3), velymhi(3), velzmlo(3), velzmhi(3), tempmlo(3), tempmhi(3), pxmlo(3), pxmhi(3), pymlo(3), pymhi(3), pzmlo(3), pzmhi(3), energymlo(3), energymhi(3)
     integer,          intent(in      ) :: dvlo(3), dvhi(3), mvlo(3), mvhi(3), velxvlo(3), velxvhi(3), velyvlo(3), velyvhi(3), velzvlo(3), velzvhi(3), tempvlo(3), tempvhi(3), pxvlo(3), pxvhi(3), pyvlo(3), pyvhi(3), pzvlo(3), pzvhi(3), energyvlo(3), energyvhi(3)
@@ -417,6 +418,7 @@ contains
     double precision, intent(inout   ) :: kgcross(kgclo(1):kgchi(1),kgclo(2):kgchi(2),kgclo(3):kgchi(3))
     double precision, intent(inout   ) :: krcross(krclo(1):krchi(1),krclo(2):krchi(2),krclo(3):krchi(3))
     double precision, intent(inout   ) :: rgcross(rgclo(1):rgchi(1),rgclo(2):rgchi(2),rgclo(3):rgchi(3))
+    double precision, intent(inout   ) :: spatialcross(sclo(1):schi(1),sclo(2):schi(2),sclo(3):schi(3))
 
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -432,7 +434,7 @@ contains
 
     !double precision fac1, fac2, fac3, test, pairfrac
     integer i,j,k
-    double precision stepsminusone, stepsinv, lhs, cellcount, rhs, tempcm, cv, ncm, velcm, energycm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, densitymeaninvC
+    double precision stepsminusone, stepsinv, lhs, cellcount, rhs, tempcm, cv, ncm, velcm, energycm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, densitymeaninvC, delrhocell
 
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
@@ -478,6 +480,16 @@ contains
           !qmean = cv*T0
 
 
+        enddo
+      enddo
+    enddo
+
+    delrhocell = density(20,0,0) - densitymean(20,0,0)
+
+    do k = mlo(3), mhi(3)
+      do j = mlo(2), mhi(2)
+        do i = mlo(1), mhi(1)
+
           !Vars
 
           delrho = density(i,j,k) - densitymean(i,j,k)
@@ -517,11 +529,14 @@ contains
 
           !tempvar(i,j,k) = (tempvar(i,j,k)*stepsminusone + cvinv*cvinv*densitymeaninvC*densitymeaninvC*(energyvar(i,j,k) + gvar(i,j,k) - 2*kgcross(i,j,k) + qmean*(qmean*densityvar(i,j,k) - 2*krcross(i,j,k) + 2*rgcross(i,j,k))))*stepsinv
 
+          spatialcross(i,j,k) = (spatialcross(i,j,k)*stepsminusone + delrhocell*delpx)*stepsinv
 
+          !print *, spatialcross(i,j,k)
 
         enddo
       enddo
     enddo
+
 
 
     lhs = 0
@@ -549,7 +564,7 @@ contains
 
           if (j .eq. 0) then
 
-            print *, "temp mean: ", tempmean(i,j,k), "vel mean: ", velxmean(i,j,k), "fluct: ", tempvar(i,j,k), ncm
+            !print *, "temp mean: ", tempmean(i,j,k), "vel mean: ", velxmean(i,j,k), "fluct: ", tempvar(i,j,k), ncm
 
           endif
 
@@ -569,7 +584,7 @@ contains
     !print *, "temp mean: ", tempmean(mlo(1)+30,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+30,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+30,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+30,mlo(2),mlo(3)))
     !print *, "temp mean: ", tempmean(mlo(1)+35,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+35,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+35,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+35,mlo(2),mlo(3)))
    
-    print *, "temp cell mean: ", tempcm/cellcount, "fluct cell mean: ", lhs/cellcount, rhs/cellcount
+    !print *, "temp cell mean: ", tempcm/cellcount, "fluct cell mean: ", lhs/cellcount, rhs/cellcount
 
   end subroutine evaluate_stats
 
