@@ -358,7 +358,8 @@ void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleKGCross,
                               MultiFab& particleKRhoCross, 
                               MultiFab& particleRhoGCross,
-                              MultiFab& particleSpatialCross,
+                              MultiFab& particleSpatialCross1,
+                              MultiFab& particleSpatialCross2,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps)
 {
@@ -422,7 +423,7 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleKGCross[pti]),
                          BL_TO_FORTRAN_3D(particleKRhoCross[pti]),
                          BL_TO_FORTRAN_3D(particleRhoGCross[pti]),
-                         BL_TO_FORTRAN_3D(particleSpatialCross[pti]),
+                         BL_TO_FORTRAN_3D(particleSpatialCross1[pti]),
 
                          BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps
                         );

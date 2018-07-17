@@ -1,7 +1,6 @@
 module surfaces_module
   use amrex_fort_module, only: amrex_real, amrex_particle_real
   use iso_c_binding ,    only: c_int
-  use cell_sorted_particle_module
   use rng_functions_module
   
   implicit none
@@ -321,7 +320,6 @@ contains
 #endif
   
 end module surfaces_module
-
 
 
 
