@@ -35,7 +35,7 @@ do
 
     sed -i "s/visc_type = .*/visc_type = ${Visc[$visc_ind]}/" ./$input_file
 
-    for grid in 0 1
+    for grid in 2
     do
 	
 	## Replace variable values in inputs file

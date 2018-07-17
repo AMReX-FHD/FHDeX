@@ -17,6 +17,7 @@
 #include "gmres_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
+#include <AMReX_PlotFileUtil.H>
 
 using namespace amrex;
 using namespace common;
@@ -72,6 +73,8 @@ void main_driver(const char* argv)
     }
 
     Real dt = fixed_dt;
+    Real dtinv = 1.0/dt;
+    // Print() << "dt = " << dt << ", 1/dt = " << dtinv << "\n";
     const Real* dx = geom.CellSize();
   
     // how boxes are distrubuted among MPI processes
@@ -82,27 +85,27 @@ void main_driver(const char* argv)
     AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    AMREX_D_TERM(alpha_fc[0].setVal(1.);,
-                 alpha_fc[1].setVal(1.);,
-                 alpha_fc[2].setVal(1.););
+    AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
+                 alpha_fc[1].setVal(dtinv);,
+                 alpha_fc[2].setVal(dtinv););
 
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
-    beta.setVal(visc_coef*dt);
+    beta.setVal(visc_coef);
 
     // beta on nodes in 2d
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
     beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef*dt);
+    beta_ed[0].setVal(visc_coef);
 #elif (AMREX_SPACEDIM == 3)
     beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef*dt);  
-    beta_ed[1].setVal(visc_coef*dt);
-    beta_ed[2].setVal(visc_coef*dt);
+    beta_ed[0].setVal(visc_coef);  
+    beta_ed[1].setVal(visc_coef);
+    beta_ed[2].setVal(visc_coef);
 #endif
 
     // cell-centered gamma
@@ -260,6 +263,11 @@ void main_driver(const char* argv)
      // write out initial state
     WritePlotFile(step,time,geom,umac);
 
+    Vector<std::string> varNames_pres(1);
+    varNames_pres[0] = "pres";
+    std::string plotfilename_pres = Concatenate("pres",step,7);
+    WriteSingleLevelPlotfile(plotfilename_pres,pres,varNames_pres,geom,time,step);
+
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
@@ -284,13 +292,12 @@ void main_driver(const char* argv)
 
 	MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
 
-	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  advFluxdiv[d].mult(dt);
-	}
-
 	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
+	for (int d=0; d<AMREX_SPACEDIM; d++) {
+	  gmres_rhs_u[d].mult(dtinv);
+	}
 	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
@@ -303,6 +310,7 @@ void main_driver(const char* argv)
 	AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
 		     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
 		     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+	pres.setVal(0.);  // initial guess
 
         // call GMRES to compute predictor
 	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
@@ -326,10 +334,6 @@ void main_driver(const char* argv)
                      uMom[2].FillBoundary(geom.periodicity()););
 
 	MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
-
-	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  advFluxdivPred[d].mult(dt);
-	}
 
 	// ADVANCE STEP (crank nicolson + trapezoidal rule)
 
@@ -357,6 +361,9 @@ void main_driver(const char* argv)
 	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
+	for (int d=0; d<AMREX_SPACEDIM; d++) {
+	  gmres_rhs_u[d].mult(dtinv);
+	}
 	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[1], Lumac[1], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[2], Lumac[2], 0, 0, 1, 0););
@@ -375,6 +382,7 @@ void main_driver(const char* argv)
 	AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
 		     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
 		     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+	pres.setVal(0.);  // initial guess
 
         // call GMRES here
 	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,1.,geom,norm_pre_rhs);
@@ -391,6 +399,9 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac to a plotfile
             WritePlotFile(step,time,geom,umac);
+
+	    plotfilename_pres = Concatenate("pres",step,7);
+	    WriteSingleLevelPlotfile(plotfilename_pres,pres,varNames_pres,geom,time,step);
         }
     }
 
