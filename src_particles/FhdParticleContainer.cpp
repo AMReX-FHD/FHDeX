@@ -368,6 +368,9 @@ void FhdParticleContainer::EvaluateStats(
     const double n0 = particleInfo.n0;
     const double T0 = particleInfo.T;
 
+    double del1 = 0;
+    double del2 = 0;
+
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -378,7 +381,7 @@ void FhdParticleContainer::EvaluateStats(
         auto& parts = particle_tile.GetArrayOfStructs();
         const int Np = parts.numParticles();
 
-        evaluate_stats(parts.data(),
+        evaluate_means(parts.data(),
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
@@ -424,8 +427,76 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleKRhoCross[pti]),
                          BL_TO_FORTRAN_3D(particleRhoGCross[pti]),
                          BL_TO_FORTRAN_3D(particleSpatialCross1[pti]),
+                         BL_TO_FORTRAN_3D(particleSpatialCross2[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2
+                        );
+    }
+
+    ParallelDescriptor::ReduceRealSum(del1);
+    ParallelDescriptor::ReduceRealSum(del2);
+
+    //Print() << "del1: " << del1 << "\n";
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& parts = particle_tile.GetArrayOfStructs();
+        const int Np = parts.numParticles();
+
+        evaluate_corrs(parts.data(),
+                         ARLIM_3D(tile_box.loVect()),
+                         ARLIM_3D(tile_box.hiVect()),
+                         m_vector_ptrs[grid_id].dataPtr(),
+                         m_vector_size[grid_id].dataPtr(),
+                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+
+                         BL_TO_FORTRAN_3D(particleMembers[pti]),
+                         BL_TO_FORTRAN_3D(particleDensity[pti]),
+                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
+                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
+                         BL_TO_FORTRAN_3D(particleMomentum[0][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
+                         BL_TO_FORTRAN_3D(particleEnergy[pti]),
+
+                         BL_TO_FORTRAN_3D(particleMembersMean[pti]),
+                         BL_TO_FORTRAN_3D(particleDensityMean[pti]),
+                         BL_TO_FORTRAN_3D(particleVelocityMean[0][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocityMean[1][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocityMean[2][pti]),
+                         BL_TO_FORTRAN_3D(particleTemperatureMean[pti]),
+                         BL_TO_FORTRAN_3D(particleMomentumMean[0][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentumMean[1][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentumMean[2][pti]),
+                         BL_TO_FORTRAN_3D(particleEnergyMean[pti]),
+
+                         BL_TO_FORTRAN_3D(particleMembersVar[pti]),
+                         BL_TO_FORTRAN_3D(particleDensityVar[pti]),
+                         BL_TO_FORTRAN_3D(particleVelocityVar[0][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocityVar[1][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocityVar[2][pti]),
+                         BL_TO_FORTRAN_3D(particleTemperatureVar[pti]),
+                         BL_TO_FORTRAN_3D(particleMomentumVar[0][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentumVar[1][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentumVar[2][pti]),
+                         BL_TO_FORTRAN_3D(particleEnergyVar[pti]),
+
+                         BL_TO_FORTRAN_3D(particleGVar[pti]),
+                         BL_TO_FORTRAN_3D(particleKGCross[pti]),
+                         BL_TO_FORTRAN_3D(particleKRhoCross[pti]),
+                         BL_TO_FORTRAN_3D(particleRhoGCross[pti]),
+                         BL_TO_FORTRAN_3D(particleSpatialCross1[pti]),
+                         BL_TO_FORTRAN_3D(particleSpatialCross2[pti]),
+
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2
                         );
     }
 
