@@ -247,10 +247,21 @@ void main_driver(const char* argv)
 	}
 
 	// ADVANCE STEP (trapezoidal rule)
+
+	/////////////// Hack /////////////////////////////
+	// VisMF::Write(advFluxdiv[0],"a_advFluxdiv0");
+
+	// StagApplyOp(beta,gamma,beta_ed,umac,advFluxdiv,alpha_fc,dx,1.);
+
+	// VisMF::Write(advFluxdiv[0],"a_Lumac0");
+	// Abort("Done with hack");
+	// exit(0);
+	//////////////////////////////////////////////////
+
 	// Compute gmres_rhs
 	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  advFluxdiv[d].mult(0.5);
-	  advFluxdivPred[d].mult(0.5);
+	  advFluxdiv[d].mult(1.0);
+	  advFluxdivPred[d].mult(0.0);
 	}
 
 	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
@@ -263,17 +274,13 @@ void main_driver(const char* argv)
                      MultiFab::Add(gmres_rhs_u[1], advFluxdivPred[1], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[2], advFluxdivPred[2], 0, 0, 1, 0););
 
+	// initial guess for new solution
+	AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
+		     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
+		     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+
         // call GMRES here
 	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
-
-	/////////////// Hack /////////////////////////////
-	// VisMF::Write(advFluxdiv[0],"a_advFluxdiv0");
-
-	// StagApplyOp(beta,gamma,beta_ed,umac,advFluxdiv,alpha_fc,dx,1.);
-
-	// VisMF::Write(advFluxdiv[0],"a_Lumac0");
-	// exit(0);
-	//////////////////////////////////////////////////
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,

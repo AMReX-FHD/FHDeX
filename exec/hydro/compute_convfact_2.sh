@@ -6,8 +6,8 @@ unset ALL_PROXY
 rm -r plt* stag*
 
 ## Select grids
-Nsteps=("005" "010" "020")
-Spacedim=("064" "128" "256")
+Nsteps=("200" "400" "800")
+Spacedim=("64" "128" "256")
 dim="2"
 
 # Nsteps=("002" "004" "008")
@@ -24,13 +24,12 @@ zeros_plt="0000"
 conv_tool_loc="amrex/Tools/C_util/Convergence"
 conv_tool_exec="DiffSameDomainRefinedStag${dim}d.gnu.ex"
 
-for visc_ind in 0 1 2 3
+for visc_ind in 0
 do
 
     visctype=${Visctype[$visc_ind]}
 
-    # dir_top="Data_Convergence_CrankNicolson/Data_visc_${visctype}/${dim}D"
-    dir_top="Data_Convergence_CrankNicolson_GS/Data_visc_${visctype}/${dim}D"
+    dir_top="Data_Convergence_Trapezoidal/Data_visc_${visctype}/${dim}D"
 
     for grid in 0 1 2
     do
