@@ -24,7 +24,7 @@ zeros_plt="0000"
 conv_tool_loc="amrex/Tools/C_util/Convergence"
 conv_tool_exec="DiffSameDomainRefinedStag${dim}d.gnu.ex"
 
-for visc_ind in 0
+for visc_ind in 1
 do
 
     visctype=${Visctype[$visc_ind]}

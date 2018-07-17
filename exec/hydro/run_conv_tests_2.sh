@@ -8,6 +8,7 @@ rm -r plt* stag*
 ## Select grids
 Nsteps=("200" "400" "800")
 Spacedim=("64" "128" "256")
+Maxgrid=("32" "64" "128")
 Dt=("5e-3" "2.5e-3" "1.25e-3")
 dim="2"
 
@@ -21,7 +22,7 @@ Visc=("1" "2" "-1" "-2")
 
 input_file="inputs_${dim}d"
 
-for visc_ind in 0
+for visc_ind in 1
 do
 
     visctype=${Visctype[$visc_ind]}
@@ -34,22 +35,22 @@ do
 
     sed -i "s/visc_type = .*/visc_type = ${Visc[$visc_ind]}/" ./$input_file
 
-    for grid in 0 1 2
+    for grid in 0 1
     do
 	
 	## Replace variable values in inputs file
         sed -i "s/fixed_dt = .*/fixed_dt = ${Dt[$grid]}/" ./$input_file
 	sed -i "s/max_step = .*/max_step = ${Nsteps[$grid]}/" ./$input_file
-        # sed -i "s/plot_int = .*/plot_int = ${Nsteps[$grid]}/" ./$input_file
-	sed -i "s/plot_int = .*/plot_int = 1/" ./$input_file
+        sed -i "s/plot_int = .*/plot_int = ${Nsteps[$grid]}/" ./$input_file
+	# sed -i "s/plot_int = .*/plot_int = 1/" ./$input_file
 
 	## FIXME: need if statement for higher dimensions
 	###########################################################################
         sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
-        sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
+        sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
 
         # sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
-        # sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
+        # sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
 	###########################################################################
 	
     	folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
@@ -63,7 +64,7 @@ do
 	# rm -r $dir
 
     	## Run various inputs files & store plot files in directory
-        mpiexec -n 2 ./main${dim}d.gnu.MPI.ex inputs_2d
+        mpiexec -n 4 ./main${dim}d.gnu.MPI.ex inputs_2d
     	# ./main${dim}d.gnu.MPI.ex inputs_${dim}d
 	# amrvis${dim}d -a plt*
     	mv plt* stag* $dir
