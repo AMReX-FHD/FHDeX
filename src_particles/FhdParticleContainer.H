@@ -114,7 +114,8 @@ public:
                               MultiFab& particleKGCross,
                               MultiFab& particleKRhoCross, 
                               MultiFab& particleRhoGCross,
-                              MultiFab& particleSpatialCross,
+                              MultiFab& particleSpatialCross1,
+                              MultiFab& particleSpatialCross2,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 

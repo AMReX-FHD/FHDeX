@@ -334,7 +334,8 @@ void main_driver(const char* argv)
     MultiFab particleKGCross(bc, dmap, 1, 0);
     MultiFab particleKRhoCross(bc, dmap, 1, 0);
     MultiFab particleRhoGCross(bc, dmap, 1, 0);
-    MultiFab particleSpatialCross(bc, dmap, 1, 0);
+    MultiFab particleSpatialCross1(bc, dmap, 1, 0);
+    MultiFab particleSpatialCross2(bc, dmap, 1, 0);
 
 
     particleMembers.setVal(0.0);
@@ -374,7 +375,8 @@ void main_driver(const char* argv)
     particleKGCross.setVal(0.0);
     particleKRhoCross.setVal(0.0);
     particleRhoGCross.setVal(0.0);
-    particleSpatialCross.setVal(0.0);
+    particleSpatialCross1.setVal(0.0);
+    particleSpatialCross2.setVal(0.0);
 
 
     const Real* dx = geom.CellSize();
@@ -467,7 +469,7 @@ void main_driver(const char* argv)
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
     // write out initial state
-    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particleSpatialCross, particles);
+    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particleSpatialCross1, particles);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -507,7 +509,7 @@ void main_driver(const char* argv)
         if(step >= 100000 )
         {
             particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean,
-                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross, cellVols, nitrogen, dt,statsCount);
+                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, cellVols, nitrogen, dt,statsCount);
 
 
             statsCount++;
@@ -519,7 +521,7 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
             // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particleSpatialCross, particles);
+            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particleSpatialCross1, particles);
         }
 
 
