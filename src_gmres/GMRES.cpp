@@ -20,21 +20,6 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
            std::array<MultiFab, NUM_EDGE>& beta_ed,
            MultiFab& gamma,
            Real theta_alpha,
-           const Geometry& geom)
-{
-    Real temp;
-    GMRES(b_u,b_p,x_u,x_p,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,temp);
-}
-
-void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
-           const MultiFab& b_p,
-           std::array<MultiFab, AMREX_SPACEDIM>& x_u,
-           MultiFab& x_p,
-           const std::array<MultiFab, AMREX_SPACEDIM>& alpha_fc,
-           MultiFab& beta,
-           std::array<MultiFab, NUM_EDGE>& beta_ed,
-           MultiFab& gamma,
-           Real theta_alpha,
            const Geometry& geom,
            Real& norm_pre_rhs)
 {
@@ -121,6 +106,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     CCL2Norm(tmp_p,0,norm_p);
     norm_p = p_norm_weight*norm_p;
     norm_pre_b = sqrt(norm_u*norm_u+norm_p*norm_p);
+
+    norm_pre_rhs = norm_pre_b;
 
     // calculate the l2 norm of rhs
     StagL2Norm(b_u,0,norm_u);

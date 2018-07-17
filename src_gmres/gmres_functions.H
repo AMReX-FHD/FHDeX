@@ -48,17 +48,6 @@ void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
            std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
            amrex::MultiFab& gamma,
            amrex::Real theta_alpha,
-           const amrex::Geometry& geom);
-
-void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
-           const amrex::MultiFab& b_p,
-           std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
-           amrex::MultiFab& x_p,
-           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
-           amrex::MultiFab& beta,
-           std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
-           amrex::MultiFab& gamma,
-           amrex::Real theta_alpha,
            const amrex::Geometry& geom,
            amrex::Real& norm_pre_rhs);
 
