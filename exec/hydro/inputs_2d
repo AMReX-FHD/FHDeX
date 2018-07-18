@@ -10,10 +10,10 @@
   max_grid_size(1:2) = 64 64
 
   ! Time-step control
-  fixed_dt = 1e-3
+  fixed_dt = 8e-3
 
   ! Controls for number of steps between actions
-  max_step = 10
+  max_step = 5
   plot_int = 1
 
   ! Viscous friction L phi operator
@@ -22,8 +22,8 @@
   ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
-  visc_coef = 1.
-  !visc_coef = 1e-2
+  !visc_coef = 1.
+  visc_coef = 1e-2
   visc_type = 1
 
   ! Boundary conditions

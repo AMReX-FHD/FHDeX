@@ -261,13 +261,8 @@ void main_driver(const char* argv)
 
     Real norm_pre_rhs;
 
-     // write out initial state
-    WritePlotFile(step,time,geom,umac);
-
-    Vector<std::string> varNames_pres(1);
-    varNames_pres[0] = "pres";
-    std::string plotfilename_pres = Concatenate("pres",step,7);
-    WriteSingleLevelPlotfile(plotfilename_pres,pres,varNames_pres,geom,time,step);
+    // write out initial state
+    WritePlotFile(step,time,geom,umac,pres);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -398,11 +393,8 @@ void main_driver(const char* argv)
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-            // write out umac to a plotfile
-            WritePlotFile(step,time,geom,umac);
-
-	    plotfilename_pres = Concatenate("pres",step,7);
-	    WriteSingleLevelPlotfile(plotfilename_pres,pres,varNames_pres,geom,time,step);
+          // write out umac & pres to a plotfile
+	  WritePlotFile(step,time,geom,umac,pres);
         }
     }
 

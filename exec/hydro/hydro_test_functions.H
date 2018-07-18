@@ -10,7 +10,8 @@
 void WritePlotFile(const int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& umac);
+                   const std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                   const MultiFab& pres);
 
 ///////////////////////////
 
