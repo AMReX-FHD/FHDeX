@@ -411,7 +411,7 @@ void LeastSquares(int i,
     // apply Givens rotation
     for (int k=0; k<=i-1; ++k) {
         temp      =  cs[k]*H[k][i] + sn[k]*H[k+1][i];
-        H[k+1][i] = -sn[k]*H[k][i] + cs[k]*H[i+1][i];
+        H[k+1][i] = -sn[k]*H[k][i] + cs[k]*H[k+1][i];
         H[k][i] = temp;        
     }
 
