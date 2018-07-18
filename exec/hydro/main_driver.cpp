@@ -81,6 +81,7 @@ void main_driver(const char* argv)
     DistributionMapping dmap(ba);
 
     // alpha_fc arrays
+    Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
@@ -126,7 +127,7 @@ void main_driver(const char* argv)
     // beta_hlf cell centered
     MultiFab beta_hlf(ba, dmap, 1, 1);
     MultiFab::Copy(beta_hlf, beta, 0, 0, 1, 1);
-    beta_hlf.mult(0.5);
+    beta_hlf.mult(0.5, 1);
 
     // beta_hlf on nodes in 2d
     // beta_hlf on edges in 3d
@@ -134,7 +135,7 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 2)
     beta_ed_hlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
     MultiFab::Copy(beta_ed_hlf[0], beta_ed[0], 0, 0, 1, 1);
-    beta_ed_hlf[0].mult(0.5);
+    beta_ed_hlf[0].mult(0.5, 1);
 #elif (AMREX_SPACEDIM == 3)
     beta_ed_hlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     beta_ed_hlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
@@ -142,21 +143,21 @@ void main_driver(const char* argv)
     MultiFab::Copy(beta_ed_hlf[0], beta_ed[0], 0, 0, 1, 1);
     MultiFab::Copy(beta_ed_hlf[1], beta_ed[1], 0, 0, 1, 1);
     MultiFab::Copy(beta_ed_hlf[2], beta_ed[2], 0, 0, 1, 1);
-    beta_ed_hlf[0].mult(0.5);
-    beta_ed_hlf[1].mult(0.5);
-    beta_ed_hlf[2].mult(0.5);
+    beta_ed_hlf[0].mult(0.5, 1);
+    beta_ed_hlf[1].mult(0.5, 1);
+    beta_ed_hlf[2].mult(0.5, 1);
 #endif
 
     // cell-centered gamma_hlf
     MultiFab gamma_hlf(ba, dmap, 1, 1);
     MultiFab::Copy(gamma_hlf, gamma, 0, 0, 1, 1);
-    gamma_hlf.mult(-0.5);
+    gamma_hlf.mult(-0.5, 1);
 
     // Scaled by -1/2:
     // beta_neghlf cell centered
     MultiFab beta_neghlf(ba, dmap, 1, 1);
     MultiFab::Copy(beta_neghlf, beta, 0, 0, 1, 1);
-    beta_neghlf.mult(-0.5);
+    beta_neghlf.mult(-0.5, 1);
 
     // beta_neghlf on nodes in 2d
     // beta_neghlf on edges in 3d
@@ -164,7 +165,7 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 2)
     beta_ed_neghlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
     MultiFab::Copy(beta_ed_neghlf[0], beta_ed[0], 0, 0, 1, 1);
-    beta_ed_neghlf[0].mult(-0.5);
+    beta_ed_neghlf[0].mult(-0.5, 1);
 #elif (AMREX_SPACEDIM == 3)
     beta_ed_neghlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     beta_ed_neghlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
@@ -172,15 +173,15 @@ void main_driver(const char* argv)
     MultiFab::Copy(beta_ed_neghlf[0], beta_ed[0], 0, 0, 1, 1);
     MultiFab::Copy(beta_ed_neghlf[1], beta_ed[1], 0, 0, 1, 1);
     MultiFab::Copy(beta_ed_neghlf[2], beta_ed[2], 0, 0, 1, 1);
-    beta_ed_neghlf[0].mult(-0.5);
-    beta_ed_neghlf[1].mult(-0.5);
-    beta_ed_neghlf[2].mult(-0.5);
+    beta_ed_neghlf[0].mult(-0.5, 1);
+    beta_ed_neghlf[1].mult(-0.5, 1);
+    beta_ed_neghlf[2].mult(-0.5, 1);
 #endif
 
     // cell-centered gamma
     MultiFab gamma_neghlf(ba, dmap, 1, 1);
     MultiFab::Copy(gamma_neghlf, gamma, 0, 0, 1, 1);
-    gamma_neghlf.mult(-0.5);
+    gamma_neghlf.mult(-0.5, 1);
     ///////////////////////////////////////////
 
     // rhs_p GMRES solve
@@ -283,7 +284,7 @@ void main_driver(const char* argv)
 
 	// let rho = 1
 	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  uMom[d].mult(1.0);
+	  uMom[d].mult(1.0, 1);
 	}
 
         AMREX_D_TERM(uMom[0].FillBoundary(geom.periodicity());,
@@ -296,7 +297,7 @@ void main_driver(const char* argv)
                      MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
 	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  gmres_rhs_u[d].mult(dtinv);
+	  gmres_rhs_u[d].mult(dtinv, 1);
 	}
 	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
@@ -313,7 +314,7 @@ void main_driver(const char* argv)
 	pres.setVal(0.);  // initial guess
 
         // call GMRES to compute predictor
-	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
+	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
 
 	// Compute predictor advective term
         AMREX_D_TERM(umacNew[0].FillBoundary(geom.periodicity());,
@@ -326,7 +327,7 @@ void main_driver(const char* argv)
 
 	// let rho = 1
 	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  uMom[d].mult(1.0);
+	  uMom[d].mult(1.0, 1);
 	}
 
         AMREX_D_TERM(uMom[0].FillBoundary(geom.periodicity());,
@@ -340,7 +341,7 @@ void main_driver(const char* argv)
 	/////////////// Hack /////////////////////////////
 	// VisMF::Write(advFluxdiv[0],"a_advFluxdiv0");
 
-	// StagApplyOp(beta,gamma,beta_ed,umac,advFluxdiv,alpha_fc_0,dx,1.);
+	// StagApplyOp(beta,gamma,beta_ed,umac,advFluxdiv,alpha_fc_0,dx,theta_alpha);
 
 	// VisMF::Write(advFluxdiv[0],"a_Lumac0");
 	// Abort("Done with hack");
@@ -351,18 +352,18 @@ void main_driver(const char* argv)
 
         // trapezoidal advective terms
 	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  advFluxdiv[d].mult(0.5);
-	  advFluxdivPred[d].mult(0.5);
+	  advFluxdiv[d].mult(0.5, 1);
+	  advFluxdivPred[d].mult(0.5, 1);
 	}
 
         // crank-nicolson terms
-        StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,1.);
+        StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
 	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
 	for (int d=0; d<AMREX_SPACEDIM; d++) {
-	  gmres_rhs_u[d].mult(dtinv);
+	  gmres_rhs_u[d].mult(dtinv, 1);
 	}
 	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[1], Lumac[1], 0, 0, 1, 0);,
@@ -385,8 +386,8 @@ void main_driver(const char* argv)
 	pres.setVal(0.);  // initial guess
 
         // call GMRES here
-	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,1.,geom,norm_pre_rhs);
-	// GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,1.,geom,norm_pre_rhs);
+	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,theta_alpha,geom,norm_pre_rhs);
+	// GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
