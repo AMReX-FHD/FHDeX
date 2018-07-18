@@ -14,7 +14,9 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
   integer          :: i,j,k
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2,zshft
-  double precision :: L_hlf, r_a, r_b, k1, k1_inv, k2, k2_inv
+  
+  double precision :: L_hlf, k1, k1_inv, k2, k2_inv, r_a, r_b
+  double precision :: pi, freq, amp, width, perturb, slope
 
 #if (AMREX_SPACEDIM == 2)
   zshft = 0.0d0
@@ -27,14 +29,22 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   L_hlf = (realhi(1) - reallo(1))/2d0
   
   !! IC parameters
-  ! [r_a r_b] defines radial bounds of velocity bump:
-  r_a = 0.35d0*L_hlf
-  r_b = L_hlf - r_a
+  pi = acos(-1.d0)
+  ! print*, "pi = ", pi
+  ! stop
   ! k1 & k2 determine steepness of velocity profile:
-  k1 = 4d-2*L_hlf
+  k1 = 1d-2*L_hlf
   k2 = k1
   k1_inv = 1/k1
   k2_inv = 1/k2
+  ! Vortex:
+  ! [r_a r_b] defines radial bounds of velocity bump:
+  r_a = 0.35d0*L_hlf
+  r_b = L_hlf - r_a
+  ! Stream:
+  freq = 5.d0*pi/L_hlf
+  amp = 2.0d-1*L_hlf
+  width = L_hlf
 
   if (di .EQ. 0) then
      do k = lo(3), hi(3)
@@ -50,9 +60,19 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               rad2 = DOT_PRODUCT(relpos,relpos)
               rad = SQRT(rad2)
               
+              ! Vortex:
               ! Multiply velocity magnitude by sin(theta)
-              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-                   *(relpos(2)/rad);
+              ! vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+              !      *(relpos(2)/rad)
+              
+              ! Stream:
+              perturb = amp*sin(freq*relpos(1))
+              slope = amp*freq*cos(freq*relpos(1))
+              ! vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width/2.d0+perturb)))) &
+              !                    *(1d0+tanh(k2_inv*((width/2.d0+perturb) - relpos(2))))
+              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width/2.d0+perturb)))) &
+                                 *(1d0+tanh(k2_inv*((width/2.d0+perturb) - relpos(2))))  &
+                                 *1.d0/sqrt(1+slope**2)
 
            end do
         end do
@@ -73,9 +93,18 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               rad2 = DOT_PRODUCT(relpos,relpos)
               rad = SQRT(rad2)
               
+              ! Vortex:
               ! Multiply velocity magnitude by -cos(theta)
-              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-                   *(-relpos(1)/rad);
+              ! vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+              !      *(-relpos(1)/rad)
+
+              ! Stream:
+              perturb = amp*sin(freq*relpos(1))
+              slope = amp*freq*cos(freq*relpos(1))
+              ! vel(i,j,k) = 0.d0
+              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width/2.d0+perturb)))) &
+                                 *(1d0+tanh(k2_inv*((width/2.d0+perturb) - relpos(2))))  &
+                                 *slope/sqrt(1+slope**2)
 
            end do
         end do

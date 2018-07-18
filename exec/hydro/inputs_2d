@@ -5,16 +5,16 @@
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
 
   ! number of cells in domain
-  n_cells(1:2) = 64 64
+  n_cells(1:2) = 512 512
   ! max number of cells in a box
-  max_grid_size(1:2) = 64 64
+  max_grid_size(1:2) = 128 128
 
   ! Time-step control
-  fixed_dt = 8e-3
+  fixed_dt = 1.5e-3
 
   ! Controls for number of steps between actions
-  max_step = 5
-  plot_int = 1
+  max_step = 80
+  plot_int = 2
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -23,7 +23,7 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
   !visc_coef = 1.
-  visc_coef = 1e-2
+  visc_coef = 2e-3
   visc_type = 1
 
   ! Boundary conditions
