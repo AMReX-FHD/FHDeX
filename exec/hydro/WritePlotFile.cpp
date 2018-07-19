@@ -18,8 +18,8 @@ void WritePlotFile(int step,
 {
     const std::string plotfilename = Concatenate("plt",step,7);
 
-    BoxArray ba = umac[0].boxArray();
-    DistributionMapping dmap = umac[0].DistributionMap();
+    BoxArray ba = pres.boxArray();
+    DistributionMapping dmap = pres.DistributionMap();
 
     // plot all the velocity variables
     int nPlot = AMREX_SPACEDIM+1;
