@@ -13,7 +13,7 @@ using namespace common;
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& pres)
 {
     const std::string plotfilename = Concatenate("plt",step,7);
@@ -22,7 +22,9 @@ void WritePlotFile(int step,
     DistributionMapping dmap = pres.DistributionMap();
 
     // plot all the velocity variables
-    int nPlot = AMREX_SPACEDIM+1;
+    // plot pressure
+    // plot divergence
+    int nPlot = AMREX_SPACEDIM+2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -37,7 +39,8 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
-    varNames[nPlot-1] = "pres";
+    varNames[cnt++] = "pres";
+    varNames[cnt++] = "divergence";
 
     // reset plotfile variable counter
     cnt = 0;
@@ -48,7 +51,12 @@ void WritePlotFile(int step,
         cnt++;
     }
 
-    MultiFab::Copy(plotfile, pres, 0, nPlot-1, 1, 0);
+    // copy pressure into plotfile
+    MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
+    cnt++;
+
+    // compute divergence and store result in plotfile
+    ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
