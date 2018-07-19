@@ -71,7 +71,7 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     prod_temp[d].define(m1[d].boxArray(), dmap, 1, 0);
     MultiFab::Copy(prod_temp[d],m1[d],comp1,0,1,0);
-    MultiFab::Multiply(prod_temp[d],m2[d],0,0,1,0);
+    MultiFab::Multiply(prod_temp[d],m2[d],comp2,0,1,0);
   }
   
   std::fill(prod_val.begin(), prod_val.end(), 0.);
@@ -88,7 +88,7 @@ void CCInnerProd(const amrex::MultiFab& m1,
   prod_temp.define(m1.boxArray(), m1.DistributionMap(), 1, 0);
 
   MultiFab::Copy(prod_temp,m1,comp1,0,1,0);
-  MultiFab::Multiply(prod_temp,m2,0,0,1,0);
+  MultiFab::Multiply(prod_temp,m2,comp2,0,1,0);
   
   prod_val = 0.;
   SumCC(prod_temp,0,prod_val,false);
