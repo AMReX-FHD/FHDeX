@@ -14,6 +14,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleDensity,
                    const std::array< MultiFab, 3 >& particleVelocity,
                    const MultiFab& particleTemperature,
+                   const MultiFab& particlePressure,
                    const MultiFab& spatialCorrelation,
                    FhdParticleContainer& particles) 
 {
@@ -28,7 +29,7 @@ void WritePlotFile(int step,
     DistributionMapping cdmap = particleMembers.DistributionMap();
 
     int nPlot = 2+AMREX_SPACEDIM;
-    int cnPlot = 7;
+    int cnPlot = 8;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
@@ -47,7 +48,8 @@ void WritePlotFile(int step,
     cvarNames[3] = "particle yVel";
     cvarNames[4] = "particle zVel";
     cvarNames[5] = "particle temperature";
-    cvarNames[6] = "spatial correlation";
+    cvarNames[6] = "particle pressure";
+    cvarNames[7] = "spatial correlation";
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         std::string x = "vel";
@@ -71,7 +73,8 @@ void WritePlotFile(int step,
     cplotfile.copy(particleVelocity[1],0,3,1);
     cplotfile.copy(particleVelocity[2],0,4,1);
     cplotfile.copy(particleTemperature,0,5,1);
-    cplotfile.copy(spatialCorrelation,0,6,1);
+    cplotfile.copy(particlePressure,0,6,1);
+    cplotfile.copy(spatialCorrelation,0,7,1);
 
     // average staggered velocities to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {

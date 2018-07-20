@@ -87,7 +87,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount)
+                                           const surface* surfaceList, const int surfaceCount,const double* domSize)
 {
     
 
@@ -98,19 +98,19 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
     const Real* plo = Geom(lev).ProbLo();
 
     //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (change this later).
-    FindNodalValues(umac[0], umacNodal[0], betaCC);
-    FindNodalValues(umac[1], umacNodal[1], betaCC);
+    //FindNodalValues(umac[0], umacNodal[0], betaCC);
+    //FindNodalValues(umac[1], umacNodal[1], betaCC);
 
 #if (AMREX_SPACEDIM == 3)
-    FindNodalValues(umac[2], umacNodal[2], betaCC);
-    FindNodalValues(betaCC, betaNodal, betaCC);
+    //FindNodalValues(umac[2], umacNodal[2], betaCC);
+    //FindNodalValues(betaCC, betaNodal, betaCC);
 #endif
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 
-     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
@@ -128,7 +128,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                        ZFILL(plo), ZFILL(dx), &dt,
-                       surfaceList, &surfaceCount);
+                       surfaceList, &surfaceCount, domSize);
 
         /*move_particles_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
@@ -168,20 +168,20 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
         }
     }
 
-    sourceTemp[0].SumBoundary(Geom(lev).periodicity());
-    sourceTemp[1].SumBoundary(Geom(lev).periodicity());
+    //sourceTemp[0].SumBoundary(Geom(lev).periodicity());
+    //sourceTemp[1].SumBoundary(Geom(lev).periodicity());
 #if (AMREX_SPACEDIM == 3)
-    sourceTemp[2].SumBoundary(Geom(lev).periodicity());
+   // sourceTemp[2].SumBoundary(Geom(lev).periodicity());
 #endif
-    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
-    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+   // MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+  //  MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
 #if (AMREX_SPACEDIM == 3)
-    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+  //  MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
 #endif
-    source[0].FillBoundary(Geom(lev).periodicity());
-    source[1].FillBoundary(Geom(lev).periodicity());
+ //   source[0].FillBoundary(Geom(lev).periodicity());
+  //  source[1].FillBoundary(Geom(lev).periodicity());
 #if (AMREX_SPACEDIM == 3)
-    source[2].FillBoundary(Geom(lev).periodicity());
+ //   source[2].FillBoundary(Geom(lev).periodicity());
 #endif
 }
 
@@ -257,7 +257,7 @@ void FhdParticleContainer::EvaluateFields(MultiFab& particleMembers,
 {
 
     //UpdateCellVectors();
-    const int lev = 0;
+/*     const int lev = 0;
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -269,7 +269,7 @@ void FhdParticleContainer::EvaluateFields(MultiFab& particleMembers,
         auto& parts = particle_tile.GetArrayOfStructs();
         const int Np = parts.numParticles();
 
-        evaluate_fields(parts.data(),
+       evaluate_fields(parts.data(),
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
@@ -289,7 +289,7 @@ void FhdParticleContainer::EvaluateFields(MultiFab& particleMembers,
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np
                         );
 
-    }
+    }*/
 
 }
 
@@ -339,6 +339,7 @@ void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleTemperature,
                               std::array<MultiFab, 3>& particleMomentum,
                               MultiFab& particleEnergy,
+                              MultiFab& particlePressure,
 
                               MultiFab& particleMembersMean,
                               MultiFab& particleDensityMean,
@@ -346,6 +347,7 @@ void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleTemperatureMean,
                               std::array<MultiFab, 3>& particleMomentumMean,
                               MultiFab& particleEnergyMean,
+                              MultiFab& particlePressureMean,
 
                               MultiFab& particleMembersVar,
                               MultiFab& particleDensityVar,
@@ -353,6 +355,7 @@ void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleTemperatureVar,
                               std::array<MultiFab, 3>& particleMomentumVar,
                               MultiFab& particleEnergyVar,
+                              MultiFab& particlePressureVar,
 
                               MultiFab& particleGVar, 
                               MultiFab& particleKGCross,
@@ -370,6 +373,55 @@ void FhdParticleContainer::EvaluateStats(
 
     double del1 = 0;
     double del2 = 0;
+    double del3 = 0;
+
+    double tp = 0;
+    double te = 0;
+    double tm = 0;
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& parts = particle_tile.GetArrayOfStructs();
+        const int Np = parts.numParticles();
+
+        tp = tp + Np;
+
+        evaluate_fields(parts.data(),
+                         ARLIM_3D(tile_box.loVect()),
+                         ARLIM_3D(tile_box.hiVect()),
+                         m_vector_ptrs[grid_id].dataPtr(),
+                         m_vector_size[grid_id].dataPtr(),
+                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
+                         BL_TO_FORTRAN_3D(particleMembers[pti]),
+                         BL_TO_FORTRAN_3D(particleDensity[pti]),
+                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
+                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
+                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
+                         BL_TO_FORTRAN_3D(particleMomentum[0][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
+                         BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
+                         BL_TO_FORTRAN_3D(particleEnergy[pti]),
+                         BL_TO_FORTRAN_3D(particlePressure[pti]),
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, &del1, &del2, &tm, &te
+                        );
+
+    }
+
+    ParallelDescriptor::ReduceRealSum(del1);
+    ParallelDescriptor::ReduceRealSum(tp);
+    ParallelDescriptor::ReduceRealSum(te);
+    ParallelDescriptor::ReduceRealSum(tm);
+
+    Print() << "Total particles: " << tp << "\n";
+    Print() << "Total momentum: " << tm << "\n";
+    Print() << "Total energy: " << te << "\n";
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -399,6 +451,7 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
                          BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
                          BL_TO_FORTRAN_3D(particleEnergy[pti]),
+                         BL_TO_FORTRAN_3D(particlePressure[pti]),
 
                          BL_TO_FORTRAN_3D(particleMembersMean[pti]),
                          BL_TO_FORTRAN_3D(particleDensityMean[pti]),
@@ -410,6 +463,7 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleMomentumMean[1][pti]),
                          BL_TO_FORTRAN_3D(particleMomentumMean[2][pti]),
                          BL_TO_FORTRAN_3D(particleEnergyMean[pti]),
+                         BL_TO_FORTRAN_3D(particlePressureMean[pti]),
 
                          BL_TO_FORTRAN_3D(particleMembersVar[pti]),
                          BL_TO_FORTRAN_3D(particleDensityVar[pti]),
@@ -433,7 +487,6 @@ void FhdParticleContainer::EvaluateStats(
                         );
     }
 
-    ParallelDescriptor::ReduceRealSum(del1);
     ParallelDescriptor::ReduceRealSum(del2);
 
     //Print() << "del1: " << del1 << "\n";
@@ -496,9 +549,13 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleSpatialCross1[pti]),
                          BL_TO_FORTRAN_3D(particleSpatialCross2[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
                         );
     }
+
+    ParallelDescriptor::ReduceRealSum(del3);
+
+    //Print() << "del3: " << del3 << "\n";
 
 }
 

@@ -22,7 +22,8 @@ extern "C"
                         const amrex_real* dx,
                         const amrex_real* dt,
                         const void* surfaces,
-                        const int* ns);
+                        const int* ns,
+                        const double* domsize);
 
     void move_particles_fhd(void* particles,
                         const int *np,
@@ -96,8 +97,9 @@ extern "C"
                         amrex_real* py, const int* pylo, const int* pyhi, 
                         amrex_real* pz, const int* pzlo, const int* pzhi, 
                         amrex_real* energy, const int* energylo, const int* energyhi,    
+                        amrex_real* pressure, const int* prlo, const int* prhi,
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
-                        const amrex_real* neff, const int* np);
+                        const amrex_real* neff, const int* np, amrex_real* del1, amrex_real* del2, amrex_real* tm, amrex_real* te);
 
    void initialize_fields(void* particles,
                         const int* lo, const int* hi,
@@ -125,8 +127,8 @@ extern "C"
                         amrex_real* px, const int* pxlo, const int* pxhi, 
                         amrex_real* py, const int* pylo, const int* pyhi, 
                         amrex_real* pz, const int* pzlo, const int* pzhi, 
-                        amrex_real* energy, const int* energylo, const int* energyhi,    
-
+                        amrex_real* energy, const int* energylo, const int* energyhi,
+                        amrex_real* pressure, const int* prlo, const int* prhi,    
 
                         amrex_real* membersmean, const int* mmlo, const int* mmhi,
                         amrex_real* densitymean, const int* dmlo, const int* dmhi,
@@ -137,8 +139,8 @@ extern "C"
                         amrex_real* pxmean, const int* pxmlo, const int* pxmhi, 
                         amrex_real* pymean, const int* pymlo, const int* pymhi, 
                         amrex_real* pzmean, const int* pzmlo, const int* pzmhi, 
-                        amrex_real* energymean, const int* energymlo, const int* energymhi,    
-
+                        amrex_real* energymean, const int* energymlo, const int* energymhi,  
+                        amrex_real* pressuremean, const int* prmlo, const int* prmhi,  
 
                         amrex_real* membersvar, const int* mvlo, const int* mvhi,
                         amrex_real* densityvar, const int* dvlo, const int* dvhi,
@@ -207,7 +209,7 @@ extern "C"
                         amrex_real* spatialcross2, const int* sc2lo, const int* sc2hi,
 
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
-                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps, amrex_real* del1, amrex_real* del2);
+                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps, amrex_real* del1, amrex_real* del2, amrex_real* del3);
 
 
 #ifdef __cplusplus

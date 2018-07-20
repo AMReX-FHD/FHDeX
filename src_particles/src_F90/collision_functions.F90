@@ -207,7 +207,7 @@ contains
   end subroutine collide_cells
 
   subroutine evaluate_fields(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, members, mlo, mhi, density, dlo, dhi, velx, velxlo, velxhi, vely, velylo, velyhi, velz, velzlo, velzhi, &
-                             temp, templo, temphi, px, pxlo, pxhi, py, pylo, pyhi, pz, pzlo, pzhi, energy, energylo, energyhi, cellvols, cvlo, cvhi, neff, np) bind(c,name='evaluate_fields')
+                             temp, templo, temphi, px, pxlo, pxhi, py, pylo, pyhi, pz, pzlo, pzhi, energy, energylo, energyhi, pressure, prlo, prhi, cellvols, cvlo, cvhi, neff, np, del1, del2, tm, te) bind(c,name='evaluate_fields')
 
 
     use amrex_fort_module, only: amrex_real
@@ -217,8 +217,9 @@ contains
     implicit none
 
     integer,          intent(in      ) :: clo(3), chi(3), cvlo(3), cvhi(3), mlo(3), mhi(3), lo(3), hi(3), pxlo(3), pxhi(3), pylo(3), pyhi(3), pzlo(3), pzhi(3), energylo(3), energyhi(3), np
-    integer,          intent(in      ) :: dlo(3), dhi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), velzlo(3), velzhi(3), templo(3), temphi(3)
+    integer,          intent(in      ) :: dlo(3), dhi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), velzlo(3), velzhi(3), templo(3), temphi(3), prlo(3), prhi(3)
     double precision, intent(in      ) :: neff
+    double precision, intent(inout   ) :: del1, del2, tm, te
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: density(dlo(1):dhi(1),dlo(2):dhi(2),dlo(3):dhi(3))
@@ -230,6 +231,7 @@ contains
     double precision, intent(inout   ) :: py(pylo(1):pyhi(1),pylo(2):pyhi(2),pylo(3):pyhi(3))
     double precision, intent(inout   ) :: pz(pzlo(1):pzhi(1),pzlo(2):pzhi(2),pzlo(3):pzhi(3))
     double precision, intent(inout   ) :: energy(energylo(1):energyhi(1),energylo(2):energyhi(2),energylo(3):energyhi(3))
+    double precision, intent(inout   ) :: pressure(prlo(1):prhi(1),prlo(2):prhi(2),prlo(3):prhi(3))
     double precision, intent(inout   ) :: members(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -244,8 +246,8 @@ contains
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k,p,cell_np
-    double precision membersinv
+    integer i,j,k,p,cell_np, ti, tj, tk
+    double precision membersinv, nrg
 
 
 
@@ -289,7 +291,12 @@ contains
             py(i,j,k) = py(i,j,k) + part%vel(2)*part%mass
             pz(i,j,k) = pz(i,j,k) + part%vel(3)*part%mass
 
-            energy(i,j,k) = energy(i,j,k) + 0.5*part%mass*(part%vel(1)*part%vel(1) + part%vel(2)*part%vel(2) + part%vel(3)*part%vel(3))
+            nrg = 0.5*part%mass*(part%vel(1)*part%vel(1) + part%vel(2)*part%vel(2) + part%vel(3)*part%vel(3))
+
+            energy(i,j,k) = energy(i,j,k) + nrg
+
+            tm = tm + part%vel(1)*part%mass
+            te = te + nrg
 
           enddo
 
@@ -323,6 +330,18 @@ contains
       enddo
     enddo
 
+    ti = 20
+    tj = 0
+    tk = 0
+
+    if((ti .ge. mlo(1)) .and. (ti .le. mhi(1))) then
+    
+      del1 = px(ti,tj,tk)
+    else
+  
+      del1 = 0
+    endif
+
   end subroutine evaluate_fields
 
   subroutine evaluate_means(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
@@ -337,6 +356,7 @@ contains
                              py, pylo, pyhi, &
                              pz, pzlo, pzhi, &
                              energy, energylo, energyhi, &
+                             pressure, prlo, prhi, &
                           
                              membersmean, mmlo, mmhi, &
                              densitymean, dmlo, dmhi, &
@@ -348,6 +368,7 @@ contains
                              pymean, pymlo, pymhi, &
                              pzmean, pzmlo, pzmhi, &
                              energymean, energymlo, energymhi, &
+                             pressuremean, prmlo, prmhi, &
 
                              membersvar, mvlo, mvhi, &
                              densityvar, dvlo, dvhi, &
@@ -378,7 +399,7 @@ contains
     integer,          intent(in      ) :: mlo(3), mhi(3), dlo(3), dhi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), velzlo(3), velzhi(3), templo(3), temphi(3), pxlo(3), pxhi(3), pylo(3), pyhi(3), pzlo(3), pzhi(3), energylo(3), energyhi(3)
     integer,          intent(in      ) :: dmlo(3), dmhi(3), mmlo(3), mmhi(3), velxmlo(3), velxmhi(3), velymlo(3), velymhi(3), velzmlo(3), velzmhi(3), tempmlo(3), tempmhi(3), pxmlo(3), pxmhi(3), pymlo(3), pymhi(3), pzmlo(3), pzmhi(3), energymlo(3), energymhi(3)
     integer,          intent(in      ) :: dvlo(3), dvhi(3), mvlo(3), mvhi(3), velxvlo(3), velxvhi(3), velyvlo(3), velyvhi(3), velzvlo(3), velzvhi(3), tempvlo(3), tempvhi(3), pxvlo(3), pxvhi(3), pyvlo(3), pyvhi(3), pzvlo(3), pzvhi(3), energyvlo(3), energyvhi(3)
-    integer,          intent(in      ) :: gvlo(3), gvhi(3), kgclo(3), kgchi(3), krclo(3), krchi(3), rgclo(3), rgchi(3)
+    integer,          intent(in      ) :: gvlo(3), gvhi(3), kgclo(3), kgchi(3), krclo(3), krchi(3), rgclo(3), rgchi(3), prlo(3), prhi(3), prmlo(3), prmhi(3)
     double precision, intent(in      ) :: neff, delt, n0, T0
 
     double precision, intent(inout   ) :: del1, del2
@@ -394,6 +415,7 @@ contains
     double precision, intent(inout   ) :: py(pylo(1):pyhi(1),pylo(2):pyhi(2),pylo(3):pyhi(3))
     double precision, intent(inout   ) :: pz(pzlo(1):pzhi(1),pzlo(2):pzhi(2),pzlo(3):pzhi(3))
     double precision, intent(inout   ) :: energy(energylo(1):energyhi(1),energylo(2):energyhi(2),energylo(3):energyhi(3))
+    double precision, intent(inout   ) :: pressure(prlo(1):prhi(1),prlo(2):prhi(2),prlo(3):prhi(3))
 
     double precision, intent(inout   ) :: densitymean(dmlo(1):dmhi(1),dmlo(2):dmhi(2),dmlo(3):dmhi(3))
     double precision, intent(inout   ) :: membersmean(mmlo(1):mmhi(1),mmlo(2):mmhi(2),mmlo(3):mmhi(3))
@@ -405,6 +427,7 @@ contains
     double precision, intent(inout   ) :: pymean(pymlo(1):pymhi(1),pymlo(2):pymhi(2),pymlo(3):pymhi(3))
     double precision, intent(inout   ) :: pzmean(pzmlo(1):pzmhi(1),pzmlo(2):pzmhi(2),pzmlo(3):pzmhi(3))
     double precision, intent(inout   ) :: energymean(energymlo(1):energymhi(1),energymlo(2):energymhi(2),energymlo(3):energymhi(3))
+    double precision, intent(inout   ) :: pressuremean(prmlo(1):prmhi(1),prmlo(2):prmhi(2),prmlo(3):prmhi(3))
 
     double precision, intent(inout   ) :: densityvar(dvlo(1):dvhi(1),dvlo(2):dvhi(2),dvlo(3):dvhi(3))
     double precision, intent(inout   ) :: membersvar(mvlo(1):mvhi(1),mvlo(2):mvhi(2),mvlo(3):mvhi(3))
@@ -471,6 +494,8 @@ contains
 
           membersmean(i,j,k) = (membersmean(i,j,k)*stepsminusone + members(i,j,k))*stepsinv
 
+          pressuremean(i,j,k) = particles(1)%R*cvinv*(energymean(i,j,k) -0.5*densitymeaninv*(pxmean(i,j,k)*pxmean(i,j,k) + pymean(i,j,k)*pymean(i,j,k) + pzmean(i,j,k)*pzmean(i,j,k))  )
+
           !qmean = cv*T0
 
         enddo
@@ -483,30 +508,10 @@ contains
 
     if((ti .ge. mlo(1)) .and. (ti .le. mhi(1))) then
     
-      densitymeaninv = 1.0/densitymean(ti,tj,tk)
-
-      qmean = cv*tempmean(ti,tj,tk)-0.5*(velxmean(ti,tj,tk)**2 + velymean(ti,tj,tk)**2 + velzmean(ti,tj,tk)**2)
-
-      delrho = density(ti,tj,tk) - densitymean(ti,tj,tk)
-
-      delpx = px(ti,tj,tk) - pxmean(ti,tj,tk)
-      delpy = py(ti,tj,tk) - pymean(ti,tj,tk)
-      delpz = pz(ti,tj,tk) - pzmean(ti,tj,tk)
-
-      delenergy = energy(ti,tj,tk) - energymean(ti,tj,tk)
-
-      delvelx = (delpx - velxmean(ti,tj,tk)*delrho)*densitymeaninv
-      delvely = (delpy - velymean(ti,tj,tk)*delrho)*densitymeaninv
-      delvelz = (delpz - velzmean(ti,tj,tk)*delrho)*densitymeaninv
-
-      delg = velxmean(ti,tj,tk)*delpx + velymean(ti,tj,tk)*delpy + velzmean(ti,tj,tk)*delpz
-
-      del1 = delrho
-      del2 = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
+      del2 = pxmean(ti,tj,tk)
 
     else
   
-      del1 = 0
       del2 = 0
 
     endif
@@ -557,7 +562,7 @@ contains
                              spatialcross1, sc1lo, sc1hi, &
                              spatialcross2, sc2lo, sc2hi, &
 
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, del1, del2) bind(c,name='evaluate_corrs')
+                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, del1, del2, del3) bind(c,name='evaluate_corrs')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -571,7 +576,7 @@ contains
     integer,          intent(in      ) :: gvlo(3), gvhi(3), kgclo(3), kgchi(3), krclo(3), krchi(3), rgclo(3), rgchi(3)
     double precision, intent(in      ) :: neff, delt, n0, T0
 
-    double precision, intent(inout   ) :: del1, del2
+    double precision, intent(inout   ) :: del1, del2, del3
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: members(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3))
@@ -627,7 +632,7 @@ contains
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k
+    integer i,j,k, it, jt, kt
     double precision stepsminusone, stepsinv, lhs, cellcount, rhs, tempcm, cv, ncm, velcm, energycm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp
 
     stepsminusone = steps - 1
@@ -682,16 +687,28 @@ contains
 
           deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
-          spatialcross1(i,j,k) = (spatialcross1(i,j,k)*stepsminusone + del1*delpx)*stepsinv
-          spatialcross2(i,j,k) = (spatialcross2(i,j,k)*stepsminusone + del2*deltemp)*stepsinv
+          spatialcross1(i,j,k) = (spatialcross1(i,j,k)*stepsminusone + del1*density(i,j,k))*stepsinv
 
-          !print *, spatialcross(i,j,k)
+          spatialcross2(i,j,k) = spatialcross1(i,j,k) - densitymean(i,j,k)*del2
+
+          !spatialcross1(i,j,k) = (spatialcross1(i,j,k)*stepsminusone + del1*density(i,j,k) - del2*densitymean(i,j,k))*stepsinv
+          !spatialcross2(i,j,k) = (spatialcross2(i,j,k)*stepsminusone + del2*deltemp)*stepsinv
+
+          !print *, spatialcross1(i,j,k)
 
         enddo
       enddo
     enddo
 
+    !it = 0
+    !jt = 95
+    !kt = 0
 
+    !if((jt .ge. mlo(2)) .and. (jt .le. mhi(2))) then
+
+     ! spatialcross2(it,jt,kt) = spatialcross1(it,jt,kt) - particles(1)%mass*particles(1)%R*tempmean(it,jt,kt)*tempmean(it,jt,kt)/(cv*densitymean(it,jt,kt)*cellvols(it,jt,kt))
+
+    !endif
 
     lhs = 0
     rhs = 0
@@ -701,28 +718,14 @@ contains
     velcm = 0
     energycm = 0
     momentumcm = 0
+    del3 = 0
 
 
      do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
         do i = mlo(1), mhi(1)
 
-          lhs = lhs + tempvar(i,j,k)
-
-          ncm = particles(1)%mass*particles(1)%R*tempmean(i,j,k)*tempmean(i,j,k)/(cv*densitymean(i,j,k)*cellvols(i,j,k))
-          !ncm = densitymean(i,j,k)
-
-          rhs = rhs + ncm
-
-          tempcm = tempcm + tempmean(i,j,k)
-
-          if (j .eq. 0) then
-
-            !print *, "temp mean: ", tempmean(i,j,k), "vel mean: ", velxmean(i,j,k), "fluct: ", tempvar(i,j,k), ncm
-
-          endif
-
-          cellcount = cellcount + 1
+          del3 = del3 + spatialcross1(i,j,k)
 
         enddo
       enddo

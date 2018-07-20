@@ -43,11 +43,11 @@ void main_driver(const char* argv)
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+   /* for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
         }
-    }
+    }*/
 
     // make BoxArray and Geometry
     BoxArray ba;
@@ -134,9 +134,11 @@ void main_driver(const char* argv)
     
 #if (AMREX_SPACEDIM == 2)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1]);
+    double domSize[3] = {prob_hi[0] - prob_lo[0],prob_hi[1] - prob_lo[1], 0};
 #endif
 #if (AMREX_SPACEDIM == 3)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
+    double domSize[3] = {prob_hi[0] - prob_lo[0],prob_hi[1] - prob_lo[1], prob_hi[2] - prob_lo[2]};
 #endif
 
     double realParticles = domainVol*nitrogen.n0;
@@ -300,6 +302,7 @@ void main_driver(const char* argv)
     particleMomentum[1].define(bc, dmap, 1, 0);
     particleMomentum[2].define(bc, dmap, 1, 0);
     MultiFab particleEnergy(bc, dmap, 1, 0);
+    MultiFab particlePressure(bc, dmap, 1, 0);
 
     MultiFab particleMembersMean(bc, dmap, 1, 0);
     MultiFab particleDensityMean(bc, dmap, 1, 0);
@@ -314,6 +317,7 @@ void main_driver(const char* argv)
     particleMomentumMean[1].define(bc, dmap, 1, 0);
     particleMomentumMean[2].define(bc, dmap, 1, 0);
     MultiFab particleEnergyMean(bc, dmap, 1, 0);
+    MultiFab particlePressureMean(bc, dmap, 1, 0);
 
     
     MultiFab particleMembersVar(bc, dmap, 1, 0);
@@ -329,6 +333,7 @@ void main_driver(const char* argv)
     particleMomentumVar[1].define(bc, dmap, 1, 0);
     particleMomentumVar[2].define(bc, dmap, 1, 0);
     MultiFab particleEnergyVar(bc, dmap, 1, 0);
+    MultiFab particlePressureVar(bc, dmap, 1, 0);
 
     MultiFab particleGVar(bc, dmap, 1, 0);
     MultiFab particleKGCross(bc, dmap, 1, 0);
@@ -348,6 +353,7 @@ void main_driver(const char* argv)
     particleMomentum[1].setVal(0.0);
     particleMomentum[2].setVal(0.0);
     particleEnergy.setVal(0.0);
+    particlePressure.setVal(0.0);
 
     particleMembersMean.setVal(0.0);
     particleDensityMean.setVal(0);
@@ -359,6 +365,7 @@ void main_driver(const char* argv)
     particleMomentumMean[1].setVal(0.0);
     particleMomentumMean[2].setVal(0.0);
     particleEnergyMean.setVal(0.0);
+    particlePressureMean.setVal(0.0);
 
     particleMembersVar.setVal(0.0);
     particleDensityVar.setVal(0);
@@ -370,6 +377,7 @@ void main_driver(const char* argv)
     particleMomentumVar[1].setVal(0.0);
     particleMomentumVar[2].setVal(0.0);
     particleEnergyVar.setVal(0.0);
+    particlePressureVar.setVal(0.0);
 
     particleGVar.setVal(0.0);
     particleKGCross.setVal(0.0);
@@ -469,7 +477,7 @@ void main_driver(const char* argv)
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
     // write out initial state
-    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particleSpatialCross1, particles);
+    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particles);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -491,10 +499,10 @@ void main_driver(const char* argv)
     //Print() << "Here2!\n";
 
 #if (AMREX_SPACEDIM == 2)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount, domSize);
 #endif
 #if (AMREX_SPACEDIM == 3)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount, domSize);
 #endif
 
     //Print() << "Here3!\n";
@@ -504,24 +512,62 @@ void main_driver(const char* argv)
 
         particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
-        particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, cellVols, nitrogen.Neff);
+        //particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, cellVols, nitrogen.Neff);
+
+
+        if(step == 50000)
+        {
+            particleMembersMean.setVal(0.0);
+            particleDensityMean.setVal(0);
+            particleVelocityMean[0].setVal(0);
+            particleVelocityMean[1].setVal(0);
+            particleVelocityMean[2].setVal(0);
+            particleTemperatureMean.setVal(0);
+            particleMomentumMean[0].setVal(0.0);
+            particleMomentumMean[1].setVal(0.0);
+            particleMomentumMean[2].setVal(0.0);
+            particleEnergyMean.setVal(0.0);
+            particlePressureMean.setVal(0.0);
+
+            particleMembersVar.setVal(0.0);
+            particleDensityVar.setVal(0);
+            particleVelocityVar[0].setVal(0);
+            particleVelocityVar[1].setVal(0);
+            particleVelocityVar[2].setVal(0);
+            particleTemperatureVar.setVal(0);
+            particleMomentumVar[0].setVal(0.0);
+            particleMomentumVar[1].setVal(0.0);
+            particleMomentumVar[2].setVal(0.0);
+            particleEnergyVar.setVal(0.0);
+            particlePressureVar.setVal(0.0);
+
+            particleGVar.setVal(0.0);
+            particleKGCross.setVal(0.0);
+            particleKRhoCross.setVal(0.0);
+            particleRhoGCross.setVal(0.0);
+            particleSpatialCross1.setVal(0.0);
+            particleSpatialCross2.setVal(0.0);
+
+            statsCount = 1;
+        }
+
 
         if(step >= 1 )
         {
-            particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean,
-                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, cellVols, nitrogen, dt,statsCount);
+            particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particlePressure, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean, particlePressureMean,
+                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, cellVols, nitrogen, dt,statsCount);
 
 
             statsCount++;
         }    
         amrex::Print() << "Advanced step " << step << "\n";
-
+        
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0)
         {
             // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particleSpatialCross1, particles);
+            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particlePressureMean, particleSpatialCross2, particles);
         }
 
 

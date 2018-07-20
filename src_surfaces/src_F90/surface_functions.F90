@@ -75,6 +75,24 @@ module surfaces_module
      real(amrex_particle_real) :: specularityright
      real(amrex_particle_real) :: temperatureright
 
+     real(amrex_particle_real) :: periodicity
+     real(amrex_particle_real) :: boundary
+
+     real(amrex_particle_real) :: fxleft
+     real(amrex_particle_real) :: fyleft
+     real(amrex_particle_real) :: fzleft
+
+     real(amrex_particle_real) :: fxright
+     real(amrex_particle_real) :: fyright
+     real(amrex_particle_real) :: fzright
+
+     real(amrex_particle_real) :: fxleftav
+     real(amrex_particle_real) :: fyleftav
+     real(amrex_particle_real) :: fzleftav
+
+     real(amrex_particle_real) :: fxrightav
+     real(amrex_particle_real) :: fyrightav
+     real(amrex_particle_real) :: fzrightav
 
   end type surface_t
 
@@ -170,41 +188,135 @@ contains
   end subroutine find_intersect
 
 
-  subroutine apply_bc(cx, cy, cz, nx,ny,nz, costheta, sintheta, cosphi, sinphi, porosity, specularity, temperature, r)
+  subroutine apply_bc(surf, part, intside, domsize)
     
     use iso_c_binding, only: c_int
+    use cell_sorted_particle_module, only: particle_t
     
     implicit none
 
-    real(amrex_real), intent(in) :: nx, ny, nz, costheta, sintheta, cosphi, sinphi, porosity, specularity, temperature, r
-    real(amrex_real), intent(inout) :: cx, cy, cz
+    integer(c_int),   intent(in) :: intside
+    double precision, intent(in) :: domsize(3)
+    type(surface_t),  intent(inout) :: surf
+    type(particle_t), intent(inout) :: part
 
     real(amrex_real) dotprod, srt
 
-    !print *, "Norm: ", nx, ny, nz
+    if(intside .eq. 1) then
+   
+      if(get_uniform_func() > surf%porosityright) then
 
-    if(get_uniform_func() > porosity) then
-      if(get_uniform_func() < specularity) then
+        surf%fxright = surf%fxright + part%mass*part%vel(1)
+        surf%fyright = surf%fyright + part%mass*part%vel(1)
+        surf%fzright = surf%fzright + part%mass*part%vel(1)
 
-        dotprod = cx*nx + cy*ny + cz*nz
+        if(get_uniform_func() < surf%specularityright) then
 
-        cx = -2d0*dotprod*nx + cx
-        cy = -2d0*dotprod*ny + cy
-        cz = -2d0*dotprod*nz + cz
+          dotprod = part%vel(1)*surf%rnx + part%vel(2)*surf%rny + part%vel(3)*surf%rnz
 
-      else
+          part%vel(1) = -2d0*dotprod*surf%rnx + part%vel(1)
+          part%vel(2) = -2d0*dotprod*surf%rny + part%vel(2)
+          part%vel(3) = -2d0*dotprod*surf%rnz + part%vel(3)
+
+        else
+          
+          srt = sqrt(part%r*surf%temperatureright)
+
+          part%vel(1) = srt*get_particle_normal_func()
+          part%vel(2) = srt*get_particle_normal_func()
+          part%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+
+          !print *, "Pre rotation: ", cx, cy, cz
         
-        srt = sqrt(r*temperature)
+          call rotation(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
 
-        cx = srt*get_particle_normal_func()
-        cy = srt*get_particle_normal_func()
-        cz = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+        endif
+      elseif(get_uniform_func() < surf%periodicity) then
 
-        !print *, "Pre rotation: ", cx, cy, cz
-      
-        call rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz)
+        if(surf%boundary .eq. 1) then
 
+          part%pos(1) = part%pos(1) + 0.999*domsize(1)
+
+        elseif(surf%boundary .eq. 2) then
+
+          part%pos(1) = part%pos(1) - 0.999*domsize(1)
+
+        elseif(surf%boundary .eq. 3) then
+
+          part%pos(2) = part%pos(2) + 0.999*domsize(2)
+
+        elseif(surf%boundary .eq. 4) then
+
+          part%pos(2) = part%pos(2) - 0.999*domsize(2)
+
+        elseif(surf%boundary .eq. 5) then
+
+          part%pos(3) = part%pos(3) + 0.999*domsize(3)
+
+        elseif(surf%boundary .eq. 6) then
+
+          part%pos(3) = part%pos(3) - 0.999*domsize(3)
+
+        endif
       endif
+    else
+
+      if(get_uniform_func() > surf%porosityleft) then
+
+        surf%fxleft = surf%fxleft + part%mass*part%vel(1)
+        surf%fyleft = surf%fyleft + part%mass*part%vel(1)
+        surf%fzleft = surf%fzleft + part%mass*part%vel(1)
+
+        if(get_uniform_func() < surf%specularityleft) then
+
+          dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny + part%vel(3)*surf%lnz
+
+          part%vel(1) = -2d0*dotprod*surf%lnx + part%vel(1)
+          part%vel(2) = -2d0*dotprod*surf%lny + part%vel(2)
+          part%vel(3) = -2d0*dotprod*surf%lnz + part%vel(3)
+
+        else
+          
+          srt = sqrt(part%r*surf%temperatureleft)
+
+          part%vel(1) = srt*get_particle_normal_func()
+          part%vel(2) = srt*get_particle_normal_func()
+          part%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+
+          !print *, "Pre rotation: ", cx, cy, cz
+        
+          call rotation(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
+
+        endif
+      elseif(get_uniform_func() < surf%periodicity) then
+
+        if(surf%boundary .eq. 1) then
+
+          part%pos(1) = part%pos(1) + 0.999*domsize(1)
+
+        elseif(surf%boundary .eq. 2) then
+
+          part%pos(1) = part%pos(1) - 0.999*domsize(1)
+
+        elseif(surf%boundary .eq. 3) then
+
+          part%pos(2) = part%pos(2) + 0.999*domsize(2)
+
+        elseif(surf%boundary .eq. 4) then
+
+          part%pos(2) = part%pos(2) - 0.999*domsize(2)
+
+        elseif(surf%boundary .eq. 5) then
+
+          part%pos(3) = part%pos(3) + 0.999*domsize(3)
+
+        elseif(surf%boundary .eq. 6) then
+
+          part%pos(3) = part%pos(3) - 0.999*domsize(3)
+
+        endif
+      endif
+ 
     endif
         
   end subroutine apply_bc
@@ -287,16 +399,16 @@ contains
         
   end subroutine find_intersect
 
-  subroutine apply_bc(cx, cy,nx,ny, costheta, sintheta, porosity, specularity, temperature, r)
+  subroutine apply_bc(cx, cy, cz, nx,ny, costheta, sintheta, porosity, specularity, temperature, r, m, fxl, fyl, fzl, fxr, fyr, fzr)
     
     use iso_c_binding, only: c_int
     
     implicit none
 
-    real(amrex_real), intent(in) :: nx, ny, costheta, sintheta, porosity, specularity, temperature, r
-    real(amrex_real), intent(inout) :: cx, cy
+    real(amrex_real), intent(in) :: nx, ny, costheta, sintheta, porosity, specularity, temperature, r, m
+    real(amrex_real), intent(inout) :: cx, cy, cz, fxl, fyl, fzl, fxr, fyr, fzr
 
-    real(amrex_real) dotprod
+    real(amrex_real) dotprod, srt
 
     if(get_uniform_func() > porosity) then
       if(get_uniform_func() < specularity) then
@@ -308,8 +420,11 @@ contains
 
       else
 
-        cx = sqrt(r*temperature)*log(-get_uniform_func())
-        cy = get_particle_normal_func()
+        srt = sqrt(r*temperature)
+
+        cx = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+        cy = srt*get_particle_normal_func()
+        cz = srt*get_particle_normal_func()
       
         call rotation(costheta, sintheta, cx, cy)
 
@@ -320,10 +435,6 @@ contains
 #endif
   
 end module surfaces_module
-
-
-
-
 
 
 

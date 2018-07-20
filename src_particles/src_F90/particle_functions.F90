@@ -1,59 +1,5 @@
-module cell_sorted_particle_module
-  use amrex_fort_module, only: amrex_real, amrex_particle_real
-  use iso_c_binding ,    only: c_int
-  
-  implicit none
-  private
-  
-  public particle_t, remove_particle_from_cell
-  
-  type, bind(C) :: particle_t
-#if (BL_SPACEDIM == 3)
-     real(amrex_particle_real) :: pos(3)
-#endif
-#if (BL_SPACEDIM == 2)
-     real(amrex_particle_real) :: pos(2)
-#endif
-
-
-     real(amrex_particle_real) :: vel(3)     
-     real(amrex_particle_real) :: mass
-     real(amrex_particle_real) :: R
-     real(amrex_particle_real) :: radius
-     real(amrex_particle_real) :: accel_factor
-     real(amrex_particle_real) :: drag_factor
-     real(amrex_particle_real) :: angular_vel1
-     real(amrex_particle_real) :: angular_vel2
-     real(amrex_particle_real) :: angular_vel3
-
-     integer(c_int)            :: id         
-     integer(c_int)            :: cpu        
-     integer(c_int)            :: sorted     
-     integer(c_int)            :: species
-  end type particle_t
-
-contains
-  
-  subroutine remove_particle_from_cell(cell_parts, cell_np, new_np, i)
-    
-    use iso_c_binding, only: c_int
-    
-    implicit none
-    
-    integer(c_int), intent(inout) :: cell_parts(cell_np)
-    integer(c_int), intent(in   ) :: cell_np
-    integer(c_int), intent(inout) :: new_np
-    integer(c_int), intent(in   ) :: i 
-
-    cell_parts(i) = cell_parts(new_np)
-    new_np = new_np - 1
-        
-  end subroutine remove_particle_from_cell
-  
-end module cell_sorted_particle_module
-
 subroutine move_particles_dsmc(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt, surfaces, ns) &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt, surfaces, ns, domsize) &
      bind(c,name="move_particles_dsmc")
   
   use amrex_fort_module, only: amrex_real
@@ -71,7 +17,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   real(amrex_real), intent(in) :: plo(3)
-  real(amrex_real), intent(in) :: dx(3)
+  real(amrex_real), intent(in) :: dx(3), domsize(3)
   real(amrex_real), intent(in) :: dt
   
   integer :: i, j, k, p, cell_np, new_np, intsurf, intside
@@ -79,18 +25,27 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), proj(3), runtime, inttime, adj
+  real(amrex_real) inv_dx(3), proj(3), runtime, inttime, adj, inv_dt
 
-  adj = 0.999999
+  !adj = 0.99999999
+  adj = 0.99999
 
   inv_dx = 1.d0/dx
+  inv_dt = 1.d0/dt
 
-  
+  do p = 1, ns
 
-  !part => particles(1)
+    surf => surfaces(p)  
 
-  !print *, surf%ux, surf%uy, surf%uz
-  !call find_intersect_3d(part%vel(1),part%vel(2),part%vel(3),part%pos(1),part%pos(2),part%pos(3), dt,surfaces,ns)
+    surf%fxleft = 0
+    surf%fyleft = 0
+    surf%fzleft = 0
+
+    surf%fxright = 0
+    surf%fyright = 0
+    surf%fzright = 0
+
+  enddo        
   
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -109,6 +64,13 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
               do while (runtime .gt. 0)
 
                 !print *, "Particle ", p, " prevel ", part%vel, " prepos ", part%pos
+                
+
+                if (p .eq. 3) then
+                  !print *, part%pos(1)
+                endif
+                        
+
 #if (BL_SPACEDIM == 3)                
                 call find_intersect(part%vel(1),part%vel(2),part%vel(3),part%pos(1),part%pos(2),part%pos(3),runtime, surfaces, ns, intsurf, inttime, intside)
 #endif
@@ -126,31 +88,22 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                 if(intsurf .gt. 0) then
 
                   surf => surfaces(intsurf)
-
-                  if(intside .eq. 0) then !lhs
 #if (BL_SPACEDIM == 3)
-                    !print *, "Applying bc. prevel: ", part%vel
-                    call apply_bc(part%vel(1),part%vel(2),part%vel(3), surf%lnx, surf%lny,surf%lnz, surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, surf%porosityleft, surf%specularityleft, surf%temperatureleft, part%R)
-                    !print *, "Bc applied. postvel: ", part%vel
+                  !print *, "Applying bc. prevel: ", part%vel
+                  call apply_bc(surf, part, intside, domsize)
+                  !print *, "Bc applied. postvel: ", part%vel                 
 #endif
 #if (BL_SPACEDIM == 2)
-                    call apply_bc(part%vel(1),part%vel(2), surf%lnx, surf%lny, surf%costhetaleft, surf%sinthetaleft, surf%porosityleft, surf%specularityleft, surf%temperatureleft, part%R)
+                  !call apply_bc(part%vel(1),part%vel(2), surf%lnx, surf%lny, surf%costhetaleft, surf%sinthetaleft, surf%porosityleft, surf%specularityleft, surf%temperatureleft, part%R, part%mass, surf%fxleft, surf%fyleft, surf%fzleft, surf%fxright, surf%fyright, surf%fzright)
 #endif
-
-                  else !rhs
-
-#if (BL_SPACEDIM == 3)
-                   call apply_bc(part%vel(1),part%vel(2),part%vel(3), surf%lnx, surf%lny,surf%lnz, surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, surf%porosityright, surf%specularityright, surf%temperatureright, part%R)
-#endif
-#if (BL_SPACEDIM == 2)
-                   call apply_bc(part%vel(1),part%vel(2), surf%lnx, surf%lny, surf%costhetaright, surf%sinthetaright, surf%porosityright, surf%specularityright, surf%temperatureright, part%R)
-#endif
-                  endif
-
                 endif
                 !print *, "Particle ", p, " postvel ", part%vel, " postpos ", part%pos
 
               end do
+
+                if (part%pos(1) < 0) then
+                  print *, part%pos(1), p, i, j, k
+                endif
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
@@ -170,11 +123,25 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
               end if
            end do
 
-           cell_part_cnt(i,j,k) = new_np
-           
+           cell_part_cnt(i,j,k) = new_np           
         end do
+
      end do
   end do
+
+  do p = 1, ns
+
+    surf => surfaces(p)  
+
+    surf%fxleft = surf%fxleft*inv_dt
+    surf%fyleft = surf%fyleft*inv_dt
+    surf%fzleft = surf%fzleft*inv_dt
+
+    surf%fxright = surf%fxright*inv_dt
+    surf%fyright = surf%fyright*inv_dt
+    surf%fzright = surf%fzright*inv_dt
+
+  enddo  
   
 end subroutine move_particles_dsmc
 
@@ -250,6 +217,7 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   integer :: ni, nj, nk, fi, fj, fk
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
+  type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime
 
 #if (BL_SPACEDIM == 3)
@@ -300,7 +268,19 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   dxfinv = 1.d0/dxf
   onemdxf = 1.d0 - dxf
   
+  do p = 1, ns
 
+    surf => surfaces(p)  
+
+    surf%fxleft = 0
+    surf%fyleft = 0
+    surf%fzleft = 0
+
+    surf%fxright = 0
+    surf%fyright = 0
+    surf%fzright = 0
+
+  enddo        
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)

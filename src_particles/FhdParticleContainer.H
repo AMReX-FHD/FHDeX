@@ -95,6 +95,7 @@ public:
                               MultiFab& particleTemperature,
                               std::array<MultiFab, 3>& particleMomentum,
                               MultiFab& particleEnergy,
+                              MultiFab& particlePressure,
 
                               MultiFab& particleMembersMean,
                               MultiFab& particleDensityMean,
@@ -102,6 +103,7 @@ public:
                               MultiFab& particleTemperatureMean,
                               std::array<MultiFab, 3>& particleMomentumMean,
                               MultiFab& particleEnergyMean,
+                              MultiFab& particlePressureMean,
 
                               MultiFab& particleMembersVar,
                               MultiFab& particleDensityVar,
@@ -109,6 +111,7 @@ public:
                               MultiFab& particleTemperatureVar,
                               std::array<MultiFab, 3>& particleMomentumVar,
                               MultiFab& particleEnergyVar,
+                              MultiFab& particlePressureVar,
 
                               MultiFab& particleGVar, 
                               MultiFab& particleKGCross,
@@ -129,7 +132,7 @@ public:
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount);
+                                           const surface* surfaceList, const int surfaceCount,const double* domSize);
 
     void ReBin();
 
