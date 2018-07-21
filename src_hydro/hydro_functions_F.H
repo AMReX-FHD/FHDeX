@@ -31,6 +31,25 @@ extern "C"
 
 ///////////////////////////
 
+///////////////////////////
+// in mk_advective_s_fluxdiv.F90
+
+  void mk_advective_s_fluxdiv(const int* lo, const int* hi,
+			      const amrex_real* umac, const int* umaclo, const int* umachi,
+			      const amrex_real* vmac, const int* vmaclo, const int* vmachi,
+#if (AMREX_SPACEDIM == 3)
+			      const amrex_real* wmac, const int* wmaclo, const int* wmachi,
+#endif
+			      const amrex_real* mx, const int* mxlo, const int* mxhi,
+			      const amrex_real* my, const int* mylo, const int* myhi,
+#if (AMREX_SPACEDIM == 3)
+			      const amrex_real* mz, const int* mzlo, const int* mzhi,
+#endif
+			      const amrex_real* m_update, const int* mudlo, const int* mudhi,
+			      const amrex_real* dx, const int* increment=0);
+
+///////////////////////////
+
 
 
 #ifdef __cplusplus

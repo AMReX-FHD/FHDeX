@@ -16,7 +16,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2,zshft
   
   double precision :: L_hlf, k1, k1_inv, k2, k2_inv, r_a, r_b
-  double precision :: pi, freq, amp, width, perturb, slope
+  double precision :: pi, freq, amp, width1, width2, perturb, slope, fun, fun_ptrb
 
 #if (AMREX_SPACEDIM == 2)
   zshft = 0.0d0
@@ -42,9 +42,10 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   r_a = 0.35d0*L_hlf
   r_b = L_hlf - r_a
   ! Stream:
-  freq = 5.d0*pi/L_hlf
+  freq = 3.d0*pi/L_hlf
   amp = 2.0d-1*L_hlf
-  width = L_hlf
+  width1 = L_hlf
+  width2 = width1-2*amp
 
   if (di .EQ. 0) then
      do k = lo(3), hi(3)
@@ -68,11 +69,12 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               ! Stream:
               perturb = amp*sin(freq*relpos(1))
               slope = amp*freq*cos(freq*relpos(1))
-              ! vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width/2.d0+perturb)))) &
-              !                    *(1d0+tanh(k2_inv*((width/2.d0+perturb) - relpos(2))))
-              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width/2.d0+perturb)))) &
-                                 *(1d0+tanh(k2_inv*((width/2.d0+perturb) - relpos(2))))  &
-                                 *1.d0/sqrt(1+slope**2)
+              fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
+                          *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
+              fun = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width2/2.d0)))) &
+                          *(1d0+tanh(k2_inv*((width2/2.d0) - relpos(2))))
+                          ! *(relpos(2)-perturb+L_hlf/2)*(relpos(2)-perturb-L_hlf/2)
+              vel(i,j,k) = -5*(1/freq)*fun_ptrb + 0.5d0*fun
 
            end do
         end do
@@ -101,10 +103,13 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               ! Stream:
               perturb = amp*sin(freq*relpos(1))
               slope = amp*freq*cos(freq*relpos(1))
-              ! vel(i,j,k) = 0.d0
-              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width/2.d0+perturb)))) &
-                                 *(1d0+tanh(k2_inv*((width/2.d0+perturb) - relpos(2))))  &
-                                 *slope/sqrt(1+slope**2)
+              fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
+                               *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
+                               ! *(relpos(2)-perturb+L_hlf/2)*(relpos(2)-perturb-L_hlf/2)
+              ! fun = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width2/2.d0)))) &
+              !             *(1d0+tanh(k2_inv*((width2/2.d0) - relpos(2))))
+              vel(i,j,k) = -5*(1/freq)*slope*fun_ptrb
+                                 
 
            end do
         end do
@@ -134,5 +139,3 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
 
 end subroutine init_vel
-
-

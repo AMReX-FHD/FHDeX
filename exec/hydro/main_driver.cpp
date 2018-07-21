@@ -1,5 +1,6 @@
 
 #include "hydro_test_functions.H"
+#include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
@@ -184,6 +185,10 @@ void main_driver(const char* argv)
     gamma_neghlf.mult(-0.5, 1);
     ///////////////////////////////////////////
 
+    // tracer
+    MultiFab tracer(ba,dmap,1,1);
+    MultiFab advFluxdiv_s(ba,dmap,1,1);
+
     // rhs_p GMRES solve
     MultiFab gmres_rhs_p(ba, dmap, 1, 0);
     gmres_rhs_p.setVal(0.);
@@ -249,6 +254,18 @@ void main_driver(const char* argv)
                                     BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
                                     geom.ProbLo(), geom.ProbHi() ,&dm, 
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+
+	// initialize tracer
+        // init_s_vel(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()), 
+	// 	   BL_TO_FORTRAN_ANYD(tracer[mfi]), geom.CellSize(), 
+	// 	   ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+        init_s_vel(BL_TO_FORTRAN_BOX(bx),
+		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
+		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+        // init_s_vel(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()), 
+	// 	   BL_TO_FORTRAN_ANYD(tracer[mfi]), dx);
     }
 
     // initial guess for new solution
@@ -270,6 +287,13 @@ void main_driver(const char* argv)
         AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
+
+	// Compute tracer:
+        tracer.FillBoundary(geom.periodicity());
+	MkAdvSFluxdiv(umac,tracer,advFluxdiv_s,dx,geom,0);
+	advFluxdiv_s.mult(dt, 1);
+
+        MultiFab::Add(tracer, advFluxdiv_s, 0, 0, 1, 0);
 
 	// PREDICTOR STEP (trapezoidal rule)
 	// compute advective term
@@ -394,7 +418,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-	  WritePlotFile(step,time,geom,umac,pres);
+	  WritePlotFile(step,time,geom,umac,tracer);
         }
     }
 

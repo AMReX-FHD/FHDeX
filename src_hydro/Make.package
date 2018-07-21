@@ -1,5 +1,6 @@
 CEXE_sources += advance_timestep_inertial.cpp
 CEXE_sources += MkAdvMFluxdiv.cpp
+CEXE_sources += MkAdvSFluxdiv.cpp
 
 CEXE_headers += hydro_functions.H
 CEXE_headers += hydro_functions_F.H
