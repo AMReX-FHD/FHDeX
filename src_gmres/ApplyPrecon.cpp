@@ -165,7 +165,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     }
 
     ////////////////////
-    // STEP 4: Handle null-space issues in MG solvers
+    // STEP 5: Handle null-space issues in MG solvers
     ////////////////////
     
     // subtract off mean value: Single level only! No need for ghost cells
