@@ -187,7 +187,8 @@ void main_driver(const char* argv)
 
     // tracer
     MultiFab tracer(ba,dmap,1,1);
-    MultiFab advFluxdiv_s(ba,dmap,1,1);
+    MultiFab tracerPred(ba,dmap,1,1);
+    MultiFab advFluxdivS(ba,dmap,1,1);
 
     // rhs_p GMRES solve
     MultiFab gmres_rhs_p(ba, dmap, 1, 0);
@@ -279,7 +280,7 @@ void main_driver(const char* argv)
     Real norm_pre_rhs;
 
     // write out initial state
-    WritePlotFile(step,time,geom,umac,pres);
+    WritePlotFile(step,time,geom,umac,tracer,pres);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -289,11 +290,25 @@ void main_driver(const char* argv)
                      umac[2].FillBoundary(geom.periodicity()););
 
 	// Compute tracer:
-        tracer.FillBoundary(geom.periodicity());
-	MkAdvSFluxdiv(umac,tracer,advFluxdiv_s,dx,geom,0);
-	advFluxdiv_s.mult(dt, 1);
+	if (step != 1) {
+	  tracer.FillBoundary(geom.periodicity());
+	  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0);
+	  advFluxdivS.mult(dt, 1);
 
-        MultiFab::Add(tracer, advFluxdiv_s, 0, 0, 1, 0);
+	  // compute predictor
+	  MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
+	  MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
+	  tracerPred.FillBoundary(geom.periodicity());
+	  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0);
+	  advFluxdivS.mult(dt, 1);
+
+	  // advance in time
+	  MultiFab::Add(tracer, tracerPred, 0, 0, 1, 0);
+	  MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
+	  tracer.mult(0.5, 1);
+
+	  // amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
+	}
 
 	// PREDICTOR STEP (trapezoidal rule)
 	// compute advective term
@@ -418,7 +433,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-	  WritePlotFile(step,time,geom,umac,tracer);
+	  WritePlotFile(step,time,geom,umac,tracer,pres);
         }
     }
 

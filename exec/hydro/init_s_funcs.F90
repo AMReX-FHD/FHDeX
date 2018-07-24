@@ -34,10 +34,9 @@ subroutine init_s_vel(lo, hi, phic, phiclo, phichi, dx &
   ! r_b = L_hlf - r_a
 
   ! Stream:
-  freq = 5.d0*pi/L_hlf
-  amp = 1.0d-1*L_hlf
-  width1 = L_hlf
-  ! width2 = width1-2*amp
+  ! freq = 3.d0*pi/L_hlf
+  ! amp = 2.0d-1*L_hlf
+  width1 = L_hlf/2.0d0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -61,7 +60,6 @@ subroutine init_s_vel(lo, hi, phic, phiclo, phichi, dx &
            perturb = 0d0
            fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
                             *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
-           ! phic(i,j,k) = 5*(1/freq)*fun_ptrb
            phic(i,j,k) = fun_ptrb
 
         end do

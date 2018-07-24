@@ -45,6 +45,7 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 #if (AMREX_SPACEDIM == 3)
 			       BL_TO_FORTRAN_ANYD(m_fc[2][mfi]),
 #endif
+			       BL_TO_FORTRAN_ANYD(m[mfi]),
         		       BL_TO_FORTRAN_ANYD(m_update[mfi]),
 			       dx, &increment);
     }

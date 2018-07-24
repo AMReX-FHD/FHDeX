@@ -40,9 +40,10 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   r_b = L_hlf - r_a
   
   ! Stream:
-  freq = 3.d0*pi/L_hlf
-  amp = 2.0d-1*L_hlf
-  width1 = L_hlf
+  freq = 02.d0*pi/L_hlf
+  amp = 2.0d-3*L_hlf
+  ! amp = 1.0d-1*L_hlf
+  width1 = L_hlf/2.0d0
 
   if (di .EQ. 0) then
      do k = lo(3), hi(3)

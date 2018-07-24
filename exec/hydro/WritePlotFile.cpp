@@ -14,6 +14,7 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+		   const MultiFab& tracer,
 		   const MultiFab& pres)
 {
     const std::string plotfilename = Concatenate("plt",step,7);
@@ -23,8 +24,9 @@ void WritePlotFile(int step,
 
     // plot all the velocity variables
     // plot pressure
+    // plot tracer
     // plot divergence
-    int nPlot = AMREX_SPACEDIM+2;
+    int nPlot = AMREX_SPACEDIM+3;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -39,6 +41,7 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
+    varNames[cnt++] = "tracer";
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
@@ -50,6 +53,10 @@ void WritePlotFile(int step,
         AverageFaceToCC(umac[i],0,plotfile,cnt,1);
         cnt++;
     }
+
+    // copy tracer into plotfile
+    MultiFab::Copy(plotfile, tracer, 0, cnt, 1, 0);
+    cnt++;
 
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
