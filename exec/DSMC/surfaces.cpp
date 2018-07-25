@@ -383,6 +383,65 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].fyRightAv = 0;
     surfaceList[5].fzRightAv = 0;
 
+//Membrane
+    surfaceList[6].x0 = 3.753e-7;
+    surfaceList[6].y0 = domainLo[1];
+    surfaceList[6].z0 = domainLo[2];
+
+    surfaceList[6].ux = 0;
+    surfaceList[6].uy = 1;
+    surfaceList[6].uz = 0;
+
+    surfaceList[6].vx = 0;
+    surfaceList[6].vy = 0;
+    surfaceList[6].vz = 1;
+
+    surfaceList[6].uTop = domainHi[1];
+    surfaceList[6].vTop = domainHi[2];
+
+    surfaceList[6].lnx = -1;
+    surfaceList[6].lny = 0;
+    surfaceList[6].lnz = 0;
+    
+    surfaceList[6].rnx = 1;
+    surfaceList[6].rny = 0;
+    surfaceList[6].rnz = 0;
+
+    surfaceList[6].porosityLeft = 0.2;
+    surfaceList[6].specularityLeft = 1;
+    surfaceList[6].temperatureLeft = 273;
+
+    surfaceList[6].porosityRight = 0.2;
+    surfaceList[6].specularityRight = 1;
+    surfaceList[6].temperatureRight = 273;
+
+    surfaceList[6].periodicity = 0;
+    surfaceList[6].boundary = 0;
+        
+    theta = getTheta(surfaceList[6].lnx, surfaceList[6].lny, surfaceList[6].lnz);
+    phi   = getPhi(surfaceList[6].lnx, surfaceList[6].lny, surfaceList[6].lnz);
+
+    surfaceList[6].cosThetaLeft = cos(theta);
+    surfaceList[6].sinThetaLeft = sin(theta);
+    surfaceList[6].cosPhiLeft = cos(phi);
+    surfaceList[6].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[6].rnx, surfaceList[6].rny, surfaceList[6].rnz);
+    phi   = getPhi(surfaceList[6].rnx, surfaceList[6].rny, surfaceList[6].rnz);
+
+    surfaceList[6].cosThetaRight = cos(theta);
+    surfaceList[6].sinThetaRight = sin(theta);
+    surfaceList[6].cosPhiRight = cos(phi);
+    surfaceList[6].sinPhiRight = sin(phi);
+
+    surfaceList[6].fxLeftAv = 0;
+    surfaceList[6].fyLeftAv = 0;
+    surfaceList[6].fzLeftAv = 0;
+
+    surfaceList[6].fxRightAv = 0;
+    surfaceList[6].fyRightAv = 0;
+    surfaceList[6].fzRightAv = 0;
+
 #endif
 
 #if (BL_SPACEDIM == 2)

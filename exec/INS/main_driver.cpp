@@ -341,7 +341,7 @@ void main_driver(const char* argv)
     MultiFab particleRhoGCross(bc, dmap, 1, 0);
     MultiFab particleSpatialCross1(bc, dmap, 1, 0);
     MultiFab particleSpatialCross2(bc, dmap, 1, 0);
-
+    MultiFab particleMembraneFlux(bc, dmap, 1, 0);
 
     particleMembers.setVal(0.0);
     particleDensity.setVal(0.0);
@@ -385,6 +385,7 @@ void main_driver(const char* argv)
     particleRhoGCross.setVal(0.0);
     particleSpatialCross1.setVal(0.0);
     particleSpatialCross2.setVal(0.0);
+    particleMembraneFlux.setVal(0.0);
 
 
     const Real* dx = geom.CellSize();
@@ -448,7 +449,7 @@ void main_driver(const char* argv)
 
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
+    int surfaceCount = 7;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -515,7 +516,7 @@ void main_driver(const char* argv)
         //particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, cellVols, nitrogen.Neff);
 
 
-        if(step == 50000)
+        if(step == 500000)
         {
             particleMembersMean.setVal(0.0);
             particleDensityMean.setVal(0);
@@ -555,7 +556,7 @@ void main_driver(const char* argv)
         if(step >= 1 )
         {
             particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particlePressure, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean, particlePressureMean,
-                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, cellVols, nitrogen, dt,statsCount);
+                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, particleMembraneFlux, cellVols, nitrogen, dt,statsCount);
 
 
             statsCount++;

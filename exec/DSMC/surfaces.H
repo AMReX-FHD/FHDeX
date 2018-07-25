@@ -77,7 +77,6 @@ typedef struct {
     double temperatureRight;
 
     double periodicity;
-    double boundary;
 
     double fxLeft;
     double fyLeft;
@@ -94,6 +93,8 @@ typedef struct {
     double fxRightAv;
     double fyRightAv;
     double fzRightAv;
+
+    int boundary;
 
 } surface;
 

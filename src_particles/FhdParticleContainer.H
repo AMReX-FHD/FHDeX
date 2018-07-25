@@ -119,6 +119,7 @@ public:
                               MultiFab& particleRhoGCross,
                               MultiFab& particleSpatialCross1,
                               MultiFab& particleSpatialCross2,
+                              MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
@@ -132,7 +133,7 @@ public:
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount,const double* domSize);
+                                           const surface* surfaceList, const int surfaceCount);
 
     void ReBin();
 

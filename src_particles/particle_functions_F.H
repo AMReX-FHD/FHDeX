@@ -19,11 +19,11 @@ extern "C"
                         const int* clo,
                         const int* chi,
                         const amrex_real* plo,
+                        const amrex_real* phi,
                         const amrex_real* dx,
                         const amrex_real* dt,
                         const void* surfaces,
-                        const int* ns,
-                        const double* domsize);
+                        const int* ns);
 
     void move_particles_fhd(void* particles,
                         const int *np,
@@ -34,6 +34,7 @@ extern "C"
                         const int* clo,
                         const int* chi,
                         const amrex_real* plo,
+                        const amrex_real* phi,
                         const amrex_real* dx,
                         const amrex_real* dt,
                         const amrex_real* plof,
@@ -159,6 +160,7 @@ extern "C"
                         amrex_real* rgcross, const int* rgclo, const int* rgchi, 
                         amrex_real* spatialcross1, const int* sc1lo, const int* sc1hi,
                         amrex_real* spatialcross2, const int* sc2lo, const int* sc2hi,
+                        amrex_real* membraneflux, const int* mflo, const int* mfhi,
 
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
                         const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps, amrex_real* del1, amrex_real* del2);
