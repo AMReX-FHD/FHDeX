@@ -58,6 +58,9 @@ include ../../src_surfaces/Make.package
 VPATH_LOCATIONS   += ../../src_surfaces
 INCLUDE_LOCATIONS += ../../src_surfaces
 
+include ./Make_precheck.package
+include ./Make_surface.package
+
 include ../../src_surfaces/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_surfaces/src_F90
 INCLUDE_LOCATIONS += ../../src_surfaces/src_F90

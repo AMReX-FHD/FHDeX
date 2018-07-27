@@ -84,7 +84,7 @@ contains
 
                 if(fac .gt. cellfactor(i,j,k)) then
 
-                  cellfactor(i,j,k) = 2d0*fac
+                  cellfactor(i,j,k) = 1.5*fac
 
                 endif         
 
@@ -173,9 +173,9 @@ contains
 
               if(fac1 .gt. cellfactor(i,j,k)) then
 
-                cellfactor(i,j,k) = 2d0*fac1
+                cellfactor(i,j,k) = 1.5d0*fac1
 
-                !print *, "Maxrel updated in cell ", i, j, k
+                print *, "Maxrel updated in cell ", i, j, k
 
               endif
 
@@ -714,26 +714,26 @@ contains
 
     !endif
 
-    lhs = 0
-    rhs = 0
-    cellcount = 0
-    tempcm = 0
-    ncm = 0
-    velcm = 0
-    energycm = 0
-    momentumcm = 0
-    del3 = 0
+   ! lhs = 0
+   ! rhs = 0
+   ! cellcount = 0
+   ! tempcm = 0
+   ! ncm = 0
+   ! velcm = 0
+   ! energycm = 0
+   ! momentumcm = 0
+   ! del3 = 0
 
 
-     do k = mlo(3), mhi(3)
-      do j = mlo(2), mhi(2)
-        do i = mlo(1), mhi(1)
+    ! do k = mlo(3), mhi(3)
+    !  do j = mlo(2), mhi(2)
+    !    do i = mlo(1), mhi(1)
 
-          del3 = del3 + spatialcross1(i,j,k)
+     !     del3 = del3 + spatialcross1(i,j,k)
 
-        enddo
-      enddo
-    enddo
+     !   enddo
+     ! enddo
+   ! enddo
 
     !print *, "temp mean: ", tempmean(mlo(1) +0,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1) +0,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1) +0,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+ 0,mlo(2),mlo(3)))
     !print *, "temp mean: ", tempmean(mlo(1) +5,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1) +5,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1) +5,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+ 5,mlo(2),mlo(3)))

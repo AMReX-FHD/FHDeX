@@ -483,19 +483,19 @@ void main_driver(const char* argv)
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
-        AMREX_D_TERM(
-        umac[0].FillBoundary(geom.periodicity());,
-        umac[1].FillBoundary(geom.periodicity());,
-        umac[2].FillBoundary(geom.periodicity()););
+       // AMREX_D_TERM(
+      //  umac[0].FillBoundary(geom.periodicity());,
+      //  umac[1].FillBoundary(geom.periodicity());,
+      //  umac[2].FillBoundary(geom.periodicity()););
 
         //eulerStep(betaCC, gammaCC, 
          //        betaEdge,
          //        umac, umacOut, umacNew, alpha, geom, &dt);
 
-        AMREX_D_TERM(
-        MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+      //  AMREX_D_TERM(
+      //  MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
+      //  MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
+      //  MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
     //Print() << "Here2!\n";
 
@@ -512,9 +512,6 @@ void main_driver(const char* argv)
         particles.UpdateCellVectors();
 
         particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
-
-        //particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, cellVols, nitrogen.Neff);
-
 
         //if((step-10)%20000 == 0)
         if(step == 2000000)
@@ -559,7 +556,6 @@ void main_driver(const char* argv)
         {
             particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particlePressure, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean, particlePressureMean,
                                     particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, particleMembraneFlux, cellVols, nitrogen, dt,statsCount);
-
 
             statsCount++;
         }

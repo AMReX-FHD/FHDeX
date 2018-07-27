@@ -1,124 +1,49 @@
-module surfaces_module
-  use amrex_fort_module, only: amrex_real, amrex_particle_real
-  use iso_c_binding ,    only: c_int
-  use rng_functions_module
-  
-  implicit none
-  private
-  
-  public surface_t, find_intersect, apply_bc
-  
-  type, bind(C) :: surface_t
-#if (BL_SPACEDIM == 3)
-     real(amrex_particle_real) :: x0
-     real(amrex_particle_real) :: y0
-     real(amrex_particle_real) :: z0
 
-     real(amrex_particle_real) :: ux
-     real(amrex_particle_real) :: uy
-     real(amrex_particle_real) :: uz
 
-     real(amrex_particle_real) :: vx
-     real(amrex_particle_real) :: vy
-     real(amrex_particle_real) :: Vz
-
-     real(amrex_particle_real) :: lnx
-     real(amrex_particle_real) :: lny
-     real(amrex_particle_real) :: lnz
-
-     real(amrex_particle_real) :: rnx
-     real(amrex_particle_real) :: rny
-     real(amrex_particle_real) :: rnz
-
-     real(amrex_particle_real) :: utop
-     real(amrex_particle_real) :: vtop
-
-     real(amrex_particle_real) :: costhetaleft
-     real(amrex_particle_real) :: sinthetaleft
-     real(amrex_particle_real) :: cosphileft
-     real(amrex_particle_real) :: sinphileft
-
-     real(amrex_particle_real) :: costhetaright
-     real(amrex_particle_real) :: sinthetaright
-     real(amrex_particle_real) :: cosphiright
-     real(amrex_particle_real) :: sinphiright
-
-#endif
-
-#if (BL_SPACEDIM == 2)
-     real(amrex_particle_real) :: x0
-     real(amrex_particle_real) :: y0
-
-     real(amrex_particle_real) :: ux
-     real(amrex_particle_real) :: uy
-
-     real(amrex_particle_real) :: lnx
-     real(amrex_particle_real) :: lny
-
-     real(amrex_particle_real) :: rnx
-     real(amrex_particle_real) :: rny
-
-     real(amrex_particle_real) :: utop
-
-     real(amrex_particle_real) :: costhetaleft
-     real(amrex_particle_real) :: sinthetaleft
-     real(amrex_particle_real) :: costhetaright
-     real(amrex_particle_real) :: sinthetaright
-
-#endif
-
-     real(amrex_particle_real) :: porosityleft
-     real(amrex_particle_real) :: specularityleft
-     real(amrex_particle_real) :: temperatureleft
-
-     real(amrex_particle_real) :: porosityright
-     real(amrex_particle_real) :: specularityright
-     real(amrex_particle_real) :: temperatureright
-
-     real(amrex_particle_real) :: periodicity
-
-     real(amrex_particle_real) :: fxleft
-     real(amrex_particle_real) :: fyleft
-     real(amrex_particle_real) :: fzleft
-
-     real(amrex_particle_real) :: fxright
-     real(amrex_particle_real) :: fyright
-     real(amrex_particle_real) :: fzright
-
-     real(amrex_particle_real) :: fxleftav
-     real(amrex_particle_real) :: fyleftav
-     real(amrex_particle_real) :: fzleftav
-
-     real(amrex_particle_real) :: fxrightav
-     real(amrex_particle_real) :: fyrightav
-     real(amrex_particle_real) :: fzrightav
-
-     integer :: boundary
-
-  end type surface_t
-
-contains
 
 #if (BL_SPACEDIM == 3)
 
   subroutine rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz)
 
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use iso_c_binding ,    only: c_int
+    implicit none
+
+    real(amrex_real), intent(inout) :: cx, cy, cz
+    real(amrex_real), intent(in) :: costheta, sintheta, cosphi, sinphi
+    real(amrex_real) cxnew
+
+    cxnew = cx*costheta*cosphi + cz*cosphi*sintheta - cy*sinphi
+    cy = cy*cosphi + cx*costheta*sinphi + cz*sintheta*sinphi
+    cz = cz*costheta - cx*sintheta
+
+    cx = cxnew
+
+  end subroutine rotation
+
+  subroutine randomhemisphere(costheta, sintheta, cosphi, sinphi, cx, cy, cz)
+
+    use rng_functions_module
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use iso_c_binding ,    only: c_int
     implicit none
 
     real(amrex_real), intent(inout) :: cx, cy, cz
     real(amrex_real), intent(in) :: costheta, sintheta, cosphi, sinphi
     
-    real(amrex_real) cxnew, cynew, cznew
+    real(amrex_real) mag, costhetanew, sinthetanew, cosphinew, sinphinew
 
-    cxnew = cx*costheta*cosphi + cz*cosphi*sintheta - cy*sinphi
-    cynew = cy*cosphi + cx*costheta*sinphi + cz*sintheta*sinphi
-    cznew = cz*costheta - cx*sintheta
+    mag = sqrt(cx**2 + cy**2 + cz**2)
 
-    cx = cxnew
-    cy = cynew
-    cz = cznew
+    call get_half_angles(costhetanew, sinthetanew, cosphinew, sinphinew)
 
-  end subroutine rotation
+    cx = mag*sinthetanew*cosphinew
+    cy = mag*sinthetanew*sinphinew
+    cz = mag*costhetanew
+
+    call rotation(costheta, sintheta, cosphi, sinphi, cx, cy, cz)
+
+  end subroutine randomhemisphere
 
 #endif
 
@@ -126,107 +51,56 @@ contains
 
   subroutine rotation(costheta, sintheta, cx, cy)
 
+    use rng_functions_module
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use iso_c_binding ,    only: c_int
     implicit none
 
     real(amrex_real), intent(inout) :: cx, cy
     real(amrex_real), intent(in) :: costheta, sintheta
     
-    real(amrex_real) cxnew, cynew
+    real(amrex_real) cxnew
 
     cxnew = cx*costheta + cy*sintheta
-    cynew = -cx*sintheta + cy*costheta
+    cy = -cx*sintheta + cy*costheta
 
     cx = cxnew
-    cy = cynew
 
   end subroutine rotation
 
+  subroutine randomhemisphere(costheta, sintheta, cx, cy, cz)
+
+    use rng_functions_module
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use iso_c_binding ,    only: c_int
+    implicit none
+
+    real(amrex_real), intent(inout) :: cx, cy, cz
+    real(amrex_real), intent(in) :: costheta, sintheta
+    real(amrex_real) cxnew
+    
+    real(amrex_real) mag, costhetanew, sinthetanew, cosphinew, sinphinew
+
+    mag = sqrt(cx**2 + cy**2 + cz**2)
+
+    call get_half_angles(costhetanew, sinthetanew, cosphinew, sinphinew)
+
+    cx = mag*costhetanew
+    cy = mag*sinthetanew*cosphinew
+    cz = mag*sinthetanew*sinphinew
+
+    call rotation(costheta, sintheta, cx, cy)
+
+  end subroutine randomhemisphere
+
 #endif
-
-  subroutine precheck(part, surfaces, ns, delt, flag, phi, plo)
-
-    use iso_c_binding, only: c_int
-    use cell_sorted_particle_module, only: particle_t
-
-    type(particle_t), intent(inout) :: part
-    type(surface_t), intent(in), target :: surfaces(ns)
-    real(amrex_real), intent(in) :: delt, phi(3), plo(3)
-    integer(c_int), intent(inout) :: flag
-    integer(c_int), intent(in) :: ns
-#if (BL_SPACEDIM == 3)
-    double precision proj(3), box1lo(3), box1hi(3), box2lo(3), box2hi(3)
-#endif
-#if (BL_SPACEDIM == 2)
-    double precision proj(2), box1lo(2), box1hi(2), box2lo(2), box2hi(2)
-#endif
-
-#if (BL_SPACEDIM == 3)
-    proj = part%pos + part%vel*delt
-
-    box1lo = plo
-    box1hi = (/ surfaces(7)%x0 , phi(2) , phi(3) /)
-
-    box2lo = (/ surfaces(7)%x0 , plo(2) , plo(3) /)
-    box2hi = phi
-#endif
-
-#if (BL_SPACEDIM == 2)
-    proj(1) = part%pos(1) + part%vel(1)*delt
-    proj(2) = part%pos(2) + part%vel(2)*delt
-
-    box1lo(1) = plo(1)
-    box1lo(2) = plo(2)
-
-    box1hi = (/ surfaces(7)%x0 , phi(2) /)
-
-    box2lo = (/ surfaces(7)%x0 , plo(2) /)
-
-    box2hi(1) = phi(1)
-    box2hi(2) = phi(2)
-#endif
-
-#if (BL_SPACEDIM == 3)
-    if(  (part%pos(1) < box1hi(1)) .and. (part%pos(2) < box1hi(2)) .and. (part%pos(3) < box1hi(3)) .and. (part%pos(1) > box1lo(1)) .and. (part%pos(2) > box1lo(2)) .and. (part%pos(3) > box1lo(3))  ) then  !started in box1
-
-      if(  (proj(1) < box1hi(1)) .and. (proj(2) < box1hi(2)) .and. (proj(3) < box1hi(3)) .and. (proj(1) > box1lo(1)) .and. (proj(2) > box1lo(2)) .and. (proj(3) > box1lo(3)) ) then  !ended in box 1
-
-        flag = 1
-
-      endif
-
-    else  !started in box 2
-
-      if(  (proj(1) < box2hi(1)) .and. (proj(2) < box2hi(2)) .and. (proj(3) < box2hi(3)) .and. (proj(1) > box2lo(1)) .and. (proj(2) > box2lo(2)) .and. (proj(3) > box2lo(3)) ) then  !ended in box 2
-
-        flag = 1
-
-      endif
-    endif    
-#endif
-#if (BL_SPACEDIM == 2)
-    if(  (part%pos(1) < box1hi(1)) .and. (part%pos(2) < box1hi(2)) .and. (part%pos(1) > box1lo(1)) .and. (part%pos(2) > box1lo(2)) ) then  !started in box1
-
-      if(  (proj(1) < box1hi(1)) .and. (proj(2) < box1hi(2)) .and. (proj(1) > box1lo(1)) .and. (proj(2) > box1lo(2)) ) then  !ended in box 1
-
-        flag = 1
-
-      endif
-
-    else  !started in box 2
-
-      if(  (proj(1) < box2hi(1)) .and. (proj(2) < box2hi(2)) .and. (proj(1) > box2lo(1)) .and. (proj(2) > box2lo(2))) then  !ended in box 2
-
-        flag = 1
-
-      endif
-    endif
-#endif
-  end subroutine precheck
   
   subroutine find_intersect(part, delt, surfaces, ns, intsurf, inttime, intside, phi, plo)
     
     use iso_c_binding, only: c_int
     use cell_sorted_particle_module, only: particle_t
+    use surfaces_module
+    use precheck_module
     
     implicit none
 
@@ -320,7 +194,10 @@ contains
   subroutine apply_bc(surf, part, intside, domsize)
     
     use iso_c_binding, only: c_int
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
+    use surfaces_module
+    use rng_functions_module
     
     implicit none
 
@@ -404,6 +281,15 @@ contains
 #endif
 
         endif
+      elseif(get_uniform_func() > surf%momentumright) then
+
+#if (BL_SPACEDIM == 3)
+        call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
+#endif
+#if (BL_SPACEDIM == 2)
+        call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2), part%vel(3))
+#endif
+
       endif
 
     else
@@ -477,13 +363,21 @@ contains
 #endif
         endif
 
+      elseif(get_uniform_func() > surf%momentumleft) then
+
+#if (BL_SPACEDIM == 3)
+        call randomhemisphere(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
+#endif
+#if (BL_SPACEDIM == 2)
+        call randomhemisphere(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2), part%vel(3))
+#endif
+
       endif
  
     endif
         
   end subroutine apply_bc
   
-end module surfaces_module
 
 
 

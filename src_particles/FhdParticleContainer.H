@@ -74,13 +74,6 @@ public:
                                           MultiFab& collisionFactor, 
                                           MultiFab& cellVols, const species particleInfo, const Real delt);
 
-    void EvaluateFields(      MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
-                              std::array<MultiFab, 3>& particleMomentum,
-                              MultiFab& particleEnergy,
-                              MultiFab& cellVols, const Real Neff);
 
     void InitializeFields(      MultiFab& particleMembers,
                               MultiFab& particleDensity,

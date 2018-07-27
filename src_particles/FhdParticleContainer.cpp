@@ -256,52 +256,6 @@ void FhdParticleContainer::CollideParticles(
     }
 }
 
-void FhdParticleContainer::EvaluateFields(MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
-                              std::array<MultiFab, 3>& particleMomentum,
-                              MultiFab& particleEnergy,
-                              MultiFab& cellVols, const Real Neff)
-{
-
-    //UpdateCellVectors();
-/*     const int lev = 0;
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-       evaluate_fields(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
-                         BL_TO_FORTRAN_3D(particleMembers[pti]),
-                         BL_TO_FORTRAN_3D(particleDensity[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergy[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np
-                        );
-
-    }*/
-
-}
-
 void FhdParticleContainer::InitializeFields(MultiFab& particleMembers,
                               MultiFab& particleDensity,
                               std::array<MultiFab, 3>& particleVelocity,
