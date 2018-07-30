@@ -15,7 +15,7 @@ module rng_functions_module
   private
 
   public :: rng_initialize, &
-            get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, get_angles, get_half_angles
+            get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, get_angles, get_half_angles, get_fhd_normal_func
  
   type(bl_rng_engine)      , save :: rng_eng_fhd
   type(bl_rng_engine)      , save :: rng_eng_particle
@@ -124,6 +124,14 @@ contains
       test = bl_rng_get(un_general, rng_eng_general)
 
   end function get_uniform_func
+
+  function get_fhd_normal_func() result(test)
+
+      double precision test
+
+      test = bl_rng_get(nm_fhd, rng_eng_fhd)
+
+  end function get_fhd_normal_func
   
 end module rng_functions_module
 
