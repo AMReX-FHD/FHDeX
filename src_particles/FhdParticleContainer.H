@@ -74,13 +74,6 @@ public:
                                           MultiFab& collisionFactor, 
                                           MultiFab& cellVols, const species particleInfo, const Real delt);
 
-    void EvaluateFields(      MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
-                              std::array<MultiFab, 3>& particleMomentum,
-                              MultiFab& particleEnergy,
-                              MultiFab& cellVols, const Real Neff);
 
     void InitializeFields(      MultiFab& particleMembers,
                               MultiFab& particleDensity,
@@ -119,6 +112,7 @@ public:
                               MultiFab& particleRhoGCross,
                               MultiFab& particleSpatialCross1,
                               MultiFab& particleSpatialCross2,
+                              MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
@@ -132,7 +126,7 @@ public:
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount,const double* domSize);
+                                           const surface* surfaceList, const int surfaceCount);
 
     void ReBin();
 

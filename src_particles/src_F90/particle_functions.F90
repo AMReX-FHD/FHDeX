@@ -1,5 +1,5 @@
 subroutine move_particles_dsmc(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt, surfaces, ns, domsize) &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns) &
      bind(c,name="move_particles_dsmc")
   
   use amrex_fort_module, only: amrex_real
@@ -16,8 +16,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), intent(in) :: clo(3), chi(3)
   type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  real(amrex_real), intent(in) :: plo(3)
-  real(amrex_real), intent(in) :: dx(3), domsize(3)
+  real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
   real(amrex_real), intent(in) :: dt
   
   integer :: i, j, k, p, cell_np, new_np, intsurf, intside
@@ -25,13 +24,15 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), proj(3), runtime, inttime, adj, inv_dt
+  real(amrex_real) inv_dx(3), runtime, inttime, adj, inv_dt, domsize(3)
 
   !adj = 0.99999999
   adj = 0.99999
 
   inv_dx = 1.d0/dx
   inv_dt = 1.d0/dt
+  
+  domsize = phi - plo
 
   do p = 1, ns
 
@@ -63,19 +64,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
               do while (runtime .gt. 0)
 
-                !print *, "Particle ", p, " prevel ", part%vel, " prepos ", part%pos
-                
-
-                if (p .eq. 3) then
-                  !print *, part%pos(1)
-                endif
-                        
-
-#if (BL_SPACEDIM == 3)                
-                call find_intersect(part%vel(1),part%vel(2),part%vel(3),part%pos(1),part%pos(2),part%pos(3),runtime, surfaces, ns, intsurf, inttime, intside)
-#endif
-                !inttime = runtime
-                !intsurf = -1
+                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
                 part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
@@ -88,22 +77,11 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                 if(intsurf .gt. 0) then
 
                   surf => surfaces(intsurf)
-#if (BL_SPACEDIM == 3)
-                  !print *, "Applying bc. prevel: ", part%vel
+
                   call apply_bc(surf, part, intside, domsize)
-                  !print *, "Bc applied. postvel: ", part%vel                 
-#endif
-#if (BL_SPACEDIM == 2)
-                  !call apply_bc(part%vel(1),part%vel(2), surf%lnx, surf%lny, surf%costhetaleft, surf%sinthetaleft, surf%porosityleft, surf%specularityleft, surf%temperatureleft, part%R, part%mass, surf%fxleft, surf%fyleft, surf%fzleft, surf%fxright, surf%fyright, surf%fzright)
-#endif
                 endif
-                !print *, "Particle ", p, " postvel ", part%vel, " postpos ", part%pos
 
               end do
-
-                if (part%pos(1) < 0) then
-                  print *, part%pos(1), p, i, j, k
-                endif
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
@@ -146,7 +124,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 end subroutine move_particles_dsmc
 
 subroutine move_particles_fhd(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, dx, dt, plof, dxf, &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
                                      velx, velxlo, velxhi, &
                                      vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
@@ -186,7 +164,7 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   type(particle_t), intent(inout), target :: particles(np)
   type(surface_t),  intent(in),    target :: surfaces(ns)
 
-  double precision, intent(in   )         :: dx(3), dxf(3), dt, plo(3), plof(3)
+  double precision, intent(in   )         :: dx(3), dxf(3), dt, plo(3), phi(3), plof(3)
 
   double precision, intent(in   ) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
   double precision, intent(in   ) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
@@ -345,7 +323,6 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
                 localvel(1) = r000*velx(fi,fj,fk) + r001*velx(fi,fj,fk+1) + r010*velx(fi,fj+1,fk) + r011*velx(fi,fj+1,fk+1) + r100*velx(fi+1,fj,fk) + r101*velx(fi+1,fj,fk+1) + r110*velx(fi+1,fj+1,fk) + r111*velx(fi+1,fj+1,fk+1)
                 localvel(2) = r000*vely(fi,fj,fk) + r001*vely(fi,fj,fk+1) + r010*vely(fi,fj+1,fk) + r011*vely(fi,fj+1,fk+1) + r100*vely(fi+1,fj,fk) + r101*vely(fi+1,fj,fk+1) + r110*vely(fi+1,fj+1,fk) + r111*vely(fi+1,fj+1,fk+1)
                 localvel(3) = r000*velz(fi,fj,fk) + r001*velz(fi,fj,fk+1) + r010*velz(fi,fj+1,fk) + r011*velz(fi,fj+1,fk+1) + r100*velz(fi+1,fj,fk) + r101*velz(fi+1,fj,fk+1) + r110*velz(fi+1,fj+1,fk) + r111*velz(fi+1,fj+1,fk+1)
-
 #endif
 
 #if (BL_SPACEDIM == 2)
@@ -386,6 +363,12 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
                 tempvel(3) = part%vel(3)
 #endif
 
+                 deltap(1) = tempvel(1)
+                 deltap(2) = tempvel(2)
+#if (BL_SPACEDIM == 3)
+                 deltap(3) = tempvel(3)
+#endif
+
                 inttime = runtime
                 intold = inttime
 
@@ -400,31 +383,17 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
 
                 !Semi-implicit Euler velocity and position update
 
-                 deltap(1) = tempvel(1)
-                 deltap(2) = tempvel(2)
+                part%vel(1) = part%accel_factor*localbeta*(tempvel(1)-localvel(1))*intold + bfac(1) + tempvel(1)
+                part%vel(2) = part%accel_factor*localbeta*(tempvel(2)-localvel(2))*intold + bfac(2) + tempvel(2)
 #if (BL_SPACEDIM == 3)
-                 deltap(3) = tempvel(3)
+                part%vel(3) = part%accel_factor*localbeta*(tempvel(3)-localvel(3))*intold + bfac(3) + tempvel(3)
 #endif
+                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
-                tempvel(1) = part%accel_factor*localbeta*(part%vel(1)-localvel(1))*intold + bfac(1) + part%vel(1)
-                tempvel(2) = part%accel_factor*localbeta*(part%vel(2)-localvel(2))*intold + bfac(2) + part%vel(2)
-#if (BL_SPACEDIM == 3)
-                tempvel(3) = part%accel_factor*localbeta*(part%vel(3)-localvel(3))*intold + bfac(3) + part%vel(3)
-#endif
-#if (BL_SPACEDIM == 3)                
-                call find_intersect(tempvel(1),tempvel(2),tempvel(3),part%pos(1),part%pos(2),part%pos(3),intold, surfaces, ns, intsurf, inttime, intside)
-#endif
                 runerr = abs((inttime - intold)/intold)
-
                 intold = inttime
 
                end do
-
-               part%vel(1) = tempvel(1)
-               part%vel(2) = tempvel(2)
-#if (BL_SPACEDIM == 3)
-               part%vel(3) = tempvel(3)
-#endif
 
                deltap(1) = part%mass*(part%vel(1) - deltap(1))
                deltap(2) = part%mass*(part%vel(2) - deltap(2))

@@ -71,13 +71,14 @@ typedef struct {
     double porosityLeft;
     double specularityLeft;
     double temperatureLeft;
+    double momentumConsLeft;
 
     double porosityRight;
     double specularityRight;
     double temperatureRight;
+    double momentumConsRight;
 
     double periodicity;
-    double boundary;
 
     double fxLeft;
     double fyLeft;
@@ -94,6 +95,8 @@ typedef struct {
     double fxRightAv;
     double fyRightAv;
     double fzRightAv;
+
+    int boundary;
 
 } surface;
 

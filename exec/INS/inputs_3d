@@ -2,17 +2,17 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 1.0 1.0 1.0      ! physical hi coordinate
-  n_cells(1:3) = 32 32 32       ! number of cells in domain
-  max_grid_size(1:3) = 16 16 16   ! max number of cells in a box
+  prob_hi(1:3) = 1.251e-6 1.252e-8 1.252e-8      ! physical hi coordinate
+  n_cells(1:3) = 40 1 1       ! number of cells in domain
+  max_grid_size(1:3) = 10 1 1   ! max number of cells in a box
 
   ! Time-step control
   fixed_dt = 1.
   cfl = 0.5
 
   ! Controls for number of steps between actions
-  max_step = 1000
-  plot_int = 50
+  max_step = 5000
+  plot_int = 50000
   plot_base_name = "plt"
   chk_int = 0
   chk_base_name = "chk"
@@ -31,7 +31,6 @@
   ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
   variance_coef_mom = 1.
   variance_coef_mass = 1.
-  k_B = 1.
   Runiv = 8.314462175d7
 
   ! Algorithm control / selection

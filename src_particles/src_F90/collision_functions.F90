@@ -84,7 +84,7 @@ contains
 
                 if(fac .gt. cellfactor(i,j,k)) then
 
-                  cellfactor(i,j,k) = 2d0*fac
+                  cellfactor(i,j,k) = 1.5*fac
 
                 endif         
 
@@ -173,7 +173,7 @@ contains
 
               if(fac1 .gt. cellfactor(i,j,k)) then
 
-                cellfactor(i,j,k) = 2d0*fac1
+                cellfactor(i,j,k) = 1.5d0*fac1
 
                 print *, "Maxrel updated in cell ", i, j, k
 
@@ -330,7 +330,7 @@ contains
       enddo
     enddo
 
-    ti = 20
+    ti = 19
     tj = 0
     tk = 0
 
@@ -387,6 +387,7 @@ contains
                              rgcross, rgclo, rgchi, &
                              spatialcross1, sc1lo, sc1hi, &
                              spatialcross2, sc2lo, sc2hi, &
+                             membraneflux, mflo, mfhi, &
 
                              cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, del1, del2) bind(c,name='evaluate_means')
 
@@ -395,7 +396,7 @@ contains
 
     implicit none
 
-    integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), sc1lo(3), sc1hi(3), sc2lo(3), sc2hi(3)
+    integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), sc1lo(3), sc1hi(3), sc2lo(3), sc2hi(3), mflo(3), mfhi(3)
     integer,          intent(in      ) :: mlo(3), mhi(3), dlo(3), dhi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), velzlo(3), velzhi(3), templo(3), temphi(3), pxlo(3), pxhi(3), pylo(3), pyhi(3), pzlo(3), pzhi(3), energylo(3), energyhi(3)
     integer,          intent(in      ) :: dmlo(3), dmhi(3), mmlo(3), mmhi(3), velxmlo(3), velxmhi(3), velymlo(3), velymhi(3), velzmlo(3), velzmhi(3), tempmlo(3), tempmhi(3), pxmlo(3), pxmhi(3), pymlo(3), pymhi(3), pzmlo(3), pzmhi(3), energymlo(3), energymhi(3)
     integer,          intent(in      ) :: dvlo(3), dvhi(3), mvlo(3), mvhi(3), velxvlo(3), velxvhi(3), velyvlo(3), velyvhi(3), velzvlo(3), velzvhi(3), tempvlo(3), tempvhi(3), pxvlo(3), pxvhi(3), pyvlo(3), pyvhi(3), pzvlo(3), pzvhi(3), energyvlo(3), energyvhi(3)
@@ -446,6 +447,7 @@ contains
     double precision, intent(inout   ) :: rgcross(rgclo(1):rgchi(1),rgclo(2):rgchi(2),rgclo(3):rgchi(3))
     double precision, intent(inout   ) :: spatialcross1(sc1lo(1):sc1hi(1),sc1lo(2):sc1hi(2),sc1lo(3):sc1hi(3))
     double precision, intent(inout   ) :: spatialcross2(sc2lo(1):sc2hi(1),sc2lo(2):sc2hi(2),sc2lo(3):sc2hi(3))
+    double precision, intent(inout   ) :: membraneflux(mflo(1):mfhi(1),mflo(2):mfhi(2),mflo(3):mfhi(3))
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -496,13 +498,15 @@ contains
 
           pressuremean(i,j,k) = particles(1)%R*cvinv*(energymean(i,j,k) -0.5*densitymeaninv*(pxmean(i,j,k)*pxmean(i,j,k) + pymean(i,j,k)*pymean(i,j,k) + pzmean(i,j,k)*pzmean(i,j,k))  )
 
+          membraneflux(i,j,k) = sqrt(tempmean(i,j,k))*densitymean(i,j,k)
+
           !qmean = cv*T0
 
         enddo
       enddo
     enddo
 
-    ti = 20
+    ti = 19
     tj = 0
     tk = 0
 
@@ -710,26 +714,26 @@ contains
 
     !endif
 
-    lhs = 0
-    rhs = 0
-    cellcount = 0
-    tempcm = 0
-    ncm = 0
-    velcm = 0
-    energycm = 0
-    momentumcm = 0
-    del3 = 0
+   ! lhs = 0
+   ! rhs = 0
+   ! cellcount = 0
+   ! tempcm = 0
+   ! ncm = 0
+   ! velcm = 0
+   ! energycm = 0
+   ! momentumcm = 0
+   ! del3 = 0
 
 
-     do k = mlo(3), mhi(3)
-      do j = mlo(2), mhi(2)
-        do i = mlo(1), mhi(1)
+    ! do k = mlo(3), mhi(3)
+    !  do j = mlo(2), mhi(2)
+    !    do i = mlo(1), mhi(1)
 
-          del3 = del3 + spatialcross1(i,j,k)
+     !     del3 = del3 + spatialcross1(i,j,k)
 
-        enddo
-      enddo
-    enddo
+     !   enddo
+     ! enddo
+   ! enddo
 
     !print *, "temp mean: ", tempmean(mlo(1) +0,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1) +0,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1) +0,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+ 0,mlo(2),mlo(3)))
     !print *, "temp mean: ", tempmean(mlo(1) +5,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1) +5,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1) +5,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+ 5,mlo(2),mlo(3)))

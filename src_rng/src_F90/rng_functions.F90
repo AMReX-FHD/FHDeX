@@ -15,7 +15,7 @@ module rng_functions_module
   private
 
   public :: rng_initialize, &
-            get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, get_angles
+            get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, get_angles, get_half_angles
  
   type(bl_rng_engine)      , save :: rng_eng_fhd
   type(bl_rng_engine)      , save :: rng_eng_particle
@@ -94,6 +94,20 @@ contains
       sinphi = sin(phi)
 
   end subroutine get_angles
+
+  subroutine get_half_angles(costheta, sintheta, cosphi, sinphi)
+
+      double precision, intent(inout) :: costheta, sintheta, cosphi, sinphi
+      double precision phi
+
+      costheta = bl_rng_get(un_costheta, rng_eng_scatter_theta)
+      sintheta = sqrt(1d0 - costheta**2)
+
+      phi = bl_rng_get(un_phi, rng_eng_scatter_phi)
+      cosphi = cos(phi)
+      sinphi = sin(phi)
+
+  end subroutine get_half_angles
 
   subroutine get_uniform(test)
 

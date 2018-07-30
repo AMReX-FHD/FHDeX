@@ -7,6 +7,7 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
 DIM       = 3
+DSMC      = TRUE
 
 TINY_PROFILE  = FALSE
 USE_PARTICLES = TRUE
@@ -53,10 +54,11 @@ include ../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_rng/src_F90
 INCLUDE_LOCATIONS += ../../src_rng/src_F90
 
-#include ../../src_surfaces/Make.package
-#VPATH_LOCATIONS   += ../../src_surfaces
-#INCLUDE_LOCATIONS += ../../src_surfaces
+include ../../src_surfaces/Make.package
+VPATH_LOCATIONS   += ../../src_surfaces
+INCLUDE_LOCATIONS += ../../src_surfaces
 
+include ./Make_precheck.package
 include ./Make_surface.package
 
 include ../../src_surfaces/src_F90/Make.package

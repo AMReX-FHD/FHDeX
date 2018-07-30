@@ -21,6 +21,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleTemperature,
                    const MultiFab& particlePressureMean,
                    const MultiFab& spatialCorrelation,
+                   const MultiFab& particleMembraneFlux,
                    FhdParticleContainer& particles);
 
 ///////////////////////////

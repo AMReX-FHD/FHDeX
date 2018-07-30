@@ -7,6 +7,7 @@ USE_MPI   = FALSE
 USE_OMP   = FALSE
 COMP      = gnu
 DIM       = 2
+DSMC      = TRUE
 
 USE_PARTICLES = TRUE
 

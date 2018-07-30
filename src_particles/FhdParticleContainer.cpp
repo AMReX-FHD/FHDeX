@@ -87,7 +87,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                                            const MultiFab& rho, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount,const double* domSize)
+                                           const surface* surfaceList, const int surfaceCount)
 {
     
 
@@ -96,14 +96,19 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+#if (DSMC == FALSE)
 
     //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (change this later).
-    //FindNodalValues(umac[0], umacNodal[0], betaCC);
-    //FindNodalValues(umac[1], umacNodal[1], betaCC);
+    FindNodalValues(umac[0], umacNodal[0], betaCC);
+    FindNodalValues(umac[1], umacNodal[1], betaCC);
 
 #if (AMREX_SPACEDIM == 3)
-    //FindNodalValues(umac[2], umacNodal[2], betaCC);
-    //FindNodalValues(betaCC, betaNodal, betaCC);
+    FindNodalValues(umac[2], umacNodal[2], betaCC);
+    FindNodalValues(betaCC, betaNodal, betaCC);
+#endif
+
 #endif
 
 #ifdef _OPENMP
@@ -119,7 +124,9 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
-                
+        
+#if (DSMC == TRUE)
+        //Print() << "DSMC\n";        
         move_particles_dsmc(particles.data(), &np,
                        ARLIM_3D(tile_box.loVect()), 
                        ARLIM_3D(tile_box.hiVect()),
@@ -127,17 +134,18 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                        m_vector_size[grid_id].dataPtr(),
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                       ZFILL(plo), ZFILL(dx), &dt,
-                       surfaceList, &surfaceCount, domSize);
-
-        /*move_particles_fhd(particles.data(), &np,
+                       ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
+                       surfaceList, &surfaceCount);
+#else
+        //Print() << "FHD\n";
+        move_particles_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
                          m_vector_size[grid_id].dataPtr(),
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(dx), &dt, ZFILL(ploFluid), ZFILL(dxFluid),
+                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploFluid), ZFILL(dxFluid),
                          BL_TO_FORTRAN_3D(umacNodal[0][pti]),
                          BL_TO_FORTRAN_3D(umacNodal[1][pti]),
 #if (AMREX_SPACEDIM == 3)
@@ -156,8 +164,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
-                         );*/
-
+                         );
+#endif
 
         // resize particle vectors after call to move_particles
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -167,21 +175,22 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
             pvec.resize(new_size);
         }
     }
-
-    //sourceTemp[0].SumBoundary(Geom(lev).periodicity());
-    //sourceTemp[1].SumBoundary(Geom(lev).periodicity());
+#if (DSMC == FALSE)
+    sourceTemp[0].SumBoundary(Geom(lev).periodicity());
+    sourceTemp[1].SumBoundary(Geom(lev).periodicity());
 #if (AMREX_SPACEDIM == 3)
-   // sourceTemp[2].SumBoundary(Geom(lev).periodicity());
+    sourceTemp[2].SumBoundary(Geom(lev).periodicity());
 #endif
-   // MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
-  //  MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
 #if (AMREX_SPACEDIM == 3)
-  //  MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
 #endif
- //   source[0].FillBoundary(Geom(lev).periodicity());
-  //  source[1].FillBoundary(Geom(lev).periodicity());
+    source[0].FillBoundary(Geom(lev).periodicity());
+    source[1].FillBoundary(Geom(lev).periodicity());
 #if (AMREX_SPACEDIM == 3)
- //   source[2].FillBoundary(Geom(lev).periodicity());
+    source[2].FillBoundary(Geom(lev).periodicity());
+#endif
 #endif
 }
 
@@ -245,52 +254,6 @@ void FhdParticleContainer::CollideParticles(
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Np,&particleInfo.Neff,&particleInfo.cp,&particleInfo.d,&delt
                         );
     }
-}
-
-void FhdParticleContainer::EvaluateFields(MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
-                              std::array<MultiFab, 3>& particleMomentum,
-                              MultiFab& particleEnergy,
-                              MultiFab& cellVols, const Real Neff)
-{
-
-    //UpdateCellVectors();
-/*     const int lev = 0;
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-       evaluate_fields(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
-                         BL_TO_FORTRAN_3D(particleMembers[pti]),
-                         BL_TO_FORTRAN_3D(particleDensity[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergy[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np
-                        );
-
-    }*/
-
 }
 
 void FhdParticleContainer::InitializeFields(MultiFab& particleMembers,
@@ -363,6 +326,7 @@ void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleRhoGCross,
                               MultiFab& particleSpatialCross1,
                               MultiFab& particleSpatialCross2,
+                              MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps)
 {
@@ -419,9 +383,9 @@ void FhdParticleContainer::EvaluateStats(
     ParallelDescriptor::ReduceRealSum(te);
     ParallelDescriptor::ReduceRealSum(tm);
 
-    Print() << "Total particles: " << tp << "\n";
-    Print() << "Total momentum: " << tm << "\n";
-    Print() << "Total energy: " << te << "\n";
+    //Print() << "Total particles: " << tp << "\n";
+    //Print() << "Total momentum: " << tm << "\n";
+    //Print() << "Total energy: " << te << "\n";
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -482,6 +446,7 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleRhoGCross[pti]),
                          BL_TO_FORTRAN_3D(particleSpatialCross1[pti]),
                          BL_TO_FORTRAN_3D(particleSpatialCross2[pti]),
+                         BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
 
                          BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2
                         );
@@ -554,6 +519,9 @@ void FhdParticleContainer::EvaluateStats(
     }
 
     ParallelDescriptor::ReduceRealSum(del3);
+
+    //MultiFab::Copy(particleMembraneFlux, particleTemperature, 0, 0, 1, 0);
+    //MultiFab::Multiply(particleMembraneFlux,particleDensity,0,0,1,0);
 
     //Print() << "del3: " << del3 << "\n";
 

@@ -134,11 +134,9 @@ void main_driver(const char* argv)
     
 #if (AMREX_SPACEDIM == 2)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1]);
-    double domSize[3] = {prob_hi[0] - prob_lo[0],prob_hi[1] - prob_lo[1], 0};
 #endif
 #if (AMREX_SPACEDIM == 3)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
-    double domSize[3] = {prob_hi[0] - prob_lo[0],prob_hi[1] - prob_lo[1], prob_hi[2] - prob_lo[2]};
 #endif
 
     double realParticles = domainVol*nitrogen.n0;
@@ -342,6 +340,8 @@ void main_driver(const char* argv)
     MultiFab particleSpatialCross1(bc, dmap, 1, 0);
     MultiFab particleSpatialCross2(bc, dmap, 1, 0);
 
+    MultiFab particleMembraneFlux(bc, dmap, 1, 0);
+
 
     particleMembers.setVal(0.0);
     particleDensity.setVal(0.0);
@@ -386,6 +386,7 @@ void main_driver(const char* argv)
     particleSpatialCross1.setVal(0.0);
     particleSpatialCross2.setVal(0.0);
 
+    particleMembraneFlux.setVal(0.0);
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
@@ -448,7 +449,7 @@ void main_driver(const char* argv)
 
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
+    int surfaceCount = 7;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -477,32 +478,32 @@ void main_driver(const char* argv)
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
     // write out initial state
-    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particles);
+    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
-        AMREX_D_TERM(
-        umac[0].FillBoundary(geom.periodicity());,
-        umac[1].FillBoundary(geom.periodicity());,
-        umac[2].FillBoundary(geom.periodicity()););
+       // AMREX_D_TERM(
+      //  umac[0].FillBoundary(geom.periodicity());,
+      //  umac[1].FillBoundary(geom.periodicity());,
+      //  umac[2].FillBoundary(geom.periodicity()););
 
         //eulerStep(betaCC, gammaCC, 
          //        betaEdge,
          //        umac, umacOut, umacNew, alpha, geom, &dt);
 
-        AMREX_D_TERM(
-        MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+      //  AMREX_D_TERM(
+      //  MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
+      //  MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
+      //  MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
     //Print() << "Here2!\n";
 
 #if (AMREX_SPACEDIM == 2)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount, domSize);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount);
 #endif
 #if (AMREX_SPACEDIM == 3)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount, domSize);
+        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount);
 #endif
 
     //Print() << "Here3!\n";
@@ -512,10 +513,8 @@ void main_driver(const char* argv)
 
         particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
-        //particles.EvaluateFields(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, cellVols, nitrogen.Neff);
-
-
-        if(step == 50000)
+        //if((step-10)%20000 == 0)
+        if(step == 2000000)
         {
             particleMembersMean.setVal(0.0);
             particleDensityMean.setVal(0);
@@ -547,27 +546,31 @@ void main_driver(const char* argv)
             particleRhoGCross.setVal(0.0);
             particleSpatialCross1.setVal(0.0);
             particleSpatialCross2.setVal(0.0);
+            particleMembraneFlux.setVal(0.0);
 
             statsCount = 1;
         }
 
-
+       
         if(step >= 1 )
         {
             particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particlePressure, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean, particlePressureMean,
-                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, cellVols, nitrogen, dt,statsCount);
-
+                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, particleMembraneFlux, cellVols, nitrogen, dt,statsCount);
 
             statsCount++;
-        }    
-        amrex::Print() << "Advanced step " << step << "\n";
+        }
+
+        if(step%100 == 0)
+        {    
+                amrex::Print() << "Advanced step " << step << "\n";
+        }
         
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0)
         {
             // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particlePressureMean, particleSpatialCross2, particles);
+            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particlePressureMean, particleSpatialCross2, particleMembraneFlux, particles);
         }
 
 
@@ -587,4 +590,6 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    amrex::Finalize();
 }
