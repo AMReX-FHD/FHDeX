@@ -45,11 +45,9 @@ contains
       double precision :: tracer_visc_coef
 
       dxinv = 1.d0/dx(1)
-
-      tracer_visc_coef = 0.10d0*(0.5d0*dx(1)*dx(1)/(AMREX_SPACEDIM*fixed_dt))
       
-      ! print*, "Hack: tracer_visc_coef", tracer_visc_coef, visc_coef
-      ! stop
+      !! Coefficient of viscous term to reduce cell-reynolds number:
+      ! tracer_visc_coef = 0.05d0*(0.5d0*dx(1)*dx(1)/(AMREX_SPACEDIM*fixed_dt))
 
       !=============================
       ! fluxes and divergence
@@ -60,14 +58,11 @@ contains
          m_fluxy = dxinv*(my(i,j)*vmac(i,j) - my(i,j-1)*vmac(i,j-1))
 
          m_update(i,j) = -( m_fluxx + m_fluxy )
-         m_update(i,j) = m_update(i,j) &
-              + tracer_visc_coef*(dxinv**2)*(m(i-1,j)+m(i+1,j)+m(i,j-1)+m(i,j+1)-4.0d0*m(i,j))
+         
+         !! Add viscous term
+         ! m_update(i,j) = m_update(i,j) &
+         !      + tracer_visc_coef*(dxinv**2)*(m(i-1,j)+m(i+1,j)+m(i,j-1)+m(i,j+1)-4.0d0*m(i,j))
 
-         ! if ((i==(lo(1)+hi(1))/2).and.(i==(lo(2)+hi(2))/2)) then
-         !    print*, "Hack: ", -( m_fluxx + m_fluxy ), & 
-         !         tracer_visc_coef*(dxinv**2)*(m(i-1,j)+m(i+1,j)+m(i,j-1)+m(i,j+1)-4.0d0*m(i,j))
-         !    stop
-         ! endif
       end do
       end do
 
