@@ -19,15 +19,16 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
   real(amrex_real), intent(in) :: dt
   
-  integer :: i, j, k, p, cell_np, new_np, intsurf, intside
+  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push
   integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), runtime, inttime, adj, inv_dt, domsize(3)
+  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3)
 
   !adj = 0.99999999
-  adj = 0.99999
+  adj = 0.999999
+  adjalt = 2d0*(1d0 - adj)
 
   inv_dx = 1.d0/dx
   inv_dt = 1.d0/dt
@@ -65,6 +66,18 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
               do while (runtime .gt. 0)
 
                 call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+  
+                !print *, "Parrticle ", p, " intersect ", inttime, intsurf 
+
+                !print *, "Prepos ", part%pos, " prevel ", part%vel
+
+                !call sleep(1)
+
+                posalt(1) = inttime*part%vel(1)*adjalt
+                posalt(2) = inttime*part%vel(2)*adjalt
+#if (BL_SPACEDIM == 3)
+                posalt(3) = inttime*part%vel(3)*adjalt
+#endif
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
                 part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
@@ -78,8 +91,20 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
                   surf => surfaces(intsurf)
 
-                  call apply_bc(surf, part, intside, domsize)
+                  call apply_bc(surf, part, intside, domsize, push)
+
+                    if(push .eq. 1) then
+                      
+                      part%pos(1) = part%pos(1) + posalt(1)
+                      part%pos(2) = part%pos(2) + posalt(2)
+#if (BL_SPACEDIM == 3)
+                      part%pos(3) = part%pos(3) + posalt(3)
+#endif
+                    endif
+                    
                 endif
+
+                !print *, "Postpos ", part%pos, " postvel ", part%vel
 
               end do
 
@@ -191,12 +216,12 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push
   integer :: ni, nj, nk, fi, fj, fk
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime
+  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3)
 
 #if (BL_SPACEDIM == 3)
   double precision c000,c001,c010,c011,c100,c101,c110,c111, ctotal
@@ -240,6 +265,13 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
     enddo
   enddo
 #endif
+
+  print *, "Here1!"        
+
+  domsize = phi - plo
+
+  adj = 0.999999
+  adjalt = 2d0*(1d0 - adj)
 
   dxinv = 1.d0/dx
 
@@ -585,14 +617,32 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
                sourcey(fi+1,fj+1,fk) = sourcey(fi+1,fj+1,fk) + nodalp
                sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
 #endif
-                ! move the particle in a straight line
-                part%pos(1) = part%pos(1) + dt*part%vel(1)
-                part%pos(2) = part%pos(2) + dt*part%vel(2)
+
+                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + dt*part%vel(3)
+                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
 
                 runtime = runtime - inttime
+
+                if(intsurf .gt. 0) then
+
+                  surf => surfaces(intsurf)
+
+                  call apply_bc(surf, part, intside, domsize, push)
+
+                    if(push .eq. 1) then
+                      
+                      part%pos(1) = part%pos(1) + posalt(1)
+                      part%pos(2) = part%pos(2) + posalt(2)
+#if (BL_SPACEDIM == 3)
+                      part%pos(3) = part%pos(3) + posalt(3)
+#endif
+                    endif
+                    
+                endif
 
               enddo
 

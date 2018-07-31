@@ -33,18 +33,18 @@ module rng_functions_module
 
 contains
 
-  subroutine rng_initialize() bind(c,name='rng_initialize')
+  subroutine rng_initialize(fhd, particle, sel, theta, phi, general) bind(c,name='rng_initialize')
 
     implicit none
 
-    !Seed these properly.
+    integer, intent(in) :: fhd, particle, sel, theta, phi, general
 
-    call bl_rng_build_engine(rng_eng_fhd, 1)
-    call bl_rng_build_engine(rng_eng_particle, 20)       
-    call bl_rng_build_engine(rng_eng_select, 300)
-    call bl_rng_build_engine(rng_eng_scatter_theta, 4000)
-    call bl_rng_build_engine(rng_eng_scatter_phi, 50000)
-    call bl_rng_build_engine(rng_eng_general, 600000)
+    call bl_rng_build_engine(rng_eng_fhd, fhd)
+    call bl_rng_build_engine(rng_eng_particle, particle)       
+    call bl_rng_build_engine(rng_eng_select, sel)
+    call bl_rng_build_engine(rng_eng_scatter_theta, theta)
+    call bl_rng_build_engine(rng_eng_scatter_phi, phi)
+    call bl_rng_build_engine(rng_eng_general, general)
 
     call bl_rng_build_distro(nm_fhd, 0.0d0, 1.0d0)
     call bl_rng_build_distro(nm_particle, 0.0d0, 1.0d0)
@@ -52,6 +52,8 @@ contains
     call bl_rng_build_distro(un_costheta, 0.0d0, 1.0d0)
     call bl_rng_build_distro(un_general, 0.0d0, 1.0d0)
     call bl_rng_build_distro(un_phi, 0.0d0, 2d0*3.14159265359)
+
+
 
   end subroutine rng_initialize
 
@@ -81,7 +83,7 @@ contains
 
   end subroutine get_selector
 
-  subroutine get_angles(costheta, sintheta, cosphi, sinphi)
+  subroutine get_angles(costheta, sintheta, cosphi, sinphi) bind(c,name="get_angles")
 
       double precision, intent(inout) :: costheta, sintheta, cosphi, sinphi
       double precision phi

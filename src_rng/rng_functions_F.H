@@ -1,5 +1,4 @@
-#ifndef _particle_functions_F_H_
-#define _particle_functions_F_H_
+
 
 #ifdef __cplusplus
 
@@ -9,12 +8,10 @@ extern "C"
 
 // in rng_fucntions.F90
 
-    void rng_initialize();
+    void rng_initialize(int* fhd, int* particle, int* sel, int* theta, int* phi, int* general);
+    void get_angles(double* costheta, double* sintheta, double* cosphi, double* sinphi);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif
-
 

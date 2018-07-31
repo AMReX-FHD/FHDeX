@@ -22,9 +22,11 @@ module cell_sorted_particle_module
      real(amrex_particle_real) :: radius
      real(amrex_particle_real) :: accel_factor
      real(amrex_particle_real) :: drag_factor
-     real(amrex_particle_real) :: angular_vel1
-     real(amrex_particle_real) :: angular_vel2
-     real(amrex_particle_real) :: angular_vel3
+     real(amrex_particle_real) :: angular_vel(3)
+
+     real(amrex_particle_real) :: dir(3)
+     real(amrex_particle_real) :: propulsion
+
 
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        
