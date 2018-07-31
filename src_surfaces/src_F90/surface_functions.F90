@@ -170,7 +170,7 @@
 
       uval = (part%vel(2)*part%pos(1) - part%vel(1)*part%pos(2) - part%vel(2)*surf%x0 + part%vel(1)*surf%y0)*denominv
 
-      if(  ((uval .gt. 0) .and. (uval .lt. surf%utop)) ) then
+      if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))  ) then
 
         inttime = tval
         intsurf = s
@@ -191,7 +191,7 @@
         
   end subroutine find_intersect
 
-  subroutine apply_bc(surf, part, intside, domsize)
+  subroutine apply_bc(surf, part, intside, domsize, push)
     
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
@@ -202,6 +202,7 @@
     implicit none
 
     integer(c_int),   intent(in) :: intside
+    integer(c_int),   intent(inout) :: push
     double precision, intent(in) :: domsize(3)
     type(surface_t),  intent(inout) :: surf
     type(particle_t), intent(inout) :: part
@@ -211,6 +212,8 @@
     if(intside .eq. 1) then
    
       if(get_uniform_func() > surf%porosityright) then
+
+        push = 0
 
         surf%fxright = surf%fxright + part%mass*part%vel(1)
         surf%fyright = surf%fyright + part%mass*part%vel(1)
@@ -253,6 +256,8 @@
         endif
       elseif(get_uniform_func() < surf%periodicity) then
 
+        push = 0
+
         if(surf%boundary .eq. 1) then
 
           part%pos(1) = part%pos(1) + 0.9999*domsize(1)
@@ -281,20 +286,29 @@
 #endif
 
         endif
-      elseif(get_uniform_func() > surf%momentumright) then
+      else
+
+        push = 1
+
+        if(get_uniform_func() > surf%momentumright) then
 
 #if (BL_SPACEDIM == 3)
-        call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
+          call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
+          print *, "Scattering!"
 #endif
 #if (BL_SPACEDIM == 2)
-        call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2), part%vel(3))
+          call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2), part%vel(3))
 #endif
+
+        endif
 
       endif
 
     else
 
       if(get_uniform_func() > surf%porosityleft) then
+
+        push = 0
 
         surf%fxleft = surf%fxleft + part%mass*part%vel(1)
         surf%fyleft = surf%fyleft + part%mass*part%vel(1)
@@ -336,6 +350,8 @@
         endif
       elseif(get_uniform_func() < surf%periodicity) then
 
+        push = 0
+
         if(surf%boundary .eq. 1) then
 
           part%pos(1) = part%pos(1) + 0.9999*domsize(1)
@@ -363,14 +379,18 @@
 #endif
         endif
 
-      elseif(get_uniform_func() > surf%momentumleft) then
+      else
+        push = 1      
 
+        if(get_uniform_func() > surf%momentumleft) then
 #if (BL_SPACEDIM == 3)
-        call randomhemisphere(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
+          call randomhemisphere(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
 #endif
 #if (BL_SPACEDIM == 2)
-        call randomhemisphere(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2), part%vel(3))
+          call randomhemisphere(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2), part%vel(3))
 #endif
+
+        endif
 
       endif
  

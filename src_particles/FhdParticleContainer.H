@@ -28,6 +28,10 @@ struct RealData
         angularVel1,
         angularVel2,
         angularVel3,
+        dirx,
+        diry,
+        dirz,
+        propulsion,
         ncomps
     };
 };

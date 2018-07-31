@@ -39,7 +39,15 @@ void main_driver(const char* argv)
     InitializeGmresNamespace();
 
     //Initialise rngs
-    rng_initialize();
+    int fhdSeed = 1;
+    int particleSeed = 2;
+    int selectorSeed = 3;
+    int thetaSeed = 4;
+    int phiSeed = 5;
+    int generalSeed = 6;
+
+    //Initialise rngs
+    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -132,8 +140,11 @@ void main_driver(const char* argv)
 
     nitrogen.cp = sqrt(2.0*nitrogen.R*nitrogen.T);
     
+
+    double depth = 1.252e-8;
+
 #if (AMREX_SPACEDIM == 2)
-    double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1]);
+    double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*depth;
 #endif
 #if (AMREX_SPACEDIM == 3)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
@@ -394,7 +405,7 @@ void main_driver(const char* argv)
     MultiFab cellVols(bc, dmap, 1, 0);
 
 #if (AMREX_SPACEDIM == 2)
-    cellVols.setVal(dxc[0]*dxc[1]);
+    cellVols.setVal(dxc[0]*dxc[1]*depth);
 #elif (AMREX_SPACEDIM == 3)
     cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
 #endif
@@ -454,7 +465,7 @@ void main_driver(const char* argv)
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
 #if (BL_SPACEDIM == 2)
-    int surfaceCount = 4;
+    int surfaceCount = 5;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -497,7 +508,6 @@ void main_driver(const char* argv)
       //  MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
       //  MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
-    //Print() << "Here2!\n";
 
 #if (AMREX_SPACEDIM == 2)
         particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount);
@@ -506,15 +516,14 @@ void main_driver(const char* argv)
         particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount);
 #endif
 
-    //Print() << "Here3!\n";
         particles.Redistribute();
         particles.ReBin();
         particles.UpdateCellVectors();
 
         particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
-        //if((step-10)%20000 == 0)
-        if(step == 2000000)
+        if((step-10)%20000 == 0)
+        //if(step == 2000000)
         {
             particleMembersMean.setVal(0.0);
             particleDensityMean.setVal(0);

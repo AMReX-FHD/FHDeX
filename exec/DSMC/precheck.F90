@@ -43,9 +43,9 @@ contains
     box1lo(1) = plo(1)
     box1lo(2) = plo(2)
 
-    box1hi = (/ surfaces(7)%x0 , phi(2) /)
+    box1hi = (/ surfaces(5)%x0 , phi(2) /)
 
-    box2lo = (/ surfaces(7)%x0 , plo(2) /)
+    box2lo = (/ surfaces(5)%x0 , plo(2) /)
 
     box2hi(1) = phi(1)
     box2hi(2) = phi(2)

@@ -1,5 +1,6 @@
 #include "FhdParticleContainer.H"
 #include "particle_functions_F.H"
+#include "rng_functions_F.H"
 
 using namespace amrex;
 
@@ -23,6 +24,8 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
     std::normal_distribution<double> ndist(0, sqrt(particleInfo.R*particleInfo.T));
 
     double totalEnergy = 0;
+
+    double cosTheta, sinTheta, cosPhi, sinPhi;    
 
     //double initTemp = 0;
     //double pc = 0;
@@ -63,9 +66,17 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
                 p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
                 p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                p.rdata(RealData::angularVel1) = ndist(mt); //angular velocity 1
-                p.rdata(RealData::angularVel2) = ndist(mt); //angular velocity 2
-                p.rdata(RealData::angularVel3) = ndist(mt); //angular velocity 2
+                p.rdata(RealData::angularVel1) = 0; //angular velocity 1
+                p.rdata(RealData::angularVel2) = 0; //angular velocity 2
+                p.rdata(RealData::angularVel3) = 0; //angular velocity 2
+
+                get_angles(&cosTheta, &sinTheta, &cosPhi, &sinPhi);
+
+                p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
+                p.rdata(RealData::diry) = sinTheta*sinPhi; 
+                p.rdata(RealData::dirz) = cosTheta;
+
+                p.rdata(RealData::propulsion) = 0;  //propulsive force
 
                 AMREX_ASSERT(this->Index(p, lev) == iv);
                 
@@ -98,7 +109,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
 
-#if (DSMC == FALSE)
+#ifndef DSMC
 
     //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (change this later).
     FindNodalValues(umac[0], umacNodal[0], betaCC);
@@ -125,8 +136,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
         
-#if (DSMC == TRUE)
-        //Print() << "DSMC\n";        
+#ifdef DSMC
+        Print() << "DSMC\n";        
         move_particles_dsmc(particles.data(), &np,
                        ARLIM_3D(tile_box.loVect()), 
                        ARLIM_3D(tile_box.hiVect()),
@@ -136,8 +147,9 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                        ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
                        surfaceList, &surfaceCount);
+   
 #else
-        //Print() << "FHD\n";
+        Print() << "FHD\n"; 
         move_particles_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
@@ -164,6 +176,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
+                         , surfaceList, &surfaceCount
                          );
 #endif
 
@@ -175,7 +188,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
             pvec.resize(new_size);
         }
     }
-#if (DSMC == FALSE)
+#ifndef DSMC
     sourceTemp[0].SumBoundary(Geom(lev).periodicity());
     sourceTemp[1].SumBoundary(Geom(lev).periodicity());
 #if (AMREX_SPACEDIM == 3)
