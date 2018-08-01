@@ -143,6 +143,16 @@ extern "C"
                     amrex_real* fabOut, const int* outlo, const int* outhi,
                     const int* xCheck, const int* yCheck, const int* zCheck);
 ///////////////////////////
+
+///////////////////////////
+// in multifab_fill_random.F90
+
+    void multifab_fill_random(const int* lo, const int* hi,
+			      const amrex_real* mf,
+			      const int* mflo, const int* mfhi, const int* ncomp);
+
+///////////////////////////
+
 #ifdef __cplusplus
 }
 #endif

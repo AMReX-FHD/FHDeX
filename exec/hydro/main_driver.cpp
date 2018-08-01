@@ -5,6 +5,8 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
+#include "rng_functions_F.H"
+
 #include "common_functions.H"
 #include "common_functions_F.H"
 
@@ -19,6 +21,8 @@
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
 using namespace common;
@@ -75,11 +79,24 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
-    // Print() << "dt = " << dt << ", 1/dt = " << dtinv << "\n";
     const Real* dx = geom.CellSize();
   
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
+
+    //Initialise rngs
+    int proc = ParallelDescriptor::MyProc();
+    // proc = 0;
+
+    int fhdSeed = 1+proc;
+    int particleSeed = 2+proc;
+    int selectorSeed = 3+proc;
+    int thetaSeed = 4+proc;
+    int phiSeed = 5+proc;
+    int generalSeed = 6+proc;
+
+    //Initialise rngs
+    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // alpha_fc arrays
     Real theta_alpha = 1.;
@@ -114,7 +131,9 @@ void main_driver(const char* argv)
     MultiFab gamma(ba, dmap, 1, 1);
     gamma.setVal(0.);
 
-    //////// Scaled alpha, beta, gamma: ////////
+    ///////////////////////////////////////////
+    // Scaled alpha, beta, gamma:
+    ///////////////////////////////////////////
     // alpha_fc_0 arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_0;
     AMREX_D_TERM(alpha_fc_0[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
@@ -183,6 +202,31 @@ void main_driver(const char* argv)
     MultiFab gamma_neghlf(ba, dmap, 1, 1);
     MultiFab::Copy(gamma_neghlf, gamma, 0, 0, 1, 1);
     gamma_neghlf.mult(-0.5, 1);
+    ///////////////////////////////////////////
+
+    ///////////////////////////////////////////
+    // random fluxes:
+    ///////////////////////////////////////////
+    // stoch_mom_flux cell centred
+    MultiFab stoch_mom_flux(ba, dmap, 1, 1);
+    // stoch_mom_flux.setVal();
+
+    // stoch_mom_flux on nodes in 2d
+    // stoch_mom_flux on edges in 3d
+    std::array< MultiFab, NUM_EDGE > stoch_mom_flux_ed;
+#if (AMREX_SPACEDIM == 2)
+    stoch_mom_flux_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+    // stoch_mom_flux_ed[0].setVal();
+#elif (AMREX_SPACEDIM == 3)
+    stoch_mom_flux_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    stoch_mom_flux_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    stoch_mom_flux_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    // stoch_mom_flux_ed[0].setVal();  
+    // stoch_mom_flux_ed[1].setVal();
+    // stoch_mom_flux_ed[2].setVal();
+#endif
+
+    // MultiFab::Copy(stoch_mom_flux, stoch_mom_flux_ed[0], 0, 0, 1, 1);
     ///////////////////////////////////////////
 
     // tracer
@@ -257,16 +301,10 @@ void main_driver(const char* argv)
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
 	// initialize tracer
-        // init_s_vel(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()), 
-	// 	   BL_TO_FORTRAN_ANYD(tracer[mfi]), geom.CellSize(), 
-	// 	   ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
 		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
 		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
-        // init_s_vel(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()), 
-	// 	   BL_TO_FORTRAN_ANYD(tracer[mfi]), dx);
     }
 
     // initial guess for new solution
@@ -373,13 +411,15 @@ void main_driver(const char* argv)
 	// ADVANCE STEP (crank nicolson + trapezoidal rule)
 
 	/////////////// Hack /////////////////////////////
-	// VisMF::Write(advFluxdiv[0],"a_advFluxdiv0");
+	MultiFABFillRandom(stoch_mom_flux,geom);
+	VisMF::Write(stoch_mom_flux,"a_randMF");
+        // writeFabs(stoch_mom_flux,"a_randMF");
+	
+	// MultiFABFillRandom(stoch_mom_flux_ed[0],geom);
+	// VisMF::Write(stoch_mom_flux_ed[0],"a_randMF");
 
-	// StagApplyOp(beta,gamma,beta_ed,umac,advFluxdiv,alpha_fc_0,dx,theta_alpha);
-
-	// VisMF::Write(advFluxdiv[0],"a_Lumac0");
-	// Abort("Done with hack");
-	// exit(0);
+	Abort("Done with hack");
+	exit(0);
 	//////////////////////////////////////////////////
 
 	// Compute gmres_rhs
@@ -421,7 +461,6 @@ void main_driver(const char* argv)
 
         // call GMRES here
 	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,theta_alpha,geom,norm_pre_rhs);
-	// GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
 
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
