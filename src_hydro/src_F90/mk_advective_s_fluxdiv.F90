@@ -120,7 +120,7 @@ contains
          m_fluxy = dxinv*(my(i  ,j  ,k  )*vmac(i  ,j  ,k  ) - my(i  ,j-1,k  )*vmac(i  ,j-1,k  ))
          m_fluxz = dxinv*(mz(i  ,j  ,k  )*wmac(i  ,j  ,k  ) - mz(i  ,j  ,k-1)*wmac(i  ,j  ,k-1))
 
-         m_update(i,j) = -( m_fluxx + m_fluxy + m_fluxz)
+         m_update(i,j,k) = -( m_fluxx + m_fluxy + m_fluxz)
       end do
       end do
       end do

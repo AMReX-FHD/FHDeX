@@ -54,7 +54,7 @@ contains
       integer         , intent(in   ) :: ncomp
 
       ! local
-      integer :: i,j,k
+      integer :: i,j,k,n
       
       !=============================
       ! fill elements of array with random numbers

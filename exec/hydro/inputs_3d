@@ -1,13 +1,13 @@
 &common
 
   ! Problem specification
-  prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
-  prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
+  prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
+  prob_hi(1:3) = 1.0 1.0 1.0      ! physical hi coordinate
 
   ! number of cells in domain
-  n_cells(1:2) = 256 256
+  n_cells(1:3) = 4 4 4
   ! max number of cells in a box
-  max_grid_size(1:2) = 128 128
+  max_grid_size(1:3) = 2 2 2
 
   ! Time-step control
   fixed_dt = 8e-3
@@ -30,8 +30,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic
-  bc_lo(1:2) = -1 -1
-  bc_hi(1:2) = -1 -1
+  bc_lo(1:3) = -1 -1 -1
+  bc_hi(1:3) = -1 -1 -1
 
 /
 

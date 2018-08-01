@@ -225,9 +225,19 @@ void main_driver(const char* argv)
     // stoch_mom_flux_ed[1].setVal();
     // stoch_mom_flux_ed[2].setVal();
 #endif
-
-    // MultiFab::Copy(stoch_mom_flux, stoch_mom_flux_ed[0], 0, 0, 1, 1);
     ///////////////////////////////////////////
+
+    /////////////// Hack /////////////////////////////
+    // MultiFABFillRandom(stoch_mom_flux,geom);
+    // VisMF::Write(stoch_mom_flux,"a_randMF");
+    // // writeFabs(stoch_mom_flux,"a_randMF");
+	
+    MultiFABFillRandom(stoch_mom_flux_ed[2],geom);
+    VisMF::Write(stoch_mom_flux_ed[2],"a_randMF");
+
+    Abort("Done with hack");
+    exit(0);
+    //////////////////////////////////////////////////
 
     // tracer
     MultiFab tracer(ba,dmap,1,1);
@@ -409,18 +419,6 @@ void main_driver(const char* argv)
 	MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
 
 	// ADVANCE STEP (crank nicolson + trapezoidal rule)
-
-	/////////////// Hack /////////////////////////////
-	MultiFABFillRandom(stoch_mom_flux,geom);
-	VisMF::Write(stoch_mom_flux,"a_randMF");
-        // writeFabs(stoch_mom_flux,"a_randMF");
-	
-	// MultiFABFillRandom(stoch_mom_flux_ed[0],geom);
-	// VisMF::Write(stoch_mom_flux_ed[0],"a_randMF");
-
-	Abort("Done with hack");
-	exit(0);
-	//////////////////////////////////////////////////
 
 	// Compute gmres_rhs
 
