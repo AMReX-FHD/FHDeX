@@ -228,11 +228,11 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     /////////////// Hack /////////////////////////////
-    // MultiFABFillRandom(stoch_mom_flux,geom);
+    // MultiFABFillRandom(stoch_mom_flux,0,2.0,geom);
     // VisMF::Write(stoch_mom_flux,"a_randMF");
     // // writeFabs(stoch_mom_flux,"a_randMF");
 	
-    MultiFABFillRandom(stoch_mom_flux_ed[2],geom);
+    MultiFABFillRandom(stoch_mom_flux_ed[2],0,1.0,geom);
     VisMF::Write(stoch_mom_flux_ed[2],"a_randMF");
 
     Abort("Done with hack");

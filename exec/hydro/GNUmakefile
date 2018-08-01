@@ -6,7 +6,7 @@ DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
-DIM       = 3
+DIM       = 2
 DSMC      = TRUE
 
 USE_PARTICLES = TRUE

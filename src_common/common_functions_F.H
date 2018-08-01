@@ -149,7 +149,8 @@ extern "C"
 
     void multifab_fill_random(const int* lo, const int* hi,
 			      const amrex_real* mf,
-			      const int* mflo, const int* mfhi, const int* ncomp);
+			      const int* mflo, const int* mfhi, 
+			      const int* ncomp, const int* beginComp, const int* endComp);
 
 ///////////////////////////
 
