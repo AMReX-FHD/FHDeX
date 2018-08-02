@@ -47,4 +47,9 @@ void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geom
 
 void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& ccFab);
 
+///////////////////////////
+// in MultiFABFillRandom.cpp
+
+void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom);
+
 #endif

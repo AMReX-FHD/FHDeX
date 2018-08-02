@@ -5,16 +5,16 @@
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
 
   ! number of cells in domain
-  n_cells(1:2) = 128 128
+  n_cells(1:2) = 4 4
   ! max number of cells in a box
-  max_grid_size(1:2) = 64 64
+  max_grid_size(1:2) = 3 3
 
   ! Time-step control
   fixed_dt = 0.8e-3
 
   ! Controls for number of steps between actions
-  max_step = 5120
-  plot_int = 16
+  max_step = 10
+  plot_int = 1
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad

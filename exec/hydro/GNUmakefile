@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
@@ -17,6 +17,10 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
+include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
+
 include ../../src_hydro/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/src_F90
 INCLUDE_LOCATIONS += ../../src_hydro/src_F90
@@ -24,6 +28,14 @@ INCLUDE_LOCATIONS += ../../src_hydro/src_F90
 include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
+
+include ../../src_rng/src_F90/Make.package
+VPATH_LOCATIONS   += ../../src_rng/src_F90
+INCLUDE_LOCATIONS += ../../src_rng/src_F90
+
+include ../../src_rng/Make.package
+VPATH_LOCATIONS   += ../../src_rng/
+INCLUDE_LOCATIONS += ../../src_rng/
 
 include ../../src_gmres/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_gmres/src_F90
