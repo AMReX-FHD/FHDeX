@@ -15,6 +15,7 @@ typedef struct {
   double P;
   double Neff;
   double cp;
+  double propulsion;
 
 } species;
 

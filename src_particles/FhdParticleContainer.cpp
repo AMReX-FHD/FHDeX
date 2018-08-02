@@ -19,9 +19,9 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
 
-    std::mt19937 mt(ParallelDescriptor::MyProc()*2);
-    std::uniform_real_distribution<double> unit(0, 1.0);
-    std::normal_distribution<double> ndist(0, sqrt(particleInfo.R*particleInfo.T));
+    //std::mt19937 mt(ParallelDescriptor::MyProc()*2);
+    //std::uniform_real_distribution<double> unit(0, 1.0);
+    //std::normal_distribution<double> ndist(0, sqrt(particleInfo.R*particleInfo.T));
 
     double totalEnergy = 0;
 
@@ -48,14 +48,18 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
                 p.idata(IntData::sorted) = 0;
                 p.idata(IntData::species) = 0;
                 
-                p.pos(0) = plo[0] + (iv[0]+unit(mt))*dx[0];
-                p.pos(1) = plo[1] + (iv[1]+unit(mt))*dx[1];
+                p.pos(0) = plo[0] + (iv[0]+get_uniform_func())*dx[0];
+                p.pos(1) = plo[1] + (iv[1]+get_uniform_func())*dx[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = plo[2] + (iv[2]+unit(mt))*dx[2];
+                p.pos(2) = plo[2] + (iv[2]+get_uniform_func())*dx[2];
 #endif
-                p.rdata(RealData::vx) = ndist(mt);
-                p.rdata(RealData::vy) = ndist(mt);
-                p.rdata(RealData::vz) = ndist(mt);
+                //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+
+                p.rdata(RealData::vx) = 0;
+                p.rdata(RealData::vy) = 0;
+                p.rdata(RealData::vz) = 0;
 
                 totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
@@ -72,11 +76,15 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
 
                 get_angles(&cosTheta, &sinTheta, &cosPhi, &sinPhi);
 
-                p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
-                p.rdata(RealData::diry) = sinTheta*sinPhi; 
-                p.rdata(RealData::dirz) = cosTheta;
+                //p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
+                //p.rdata(RealData::diry) = sinTheta*sinPhi; 
+                //p.rdata(RealData::dirz) = cosTheta;
 
-                p.rdata(RealData::propulsion) = 0;  //propulsive force
+                p.rdata(RealData::dirx) = 1; //Unit vector giving orientation
+                p.rdata(RealData::diry) = 0; 
+                p.rdata(RealData::dirz) = 0;
+
+                p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
 
                 AMREX_ASSERT(this->Index(p, lev) == iv);
                 
@@ -137,7 +145,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
         const int np = particles.numParticles();
         
 #ifdef DSMC
-        Print() << "DSMC\n";        
+        //Print() << "DSMC\n";        
         move_particles_dsmc(particles.data(), &np,
                        ARLIM_3D(tile_box.loVect()), 
                        ARLIM_3D(tile_box.hiVect()),
@@ -149,7 +157,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                        surfaceList, &surfaceCount);
    
 #else
-        Print() << "FHD\n"; 
+        //Print() << "FHD\n"; 
         move_particles_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),

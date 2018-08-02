@@ -19,7 +19,7 @@ module surfaces_module
 
      real(amrex_particle_real) :: vx
      real(amrex_particle_real) :: vy
-     real(amrex_particle_real) :: Vz
+     real(amrex_particle_real) :: vz
 
      real(amrex_particle_real) :: lnx
      real(amrex_particle_real) :: lny

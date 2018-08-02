@@ -294,7 +294,7 @@
 
 #if (BL_SPACEDIM == 3)
           call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
-          print *, "Scattering!"
+          !print *, "Scattering!"
 #endif
 #if (BL_SPACEDIM == 2)
           call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2), part%vel(3))
@@ -322,7 +322,7 @@
 #if (BL_SPACEDIM == 3)
           dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny + part%vel(3)*surf%lnz
 #endif
-
+          !print *, "dot left: ", dotprod
           part%vel(1) = -2d0*dotprod*surf%lnx + part%vel(1)
           part%vel(2) = -2d0*dotprod*surf%lny + part%vel(2)
 #if (BL_SPACEDIM == 3)
