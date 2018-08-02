@@ -7,6 +7,7 @@ using namespace amrex;
 
 void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom)
 {
+    // Print() << "C++ hack:" << comp << "/" << mf.nComp() << "\n";
 
     // Loop over boxes
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
@@ -14,11 +15,13 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
         const Box& validBox = mfi.validbox();
 
 	multifab_fill_random(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-			     BL_TO_FORTRAN_FAB(mf[mfi]), &comp, &comp);
+			     BL_TO_FORTRAN_FAB(mf[mfi]), &comp);
     }
+    
+    // Scale standard gaussian samples by standard deviation
+    mf.mult(sqrt(variance), comp, 1, 0);
 
-    mf.mult(sqrt(variance), comp, mf.nComp(), 0);
-
+    // Enforce boundary conditions on nodal boundaries & ghost cells
     mf.OverrideSync(geom.periodicity());
     mf.FillBoundary(geom.periodicity());
 }

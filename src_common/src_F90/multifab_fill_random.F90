@@ -13,24 +13,25 @@ contains
 
     subroutine multifab_fill_random(lo,hi, &
                                     mf,mflo,mfhi, &
-                                    ncomp,beginComp,endComp) bind(C,name="multifab_fill_random")
+                                    ncomp,comp) bind(C,name="multifab_fill_random")
 
       integer         , intent(in   ) :: lo(2),hi(2)
       integer         , intent(in   ) :: mflo(2),mfhi(2)
       double precision, intent(inout) :: mf(mflo(1):mfhi(1),mflo(2):mfhi(2),ncomp)
-      integer         , intent(in   ) :: ncomp,beginComp,endComp
+      integer         , intent(in   ) :: ncomp,comp
       
       ! local
-      integer :: i,j,n
+      integer :: i,j
 
       !=============================
       ! fill elements of array with random numbers
       !=============================
-      do n=beginComp+1,endComp+1
+
+      ! print*, "F90 hack: comp = ", comp, "/", ncomp
+
       do j=lo(2),hi(2)
       do i=lo(1),hi(1)
-         mf(i,j,n) = get_fhd_normal_func()
-      end do
+         mf(i,j,comp+1) = get_fhd_normal_func()
       end do
       end do
 
@@ -50,25 +51,23 @@ contains
 
     subroutine multifab_fill_random(lo,hi, &
                                     mf,mflo,mfhi, &
-                                    ncomp,beginComp,endComp) bind(C,name="multifab_fill_random")
+                                    ncomp,comp) bind(C,name="multifab_fill_random")
 
       integer         , intent(in   ) :: lo(3),hi(3)
       integer         , intent(in   ) :: mflo(3),mfhi(3)
       double precision, intent(inout) :: mf(mflo(1):mfhi(1),mflo(2):mfhi(2),mflo(3):mfhi(3),ncomp)
-      integer         , intent(in   ) :: ncomp,beginComp,endComp
+      integer         , intent(in   ) :: ncomp,comp
 
       ! local
-      integer :: i,j,k,n
+      integer :: i,j,k
       
       !=============================
       ! fill elements of array with random numbers
       !=============================
-      do n=beginComp+1,endComp+1
       do k=lo(3),hi(3)
       do j=lo(2),hi(2)
       do i=lo(1),hi(1)
-         mf(i,j,k,n) = get_fhd_normal_func()
-      end do
+         mf(i,j,k,comp+1) = get_fhd_normal_func()
       end do
       end do
       end do
