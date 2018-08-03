@@ -214,34 +214,16 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     
     // Declare object of StochMFlux class 
-    StochMFlux stochMflux (n_rngs,ba,dmap);
+    StochMFlux stchMflux (ba,dmap,geom,n_rngs,1);
+    stchMflux.fillMStochastic();
+
+    // VisMF::Write(mf,"a_mf0");
+    // Abort("Done with hack");
+    // exit(0);
 
     ///////////////////////////////////////////
 
     /////////////// Test/Hack /////////////////////////
-//     // mflux cell centred
-//     MultiFab mflux(ba, dmap, 1, std::max(1,filtering_width));
-//     // mflux on nodes in 2d
-//     // mflux on edges in 3d
-//     std::array<std::array<MultiFab, NUM_EDGE>, n_rngs> mflux_ed;
-// #if (AMREX_SPACEDIM == 2)
-//     for (int i=0; i<n_rngs; ++i) {
-//       mflux_ed[i][0].define(convert(ba,nodal_flag), dmap, 2, filtering_width);
-//     }
-// #elif (AMREX_SPACEDIM == 3)
-//     for (int i=0; i<n_rngs; ++i) {
-//       mflux_ed[i][0].define(convert(ba,nodal_flag_xy), dmap, 2, filtering_width);
-//       mflux_ed[i][1].define(convert(ba,nodal_flag_xz), dmap, 2, filtering_width);
-//       mflux_ed[i][2].define(convert(ba,nodal_flag_yz), dmap, 2, filtering_width);
-//     }
-// #endif
-
-//     MultiFABFillRandom(mflux,0,2.0,geom);
-//     VisMF::Write(mflux,"a_randMF");
-//     // writeFabs(mflux,"a_randMF");
-	
-//     MultiFABFillRandom(mflux_ed[0][0],0,4.0,geom);
-//     VisMF::Write(mflux_ed[0][0],"a_randMF");
 
 //     Abort("Done with hack");
 //     exit(0);
