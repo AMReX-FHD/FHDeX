@@ -13,7 +13,6 @@
 
 #include "INS_functions.H"
 #include "rng_functions_F.H"
-
 #include "species.H"
 #include "surfaces.H"
 
@@ -38,13 +37,12 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-    //Initialise rngs
-    int fhdSeed = ParallelDescriptor::MyProc();
-    int particleSeed = 2*ParallelDescriptor::MyProc();
-    int selectorSeed = 3*ParallelDescriptor::MyProc();
-    int thetaSeed = 4*ParallelDescriptor::MyProc();
-    int phiSeed = 5*ParallelDescriptor::MyProc();
-    int generalSeed = 6*ParallelDescriptor::MyProc();
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -102,44 +100,36 @@ void main_driver(const char* argv)
     int totalCollisionCells = (lims[0]+1)*(lims[1]+1)*(lims[2]+1);
 #endif
 
-    species nitrogen;
+    species myGas;
 
     //Hard sphere nitrogen gas
-    /*nitrogen.gamma1 = 1.27;
-    nitrogen.m = 4.65E-26;
-    nitrogen.R = 1.3806E-23/nitrogen.m;
-    nitrogen.T = 293;
-    nitrogen.mu = 1.757E-5;
-    nitrogen.d = sqrt((nitrogen.gamma1*nitrogen.m*sqrt(nitrogen.R*nitrogen.T))/(4*sqrt(3.14159265359)*nitrogen.mu));    
+    /*myGas.gamma1 = 1.27;
+    myGas.m = 4.65E-26;
+    myGas.R = 1.3806E-23/myGas.m;
+    myGas.T = 293;
+    myGas.mu = 1.757E-5;
+    myGas.d = sqrt((myGas.gamma1*myGas.m*sqrt(myGas.R*myGas.T))/(4*sqrt(3.14159265359)*myGas.mu));    
+    myGas.mfp = 5e-7;
+    myGas.n0 = 1.0/(sqrt(2)*3.14159265359*myGas.d*myGas.d*myGas.mfp);
+    myGas.P = myGas.R*myGas.m*myGas.n0*myGas.T;
+    myGas.cp = sqrt(2.0*myGas.R*myGas.T);*/
 
-    nitrogen.mfp = 5e-7;
-
-    nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
-
-    nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
-
-    nitrogen.cp = sqrt(2.0*nitrogen.R*nitrogen.T);*/
-
-    nitrogen.gamma1 = 1.27;
-    nitrogen.m = 6.63E-26;
-    nitrogen.R = 1.3806E-23/nitrogen.m;
-    nitrogen.T = 273;
-    nitrogen.mu = 2.1E-5;
-    //nitrogen.d = sqrt((nitrogen.gamma1*nitrogen.m*sqrt(nitrogen.R*nitrogen.T))/(4*sqrt(3.14159265359)*nitrogen.mu));
-    nitrogen.d = 3.66e-10;        
-
-    nitrogen.mfp = (6.26e-8);
-
-    //nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
-
-    nitrogen.n0 = 1.78/nitrogen.m;
-
-    //Print() << nitrogen.n0*nitrogen.m << "\n";
-
-    nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
-
-    nitrogen.cp = sqrt(2.0*nitrogen.R*nitrogen.T);
-    
+    //Hard argon nitrogen gas
+    /*    
+    myGas.gamma1 = 1.27;
+    myGas.m = 6.63E-26;
+    myGas.R = 1.3806E-23/myGas.m;
+    myGas.T = 273;
+    myGas.mu = 2.1E-5;
+    //myGas.d = sqrt((myGas.gamma1*myGas.m*sqrt(myGas.R*myGas.T))/(4*sqrt(3.14159265359)*myGas.mu));
+    myGas.d = 3.66e-10;        
+    myGas.mfp = (6.26e-8);
+    //myGas.n0 = 1.0/(sqrt(2)*3.14159265359*myGas.d*myGas.d*myGas.mfp);
+    myGas.n0 = 1.78/myGas.m;
+    //Print() << myGas.n0*myGas.m << "\n";
+    myGas.P = myGas.R*myGas.m*myGas.n0*myGas.T;
+    myGas.cp = sqrt(2.0*myGas.R*myGas.T);
+    */
 
     double depth = 1.252e-8;
 
@@ -150,16 +140,35 @@ void main_driver(const char* argv)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 #endif
 
-    double realParticles = domainVol*nitrogen.n0;
-    //nitrogen.Neff = realParticles/totalParticles;
+    //1 micron particles with density of gold
+       
+    myGas.gamma1 = 1.27;
+    myGas.m = 1.5158e-8;
+    myGas.R = k_B/myGas.m;
+    myGas.T = 273;
+    myGas.mu = 2.1E-5;
+    //myGas.d = sqrt((myGas.gamma1*myGas.m*sqrt(myGas.R*myGas.T))/(4*sqrt(3.14159265359)*myGas.mu));
+    myGas.d = 1e-6;        
+    //myGas.n0 = 1.0/(sqrt(2)*3.14159265359*myGas.d*myGas.d*myGas.mfp);
+    //myGas.n0 = 19300/myGas.m;
+    myGas.n0 = 16/domainVol;
+    //Print() << myGas.n0*myGas.m << "\n";
+    myGas.P = myGas.R*myGas.m*myGas.n0*myGas.T;
+    myGas.cp = sqrt(2.0*myGas.R*myGas.T);
+    myGas.propulsion = 0;
+
+    double realParticles = domainVol*myGas.n0;
+    //myGas.Neff = realParticles/totalParticles;
     //const int totalParticles = 1000000;
 
     Print() << "Real particles: " << realParticles << "\n";
 
-    nitrogen.Neff = 1;
+    Print() << "Modal speed: " << myGas.cp << "\n";
+
+    myGas.Neff = 1;
     const int totalParticles = realParticles;
 
-    Print() << "Neff: " << nitrogen.Neff << "\n";
+    Print() << "Neff: " << myGas.Neff << "\n";
 
     const int ppc  = (int)ceil(((double)totalParticles)/((double)totalCollisionCells));
     const int ppb = (int)ceil(((double)totalParticles)/((double)ba.size()));
@@ -170,8 +179,8 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Particles per cell: " << ppc << "\n";
 
-    Print() << "rho0: " << nitrogen.m*nitrogen.n0 << "\n";
-    Print() << "Adjusted rho0: " << nitrogen.m*nitrogen.Neff*totalParticles/domainVol << "\n";
+    Print() << "rho0: " << myGas.m*myGas.n0 << "\n";
+    Print() << "Adjusted rho0: " << myGas.m*myGas.Neff*totalParticles/domainVol << "\n";
     
 
     // how boxes are distrubuted among MPI processes
@@ -205,16 +214,18 @@ void main_driver(const char* argv)
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > betaEdge;
 
+    double tempVisc = 9e-4;
+
 #if (AMREX_SPACEDIM == 2)
     betaEdge[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    betaEdge[0].setVal(1.);
+    betaEdge[0].setVal(tempVisc);
 #elif (AMREX_SPACEDIM == 3)
     betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    betaEdge[0].setVal(1.);  
-    betaEdge[1].setVal(1.);
-    betaEdge[2].setVal(1.);
+    betaEdge[0].setVal(tempVisc);  
+    betaEdge[1].setVal(tempVisc);
+    betaEdge[2].setVal(tempVisc);
 #endif
 
     //Nodal beta. If running in 2D, betaEdge is already nodal.
@@ -429,9 +440,9 @@ void main_driver(const char* argv)
                                     geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
     }
 
-    /*AMREX_D_TERM(umac[0].setVal(1.0);,
-                 umac[1].setVal(2.0);,
-                 umac[2].setVal(3.0););*/
+    AMREX_D_TERM(umac[0].setVal(0);,
+                 umac[1].setVal(0);,
+                 umac[2].setVal(0););
 
     AMREX_D_TERM(
     MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
@@ -443,10 +454,10 @@ void main_driver(const char* argv)
     //Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
 
     // kinetic time step
-    Real dt = 0.1*nitrogen.mfp/sqrt(2.0*nitrogen.R*nitrogen.T);
+    Real dt = 0.1*myGas.mfp/sqrt(2.0*myGas.R*myGas.T);
     //Print() << "Step size: " << dt << "\n";
         
-    dt = 1e-12;
+    dt = 2e-4;
     dt = dt;
     Print() << "Step size: " << dt << "\n";
 
@@ -480,13 +491,13 @@ void main_driver(const char* argv)
 
    // Print() << "Here!\n";
 
-    particles.InitParticles(ppc, nitrogen);
+    particles.InitParticles(ppc, myGas);
 
     particles.UpdateCellVectors();
 
-    particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, nitrogen);
+    //particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, myGas);
 
-    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, myGas, dt);
 
     // write out initial state
     WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
@@ -494,19 +505,19 @@ void main_driver(const char* argv)
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
-       // AMREX_D_TERM(
-      //  umac[0].FillBoundary(geom.periodicity());,
-      //  umac[1].FillBoundary(geom.periodicity());,
-      //  umac[2].FillBoundary(geom.periodicity()););
+        AMREX_D_TERM(
+        umac[0].FillBoundary(geom.periodicity());,
+        umac[1].FillBoundary(geom.periodicity());,
+        umac[2].FillBoundary(geom.periodicity()););
 
         //eulerStep(betaCC, gammaCC, 
          //        betaEdge,
          //        umac, umacOut, umacNew, alpha, geom, &dt);
 
-      //  AMREX_D_TERM(
-      //  MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
-      //  MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
-      //  MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+        AMREX_D_TERM(
+        MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
+        MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
+        MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
 
 #if (AMREX_SPACEDIM == 2)
@@ -520,9 +531,9 @@ void main_driver(const char* argv)
         particles.ReBin();
         particles.UpdateCellVectors();
 
-        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, myGas, dt);
 
-        if((step-10)%20000 == 0)
+       if((step-10)%20000 == 0)
         //if(step == 2000000)
         {
             particleMembersMean.setVal(0.0);
@@ -564,12 +575,12 @@ void main_driver(const char* argv)
         if(step >= 1 )
         {
             particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particlePressure, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean, particlePressureMean,
-                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, particleMembraneFlux, cellVols, nitrogen, dt,statsCount);
+                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, particleMembraneFlux, cellVols, myGas, dt,statsCount);
 
             statsCount++;
         }
 
-        if(step%100 == 0)
+        if(step%1 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }

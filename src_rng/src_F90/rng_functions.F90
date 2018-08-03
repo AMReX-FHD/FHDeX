@@ -66,7 +66,7 @@ contains
 
   end subroutine get_particle_normal
 
-  function get_particle_normal_func() result(test)
+  function get_particle_normal_func() result(test) bind(c,name='get_particle_normal_func')
 
       double precision test
 
@@ -119,7 +119,7 @@ contains
 
   end subroutine get_uniform
 
-  function get_uniform_func() result(test)
+  function get_uniform_func() result(test) bind(c,name='get_uniform_func')
 
       double precision test
 

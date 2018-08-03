@@ -148,6 +148,24 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   
 end subroutine move_particles_dsmc
 
+subroutine redirect(part)
+
+    use cell_sorted_particle_module, only: particle_t
+
+    implicit none
+
+    type(particle_t), intent(inout) :: part
+
+    double precision speed
+
+    speed = sqrt(part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2)
+
+    if(speed .ne. 0) then
+      part%dir = part%vel/speed
+    endif
+
+end subroutine redirect
+
 subroutine move_particles_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
                                      velx, velxlo, velxhi, &
@@ -216,12 +234,12 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount
   integer :: ni, nj, nk, fi, fj, fk
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3)
+  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3)
 
 #if (BL_SPACEDIM == 3)
   double precision c000,c001,c010,c011,c100,c101,c110,c111, ctotal
@@ -266,8 +284,7 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   enddo
 #endif
 
-  print *, "Here1!"        
-
+   
   domsize = phi - plo
 
   adj = 0.999999
@@ -290,7 +307,9 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
     surf%fyright = 0
     surf%fzright = 0
 
-  enddo        
+  enddo
+
+  !print *, "Starting"        
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -306,131 +325,122 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
               runtime = dt
               part => particles(cell_parts(p))
 
-              do while (runtime .gt. 0)
+              !if(part%id .eq. 5) then
+              !  print *, "Outer loop start vel: ", part%vel, " Outer loop start pos: ", part%pos/phi
+              !endif
+
 
                 !find fluid cell
-                fi = floor((part%pos(1) - plof(1))*dxfinv(1))
-                fj = floor((part%pos(2) - plof(2))*dxfinv(2))
+              fi = floor((part%pos(1) - plof(1))*dxfinv(1))
+              fj = floor((part%pos(2) - plof(2))*dxfinv(2))
 #if (BL_SPACEDIM == 3)
-                fk = floor((part%pos(3) - plof(3))*dxfinv(3))
+              fk = floor((part%pos(3) - plof(3))*dxfinv(3))
 #else
-                fk = 0
+              fk = 0
+#endif
+              !Interpolate fluid fields
+              ixf(1) = (part%pos(1) - coordsx(fi,fj,fk,1))*dxfInv(1)
+              ixf(2) = (part%pos(2) - coordsy(fi,fj,fk,2))*dxfInv(2)
+#if (BL_SPACEDIM == 3)
+              ixf(3) = (part%pos(3) - coordsz(fi,fj,fk,3))*dxfInv(3)
 #endif
 
-                !Interpolate fluid fields
-                ixf(1) = (part%pos(1) - coordsx(fi,fj,fk,1))*dxfInv(1)
-                ixf(2) = (part%pos(2) - coordsy(fi,fj,fk,2))*dxfInv(2)
 #if (BL_SPACEDIM == 3)
-                ixf(3) = (part%pos(3) - coordsz(fi,fj,fk,3))*dxfInv(3)
-#endif
+              c000 = onemdxf(1)*onemdxf(2)*onemdxf(3)
+              c001 = onemdxf(1)*onemdxf(2)*ixf(3)
+              c010 = onemdxf(1)*onemdxf(3)*ixf(2)
+              c011 = onemdxf(1)*ixf(2)*ixf(3)
+              c101 = onemdxf(2)*onemdxf(3)*ixf(1)
+              c100 = onemdxf(2)*ixf(1)*ixf(3)
+              c110 = onemdxf(3)*ixf(1)*ixf(2)
+              c111 = ixf(1)*ixf(2)*ixf(3)
 
-#if (BL_SPACEDIM == 3)
-                c000 = onemdxf(1)*onemdxf(2)*onemdxf(3)
-                c001 = onemdxf(1)*onemdxf(2)*ixf(3)
-                c010 = onemdxf(1)*onemdxf(3)*ixf(2)
-                c011 = onemdxf(1)*ixf(2)*ixf(3)
-                c101 = onemdxf(2)*onemdxf(3)*ixf(1)
-                c100 = onemdxf(2)*ixf(1)*ixf(3)
-                c110 = onemdxf(3)*ixf(1)*ixf(2)
-                c111 = ixf(1)*ixf(2)*ixf(3)
+              ctotal = (c000 + c001 + c010 + c011 + c100 + c101 + c110 + c111)
 
-                ctotal = (c000 + c001 + c010 + c011 + c100 + c101 + c110 + c111)
+              r000 = c000/ctotal
+              r001 = c001/ctotal
+              r010 = c010/ctotal
+              r011 = c011/ctotal
+              r100 = c100/ctotal
+              r101 = c101/ctotal
+              r110 = c110/ctotal
+              r111 = c111/ctotal
 
-                r000 = c000/ctotal
-                r001 = c001/ctotal
-                r010 = c010/ctotal
-                r011 = c011/ctotal
-                r100 = c100/ctotal
-                r101 = c101/ctotal
-                r110 = c110/ctotal
-                r111 = c111/ctotal
+              if (visc_type .gt. 0) then
+                localbeta = beta(fi,fj,fk)
+              else
+                !3d visc
+                localbeta = r000*beta(fi,fj,fk) + r001*beta(fi,fj,fk+1) + r010*beta(fi,fj+1,fk) + r011*beta(fi,fj+1,fk+1) + r100*beta(fi+1,fj,fk) + r101*beta(fi+1,fj,fk+1) + r110*beta(fi+1,fj+1,fk) + r111*beta(fi+1,fj+1,fk+1)
+              endif
 
-                if (visc_type .gt. 0) then
-                  localbeta = beta(fi,fj,fk)
-                else
-                  !3d visc
-                  localbeta = r000*beta(fi,fj,fk) + r001*beta(fi,fj,fk+1) + r010*beta(fi,fj+1,fk) + r011*beta(fi,fj+1,fk+1) + r100*beta(fi+1,fj,fk) + r101*beta(fi+1,fj,fk+1) + r110*beta(fi+1,fj+1,fk) + r111*beta(fi+1,fj+1,fk+1)
-                endif
-
-                localvel(1) = r000*velx(fi,fj,fk) + r001*velx(fi,fj,fk+1) + r010*velx(fi,fj+1,fk) + r011*velx(fi,fj+1,fk+1) + r100*velx(fi+1,fj,fk) + r101*velx(fi+1,fj,fk+1) + r110*velx(fi+1,fj+1,fk) + r111*velx(fi+1,fj+1,fk+1)
-                localvel(2) = r000*vely(fi,fj,fk) + r001*vely(fi,fj,fk+1) + r010*vely(fi,fj+1,fk) + r011*vely(fi,fj+1,fk+1) + r100*vely(fi+1,fj,fk) + r101*vely(fi+1,fj,fk+1) + r110*vely(fi+1,fj+1,fk) + r111*vely(fi+1,fj+1,fk+1)
-                localvel(3) = r000*velz(fi,fj,fk) + r001*velz(fi,fj,fk+1) + r010*velz(fi,fj+1,fk) + r011*velz(fi,fj+1,fk+1) + r100*velz(fi+1,fj,fk) + r101*velz(fi+1,fj,fk+1) + r110*velz(fi+1,fj+1,fk) + r111*velz(fi+1,fj+1,fk+1)
+              localvel(1) = r000*velx(fi,fj,fk) + r001*velx(fi,fj,fk+1) + r010*velx(fi,fj+1,fk) + r011*velx(fi,fj+1,fk+1) + r100*velx(fi+1,fj,fk) + r101*velx(fi+1,fj,fk+1) + r110*velx(fi+1,fj+1,fk) + r111*velx(fi+1,fj+1,fk+1)
+              localvel(2) = r000*vely(fi,fj,fk) + r001*vely(fi,fj,fk+1) + r010*vely(fi,fj+1,fk) + r011*vely(fi,fj+1,fk+1) + r100*vely(fi+1,fj,fk) + r101*vely(fi+1,fj,fk+1) + r110*vely(fi+1,fj+1,fk) + r111*vely(fi+1,fj+1,fk+1)
+              localvel(3) = r000*velz(fi,fj,fk) + r001*velz(fi,fj,fk+1) + r010*velz(fi,fj+1,fk) + r011*velz(fi,fj+1,fk+1) + r100*velz(fi+1,fj,fk) + r101*velz(fi+1,fj,fk+1) + r110*velz(fi+1,fj+1,fk) + r111*velz(fi+1,fj+1,fk+1)
 #endif
 
 #if (BL_SPACEDIM == 2)
 
-                c00 = onemdxf(1)*onemdxf(2)
-                c01 = onemdxf(1)*ixf(2)
-                c10 = ixf(1)*onemdxf(2)
-                c11 = ixf(1)*ixf(2)
+              c00 = onemdxf(1)*onemdxf(2)
+              c01 = onemdxf(1)*ixf(2)
+              c10 = ixf(1)*onemdxf(2)
+              c11 = ixf(1)*ixf(2)
 
-                ctotal = (c00 + c01 + c10 + c11)*2
+              ctotal = (c00 + c01 + c10 + c11)*2
 
-                r00 = c00/ctotal
-                r01 = c01/ctotal
-                r10 = c10/ctotal
-                r11 = c11/ctotal
+              r00 = c00/ctotal
+              r01 = c01/ctotal
+              r10 = c10/ctotal
+              r11 = c11/ctotal
 
-                if (visc_type .gt. 0) then
-                  localbeta = beta(fi,fj,fk)
-                else
-                  localbeta = beta(fi,fj,fk)*c00 + beta(fi,fj+1,fk)*c01 + beta(fi+1,fj,fk)*c10 + beta(fi+1,fj+1,fk)*c11
-                endif
+              if (visc_type .gt. 0) then
+                localbeta = beta(fi,fj,fk)
+              else
+                localbeta = beta(fi,fj,fk)*c00 + beta(fi,fj+1,fk)*c01 + beta(fi+1,fj,fk)*c10 + beta(fi+1,fj+1,fk)*c11
+              endif
                 !2d xvel
-                localvel(1) = velx(fi,fj,fk)*c00 + velx(fi,fj+1,fk)*c01 + velx(fi+1,fj,fk)*c10 + velx(fi+1,fj+1,fk)*c11
-                localvel(2) = vely(fi,fj,fk)*c00 + vely(fi,fj+1,fk)*c01 + vely(fi+1,fj,fk)*c10 + vely(fi+1,fj+1,fk)*c11
+              localvel(1) = velx(fi,fj,fk)*c00 + velx(fi,fj+1,fk)*c01 + velx(fi+1,fj,fk)*c10 + velx(fi+1,fj+1,fk)*c11
+              localvel(2) = vely(fi,fj,fk)*c00 + vely(fi,fj+1,fk)*c01 + vely(fi+1,fj,fk)*c10 + vely(fi+1,fj+1,fk)*c11
 #endif
 
                 !Brownian forcing
 
-                call get_particle_normal(normalrand(1))
-                call get_particle_normal(normalrand(2))
-                call get_particle_normal(normalrand(3))
+              call get_particle_normal(normalrand(1))
+              call get_particle_normal(normalrand(2))
+              call get_particle_normal(normalrand(3))
 
-                runerr = 1d0;
+              runerr = 1d0;
 
-                tempvel(1) = part%vel(1)
-                tempvel(2) = part%vel(2)
+              deltap(1) = part%vel(1)
+              deltap(2) = part%vel(1)
 #if (BL_SPACEDIM == 3)
-                tempvel(3) = part%vel(3)
+              deltap(3) = part%vel(1)
 #endif
 
-                 deltap(1) = tempvel(1)
-                 deltap(2) = tempvel(2)
+!this velocity update introduces a timetep error when a boundary intersection occurs. Need to use some kind of iteration to get a consistent intersection time and velocity update.
+
+              std = sqrt(-part%drag_factor*localbeta*k_B*2d0*runtime*293d0)/part%mass
+
+              bfac(1) = std*normalrand(1)
+              bfac(2) = std*normalrand(2)
+              bfac(3) = std*normalrand(3)
+
+              print *, "brownian: ", bfac, " propusive: ", part%dir*part%propulsion*runtime
+
+                !print *, "Position 1: ", part%pos, " Vel 1: ", part%vel, "localvel: ", localbeta
+
+              part%vel(1) = part%accel_factor*localbeta*(part%vel(1)-localvel(1))*runtime + bfac(1) + part%vel(1)
+              part%vel(2) = part%accel_factor*localbeta*(part%vel(2)-localvel(2))*runtime + bfac(2) + part%vel(2)
 #if (BL_SPACEDIM == 3)
-                 deltap(3) = tempvel(3)
+              part%vel(3) = part%accel_factor*localbeta*(part%vel(3)-localvel(3))*runtime + bfac(3) + part%vel(3)
 #endif
+              call redirect(part)
+  
+              part%vel = part%dir*part%propulsion*runtime + part%vel
 
-                inttime = runtime
-                intold = inttime
-
-                do while (runerr .gt. 0.1)                
-                  !Assuming T=1 for now
-                 std = sqrt(-part%drag_factor*localbeta*k_B*2d0*intold*1d0)/part%mass
-                 std = 0
-
-                 bfac(1) = std*normalrand(1)
-                 bfac(2) = std*normalrand(2)
-                 bfac(3) = std*normalrand(3)
-
-                !Semi-implicit Euler velocity and position update
-
-                part%vel(1) = part%accel_factor*localbeta*(tempvel(1)-localvel(1))*intold + bfac(1) + tempvel(1)
-                part%vel(2) = part%accel_factor*localbeta*(tempvel(2)-localvel(2))*intold + bfac(2) + tempvel(2)
+              deltap(1) = part%mass*(part%vel(1) - deltap(1))
+              deltap(2) = part%mass*(part%vel(2) - deltap(2))
 #if (BL_SPACEDIM == 3)
-                part%vel(3) = part%accel_factor*localbeta*(tempvel(3)-localvel(3))*intold + bfac(3) + tempvel(3)
-#endif
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-
-                runerr = abs((inttime - intold)/intold)
-                intold = inttime
-
-               end do
-
-               deltap(1) = part%mass*(part%vel(1) - deltap(1))
-               deltap(2) = part%mass*(part%vel(2) - deltap(2))
-#if (BL_SPACEDIM == 3)
-               deltap(3) = part%mass*(part%vel(3) - deltap(3))
+              deltap(3) = part%mass*(part%vel(3) - deltap(3))
 #endif
 
 #if (BL_SPACEDIM == 3)
@@ -618,6 +628,21 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
                sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
 #endif
 
+              do while (runtime .gt. 0)
+
+                !if(part%id .eq. 5) then
+                !  print *, "Starting vel: ", part%vel, " Starting pos: ", part%pos/phi
+                !endif
+
+
+                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+
+                posalt(1) = inttime*part%vel(1)*adjalt
+                posalt(2) = inttime*part%vel(2)*adjalt
+#if (BL_SPACEDIM == 3)
+                posalt(3) = inttime*part%vel(3)*adjalt
+#endif
+
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
                 part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
                 part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
@@ -630,8 +655,14 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
                 if(intsurf .gt. 0) then
 
                   surf => surfaces(intsurf)
-
+                  !if(intsurf .eq. 7) then
+                 !   print *, part%id, " prevel: ", part%vel
+                  !endif
                   call apply_bc(surf, part, intside, domsize, push)
+                  !if(intsurf .eq. 7) then
+                 !   print *, part%id, " postvel: ", part%vel
+                 ! endif
+
 
                     if(push .eq. 1) then
                       
@@ -644,11 +675,15 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
                     
                 endif
 
+               ! if(part%id .eq. 5) then
+               !   print *, "Final vel: ", part%vel, " Final pos: ", part%pos/phi
+              !  endif
+
               enddo
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
-              ni = floor((part%pos(1) - plo(1))*dxinv(1))           
+              ni = floor((part%pos(1) - plo(1))*dxinv(1))
               nj = floor((part%pos(2) - plo(2))*dxinv(2))
 #if (BL_SPACEDIM == 3)
               nk = floor((part%pos(3) - plo(3))*dxinv(3))
@@ -669,6 +704,8 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
         end do
      end do
   end do
+
+  !print *, "Ending"        
   
 end subroutine move_particles_fhd
 
