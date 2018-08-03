@@ -4,6 +4,7 @@
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
+#include "StochMFlux.H"
 
 #include "rng_functions_F.H"
 
@@ -211,48 +212,39 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // random fluxes:
     ///////////////////////////////////////////
-    // mflux cell centred
-    MultiFab mflux(ba, dmap, 1, std::max(1,filtering_width));
-
-//     std::array< MultiFab, NUM_EDGE > mflux_ed;
-// #if (AMREX_SPACEDIM == 2)
-//     mflux_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-// #elif (AMREX_SPACEDIM == 3)
-//     mflux_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-//     mflux_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-//     mflux_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-// #endif
-
-    // mflux on nodes in 2d
-    // mflux on edges in 3d
-    std::array<std::array<MultiFab, n_rngs>, NUM_EDGE> mflux_ed;
-#if (AMREX_SPACEDIM == 2)
-    for (int i=0; i<n_rngs; ++i) {
-      mflux_ed[0][i].define(convert(ba,nodal_flag), dmap, 2, filtering_width);
-    }
-#elif (AMREX_SPACEDIM == 3)
-    for (int i=0; i<n_rngs; ++i) {
-      mflux_ed[0][i].define(convert(ba,nodal_flag_xy), dmap, 2, filtering_width);
-      mflux_ed[1][i].define(convert(ba,nodal_flag_xz), dmap, 2, filtering_width);
-      mflux_ed[2][i].define(convert(ba,nodal_flag_yz), dmap, 2, filtering_width);
-    }
-#endif
-
-    // Abort("Hack: Done with declare");
-    // exit(0);
+    
+    // Declare object of StochMFlux class 
+    StochMFlux stochMflux (n_rngs,ba,dmap);
 
     ///////////////////////////////////////////
 
     /////////////// Test/Hack /////////////////////////
-    // MultiFABFillRandom(mflux,0,2.0,geom);
-    // VisMF::Write(mflux,"a_randMF");
-    // // writeFabs(mflux,"a_randMF");
-	
-    // MultiFABFillRandom(mflux_ed[0][0],0,4.0,geom);
-    // VisMF::Write(mflux_ed[0][0],"a_randMF");
+//     // mflux cell centred
+//     MultiFab mflux(ba, dmap, 1, std::max(1,filtering_width));
+//     // mflux on nodes in 2d
+//     // mflux on edges in 3d
+//     std::array<std::array<MultiFab, NUM_EDGE>, n_rngs> mflux_ed;
+// #if (AMREX_SPACEDIM == 2)
+//     for (int i=0; i<n_rngs; ++i) {
+//       mflux_ed[i][0].define(convert(ba,nodal_flag), dmap, 2, filtering_width);
+//     }
+// #elif (AMREX_SPACEDIM == 3)
+//     for (int i=0; i<n_rngs; ++i) {
+//       mflux_ed[i][0].define(convert(ba,nodal_flag_xy), dmap, 2, filtering_width);
+//       mflux_ed[i][1].define(convert(ba,nodal_flag_xz), dmap, 2, filtering_width);
+//       mflux_ed[i][2].define(convert(ba,nodal_flag_yz), dmap, 2, filtering_width);
+//     }
+// #endif
 
-    // Abort("Done with hack");
-    // exit(0);
+//     MultiFABFillRandom(mflux,0,2.0,geom);
+//     VisMF::Write(mflux,"a_randMF");
+//     // writeFabs(mflux,"a_randMF");
+	
+//     MultiFABFillRandom(mflux_ed[0][0],0,4.0,geom);
+//     VisMF::Write(mflux_ed[0][0],"a_randMF");
+
+//     Abort("Done with hack");
+//     exit(0);
     //////////////////////////////////////////////////
 
     // tracer
