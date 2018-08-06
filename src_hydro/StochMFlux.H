@@ -26,7 +26,6 @@ class StochMFlux {
   int stoch_stress_form = 1;
   
   Vector< amrex::Real > weights;
-  // weights = {std::sqrt(0.5), std::sqrt(0.5)};
 
   Geometry geom;
   BoxArray ba;
@@ -65,7 +64,9 @@ public:
 
 };
 
-StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in, int stoch_stress_form_in=1, int n_rngs_in=1, Vector<amrex::Real> weights_in={1.0}) {
+StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in, 
+		       int stoch_stress_form_in=1, int n_rngs_in=1, 
+		       Vector<amrex::Real> weights_in={1.0}) {
   n_rngs = n_rngs_in;
   stoch_stress_form = stoch_stress_form_in;
   geom = geom_in;
@@ -229,14 +230,34 @@ void StochMFlux::stochMforce() {
 void StochMFlux::writeMFs() {
   std::string plotfilename;
   std::string dimStr = "xyz";
+
+  // Write out original fluxes
   for (int i=0; i<n_rngs; ++i){ 
     plotfilename = "a_mfluxcc_stage"+std::to_string(i);
     VisMF::Write(mflux_cc[i],plotfilename);
+
     for (int d=0; d<NUM_EDGE; ++d) {
       plotfilename = "a_mfluxnd_stage"+std::to_string(i)+"_";
       plotfilename += dimStr[d];
       VisMF::Write(mflux_ed[i][d],plotfilename);
     }
+  }
+
+  // Write out weighted fluxes
+  plotfilename = "a_mfluxcc_weighted";
+  VisMF::Write(mflux_cc_weighted,plotfilename);
+
+  for (int d=0; d<NUM_EDGE; ++d) {
+    plotfilename = "a_mfluxnd_weighted_";
+    plotfilename += dimStr[d];
+    VisMF::Write(mflux_ed_weighted[d],plotfilename);
+  }
+
+  // Write out fluxdiv
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    plotfilename = "a_mfluxdiv_";
+    plotfilename += dimStr[d];
+    VisMF::Write(mfluxdiv[d],plotfilename);
   }
 } 
 
