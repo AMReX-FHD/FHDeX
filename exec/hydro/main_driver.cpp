@@ -214,12 +214,13 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     
     // Declare object of StochMFlux class 
-    StochMFlux stchMflux (ba,dmap,geom,n_rngs,1);
+    StochMFlux stchMflux (ba,dmap,geom,n_rngs,0);
     stchMflux.fillMStochastic();
+    stchMflux.stochMforce();
+    stchMflux.writeMFs();
 
-    // VisMF::Write(mf,"a_mf0");
-    // Abort("Done with hack");
-    // exit(0);
+    Abort("Done with hack");
+    exit(0);
 
     ///////////////////////////////////////////
 
