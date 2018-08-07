@@ -88,7 +88,7 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
     //Initialise rngs
     /////////////////////////////////////////
-    const int n_rngs = 1;
+    const int n_rngs = 2;
     const int proc = ParallelDescriptor::MyProc();
     // proc = 0;
 
@@ -212,14 +212,19 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // random fluxes:
     ///////////////////////////////////////////
+
+    Vector< amrex::Real > weights;
+    weights = {std::sqrt(0.5), std::sqrt(0.5)};
     
     // Declare object of StochMFlux class 
-    StochMFlux stchMflux (ba,dmap,geom,n_rngs,1);
-    stchMflux.fillMStochastic();
+    // StochMFlux sMflux (ba,dmap,geom);
+    StochMFlux sMflux (ba,dmap,geom,0,n_rngs,weights);
+    sMflux.fillMStochastic();
+    sMflux.stochMforce();
+    sMflux.writeMFs();
 
-    // VisMF::Write(mf,"a_mf0");
-    // Abort("Done with hack");
-    // exit(0);
+    Abort("Done with hack");
+    exit(0);
 
     ///////////////////////////////////////////
 
