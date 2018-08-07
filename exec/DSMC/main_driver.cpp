@@ -38,13 +38,12 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-    //Initialise rngs
-    int fhdSeed = ParallelDescriptor::MyProc();
-    int particleSeed = 2*ParallelDescriptor::MyProc();
-    int selectorSeed = 3*ParallelDescriptor::MyProc();
-    int thetaSeed = 4*ParallelDescriptor::MyProc();
-    int phiSeed = 5*ParallelDescriptor::MyProc();
-    int generalSeed = 6*ParallelDescriptor::MyProc();
+    int fhdSeed = ParallelDescriptor::MyProc()*20 + 1 + 10000;
+    int particleSeed = 2*ParallelDescriptor::MyProc()*30 + 2 + 10000;
+    int selectorSeed = 3*ParallelDescriptor::MyProc()*40 + 3 + 10000;
+    int thetaSeed = 4*ParallelDescriptor::MyProc()*50 + 4 + 10000;
+    int phiSeed = 5*ParallelDescriptor::MyProc()*60 + 5 + 10000;
+    int generalSeed = 6*ParallelDescriptor::MyProc()*70 + 6 + 10000;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -482,7 +481,7 @@ void main_driver(const char* argv)
 
     particles.InitParticles(ppc, nitrogen);
 
-    particles.UpdateCellVectors();
+    //particles.UpdateCellVectors();
 
     particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, nitrogen);
 
@@ -515,15 +514,15 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 3)
         particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount);
 #endif
-
         particles.Redistribute();
         particles.ReBin();
-        particles.UpdateCellVectors();
+        //particles.UpdateCellVectors();
+
 
         particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
-        if((step-10)%20000 == 0)
-        //if(step == 2000000)
+        //if((step-10)%20000 == 0)
+        if(step == 200000)
         {
             particleMembersMean.setVal(0.0);
             particleDensityMean.setVal(0);

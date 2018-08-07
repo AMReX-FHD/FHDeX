@@ -1,3 +1,9 @@
+#include <AMReX_Geometry.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_Utility.H>
+#include <AMReX_MultiFab.H>
+
 #include "FhdParticleContainer.H"
 #include "particle_functions_F.H"
 #include "rng_functions_F.H"
@@ -46,20 +52,19 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
                 p.id()  = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
-                p.idata(IntData::species) = 0;
                 
                 p.pos(0) = plo[0] + (iv[0]+get_uniform_func())*dx[0];
                 p.pos(1) = plo[1] + (iv[1]+get_uniform_func())*dx[1];
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = plo[2] + (iv[2]+get_uniform_func())*dx[2];
 #endif
-                //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
 
-                p.rdata(RealData::vx) = 0;
-                p.rdata(RealData::vy) = 0;
-                p.rdata(RealData::vz) = 0;
+                //p.rdata(RealData::vx) = 0;
+                //p.rdata(RealData::vy) = 0;
+                //p.rdata(RealData::vz) = 0;
 
                 totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
@@ -110,7 +115,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
 {
     
 
-    //UpdateCellVectors();
+
+    UpdateCellVectors();
 
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
@@ -196,6 +202,7 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
             pvec.resize(new_size);
         }
     }
+
 #ifndef DSMC
     sourceTemp[0].SumBoundary(Geom(lev).periodicity());
     sourceTemp[1].SumBoundary(Geom(lev).periodicity());
@@ -284,7 +291,7 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleMembers,
                               MultiFab& cellVols, const species particleInfo)
 {
 
-    //UpdateCellVectors();
+    UpdateCellVectors();
     const int lev = 0;
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
@@ -548,13 +555,14 @@ void FhdParticleContainer::EvaluateStats(
 
 }
 
-void FhdParticleContainer::UpdateCellVectors()
+void
+FhdParticleContainer::UpdateCellVectors()
 {
     BL_PROFILE("CellSortedParticleContainer::UpdateCellVectors");
     
     const int lev = 0;
-    
-    bool needs_update = true;
+
+    bool needs_update = false;
     if (not m_vectors_initialized)
     {
         // this is the first call, so we must update
@@ -598,7 +606,10 @@ void FhdParticleContainer::UpdateCellVectors()
         for(int pindex = 0; pindex < np; ++pindex) {
             ParticleType& p = particles[pindex];
             const IntVect& iv = this->Index(p, lev);
-            p.idata(0) = 1;
+            p.idata(IntData::sorted) = 1;
+            p.idata(IntData::i) = iv[0];
+            p.idata(IntData::j) = iv[1];
+            p.idata(IntData::k) = iv[2];
             // note - use 1-based indexing for convenience with Fortran
             m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
         }
@@ -607,7 +618,9 @@ void FhdParticleContainer::UpdateCellVectors()
     UpdateFortranStructures();
 }
 
-void FhdParticleContainer::UpdateFortranStructures()
+
+void
+FhdParticleContainer::UpdateFortranStructures()
 {
     BL_PROFILE("CellSortedParticleContainer::UpdateFortranStructures");
     
@@ -648,16 +661,34 @@ FhdParticleContainer::ReBin()
         const int np = particles.numParticles();
         for(int pindex = 0; pindex < np; ++pindex)
         {
-            ParticleType& p = particles[pindex];
-            if (p.idata(0)) continue;
+	    ParticleType& p = particles[pindex];
+	    if (p.idata(IntData::sorted)) continue;
             const IntVect& iv = this->Index(p, lev);
-            p.idata(0) = 1;
+            p.idata(IntData::sorted) = 1;
+            p.idata(IntData::i) = iv[0];
+            p.idata(IntData::j) = iv[1];
+            p.idata(IntData::k) = iv[2];
             // note - use 1-based indexing for convenience with Fortran
             m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
         }
     }
 
     UpdateFortranStructures();
+}
+
+void
+FhdParticleContainer::correctCellVectors(int old_index, int new_index, 
+						int grid, const ParticleType& p)
+{
+    if (not p.idata(IntData::sorted)) return;
+    IntVect iv(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k));
+    auto& cell_vector = m_cell_vectors[grid](iv);
+    for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
+        if (cell_vector[i] == old_index + 1) {
+            cell_vector[i] = new_index + 1;
+            return;
+        }
+    }
 }
 
 
@@ -668,5 +699,30 @@ void FhdParticleContainer::WriteParticlesAscii(int n)
 }
 
 
+int
+FhdParticleContainer::numWrongCell()
+{
+    const int lev = 0;
+    int num_wrong = 0;
+    
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:num_wrong)
+#endif    
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        auto& particles = pti.GetArrayOfStructs();
+        const int np    = pti.numParticles();
+        for(int pindex = 0; pindex < np; ++pindex) {
+            const ParticleType& p = particles[pindex];
+            const IntVect& iv = this->Index(p, lev);
+            if ((iv[0] != p.idata(IntData::i)) or (iv[1] != p.idata(IntData::j)) or (iv[2] != p.idata(IntData::k))) {
+                num_wrong += 1;
+            }
+        }
+    }
+    
+    ParallelDescriptor::ReduceIntSum(num_wrong, ParallelDescriptor::IOProcessorNumber());
+    return num_wrong;
+}
 
 

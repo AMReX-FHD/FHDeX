@@ -58,7 +58,12 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
            new_np = cell_np
            p = 1
            do while (p <= new_np)
-              
+
+              !if(cell_parts(p) .eq. 1320) then
+                
+                !print *, "Accessing ", p, " which is ", cell_parts(p), " and has id ", i,j,k
+
+            !  endif
               part => particles(cell_parts(p))
 
               runtime = dt
@@ -120,7 +125,9 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #endif
               if ((cell(1) /= i) .or. (cell(2) /= j) .or. (cell(3) /= k)) then
                  part%sorted = 0
-                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
+            
+                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)
+
               else
                  p = p + 1
               end if

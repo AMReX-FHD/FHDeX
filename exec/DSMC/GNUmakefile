@@ -73,3 +73,7 @@ include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
+
+ifeq ($(DSMC), TRUE)
+  DEFINES += -DDSMC
+endif

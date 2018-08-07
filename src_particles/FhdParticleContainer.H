@@ -1,11 +1,7 @@
 #ifndef _FhdParticleContainer_H_
 #define _FhdParticleContainer_H_
 
-#include <AMReX.H>
 #include <AMReX_Particles.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_ArrayLim.H>
 
 #include "gmres_functions.H"
 #include "common_functions.H"
@@ -39,8 +35,10 @@ struct RealData
 struct IntData
 {
     enum {
-        sorted = 0,
-        species,
+        sorted,
+        i,
+        j,
+        k,
         ncomps
     };
 };
@@ -134,12 +132,15 @@ public:
 
     void ReBin();
 
-    void UpdateCellVectors();
     //void MoveParticles();
+
+    int numWrongCell();
 
 protected:
     
     void UpdateFortranStructures();
+
+    void UpdateCellVectors();
 
     // used to store vectors of particle indices on a cell-by-cell basis
     std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
@@ -152,6 +153,10 @@ protected:
     bool m_vectors_initialized = false;
     amrex::BoxArray::RefID m_BARef;
     amrex::DistributionMapping::RefID m_DMRef;
+
+private:
+
+    void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
 
 };
     

@@ -664,12 +664,12 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[4].rnx = 1;
     surfaceList[4].rny = 0;
 
-    surfaceList[4].porosityLeft = 0.2;
+    surfaceList[4].porosityLeft = 0.05;
     surfaceList[4].specularityLeft = 1;
     surfaceList[4].temperatureLeft = 273;
     surfaceList[4].momentumConsLeft = 1;
 
-    surfaceList[4].porosityRight = 0.2;
+    surfaceList[4].porosityRight = 0.05;
     surfaceList[4].specularityRight = 1;
     surfaceList[4].temperatureRight = 273;
     surfaceList[4].momentumConsRight = 1;

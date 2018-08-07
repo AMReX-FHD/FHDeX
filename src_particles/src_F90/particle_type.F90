@@ -31,7 +31,9 @@ module cell_sorted_particle_module
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        
      integer(c_int)            :: sorted     
-     integer(c_int)            :: species
+     integer(c_int)            :: i
+     integer(c_int)            :: j
+     integer(c_int)            :: k
   end type particle_t
 
 contains
