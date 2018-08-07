@@ -41,7 +41,10 @@ class StochMFlux {
   // also, multiplied by sqrt(eta*temperature)
   MultiFab mflux_cc_weighted;
   std::array< MultiFab, NUM_EDGE >  mflux_ed_weighted;
-
+  
+  // eta & temperature
+  Real eta_const = 1.0;
+  Real temp_const = 1.0;
   // eta & temperature cell centered
   MultiFab  eta_cc;
   MultiFab temp_cc;
@@ -114,35 +117,48 @@ StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geo
   mflux_ed_weighted[2].define(convert(ba,nodal_flag_yz), dmap, ncomp_ed, 0);
 #endif
   
-  // Define eta & temperature multifabs
+  // Define & initalize eta & temperature multifabs
   // eta cell-centered
   eta_cc.define(ba, dmap, 1, 1);
-  eta_cc.setVal(1.0);
   // temperature cell-centered
   temp_cc.define(ba, dmap, 1, 1);
-  temp_cc.setVal(1.0);
 #if (AMREX_SPACEDIM == 2)
   // eta nodal
   eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-  eta_ed[0].setVal(1.0);
   // temperature nodal
   temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-  temp_ed[0].setVal(1.0);
 #elif (AMREX_SPACEDIM == 3)
   // eta nodal
   eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
   eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
   eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-  eta_ed[0].setVal(1.0);
-  eta_ed[1].setVal(1.0);
-  eta_ed[2].setVal(1.0);
   // temperature nodal
   temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
   temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
   temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-  temp_ed[0].setVal(1.0);
-  temp_ed[1].setVal(1.0);
-  temp_ed[2].setVal(1.0);
+#endif
+
+  // FIXME: eta & temperature = 1.0 (uniform) here for convienience
+
+  // Initalize eta & temperature multifabs
+  // eta cell-centered
+  eta_cc.setVal(eta_const);
+  // temperature cell-centered
+  temp_cc.setVal(temp_const);
+#if (AMREX_SPACEDIM == 2)
+  // eta nodal
+  eta_ed[0].setVal(eta_const);
+  // temperature nodal
+  temp_ed[0].setVal(temp_const);
+#elif (AMREX_SPACEDIM == 3)
+  // eta nodal
+  eta_ed[0].setVal(eta_const);
+  eta_ed[1].setVal(eta_const);
+  eta_ed[2].setVal(eta_const);
+  // temperature nodal
+  temp_ed[0].setVal(temp_const);
+  temp_ed[1].setVal(temp_const);
+  temp_ed[2].setVal(temp_const);
 #endif
 }
 
