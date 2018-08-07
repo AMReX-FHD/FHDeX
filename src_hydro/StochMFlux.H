@@ -31,26 +31,25 @@ class StochMFlux {
   BoxArray ba;
   DistributionMapping dmap;
 
-  // mflux cell centered
+  // Vectors containing mflux's at each stage
+  // mflux cell-centered
   Vector< MultiFab > mflux_cc;
-
-  // mflux on nodes in 2d
-  // mflux on edges in 3d
+  // mflux on nodes in 2d, on edges in 3d
   Vector<std::array< MultiFab, NUM_EDGE > >  mflux_ed;
 
-  // weighted mflux cell centered & nodal
+  // Weighted mflux cell-centered & nodal ...
+  // also, multiplied by sqrt(eta*temperature)
   MultiFab mflux_cc_weighted;
   std::array< MultiFab, NUM_EDGE >  mflux_ed_weighted;
 
   // eta & temperature cell centered
   MultiFab  eta_cc;
   MultiFab temp_cc;
-
   // eta & temperature nodal
   std::array< MultiFab, NUM_EDGE >   eta_ed;
   std::array< MultiFab, NUM_EDGE >  temp_ed;
 
-  // mflux cell centred
+  // mflux divergence, staggered in x,y,z
   std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv;
 
 public:
@@ -58,7 +57,7 @@ public:
   StochMFlux(BoxArray,DistributionMapping,Geometry,int,int,Vector<amrex::Real>);
   void fillMStochastic();
   void weightMflux();
-  void mult_by_sqrt_eta();
+  void multbySqrtEta();
   void stochMforce();
   void writeMFs();
 
@@ -152,13 +151,15 @@ void StochMFlux::weightMflux() {
   for (int i=0; i<n_rngs; ++i) {
     MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, ncomp_cc, 1);
   }
+  mflux_cc_weighted.FillBoundary(geom.periodicity());
+
   for (int d=0; d<NUM_EDGE; ++d) {
     mflux_ed_weighted[d].setVal(0.0);
     for (int i=0; i<n_rngs; ++i) {
       MultiFab::Saxpy(mflux_ed_weighted[d], weights[i], mflux_ed[i][d], 0, 0, ncomp_ed, 0);
     }
+    mflux_ed_weighted[d].FillBoundary(geom.periodicity());
   }
-
 }
 
 void StochMFlux::fillMStochastic() {  
@@ -194,13 +195,45 @@ void StochMFlux::fillMStochastic() {
   StochMFlux::weightMflux();
 }
 
-void StochMFlux::mult_by_sqrt_eta() { 
+void StochMFlux::multbySqrtEta() { 
   // Multiply mflux_weighted by sqrt(eta*temperature)
+
+  // Loop over boxes
+  for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
+    // Note: Make sure that multifab is cell-centered
+    const Box& validBox = mfi.validbox();
+
+    mult_by_sqrt_eta(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+		     BL_TO_FORTRAN_FAB(mflux_cc_weighted[mfi]),
+		     BL_TO_FORTRAN_FAB(mflux_ed_weighted[0][mfi]),	     	     
+#if (AMREX_SPACEDIM == 3)
+		     BL_TO_FORTRAN_FAB(mflux_ed_weighted[1][mfi]),
+		     BL_TO_FORTRAN_FAB(mflux_ed_weighted[2][mfi]),
+#endif
+		     BL_TO_FORTRAN_ANYD(eta_cc[mfi]),
+		     BL_TO_FORTRAN_ANYD(eta_ed[0][mfi]),	     	     
+#if (AMREX_SPACEDIM == 3)
+		     BL_TO_FORTRAN_ANYD(eta_ed[1][mfi]),
+		     BL_TO_FORTRAN_ANYD(eta_ed[2][mfi]),
+#endif
+		     BL_TO_FORTRAN_ANYD(temp_cc[mfi]),
+		     BL_TO_FORTRAN_ANYD(temp_ed[0][mfi])	     	     
+#if (AMREX_SPACEDIM == 3)
+		   , BL_TO_FORTRAN_ANYD(temp_ed[1][mfi]),
+		     BL_TO_FORTRAN_ANYD(temp_ed[2][mfi])
+#endif
+		     );
+  }
+
+  mflux_cc_weighted.FillBoundary(geom.periodicity());
+  for (int d=0; d<NUM_EDGE; ++d) {
+    mflux_ed_weighted[d].FillBoundary(geom.periodicity());
+  }
 }
 
 void StochMFlux::stochMforce() { 
   // Multiply mflux (cc & edge) by sqrt(eta*temperature)
-  StochMFlux::mult_by_sqrt_eta();
+  StochMFlux::multbySqrtEta();
 
   const Real* dx = geom.CellSize();
   
@@ -225,6 +258,9 @@ void StochMFlux::stochMforce() {
 		  dx, &increment);
   }
 
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    mfluxdiv[d].FillBoundary(geom.periodicity());
+  }
 }
 
 void StochMFlux::writeMFs() {

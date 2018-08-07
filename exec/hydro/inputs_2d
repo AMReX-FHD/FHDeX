@@ -5,9 +5,9 @@
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
 
   ! number of cells in domain
-  n_cells(1:2) = 4 4
+  n_cells(1:2) = 64 64
   ! max number of cells in a box
-  max_grid_size(1:2) = 3 3
+  max_grid_size(1:2) = 33 33
 
   ! Time-step control
   fixed_dt = 0.8e-3
