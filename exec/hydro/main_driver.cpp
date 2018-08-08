@@ -210,18 +210,83 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     ///////////////////////////////////////////
+    // Define & initalize eta & temperature multifabs
+    ///////////////////////////////////////////
+    // eta & temperature
+    Real eta_const = 1.0;
+    Real temp_const = 1.0;
+    // eta & temperature cell centered
+    MultiFab  eta_cc;
+    MultiFab temp_cc;
+    // eta & temperature nodal
+    std::array< MultiFab, NUM_EDGE >   eta_ed;
+    std::array< MultiFab, NUM_EDGE >  temp_ed;
+    // eta cell-centered
+    eta_cc.define(ba, dmap, 1, 1);
+    // temperature cell-centered
+    temp_cc.define(ba, dmap, 1, 1);
+#if (AMREX_SPACEDIM == 2)
+    // eta nodal
+    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+    // temperature nodal
+    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 3)
+    // eta nodal
+    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    // temperature nodal
+    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#endif
+
+    // FIXME: eta & temperature = 1.0 (uniform) here for convienience
+
+    // Initalize eta & temperature multifabs
+    // eta cell-centered
+    eta_cc.setVal(eta_const);
+    // temperature cell-centered
+    temp_cc.setVal(temp_const);
+#if (AMREX_SPACEDIM == 2)
+    // eta nodal
+    eta_ed[0].setVal(eta_const);
+    // temperature nodal
+    temp_ed[0].setVal(temp_const);
+#elif (AMREX_SPACEDIM == 3)
+    // eta nodal
+    eta_ed[0].setVal(eta_const);
+    eta_ed[1].setVal(eta_const);
+    eta_ed[2].setVal(eta_const);
+    // temperature nodal
+    temp_ed[0].setVal(temp_const);
+    temp_ed[1].setVal(temp_const);
+    temp_ed[2].setVal(temp_const);
+#endif
+    ///////////////////////////////////////////
+
+    ///////////////////////////////////////////
     // random fluxes:
     ///////////////////////////////////////////
+
+    // mflux divergence, staggered in x,y,z
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv;
+    // Define mfluxdiv multifabs
+    mfluxdiv[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+    mfluxdiv[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+#if (AMREX_SPACEDIM == 3)
+    mfluxdiv[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
+#endif
 
     Vector< amrex::Real > weights;
     weights = {std::sqrt(0.5), std::sqrt(0.5)};
     
     // Declare object of StochMFlux class 
     // StochMFlux sMflux (ba,dmap,geom);
-    StochMFlux sMflux (ba,dmap,geom,0,n_rngs,weights);
+    StochMFlux sMflux (ba,dmap,geom,n_rngs);
     sMflux.fillMStochastic();
-    sMflux.stochMforce();
-    sMflux.writeMFs();
+    sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights);
+    // sMflux.writeMFs();
 
     Abort("Done with hack");
     exit(0);

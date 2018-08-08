@@ -15,21 +15,10 @@ using namespace common;
 
 class StochMFlux {
 
-#if (AMREX_SPACEDIM == 2)
-  const int ncomp_cc = 2;
-#elif (AMREX_SPACEDIM == 3)
-  const int ncomp_cc = 3;
-#endif
   const int ncomp_ed = 2;
+  int n_rngs;
   
-  int n_rngs = 1;
-  int stoch_stress_form = 1;
-  
-  Vector< amrex::Real > weights;
-
   Geometry geom;
-  BoxArray ba;
-  DistributionMapping dmap;
 
   // Vectors containing mflux's at each stage
   // mflux cell-centered
@@ -41,131 +30,67 @@ class StochMFlux {
   // also, multiplied by sqrt(eta*temperature)
   MultiFab mflux_cc_weighted;
   std::array< MultiFab, NUM_EDGE >  mflux_ed_weighted;
-  
-  // eta & temperature
-  Real eta_const = 1.0;
-  Real temp_const = 1.0;
-  // eta & temperature cell centered
-  MultiFab  eta_cc;
-  MultiFab temp_cc;
-  // eta & temperature nodal
-  std::array< MultiFab, NUM_EDGE >   eta_ed;
-  std::array< MultiFab, NUM_EDGE >  temp_ed;
-
-  // mflux divergence, staggered in x,y,z
-  std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv;
 
 public:
 
-  StochMFlux(BoxArray,DistributionMapping,Geometry,int,int,Vector<amrex::Real>);
+  StochMFlux(BoxArray,DistributionMapping,Geometry,int);
   void fillMStochastic();
-  void weightMflux();
-  void multbySqrtEta();
-  void stochMforce();
+  void weightMflux(Vector< amrex::Real >);
+  void multbySqrtEta(const MultiFab& eta_cc,  
+		     const std::array< MultiFab, NUM_EDGE >& eta_ed, 
+		     const MultiFab& temp_cc, 
+		     const std::array< MultiFab, NUM_EDGE >& temp_ed);
+  void stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv, 
+		   const MultiFab& eta_cc,  
+		   const std::array< MultiFab, NUM_EDGE >& eta_ed, 
+		   const MultiFab& temp_cc, 
+		   const std::array< MultiFab, NUM_EDGE >& temp_ed, 
+		   const Vector< amrex::Real >& weights);
   void writeMFs();
 
 };
 
 StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in, 
-		       int stoch_stress_form_in=1, int n_rngs_in=1, 
-		       Vector<amrex::Real> weights_in={1.0}) {
+		       int n_rngs_in) {
   n_rngs = n_rngs_in;
-  stoch_stress_form = stoch_stress_form_in;
   geom = geom_in;
-  ba = ba_in;
-  dmap = dmap_in;
-  
-  weights.resize(n_rngs);
+
   mflux_cc.resize(n_rngs);
   mflux_ed.resize(n_rngs);
-
-  for (int i=0; i<n_rngs; ++i) {
-    weights[i] = weights_in[i];
-  }
-
-  // Define mfluxdiv multifabs
-  mfluxdiv[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-  mfluxdiv[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-  mfluxdiv[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
   
   // Define mflux multifab vectors
   // TEMPORARY ASSUMPTION: filtering_width = 0
   for (int i=0; i<n_rngs; ++i) {
-    mflux_cc[i].define(ba, dmap, ncomp_cc, 1);
+    mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, 1);
   }
 #if (AMREX_SPACEDIM == 2)
   for (int i=0; i<n_rngs; ++i) {
-    mflux_ed[i][0].define(convert(ba,nodal_flag), dmap, ncomp_ed, 0);
+    mflux_ed[i][0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, 0);
   }
 #elif (AMREX_SPACEDIM == 3)
   for (int i=0; i<n_rngs; ++i) {
-    mflux_ed[i][0].define(convert(ba,nodal_flag_xy), dmap, ncomp_ed, 0);
-    mflux_ed[i][1].define(convert(ba,nodal_flag_xz), dmap, ncomp_ed, 0);
-    mflux_ed[i][2].define(convert(ba,nodal_flag_yz), dmap, ncomp_ed, 0);
+    mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, 0);
+    mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, 0);
+    mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, 0);
   }
 #endif
 
   // Define weighted mflux multifab vectors
-  mflux_cc_weighted.define(ba, dmap, ncomp_cc, 1);
+  mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, 1);
 #if (AMREX_SPACEDIM == 2)
-  mflux_ed_weighted[0].define(convert(ba,nodal_flag), dmap, ncomp_ed, 0);
+  mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, 0);
 #elif (AMREX_SPACEDIM == 3)
-  mflux_ed_weighted[0].define(convert(ba,nodal_flag_xy), dmap, ncomp_ed, 0);
-  mflux_ed_weighted[1].define(convert(ba,nodal_flag_xz), dmap, ncomp_ed, 0);
-  mflux_ed_weighted[2].define(convert(ba,nodal_flag_yz), dmap, ncomp_ed, 0);
-#endif
-  
-  // Define & initalize eta & temperature multifabs
-  // eta cell-centered
-  eta_cc.define(ba, dmap, 1, 1);
-  // temperature cell-centered
-  temp_cc.define(ba, dmap, 1, 1);
-#if (AMREX_SPACEDIM == 2)
-  // eta nodal
-  eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-  // temperature nodal
-  temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-#elif (AMREX_SPACEDIM == 3)
-  // eta nodal
-  eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-  eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-  eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-  // temperature nodal
-  temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-  temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-  temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-#endif
-
-  // FIXME: eta & temperature = 1.0 (uniform) here for convienience
-
-  // Initalize eta & temperature multifabs
-  // eta cell-centered
-  eta_cc.setVal(eta_const);
-  // temperature cell-centered
-  temp_cc.setVal(temp_const);
-#if (AMREX_SPACEDIM == 2)
-  // eta nodal
-  eta_ed[0].setVal(eta_const);
-  // temperature nodal
-  temp_ed[0].setVal(temp_const);
-#elif (AMREX_SPACEDIM == 3)
-  // eta nodal
-  eta_ed[0].setVal(eta_const);
-  eta_ed[1].setVal(eta_const);
-  eta_ed[2].setVal(eta_const);
-  // temperature nodal
-  temp_ed[0].setVal(temp_const);
-  temp_ed[1].setVal(temp_const);
-  temp_ed[2].setVal(temp_const);
+  mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, 0);
+  mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, 0);
+  mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, 0);
 #endif
 }
 
-void StochMFlux::weightMflux() {
+void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
   mflux_cc_weighted.setVal(0.0);
+
   for (int i=0; i<n_rngs; ++i) {
-    MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, ncomp_cc, 1);
+    MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, AMREX_SPACEDIM, 1);
   }
   mflux_cc_weighted.FillBoundary(geom.periodicity());
 
@@ -183,7 +108,7 @@ void StochMFlux::fillMStochastic() {
     switch(stoch_stress_form) {
     case 0: // Non-symmetric
       // Print() << "Non-symmetric \n";
-      for (int n=0; n<ncomp_cc; ++n) {
+      for (int n=0; n<AMREX_SPACEDIM; ++n) {
 	MultiFABFillRandom(mflux_cc[i],n,1.0,geom);
       }
 
@@ -195,7 +120,7 @@ void StochMFlux::fillMStochastic() {
       break;
     default: // Symmetric
       // Print() << "Symmetric \n";
-      for (int n=0; n<ncomp_cc; ++n) {
+      for (int n=0; n<AMREX_SPACEDIM; ++n) {
 	MultiFABFillRandom(mflux_cc[i],n,2.0,geom);
       }
 
@@ -206,12 +131,12 @@ void StochMFlux::fillMStochastic() {
       break;
     }
   }
-
-  // Take linear combination of mflux multifabs at each stage
-  StochMFlux::weightMflux();
 }
 
-void StochMFlux::multbySqrtEta() { 
+void StochMFlux::multbySqrtEta(const MultiFab& eta_cc,  
+			       const std::array< MultiFab, NUM_EDGE >& eta_ed, 
+			       const MultiFab& temp_cc, 
+			       const std::array< MultiFab, NUM_EDGE >& temp_ed) { 
   // Multiply mflux_weighted by sqrt(eta*temperature)
 
   // Loop over boxes
@@ -247,9 +172,18 @@ void StochMFlux::multbySqrtEta() {
   }
 }
 
-void StochMFlux::stochMforce() { 
-  // Multiply mflux (cc & edge) by sqrt(eta*temperature)
-  StochMFlux::multbySqrtEta();
+void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv, 
+			     const MultiFab& eta_cc,  
+			     const std::array< MultiFab, NUM_EDGE >& eta_ed, 
+			     const MultiFab& temp_cc, 
+			     const std::array< MultiFab, NUM_EDGE >& temp_ed, 
+			     const Vector< amrex::Real >& weights) { 
+
+  // Take linear combination of mflux multifabs at each stage
+  StochMFlux::weightMflux(weights);
+
+  // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
+  StochMFlux::multbySqrtEta(eta_cc,eta_ed,temp_cc,temp_ed);
 
   const Real* dx = geom.CellSize();
   
@@ -306,11 +240,11 @@ void StochMFlux::writeMFs() {
   }
 
   // Write out fluxdiv
-  for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    plotfilename = "a_mfluxdiv_";
-    plotfilename += dimStr[d];
-    VisMF::Write(mfluxdiv[d],plotfilename);
-  }
+  // for (int d=0; d<AMREX_SPACEDIM; ++d) {
+  //   plotfilename = "a_mfluxdiv_";
+  //   plotfilename += dimStr[d];
+  //   VisMF::Write(mfluxdiv[d],plotfilename);
+  // }
 } 
 
 #endif
