@@ -12,6 +12,7 @@ module common_namelist_module
   double precision,   save :: prob_hi(AMREX_SPACEDIM)
   integer,            save :: n_cells(AMREX_SPACEDIM)
   integer,            save :: max_grid_size(AMREX_SPACEDIM)
+  double precision,   save :: cell_depth
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
   integer,            save :: max_step
@@ -64,6 +65,7 @@ module common_namelist_module
   namelist /common/ prob_hi       ! physical hi coordinate
   namelist /common/ n_cells       ! number of cells in domain
   namelist /common/ max_grid_size ! max number of cells in a box
+  namelist /common/ cell_depth
 
   ! Time-step control
   namelist /common/ fixed_dt
@@ -176,6 +178,7 @@ contains
     prob_hi(:) = 1.d0
     n_cells(:) = 1
     max_grid_size(:) = 1
+    cell_depth = 1.d0
     fixed_dt = 1.
     cfl = 0.5
     max_step = 1
@@ -232,7 +235,7 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, &
+                                         max_grid_size_in, cell_depth_in, &
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
@@ -260,6 +263,7 @@ contains
     double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: cell_depth_in
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
     integer,                intent(inout) :: max_step_in
@@ -313,6 +317,7 @@ contains
     prob_hi_in = prob_hi
     n_cells_in = n_cells
     max_grid_size_in = max_grid_size
+    cell_depth_in = cell_depth
     fixed_dt_in = fixed_dt
     cfl_in = cfl
     max_step_in = max_step

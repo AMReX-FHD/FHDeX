@@ -36,17 +36,19 @@ public:
   StochMFlux(BoxArray,DistributionMapping,Geometry,int);
   void fillMStochastic();
   void weightMflux(Vector< amrex::Real >);
-  void multbySqrtEta(const MultiFab& eta_cc,  
-		     const std::array< MultiFab, NUM_EDGE >& eta_ed, 
-		     const MultiFab& temp_cc, 
-		     const std::array< MultiFab, NUM_EDGE >& temp_ed);
+  void multbyVarSqrtEtaTemp(const MultiFab& eta_cc,  
+			    const std::array< MultiFab, NUM_EDGE >& eta_ed, 
+			    const MultiFab& temp_cc, 
+			    const std::array< MultiFab, NUM_EDGE >& temp_ed,
+			    const amrex::Real& dt);
   void stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv, 
 		   const MultiFab& eta_cc,  
 		   const std::array< MultiFab, NUM_EDGE >& eta_ed, 
 		   const MultiFab& temp_cc, 
 		   const std::array< MultiFab, NUM_EDGE >& temp_ed, 
-		   const Vector< amrex::Real >& weights);
-  void writeMFs();
+		   const Vector< amrex::Real >& weights,
+		   const amrex::Real& dt);
+  void writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv);
 
 };
 
@@ -133,37 +135,59 @@ void StochMFlux::fillMStochastic() {
   }
 }
 
-void StochMFlux::multbySqrtEta(const MultiFab& eta_cc,  
-			       const std::array< MultiFab, NUM_EDGE >& eta_ed, 
-			       const MultiFab& temp_cc, 
-			       const std::array< MultiFab, NUM_EDGE >& temp_ed) { 
-  // Multiply mflux_weighted by sqrt(eta*temperature)
+void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,  
+				      const std::array< MultiFab, NUM_EDGE >& eta_ed, 
+				      const MultiFab& temp_cc, 
+				      const std::array< MultiFab, NUM_EDGE >& temp_ed,
+				      const amrex::Real& dt) { 
+  const Real* dx = geom.CellSize();
+  
+  Real dVol = dx[0]*dx[1];
+  if (AMREX_SPACEDIM == 2) {
+    dVol *= cell_depth;
+  } else {
+    if (AMREX_SPACEDIM == 3) {
+      dVol *= dx[2];
+    } 
+  }
+  // Print() << "Hack: dVol = " << dVol << "\n";
+  
+  // Compute variance using computed differential volume
+  Real variance = sqrt(variance_coef_mom*2.0*k_B/(dVol*dt));
+  // Print() << "Hack: variance = " << variance << "\n";
+  
+  // Scale mflux_weighted by variance
+  mflux_cc_weighted.mult(variance, 1);
+  for (int d=0; d<NUM_EDGE; d++) {
+    mflux_ed_weighted[d].mult(variance, 0);
+  }
 
+  // Multiply mflux_weighted by sqrt(eta*temperature)
   // Loop over boxes
   for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
     // Note: Make sure that multifab is cell-centered
     const Box& validBox = mfi.validbox();
 
-    mult_by_sqrt_eta(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		     BL_TO_FORTRAN_FAB(mflux_cc_weighted[mfi]),
-		     BL_TO_FORTRAN_FAB(mflux_ed_weighted[0][mfi]),	     	     
+    mult_by_sqrt_eta_temp(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+			  BL_TO_FORTRAN_FAB(mflux_cc_weighted[mfi]),
+			  BL_TO_FORTRAN_FAB(mflux_ed_weighted[0][mfi]),	     	     
 #if (AMREX_SPACEDIM == 3)
-		     BL_TO_FORTRAN_FAB(mflux_ed_weighted[1][mfi]),
-		     BL_TO_FORTRAN_FAB(mflux_ed_weighted[2][mfi]),
+			  BL_TO_FORTRAN_FAB(mflux_ed_weighted[1][mfi]),
+			  BL_TO_FORTRAN_FAB(mflux_ed_weighted[2][mfi]),
 #endif
-		     BL_TO_FORTRAN_ANYD(eta_cc[mfi]),
-		     BL_TO_FORTRAN_ANYD(eta_ed[0][mfi]),	     	     
+			  BL_TO_FORTRAN_ANYD(eta_cc[mfi]),
+			  BL_TO_FORTRAN_ANYD(eta_ed[0][mfi]),	     	     
 #if (AMREX_SPACEDIM == 3)
-		     BL_TO_FORTRAN_ANYD(eta_ed[1][mfi]),
-		     BL_TO_FORTRAN_ANYD(eta_ed[2][mfi]),
+			  BL_TO_FORTRAN_ANYD(eta_ed[1][mfi]),
+			  BL_TO_FORTRAN_ANYD(eta_ed[2][mfi]),
 #endif
-		     BL_TO_FORTRAN_ANYD(temp_cc[mfi]),
-		     BL_TO_FORTRAN_ANYD(temp_ed[0][mfi])	     	     
+			  BL_TO_FORTRAN_ANYD(temp_cc[mfi]),
+			  BL_TO_FORTRAN_ANYD(temp_ed[0][mfi])	     	     
 #if (AMREX_SPACEDIM == 3)
-		   , BL_TO_FORTRAN_ANYD(temp_ed[1][mfi]),
-		     BL_TO_FORTRAN_ANYD(temp_ed[2][mfi])
+			  , BL_TO_FORTRAN_ANYD(temp_ed[1][mfi]),
+			  BL_TO_FORTRAN_ANYD(temp_ed[2][mfi])
 #endif
-		     );
+			  );
   }
 
   mflux_cc_weighted.FillBoundary(geom.periodicity());
@@ -177,13 +201,14 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
 			     const std::array< MultiFab, NUM_EDGE >& eta_ed, 
 			     const MultiFab& temp_cc, 
 			     const std::array< MultiFab, NUM_EDGE >& temp_ed, 
-			     const Vector< amrex::Real >& weights) { 
+			     const Vector< amrex::Real >& weights,
+			     const amrex::Real& dt) { 
 
   // Take linear combination of mflux multifabs at each stage
   StochMFlux::weightMflux(weights);
 
   // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
-  StochMFlux::multbySqrtEta(eta_cc,eta_ed,temp_cc,temp_ed);
+  StochMFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
 
   const Real* dx = geom.CellSize();
   
@@ -213,7 +238,7 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
   }
 }
 
-void StochMFlux::writeMFs() {
+void StochMFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
   std::string plotfilename;
   std::string dimStr = "xyz";
 
@@ -240,11 +265,11 @@ void StochMFlux::writeMFs() {
   }
 
   // Write out fluxdiv
-  // for (int d=0; d<AMREX_SPACEDIM; ++d) {
-  //   plotfilename = "a_mfluxdiv_";
-  //   plotfilename += dimStr[d];
-  //   VisMF::Write(mfluxdiv[d],plotfilename);
-  // }
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    plotfilename = "a_mfluxdiv_";
+    plotfilename += dimStr[d];
+    VisMF::Write(mfluxdiv[d],plotfilename);
+  }
 } 
 
 #endif

@@ -186,14 +186,14 @@ contains
 
 #if (AMREX_SPACEDIM == 2)
 
-      subroutine mult_by_sqrt_eta(lo,hi, &
+      subroutine mult_by_sqrt_eta_temp(lo,hi, &
                                   mflux_cc, mfluxcclo, mfluxcchi, ncomp_cc, &
                                   mflux_nd, mfluxndlo, mfluxndhi, ncomp_nd, &
                                   eta, etacclo, etacchi, &
                                   eta_nodal, etandlo, etandhi, &
                                   temperature, tempcclo, tempcchi, &
                                   temperature_nodal, tempndlo, tempndhi &
-                                  ) bind(C,name="mult_by_sqrt_eta")
+                                  ) bind(C,name="mult_by_sqrt_eta_temp")
 
       integer         , intent(in   ) :: lo(2),hi(2)
       integer         , intent(in   ) :: ncomp_cc, ncomp_nd
@@ -221,13 +221,13 @@ contains
          end do
       end do
 
-    end subroutine mult_by_sqrt_eta
+    end subroutine mult_by_sqrt_eta_temp
 
 #endif
 
 #if (AMREX_SPACEDIM == 3)
 
-      subroutine mult_by_sqrt_eta(lo,hi, &
+      subroutine mult_by_sqrt_eta_temp(lo,hi, &
                                   mflux_cc, mfluxcclo, mfluxcchi, ncomp_cc, &
                                   mflux_xy, mfluxxylo, mfluxxyhi, ncomp_xy, &
                                   mflux_xz, mfluxxzlo, mfluxxzhi, ncomp_xz, &
@@ -240,7 +240,7 @@ contains
                                   temperature_xy, tempxylo, tempxyhi, &
                                   temperature_xz, tempxzlo, tempxzhi, &
                                   temperature_yz, tempyzlo, tempyzhi &
-                                  ) bind(C,name="mult_by_sqrt_eta")
+                                  ) bind(C,name="mult_by_sqrt_eta_temp")
 
       integer         , intent(in   ) :: lo(3),hi(3)
       integer         , intent(in   ) :: ncomp_cc, ncomp_xy, ncomp_xz, ncomp_yz
@@ -297,7 +297,7 @@ contains
          end do
       end do
 
-    end subroutine mult_by_sqrt_eta
+    end subroutine mult_by_sqrt_eta_temp
     
 #endif
 

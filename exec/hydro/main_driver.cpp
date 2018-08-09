@@ -89,8 +89,8 @@ void main_driver(const char* argv)
     //Initialise rngs
     /////////////////////////////////////////
     const int n_rngs = 2;
-    const int proc = ParallelDescriptor::MyProc();
-    // proc = 0;
+    // const int proc = ParallelDescriptor::MyProc();
+    const int proc = 0;
 
     int fhdSeed = 1+proc;
     int particleSeed = 2+proc;
@@ -285,8 +285,8 @@ void main_driver(const char* argv)
     // StochMFlux sMflux (ba,dmap,geom);
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
     sMflux.fillMStochastic();
-    sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights);
-    // sMflux.writeMFs();
+    sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+    sMflux.writeMFs(mfluxdiv);
 
     Abort("Done with hack");
     exit(0);

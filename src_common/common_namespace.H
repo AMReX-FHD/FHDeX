@@ -16,6 +16,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> prob_hi;       // physical hi coordinate
     extern amrex::Vector<int>         n_cells;       // number of cells in domain
     extern amrex::Vector<int>         max_grid_size; // max number of cells in a box
+    extern amrex::Real                cell_depth;
 
     // Time-step control
     extern amrex::Real                fixed_dt;

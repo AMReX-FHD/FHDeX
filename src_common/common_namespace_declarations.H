@@ -10,6 +10,7 @@ amrex::Vector<amrex::Real> common::prob_lo;
 amrex::Vector<amrex::Real> common::prob_hi;
 amrex::Vector<int>         common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
+amrex::Real                common::cell_depth;
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
 int                        common::max_step;
