@@ -18,7 +18,7 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG.mak
+include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
 VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
 

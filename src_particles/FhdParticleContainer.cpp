@@ -562,7 +562,7 @@ FhdParticleContainer::UpdateCellVectors()
     
     const int lev = 0;
 
-    bool needs_update = false;
+    bool needs_update = true;
     if (not m_vectors_initialized)
     {
         // this is the first call, so we must update
