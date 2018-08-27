@@ -27,6 +27,9 @@
   visc_coef = 1e-2
   visc_type = 1
 
+  ! Stochastic parameters
+  k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
+
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:

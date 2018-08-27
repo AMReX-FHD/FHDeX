@@ -88,7 +88,7 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
     //Initialise rngs
     /////////////////////////////////////////
-    const int n_rngs = 2;
+    const int n_rngs = 1;
 
     int fhdSeed = 1;
     int particleSeed = 2;
@@ -220,7 +220,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // eta & temperature
     const Real eta_const = visc_coef;
-    const Real temp_const = 273.15;
+    const Real temp_const = 273.15;      // [units: K]
     // eta & temperature cell centered
     MultiFab  eta_cc;
     MultiFab temp_cc;
@@ -285,13 +285,15 @@ void main_driver(const char* argv)
 #endif
 
     Vector< amrex::Real > weights;
-    weights = {std::sqrt(0.5), std::sqrt(0.5)};
+    // weights = {std::sqrt(0.5), std::sqrt(0.5)};
+    weights = {1.0};
     
     // Declare object of StochMFlux class 
     // StochMFlux sMflux (ba,dmap,geom);
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
-    sMflux.fillMStochastic();
-    sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+    
+    // sMflux.fillMStochastic();
+    // sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
     // sMflux.writeMFs(mfluxdiv);
 
     // Abort("Done with hack");
@@ -403,6 +405,9 @@ void main_driver(const char* argv)
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
 
+	// Fill stochastic terms
+	sMflux.fillMStochastic();
+
     	// Compute tracer:
     	if (step != 1) {
     	  tracer.FillBoundary(geom.periodicity());
@@ -444,13 +449,19 @@ void main_driver(const char* argv)
         // crank-nicolson terms
         StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
+	// compute stochastic force terms
+	sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+
     	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
     	for (int d=0; d<AMREX_SPACEDIM; d++) {
     	  gmres_rhs_u[d].mult(dtinv, 1);
     	}
-    	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
+    	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], mfluxdiv[0], 0, 0, 1, 0);,
+                     MultiFab::Add(gmres_rhs_u[1], mfluxdiv[1], 0, 0, 1, 0);,
+                     MultiFab::Add(gmres_rhs_u[2], mfluxdiv[2], 0, 0, 1, 0););
+	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[1], Lumac[1], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[2], Lumac[2], 0, 0, 1, 0););
     	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
@@ -503,6 +514,9 @@ void main_driver(const char* argv)
         // crank-nicolson terms
         StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
+	// compute stochastic force terms
+	sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+
     	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
                      MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
@@ -512,6 +526,9 @@ void main_driver(const char* argv)
     	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[1], Lumac[1], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[2], Lumac[2], 0, 0, 1, 0););
+	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], mfluxdiv[0], 0, 0, 1, 0);,
+                     MultiFab::Add(gmres_rhs_u[1], mfluxdiv[1], 0, 0, 1, 0);,
+                     MultiFab::Add(gmres_rhs_u[2], mfluxdiv[2], 0, 0, 1, 0););
     	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
                      MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););

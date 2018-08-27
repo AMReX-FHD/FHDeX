@@ -30,7 +30,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   !! IC parameters
   pi = acos(-1.d0)
   ! k1 & k2 determine steepness of velocity profile:
-  k1 = 1d-2*L_hlf
+  ! k1 = 1d-2*L_hlf
+  k1 = 1d-6*L_hlf
   k2 = k1
   k1_inv = 1/k1
   k2_inv = 1/k2
@@ -42,8 +43,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
   ! Stream:
   freq = 02.d0*pi/L_hlf
-  ! amp = 2.0d-3*L_hlf
-  amp = 2.0d-1*L_hlf
+  amp = 2.0d-3*L_hlf
+  ! amp = 2.0d-1*L_hlf
   width1 = L_hlf/2.0d0
 
   if (di .EQ. 0) then
