@@ -81,23 +81,29 @@ void main_driver(const char* argv)
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
     const Real* dx = geom.CellSize();
-  
+
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
-    
+
     /////////////////////////////////////////
     //Initialise rngs
     /////////////////////////////////////////
     const int n_rngs = 2;
-    // const int proc = ParallelDescriptor::MyProc();
-    const int proc = 0;
 
-    int fhdSeed = 1+proc;
-    int particleSeed = 2+proc;
-    int selectorSeed = 3+proc;
-    int thetaSeed = 4+proc;
-    int phiSeed = 5+proc;
-    int generalSeed = 6+proc;
+    int fhdSeed = 1;
+    int particleSeed = 2;
+    int selectorSeed = 3;
+    int thetaSeed = 4;
+    int phiSeed = 5;
+    int generalSeed = 6;
+
+    // const int proc = ParallelDescriptor::MyProc();
+    // fhdSeed += proc;
+    // particleSeed += proc;
+    // selectorSeed += proc;
+    // thetaSeed += proc;
+    // phiSeed += proc;
+    // generalSeed += proc;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -127,7 +133,7 @@ void main_driver(const char* argv)
     beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);  
+    beta_ed[0].setVal(visc_coef);
     beta_ed[1].setVal(visc_coef);
     beta_ed[2].setVal(visc_coef);
 #endif
@@ -213,8 +219,8 @@ void main_driver(const char* argv)
     // Define & initalize eta & temperature multifabs
     ///////////////////////////////////////////
     // eta & temperature
-    Real eta_const = 1.0;
-    Real temp_const = 1.0;
+    const Real eta_const = visc_coef;
+    const Real temp_const = 273.15;
     // eta & temperature cell centered
     MultiFab  eta_cc;
     MultiFab temp_cc;
@@ -286,10 +292,10 @@ void main_driver(const char* argv)
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
     sMflux.fillMStochastic();
     sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-    sMflux.writeMFs(mfluxdiv);
+    // sMflux.writeMFs(mfluxdiv);
 
-    Abort("Done with hack");
-    exit(0);
+    // Abort("Done with hack");
+    // exit(0);
 
     ///////////////////////////////////////////
 

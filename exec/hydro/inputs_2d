@@ -3,11 +3,12 @@
   ! Problem specification
   prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
-
+  prob_type = 3
+  
   ! number of cells in domain
   n_cells(1:2) = 128 128
   ! max number of cells in a box
-  max_grid_size(1:2) = 33 33
+  max_grid_size(1:2) = 32 32
 
   ! Time-step control
   fixed_dt = 0.8e-3
@@ -22,9 +23,15 @@
   ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
-  !visc_coef = 1.
-  visc_coef = 1e-3
+
+  ! visc_coef = 1.
+  ! visc_coef = 1e-3
+  visc_coef = 8.90e-3	! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+
   visc_type = 1
+
+  ! Stochastic parameters
+  k_B = 
 
   ! Boundary conditions
   ! ----------------------

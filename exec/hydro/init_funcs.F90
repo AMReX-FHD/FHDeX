@@ -2,6 +2,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
                     reallo, realhi) bind(C, name="init_vel")
 
   use amrex_fort_module, only : amrex_real
+  use common_namelist_module, only: prob_type
 
   implicit none
 
@@ -25,7 +26,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
   center = (realhi - reallo)/2d0
   L_hlf = (realhi(1) - reallo(1))/2d0
-  
+
   !! IC parameters
   pi = acos(-1.d0)
   ! k1 & k2 determine steepness of velocity profile:
@@ -33,16 +34,16 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   k2 = k1
   k1_inv = 1/k1
   k2_inv = 1/k2
-  
+
   ! Vortex:
   ! [r_a r_b] defines radial bounds of velocity bump:
   r_a = 0.35d0*L_hlf
   r_b = L_hlf - r_a
-  
+
   ! Stream:
   freq = 02.d0*pi/L_hlf
-  amp = 2.0d-3*L_hlf
-  ! amp = 1.0d-1*L_hlf
+  ! amp = 2.0d-3*L_hlf
+  amp = 2.0d-1*L_hlf
   width1 = L_hlf/2.0d0
 
   if (di .EQ. 0) then
@@ -58,18 +59,27 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               relpos = pos - center
               rad2 = DOT_PRODUCT(relpos,relpos)
               rad = SQRT(rad2)
-              
-              ! Vortex:
-              ! Multiply velocity magnitude by sin(theta)
-              ! vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-              !      *(relpos(2)/rad)
-              
-              ! Stream:
-              perturb = amp*sin(freq*relpos(1))
-              ! slope = amp*freq*cos(freq*relpos(1))
-              fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
-                          *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
-              vel(i,j,k) = fun_ptrb
+
+              SELECT CASE (prob_type)
+              CASE (1)
+                 !! Vortex:
+                 ! Multiply velocity magnitude by sin(theta)
+                 vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                      *(relpos(2)/rad)
+              CASE (2)
+                 !! KH, sine:
+                 perturb = amp*sin(freq*relpos(1))
+                 fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
+                      *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
+                 vel(i,j,k) = fun_ptrb
+              CASE (3)
+                 ! KH, smooth:
+                 fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0)))) &
+                      *(1d0+tanh(k2_inv*((width1/2.d0) - relpos(2))))
+                 vel(i,j,k) = fun_ptrb
+              CASE DEFAULT
+                 print*, "Error: Invalid prob_type"
+              END SELECT
 
            end do
         end do
@@ -89,18 +99,26 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               relpos = pos - center
               rad2 = DOT_PRODUCT(relpos,relpos)
               rad = SQRT(rad2)
-              
-              ! Vortex:
-              ! Multiply velocity magnitude by -cos(theta)
-              ! vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-              !      *(-relpos(1)/rad)
 
-              ! Stream:
-              perturb = amp*sin(freq*relpos(1))
-              slope = amp*freq*cos(freq*relpos(1))
-              fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
-                               *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
-              vel(i,j,k) = slope*fun_ptrb
+              SELECT CASE (prob_type)
+              CASE (1)
+                 !! Vortex:
+                 ! Multiply velocity magnitude by -cos(theta)
+                 vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                      *(-relpos(1)/rad)
+              CASE (2)
+                 !! KH, sine:
+                 perturb = amp*sin(freq*relpos(1))
+                 slope = amp*freq*cos(freq*relpos(1))
+                 fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
+                      *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
+                 vel(i,j,k) = slope*fun_ptrb
+              CASE (3)
+                 !! KH, smooth:
+                 vel(i,j,k) = 0.d0
+              CASE DEFAULT
+                 print*, "Error: Invalid prob_type"
+              END SELECT
                                  
            end do
         end do
@@ -121,7 +139,16 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               rad2 = DOT_PRODUCT(relpos,relpos)
               rad = SQRT(rad2)
 
-              vel(i,j,k) = 0d0
+              SELECT CASE (prob_type)
+              CASE (1)
+                 vel(i,j,k) = 0d0
+              CASE (2)
+                 vel(i,j,k) = 0d0
+              CASE (3)
+                 vel(i,j,k) = 0d0
+              CASE DEFAULT
+                 print*, "Error: Invalid prob_type"
+              END SELECT
 
            end do
         end do

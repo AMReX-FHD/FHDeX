@@ -20,14 +20,14 @@ class StochMFlux {
   
   Geometry geom;
 
-  // Vectors containing mflux's at each stage
+  // Vectors containing mflux Gaussian white noise field at each stage:
   // mflux cell-centered
   Vector< MultiFab > mflux_cc;
   // mflux on nodes in 2d, on edges in 3d
   Vector<std::array< MultiFab, NUM_EDGE > >  mflux_ed;
 
   // Weighted mflux cell-centered & nodal ...
-  // also, multiplied by sqrt(eta*temperature)
+  // also, multiplied by variance*sqrt(eta*temperature):
   MultiFab mflux_cc_weighted;
   std::array< MultiFab, NUM_EDGE >  mflux_ed_weighted;
 
