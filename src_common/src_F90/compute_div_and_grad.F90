@@ -77,7 +77,7 @@ subroutine compute_div(lo, hi, phix, phixlo, phixhi, phiy, phiylo, phiyhi, phiz,
      do i = lo(1), hi(1)
         div(i,j,k) = (-phix(i,j,k) + phix(i+1,j,k))*dxInv + &
                      (-phiy(i,j,k) + phiy(i,j+1,k))*dyInv + &
-                     (-phiz(i,j,k) + phiy(i,j,k+1))*dzInv
+                     (-phiz(i,j,k) + phiz(i,j,k+1))*dzInv
      end do
      end do
      end do
@@ -88,7 +88,7 @@ subroutine compute_div(lo, hi, phix, phixlo, phixhi, phiy, phiylo, phiyhi, phiz,
      do i = lo(1), hi(1)
         div(i,j,k) = div(i,j,k) + (-phix(i,j,k) + phix(i+1,j,k))*dxInv + &
                                   (-phiy(i,j,k) + phiy(i,j+1,k))*dyInv + &
-                                  (-phiz(i,j,k) + phiy(i,j,k+1))*dzInv
+                                  (-phiz(i,j,k) + phiz(i,j,k+1))*dzInv
      end do
      end do
      end do
@@ -180,7 +180,7 @@ subroutine compute_grad(lo, hi, gphix, gphixlo, gphixhi, gphiy, gphiylo, gphiyhi
   do k = lo(3), hi(3)+1
   do j = lo(2), hi(2)
   do i = lo(1), hi(1)
-     gphiy(i,j,k) = (phi(i,j,k) - phi(i,j,k-1))*dzInv
+     gphiz(i,j,k) = (phi(i,j,k) - phi(i,j,k-1))*dzInv
   end do
   end do
   end do
