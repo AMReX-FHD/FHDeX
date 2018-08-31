@@ -2,11 +2,11 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
-DIM       = 2
+DIM       = 3
 DSMC      = TRUE
 
 USE_PARTICLES = TRUE
@@ -59,5 +59,11 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
+
+include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
+VPATH_LOCATIONS		+= $(AMREX_HOME)/Src/Extern/SWFFT
+
+LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules

@@ -5,6 +5,7 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 #include "StochMFlux.H"
+#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -291,20 +292,16 @@ void main_driver(const char* argv)
     // Declare object of StochMFlux class 
     // StochMFlux sMflux (ba,dmap,geom);
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
-    
+
+    ///////////////////////////////////////////
+
+    /////////////// Test/Hack /////////////////////////
     // sMflux.fillMStochastic();
     // sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
     // sMflux.writeMFs(mfluxdiv);
 
     // Abort("Done with hack");
     // exit(0);
-
-    ///////////////////////////////////////////
-
-    /////////////// Test/Hack /////////////////////////
-
-//     Abort("Done with hack");
-//     exit(0);
     //////////////////////////////////////////////////
 
     // tracer
@@ -358,6 +355,15 @@ void main_driver(const char* argv)
     AMREX_D_TERM(uMom[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  uMom[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  uMom[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    ///////////////////////////////////////////
+    // structure factor:
+    ///////////////////////////////////////////
+
+    StructFact structFact(ba,dmap);
+    structFact.FortStructure(umac,geom);
+
+    ///////////////////////////////////////////
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;

@@ -52,6 +52,9 @@ public:
 
 };
 
+////////////////////////////////////////////////
+
+///*
 StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in, 
 		       int n_rngs_in) {
   n_rngs = n_rngs_in;
@@ -271,5 +274,7 @@ void StochMFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
     VisMF::Write(mfluxdiv[d],plotfilename);
   }
 } 
+//*/
 
 #endif
+

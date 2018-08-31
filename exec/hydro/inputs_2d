@@ -3,21 +3,24 @@
   ! Problem specification
   prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
-  cell_depth = 1.0e-6
+  !cell_depth = 1.0e-7
+  cell_depth = 0.015625
+  
   prob_type = 3
   
   ! number of cells in domain
-  n_cells(1:2) = 128 128
+  n_cells(1:2) = 64 64
   ! max number of cells in a box
-  max_grid_size(1:2) = 33 33
+  max_grid_size(1:2) = 32 32
 
   ! Time-step control
   !fixed_dt = 0.8e-3
-  fixed_dt = 3e-3
+  !fixed_dt = 3e-3
+  fixed_dt = 1e-4
 
   ! Controls for number of steps between actions
-  max_step = 640
-  plot_int = 1
+  max_step = 1000
+  plot_int = 10
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -26,12 +29,12 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
 
-  ! visc_coef = 1.
-  ! visc_coef = 1e-3
-  visc_coef = 1e-4
-  ! visc_coef = 8.90e-3		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  !visc_coef = 1.
+  !visc_coef = 1e-3
+  !visc_coef = 1e-4
+  visc_coef = 1e-2		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
 
-  visc_type = 1
+  visc_type = 2
 
   ! Stochastic parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]

@@ -75,9 +75,10 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
                  vel(i,j,k) = fun_ptrb
               CASE (3)
                  ! KH, smooth:
-                 fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0)))) &
-                      *(1d0+tanh(k2_inv*((width1/2.d0) - relpos(2))))
-                 vel(i,j,k) = fun_ptrb
+                 ! fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0)))) &
+                 !      *(1d0+tanh(k2_inv*((width1/2.d0) - relpos(2))))
+                 ! vel(i,j,k) = fun_ptrb
+                 vel(i,j,k) = 0.d0
               CASE DEFAULT
                  print*, "Error: Invalid prob_type"
               END SELECT
