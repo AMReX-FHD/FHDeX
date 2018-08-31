@@ -6,17 +6,17 @@ unset ALL_PROXY
 rm -r plt* stag*
 
 ## Select grids
-Nsteps=("005" "010" "020")
-Spacedim=("064" "128" "256")
-Maxgrid=("032" "064" "128")
-Dt=("8e-3" "4e-3" "2e-3")
-dim="2"
-
 # Nsteps=("005" "010" "020")
-# Spacedim=("032" "064" "128")
+# Spacedim=("064" "128" "256")
 # Maxgrid=("032" "064" "128")
 # Dt=("8e-3" "4e-3" "2e-3")
-# dim="3"
+# dim="2"
+
+Nsteps=("005" "010" "020")
+Spacedim=("032" "064" "128")
+Maxgrid=("032" "064" "128")
+Dt=("8e-3" "4e-3" "2e-3")
+dim="3"
 
 make -j4 DIM=$dim
 
@@ -25,16 +25,16 @@ Visc=("1" "2" "-1" "-2")
 
 input_file="inputs_${dim}d"
 
-for visc_ind in 0 1 2 3
+for visc_ind in 0
 do
 
     visctype=${Visctype[$visc_ind]}
 
     ## Make directories if not already existing
-    mkdir "Data_Convergence_Trapezoidal"
-    mkdir "Data_Convergence_Trapezoidal/Data_visc_${visctype}"
-    mkdir "Data_Convergence_Trapezoidal/Data_visc_${visctype}/${dim}D"
-    dir_top="Data_Convergence_Trapezoidal/Data_visc_${visctype}/${dim}D"
+    mkdir "Data_Convergence_CR"
+    mkdir "Data_Convergence_CR/Data_visc_${visctype}"
+    mkdir "Data_Convergence_CR/Data_visc_${visctype}/${dim}D"
+    dir_top="Data_Convergence_CR/Data_visc_${visctype}/${dim}D"
 
     sed -i "s/visc_type = .*/visc_type = ${Visc[$visc_ind]}/" ./$input_file
 
@@ -47,13 +47,13 @@ do
         sed -i "s/plot_int = .*/plot_int = ${Nsteps[$grid]}/" ./$input_file
 	# sed -i "s/plot_int = .*/plot_int = 1/" ./$input_file
 
-	## FIXME: need if statement for higher dimensions
+	## FIXME: need if statement for different dimensions
 	###########################################################################
-        sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
-        sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
+        # sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
+        # sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
 
-        # sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
-        # sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
+        sed -i "s/n_cells(1:${dim}) = .*/n_cells(1:${dim}) = ${Spacedim[$grid]} ${Spacedim[$grid]} ${Spacedim[$grid]}/" ./$input_file
+        sed -i "s/max_grid_size(1:${dim}) = .*/max_grid_size(1:${dim}) = ${Maxgrid[$grid]} ${Maxgrid[$grid]} ${Maxgrid[$grid]}/" ./$input_file
 	###########################################################################
 	
     	folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"

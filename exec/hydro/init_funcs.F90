@@ -58,7 +58,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
               pos = reallo + itVec
               relpos = pos - center
-              rad2 = DOT_PRODUCT(relpos,relpos)
+              rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
               rad = SQRT(rad2)
 
               SELECT CASE (prob_type)
@@ -99,7 +99,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
               pos = reallo + itVec
               relpos = pos - center
-              rad2 = DOT_PRODUCT(relpos,relpos)
+              rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
               rad = SQRT(rad2)
 
               SELECT CASE (prob_type)
@@ -138,7 +138,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
               pos = reallo + itVec
               relpos = pos - center
-              rad2 = DOT_PRODUCT(relpos,relpos)
+              rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
               rad = SQRT(rad2)
 
               SELECT CASE (prob_type)
