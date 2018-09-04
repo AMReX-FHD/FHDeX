@@ -6,6 +6,9 @@
   !cell_depth = 1.0e-7
   cell_depth = 0.015625
   
+  ! if prob_type = 1, vortex
+  ! if prob_type = 2, KH - sine
+  ! if prob_type = 3, KH - smooth
   prob_type = 3
   
   ! number of cells in domain

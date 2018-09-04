@@ -361,7 +361,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFact(ba,dmap);
-    structFact.FortStructure(umac,geom);
+    amrex::Vector< MultiFab > struct_out;
 
     ///////////////////////////////////////////
 
@@ -413,27 +413,34 @@ void main_driver(const char* argv)
 
 	// Fill stochastic terms
 	sMflux.fillMStochastic();
+	
+	//////////////////////////
+	// Advance tracer
+	//////////////////////////
 
     	// Compute tracer:
-    	if (step != 1) {
-    	  tracer.FillBoundary(geom.periodicity());
-    	  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0);
-    	  advFluxdivS.mult(dt, 1);
+	tracer.FillBoundary(geom.periodicity());
+	MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0);
+	advFluxdivS.mult(dt, 1);
 
-    	  // compute predictor
-    	  MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
-    	  MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
-    	  tracerPred.FillBoundary(geom.periodicity());
-    	  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0);
-    	  advFluxdivS.mult(dt, 1);
+	// compute predictor
+	MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
+	MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
+	tracerPred.FillBoundary(geom.periodicity());
+	MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0);
+	advFluxdivS.mult(dt, 1);
 
-    	  // advance in time
-    	  MultiFab::Add(tracer, tracerPred, 0, 0, 1, 0);
-    	  MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
-    	  tracer.mult(0.5, 1);
+	// advance in time
+	MultiFab::Add(tracer, tracerPred, 0, 0, 1, 0);
+	MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
+	tracer.mult(0.5, 1);
 
-    	  // amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
-    	}
+	// amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
+	//////////////////////////
+
+	//////////////////////////////////////////////////
+	// ADVANCE
+	//////////////////////////////////////////////////
 
     	// PREDICTOR STEP (heun's method: part 1)
     	// compute advective term
@@ -558,6 +565,13 @@ void main_driver(const char* argv)
         AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
                      MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+	//////////////////////////////////////////////////
+	
+	///////////////////////////////////////////
+	// Update structure factor
+	///////////////////////////////////////////
+	structFact.FortStructure(umac,geom);
+	///////////////////////////////////////////
 
         amrex::Print() << "Advanced step " << step << "\n";
 
@@ -568,6 +582,10 @@ void main_driver(const char* argv)
     	  WritePlotFile(step,time,geom,umac,tracer,pres);
         }
     }
+    
+    ///////////////////////////////////////////
+
+    structFact.StructOut(struct_out);
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors

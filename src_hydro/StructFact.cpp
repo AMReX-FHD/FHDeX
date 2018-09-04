@@ -1,6 +1,7 @@
 
-#include "common_functions.H"
+// #include <string>
 
+#include "common_functions.H"
 #include "StructFact.H"
 
 StructFact::StructFact(BoxArray ba_in, DistributionMapping dmap_in) {
@@ -19,10 +20,6 @@ StructFact::StructFact(BoxArray ba_in, DistributionMapping dmap_in) {
     umac_dft_real[d].define(ba_in, dmap_in, 1, 0);
     umac_dft_imag[d].define(ba_in, dmap_in, 1, 0);
   }
-  for (int d=0; d<COV_NVAR; d++) {
-    struct_umac[d].define(ba_in, dmap_in, 1, 0);
-    struct_umac[d].setVal(0.0);
-  }
 
   for (int d=0; d<COV_NVAR; d++) {
     cov_real[d].define(ba_in, dmap_in, 1, 0);
@@ -31,6 +28,10 @@ StructFact::StructFact(BoxArray ba_in, DistributionMapping dmap_in) {
     cov_imag[d].setVal(0.0);
   }
 
+  for (int d=0; d<COV_NVAR; d++) {
+    struct_umac[d].define(ba_in, dmap_in, 1, 0);
+    struct_umac[d].setVal(0.0);
+  }
 }
 
 void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& umac, Geometry geom) {
@@ -71,25 +72,72 @@ void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& uma
       cov_imag_temp.mult(-1.0,0);
       MultiFab::AddProduct(cov_imag_temp,umac_dft_imag[i],0,umac_dft_real[j],0,0,1,0);
       
-      MultiFab::Add(cov_real[index],cov_real[index],0,0,1,0);
-      MultiFab::Add(cov_imag[index],cov_imag[index],0,0,1,0);
+      MultiFab::Add(cov_real[index],cov_real_temp,0,0,1,0);
+      MultiFab::Add(cov_imag[index],cov_imag_temp,0,0,1,0);
       
-      // MultiFab::AddProduct(struct_umac[d],cov_real[d],0,cov_real[d],0,0,1,0);
-      // MultiFab::AddProduct(struct_umac[d],cov_imag[d],0,cov_imag[d],0,0,1,0);
       index++;
     }
   }
 
   bool write_data = false;
-  if (write_data) {
-    // VisMF::Write(rhs,"RHS");
+  index = 0;
+  std::string plotname = "a_COV"; 
+  std::string plotname_temp;
+  for (int j=0; j<AMREX_SPACEDIM; j++) {
+    for (int i=j; i<AMREX_SPACEDIM; i++) {
+      if (write_data) {
+	plotname_temp = plotname;
+	plotname_temp += '_';
+	plotname_temp += '0' + i;
+	plotname_temp += '0' + j;
+	VisMF::Write(cov_real[index],plotname_temp);
+      }
+      index++;
+    }
   }
 
-  // if (verbose) {
-  //   // amrex::Print() << "norm is " << diff.norm0() << "\n";
-  //   // amrex::Print() << "Time spent in solve: " << total_time << std::endl;    
-  // }
+  nsamples++;
+}
 
+void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
+  
+  struct_out.resize(COV_NVAR);
+  for (int d=0; d<COV_NVAR; d++) {
+    struct_out[d].define(struct_umac[0].boxArray(), struct_umac[0].DistributionMap(), 1, 0);
+    struct_out[d].setVal(0.0);
+  }
+
+  Real nsamples_inv = 1.0/(double)nsamples;
+
+  for(int d=0; d<COV_NVAR; d++) {
+    MultiFab::AddProduct(struct_umac[d],cov_real[d],0,cov_real[d],0,0,1,0);
+    MultiFab::AddProduct(struct_umac[d],cov_imag[d],0,cov_imag[d],0,0,1,0);
+
+    //Note: if correlation, take sqrt of covariances here
+
+    struct_umac[d].mult(nsamples_inv,0);
+    
+    MultiFab::Copy(struct_out[d],struct_umac[d],0,0,1,0);
+  }
+
+  Print() << "number of samples = " << nsamples << std::endl;
+
+  bool write_data = true;
+  int index = 0;
+  std::string plotname = "a_STRUCT";
+  std::string plotname_temp;
+  if (write_data) {
+    for (int j=0; j<AMREX_SPACEDIM; j++) {
+      for (int i=j; i<AMREX_SPACEDIM; i++) {
+	plotname_temp = plotname;
+	plotname_temp += '_';
+	plotname_temp += '0' + i;
+	plotname_temp += '0' + j;
+	VisMF::Write(struct_out[index],plotname_temp);
+	index++;
+      }
+    }
+  }
 }
 
 void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_cc, Geometry geom) {
@@ -100,10 +148,6 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
 
   if (umac_dft_real[0].nGrow() != 0 || umac_dft_real[0].nGrow() != 0) 
     amrex::Error("Current implementation requires that both umac_cc[0] and umac_dft_real[0] have no ghost cells");
-
-  // Define pi and (two pi) here
-  // Real  pi = 4 * std::atan(1.0);
-  // Real tpi = 2 * pi;
 
   // We assume that all grids have the same size hence 
   // we have the same nx,ny,nz on all ranks
@@ -168,7 +212,7 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
   hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
   hacc::Dfft dfft(d);
 
-  for (int dim=0; dim<AMREX_SPACEDIM; dim++) { 
+  for (int dim=0; dim<AMREX_SPACEDIM; dim++) {
     for (MFIter mfi(umac_cc[0],false); mfi.isValid(); ++mfi)
       {
 	int gid = mfi.index();
@@ -193,9 +237,8 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
 	  for(size_t j=0; j<(size_t)ny; j++) {
 	    for(size_t i=0; i<(size_t)nx; i++) {
 
-	      complex_t temp(umac_cc[0][mfi].dataPtr()[local_indx],0.);
+	      complex_t temp(umac_cc[dim][mfi].dataPtr()[local_indx],0.);
 	      a[local_indx] = temp;
-	      // Print() << temp << "\n";
 	      local_indx++;
 
 	    }
@@ -224,5 +267,17 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
 	  }
 	}
       }
+  }
+
+  bool write_data = false;
+  std::string plotname = "a_DFT"; 
+  std::string plotname_temp;
+  for (int i=0; i<AMREX_SPACEDIM; i++) {
+    if (write_data) {
+      plotname_temp = plotname;
+      plotname_temp += '_';
+      plotname_temp += '0' + i;
+      VisMF::Write(umac_dft_real[i],plotname_temp);
+    }
   }
 }

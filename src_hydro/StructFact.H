@@ -28,6 +28,9 @@ class StructFact {
 #elif (AMREX_SPACEDIM == 3)
   const int COV_NVAR = 6;
 #endif
+  
+  // Total number of states to average over, updated by FortStructure()
+  int nsamples = 0;
 
   // Vectors containing DFT of velocity field components
   amrex::Vector< MultiFab > umac_dft_real;
@@ -43,8 +46,9 @@ class StructFact {
 public:
 
   StructFact(BoxArray,DistributionMapping);
-  void FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& umac, Geometry);
-  void ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_cc, Geometry);
+  void FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >&, Geometry);
+  void StructOut(amrex::Vector< MultiFab >&);
+  void ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >&, Geometry);
 
 };
 
