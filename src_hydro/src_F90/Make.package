@@ -1,3 +1,4 @@
 F90EXE_sources += mk_advective_m_fluxdiv.F90
 F90EXE_sources += mk_advective_s_fluxdiv.F90
 F90EXE_sources += stoch_m_force.F90
+F90EXE_sources += fft_shift.F90

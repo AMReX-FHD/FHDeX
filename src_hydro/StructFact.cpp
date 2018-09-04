@@ -1,7 +1,6 @@
 
-// #include <string>
-
 #include "common_functions.H"
+#include "hydro_functions_F.H"
 #include "StructFact.H"
 
 StructFact::StructFact(BoxArray ba_in, DistributionMapping dmap_in) {
@@ -39,6 +38,11 @@ void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& uma
   const BoxArray& ba = umac_dft_real[0].boxArray();
   // const BoxArray& ba = amrex::enclosedCells(ba_nodal);
   const DistributionMapping& dm = umac[0].DistributionMap();
+
+  if (ba.size() != 1) {
+    Abort("Only adapted for single grid");
+    exit(0);
+  }
   
   std::array< MultiFab, AMREX_SPACEDIM > umac_cc;
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -54,9 +58,7 @@ void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& uma
     AverageFaceToCC(umac[d], 0, umac_cc[d], 0, 1);
   }
 
-  Real start_time = amrex::second();
   ComputeFFT(umac_cc, geom);
-  Real total_time = amrex::second() - start_time;
   
   // Note: Covariances are contained in this vector, as opposed to correlations, which are normalized
   int index = 0;
@@ -120,7 +122,18 @@ void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
     MultiFab::Copy(struct_out[d],struct_umac[d],0,0,1,0);
   }
 
-  Print() << "number of samples = " << nsamples << std::endl;
+  // Print() << "number of samples = " << nsamples << std::endl;
+  
+  // Shift DFT by N/2+1 (pi)
+  for(int d=0; d<COV_NVAR; d++) {
+    for (MFIter mfi(struct_out[0]); mfi.isValid(); ++mfi) {
+      // Note: Make sure that multifab is cell-centered
+      const Box& validBox = mfi.validbox();
+
+      fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+		BL_TO_FORTRAN_ANYD(struct_out[d][mfi]));
+    }
+  }
 
   bool write_data = true;
   int index = 0;
@@ -144,7 +157,6 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
   
   const BoxArray& ba = umac_dft_real[0].boxArray();
   // amrex::Print() << "BA " << ba << std::endl;
-  const DistributionMapping& dm = umac_dft_real[0].DistributionMap();
 
   if (umac_dft_real[0].nGrow() != 0 || umac_dft_real[0].nGrow() != 0) 
     amrex::Error("Current implementation requires that both umac_cc[0] and umac_dft_real[0] have no ghost cells");
@@ -204,20 +216,22 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
   Real h = geom.CellSize(0);
   Real hsq = h*h;
 
-  Real start_time = amrex::second();
-
   // Assume for now that nx = ny = nz
+#if (AMREX_SPACEDIM == 2)
+  int Ndims[3] = { nbz, nby};
+  int     n[3] = {domain.length(2), domain.length(1)};
+#elif (AMREX_SPACEDIM == 3)
   int Ndims[3] = { nbz, nby, nbx };
   int     n[3] = {domain.length(2), domain.length(1), domain.length(0)};
+#endif
   hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
   hacc::Dfft dfft(d);
 
   for (int dim=0; dim<AMREX_SPACEDIM; dim++) {
     for (MFIter mfi(umac_cc[0],false); mfi.isValid(); ++mfi)
       {
-	int gid = mfi.index();
-
-	size_t local_size  = dfft.local_size();
+	// int gid = mfi.index();
+	// size_t local_size  = dfft.local_size();
    
 	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
 	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;

@@ -104,7 +104,11 @@ extern "C"
 
 ///////////////////////////
 
+///////////////////////////
+// in fft_shift.F90
 
+  void fft_shift(const int* lo, const int* hi,
+		 const amrex_real* dft, const int* dftlo, const int* dfthi);
 
 #ifdef __cplusplus
 }
