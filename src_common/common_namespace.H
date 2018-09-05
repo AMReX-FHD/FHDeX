@@ -111,7 +111,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> wallspeed_lo;
     extern amrex::Vector<amrex::Real> wallspeed_hi;
 
-    // Hydrogrid analysis (not available yet)
+    // structure factor analysis
     extern int                        struct_fact_int;
     extern int                        n_steps_skip;
 /*
