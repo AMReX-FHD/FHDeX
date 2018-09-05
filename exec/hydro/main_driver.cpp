@@ -322,7 +322,7 @@ void main_driver(const char* argv)
     AMREX_D_TERM(gmres_rhs_u[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  gmres_rhs_u[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  gmres_rhs_u[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    
+
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
@@ -585,7 +585,8 @@ void main_driver(const char* argv)
     
     ///////////////////////////////////////////
 
-    structFact.StructOut(struct_out);
+    // structFact.StructOut(struct_out);
+    // structFact.WritePlotFile(step,time,geom);
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors

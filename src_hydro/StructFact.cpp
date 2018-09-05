@@ -3,6 +3,8 @@
 #include "hydro_functions_F.H"
 #include "StructFact.H"
 
+#include "AMReX_PlotFileUtil.H"
+
 StructFact::StructFact(BoxArray ba_in, DistributionMapping dmap_in) {
 
   // static_assert(AMREX_SPACEDIM == 3, "3D only");
@@ -82,23 +84,77 @@ void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& uma
   }
 
   bool write_data = false;
-  index = 0;
-  std::string plotname = "a_COV"; 
-  std::string plotname_temp;
-  for (int j=0; j<AMREX_SPACEDIM; j++) {
-    for (int i=j; i<AMREX_SPACEDIM; i++) {
-      if (write_data) {
-	plotname_temp = plotname;
-	plotname_temp += '_';
-	plotname_temp += '0' + i;
-	plotname_temp += '0' + j;
-	VisMF::Write(cov_real[index],plotname_temp);
+  if (write_data) {
+    index = 0;
+    std::string plotname = "a_COV"; 
+    std::string x;
+    for (int j=0; j<AMREX_SPACEDIM; j++) {
+      for (int i=j; i<AMREX_SPACEDIM; i++) {
+	x = plotname;
+	x += '_';
+	x += '0' + i;
+	x += '0' + j;
+	VisMF::Write(cov_real[index],x);
+	index++;
       }
-      index++;
     }
   }
 
   nsamples++;
+}
+
+void StructFact::WritePlotFile(const int step, const amrex::Real time, const amrex::Geometry geom) {
+  
+  amrex::Vector< MultiFab > struct_temp;
+  struct_temp.resize(COV_NVAR);
+  for (int d=0; d<COV_NVAR; d++) {
+    struct_temp[d].define(struct_umac[0].boxArray(), struct_umac[0].DistributionMap(), 1, 0);
+    struct_temp[d].setVal(0.0);
+  }
+
+  StructFinalize();
+  for(int d=0; d<COV_NVAR; d++) {   
+    MultiFab::Copy(struct_temp[d],struct_umac[d],0,0,1,0);
+  }
+
+  // Print() << "number of samples = " << nsamples << std::endl;
+
+  ShiftFFT(struct_temp);
+
+
+  // Write out structure factor to plot file
+  const std::string plotfilename = "plt_structure_factor";
+  // const std::string plotfilename = Concatenate("plt_structure_factor",step,7);
+  int nPlot = COV_NVAR;
+  MultiFab plotfile(struct_umac[0].boxArray(), struct_umac[0].DistributionMap(), nPlot, 0);
+  Vector<std::string> varNames(nPlot);
+
+  // keep a counter for plotfile variables
+  int cnt = 0;
+
+  std::string plotname = "structFact";
+  std::string x;
+  for (int j=0; j<AMREX_SPACEDIM; j++) {
+    for (int i=j; i<AMREX_SPACEDIM; i++) {
+      x = plotname;
+      x += '_';
+      x += (120+i);
+      x += (120+j);
+      varNames[cnt++] = x;
+    }
+  }
+
+  // reset plotfile variable counter
+  cnt = 0;
+
+  // copy structure factor into plotfile
+  for (int d=0; d<COV_NVAR; ++d) {
+    MultiFab::Copy(plotfile, struct_temp[cnt], 0, cnt, 1, 0);
+    cnt++;
+  }
+
+  // write a plotfile
+  // WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 }
 
 void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
@@ -109,6 +165,15 @@ void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
     struct_out[d].setVal(0.0);
   }
 
+  StructFinalize();
+  for(int d=0; d<COV_NVAR; d++) {   
+    MultiFab::Copy(struct_out[d],struct_umac[d],0,0,1,0);
+  }
+
+  ShiftFFT(struct_out);
+}
+
+void StructFact::StructFinalize() {
   Real nsamples_inv = 1.0/(double)nsamples;
 
   for(int d=0; d<COV_NVAR; d++) {
@@ -118,43 +183,11 @@ void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
     //Note: if correlation, take sqrt of covariances here
 
     struct_umac[d].mult(nsamples_inv,0);
-    
-    MultiFab::Copy(struct_out[d],struct_umac[d],0,0,1,0);
-  }
-
-  // Print() << "number of samples = " << nsamples << std::endl;
-  
-  // Shift DFT by N/2+1 (pi)
-  for(int d=0; d<COV_NVAR; d++) {
-    for (MFIter mfi(struct_out[0]); mfi.isValid(); ++mfi) {
-      // Note: Make sure that multifab is cell-centered
-      const Box& validBox = mfi.validbox();
-
-      fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		BL_TO_FORTRAN_ANYD(struct_out[d][mfi]));
-    }
-  }
-
-  bool write_data = true;
-  int index = 0;
-  std::string plotname = "a_STRUCT";
-  std::string plotname_temp;
-  if (write_data) {
-    for (int j=0; j<AMREX_SPACEDIM; j++) {
-      for (int i=j; i<AMREX_SPACEDIM; i++) {
-	plotname_temp = plotname;
-	plotname_temp += '_';
-	plotname_temp += '0' + i;
-	plotname_temp += '0' + j;
-	VisMF::Write(struct_out[index],plotname_temp);
-	index++;
-      }
-    }
   }
 }
 
 void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_cc, Geometry geom) {
-  
+
   const BoxArray& ba = umac_dft_real[0].boxArray();
   // amrex::Print() << "BA " << ba << std::endl;
 
@@ -284,14 +317,27 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
   }
 
   bool write_data = false;
-  std::string plotname = "a_DFT"; 
-  std::string plotname_temp;
-  for (int i=0; i<AMREX_SPACEDIM; i++) {
-    if (write_data) {
-      plotname_temp = plotname;
-      plotname_temp += '_';
-      plotname_temp += '0' + i;
-      VisMF::Write(umac_dft_real[i],plotname_temp);
+  if (write_data) {
+    std::string plotname = "a_DFT"; 
+    std::string x;
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+      x = plotname;
+      x += '_';
+      x += '0' + i;
+      VisMF::Write(umac_dft_real[i],x);
+    }
+  }
+}
+
+void StructFact::ShiftFFT(amrex::Vector< MultiFab >& struct_out) {
+  // NOT PARALLELIZED
+  // Shift DFT by N/2+1 (pi)
+  for(int d=0; d<COV_NVAR; d++) {
+    for (MFIter mfi(struct_out[0]); mfi.isValid(); ++mfi) {
+      // Note: Make sure that multifab is cell-centered
+      const Box& validBox = mfi.validbox();
+      fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+  		BL_TO_FORTRAN_ANYD(struct_out[d][mfi]));
     }
   }
 }
