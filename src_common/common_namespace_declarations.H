@@ -54,6 +54,8 @@ amrex::Vector<int>         common::bc_lo;
 amrex::Vector<int>         common::bc_hi;
 amrex::Vector<amrex::Real> common::wallspeed_lo;
 amrex::Vector<amrex::Real> common::wallspeed_hi;
+int                        common::struct_fact_int;
+int                        common::n_steps_skip;
 int                        common::histogram_unit;
 amrex::Vector<amrex::Real> common::density_weights;
 amrex::Vector<int>         common::shift_cc_to_boundary;

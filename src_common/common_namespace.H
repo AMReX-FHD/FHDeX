@@ -112,13 +112,13 @@ namespace common {
     extern amrex::Vector<amrex::Real> wallspeed_hi;
 
     // Hydrogrid analysis (not available yet)
+    extern int                        struct_fact_int;
+    extern int                        n_steps_skip;
 /*
-  extern int                        hydro_grid_int;
   extern int                        project_dir;
   extern amrex::Vector<int>         max_grid_projection;
   extern int                        stats_int;
   extern int                        n_steps_save_stats;
-  extern int                        n_steps_skip;
   extern bool                       analyze_conserved;
   extern bool                       center_snapshots;
 */

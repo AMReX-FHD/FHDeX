@@ -49,7 +49,8 @@ void InitializeCommonNamespace() {
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
                                 &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(),
-                                wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(), 
+                                wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
+                                &struct_fact_int, &n_steps_skip,
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr());
 

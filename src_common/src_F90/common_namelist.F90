@@ -56,6 +56,8 @@ module common_namelist_module
   integer,            save :: bc_hi(AMREX_SPACEDIM)
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+  integer,            save :: struct_fact_int
+  integer,            save :: n_steps_skip
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
@@ -160,6 +162,10 @@ module common_namelist_module
   namelist /common/ wallspeed_lo
   namelist /common/ wallspeed_hi
 
+  ! structure factor analysis
+  namelist /common/ struct_fact_int
+  namelist /common/ n_steps_skip
+  
   ! These are mostly used for reaction-diffusion: 
   namelist /common/ histogram_unit
   namelist /common/ density_weights
@@ -222,6 +228,8 @@ contains
     bc_hi(:) = 0
     wallspeed_lo(:,:) = 0
     wallspeed_hi(:,:) = 0
+    struct_fact_int = 0
+    n_steps_skip = 0
     histogram_unit = 0
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
