@@ -36,6 +36,9 @@
   ! k_B = 0.0
   ! k_B = 1e-10
 
+  struct_fact_int = 1
+  n_steps_skip = 0
+
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:

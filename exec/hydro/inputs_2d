@@ -42,6 +42,9 @@
   ! Stochastic parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
 
+  struct_fact_int = 1
+  n_steps_skip = 0
+
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:

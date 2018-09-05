@@ -121,10 +121,8 @@ void StructFact::WritePlotFile(const int step, const amrex::Real time, const amr
 
   ShiftFFT(struct_temp);
 
-
   // Write out structure factor to plot file
   const std::string plotfilename = "plt_structure_factor";
-  // const std::string plotfilename = Concatenate("plt_structure_factor",step,7);
   int nPlot = COV_NVAR;
   MultiFab plotfile(struct_umac[0].boxArray(), struct_umac[0].DistributionMap(), nPlot, 0);
   Vector<std::string> varNames(nPlot);
@@ -138,8 +136,8 @@ void StructFact::WritePlotFile(const int step, const amrex::Real time, const amr
     for (int i=j; i<AMREX_SPACEDIM; i++) {
       x = plotname;
       x += '_';
-      x += (120+i);
       x += (120+j);
+      x += (120+i);
       varNames[cnt++] = x;
     }
   }
@@ -154,7 +152,7 @@ void StructFact::WritePlotFile(const int step, const amrex::Real time, const amr
   }
 
   // write a plotfile
-  // WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
+  WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 }
 
 void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {

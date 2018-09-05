@@ -263,6 +263,7 @@ contains
                                          initial_variance_mom_in, initial_variance_mass_in, &
                                          bc_lo_in, bc_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
+                                         struct_fact_int_in, n_steps_skip_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in) &
                                          bind(C, name="initialize_common_namespace")
@@ -317,6 +318,8 @@ contains
     integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+    integer,                intent(inout) :: struct_fact_int_in
+    integer,                intent(inout) :: n_steps_skip_in
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
@@ -369,6 +372,8 @@ contains
     bc_hi_in = bc_hi
     wallspeed_lo_in = wallspeed_lo
     wallspeed_hi_in = wallspeed_hi
+    struct_fact_int_in = struct_fact_int
+    n_steps_skip_in = n_steps_skip
     histogram_unit_in = histogram_unit
     density_weights_in = density_weights
     shift_cc_to_boundary_in = shift_cc_to_boundary

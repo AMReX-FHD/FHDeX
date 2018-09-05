@@ -361,7 +361,6 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     StructFact structFact(ba,dmap);
-    amrex::Vector< MultiFab > struct_out;
 
     ///////////////////////////////////////////
 
@@ -570,7 +569,10 @@ void main_driver(const char* argv)
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
-	structFact.FortStructure(umac,geom);
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+	  structFact.FortStructure(umac,geom);
+	  // Print() << "Executed FortStructure() at step = " << step << std::endl;
+        }
 	///////////////////////////////////////////
 
         amrex::Print() << "Advanced step " << step << "\n";
@@ -585,8 +587,9 @@ void main_driver(const char* argv)
     
     ///////////////////////////////////////////
 
+    structFact.WritePlotFile(step,time,geom);
+    // amrex::Vector< MultiFab > struct_out;
     // structFact.StructOut(struct_out);
-    // structFact.WritePlotFile(step,time,geom);
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
