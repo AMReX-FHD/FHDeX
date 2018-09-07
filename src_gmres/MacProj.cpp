@@ -19,6 +19,9 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
              const Geometry& geom,
              bool full_solve)
 {
+
+    BL_PROFILE_VAR("MacProj()",MacProj);
+
     int lev=0;
 
     BoxArray ba = phi.boxArray();

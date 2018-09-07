@@ -7,6 +7,9 @@
 
 StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in, 
 		       int n_rngs_in) {
+  
+  BL_PROFILE_VAR("StochMFlux::StochMFlux()",StochMFlux);
+
   n_rngs = n_rngs_in;
   geom = geom_in;
 
@@ -60,6 +63,9 @@ void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
 }
 
 void StochMFlux::fillMStochastic() {  
+
+  BL_PROFILE_VAR("StochMFlux::StochMFlux()",StochMFlux);
+
   for (int i=0; i<n_rngs; ++i){ 
     switch(stoch_stress_form) {
     case 0: // Non-symmetric
@@ -94,6 +100,7 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 				      const MultiFab& temp_cc, 
 				      const std::array< MultiFab, NUM_EDGE >& temp_ed,
 				      const amrex::Real& dt) { 
+  
   const Real* dx = geom.CellSize();
   
   Real dVol = dx[0]*dx[1];
@@ -157,6 +164,8 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
 			     const std::array< MultiFab, NUM_EDGE >& temp_ed, 
 			     const Vector< amrex::Real >& weights,
 			     const amrex::Real& dt) { 
+
+  BL_PROFILE_VAR("StochMFlux::stochMforce()",stochMforce);
 
   // Take linear combination of mflux multifabs at each stage
   StochMFlux::weightMflux(weights);

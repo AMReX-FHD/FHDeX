@@ -23,6 +23,9 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
            const Geometry& geom,
            Real& norm_pre_rhs)
 {
+
+    BL_PROFILE_VAR("GMRES()",GMRES);
+
     if (gmres_verbose >= 1) {
         Print() << "Begin call to GMRES" << std::endl;
     } 

@@ -17,6 +17,9 @@ void WritePlotFile(int step,
 		   const MultiFab& tracer,
 		   const MultiFab& pres)
 {
+    
+    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
+    
     const std::string plotfilename = Concatenate("plt",step,7);
 
     BoxArray ba = pres.boxArray();

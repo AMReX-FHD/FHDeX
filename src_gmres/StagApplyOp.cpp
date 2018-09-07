@@ -16,6 +16,9 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
                  const amrex::Real& theta_alpha,
                  const int& color)
 {
+
+    BL_PROFILE_VAR("StagApplyOp()",StagApplyOp);
+
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(betaCC); mfi.isValid(); ++mfi) {
 

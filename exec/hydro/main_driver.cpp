@@ -34,7 +34,7 @@ using namespace gmres;
 void main_driver(const char* argv)
 {
   
-    BL_PROFILE_VAR("hydro::main_driver()",main_driver);
+    BL_PROFILE_VAR("main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();

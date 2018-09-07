@@ -5,6 +5,8 @@
 void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geometry geom)
 {
 
+    BL_PROFILE_VAR("FindFaceCoords()",FindFaceCoords);   
+
     const RealBox& realDomain = geom.ProbDomain();
 
     const Real* dx = geom.CellSize();

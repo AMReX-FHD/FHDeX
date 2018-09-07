@@ -20,6 +20,9 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                  const Real& theta_alpha,
                  const Geometry& geom)
 {
+
+    BL_PROFILE_VAR("ApplyPrecon()",ApplyPrecon);
+
     BoxArray ba = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
 

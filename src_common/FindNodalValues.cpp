@@ -4,6 +4,9 @@
 
 void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& ccFab)
 {
+
+    BL_PROFILE_VAR("FindNodalValues()",FindNodalValues);
+
     const int* hiVectIn;
     const int* hiVectCC;
 

@@ -5,6 +5,9 @@ void AverageFaceToCC(const MultiFab& face, int face_comp,
                      MultiFab& cc, int cc_comp,
                      int ncomp) 
 {
+  
+    BL_PROFILE_VAR("AverageFaceToCC()",AverageFaceToCC);  
+
     int av_dim;  // along which dimension to do the average
 
     if (face.is_nodal(0)) {
@@ -35,6 +38,8 @@ void AverageCCToFace(const MultiFab& cc, int cc_comp,
                      int ncomp)
 {
 
+    BL_PROFILE_VAR("AverageCCToFace()",AverageCCToFace);  
+
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
 
@@ -57,6 +62,9 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
                      MultiFab& cc, int cc_comp,
                      int ncomp) 
 {
+
+    BL_PROFILE_VAR("ShiftFaceToCC()",ShiftFaceToCC);  
+
     int av_dim;  // along which dimension to do the shift
 
     if (face.is_nodal(0)) {

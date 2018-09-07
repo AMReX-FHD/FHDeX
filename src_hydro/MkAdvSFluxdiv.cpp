@@ -16,6 +16,8 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 		   const int& increment)
 {
 
+     BL_PROFILE_VAR("MkAdvSFluxdiv()",MkAdvSFluxdiv);
+
      std::array<MultiFab, AMREX_SPACEDIM> m_fc;
      DistributionMapping dmap = m.DistributionMap();
      AMREX_D_TERM(m_fc[0].define(convert(m.boxArray(),nodal_flag_x), dmap, 1, 1);,

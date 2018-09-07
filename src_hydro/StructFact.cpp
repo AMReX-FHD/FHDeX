@@ -6,6 +6,8 @@
 #include "AMReX_PlotFileUtil.H"
 
 StructFact::StructFact(BoxArray ba_in, DistributionMapping dmap_in) {
+  
+  BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
   // static_assert(AMREX_SPACEDIM == 3, "3D only");
 
@@ -36,6 +38,8 @@ StructFact::StructFact(BoxArray ba_in, DistributionMapping dmap_in) {
 }
 
 void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& umac, Geometry geom) {
+
+  BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
   const BoxArray& ba = umac_dft_real[0].boxArray();
   // const BoxArray& ba = amrex::enclosedCells(ba_nodal);
@@ -106,6 +110,8 @@ void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& uma
 void StructFact::WritePlotFile(const int step, const amrex::Real time, const amrex::Geometry geom,
 			       const amrex::Real scale) {
   
+  BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
+  
   amrex::Vector< MultiFab > struct_temp;
   struct_temp.resize(COV_NVAR);
   for (int d=0; d<COV_NVAR; d++) {
@@ -157,6 +163,8 @@ void StructFact::WritePlotFile(const int step, const amrex::Real time, const amr
 }
 
 void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out, const amrex::Real scale) {
+
+  BL_PROFILE_VAR("StructFact::StructOut()",StructOut);
   
   struct_out.resize(COV_NVAR);
   for (int d=0; d<COV_NVAR; d++) {
@@ -173,6 +181,7 @@ void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out, const amrex::R
 }
 
 void StructFact::StructFinalize(const amrex::Real scale) {
+
   Real nsamples_inv = 1.0/(double)nsamples;
 
   for(int d=0; d<COV_NVAR; d++) {
@@ -190,6 +199,8 @@ void StructFact::StructFinalize(const amrex::Real scale) {
 
 void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_cc, Geometry geom) {
 
+  BL_PROFILE_VAR("StructFact::ComputeFFT()",ComputeFFT);
+  
   const BoxArray& ba = umac_dft_real[0].boxArray();
   // amrex::Print() << "BA " << ba << std::endl;
 

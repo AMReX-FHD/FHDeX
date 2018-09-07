@@ -29,6 +29,9 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const Real& theta,
                   const Geometry& geom)
 {
+  
+    BL_PROFILE_VAR("StagMGSolver()",StagMGSolver);
+
     if (stag_mg_verbosity >= 1) {
         Print() << "Begin call to stag_mg_solver\n";
     }

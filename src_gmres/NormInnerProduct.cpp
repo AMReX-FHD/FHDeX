@@ -13,7 +13,9 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 	     const int& comp,
 	     amrex::Vector<amrex::Real>& sum,
 	     const bool& divide_by_ncells)
-{
+{ 
+  BL_PROFILE_VAR("SumStag()",SumStag);
+
   // Initialize to zero
   std::fill(sum.begin(), sum.end(), 0.);
 
@@ -49,6 +51,8 @@ void SumCC(const amrex::MultiFab& m1,
 	   amrex::Real& sum,
 	   const bool& divide_by_ncells)
 {
+  BL_PROFILE_VAR("SumCC()",SumCC);
+
   sum = 0.;
   sum = m1.MultiFab::sum(comp, false);
 
@@ -65,6 +69,8 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp2,
                    amrex::Vector<amrex::Real>& prod_val)
 {
+  BL_PROFILE_VAR("StagInnerProd()",StagInnerProd);
+
   std::array<MultiFab, AMREX_SPACEDIM> prod_temp;
 
   DistributionMapping dmap = m1[0].DistributionMap();
@@ -84,6 +90,9 @@ void CCInnerProd(const amrex::MultiFab& m1,
 		 const int& comp2,
 		 amrex::Real& prod_val)
 {
+  
+  BL_PROFILE_VAR("CCInnerProd()",CCInnerProd);
+
   amrex::MultiFab prod_temp;
   prod_temp.define(m1.boxArray(), m1.DistributionMap(), 1, 0);
 
@@ -98,6 +107,9 @@ void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
 		Real& norm_l2)
 {
+
+    BL_PROFILE_VAR("StagL2Norm()",StagL2Norm);
+
     Vector<Real> inner_prod(AMREX_SPACEDIM);
     StagInnerProd(m1, comp, m1, comp, inner_prod);
     norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
@@ -107,6 +119,9 @@ void CCL2Norm(const amrex::MultiFab& m1,
 	      const int& comp,
 	      amrex::Real& norm_l2)
 {
+  
+  BL_PROFILE_VAR("CCL2Norm()",CCL2Norm);
+
   norm_l2 = 0.;
   CCInnerProd(m1,comp,m1,comp,norm_l2);
   norm_l2 = sqrt(norm_l2);
