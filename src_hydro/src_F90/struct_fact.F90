@@ -1,4 +1,4 @@
-module fft_shift_module
+module struct_fact_module
 
   use amrex_error_module
   ! use common_namelist_module, only: visc_type
@@ -127,4 +127,51 @@ contains
     
 #endif
 
-end module fft_shift_module
+
+#if (AMREX_SPACEDIM == 2)
+
+    subroutine sqrt_mf(lo,hi, &
+                       mf, mflo, mfhi) bind(C,name="sqrt_mf")
+
+      integer         , intent(in   ) :: lo(2),hi(2)
+      integer         , intent(in   ) :: mflo(2),mfhi(2)
+      double precision, intent(inout) :: mf(mflo(1):mfhi(1),mflo(2):mfhi(2))
+
+      ! local
+      integer :: i,j
+
+      do j = lo(2),hi(2)
+      do i = lo(1),hi(1)
+         mf(i,j) = sqrt(mf(i,j))
+      end do
+      end do
+
+    end subroutine sqrt_mf
+
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+
+    subroutine sqrt_mf(lo,hi, &
+                       mf, mflo, mfhi) bind(C,name="sqrt_mf")
+
+      integer         , intent(in   ) :: lo(3),hi(3)
+      integer         , intent(in   ) :: mflo(3),mfhi(3)
+      double precision, intent(inout) :: mf(mflo(1):mfhi(1),mflo(2):mfhi(2),mflo(3):mfhi(3))
+
+      ! local
+      integer :: i,j,k
+     
+      do k = lo(3),hi(3)
+      do j = lo(2),hi(2)
+      do i = lo(1),hi(1)
+         mf(i,j,k) = sqrt(mf(i,j,k))
+      end do
+      end do
+      end do
+      
+    end subroutine sqrt_mf
+    
+#endif
+
+end module struct_fact_module

@@ -105,10 +105,13 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in fft_shift.F90
+// in struct_fact.F90
 
   void fft_shift(const int* lo, const int* hi,
 		 const amrex_real* dft, const int* dftlo, const int* dfthi);
+
+  void sqrt_mf(const int* lo, const int* hi,
+	       const amrex_real* mf, const int* mflo, const int* mfhi);
 
 #ifdef __cplusplus
 }

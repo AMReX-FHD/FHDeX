@@ -596,7 +596,6 @@ void main_driver(const char* argv)
     
     ///////////////////////////////////////////
 
-    Real pi = 4.0*std::atan(1.0);
     Real dVol = dx[0]*dx[1];
     int tot_n_cells = n_cells[0]*n_cells[1];
     if (AMREX_SPACEDIM == 2) {
@@ -605,14 +604,10 @@ void main_driver(const char* argv)
       dVol *= dx[2];
       tot_n_cells = n_cells[2]*tot_n_cells;
     }
-    Print() << "Hack: dVol, tot#cells = " << dVol << "," << tot_n_cells << std::endl;
+    // Print() << "Hack: dVol, tot#cells = " << dVol << "," << tot_n_cells << std::endl;
+    
     // let rho = 1
-
     Real SFscale = dVol/(k_B*temp_const);
-    // Real SFscale = 1.0/(k_B*temp_const);
-    // Real SFscale = dVol/(k_B*temp_const*sqrt(tot_n_cells));
-    // Real SFscale = dVol/(k_B*temp_const*sqrt(tot_n_cells)*n_cells[0]*pi);
-
     structFact.WritePlotFile(step,time,geom,SFscale);
     // amrex::Vector< MultiFab > struct_out;
     // structFact.StructOut(struct_out);
