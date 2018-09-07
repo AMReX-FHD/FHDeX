@@ -74,10 +74,10 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
 
         const Box& validBox = mfi.validbox();
 
-        average_face_to_cc(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                           BL_TO_FORTRAN_FAB(face[mfi]),
-                           BL_TO_FORTRAN_FAB(cc[mfi]),
-                           &face_comp, &cc_comp, &ncomp, &av_dim);
+        shift_face_to_cc(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                         BL_TO_FORTRAN_FAB(face[mfi]),
+                         BL_TO_FORTRAN_FAB(cc[mfi]),
+                         &face_comp, &cc_comp, &ncomp, &av_dim);
     }
 }
 
