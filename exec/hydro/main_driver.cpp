@@ -221,7 +221,8 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // eta & temperature
     const Real eta_const = visc_coef;
-    const Real temp_const = 273.15;      // [units: K]
+    const Real temp_const = T_init[0];      // [units: K]
+
     // eta & temperature cell centered
     MultiFab  eta_cc;
     MultiFab temp_cc;
