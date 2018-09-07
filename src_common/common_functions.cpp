@@ -26,6 +26,7 @@ void InitializeCommonNamespace() {
     molmass.resize(MAX_SPECIES);
     rhobar.resize(MAX_SPECIES);
     u_init.resize(2);
+    T_init.resize(2);
     bc_lo.resize(AMREX_SPACEDIM);
     bc_hi.resize(AMREX_SPACEDIM);
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
@@ -41,6 +42,7 @@ void InitializeCommonNamespace() {
                                 grav.dataPtr(), &nspecies, molmass.dataPtr(), 
                                 rhobar.dataPtr(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
+                                T_init.dataPtr(),
                                 &algorithm_type,  &advection_type,
                                 &barodiffusion_type, &use_bl_rng, &seed,
                                 &seed_momentum, &seed_diffusion, &seed_reaction, 

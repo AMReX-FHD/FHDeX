@@ -31,6 +31,7 @@ amrex::Real                common::variance_coef_mom;
 amrex::Real                common::variance_coef_mass;
 amrex::Real                common::k_B;
 amrex::Real                common::Runiv;
+amrex::Vector<Real>        common::T_init;
 int                        common::algorithm_type;
 int                        common::barodiffusion_type;
 int                        common::use_bl_rng;
