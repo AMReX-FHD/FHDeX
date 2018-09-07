@@ -33,6 +33,7 @@ module common_namelist_module
   double precision,   save :: variance_coef_mass
   double precision,   save :: k_B
   double precision,   save :: Runiv
+  double precision,   save :: T_init(2)
   integer,            save :: algorithm_type
   integer,            save :: advection_type
   integer,            save :: barodiffusion_type
@@ -96,6 +97,7 @@ module common_namelist_module
   namelist /common/ variance_coef_mass
   namelist /common/ k_B
   namelist /common/ Runiv
+  namelist /common/ T_init
 
   ! Algorithm control / selection
   namelist /common/ algorithm_type
@@ -205,6 +207,7 @@ contains
     variance_coef_mass = 1.
     k_B = 1.38064852e-23
     Runiv = 8.314462175d7
+    T_init(:) = 1.d0
     algorithm_type = 0
     advection_type = 0
     barodiffusion_type = 0
@@ -251,7 +254,7 @@ contains
                                          grav_in, nspecies_in, molmass_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
-                                         k_B_in, Runiv_in, algorithm_type_in, & 
+                                         k_B_in, Runiv_in, T_init_in, algorithm_type_in, & 
                                          advection_type_in, &
                                          barodiffusion_type_in, use_bl_rng_in, seed_in, &
                                          seed_momentum_in, seed_diffusion_in, &
@@ -295,6 +298,7 @@ contains
     double precision,       intent(inout) :: variance_coef_mass_in
     double precision,       intent(inout) :: k_B_in
     double precision,       intent(inout) :: Runiv_in
+    double precision,       intent(inout) :: T_init_in(2)
     integer,                intent(inout) :: algorithm_type_in
     integer,                intent(inout) :: advection_type_in
     integer,                intent(inout) :: barodiffusion_type_in
@@ -349,6 +353,7 @@ contains
     variance_coef_mass_in = variance_coef_mass
     k_B_in = k_B
     Runiv_in = Runiv
+    T_init_in = T_init
     algorithm_type_in = algorithm_type
     advection_type_in = advection_type
     barodiffusion_type_in = barodiffusion_type
