@@ -47,9 +47,9 @@ public:
 
   StructFact(BoxArray,DistributionMapping);
   void FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >&, Geometry);
-  void WritePlotFile(const int step, const amrex::Real time, const amrex::Geometry geom);
-  void StructOut(amrex::Vector< MultiFab >&);
-  void StructFinalize();
+  void WritePlotFile(const int& step, const amrex::Real& time, const amrex::Geometry& geom, const amrex::Real& scale=1.0);
+  void StructOut(amrex::Vector< MultiFab >&, const amrex::Real& scale=1.0);
+  void StructFinalize(const amrex::Real& scale=1.0);
   void ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >&, Geometry);
   void ShiftFFT(amrex::Vector< MultiFab >&);
 

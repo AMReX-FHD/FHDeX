@@ -1,4 +1,4 @@
-
+q
 #include "common_functions.H"
 #include "hydro_functions_F.H"
 #include "StructFact.H"
@@ -40,11 +40,6 @@ void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& uma
   const BoxArray& ba = umac_dft_real[0].boxArray();
   // const BoxArray& ba = amrex::enclosedCells(ba_nodal);
   const DistributionMapping& dm = umac[0].DistributionMap();
-
-  if (ba.size() != 1) {
-    Abort("Only adapted for single grid");
-    exit(0);
-  }
   
   std::array< MultiFab, AMREX_SPACEDIM > umac_cc;
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -103,7 +98,7 @@ void StructFact::FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >& uma
   nsamples++;
 }
 
-void StructFact::WritePlotFile(const int step, const amrex::Real time, const amrex::Geometry geom) {
+void StructFact::WritePlotFile(const int& step, const amrex::Real& time, const amrex::Geometry& geom, const amrex::Real& scale) {
   
   amrex::Vector< MultiFab > struct_temp;
   struct_temp.resize(COV_NVAR);
@@ -112,7 +107,7 @@ void StructFact::WritePlotFile(const int step, const amrex::Real time, const amr
     struct_temp[d].setVal(0.0);
   }
 
-  StructFinalize();
+  StructFinalize(scale);
   for(int d=0; d<COV_NVAR; d++) {   
     MultiFab::Copy(struct_temp[d],struct_umac[d],0,0,1,0);
   }
@@ -155,7 +150,7 @@ void StructFact::WritePlotFile(const int step, const amrex::Real time, const amr
   WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 }
 
-void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
+void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out, const amrex::Real& scale) {
   
   struct_out.resize(COV_NVAR);
   for (int d=0; d<COV_NVAR; d++) {
@@ -163,7 +158,7 @@ void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
     struct_out[d].setVal(0.0);
   }
 
-  StructFinalize();
+  StructFinalize(scale);
   for(int d=0; d<COV_NVAR; d++) {   
     MultiFab::Copy(struct_out[d],struct_umac[d],0,0,1,0);
   }
@@ -171,7 +166,7 @@ void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out) {
   ShiftFFT(struct_out);
 }
 
-void StructFact::StructFinalize() {
+void StructFact::StructFinalize(const amrex::Real& scale) {
   Real nsamples_inv = 1.0/(double)nsamples;
 
   for(int d=0; d<COV_NVAR; d++) {
@@ -181,6 +176,7 @@ void StructFact::StructFinalize() {
     //Note: if correlation, take sqrt of covariances here
 
     struct_umac[d].mult(nsamples_inv,0);
+    struct_umac[d].mult(scale,0);
   }
 }
 
@@ -244,9 +240,6 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
       // 		       << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
 
-  Real h = geom.CellSize(0);
-  Real hsq = h*h;
-
   // Assume for now that nx = ny = nz
 #if (AMREX_SPACEDIM == 2)
   int Ndims[3] = { nbz, nby};
@@ -297,7 +290,8 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
 	
 	// Note: Scaling for inverse FFT
 	size_t global_size  = dfft.global_size();
-	double fac = hsq / global_size;
+	// double fac = 1.0 / global_size;
+	double fac = 1.0;
 
 	local_indx = 0;
 	for(size_t k=0; k<(size_t)nz; k++) {
@@ -329,6 +323,11 @@ void StructFact::ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >& umac_c
 
 void StructFact::ShiftFFT(amrex::Vector< MultiFab >& struct_out) {
   // NOT PARALLELIZED
+  const BoxArray& ba = struct_out[0].boxArray();
+  if (ba.size() != 1) {
+    Abort("Only adapted for single grid");
+    exit(0);
+  }
   // Shift DFT by N/2+1 (pi)
   for(int d=0; d<COV_NVAR; d++) {
     for (MFIter mfi(struct_out[0]); mfi.isValid(); ++mfi) {

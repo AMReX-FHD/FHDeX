@@ -143,11 +143,11 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 
               SELECT CASE (prob_type)
               CASE (1)
-                 vel(i,j,k) = 0d0
+                 vel(i,j,k) = 0.0d0
               CASE (2)
-                 vel(i,j,k) = 0d0
+                 vel(i,j,k) = 0.0d0
               CASE (3)
-                 vel(i,j,k) = 0d0
+                 vel(i,j,k) = 0.0d0
               CASE DEFAULT
                  print*, "Error: Invalid prob_type"
               END SELECT

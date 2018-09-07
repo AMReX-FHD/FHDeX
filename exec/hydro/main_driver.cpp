@@ -33,6 +33,8 @@ using namespace gmres;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
+  
+    BL_PROFILE_VAR("hydro::main_driver()",main_driver);
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -402,6 +404,13 @@ void main_driver(const char* argv)
 
     // write out initial state
     WritePlotFile(step,time,geom,umac,tracer,pres);
+    
+    //////////////////////////
+    // FFT test
+    // structFact.ComputeFFT(umac,geom);
+    // structFact.FortStructure(umac,geom);
+    // exit(0);
+    //////////////////////////
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -587,7 +596,24 @@ void main_driver(const char* argv)
     
     ///////////////////////////////////////////
 
-    structFact.WritePlotFile(step,time,geom);
+    Real pi = 4.0*std::atan(1.0);
+    Real dVol = dx[0]*dx[1];
+    int tot_n_cells = n_cells[0]*n_cells[1];
+    if (AMREX_SPACEDIM == 2) {
+      dVol *= cell_depth;
+    } else if (AMREX_SPACEDIM == 3) {
+      dVol *= dx[2];
+      tot_n_cells = n_cells[2]*tot_n_cells;
+    }
+    Print() << "Hack: dVol, tot#cells = " << dVol << "," << tot_n_cells << std::endl;
+    // let rho = 1
+
+    Real SFscale = dVol/(k_B*temp_const);
+    // Real SFscale = 1.0/(k_B*temp_const);
+    // Real SFscale = dVol/(k_B*temp_const*sqrt(tot_n_cells));
+    // Real SFscale = dVol/(k_B*temp_const*sqrt(tot_n_cells)*n_cells[0]*pi);
+
+    structFact.WritePlotFile(step,time,geom,SFscale);
     // amrex::Vector< MultiFab > struct_out;
     // structFact.StructOut(struct_out);
 
