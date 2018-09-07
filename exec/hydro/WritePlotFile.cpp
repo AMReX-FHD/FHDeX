@@ -22,11 +22,12 @@ void WritePlotFile(int step,
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
-    // plot all the velocity variables
+    // plot all the velocity variables (averaged)
+    // plot all the velocity variables (shifted)
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = AMREX_SPACEDIM+3;
+    int nPlot = 2*AMREX_SPACEDIM+3;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -36,7 +37,13 @@ void WritePlotFile(int step,
     int cnt = 0;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        std::string x = "vel";
+        std::string x = "averaged_vel";
+        x += (120+i);
+        varNames[cnt++] = x;
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        std::string x = "shifted_vel";
         x += (120+i);
         varNames[cnt++] = x;
     }
@@ -51,6 +58,12 @@ void WritePlotFile(int step,
     // average staggered velocities to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         AverageFaceToCC(umac[i],0,plotfile,cnt,1);
+        cnt++;
+    }
+
+    // shift staggered velocities to cell-centers and copy into plotfile
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        ShiftFaceToCC(umac[i],0,plotfile,cnt,1);
         cnt++;
     }
 
