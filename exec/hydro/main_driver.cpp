@@ -404,13 +404,18 @@ void main_driver(const char* argv)
     Real norm_pre_rhs;
 
     // write out initial state
-    WritePlotFile(step,time,geom,umac,tracer,pres);
+    if (plot_int > 0) 
+      {
+	WritePlotFile(step,time,geom,umac,tracer,pres);
+      }
     
     //////////////////////////
-    // FFT test
-    // structFact.ComputeFFT(umac,geom);
-    // structFact.FortStructure(umac,geom);
-    // exit(0);
+    //// FFT test
+    // if (struct_fact_int > 0) {
+    //   structFact.ComputeFFT(umac,geom);
+    //   structFact.FortStructure(umac,geom);
+    //   exit(0);
+    // }
     //////////////////////////
 
     //Time stepping loop
@@ -596,22 +601,24 @@ void main_driver(const char* argv)
     }
     
     ///////////////////////////////////////////
-
-    Real dVol = dx[0]*dx[1];
-    int tot_n_cells = n_cells[0]*n_cells[1];
-    if (AMREX_SPACEDIM == 2) {
-      dVol *= cell_depth;
-    } else if (AMREX_SPACEDIM == 3) {
-      dVol *= dx[2];
-      tot_n_cells = n_cells[2]*tot_n_cells;
-    }
-    // Print() << "Hack: dVol, tot#cells = " << dVol << "," << tot_n_cells << std::endl;
+    if (struct_fact_int > 0) {
+      Real dVol = dx[0]*dx[1];
+      int tot_n_cells = n_cells[0]*n_cells[1];
+      if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+      } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+	tot_n_cells = n_cells[2]*tot_n_cells;
+      }
     
-    // let rho = 1
-    Real SFscale = dVol/(k_B*temp_const);
-    structFact.WritePlotFile(step,time,geom,SFscale);
-    // amrex::Vector< MultiFab > struct_out;
-    // structFact.StructOut(struct_out);
+      // let rho = 1
+      Real SFscale = dVol/(k_B*temp_const);
+      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+
+      structFact.WritePlotFile(step,time,geom,SFscale);
+      // amrex::Vector< MultiFab > struct_out;
+      // structFact.StructOut(struct_out);
+    }
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors

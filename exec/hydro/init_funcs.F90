@@ -17,6 +17,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2,zshft
   double precision :: L_hlf, k1, k1_inv, k2, k2_inv, r_a, r_b
   double precision :: pi, freq, amp, width1, perturb, slope, fun_ptrb
+  double precision :: velx_bwd_temp, velx_fwd_temp
 
 #if (AMREX_SPACEDIM == 2)
   zshft = 0.0d0
@@ -25,13 +26,12 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
 #endif
 
   center = (realhi - reallo)/2d0
-  L_hlf = (realhi(1) - reallo(1))/2d0
 
   !! IC parameters
-  pi = acos(-1.d0)
+  L_hlf = (realhi(1) - reallo(1))/2d0
   ! k1 & k2 determine steepness of velocity profile:
-  ! k1 = 1d-2*L_hlf
-  k1 = 1d-6*L_hlf
+  k1 = 1d-2*L_hlf
+  ! k1 = 1d-6*L_hlf
   k2 = k1
   k1_inv = 1/k1
   k2_inv = 1/k2
@@ -41,56 +41,116 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   r_a = 0.35d0*L_hlf
   r_b = L_hlf - r_a
 
-  ! Stream:
+  ! Kelvin-Helmholtz:
+  pi = acos(-1.d0)
   freq = 02.d0*pi/L_hlf
   amp = 2.0d-3*L_hlf
   ! amp = 2.0d-1*L_hlf
   width1 = L_hlf/2.0d0
 
   if (di .EQ. 0) then
-     do k = lo(3), hi(3)
-        do j = lo(2), hi(2)
-           do i = lo(1), hi(1) + 1
 
-              itVec(1) = dble(i)*dx(1)
-              itVec(2) = (dble(j)+0.5d0)*dx(2)
-              itVec(3) = (dble(k)+zshft)*dx(3)
+     SELECT CASE (prob_type)
+     CASE (1)
+        !! Vortex:
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1) + 1
+                 itVec(1) = dble(i)*dx(1)
+                 itVec(2) = (dble(j)+0.5d0)*dx(2)
+                 itVec(3) = (dble(k)+zshft)*dx(3)
 
-              pos = reallo + itVec
-              relpos = pos - center
-              rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
-              rad = SQRT(rad2)
+                 pos = reallo + itVec
+                 relpos = pos - center
+                 rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
+                 rad = SQRT(rad2)
 
-              SELECT CASE (prob_type)
-              CASE (1)
-                 !! Vortex:
                  ! Multiply velocity magnitude by sin(theta)
                  vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
                       *(relpos(2)/rad)
-              CASE (2)
-                 !! KH, sine:
+              end do
+           end do
+        end do
+     CASE (2)
+        !! KH, sine:
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1) + 1
+                 itVec(1) = dble(i)*dx(1)
+                 itVec(2) = (dble(j)+0.5d0)*dx(2)
+                 itVec(3) = (dble(k)+zshft)*dx(3)
+
+                 pos = reallo + itVec
+                 relpos = pos - center
+                 rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
+                 rad = SQRT(rad2)
+
                  perturb = amp*sin(freq*relpos(1))
                  fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
                       *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
                  vel(i,j,k) = fun_ptrb
-              CASE (3)
-                 ! KH, smooth:
+              end do
+           end do
+        end do
+     CASE (3)
+        ! KH, smooth:
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1) + 1
+                 itVec(1) = dble(i)*dx(1)
+                 itVec(2) = (dble(j)+0.5d0)*dx(2)
+                 itVec(3) = (dble(k)+zshft)*dx(3)
+
+                 pos = reallo + itVec
+                 relpos = pos - center
+                 rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
+                 rad = SQRT(rad2)
+
                  ! fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0)))) &
                  !      *(1d0+tanh(k2_inv*((width1/2.d0) - relpos(2))))
                  ! vel(i,j,k) = fun_ptrb
                  vel(i,j,k) = 0.d0
-              CASE DEFAULT
-                 print*, "Error: Invalid prob_type"
-              END SELECT
-
+              end do
            end do
         end do
-     end do
+     CASE DEFAULT
+        print*, "Error: Invalid prob_type"
+     END SELECT
+
   endif
 
   if (di .EQ. 1) then
-     do k = lo(3), hi(3)
-        do j = lo(2), hi(2) + 1
+
+     SELECT CASE (prob_type)
+     CASE (1)
+        !! Vortex:
+
+        ! do k = lo(3), hi(3)
+        !    do j = lo(2), hi(2) + 1
+        !       do i = lo(1), hi(1)
+
+        !          itVec(1) = (dble(i)+0.5d0)*dx(1)
+        !          itVec(2) = dble(j)*dx(2)
+        !          itVec(3) = (dble(k)+zshft)*dx(3)
+
+        !          pos = reallo + itVec
+        !          relpos = pos - center
+        !          rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
+        !          rad = SQRT(rad2)
+
+        !          ! Multiply velocity magnitude by -cos(theta)
+        !          vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+        !               *(-relpos(1)/rad)
+
+        !       end do
+        !    end do
+        ! end do
+
+        !!!!!!!!!!!!!!!!!! Enforce div. free constraint !!!!!!!!!!!!!!!!!!!!!!!!
+        
+        ! Compute vely on lower boundary
+        j=lo(2)
+        do k = lo(3), hi(3)
            do i = lo(1), hi(1)
 
               itVec(1) = (dble(i)+0.5d0)*dx(1)
@@ -102,59 +162,131 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
               rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
               rad = SQRT(rad2)
 
-              SELECT CASE (prob_type)
-              CASE (1)
-                 !! Vortex:
-                 ! Multiply velocity magnitude by -cos(theta)
-                 vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-                      *(-relpos(1)/rad)
-              CASE (2)
-                 !! KH, sine:
+              ! Multiply velocity magnitude by -cos(theta)
+              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                   *(-relpos(1)/rad)
+
+           end do
+        end do
+        
+        ! Compute forward vely using velx finite difference, enforcing div(vel) = 0
+        do k = lo(3), hi(3)
+           do j = lo(2)+1, hi(2)+1
+              do i = lo(1), hi(1)
+                 
+                 ! Compute forward velx
+                 itVec(1) = dble(i+1)*dx(1)
+                 itVec(2) = (dble(j-1)+0.5d0)*dx(2)
+                 itVec(3) = (dble(k)+zshft)*dx(3)
+
+                 pos = reallo + itVec
+                 relpos = pos - center
+                 rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
+                 rad = SQRT(rad2)
+                 velx_fwd_temp = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                      *(relpos(2)/rad)
+                 
+                 ! Compute backward velx
+                 itVec(1) = dble(i)*dx(1)
+                 
+                 pos = reallo + itVec
+                 relpos = pos - center
+                 rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
+                 rad = SQRT(rad2)
+                 velx_bwd_temp = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                      *(relpos(2)/rad)
+                 
+                 ! Compute forward vely using velx finite difference, enforcing div(vel) = 0
+                 vel(i,j,k) = vel(i,j-1,k) - dx(2)/dx(1)*(velx_fwd_temp - velx_bwd_temp)
+
+                 ! if (i==15.and.j==23.and.k==0) then
+                 !    print*, 'Hack: vel(',i,j,k,') = ',vel(i,j,k)  
+                 ! end if
+
+              end do
+           end do
+        end do
+
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+     CASE (2)
+        !! KH, sine:
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2) + 1
+              do i = lo(1), hi(1)
+
+                 itVec(1) = (dble(i)+0.5d0)*dx(1)
+                 itVec(2) = dble(j)*dx(2)
+                 itVec(3) = (dble(k)+zshft)*dx(3)
+
+                 pos = reallo + itVec
+                 relpos = pos - center
+                 rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
+                 rad = SQRT(rad2)
+
                  perturb = amp*sin(freq*relpos(1))
                  slope = amp*freq*cos(freq*relpos(1))
                  fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0+perturb)))) &
                       *(1d0+tanh(k2_inv*((width1/2.d0+perturb) - relpos(2))))
                  vel(i,j,k) = slope*fun_ptrb
-              CASE (3)
-                 !! KH, smooth:
-                 vel(i,j,k) = 0.d0
-              CASE DEFAULT
-                 print*, "Error: Invalid prob_type"
-              END SELECT
-                                 
+
+              end do
            end do
         end do
-     end do
+     CASE (3)
+        !! KH, smooth:
+        do k = lo(3), hi(3)
+           do j = lo(2), hi(2) + 1
+              do i = lo(1), hi(1)
+
+                 vel(i,j,k) = 0.d0
+
+              end do
+           end do
+        end do
+     CASE DEFAULT
+        print*, "Error: Invalid prob_type"
+     END SELECT
+                                
   endif
 
   if (di .EQ. 2) then
-     do k = lo(3), hi(3) + 1
-        do j = lo(2), hi(2)
-           do i = lo(1), hi(1)
 
-              itVec(1) = (dble(i)+0.5d0)*dx(1)
-              itVec(2) = (dble(j)+0.5d0)*dx(2)
-              itVec(3) = dble(k)*dx(3)
+     SELECT CASE (prob_type)
+     CASE (1)
+        do k = lo(3), hi(3) + 1
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
 
-              pos = reallo + itVec
-              relpos = pos - center
-              rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
-              rad = SQRT(rad2)
-
-              SELECT CASE (prob_type)
-              CASE (1)
                  vel(i,j,k) = 0.0d0
-              CASE (2)
-                 vel(i,j,k) = 0.0d0
-              CASE (3)
-                 vel(i,j,k) = 0.0d0
-              CASE DEFAULT
-                 print*, "Error: Invalid prob_type"
-              END SELECT
 
+              end do
            end do
         end do
-     end do
+     CASE (2)
+        do k = lo(3), hi(3) + 1
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+
+                 vel(i,j,k) = 0.0d0
+
+              end do
+           end do
+        end do
+     CASE (3)
+        do k = lo(3), hi(3) + 1
+           do j = lo(2), hi(2)
+              do i = lo(1), hi(1)
+
+                 vel(i,j,k) = 0.0d0
+
+              end do
+           end do
+        end do
+     CASE DEFAULT
+        print*, "Error: Invalid prob_type"
+     END SELECT
+
   endif
 
 
