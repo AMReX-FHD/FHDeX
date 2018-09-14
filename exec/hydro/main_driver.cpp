@@ -411,11 +411,23 @@ void main_driver(const char* argv)
     
     //////////////////////////
     //// FFT test
-    // if (struct_fact_int > 0) {
-    //   structFact.ComputeFFT(umac,geom);
-    //   structFact.FortStructure(umac,geom);
-    //   exit(0);
-    // }
+    if (struct_fact_int > 0) {
+      // // std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
+      // // mf_cc[0].define(ba, dmap, 1, 0);
+      // // mf_cc[1].define(ba, dmap, 1, 0);
+      // // mf_cc[2].define(ba, dmap, 1, 0);
+      // // for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
+      // //   const Box& bx = mfi.validbox();
+      // //   init_s_vel(BL_TO_FORTRAN_BOX(bx),
+      // // 		   BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
+      // // 		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+      // // }
+
+      // // structFact.ComputeFFT(mf_cc,geom);
+      // structFact.FortStructure(umac,geom);
+      // structFact.WritePlotFile(step,time,geom,1.0);
+      // exit(0);
+    }
     //////////////////////////
 
     //Time stepping loop

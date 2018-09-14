@@ -32,28 +32,28 @@ class StructFact {
   // Total number of states to average over, updated by FortStructure()
   int nsamples = 0;
 
-  // Vectors containing DFT of velocity field components
-  amrex::Vector< MultiFab > umac_dft_real;
-  amrex::Vector< MultiFab > umac_dft_imag;
-
-  // Vector containing running sums of real and imaginary components of covariances
+  // Vector containing running sums of real and imaginary components 
+  // of inner products (covariances) of DFTs
   amrex::Vector< MultiFab > cov_real;
   amrex::Vector< MultiFab > cov_imag;
 
-  // Vector of MultiFabs containing inner products (covariances) of velocity DFTs
-  amrex::Vector< MultiFab > struct_umac;
+  // Vector of MultiFabs containing final magnitude of covariances
+  amrex::Vector< MultiFab > cov_mag;
 
 public:
 
-  StructFact(BoxArray,DistributionMapping);
-  void FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >&, Geometry);
-  void WritePlotFile(const int step, const amrex::Real time, const amrex::Geometry geom,
+  StructFact(const amrex::BoxArray, const amrex::DistributionMapping);
+  void FortStructure(const std::array< MultiFab, AMREX_SPACEDIM >&, const amrex::Geometry);
+  void WritePlotFile(const int, const amrex::Real, const amrex::Geometry,
 		     const amrex::Real scale=1.0);
   void StructOut(amrex::Vector< MultiFab >&, const amrex::Real scale=1.0);
-  void StructFinalize(const amrex::Real scale);
-  void ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >&, Geometry);
+  void StructFinalize(const amrex::Real scale=1.0);
+  void ComputeFFT(const std::array< MultiFab, AMREX_SPACEDIM >&, 
+		  amrex::Vector< MultiFab >&,
+		  amrex::Vector< MultiFab >&, const amrex::Geometry);
+  // void ShiftFFT(amrex::Vector< MultiFab >&, const amrex::Geometry);
   void ShiftFFT(amrex::Vector< MultiFab >&);
-  void SqrtMF(amrex::Vector< MultiFab >& struct_out);
+  void SqrtMF(amrex::Vector< MultiFab >&);
 
 };
 
