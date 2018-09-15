@@ -362,8 +362,24 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
+    
+    Vector< std::string > var_names;
+    var_names.resize(AMREX_SPACEDIM);
+    int cnt = 0;
+    std::string x;
+    for (int d=0; d<var_names.size(); d++) {
+      x = "vel";
+      x += (120+d);
+      var_names[cnt++] = x;
+    }
 
-    StructFact structFact(ba,dmap);
+    Vector< MultiFab > struct_in_cc;
+    struct_in_cc.resize(AMREX_SPACEDIM);
+    for (int d=0; d<struct_in_cc.size(); d++) {
+      struct_in_cc[d].define(ba, dmap, 1, 0);
+    }
+    
+    StructFact structFact(ba,dmap,var_names);
 
     ///////////////////////////////////////////
 
@@ -597,7 +613,10 @@ void main_driver(const char* argv)
 	// Update structure factor
 	///////////////////////////////////////////
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  structFact.FortStructure(umac,geom);
+	  for(int d=0; d<AMREX_SPACEDIM; d++) {
+	    ShiftFaceToCC(umac[d], 0, struct_in_cc[d], 0, 1);
+	  }
+	  structFact.FortStructure(struct_in_cc,geom);
 	  // Print() << "Executed FortStructure() at step = " << step << std::endl;
         }
 	///////////////////////////////////////////
