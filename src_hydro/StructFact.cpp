@@ -472,34 +472,39 @@ void StructFact::ShiftFFT(amrex::Vector< MultiFab >& dft_out) {
   // ba.define(domain);
   // ba.maxSize(IntVect(n_cells));
 
-  const BoxArray& ba_in = dft_out[0].boxArray();
-  BoxArray ba = ba_in;
-  // ba.resize(1);
-
-  DistributionMapping dm(ba);
-
-  Vector< MultiFab > dft_temp;
-  dft_temp.resize(dft_out.size());
-  for (int d=0; d<dft_out.size(); d++) {
-    dft_temp[d].define(ba, dm, 1, 0);
+  BoxArray ba_onegrid;
+  {
+      IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+      IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+      Box domain(dom_lo, dom_hi);
+      
+      // Initialize the boxarray "ba" from the single box "bx"
+      ba_onegrid.define(domain);
   }
 
+  DistributionMapping dmap_onegrid(ba_onegrid);
+
+  Vector< MultiFab > dft_onegrid(N_COV);
+  for (int d=0; d<N_COV; d++) {
+      dft_onegrid[d].define(ba_onegrid, dmap_onegrid, 1, 0);
+      dft_onegrid[d].ParallelCopy(dft_out[d], 0, 0, 1);
+  }  
+    
   // NOT PARALLELIZED
   // Shift DFT by N/2+1 (pi)
-  for(int d=0; d<dft_out.size(); d++) {
-
-    MultiFab::Copy(dft_temp[d],dft_out[d],0,0,1,0);
-
-    for (MFIter mfi(dft_out[0]); mfi.isValid(); ++mfi) {
-      // Note: Make sure that multifab is cell-centered
-      const Box& validBox = mfi.validbox();
-      fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-  		BL_TO_FORTRAN_ANYD(dft_temp[d][mfi]));
-    }
-
-    MultiFab::Copy(dft_out[d],dft_temp[d],0,0,1,0);
-
+  for(int d=0; d<dft_onegrid.size(); d++) {
+      for (MFIter mfi(dft_onegrid[d]); mfi.isValid(); ++mfi) {
+          // Note: Make sure that multifab is cell-centered
+          const Box& validBox = mfi.validbox();
+          fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                    BL_TO_FORTRAN_ANYD(dft_onegrid[d][mfi]));
+      }
   }
+
+  for (int d=0; d<N_COV; d++) {
+      dft_out[d].ParallelCopy(dft_onegrid[d], 0, 0, 1);
+  }  
+  
 }
 
 void StructFact::SqrtMF(amrex::Vector< MultiFab >& struct_out) {
