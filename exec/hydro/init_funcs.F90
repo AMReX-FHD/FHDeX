@@ -68,6 +68,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
                  ! Multiply velocity magnitude by sin(theta)
                  vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
                       *(relpos(2)/rad)
+
               end do
            end do
         end do
@@ -106,9 +107,10 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
                  rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
                  rad = SQRT(rad2)
 
-                 ! fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0)))) &
-                 !      *(1d0+tanh(k2_inv*((width1/2.d0) - relpos(2))))
-                 ! vel(i,j,k) = fun_ptrb
+                 fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(relpos(2) - (-width1/2.d0)))) &
+                      *(1d0+tanh(k2_inv*((width1/2.d0) - relpos(2))))
+                 vel(i,j,k) = fun_ptrb
+
                  vel(i,j,k) = 0.d0
               end do
            end do
@@ -125,89 +127,26 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
      CASE (1)
         !! Vortex:
 
-        ! do k = lo(3), hi(3)
-        !    do j = lo(2), hi(2) + 1
-        !       do i = lo(1), hi(1)
-
-        !          itVec(1) = (dble(i)+0.5d0)*dx(1)
-        !          itVec(2) = dble(j)*dx(2)
-        !          itVec(3) = (dble(k)+zshft)*dx(3)
-
-        !          pos = reallo + itVec
-        !          relpos = pos - center
-        !          rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
-        !          rad = SQRT(rad2)
-
-        !          ! Multiply velocity magnitude by -cos(theta)
-        !          vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-        !               *(-relpos(1)/rad)
-
-        !       end do
-        !    end do
-        ! end do
-
-        !!!!!!!!!!!!!!!!!! Enforce div. free constraint !!!!!!!!!!!!!!!!!!!!!!!!
-        
-        ! Compute vely on lower boundary
-        j=lo(2)
         do k = lo(3), hi(3)
-           do i = lo(1), hi(1)
-
-              itVec(1) = (dble(i)+0.5d0)*dx(1)
-              itVec(2) = dble(j)*dx(2)
-              itVec(3) = (dble(k)+zshft)*dx(3)
-
-              pos = reallo + itVec
-              relpos = pos - center
-              rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
-              rad = SQRT(rad2)
-
-              ! Multiply velocity magnitude by -cos(theta)
-              vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-                   *(-relpos(1)/rad)
-
-           end do
-        end do
-        
-        ! Compute forward vely using velx finite difference, enforcing div(vel) = 0
-        do k = lo(3), hi(3)
-           do j = lo(2)+1, hi(2)+1
+           do j = lo(2), hi(2) + 1
               do i = lo(1), hi(1)
-                 
-                 ! Compute forward velx
-                 itVec(1) = dble(i+1)*dx(1)
-                 itVec(2) = (dble(j-1)+0.5d0)*dx(2)
+
+                 itVec(1) = (dble(i)+0.5d0)*dx(1)
+                 itVec(2) = dble(j)*dx(2)
                  itVec(3) = (dble(k)+zshft)*dx(3)
 
                  pos = reallo + itVec
                  relpos = pos - center
                  rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
                  rad = SQRT(rad2)
-                 velx_fwd_temp = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-                      *(relpos(2)/rad)
-                 
-                 ! Compute backward velx
-                 itVec(1) = dble(i)*dx(1)
-                 
-                 pos = reallo + itVec
-                 relpos = pos - center
-                 rad2 = DOT_PRODUCT(relpos(1:2),relpos(1:2))
-                 rad = SQRT(rad2)
-                 velx_bwd_temp = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
-                      *(relpos(2)/rad)
-                 
-                 ! Compute forward vely using velx finite difference, enforcing div(vel) = 0
-                 vel(i,j,k) = vel(i,j-1,k) - dx(2)/dx(1)*(velx_fwd_temp - velx_bwd_temp)
 
-                 ! if (i==15.and.j==23.and.k==0) then
-                 !    print*, 'Hack: vel(',i,j,k,') = ',vel(i,j,k)  
-                 ! end if
+                 ! Multiply velocity magnitude by -cos(theta)
+                 vel(i,j,k) = 0.25d0*(1d0+tanh(k1_inv*(rad-r_a)))*(1d0+tanh(k2_inv*(r_b-rad))) &
+                      *(-relpos(1)/rad)
 
               end do
            end do
         end do
-
-        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
      CASE (2)
         !! KH, sine:
