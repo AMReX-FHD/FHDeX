@@ -449,6 +449,8 @@ void main_driver(const char* argv)
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
+        Real step_strt_time = ParallelDescriptor::second();
+    
         AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
                      umac[1].FillBoundary(geom.periodicity());,
                      umac[2].FillBoundary(geom.periodicity()););
@@ -621,7 +623,10 @@ void main_driver(const char* argv)
         }
 	///////////////////////////////////////////
 
-        amrex::Print() << "Advanced step " << step << "\n";
+        Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
+        ParallelDescriptor::ReduceRealMax(step_stop_time);
+    
+        amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
 
         time = time + dt;
 
