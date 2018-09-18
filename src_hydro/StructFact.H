@@ -31,28 +31,27 @@ class StructFact {
 
   // Vector containing running sums of real and imaginary components 
   // of inner products (covariances) of DFTs
-  amrex::Vector< MultiFab > cov_real;
-  amrex::Vector< MultiFab > cov_imag;
+  MultiFab cov_real;
+  MultiFab cov_imag;
 
   // Vector of MultiFabs containing final magnitude of covariances
-  amrex::Vector< MultiFab > cov_mag;
+  MultiFab cov_mag;
 
   amrex::Vector< std::string > cov_names;
 
 public:
 
-  StructFact(const amrex::BoxArray, const amrex::DistributionMapping, 
-	     const amrex::Vector< std::string >&);
-  void FortStructure(const Vector< MultiFab >&, const amrex::Geometry);
-  void WritePlotFile(const int, const amrex::Real, const amrex::Geometry,
-		     const amrex::Real scale=1.0);
-  void StructOut(amrex::Vector< MultiFab >&, const amrex::Real scale=1.0);
-  void StructFinalize(const amrex::Real scale=1.0);
-  void ComputeFFT(const amrex::Vector< MultiFab >&, 
-		  amrex::Vector< MultiFab >&,
-		  amrex::Vector< MultiFab >&, const amrex::Geometry);
-  void ShiftFFT(amrex::Vector< MultiFab >&);
-  void SqrtMF(amrex::Vector< MultiFab >&);
+  StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
+	                const amrex::Vector< std::string >&);
+  void FortStructure(   const amrex::MultiFab&, const amrex::Geometry);
+  void Finalize(        const amrex::Real scale=1.0);
+  void WritePlotFile(   const int, const amrex::Real, const amrex::Geometry);
+  void StructOut(       amrex::MultiFab&);
+  void ComputeFFT(      const amrex::MultiFab&, 
+		        amrex::MultiFab&,
+			amrex::MultiFab&, const amrex::Geometry);
+  void ShiftFFT(        amrex::MultiFab&);
+  void SqrtMF(          amrex::MultiFab&);
 
 };
 

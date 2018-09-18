@@ -373,11 +373,8 @@ void main_driver(const char* argv)
       var_names[cnt++] = x;
     }
 
-    Vector< MultiFab > struct_in_cc;
-    struct_in_cc.resize(AMREX_SPACEDIM);
-    for (int d=0; d<struct_in_cc.size(); d++) {
-      struct_in_cc[d].define(ba, dmap, 1, 0);
-    }
+    MultiFab struct_in_cc;
+    struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
     
     StructFact structFact(ba,dmap,var_names);
 
@@ -438,11 +435,6 @@ void main_driver(const char* argv)
       // // 		   BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
       // // 		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
       // // }
-
-      // // structFact.ComputeFFT(mf_cc,geom);
-      // structFact.FortStructure(umac,geom);
-      // structFact.WritePlotFile(step,time,geom,1.0);
-      // exit(0);
     }
     //////////////////////////
 
@@ -616,10 +608,9 @@ void main_driver(const char* argv)
 	///////////////////////////////////////////
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
 	  for(int d=0; d<AMREX_SPACEDIM; d++) {
-	    ShiftFaceToCC(umac[d], 0, struct_in_cc[d], 0, 1);
+	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
 	  }
 	  structFact.FortStructure(struct_in_cc,geom);
-	  // Print() << "Executed FortStructure() at step = " << step << std::endl;
         }
 	///////////////////////////////////////////
 
@@ -650,10 +641,9 @@ void main_driver(const char* argv)
       // let rho = 1
       Real SFscale = dVol/(k_B*temp_const);
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-
-      structFact.WritePlotFile(step,time,geom,SFscale);
-      // amrex::Vector< MultiFab > struct_out;
-      // structFact.StructOut(struct_out);
+      
+      structFact.Finalize(SFscale);
+      structFact.WritePlotFile(step,time,geom);
     }
 
     // Call the timer again and compute the maximum difference between the start time 

@@ -18,18 +18,12 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 
   // Note that we are defining with NO ghost cells
 
-  cov_real.resize(N_COV);
-  cov_imag.resize(N_COV);
-  cov_mag.resize(N_COV);
-
-  for (int d=0; d<N_COV; d++) {
-    cov_real[d].define(ba_in, dmap_in, 1, 0);
-    cov_imag[d].define(ba_in, dmap_in, 1, 0);
-    cov_mag[d].define(ba_in, dmap_in, 1, 0);
-    cov_mag[d].setVal(0.0);
-    cov_real[d].setVal(0.0);
-    cov_imag[d].setVal(0.0);
-  }
+  cov_real.define(ba_in, dmap_in, N_COV, 0);
+  cov_imag.define(ba_in, dmap_in, N_COV, 0);
+  cov_mag.define( ba_in, dmap_in, N_COV, 0);
+  cov_real.setVal(0.0);
+  cov_imag.setVal(0.0);
+  cov_mag.setVal( 0.0);
 
   cov_names.resize(N_COV);
   std::string x;
@@ -42,54 +36,57 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
       x += '_';
       x += var_names[i];
       cov_names[cnt] = x;
-      Print() << var_names[j] << "\t" << var_names[i] << "\t" << cov_names[cnt] << std::endl;
       cnt++;
     }
   }
 }
 
-void StructFact::FortStructure(const Vector< MultiFab >& variables, const Geometry geom) {
+void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
-  const BoxArray& ba = cov_real[0].boxArray();
-  const DistributionMapping& dm = cov_real[0].DistributionMap();
+  const BoxArray& ba = variables.boxArray();
+  const DistributionMapping& dm = variables.DistributionMap();
 
   // if (ba.size() != 1) {
   //   Abort("Only adapted for single grid");
   //   exit(0);
   // }
 
-  amrex::Vector< MultiFab > variables_dft_real, variables_dft_imag;
-  variables_dft_real.resize(N_VAR);
-  variables_dft_imag.resize(N_VAR);
-  for (int d=0; d<N_VAR; d++) {
-    variables_dft_real[d].define(ba, dm, 1, 0);
-    variables_dft_imag[d].define(ba, dm, 1, 0);
+  if (false) {
+    std::string plotname = "a_VAR";
+    VisMF::Write(variables,plotname);
   }
+
+  MultiFab variables_dft_real, variables_dft_imag;
+  variables_dft_real.define(ba, dm, N_VAR, 0);
+  variables_dft_imag.define(ba, dm, N_VAR, 0);
 
   ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
 
-  MultiFab cov_real_temp;
-  MultiFab cov_imag_temp;
-  cov_real_temp.define(ba, dm, 1, 0);
-  cov_imag_temp.define(ba, dm, 1, 0);
+  MultiFab cov_temp;
+  cov_temp.define(ba, dm, 1, 0);
 
   int index = 0;
   for (int j=0; j<N_VAR; j++) {
     for (int i=j; i<N_VAR; i++) {
 
       // Compute temporary real and imaginary components of covariance
-      cov_real_temp.setVal(0.0);
-      MultiFab::AddProduct(cov_real_temp,variables_dft_real[i],0,variables_dft_real[j],0,0,1,0);
-      MultiFab::AddProduct(cov_real_temp,variables_dft_imag[i],0,variables_dft_imag[j],0,0,1,0);
-      cov_imag_temp.setVal(0.0);
-      MultiFab::AddProduct(cov_imag_temp,variables_dft_imag[i],0,variables_dft_real[j],0,0,1,0);
-      cov_imag_temp.mult(-1.0,0);
-      MultiFab::AddProduct(cov_imag_temp,variables_dft_real[i],0,variables_dft_imag[j],0,0,1,0);
+
+      // Real component of covariance
+      cov_temp.setVal(0.0);
+      MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_real,j,0,1,0);
+      MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_imag,j,0,1,0);
+
+      MultiFab::Add(cov_real,cov_temp,0,index,1,0);
+
+      // Imaginary component of covariance
+      cov_temp.setVal(0.0);
+      MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_real,j,0,1,0);
+      cov_temp.mult(-1.0,0);
+      MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_imag,j,0,1,0);
       
-      MultiFab::Add(cov_real[index],cov_real_temp,0,0,1,0);
-      MultiFab::Add(cov_imag[index],cov_imag_temp,0,0,1,0);
+      MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
       
       index++;
     }
@@ -97,56 +94,29 @@ void StructFact::FortStructure(const Vector< MultiFab >& variables, const Geomet
 
   bool write_data = false;
   if (write_data) {
-    index = 0;
-    std::string plotname = "a_COV"; 
-    std::string x;
-    for (int j=0; j<N_VAR; j++) {
-      for (int i=j; i<N_VAR; i++) {
-	x = plotname;
-	x += '_';
-	x += '0' + i;
-	x += '0' + j;
-	VisMF::Write(cov_real[index],x);
-	index++;
-      }
-    }
+    std::string plotname; 
+    plotname = "a_COV"; 
+    VisMF::Write(cov_real,plotname);
   }
 
   nsamples++;
 }
 
-void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom,
-			       const Real scale) {
+void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom) {
   
   BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
 
-  Real nsamples_inv = 1.0/(double)nsamples;
-  
-  amrex::Vector< MultiFab > struct_temp;
-  struct_temp.resize(N_COV);
-  for (int d=0; d<N_COV; d++) {
-    struct_temp[d].define(cov_mag[0].boxArray(), cov_mag[0].DistributionMap(), 1, 0);
-    struct_temp[d].setVal(0.0);
-  }
-
-  StructFinalize();
-  for(int d=0; d<N_COV; d++) {   
-    MultiFab::Copy(struct_temp[d],cov_mag[d],0,0,1,0);
-    struct_temp[d].mult(nsamples_inv,0);
-    struct_temp[d].mult(scale,0);
-  }
-
-  // Print() << "number of samples = " << nsamples << std::endl;
-
-  ShiftFFT(struct_temp);
+  MultiFab plotfile;
+  Vector<std::string> varNames;
+  int nPlot = 1;
 
   //////////////////////////////////////////////////////////////////////////////////
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename = "plt_structure_factor";
-  int nPlot = N_COV;
-  MultiFab plotfile(cov_mag[0].boxArray(), cov_mag[0].DistributionMap(), nPlot, 0);
-  Vector<std::string> varNames(nPlot);
+  const std::string plotfilename1 = "plt_structure_factor_mag";
+  nPlot = N_COV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
 
   // keep a counter for plotfile variables
   int cnt = 0;
@@ -162,25 +132,20 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
 
   // copy structure factor into plotfile
   for (int d=0; d<N_COV; ++d) {
-    MultiFab::Copy(plotfile, struct_temp[cnt], 0, cnt, 1, 0);
+    MultiFab::Copy(plotfile, cov_mag, cnt, cnt, 1, 0);
     cnt++;
   }
 
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
   
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilenameReIm = "plt_structure_factor_ReIm";
+  const std::string plotfilename2 = "plt_structure_factor_real_imag";
   nPlot = 2*N_COV;
-  MultiFab plotfileReIm(cov_mag[0].boxArray(), cov_mag[0].DistributionMap(), nPlot, 0);
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
-  struct_temp.resize(nPlot);
-  for (int d=0; d<nPlot; d++) {
-    struct_temp[d].define(cov_mag[0].boxArray(), cov_mag[0].DistributionMap(), 1, 0);
-    struct_temp[d].setVal(0.0);
-  }
 
   // keep a counter for plotfile variables
   cnt = 0;
@@ -209,102 +174,66 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   cnt = 0;
 
   for(int d=0; d<N_COV; d++) {   
-    MultiFab::Copy(struct_temp[cnt],cov_real[d],0,0,1,0);
-    struct_temp[cnt].mult(nsamples_inv,0);
-    struct_temp[cnt].mult(scale,0);
+    MultiFab::Copy(plotfile,cov_real,d,cnt,1,0);
     cnt++;
   }
 
   for(int d=0; d<N_COV; d++) {   
-    MultiFab::Copy(struct_temp[cnt],cov_imag[d],0,0,1,0);
-    struct_temp[cnt].mult(nsamples_inv,0);
-    struct_temp[cnt].mult(scale,0);
-    cnt++;
-  }
-
-  ShiftFFT(struct_temp);
-
-  // reset plotfile variable counter
-  cnt = 0;
-
-  // copy structure factor into plotfile
-  for (int d=0; d<nPlot; ++d) {
-    MultiFab::Copy(plotfileReIm, struct_temp[cnt], 0, cnt, 1, 0);
+    MultiFab::Copy(plotfile,cov_imag,d,cnt,1,0);
     cnt++;
   }
 
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilenameReIm,plotfileReIm,varNames,geom,time,step);
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
 }
 
-void StructFact::StructOut(amrex::Vector< MultiFab >& struct_out, const amrex::Real scale) {
+void StructFact::StructOut(MultiFab& struct_out) {
 
   BL_PROFILE_VAR("StructFact::StructOut()",StructOut);
   
-  struct_out.resize(N_COV);
-  for (int d=0; d<N_COV; d++) {
-    struct_out[d].define(cov_mag[0].boxArray(), cov_mag[0].DistributionMap(), 1, 0);
-    struct_out[d].setVal(0.0);
-  }
-
-  StructFinalize();
-  for(int d=0; d<N_COV; d++) {   
-    MultiFab::Copy(struct_out[d],cov_mag[d],0,0,1,0);
-  }
-
-  ShiftFFT(struct_out);
+  
 }
 
-void StructFact::StructFinalize(const amrex::Real scale) {
+void StructFact::Finalize(const amrex::Real scale) {
+  
+  Real nsamples_inv = 1.0/(Real)nsamples;
+  
+  ShiftFFT(cov_real);
+  ShiftFFT(cov_imag);
 
-  for(int d=0; d<N_COV; d++) {
-    cov_mag[d].setVal(0.0);
-    MultiFab::AddProduct(cov_mag[d],cov_real[d],0,cov_real[d],0,0,1,0);
-    MultiFab::AddProduct(cov_mag[d],cov_imag[d],0,cov_imag[d],0,0,1,0);
-  }
+  cov_real.mult(nsamples_inv);
+  cov_real.mult(scale);
+
+  cov_imag.mult(nsamples_inv);
+  cov_imag.mult(scale);
+
+  cov_mag.setVal(0.0);
+  MultiFab::AddProduct(cov_mag,cov_real,0,cov_real,0,0,N_COV,0);
+  MultiFab::AddProduct(cov_mag,cov_imag,0,cov_imag,0,0,N_COV,0);
 
   SqrtMF(cov_mag);
 
-  for(int d=0; d<N_COV; d++) {
-    cov_mag[d].mult(scale,0);
-  }
 }
 
-void StructFact::ComputeFFT(const Vector< MultiFab >& variables_temp,
-			    Vector< MultiFab >& variables_dft_real, 
-			    Vector< MultiFab >& variables_dft_imag,
+void StructFact::ComputeFFT(const MultiFab& variables,
+			    MultiFab& variables_dft_real, 
+			    MultiFab& variables_dft_imag,
 			    const Geometry geom) {
 
-  BL_PROFILE_VAR("StructFact::ComputeFFT()",ComputeFFT);
+  BL_PROFILE_VAR("StructFact::ComputeFFT()", ComputeFFT);
 
   Box domain(geom.Domain());
-  
-  // IF
-  const BoxArray& ba = variables_dft_real[0].boxArray();
-  // const BoxArray& ba_in = variables_dft_real[0].boxArray();
-  // BoxArray ba = ba_in;
-  // ba.resize(1);
-  // ba.refine(2);
-  
-  // ELSE
-  // BoxArray ba;
-  // // Initialize the boxarray "ba" from the single box "bx"
-  // ba.define(domain);
-  // ba.maxSize(IntVect(n_cells));
+  const BoxArray& ba = variables.boxArray();
+  DistributionMapping dm = variables.DistributionMap();
 
-  DistributionMapping dm(ba);
-
-  Vector< MultiFab > dft_real_temp, dft_imag_temp;
-  dft_real_temp.resize(variables_dft_real.size());
-  dft_imag_temp.resize(variables_dft_imag.size());
-  for (int d=0; d<N_VAR; d++) {
-    dft_real_temp[d].define(ba, dm, 1, 0);
-    dft_imag_temp[d].define(ba, dm, 1, 0);
-  }
+  MultiFab dft_real_temp, dft_imag_temp, variables_temp;
+  dft_real_temp.define(ba, dm, 1, 0);
+  dft_imag_temp.define(ba, dm, 1, 0);
+  variables_temp.define(ba, dm, 1, 0);
   
   amrex::Print() << "BA " << ba << std::endl;
 
-  if (variables_dft_real[0].nGrow() != 0 || variables_temp[0].nGrow() != 0) {
+  if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
     amrex::Error("Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
   }
 
@@ -334,7 +263,7 @@ void StructFact::ComputeFFT(const Vector< MultiFab >& variables_temp,
   Vector<int> rank_mapping;
   rank_mapping.resize(nboxes);
 
-  DistributionMapping dmap = dft_real_temp[0].DistributionMap();
+  DistributionMapping dmap = dft_real_temp.DistributionMap();
 
   for (int ib = 0; ib < nboxes; ++ib)
     {
@@ -360,23 +289,23 @@ void StructFact::ComputeFFT(const Vector< MultiFab >& variables_temp,
     }
 
   // FIXME: Assumes same grid spacing
-  // Real h = geom.CellSize(0);
-  // Real hsq = h*h;
 
   // Assume for now that nx = ny = nz
 #if (AMREX_SPACEDIM == 2)
-  int Ndims[3] = { nbz, nby};
-  int     n[3] = {domain.length(2), domain.length(1)};
+  int Ndims[3] = { 1, nby, nbx};
+  int     n[3] = { 1, domain.length(1), domain.length(0)};
 #elif (AMREX_SPACEDIM == 3)
   int Ndims[3] = { nbz, nby, nbx };
-  int     n[3] = {domain.length(2), domain.length(1), domain.length(0)};
+  int     n[3] = { domain.length(2), domain.length(1), domain.length(0)};
 #endif
   hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
   hacc::Dfft dfft(d);
 
   for (int dim=0; dim<N_VAR; dim++) {
+
+    MultiFab::Copy(variables_temp,variables,dim,0,1,0);
    
-    for (MFIter mfi(dft_real_temp[0],false); mfi.isValid(); ++mfi)
+    for (MFIter mfi(dft_real_temp,false); mfi.isValid(); ++mfi)
       {
 	// int gid = mfi.index();
 	// size_t local_size  = dfft.local_size();
@@ -399,7 +328,7 @@ void StructFact::ComputeFFT(const Vector< MultiFab >& variables_temp,
 	  for(size_t j=0; j<(size_t)ny; j++) {
 	    for(size_t i=0; i<(size_t)nx; i++) {
 
-	      complex_t temp(variables_temp[dim][mfi].dataPtr()[local_indx],0.);
+	      complex_t temp(variables_temp[mfi].dataPtr()[local_indx],0.);
 	      a[local_indx] = temp;
 	      local_indx++;
 
@@ -424,34 +353,26 @@ void StructFact::ComputeFFT(const Vector< MultiFab >& variables_temp,
 	    for(size_t i=0; i<(size_t)nx; i++) {
 
 	      // Divide by 2 pi N
-	      dft_real_temp[dim][mfi].dataPtr()[local_indx] = fac * std::real(a[local_indx]);
-	      dft_imag_temp[dim][mfi].dataPtr()[local_indx] = fac * std::imag(a[local_indx]);
+	      dft_real_temp[mfi].dataPtr()[local_indx] = fac * std::real(a[local_indx]);
+	      dft_imag_temp[mfi].dataPtr()[local_indx] = fac * std::imag(a[local_indx]);
 	      local_indx++;
 	    }
 	  }
 	}
       }
 
-      MultiFab::Copy(variables_dft_real[dim],dft_real_temp[dim],0,0,1,0);
-      MultiFab::Copy(variables_dft_imag[dim],dft_imag_temp[dim],0,0,1,0);
+      MultiFab::Copy(variables_dft_real,dft_real_temp,0,dim,1,0);
+      MultiFab::Copy(variables_dft_imag,dft_imag_temp,0,dim,1,0);
   }
 
   bool write_data = false;
   if (write_data) {
-    ShiftFFT(dft_real_temp);
-    ShiftFFT(dft_real_temp);
     std::string plotname = "a_DFT"; 
-    std::string x;
-    for (int i=0; i<N_VAR; i++) {
-      x = plotname;
-      x += '_';
-      x += '0' + i;
-      VisMF::Write(variables_dft_real[i],x);
-    }
+    VisMF::Write(variables_dft_real,plotname);
   }
 }
 
-void StructFact::ShiftFFT(amrex::Vector< MultiFab >& dft_out) {
+void StructFact::ShiftFFT(MultiFab& dft_out) {
 
   BoxArray ba_onegrid;
   {
@@ -465,38 +386,33 @@ void StructFact::ShiftFFT(amrex::Vector< MultiFab >& dft_out) {
 
   DistributionMapping dmap_onegrid(ba_onegrid);
 
-  Vector< MultiFab > dft_onegrid(N_COV);
-  for (int d=0; d<N_COV; d++) {
-      dft_onegrid[d].define(ba_onegrid, dmap_onegrid, 1, 0);
-      dft_onegrid[d].ParallelCopy(dft_out[d], 0, 0, 1);
-  }  
+  MultiFab dft_onegrid;
+  dft_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
 
-  // Shift DFT by N/2+1 (pi)
-  for(int d=0; d<dft_onegrid.size(); d++) {
-      for (MFIter mfi(dft_onegrid[d]); mfi.isValid(); ++mfi) {
-          // Note: Make sure that multifab is cell-centered
-          const Box& validBox = mfi.validbox();
-          fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                    BL_TO_FORTRAN_ANYD(dft_onegrid[d][mfi]));
-      }
+  for (int d=0; d<N_COV; d++) {
+    dft_onegrid.ParallelCopy(dft_out, d, 0, 1);
+
+    // Shift DFT by N/2+1 (pi)
+    for (MFIter mfi(dft_onegrid); mfi.isValid(); ++mfi) {
+      // Note: Make sure that multifab is cell-centered
+      const Box& validBox = mfi.validbox();
+      fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+		BL_TO_FORTRAN_FAB(dft_onegrid[mfi]));
+    }
+
+    dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
   }
-
-  for (int d=0; d<N_COV; d++) {
-      dft_out[d].ParallelCopy(dft_onegrid[d], 0, 0, 1);
-  }  
 
 }
 
-void StructFact::SqrtMF(amrex::Vector< MultiFab >& struct_out) {
-  for(int d=0; d<struct_out.size(); d++) {
-    for (MFIter mfi(struct_out[0]); mfi.isValid(); ++mfi) {
+void StructFact::SqrtMF(MultiFab& struct_out) {
+  for (MFIter mfi(struct_out); mfi.isValid(); ++mfi) {
 
-      // Note: Make sure that multifab is cell-centered
-      const Box& validBox = mfi.validbox();
+    // Note: Make sure that multifab is cell-centered
+    const Box& validBox = mfi.validbox();
 
-      sqrt_mf(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-	      BL_TO_FORTRAN_ANYD(struct_out[d][mfi]));
+    sqrt_mf(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+	    BL_TO_FORTRAN_FAB(struct_out[mfi]));
 
-    }
   }
 }
