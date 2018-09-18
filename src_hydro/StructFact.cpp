@@ -48,7 +48,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   }
 }
 
-void StructFact::FortStructure(const Vector< MultiFab >& umac, const Geometry geom) {
+void StructFact::FortStructure(const Vector< MultiFab >& variables, const Geometry geom) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
@@ -59,17 +59,6 @@ void StructFact::FortStructure(const Vector< MultiFab >& umac, const Geometry ge
   //   Abort("Only adapted for single grid");
   //   exit(0);
   // }
-  
-  Vector< MultiFab > variables_temp;
-  variables_temp.resize(N_VAR);
-  for (int d=0; d<N_VAR; d++) {
-    variables_temp[d].define(ba, dm, 1, 0);
-    // Print() << "HACK: variables_temp # ghost cells = " << variables_temp[d].nGrow() << "\n";
-  }
-  
-  for (int d=0; d<N_VAR; d++) { 
-    MultiFab::Copy(variables_temp[d],umac[d],0,0,1,0);
-  }
 
   amrex::Vector< MultiFab > variables_dft_real, variables_dft_imag;
   variables_dft_real.resize(N_VAR);
@@ -79,7 +68,7 @@ void StructFact::FortStructure(const Vector< MultiFab >& umac, const Geometry ge
     variables_dft_imag[d].define(ba, dm, 1, 0);
   }
 
-  ComputeFFT(variables_temp, variables_dft_real, variables_dft_imag, geom);
+  ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
 
   MultiFab cov_real_temp;
   MultiFab cov_imag_temp;
@@ -464,14 +453,6 @@ void StructFact::ComputeFFT(const Vector< MultiFab >& variables_temp,
 
 void StructFact::ShiftFFT(amrex::Vector< MultiFab >& dft_out) {
 
-  // const BoxArray& ba = dft_out[0].boxArray();
-  
-  // Box domain(geom.Domain());
-  // BoxArray ba;
-  // // Initialize the boxarray "ba" from the single box "bx"
-  // ba.define(domain);
-  // ba.maxSize(IntVect(n_cells));
-
   BoxArray ba_onegrid;
   {
       IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
@@ -489,8 +470,7 @@ void StructFact::ShiftFFT(amrex::Vector< MultiFab >& dft_out) {
       dft_onegrid[d].define(ba_onegrid, dmap_onegrid, 1, 0);
       dft_onegrid[d].ParallelCopy(dft_out[d], 0, 0, 1);
   }  
-    
-  // NOT PARALLELIZED
+
   // Shift DFT by N/2+1 (pi)
   for(int d=0; d<dft_onegrid.size(); d++) {
       for (MFIter mfi(dft_onegrid[d]); mfi.isValid(); ++mfi) {
@@ -504,7 +484,7 @@ void StructFact::ShiftFFT(amrex::Vector< MultiFab >& dft_out) {
   for (int d=0; d<N_COV; d++) {
       dft_out[d].ParallelCopy(dft_onegrid[d], 0, 0, 1);
   }  
-  
+
 }
 
 void StructFact::SqrtMF(amrex::Vector< MultiFab >& struct_out) {
