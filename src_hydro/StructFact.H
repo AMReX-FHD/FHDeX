@@ -34,6 +34,7 @@ class StructFact {
   MultiFab cov_real;
   MultiFab cov_imag;
 
+
   // Vector of MultiFabs containing final magnitude of covariances
   MultiFab cov_mag;
 

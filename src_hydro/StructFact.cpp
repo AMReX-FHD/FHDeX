@@ -45,6 +45,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
+  // std::cout << "GOT HERE, proc = " << ParallelDescriptor::MyProc() << "\n";
+
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
 
@@ -53,7 +55,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   //   exit(0);
   // }
 
-  if (false) {
+  if (false) {    
     std::string plotname = "a_VAR";
     VisMF::Write(variables,plotname);
   }
@@ -226,6 +228,14 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   const BoxArray& ba = variables.boxArray();
   DistributionMapping dm = variables.DistributionMap();
 
+  // BoxArray ba;
+  // IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+  // IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+  // Box domain(dom_lo, dom_hi);
+  // // Initialize the boxarray "ba" from the single box "bx"
+  // ba.define(domain);
+  // DistributionMapping dm(ba);
+
   MultiFab dft_real_temp, dft_imag_temp, variables_temp;
   dft_real_temp.define(ba, dm, 1, 0);
   dft_imag_temp.define(ba, dm, 1, 0);
@@ -264,6 +274,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   rank_mapping.resize(nboxes);
 
   DistributionMapping dmap = dft_real_temp.DistributionMap();
+  // DistributionMapping dmap = variables.DistributionMap();
 
   for (int ib = 0; ib < nboxes; ++ib)
     {
@@ -276,11 +287,11 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 #endif
 
       // This would be the "correct" local index if the data wasn't being transformed
-      // int local_index = k*nbx*nby + j*nbx + i;
+      int local_index = k*nbx*nby + j*nbx + i;
 
       // This is what we pass to dfft to compensate for the Fortran ordering
       //      of amrex data in MultiFabs.
-      int local_index = i*nby*nbz + j*nbz + k;
+      // int local_index = i*nby*nbz + j*nbz + k;
 
       rank_mapping[local_index] = dmap[ib];
       // if (verbose)
@@ -301,8 +312,14 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
   hacc::Dfft dfft(d);
 
+  // Print() << "RANK MAPPING: \n";
+  // for (int i=0; i<rank_mapping.size(); i++) {
+  //   Print() << "\t" << rank_mapping[i] << std::endl;
+  // }
+
   for (int dim=0; dim<N_VAR; dim++) {
 
+    // variables_temp.ParallelCopy(variables, dim, 0, 1);
     MultiFab::Copy(variables_temp,variables,dim,0,1,0);
    
     for (MFIter mfi(dft_real_temp,false); mfi.isValid(); ++mfi)
@@ -339,7 +356,10 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	//  *******************************************
 	//  Compute the forward transform
 	//  *******************************************
+	std::cout << "GOT HERE " << ParallelDescriptor::MyProc() << "\n";
 	dfft.forward(&a[0]);
+
+	d.redistribute_2_to_3(&a[0],&b[0],2);
 	
 	// Note: Scaling for inverse FFT
 	size_t global_size  = dfft.global_size();
@@ -353,16 +373,18 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	    for(size_t i=0; i<(size_t)nx; i++) {
 
 	      // Divide by 2 pi N
-	      dft_real_temp[mfi].dataPtr()[local_indx] = fac * std::real(a[local_indx]);
-	      dft_imag_temp[mfi].dataPtr()[local_indx] = fac * std::imag(a[local_indx]);
+	      dft_real_temp[mfi].dataPtr()[local_indx] = fac * std::real(b[local_indx]);
+	      dft_imag_temp[mfi].dataPtr()[local_indx] = fac * std::imag(b[local_indx]);
 	      local_indx++;
 	    }
 	  }
 	}
       }
-
-      MultiFab::Copy(variables_dft_real,dft_real_temp,0,dim,1,0);
-      MultiFab::Copy(variables_dft_imag,dft_imag_temp,0,dim,1,0);
+    
+    // variables_dft_real.ParallelCopy(dft_real_temp, 0, dim, 1);
+    // variables_dft_imag.ParallelCopy(dft_imag_temp, 0, dim, 1);
+    MultiFab::Copy(variables_dft_real,dft_real_temp,0,dim,1,0);
+    MultiFab::Copy(variables_dft_imag,dft_imag_temp,0,dim,1,0);
   }
 
   bool write_data = false;
