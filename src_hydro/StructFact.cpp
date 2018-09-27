@@ -3,11 +3,12 @@
 #include "hydro_functions_F.H"
 #include "StructFact.H"
 
+#include <AMReX_MultiFabUtil.H>
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
 
 StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
-		       const Vector< std::string >& var_names) {
+		       const Vector< std::string >& var_names, const int verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
@@ -15,6 +16,8 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 
   N_VAR = var_names.size();
   N_COV = N_VAR*(N_VAR+1)/2;
+
+  verbosity = verbosity_in;
 
   // Note that we are defining with NO ghost cells
 
@@ -30,7 +33,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   int cnt = 0;
   for (int j=0; j<N_VAR; j++) {
     for (int i=j; i<N_VAR; i++) {
-      x = "structFact";
+      x = "struct_fact";
       x += '_';
       x += var_names[j];
       x += '_';
@@ -48,14 +51,9 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
 
-  // if (ba.size() != 1) {
-  //   Abort("Only adapted for single grid");
-  //   exit(0);
-  // }
-
-  if (false) {    
-    std::string plotname = "a_VAR";
-    VisMF::Write(variables,plotname);
+  if (ba.size() != ParallelDescriptor::NProcs()) {
+    Abort("Need same number of MPI processes as grids");
+    exit(0);
   }
 
   MultiFab variables_dft_real, variables_dft_imag;
@@ -95,8 +93,12 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   bool write_data = false;
   if (write_data) {
     std::string plotname; 
-    plotname = "a_COV"; 
+    plotname = "a_VAR";
+    VisMF::Write(variables,plotname);
+    plotname = "a_COV_REAL"; 
     VisMF::Write(cov_real,plotname);
+    plotname = "a_COV_IMAG"; 
+    VisMF::Write(cov_imag,plotname);
   }
 
   nsamples++;
@@ -118,23 +120,14 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
 
-  // keep a counter for plotfile variables
-  int cnt = 0;
-
+  int cnt = 0; // keep a counter for plotfile variables
   for (int j=0; j<N_VAR; j++) {
     for (int i=j; i<N_VAR; i++) {
       varNames[cnt++] = cov_names[cnt];
     }
   }
-
-  // reset plotfile variable counter
-  cnt = 0;
-
-  // copy structure factor into plotfile
-  for (int d=0; d<N_COV; ++d) {
-    MultiFab::Copy(plotfile, cov_mag, cnt, cnt, 1, 0);
-    cnt++;
-  }
+  
+  MultiFab::Copy(plotfile, cov_mag, 0, 0, N_COV, 0); // copy structure factor into plotfile
 
   // write a plotfile
   WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
@@ -147,9 +140,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
 
-  // keep a counter for plotfile variables
-  cnt = 0;
-  
+  cnt = 0; // keep a counter for plotfile variables
   int index = 0;
   for (int j=0; j<N_VAR; j++) {
     for (int i=j; i<N_VAR; i++) {
@@ -159,7 +150,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
       cnt++;
     }
   }
-  
+
   index = 0;
   for (int j=0; j<N_VAR; j++) {
     for (int i=j; i<N_VAR; i++) {
@@ -170,18 +161,8 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
     }
   }
 
-  // reset plotfile variable counter
-  cnt = 0;
-
-  for(int d=0; d<N_COV; d++) {   
-    MultiFab::Copy(plotfile,cov_real,d,cnt,1,0);
-    cnt++;
-  }
-
-  for(int d=0; d<N_COV; d++) {   
-    MultiFab::Copy(plotfile,cov_imag,d,cnt,1,0);
-    cnt++;
-  }
+  MultiFab::Copy(plotfile,cov_real,0,    0,N_COV,0);
+  MultiFab::Copy(plotfile,cov_imag,0,N_COV,N_COV,0);
 
   // write a plotfile
   WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
@@ -190,8 +171,12 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
 void StructFact::StructOut(MultiFab& struct_out) {
 
   BL_PROFILE_VAR("StructFact::StructOut()",StructOut);
-  
-  
+
+  if (struct_out.nComp() == cov_mag.nComp()) {
+    MultiFab::Copy(struct_out,cov_mag,0,0,cov_mag.nComp(),0);
+  } else {
+    amrex::Error("Must have an equal number of components");
+  }
 }
 
 void StructFact::Finalize(const amrex::Real scale) {
@@ -225,24 +210,14 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   Box domain(geom.Domain());
   const BoxArray& ba = variables.boxArray();
   DistributionMapping dm = variables.DistributionMap();
-
-  // BoxArray ba;
-  // IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-  // IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-  // Box domain(dom_lo, dom_hi);
-  // // Initialize the boxarray "ba" from the single box "bx"
-  // ba.define(domain);
-  // DistributionMapping dm(ba);
-
-  MultiFab dft_real_temp, dft_imag_temp, variables_temp;
-  dft_real_temp.define(ba, dm, 1, 0);
-  dft_imag_temp.define(ba, dm, 1, 0);
-  variables_temp.define(ba, dm, 1, 0);
   
-  amrex::Print() << "BA " << ba << std::endl;
+  if (verbosity > 1) {
+    amrex::Print() << "BA " << ba << std::endl;
+  }
 
   if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
-    amrex::Error("Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
+    amrex::Error("Current implementation requires that both variables_temp[0] 
+                  and variables_dft_real[0] have no ghost cells");
   }
 
   // We assume that all grids have the same size hence 
@@ -263,16 +238,17 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   int nbz = domain.length(2) / nz;
 #endif
   int nboxes = nbx * nby * nbz;
-  amrex::Print() << "nx, ny, nz:\t" << nx << ", " << ny << ", " << nz << std::endl;
-  amrex::Print() << "Number of boxes:\t" << nboxes << "\tBA size:\t" << ba.size() << std::endl;
+  if (verbosity > 1) {
+    amrex::Print() << "nx, ny, nz:\t" << nx << ", " << ny << ", " << nz << std::endl;
+    amrex::Print() << "Number of boxes:\t" << nboxes << "\tBA size:\t" << ba.size() << std::endl;
+  }
   if (nboxes != ba.size())
     amrex::Error("NBOXES NOT COMPUTED CORRECTLY");
 
   Vector<int> rank_mapping;
   rank_mapping.resize(nboxes);
 
-  DistributionMapping dmap = dft_real_temp.DistributionMap();
-  // DistributionMapping dmap = variables.DistributionMap();
+  DistributionMapping dmap = variables_dft_real.DistributionMap();
 
   for (int ib = 0; ib < nboxes; ++ib)
     {
@@ -287,14 +263,14 @@ void StructFact::ComputeFFT(const MultiFab& variables,
       // This would be the "correct" local index if the data wasn't being transformed
       int local_index = k*nbx*nby + j*nbx + i;
 
-      // This is what we pass to dfft to compensate for the Fortran ordering
+      // This is what we [would] pass to dfft to compensate for the Fortran ordering
       //      of amrex data in MultiFabs.
       // int local_index = i*nby*nbz + j*nbz + k;
 
       rank_mapping[local_index] = dmap[ib];
-      // if (verbose)
-      // 	amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib 
-      // 		       << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
+      if (verbosity > 0)
+      	amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib 
+      		       << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
 
   // FIXME: Assumes same grid spacing
@@ -310,83 +286,75 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   hacc::Distribution d(MPI_COMM_WORLD,n,Ndims,&rank_mapping[0]);
   hacc::Dfft dfft(d);
 
-  // Print() << "RANK MAPPING: \n";
-  // for (int i=0; i<rank_mapping.size(); i++) {
-  //   Print() << "\t" << rank_mapping[i] << std::endl;
-  // }
+  if (verbosity > 0) {
+    Print() << "RANK MAPPING: \n";
+    for (int i=0; i<rank_mapping.size(); i++) {
+      Print() << "\t" << rank_mapping[i] << std::endl;
+    }
+  }
 
   for (int dim=0; dim<N_VAR; dim++) {
-
-    // variables_temp.ParallelCopy(variables, dim, 0, 1);
-    MultiFab::Copy(variables_temp,variables,dim,0,1,0);
    
-    for (MFIter mfi(dft_real_temp,false); mfi.isValid(); ++mfi)
-      {
-	// int gid = mfi.index();
-	// size_t local_size  = dfft.local_size();
+    for (MFIter mfi(variables_dft_real,false); mfi.isValid(); ++mfi) {
    
-	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
-	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
+      std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
+      std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
 
-	a.resize(nx*ny*nz);
-	b.resize(nx*ny*nz);
+      a.resize(nx*ny*nz);
+      b.resize(nx*ny*nz);
 
-	dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
+      dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
 
-	// *******************************************
-	// Copy real data from Rhs into real part of a -- no ghost cells and
-	// put into C++ ordering (not Fortran)
-	// *******************************************
-	complex_t zero(0.0, 0.0);
-	size_t local_indx = 0;
-	for(size_t k=0; k<(size_t)nz; k++) {
-	  for(size_t j=0; j<(size_t)ny; j++) {
-	    for(size_t i=0; i<(size_t)nx; i++) {
+      // *******************************************
+      // Copy real data from Rhs into real part of a -- no ghost cells and
+      // put into C++ ordering (not Fortran)
+      // *******************************************
+      complex_t zero(0.0, 0.0);
+      size_t local_indx = 0;
+      for(size_t k=0; k<(size_t)nz; k++) {
+	for(size_t j=0; j<(size_t)ny; j++) {
+	  for(size_t i=0; i<(size_t)nx; i++) {
 
-	      complex_t temp(variables_temp[mfi].dataPtr()[local_indx],0.);
-	      a[local_indx] = temp;
-	      local_indx++;
+	    complex_t temp(variables[mfi].dataPtr(dim)[local_indx],0.);
+	    a[local_indx] = temp;
+	    local_indx++;
 
-	    }
-	  }
-	}
-
-	//  *******************************************
-	//  Compute the forward transform
-	//  *******************************************
-	dfft.forward(&a[0]);
-
-	d.redistribute_2_to_3(&a[0],&b[0],2);
-	
-	// Note: Scaling for inverse FFT
-	size_t global_size  = dfft.global_size();
-	
-	// Real pi = 4.0*std::atan(1.0);
-	double fac = sqrt(1.0 / global_size);
-
-	local_indx = 0;
-	for(size_t k=0; k<(size_t)nz; k++) {
-	  for(size_t j=0; j<(size_t)ny; j++) {
-	    for(size_t i=0; i<(size_t)nx; i++) {
-
-	      // Divide by 2 pi N
-	      dft_real_temp[mfi].dataPtr()[local_indx] = fac * std::real(b[local_indx]);
-	      dft_imag_temp[mfi].dataPtr()[local_indx] = fac * std::imag(b[local_indx]);
-	      local_indx++;
-	    }
 	  }
 	}
       }
-    
-    // variables_dft_real.ParallelCopy(dft_real_temp, 0, dim, 1);
-    // variables_dft_imag.ParallelCopy(dft_imag_temp, 0, dim, 1);
-    MultiFab::Copy(variables_dft_real,dft_real_temp,0,dim,1,0);
-    MultiFab::Copy(variables_dft_imag,dft_imag_temp,0,dim,1,0);
+
+      //  *******************************************
+      //  Compute the forward transform
+      //  *******************************************
+      dfft.forward(&a[0]);
+
+      // Redistribute data from z-pencils in k-space back to blocks
+      d.redistribute_2_to_3(&a[0],&b[0],2);
+	
+      // Note: Scaling for inverse FFT
+      size_t global_size  = dfft.global_size();
+	
+      // Real pi = 4.0*std::atan(1.0);
+      Real fac = sqrt(1.0 / (Real)global_size);
+
+      local_indx = 0;
+      for(size_t k=0; k<(size_t)nz; k++) {
+	for(size_t j=0; j<(size_t)ny; j++) {
+	  for(size_t i=0; i<(size_t)nx; i++) {
+
+	    // Divide by 2 pi N
+	    variables_dft_real[mfi].dataPtr(dim)[local_indx] = fac * std::real(b[local_indx]);
+	    variables_dft_imag[mfi].dataPtr(dim)[local_indx] = fac * std::imag(b[local_indx]);
+	    local_indx++;
+	  }
+	}
+      }
+    }
   }
 
   bool write_data = false;
   if (write_data) {
-    std::string plotname = "a_DFT"; 
+    std::string plotname = "a_DFT_REAL";
     VisMF::Write(variables_dft_real,plotname);
   }
 }

@@ -3,7 +3,6 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_MultiFabUtil.H>
 #include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
 
@@ -23,9 +22,11 @@ using namespace common;
 
 class StructFact {
 
-  int N_COV = 1;
-  int N_VAR = 1;
-  
+  int N_VAR = 1;  // Number of variables
+  int N_COV = 1;  // Number of covariances (lower diagonal of matrix)
+
+  int verbosity = 0;
+
   // Total number of states to average over, updated by FortStructure()
   int nsamples = 0;
 
@@ -34,22 +35,21 @@ class StructFact {
   MultiFab cov_real;
   MultiFab cov_imag;
 
-
   // Vector of MultiFabs containing final magnitude of covariances
   MultiFab cov_mag;
 
+  // Vector containing names of covariances
   amrex::Vector< std::string > cov_names;
 
 public:
 
   StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
-	                const amrex::Vector< std::string >&);
+	                const amrex::Vector< std::string >&, const int verbosity=0);
   void FortStructure(   const amrex::MultiFab&, const amrex::Geometry);
   void Finalize(        const amrex::Real scale=1.0);
   void WritePlotFile(   const int, const amrex::Real, const amrex::Geometry);
   void StructOut(       amrex::MultiFab&);
-  void ComputeFFT(      const amrex::MultiFab&, 
-		        amrex::MultiFab&,
+  void ComputeFFT(      const amrex::MultiFab&, amrex::MultiFab&,
 			amrex::MultiFab&, const amrex::Geometry);
   void ShiftFFT(        amrex::MultiFab&);
   void SqrtMF(          amrex::MultiFab&);
