@@ -45,8 +45,6 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
 
   BL_PROFILE_VAR("StructFact::FortStructure()",FortStructure);
 
-  // std::cout << "GOT HERE, proc = " << ParallelDescriptor::MyProc() << "\n";
-
   const BoxArray& ba = variables.boxArray();
   const DistributionMapping& dm = variables.DistributionMap();
 
@@ -356,7 +354,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	//  *******************************************
 	//  Compute the forward transform
 	//  *******************************************
-	std::cout << "GOT HERE " << ParallelDescriptor::MyProc() << "\n";
 	dfft.forward(&a[0]);
 
 	d.redistribute_2_to_3(&a[0],&b[0],2);
@@ -364,8 +361,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	// Note: Scaling for inverse FFT
 	size_t global_size  = dfft.global_size();
 	
-	Real pi = 4.0*std::atan(1.0);
-	double fac = sqrt(1.0 / global_size / pi);
+	// Real pi = 4.0*std::atan(1.0);
+	double fac = sqrt(1.0 / global_size);
 
 	local_indx = 0;
 	for(size_t k=0; k<(size_t)nz; k++) {
