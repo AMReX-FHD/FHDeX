@@ -3,9 +3,15 @@
 #include "hydro_functions_F.H"
 #include "StructFact.H"
 
-#include <AMReX_MultiFabUtil.H>
-#include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
+#include "AMReX_MultiFabUtil.H"
+#include "AMReX_VisMF.H"
+#include "AMReX_PlotFileUtil.H"
+
+// These are for SWFFT
+#include <Distribution.H>
+#include <AlignedAllocator.h>
+#include <Dfft.H>
 
 StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 		       const Vector< std::string >& var_names, const int verbosity_in) {
@@ -52,7 +58,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   const DistributionMapping& dm = variables.DistributionMap();
 
   if (ba.size() != ParallelDescriptor::NProcs()) {
-    Abort("Need same number of MPI processes as grids");
+    amrex::Error("Need same number of MPI processes as grids");
     exit(0);
   }
 
@@ -216,8 +222,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 
   if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
-    amrex::Error("Current implementation requires that both variables_temp[0] 
-                  and variables_dft_real[0] have no ghost cells");
+    amrex::Error("Current implementation requires that both variables_temp and variables_dft_real have no ghost cells");
   }
 
   // We assume that all grids have the same size hence 
@@ -272,8 +277,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
       	amrex::Print() << "LOADING RANK NUMBER " << dmap[ib] << " FOR GRID NUMBER " << ib 
       		       << " WHICH IS LOCAL NUMBER " << local_index << std::endl;
     }
-
-  // FIXME: Assumes same grid spacing
 
   // Assume for now that nx = ny = nz
 #if (AMREX_SPACEDIM == 2)
@@ -334,7 +337,6 @@ void StructFact::ComputeFFT(const MultiFab& variables,
       // Note: Scaling for inverse FFT
       size_t global_size  = dfft.global_size();
 	
-      // Real pi = 4.0*std::atan(1.0);
       Real fac = sqrt(1.0 / (Real)global_size);
 
       local_indx = 0;
@@ -392,14 +394,14 @@ void StructFact::ShiftFFT(MultiFab& dft_out) {
 
 }
 
-void StructFact::SqrtMF(MultiFab& struct_out) {
-  for (MFIter mfi(struct_out); mfi.isValid(); ++mfi) {
+void StructFact::SqrtMF(MultiFab& mf) {
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
 
     // Note: Make sure that multifab is cell-centered
     const Box& validBox = mfi.validbox();
 
     sqrt_mf(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-	    BL_TO_FORTRAN_FAB(struct_out[mfi]));
+	    BL_TO_FORTRAN_FAB(mf[mfi]));
 
   }
 }

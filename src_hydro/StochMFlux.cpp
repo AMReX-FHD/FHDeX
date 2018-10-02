@@ -2,8 +2,10 @@
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "hydro_functions_F.H"
-
 #include "StochMFlux.H"
+
+#include <AMReX_MultiFabUtil.H>
+#include <AMReX_VisMF.H>
 
 StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in, 
 		       int n_rngs_in) {
@@ -111,11 +113,9 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
       dVol *= dx[2];
     } 
   }
-  // Print() << "Hack: dVol = " << dVol << "\n";
   
   // Compute variance using computed differential volume
   Real variance = variance_coef_mom*sqrt(variance_coef_mom*2.0*k_B/(dVol*dt));
-  // Print() << "Hack: variance = " << variance << "\n";
   
   // Scale mflux_weighted by variance
   mflux_cc_weighted.mult(variance, 1);
@@ -198,6 +198,111 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     mfluxdiv[d].FillBoundary(geom.periodicity());
+  }
+}
+
+void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac, 
+				  const MultiFab& rhotot, const MultiFab& Temp, 
+				  const amrex::Real& variance, Geometry geom) {
+  
+  std::array< MultiFab, AMREX_SPACEDIM > m_old;
+  std::array< MultiFab, AMREX_SPACEDIM > rhotot_fc;
+  std::array< MultiFab, AMREX_SPACEDIM > Temp_fc;
+  
+  for (int d=0; d<AMREX_SPACEDIM; d++) {
+    m_old[d].define(     umac[d].boxArray(), umac[d].DistributionMap(),1,1);
+    rhotot_fc[d].define( umac[d].boxArray(), umac[d].DistributionMap(),1,1);
+    Temp_fc[d].define(   umac[d].boxArray(), umac[d].DistributionMap(),1,1);
+  }
+
+  AverageCCToFace(rhotot, 0, rhotot_fc, 0, 1);
+  AverageCCToFace(Temp,   0, Temp_fc,    0, 1);
+
+  // Convert umac to momenta, rho*umac
+  for (int d=0; d<AMREX_SPACEDIM; d++) {
+    MultiFab::Copy(     m_old[d],umac[d],      0,0,1,1);
+    MultiFab::Multiply( m_old[d],rhotot_fc[d],0,0,1,1);
+  }
+
+  addMfluctuations(m_old,rhotot_fc,Temp_fc,variance,geom);
+  
+  // Convert momenta to umac, (1/rho)*momentum
+  for (int d=0; d<AMREX_SPACEDIM; d++) {
+    MultiFab::Copy(   umac[d],m_old[d],    0,0,1,1);
+    MultiFab::Divide( umac[d],rhotot_fc[d],0,0,1,1);
+  }
+  
+}
+
+void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& m_old, 
+				  const std::array< MultiFab, AMREX_SPACEDIM >& rhotot_fc, 
+				  const std::array< MultiFab, AMREX_SPACEDIM >& Temp_fc, 
+				  const amrex::Real& variance, Geometry geom) {
+ 
+  const Real* dx = geom.CellSize();
+  Real dVol = dx[0]*dx[1];
+  if (AMREX_SPACEDIM == 2) {
+    dVol *= cell_depth;
+  } else {
+    if (AMREX_SPACEDIM == 3) {
+      dVol *= dx[2];
+    } 
+  }
+
+  // Initialize variances
+  Real variance_mom = abs(variance)*k_B/dVol;
+  std::array<MultiFab, AMREX_SPACEDIM> variance_mfab;
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    variance_mfab[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,1);
+  }
+
+  std::array< MultiFab, AMREX_SPACEDIM > mac_temp;
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    mac_temp[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,1);
+  }
+
+  // Fill momentum multifab with random numbers, scaled by equilibrium variances
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    // Set variance multifab to sqrt(rho*temp)
+    MultiFab::Copy(     variance_mfab[d],rhotot_fc[d],0,0,1,1);
+    MultiFab::Multiply( variance_mfab[d],Temp_fc[d],  0,0,1,1);
+    SqrtMF(variance_mfab[d]);
+    
+    // Fill momentum with random numbers, scaled by sqrt(var*k_B/dV)
+    MultiFABFillRandom(mac_temp[d],0,variance_mom,geom);
+    
+    // Scale random momenta further by factor of sqrt(rho*temp)
+    MultiFab::Multiply(mac_temp[d],variance_mfab[d],0,0,1,1);
+    
+    MultiFab::Saxpy(m_old[d], 1.0, mac_temp[d],0,0,1,1);
+
+    // For safety, although called by MultiFABFillRandom()
+    m_old[d].OverrideSync(geom.periodicity());
+    m_old[d].FillBoundary(geom.periodicity());
+  }
+
+  if (variance < 0.0) {
+    // Ensure zero total momentum
+    Vector<Real> av_mom;
+    // take staggered sum & divide by number of cells
+    SumStag(m_old,0,av_mom,true);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      // subtract off average
+      m_old[d].plus(-av_mom[d],1);
+      m_old[d].OverrideSync(geom.periodicity());
+      m_old[d].FillBoundary(geom.periodicity());
+    }
+  }
+}
+
+void StochMFlux::SqrtMF(amrex::MultiFab& mf) {
+  for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+
+    // Note: Make sure that multifab is cell-centered
+    const Box& validBox_cc = enclosedCells(mfi.validbox());
+
+    sqrt_mf(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
+	    BL_TO_FORTRAN_FAB(mf[mfi]));
   }
 }
 

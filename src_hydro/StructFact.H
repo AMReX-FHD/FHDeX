@@ -4,13 +4,6 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
-#include <AMReX_VisMF.H>
-
-// These are for SWFFT
-#include <Distribution.H>
-#include <AlignedAllocator.h>
-#include <Dfft.H>
-
 #include <string>
 
 #include <common_namespace.H>

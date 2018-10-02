@@ -5,9 +5,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
 
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_VisMF.H>
-
 #include <common_namespace.H>
 
 using namespace amrex;
@@ -33,22 +30,25 @@ class StochMFlux {
 
 public:
 
-  StochMFlux(BoxArray,DistributionMapping,Geometry,int);
-  void fillMStochastic();
-  void weightMflux(Vector< amrex::Real >);
-  void multbyVarSqrtEtaTemp(const MultiFab& eta_cc,  
-			    const std::array< MultiFab, NUM_EDGE >& eta_ed, 
-			    const MultiFab& temp_cc, 
-			    const std::array< MultiFab, NUM_EDGE >& temp_ed,
-			    const amrex::Real& dt);
-  void stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv, 
-		   const MultiFab& eta_cc,  
-		   const std::array< MultiFab, NUM_EDGE >& eta_ed, 
-		   const MultiFab& temp_cc, 
-		   const std::array< MultiFab, NUM_EDGE >& temp_ed, 
-		   const Vector< amrex::Real >& weights,
-		   const amrex::Real& dt);
-  void writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv);
+  StochMFlux(                 BoxArray,DistributionMapping,Geometry,int);
+  void fillMStochastic(       );
+  void weightMflux(           Vector< amrex::Real >);
+  void multbyVarSqrtEtaTemp(  const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&, 
+			      const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
+			      const amrex::Real&);
+  void stochMforce(           std::array< amrex::MultiFab, AMREX_SPACEDIM >&, const amrex::MultiFab&,
+			      const std::array< amrex::MultiFab, NUM_EDGE >&, const amrex::MultiFab&,
+			      const std::array< amrex::MultiFab, NUM_EDGE >&,
+			      const amrex::Vector< amrex::Real >&, const amrex::Real&);
+  void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
+			      const amrex::MultiFab&, const amrex::MultiFab&, 
+			      const amrex::Real&, Geometry);
+  void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
+			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
+			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
+			      const amrex::Real&, Geometry);
+  void SqrtMF(                amrex::MultiFab&);
+  void writeMFs(              std::array< MultiFab, AMREX_SPACEDIM >&);
 
 };
 
