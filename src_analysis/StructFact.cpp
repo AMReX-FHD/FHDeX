@@ -216,8 +216,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 
   if (variables_dft_real.nGrow() != 0 || variables.nGrow() != 0) {
-    amrex::Error("Current implementation requires that both variables_temp[0] 
-                  and variables_dft_real[0] have no ghost cells");
+    amrex::Error("Current implementation requires that both variables_temp[0] and variables_dft_real[0] have no ghost cells");
   }
 
   // We assume that all grids have the same size hence 

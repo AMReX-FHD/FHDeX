@@ -1,3 +1,4 @@
 CEXE_sources += StructFact.cpp
 
 CEXE_headers += StructFact.H
+CEXE_headers += analysis_functions_F.H
