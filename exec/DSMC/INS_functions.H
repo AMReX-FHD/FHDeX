@@ -20,7 +20,10 @@ void WritePlotFile(int step,
                    const std::array< MultiFab, 3 >& particleVelocity,
                    const MultiFab& particleTemperature,
                    const MultiFab& particlePressureMean,
+                   const MultiFab& particleEnergyMean,
                    const MultiFab& spatialCorrelation,
+                   const MultiFab& densityVar,
+                   const MultiFab& density,
                    const MultiFab& particleMembraneFlux,
                    FhdParticleContainer& particles);
 

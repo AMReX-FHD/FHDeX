@@ -24,6 +24,7 @@ void InitializeCommonNamespace() {
     chk_base_name.resize(128);
     grav.resize(AMREX_SPACEDIM);
     molmass.resize(MAX_SPECIES);
+    diameter.resize(MAX_SPECIES);
     rhobar.resize(MAX_SPECIES);
     u_init.resize(2);
     T_init.resize(2);
@@ -39,7 +40,7 @@ void InitializeCommonNamespace() {
                                 &plot_int, plot_base_name.c_str(), plot_base_name.size()+1,
                                 &chk_int, chk_base_name.c_str(), chk_base_name.size()+1,
                                 &prob_type, &restart, &print_int, &project_eos_int,
-                                grav.dataPtr(), &nspecies, molmass.dataPtr(), 
+                                grav.dataPtr(), &nspecies, molmass.dataPtr(), diameter.dataPtr(), 
                                 rhobar.dataPtr(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
                                 T_init.dataPtr(),

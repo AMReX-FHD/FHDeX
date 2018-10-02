@@ -5,7 +5,7 @@ module common_namelist_module
 
   implicit none
 
-  integer, parameter :: MAX_SPECIES = 10
+  integer, parameter :: MAX_SPECIES = 4
   integer, parameter :: LOHI = 2
 
   double precision,   save :: prob_lo(AMREX_SPACEDIM)
@@ -62,6 +62,9 @@ module common_namelist_module
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
+
+  double precision,   save :: diameter(MAX_SPECIES)
+
   
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
@@ -87,10 +90,14 @@ module common_namelist_module
 
   ! Physical parameters
   namelist /common/ grav
-  namelist /common/ nspecies
-  namelist /common/ molmass
   namelist /common/ rhobar
   namelist /common/ rho0
+
+  ! Kinetic parameters
+  namelist /common/ nspecies
+  namelist /common/ molmass
+  namelist /common/ diameter
+
 
   ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
   namelist /common/ variance_coef_mom
@@ -201,6 +208,7 @@ contains
     grav(:) = 0.d0
     nspecies = 2
     molmass(:) = 1.d0
+    diameter(:) = 1.d0
     rhobar(:) = 1.d0
     rho0 = 1.
     variance_coef_mom = 1.
@@ -251,7 +259,7 @@ contains
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
                                          restart_in, print_int_in, project_eos_int_in, &
-                                         grav_in, nspecies_in, molmass_in, rhobar_in, &
+                                         grav_in, nspecies_in, molmass_in, diameter_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
                                          k_B_in, Runiv_in, T_init_in, algorithm_type_in, & 
@@ -292,6 +300,7 @@ contains
     double precision,       intent(inout) :: grav_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: nspecies_in
     double precision,       intent(inout) :: molmass_in(MAX_SPECIES)
+    double precision,       intent(inout) :: diameter_in(MAX_SPECIES)
     double precision,       intent(inout) :: rhobar_in(MAX_SPECIES)
     double precision,       intent(inout) :: rho0_in
     double precision,       intent(inout) :: variance_coef_mom_in
@@ -348,6 +357,7 @@ contains
     nspecies_in = nspecies
     molmass_in = molmass
     rhobar_in = rhobar
+    diameter_in = diameter
     rho0_in= rho0
     variance_coef_mom_in = variance_coef_mom
     variance_coef_mass_in = variance_coef_mass

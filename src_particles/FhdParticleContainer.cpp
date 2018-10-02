@@ -25,10 +25,6 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
 
-    //std::mt19937 mt(ParallelDescriptor::MyProc()*2);
-    //std::uniform_real_distribution<double> unit(0, 1.0);
-    //std::normal_distribution<double> ndist(0, sqrt(particleInfo.R*particleInfo.T));
-
     double totalEnergy = 0;
 
     double cosTheta, sinTheta, cosPhi, sinPhi;    
@@ -89,7 +85,8 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
                 p.rdata(RealData::diry) = 0; 
                 p.rdata(RealData::dirz) = 0;
 
-                p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
+                //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
+                p.rdata(RealData::propulsion) = 0;
 
                 AMREX_ASSERT(this->Index(p, lev) == iv);
                 
@@ -682,6 +679,7 @@ FhdParticleContainer::correctCellVectors(int old_index, int new_index,
 {
     if (not p.idata(IntData::sorted)) return;
     IntVect iv(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k));
+    //IntVect iv(AMREX_D_DECL(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k)));
     auto& cell_vector = m_cell_vectors[grid](iv);
     for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
         if (cell_vector[i] == old_index + 1) {

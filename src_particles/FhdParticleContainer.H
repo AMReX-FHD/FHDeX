@@ -28,6 +28,10 @@ struct RealData
         diry,
         dirz,
         propulsion,
+        ox,
+        oy,
+        oz,
+        dist,
         ncomps
     };
 };

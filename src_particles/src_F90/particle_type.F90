@@ -26,7 +26,8 @@ module cell_sorted_particle_module
 
      real(amrex_particle_real) :: dir(3)
      real(amrex_particle_real) :: propulsion
-
+     real(amrex_particle_real) :: origin(3)
+     real(amrex_particle_real) :: dist
 
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        

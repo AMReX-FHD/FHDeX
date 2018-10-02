@@ -489,13 +489,9 @@ void main_driver(const char* argv)
     //Find coordinates of cell faces. Used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
-   // Print() << "Here!\n";
-
     particles.InitParticles(ppc, myGas);
 
-    particles.UpdateCellVectors();
-
-    //particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, myGas);
+    particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, myGas);
 
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, myGas, dt);
 
@@ -529,11 +525,10 @@ void main_driver(const char* argv)
 
         particles.Redistribute();
         particles.ReBin();
-        particles.UpdateCellVectors();
 
         //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, myGas, dt);
-
-       if((step-10)%20000 == 0)
+ 
+        if((step-10)%20000 == 0)
         //if(step == 2000000)
         {
             particleMembersMean.setVal(0.0);

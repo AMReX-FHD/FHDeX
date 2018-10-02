@@ -39,6 +39,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> molmass;
     extern amrex::Vector<amrex::Real> rhobar;
     extern amrex::Real                rho0;
+    extern amrex::Vector<amrex::Real> diameter;   
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern amrex::Real                variance_coef_mom;
@@ -122,7 +123,7 @@ namespace common {
   extern int                        n_steps_save_stats;
   extern bool                       analyze_conserved;
   extern bool                       center_snapshots;
-*/
+*/     
 
     // These are mostly used for reaction-diffusion: 
     extern int                        histogram_unit;

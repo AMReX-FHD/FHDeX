@@ -26,6 +26,7 @@ amrex::Vector<amrex::Real> common::grav;
 int                        common::nspecies;
 amrex::Vector<amrex::Real> common::molmass;
 amrex::Vector<amrex::Real> common::rhobar;
+amrex::Vector<amrex::Real> common::diameter;
 amrex::Real                common::rho0;
 amrex::Real                common::variance_coef_mom;
 amrex::Real                common::variance_coef_mass;

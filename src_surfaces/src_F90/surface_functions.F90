@@ -216,8 +216,8 @@
         push = 0
 
         surf%fxright = surf%fxright + part%mass*part%vel(1)
-        surf%fyright = surf%fyright + part%mass*part%vel(1)
-        surf%fzright = surf%fzright + part%mass*part%vel(1)
+        surf%fyright = surf%fyright + part%mass*part%vel(2)
+        surf%fzright = surf%fzright + part%mass*part%vel(3)
 
         if(get_uniform_func() < surf%specularityright) then
 

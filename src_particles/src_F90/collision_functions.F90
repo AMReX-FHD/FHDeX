@@ -246,10 +246,13 @@ contains
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k,p,cell_np, ti, tj, tk
-    double precision membersinv, nrg
+    integer i,j,k,p,cell_np, ti, tj, tk, totalparticles
+    double precision membersinv, nrg, totalpx, totalpy, totalpz
 
-
+    totalpx = 0
+    totalpy = 0
+    totalpz = 0
+    totalparticles = 0
 
     do k = lo(3), hi(3)
       do j = lo(2), hi(2)
@@ -298,15 +301,20 @@ contains
             tm = tm + part%vel(1)*part%mass
             te = te + nrg
 
+            totalparticles = totalparticles + 1;
+
+            totalpx = totalpx +  part%vel(1)
+            totalpy = totalpy +  part%vel(2)
+            totalpz = totalpz +  part%vel(3)
+
           enddo
 
           density(i,j,k) = density(i,j,k)*neff/cellvols(i,j,k)
-
-          !print *, density(i,j,k)
         
           velx(i,j,k) = velx(i,j,k)*membersinv
           vely(i,j,k) = vely(i,j,k)*membersinv
           velz(i,j,k) = velz(i,j,k)*membersinv
+
 
           px(i,j,k) = px(i,j,k)*neff/cellvols(i,j,k)
           py(i,j,k) = py(i,j,k)*neff/cellvols(i,j,k)
@@ -329,6 +337,8 @@ contains
         enddo
       enddo
     enddo
+
+    !print *, "total px: ", totalpx/totalparticles, ", total py: ", totalpx/totalparticles, ", total pz: ", totalpx/totalparticles, ", total particles: ", totalparticles
 
     ti = 19
     tj = 0
@@ -455,14 +465,24 @@ contains
     type(particle_t), intent(inout), target :: particles(np)
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k, ti, tj, tk
-    double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
+    integer i,j,k, ti, tj, tk, cells
+    double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, totalpx(3), totalvel(3)
 
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
 
     cvinv = 2.0/(3.0*particles(1)%R)
     cv = 1.0/cvinv
+
+    totalpx(1) = 0
+    totalpx(2) = 0
+    totalpx(3) = 0
+
+    totalvel(1) = 0
+    totalvel(2) = 0
+    totalvel(3) = 0
+
+    cells = 0
 
     do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
@@ -501,6 +521,15 @@ contains
           membraneflux(i,j,k) = sqrt(tempmean(i,j,k))*densitymean(i,j,k)
 
           !qmean = cv*T0
+          totalpx(1) = totalpx(1) + pxmean(i,j,k)
+          totalpx(2) = totalpx(2) + pymean(i,j,k)
+          totalpx(3) = totalpx(3) + pzmean(i,j,k)
+
+          totalvel(1) = totalvel(1) + velxmean(i,j,k)
+          totalvel(2) = totalvel(2) + velymean(i,j,k)
+          totalvel(3) = totalvel(3) + velzmean(i,j,k)
+
+          cells = cells + 1
 
         enddo
       enddo
@@ -520,7 +549,7 @@ contains
 
     endif
 
-    !print *, "del1 in: ", del1
+    !print *, "pMean: ", totalpx/cells, "velMean: ", totalvel/cells
         
   end subroutine evaluate_means
 
@@ -667,6 +696,7 @@ contains
           delvelz = (delpz - velzmean(i,j,k)*delrho)*densitymeaninv
 
           densityvar(i,j,k) = (densityvar(i,j,k)*stepsminusone + delrho**2)*stepsinv
+          !densityvar(i,j,k) = delrho
 
           pxvar(i,j,k) = (pxvar(i,j,k)*stepsminusone + delpx**2)*stepsinv
           pyvar(i,j,k) = (pyvar(i,j,k)*stepsminusone + delpy**2)*stepsinv
@@ -783,9 +813,12 @@ contains
 
     !double precision fac1, fac2, fac3, test, pairfrac
     integer i,j,k,p,cell_np
-    double precision membersinv, varx, vary, varz, ratiox, ratioy, ratioz, totalenergy
+    double precision membersinv, varx, vary, varz, ratiox, ratioy, ratioz, totalenergy, totalvel(3)
 
     totalenergy = 0
+    totalvel(1) = 0
+    totalvel(2) = 0
+    totalvel(3) = 0
 
     do k = lo(3), hi(3)
       do j = lo(2), hi(2)
@@ -858,6 +891,8 @@ contains
           vely(i,j,k) = vely(i,j,k)*membersinv
           velz(i,j,k) = velz(i,j,k)*membersinv
 
+          !print *, "cell vel: ", velx(i,j,k), vely(i,j,k), velz(i,j,k)
+
           varx = 0
           vary = 0
           varz = 0
@@ -888,6 +923,8 @@ contains
             part%vel(3) = part%vel(3)*ratioz
 
             totalenergy = totalenergy + part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
+
+            totalvel = totalvel + part%vel
 
           enddo
 
@@ -933,6 +970,7 @@ contains
     enddo
 
     print *, "Corrected energy: ", totalenergy
+    print *, "Corrected vel: ", totalvel
 
   end subroutine initialize_fields
   

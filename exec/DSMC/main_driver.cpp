@@ -61,6 +61,7 @@ void main_driver(const char* argv)
     BoxArray bc;
     Geometry geom;
     Geometry geomC;
+    Geometry geomConvert;
     
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
@@ -81,6 +82,13 @@ void main_driver(const char* argv)
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
+    double cgsFac = 100;
+
+    RealBox real_box_convert({AMREX_D_DECL(prob_lo[0]*cgsFac,prob_lo[1]*cgsFac,prob_lo[2]*cgsFac)},
+                     {AMREX_D_DECL(prob_hi[0]*cgsFac,prob_hi[1]*cgsFac,prob_hi[2]*cgsFac)});
+
+    Print() << prob_hi[0]*cgsFac << "\n";
+
     //This must be an even number for now?
     int sizeRatio = 1;
 
@@ -90,6 +98,8 @@ void main_driver(const char* argv)
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
+
+    geomConvert.define(domainC,&real_box_convert,CoordSys::cartesian,is_periodic.data());
 
     //DistributionMapping dmapc(bc);
 
@@ -445,7 +455,7 @@ void main_driver(const char* argv)
     Real dt = 0.1*nitrogen.mfp/sqrt(2.0*nitrogen.R*nitrogen.T);
     //Print() << "Step size: " << dt << "\n";
         
-    dt = 1e-12;
+    dt = 5.0e-13;
     dt = dt;
     Print() << "Step size: " << dt << "\n";
 
@@ -459,7 +469,7 @@ void main_driver(const char* argv)
 
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 7;
+    int surfaceCount = 6;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -488,7 +498,7 @@ void main_driver(const char* argv)
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
     // write out initial state
-    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
+    WritePlotFile(step,time,geom,geomConvert,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleEnergy, particleSpatialCross1, particleDensityVar, particleDensity, particleMembraneFlux, particles);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -506,7 +516,7 @@ void main_driver(const char* argv)
       //  MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
       //  MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
       //  MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
-        
+      //  Print() << "Here1\n";        
 
 #if (AMREX_SPACEDIM == 2)
         particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount);
@@ -514,15 +524,17 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 3)
         particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount);
 #endif
+
+   //     Print() << "Here2\n";
         particles.Redistribute();
         particles.ReBin();
-        //particles.UpdateCellVectors();
+    //    //particles.UpdateCellVectors();
 
 
         particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
         //if((step-10)%20000 == 0)
-        if(step == 200000)
+        if(step == 50000)
         {
             particleMembersMean.setVal(0.0);
             particleDensityMean.setVal(0);
@@ -575,10 +587,10 @@ void main_driver(const char* argv)
         
         time = time + dt;
 
-        if (plot_int > 0 && step%plot_int == 0)
+        if (plot_int > 0 && step > 50000 && step%plot_int == 0)
         {
             // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particlePressureMean, particleSpatialCross2, particleMembraneFlux, particles);
+            WritePlotFile(step,time,geom,geomConvert,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particlePressureMean,particleEnergyMean, particleSpatialCross2, particleDensityVar, particleDensity, particleMembraneFlux, particles);
         }
 
 

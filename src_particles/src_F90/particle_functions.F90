@@ -19,12 +19,12 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
   real(amrex_real), intent(in) :: dt
   
-  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push
+  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount
   integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3)
+  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx
 
   !adj = 0.99999999
   adj = 0.999999
@@ -49,6 +49,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
   enddo        
   
+  intcount = 0
+
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
@@ -70,8 +72,17 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
               do while (runtime .gt. 0)
 
+                prex = part%vel(1)
+
                 call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-  
+
+                if(intsurf .eq. 6) then
+
+                  intcount = intcount + 1
+
+                endif
+                
+                 
                 !print *, "Parrticle ", p, " intersect ", inttime, intsurf 
 
                 !print *, "Prepos ", part%pos, " prevel ", part%vel
@@ -110,8 +121,13 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                 endif
 
                 !print *, "Postpos ", part%pos, " postvel ", part%vel
+                postx = part%vel(1)
 
               end do
+
+              if(prex .ne. postx) then
+                print *, "Oops!"
+              endif
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
@@ -138,6 +154,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
      end do
   end do
+
+  !print *, "intcount: ", intcount
 
   do p = 1, ns
 

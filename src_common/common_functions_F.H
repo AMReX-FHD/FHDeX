@@ -24,7 +24,7 @@ extern "C"
                                      const char* chk_base_name, const int chk_base_name_len,
                                      int* prob_type, int* restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
-                                     amrex::Real* molmass, amrex::Real* rhobar,
+                                     amrex::Real* molmass,amrex::Real* diameter, amrex::Real* rhobar,
                                      amrex::Real* rho0, amrex::Real* variance_coef_mom,
                                      amrex::Real* variance_coef_mass, amrex::Real* k_B,
                                      amrex::Real* Runiv, amrex::Real* T_init,
