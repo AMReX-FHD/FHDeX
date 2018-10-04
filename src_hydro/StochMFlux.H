@@ -43,7 +43,7 @@ public:
   void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
 			      const amrex::MultiFab&, const amrex::MultiFab&, 
 			      const amrex::Real&, Geometry);
-  void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
+  void addMfluctuations_stag( std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
 			      const amrex::Real&, Geometry);

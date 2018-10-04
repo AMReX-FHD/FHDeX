@@ -224,7 +224,7 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Multiply( m_old[d],rhotot_fc[d],0,0,1,1);
   }
 
-  addMfluctuations(m_old,rhotot_fc,Temp_fc,variance,geom);
+  addMfluctuations_stag(m_old,rhotot_fc,Temp_fc,variance,geom);
   
   // Convert momenta to umac, (1/rho)*momentum
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -234,10 +234,10 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   
 }
 
-void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& m_old, 
-				  const std::array< MultiFab, AMREX_SPACEDIM >& rhotot_fc, 
-				  const std::array< MultiFab, AMREX_SPACEDIM >& Temp_fc, 
-				  const amrex::Real& variance, Geometry geom) {
+void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old, 
+				       const std::array< MultiFab, AMREX_SPACEDIM >& rhotot_fc, 
+				       const std::array< MultiFab, AMREX_SPACEDIM >& Temp_fc, 
+				       const amrex::Real& variance, Geometry geom) {
  
   const Real* dx = geom.CellSize();
   Real dVol = dx[0]*dx[1];

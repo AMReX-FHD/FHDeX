@@ -21,20 +21,14 @@ using namespace gmres;
 
 // ADAPTED FROM MAESTROeX
 // umac enters with face-centered, time-centered Utilde^* and should leave with Utilde
-// macphi is the solution to the elliptic solve and 
-//   enters as either zero, or the solution to the predictor MAC projection
-
-// FIXME: BETA IS CONSTANT
-// from MAESTROeX:
-// macrhs enters as beta0*(S-Sbar)
-// beta0 is a 1d cell-centered array
+// macphi is the solution to the elliptic solve
 
 void
 MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
-	   MultiFab& macphi_in,
-	   const MultiFab& macrhs_in,
-	   const MultiFab& rho_in,
-	   const Geometry& geom_in)
+	 MultiFab& macphi_in,
+	 const MultiFab& macrhs_in,
+	 const MultiFab& rho_in,
+	 const Geometry& geom_in)
 {
     // timer for profiling
     BL_PROFILE_VAR("MacProj()",MacProj);
@@ -42,17 +36,17 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
     // this will hold solver RHS = macrhs - div(beta0*umac)
     Vector<MultiFab> solverrhs(1);
 
-    // Define single component vectors of MultiFabs to "fool" AMReX solvers
+    // Define single component vectors of MultiFabs to "fool" AMReX linear solvers
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > umac(1);
     Vector<MultiFab> macphi(1);
     Vector<MultiFab> macrhs(1);
     Vector<MultiFab> rho(1);
 
-    BoxArray ba_nodal = umac[0][0].boxArray();
+    BoxArray ba_nodal = umac_in[0].boxArray();
     Vector<BoxArray> grids(1);
     grids[0] = ba_nodal.enclosedCells();
     Vector<DistributionMapping> dmap(1);
-    dmap[0] = umac[0][0].DistributionMap();
+    dmap[0] = umac_in[0].DistributionMap();
     Vector<Geometry> geom(1);
     geom[0] = geom_in;
     
@@ -61,11 +55,11 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
     AMREX_D_TERM(umac[0][0].define(convert(grids[0],nodal_flag_x), dmap[0], 1, 1);,
 		 umac[0][1].define(convert(grids[0],nodal_flag_y), dmap[0], 1, 1);,
 		 umac[0][2].define(convert(grids[0],nodal_flag_z), dmap[0], 1, 1););
-    rho[0].define(grids[0], dmap[0], 1, 0);
-    macrhs[0].define(grids[0], dmap[0], 1, 0);
-    macphi[0].define(grids[0], dmap[0], 1, 0);
+    rho[0].define(grids[0], dmap[0], 1, 1);
+    macrhs[0].define(grids[0], dmap[0], 1, 1);
+    macphi[0].define(grids[0], dmap[0], 1, 1);
 
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; d++) {
       MultiFab::Copy(umac[0][d],umac_in[d],0,0,1,1);
     }
     MultiFab::Copy(rho[0],rho_in,0,0,1,1);
@@ -120,7 +114,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
     // set boundaries for mlabec using velocity bc's
     SetMacSolverBCs(mlabec);
 
-    // mlabec.setLevelBC(0, &macphi[0]);  // mlabec.setLevelBC(level, &mf)
+    mlabec.setLevelBC(0, &macphi[0]);  // mlabec.setLevelBC(level, &mf)
     mlabec.setScalars(0.0, 1.0);
     mlabec.setACoeffs(0, acoef[0]);
     mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef[0]));
@@ -166,13 +160,13 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
     }
 
     // fill periodic ghost cells
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; d++) {
       umac[0][d].FillBoundary(geom[0].periodicity());
     }
 
     MultiFab::Copy(macphi_in,macphi[0],0,0,1,1);
 
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+    for (int d = 0; d < AMREX_SPACEDIM; d++) {
       MultiFab::Copy(umac_in[d],umac[0][d],0,0,1,1);
     }
 }

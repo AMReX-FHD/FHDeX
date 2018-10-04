@@ -112,6 +112,13 @@ void main_driver(const char* argv)
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
     /////////////////////////////////////////
 
+    ///////////////////////////////////////////
+    // rho, alpha, beta, gamma:
+    ///////////////////////////////////////////
+    
+    MultiFab rho(ba, dmap, 1, 1);
+    rho.setVal(1.);
+
     // alpha_fc arrays
     Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
@@ -144,6 +151,8 @@ void main_driver(const char* argv)
     // cell-centered gamma
     MultiFab gamma(ba, dmap, 1, 1);
     gamma.setVal(0.);
+
+    ///////////////////////////////////////////
 
     ///////////////////////////////////////////
     // Scaled alpha, beta, gamma:
@@ -251,8 +260,6 @@ void main_driver(const char* argv)
     temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
 
-    // FIXME: eta & temperature = 1.0 (uniform) here for convienience
-
     // Initalize eta & temperature multifabs
     // eta cell-centered
     eta_cc.setVal(eta_const);
@@ -293,19 +300,9 @@ void main_driver(const char* argv)
     weights = {1.0};
     
     // Declare object of StochMFlux class 
-    // StochMFlux sMflux (ba,dmap,geom);
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
-
-    /////////////// Test/Hack /////////////////////////
-    // sMflux.fillMStochastic();
-    // sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-    // sMflux.writeMFs(mfluxdiv);
-
-    // Abort("Done with hack");
-    // exit(0);
-    //////////////////////////////////////////////////
 
     // tracer
     MultiFab tracer(ba,dmap,1,1);
@@ -405,6 +402,15 @@ void main_driver(const char* argv)
     		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
     }
+    
+    // Add initial equilibrium fluctuations
+    sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+    
+    // Project umac onto divergence free field
+    MultiFab macphi(ba,dmap,1,1);
+    MultiFab macrhs(ba,dmap,1,1);
+    macrhs.setVal(0.0);
+    MacProj(umac,macphi,macrhs,rho,geom);
 
     // initial guess for new solution
     AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
