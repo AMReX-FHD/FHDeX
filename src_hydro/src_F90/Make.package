@@ -1,5 +1,4 @@
 F90EXE_sources += mk_advective_m_fluxdiv.F90
 F90EXE_sources += mk_advective_s_fluxdiv.F90
 F90EXE_sources += stoch_m_force.F90
-F90EXE_sources += struct_fact.F90
 F90EXE_sources += mac_solver_hydro.F90

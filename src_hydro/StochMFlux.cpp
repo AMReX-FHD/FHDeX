@@ -2,6 +2,7 @@
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "hydro_functions_F.H"
+#include "analysis_functions_F.H"
 #include "StochMFlux.H"
 
 #include <AMReX_MultiFabUtil.H>

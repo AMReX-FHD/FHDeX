@@ -102,16 +102,8 @@ extern "C"
     const amrex_real* temperature_yz, const int* tempyzlo, const int* tempyzhi);
 #endif
 
-///////////////////////////
-
-///////////////////////////
-// in struct_fact.F90
-
-  void fft_shift(const int* lo, const int* hi,
-		 const amrex_real* dft, const int* dftlo, const int* dfthi, const int* ncomp);
-
-  void sqrt_mf(const int* lo, const int* hi,
-	       const amrex_real* mf, const int* mflo, const int* mfhi, const int* ncomp);
+void sqrt_mf(const int* lo, const int* hi,
+	     const amrex_real* mf, const int* mflo, const int* mfhi, const int* ncomp);
 
 ///////////////////////////
 

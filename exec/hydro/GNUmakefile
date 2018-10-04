@@ -7,7 +7,7 @@ PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
-DIM       = 3
+DIM       = 2
 DSMC      = TRUE
 
 USE_PARTICLES = TRUE
@@ -29,6 +29,14 @@ INCLUDE_LOCATIONS += ../../src_hydro/src_F90
 include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
+
+include ../../src_analysis/src_F90/Make.package
+VPATH_LOCATIONS   += ../../src_analysis/src_F90
+INCLUDE_LOCATIONS += ../../src_analysis/src_F90
+
+include ../../src_analysis/Make.package
+VPATH_LOCATIONS   += ../../src_analysis/
+INCLUDE_LOCATIONS += ../../src_analysis/
 
 include ../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_rng/src_F90
