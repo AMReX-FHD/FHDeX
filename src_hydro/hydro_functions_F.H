@@ -113,6 +113,33 @@ extern "C"
   void sqrt_mf(const int* lo, const int* hi,
 	       const amrex_real* mf, const int* mflo, const int* mfhi, const int* ncomp);
 
+///////////////////////////
+
+///////////////////////////
+// in mac_solver.F90
+void mac_solver_rhs(const int* lev, const int* lo, const int* hi,
+		    amrex::Real* newrhs, const int* nrhs_lo, const int* nrhs_hi, 
+		    const amrex::Real* oldrhs, const int* orhs_lo, const int* orhs_hi,
+		    const amrex::Real* uedge, const int* u_lo, const int* u_hi, 
+#if (AMREX_SPACEDIM >= 2)
+		    const amrex::Real* vedge, const int* v_lo, const int* v_hi, 
+#if (AMREX_SPACEDIM == 3)
+		    const amrex::Real* wedge, const int* w_lo, const int* w_hi, 
+#endif
+#endif
+		    const amrex::Real* dx);
+
+void mac_bcoef_face(const int* lev, const int* lo, const int* hi,
+		    amrex::Real* xface, const int* x_lo, const int* x_hi,
+#if (AMREX_SPACEDIM >= 2)
+		    amrex::Real* yface, const int* y_lo, const int* y_hi, 
+#if (AMREX_SPACEDIM == 3)
+		    amrex::Real* zface, const int* z_lo, const int* z_hi,
+#endif
+#endif
+		    const amrex::Real* rhocc, const int* r_lo, const int* r_hi);
+///////////////////////////
+
 #ifdef __cplusplus
 }
 #endif

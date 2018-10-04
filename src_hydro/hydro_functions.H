@@ -4,8 +4,12 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
+#include <AMReX_MLABecLaplacian.H>
 
 void advance_timestep_inertial();
+
+/////////////////////////////////////////////////////////////////////////////////
+// in MkAdvMFluxdiv.cpp
 
 void MkAdvMFluxdiv(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umac,
 		   const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m,
@@ -19,5 +23,28 @@ void MkAdvSFluxdiv(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umac,
 		   const amrex::Real* dx,
 		   const amrex::Geometry& geom,
 		   const int& increment=0);
+
+/////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
+// in MacProj.cpp
+
+void MacProj (std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
+	      amrex::MultiFab& macphi,
+	      const amrex::MultiFab& macrhs,
+	      const amrex::MultiFab& rho,
+	      const amrex::Geometry& geom);
+
+void ComputeMACSolverRHS (amrex::MultiFab& solverrhs,
+			  const amrex::MultiFab& macrhs,
+			  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
+			  const amrex::Geometry& geom);
+
+void AvgFaceBcoeffsInv(std::array< amrex::MultiFab, AMREX_SPACEDIM >& facebcoef,
+		       const amrex::MultiFab& rhocc);
+
+void SetMacSolverBCs(amrex::MLABecLaplacian& mlabec);
+
+/////////////////////////////////////////////////////////////////////////////////
 
 #endif
