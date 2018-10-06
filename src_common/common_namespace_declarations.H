@@ -11,6 +11,10 @@ amrex::Vector<amrex::Real> common::prob_hi;
 amrex::Vector<int>         common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
 amrex::Real                common::cell_depth;
+int                        common::ngc;           
+int                        common::nvars;         
+int                        common::nprimvars;     
+
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
 int                        common::max_step;
@@ -27,6 +31,11 @@ int                        common::nspecies;
 amrex::Vector<amrex::Real> common::molmass;
 amrex::Vector<amrex::Real> common::rhobar;
 amrex::Vector<amrex::Real> common::diameter;
+amrex::Vector<int>         common::dof;
+amrex::Vector<amrex::Real> common::hcv;
+amrex::Vector<amrex::Real> common::hcp;
+
+
 amrex::Real                common::rho0;
 amrex::Real                common::variance_coef_mom;
 amrex::Real                common::variance_coef_mass;

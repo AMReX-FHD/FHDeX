@@ -13,6 +13,11 @@ module common_namelist_module
   integer,            save :: n_cells(AMREX_SPACEDIM)
   integer,            save :: max_grid_size(AMREX_SPACEDIM)
   double precision,   save :: cell_depth
+
+  integer,            save :: ngc
+  integer,            save :: nvars
+  integer,            save :: nprimvars
+
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
   integer,            save :: max_step
@@ -64,6 +69,9 @@ module common_namelist_module
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
 
   double precision,   save :: diameter(MAX_SPECIES)
+  integer,            save :: dof(MAX_SPECIES)
+  double precision,   save :: hcv(MAX_SPECIES)
+  double precision,   save :: hcp(MAX_SPECIES)
 
   
   ! Problem specification
@@ -72,6 +80,11 @@ module common_namelist_module
   namelist /common/ n_cells       ! number of cells in domain
   namelist /common/ max_grid_size ! max number of cells in a box
   namelist /common/ cell_depth
+
+  namelist /common/ ngc           !number of ghost cells
+  namelist /common/ nvars         !number of conserved variables      
+  namelist /common/ nprimvars     !number of primative variables
+
 
   ! Time-step control
   namelist /common/ fixed_dt
@@ -97,6 +110,10 @@ module common_namelist_module
   namelist /common/ nspecies
   namelist /common/ molmass
   namelist /common/ diameter
+
+  namelist /common/ dof
+  namelist /common/ hcv
+  namelist /common/ hcp
 
 
   ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
@@ -254,12 +271,12 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, cell_depth_in, &
+                                         max_grid_size_in, cell_depth_in, ngc_in, nvars_in, nprimvars_in, &
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
                                          restart_in, print_int_in, project_eos_int_in, &
-                                         grav_in, nspecies_in, molmass_in, diameter_in, rhobar_in, &
+                                         grav_in, nspecies_in, molmass_in, diameter_in, dof_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
                                          k_B_in, Runiv_in, T_init_in, algorithm_type_in, & 
@@ -286,6 +303,11 @@ contains
     double precision,       intent(inout) :: cell_depth_in
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
+
+    integer,                intent(inout) :: ngc_in
+    integer,                intent(inout) :: nvars_in
+    integer,                intent(inout) :: nprimvars_in
+
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
     integer               , value         :: plot_base_name_len
@@ -301,6 +323,10 @@ contains
     integer,                intent(inout) :: nspecies_in
     double precision,       intent(inout) :: molmass_in(MAX_SPECIES)
     double precision,       intent(inout) :: diameter_in(MAX_SPECIES)
+    integer,                intent(inout) :: dof_in(MAX_SPECIES)
+    double precision,       intent(inout) :: hcv_in(MAX_SPECIES)
+    double precision,       intent(inout) :: hcp_in(MAX_SPECIES)
+
     double precision,       intent(inout) :: rhobar_in(MAX_SPECIES)
     double precision,       intent(inout) :: rho0_in
     double precision,       intent(inout) :: variance_coef_mom_in
@@ -342,6 +368,9 @@ contains
     n_cells_in = n_cells
     max_grid_size_in = max_grid_size
     cell_depth_in = cell_depth
+    ngc_in = ngc
+    nvars_in = nvars
+    nprimvars_in = nprimvars
     fixed_dt_in = fixed_dt
     cfl_in = cfl
     max_step_in = max_step
@@ -358,6 +387,9 @@ contains
     molmass_in = molmass
     rhobar_in = rhobar
     diameter_in = diameter
+    dof_in = dof
+    hcv_in = hcv
+    hcp_in = hcp
     rho0_in= rho0
     variance_coef_mom_in = variance_coef_mom
     variance_coef_mass_in = variance_coef_mass

@@ -38,6 +38,8 @@ void main_driver(const char* argv)
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
+
+
     std::string inputs_file = argv;
 
     // read in parameters from inputs file into F90 modules
@@ -48,7 +50,7 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
-
+  
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -56,6 +58,8 @@ void main_driver(const char* argv)
             is_periodic[i] = 1;
         }
     }
+
+
 
     // make BoxArray and Geometry
     BoxArray ba;
@@ -101,61 +105,61 @@ void main_driver(const char* argv)
 
     const int proc = ParallelDescriptor::MyProc();
 
-    fhdSeed += proc;
-    particleSeed += proc;
-    selectorSeed += proc;
-    thetaSeed += proc;
-    phiSeed += proc;
-    generalSeed += proc;
+    fhdSeed += 10000*proc;
+    particleSeed += 20000*proc;
+    selectorSeed += 30000*proc;
+    thetaSeed += 40000*proc;
+    phiSeed += 50000*proc;
+    generalSeed += 60000*proc;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
     /////////////////////////////////////////
 
-    const int NG = 2;
-
     Real Cfl_max[4];
     int eval_dt = 0;
 
-    const int nprimvars = 6 + nspecies;
-    const int nvars = 5 + nspecies;
-
     //transport properties
-    MultiFab eta  (ba,dmap,1,NG);
-    MultiFab zeta (ba,dmap,1,NG);
-    MultiFab kappa(ba,dmap,1,NG);
-    MultiFab chi(ba,dmap,1,NG);
-    MultiFab D(ba,dmap,1,NG);
+    MultiFab eta  (ba,dmap,1,ngc);
+    MultiFab zeta (ba,dmap,1,ngc);
+    MultiFab kappa(ba,dmap,1,ngc);
+    MultiFab chi(ba,dmap,1,ngc);
+    MultiFab D(ba,dmap,1,ngc);
 
     //conserved quantaties
-    MultiFab cu  (ba,dmap,nvars,NG);
-    MultiFab cup (ba,dmap,nvars,NG);
-    MultiFab cup2(ba,dmap,nvars,NG);
-    MultiFab cup3(ba,dmap,nvars,NG);
+    MultiFab cu  (ba,dmap,nvars,ngc);
+    MultiFab cup (ba,dmap,nvars,ngc);
+    MultiFab cup2(ba,dmap,nvars,ngc);
+    MultiFab cup3(ba,dmap,nvars,ngc);
 
     //primative quantaties
-    MultiFab prim(ba,dmap,nprimvars,NG);
+    MultiFab prim(ba,dmap,nprimvars,ngc);
 
 
     //Initialize physical parameters from input vals
 
-    prim.setVal(rho0,0,1,NG);
-    prim.setVal(0,1,1,NG);
-    prim.setVal(0,2,1,NG);
-    prim.setVal(0,3,1,NG);
-    prim.setVal(T_init[0],4,1,NG);
+    prim.setVal(rho0,0,1,ngc);
+    prim.setVal(0,1,1,ngc);
+    prim.setVal(0,2,1,ngc);
+    prim.setVal(0,3,1,ngc);
+    prim.setVal(T_init[0],4,1,ngc);
 
-    cu.setVal(rho0,0,1,NG);
-    cu.setVal(0,1,1,NG);
-    cu.setVal(0,2,1,NG);
-    cu.setVal(0,3,1,NG);
-    cu.setVal(T_init[0],4,1,NG);
+    cu.setVal(rho0,0,1,ngc);
+    cu.setVal(0,1,1,ngc);
+    cu.setVal(0,2,1,ngc);
+    cu.setVal(0,3,1,ngc);
+    cu.setVal(T_init[0],4,1,ngc);
 
     //fluxes
     std::array< MultiFab, AMREX_SPACEDIM > flux;
     AMREX_D_TERM(flux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
                  flux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
                  flux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+
+    Print() << "cv: " << hcv[1] << "\n";
+
+    hcv[1] = 10;
+
 
 
 }

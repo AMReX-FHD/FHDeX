@@ -18,9 +18,15 @@ namespace common {
     extern amrex::Vector<int>         max_grid_size; // max number of cells in a box
     extern amrex::Real                cell_depth;
 
+    extern int                        ngc;           //number of chost cells
+    extern int                        nvars;         //number of conserved variables
+    extern int                        nprimvars;     //number of primitive variables
+
+
     // Time-step control
     extern amrex::Real                fixed_dt;
     extern amrex::Real                cfl;
+
 
     // Controls for number of steps between actions
     extern int                        max_step;
@@ -40,6 +46,9 @@ namespace common {
     extern amrex::Vector<amrex::Real> rhobar;
     extern amrex::Real                rho0;
     extern amrex::Vector<amrex::Real> diameter;   
+    extern amrex::Vector<int>         dof;
+    extern amrex::Vector<amrex::Real> hcv;
+    extern amrex::Vector<amrex::Real> hcp;
 
     // stochastic forcing amplitudes (1 for physical values, 0 to run them off)
     extern amrex::Real                variance_coef_mom;

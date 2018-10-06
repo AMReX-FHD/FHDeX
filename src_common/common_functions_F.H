@@ -16,7 +16,9 @@ extern "C"
 
     // copy contents of common_params_module to C++ common namespace
     void initialize_common_namespace(amrex::Real* prob_lo, amrex::Real* prob_hi, int* n_cells,
-                                     int* max_grid_size, amrex::Real* cell_depth, amrex::Real* fixed_dt, 
+                                     int* max_grid_size, amrex::Real* cell_depth,
+                                     int* ngc, int* nvars, int* nprimvars,
+                                     amrex::Real* fixed_dt,
                                      amrex::Real* cfl, int* max_step, int* plot_int, 
                                      const char* plot_base_name, 
                                      const int plot_base_name_len, 
@@ -24,7 +26,7 @@ extern "C"
                                      const char* chk_base_name, const int chk_base_name_len,
                                      int* prob_type, int* restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
-                                     amrex::Real* molmass,amrex::Real* diameter, amrex::Real* rhobar,
+                                     amrex::Real* molmass,amrex::Real* diameter, int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
                                      amrex::Real* rho0, amrex::Real* variance_coef_mom,
                                      amrex::Real* variance_coef_mass, amrex::Real* k_B,
                                      amrex::Real* Runiv, amrex::Real* T_init,

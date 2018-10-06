@@ -7,5 +7,14 @@ using namespace amrex;
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
                    std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	        	   const amrex::Real* dx, const int nvars, const int nprimvars);
+	        	   const amrex::Real* dx);
+
+void calculateTransportCoeffs(const MultiFab& prim, MultiFab& eta, MultiFab& zeta, MultiFab& kappa);
+
+void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux,
+	                      const amrex::Real* dx, const amrex::Real dt);
+
+void conservedToPrimitive(MultiFab& prim, const MultiFab& cons);
+
+void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
