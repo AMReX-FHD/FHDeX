@@ -1,7 +1,8 @@
 module trans_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b
+  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b, nspecies
+
   implicit none
 
   private
@@ -20,31 +21,45 @@ contains
       real(amrex_real), intent(inout) :: zeta(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc)
       real(amrex_real), intent(inout) :: kappa(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc)
 
-      integer :: i,j,k 
+      integer :: i,j,k,l 
       real(amrex_real) :: mgrams(MAX_SPECIES)
-      real(amrex_real) :: vconst, tconst, R, gamma1, gamma2, rootT
+      real(amrex_real) :: vconst(nspecies), tconst(nspecies), R(nspecies), gamma1, gamma2, rootT, specaveta, specavkappa
 
       mgrams = molmass/(6.022140857e23)
 
-      R = k_B/mgrams(1)
+      R = k_B/mgrams
 
       gamma1 = 1.2700
       gamma2 = 1.9223
 
-      !single species, hard sphere for now. Check these defs
-      vconst = (gamma1/4)*sqrt(R/3.14159265359)*(mgrams(1)/(diameter(1)**2))  ! Per Sone (Sone Grad-Hilbert, Bird Chapman Enskog? Check this)
-      tconst = (5*gamma2/8)*R*sqrt(R/3.14159265359)*(mgrams(1)/(diameter(1)**2))
+      do l = 1, nspecies
+
+        vconst(l) = sqrt(R(l))*(mgrams(l)/(diameter(l)**2))*(gamma1/4)*sqrt(1/3.14159265359)
+        tconst(l) = R(l)*sqrt(R(l))*(mgrams(l)/(diameter(l)**2))*(5*gamma2/8)*sqrt(1/3.14159265359)
+
+      enddo
+
+      !Hard sphere for now. Check these defs
+      !Per Sone (Sone Grad-Hilbert, Bird Chapman Enskog? Check this)
 
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)
 
+            specaveta = 0
+            specavkappa = 0
+
+            do l = 1, nspecies
+              specaveta = specaveta + prim(i,j,k,6+l)*vconst(l)
+              specavkappa = specavkappa + prim(i,j,k,6+l)*tconst(l)
+            enddo
+
             rootT = sqrt(prim(i,j,k,5))
 
             zeta(i,j,k) = 0 !no bulk viscosity for now
 
-            eta(i,j,k) = rootT*vconst
-            kappa(i,j,k) = rootT*tconst
+            eta(i,j,k) = rootT*specaveta
+            kappa(i,j,k) = rootT*specavkappa
 
           enddo
         enddo

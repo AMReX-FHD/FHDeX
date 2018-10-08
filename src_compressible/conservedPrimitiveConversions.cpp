@@ -17,7 +17,7 @@ void conservedToPrimitive(MultiFab& prim, const MultiFab& cons)
 
 }
 
-void primativeToConserved(const MultiFab& prim, MultiFab& cons)
+void primitiveToConserved(const MultiFab& prim, MultiFab& cons)
 {
 
     // Loop over boxes
