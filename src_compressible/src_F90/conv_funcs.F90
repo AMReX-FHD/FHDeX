@@ -1,7 +1,7 @@
 module conv_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b
+  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b, nspecies, hcv, hcp
   implicit none
 
   private
@@ -19,7 +19,7 @@ contains
 
       integer :: i,j,k
 
-      real(amrex_real) :: vsqr
+      real(amrex_real) :: vsqr, massvec(nspecies), intenergy
 
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
@@ -32,6 +32,11 @@ contains
 
             vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
 
+            intenergy = cons(i,j,k,5) - 0.5*vsqr*cons(i,j,k,4)
+
+            massvec = cons(i,j,k,6:nvars)*cons(i,j,k,5)
+
+            call get_temperature(intenergy, massvec, prim(i,j,k,5))
 
           enddo
         enddo
@@ -48,23 +53,49 @@ contains
 
   end subroutine cons_to_prim
 
-!  subroutine get_temperature(energy, Yk, IWRK, RWRK, temp,ierr)     
+  subroutine get_temperature(energy, massvec, temp)     
+
+    !This function originaly had a reference to e0 - check this.
+
+    real(amrex_real), intent(inout) :: temp
+    real(amrex_real), intent(in   ) :: energy, massvec(nspecies)
+
+    integer :: i
+    real(amrex_real) :: cvmix
+
+    cvmix = 0.0d0
+
+    do i = 1, nspecies
+      cvmix = cvmix + massvec(i)*hcv(i)
+
+    enddo
+
+    temp = (energy)/cvmix 
+
+  end subroutine
+
+!  subroutine calculate_hc_gas()     
+
+!    !This function originaly had a reference to e0 - check this.
 
 !    real(amrex_real), intent(inout) :: temp
-!    real(amrex_real), intent(in   ) :: energy
+!    real(amrex_real), intent(in   ) :: energy, massvec(nspecies)
 
-!    real(kind=8) :: temp,Yk(1:nspecies),RWRK,eintmix
-!    integer :: IWRK, i , ierr
-!    real(amrex_real), :: cvmix, e0                                  
+!    integer :: i
+!    real(amrex_real) :: mgrams(nspecies)
 
-!    cvmix = 0.0d0; e0 = 0.0d0
+!    mgrams = molmass/(6.022140857e23)
 
 !    do i = 1, nspecies
-!      cvmix = cvmix + Yk(ns)*cvgas(ns)
-!      e0 = e0 + Yk(ns)*e0ref(ns)
+!      if(hcv(i) .lt. 0) then
+
+!        0.5d0*dof(ns)*Runiv/(mgrams(ns))
+
+!      endif
+
 !    enddo
 
-!    temp = (energy-e0)/cvmix 
+!    temp = (energy)/cvmix 
 
 !  end subroutine
 

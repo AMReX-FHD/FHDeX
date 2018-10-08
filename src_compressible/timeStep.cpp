@@ -2,11 +2,18 @@
 #include "compressible_functions_F.H"
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	                      const amrex::Real* dx, const amrex::Real dt)
+	                                         const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
 {
 
+    conservedToPrimitive(prim, cu);
+    cu.FillBoundary(geom.periodicity());
+    prim.FillBoundary(geom.periodicity());
 
     calculateTransportCoeffs(prim, eta, zeta, kappa);
+
+    eta.FillBoundary(geom.periodicity());
+    zeta.FillBoundary(geom.periodicity());
+    kappa.FillBoundary(geom.periodicity());
 
     calculateFlux(cu, prim, eta, zeta, kappa, flux, dx);
 
@@ -27,6 +34,18 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
       	           ZFILL(dx), &dt);   
     }
 
+    conservedToPrimitive(prim, cup);
+    cup.FillBoundary(geom.periodicity());
+    prim.FillBoundary(geom.periodicity());
+
+    calculateTransportCoeffs(prim, eta, zeta, kappa);
+
+    eta.FillBoundary(geom.periodicity());
+    zeta.FillBoundary(geom.periodicity());
+    kappa.FillBoundary(geom.periodicity());
+
+    calculateFlux(cup, prim, eta, zeta, kappa, flux, dx);
+
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
@@ -45,6 +64,17 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
       	           ZFILL(dx), &dt);
     }
 
+    conservedToPrimitive(prim, cup2);
+    cup2.FillBoundary(geom.periodicity());
+    prim.FillBoundary(geom.periodicity());
+
+    calculateTransportCoeffs(prim, eta, zeta, kappa);
+
+    eta.FillBoundary(geom.periodicity());
+    zeta.FillBoundary(geom.periodicity());
+    kappa.FillBoundary(geom.periodicity());
+
+    calculateFlux(cup2, prim, eta, zeta, kappa, flux, dx);
 
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
@@ -64,6 +94,5 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
       	           ZFILL(dx), &dt);
     
     }
-
 
 }
