@@ -157,79 +157,6 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     ///////////////////////////////////////////
-    // Scaled alpha, beta, gamma:
-    ///////////////////////////////////////////
-    // alpha_fc_0 arrays
-    std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_0;
-    AMREX_D_TERM(alpha_fc_0[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc_0[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc_0[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    AMREX_D_TERM(alpha_fc_0[0].setVal(0.);,
-                 alpha_fc_0[1].setVal(0.);,
-                 alpha_fc_0[2].setVal(0.););
-
-    // Scaled by 1/2:
-    // beta_hlf cell centered
-    MultiFab beta_hlf(ba, dmap, 1, 1);
-    MultiFab::Copy(beta_hlf, beta, 0, 0, 1, 1);
-    beta_hlf.mult(0.5, 1);
-
-    // beta_hlf on nodes in 2d
-    // beta_hlf on edges in 3d
-    std::array< MultiFab, NUM_EDGE > beta_ed_hlf;
-#if (AMREX_SPACEDIM == 2)
-    beta_ed_hlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    MultiFab::Copy(beta_ed_hlf[0], beta_ed[0], 0, 0, 1, 1);
-    beta_ed_hlf[0].mult(0.5, 1);
-#elif (AMREX_SPACEDIM == 3)
-    beta_ed_hlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    beta_ed_hlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    beta_ed_hlf[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    MultiFab::Copy(beta_ed_hlf[0], beta_ed[0], 0, 0, 1, 1);
-    MultiFab::Copy(beta_ed_hlf[1], beta_ed[1], 0, 0, 1, 1);
-    MultiFab::Copy(beta_ed_hlf[2], beta_ed[2], 0, 0, 1, 1);
-    beta_ed_hlf[0].mult(0.5, 1);
-    beta_ed_hlf[1].mult(0.5, 1);
-    beta_ed_hlf[2].mult(0.5, 1);
-#endif
-
-    // cell-centered gamma_hlf
-    MultiFab gamma_hlf(ba, dmap, 1, 1);
-    MultiFab::Copy(gamma_hlf, gamma, 0, 0, 1, 1);
-    gamma_hlf.mult(-0.5, 1);
-
-    // Scaled by -1/2:
-    // beta_neghlf cell centered
-    MultiFab beta_neghlf(ba, dmap, 1, 1);
-    MultiFab::Copy(beta_neghlf, beta, 0, 0, 1, 1);
-    beta_neghlf.mult(-0.5, 1);
-
-    // beta_neghlf on nodes in 2d
-    // beta_neghlf on edges in 3d
-    std::array< MultiFab, NUM_EDGE > beta_ed_neghlf;
-#if (AMREX_SPACEDIM == 2)
-    beta_ed_neghlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    MultiFab::Copy(beta_ed_neghlf[0], beta_ed[0], 0, 0, 1, 1);
-    beta_ed_neghlf[0].mult(-0.5, 1);
-#elif (AMREX_SPACEDIM == 3)
-    beta_ed_neghlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    beta_ed_neghlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    beta_ed_neghlf[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    MultiFab::Copy(beta_ed_neghlf[0], beta_ed[0], 0, 0, 1, 1);
-    MultiFab::Copy(beta_ed_neghlf[1], beta_ed[1], 0, 0, 1, 1);
-    MultiFab::Copy(beta_ed_neghlf[2], beta_ed[2], 0, 0, 1, 1);
-    beta_ed_neghlf[0].mult(-0.5, 1);
-    beta_ed_neghlf[1].mult(-0.5, 1);
-    beta_ed_neghlf[2].mult(-0.5, 1);
-#endif
-
-    // cell-centered gamma
-    MultiFab gamma_neghlf(ba, dmap, 1, 1);
-    MultiFab::Copy(gamma_neghlf, gamma, 0, 0, 1, 1);
-    gamma_neghlf.mult(-0.5, 1);
-    ///////////////////////////////////////////
-
-    ///////////////////////////////////////////
     // Define & initalize eta & temperature multifabs
     ///////////////////////////////////////////
     // eta & temperature
@@ -289,12 +216,21 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     // mflux divergence, staggered in x,y,z
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv;
-    // Define mfluxdiv multifabs
-    mfluxdiv[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    mfluxdiv[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
+    // Define mfluxdiv predictor multifabs
+    mfluxdiv_predict[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+    mfluxdiv_predict[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
 #if (AMREX_SPACEDIM == 3)
-    mfluxdiv[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
+    mfluxdiv_predict[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
+#endif
+
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
+    // Define mfluxdiv corrector multifabs
+    mfluxdiv_correct[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+    mfluxdiv_correct[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+#if (AMREX_SPACEDIM == 3)
+    mfluxdiv_correct[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
 
     Vector< amrex::Real > weights;
@@ -308,22 +244,10 @@ void main_driver(const char* argv)
 
     // tracer
     MultiFab tracer(ba,dmap,1,1);
-    MultiFab tracerPred(ba,dmap,1,1);
-    MultiFab advFluxdivS(ba,dmap,1,1);
-
-    // rhs_p GMRES solve
-    MultiFab gmres_rhs_p(ba, dmap, 1, 0);
-    gmres_rhs_p.setVal(0.);
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
-
-    // rhs_u GMRES solve
-    std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
-    AMREX_D_TERM(gmres_rhs_u[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 gmres_rhs_u[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 gmres_rhs_u[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
@@ -335,28 +259,6 @@ void main_driver(const char* argv)
     AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    std::array< MultiFab, AMREX_SPACEDIM > Lumac;
-    AMREX_D_TERM(Lumac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 Lumac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 Lumac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // advective terms
-    std::array< MultiFab, AMREX_SPACEDIM > advFluxdiv;
-    AMREX_D_TERM(advFluxdiv[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 advFluxdiv[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 advFluxdiv[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    std::array< MultiFab, AMREX_SPACEDIM > advFluxdivPred;
-    AMREX_D_TERM(advFluxdivPred[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 advFluxdivPred[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 advFluxdivPred[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // staggered momentum
-    std::array< MultiFab, AMREX_SPACEDIM > uMom;
-    AMREX_D_TERM(uMom[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 uMom[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 uMom[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
     ///////////////////////////////////////////
     // structure factor:
@@ -422,8 +324,6 @@ void main_driver(const char* argv)
     int step = 0;
     Real time = 0.;
 
-    Real norm_pre_rhs;
-
     // write out initial state
     if (plot_int > 0) 
       {
@@ -451,164 +351,17 @@ void main_driver(const char* argv)
 
         Real step_strt_time = ParallelDescriptor::second();
     
-        AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
-                     umac[1].FillBoundary(geom.periodicity());,
-                     umac[2].FillBoundary(geom.periodicity()););
-
 	// Fill stochastic terms
 	sMflux.fillMStochastic();
+
+	// compute stochastic force terms
+	sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	
-	//////////////////////////
-	// Advance tracer
-	//////////////////////////
-
-    	// Compute tracer:
-	tracer.FillBoundary(geom.periodicity());
-	MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0);
-	advFluxdivS.mult(dt, 1);
-
-	// compute predictor
-	MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
-	MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
-	tracerPred.FillBoundary(geom.periodicity());
-	MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0);
-	advFluxdivS.mult(dt, 1);
-
-	// advance in time
-	MultiFab::Add(tracer, tracerPred, 0, 0, 1, 0);
-	MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
-	tracer.mult(0.5, 1);
-
-	// amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
-	//////////////////////////
-
-	//////////////////////////////////////////////////
-	// ADVANCE
-	//////////////////////////////////////////////////
-
-    	// PREDICTOR STEP (heun's method: part 1)
-    	// compute advective term
-        AMREX_D_TERM(MultiFab::Copy(uMom[0], umac[0], 0, 0, 1, 0);,
-                     MultiFab::Copy(uMom[1], umac[1], 0, 0, 1, 0);,
-                     MultiFab::Copy(uMom[2], umac[2], 0, 0, 1, 0););
-
-    	// let rho = 1
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  uMom[d].mult(1.0, 1);
-    	}
-
-        AMREX_D_TERM(uMom[0].FillBoundary(geom.periodicity());,
-                     uMom[1].FillBoundary(geom.periodicity());,
-                     uMom[2].FillBoundary(geom.periodicity()););
-
-    	MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
-
-        // crank-nicolson terms
-        StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,theta_alpha);
-
-	// compute stochastic force terms
-	sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-
-    	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
-                     MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
-                     MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  gmres_rhs_u[d].mult(dtinv, 1);
-    	}
-    	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], mfluxdiv[0], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[1], mfluxdiv[1], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[2], mfluxdiv[2], 0, 0, 1, 0););
-	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[1], Lumac[1], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[2], Lumac[2], 0, 0, 1, 0););
-    	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
-
-        AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
-                     gmres_rhs_u[1].FillBoundary(geom.periodicity());,
-                     gmres_rhs_u[2].FillBoundary(geom.periodicity()););
-
-    	// initial guess for new solution
-    	AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-    		     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-    		     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
-    	pres.setVal(0.);  // initial guess
-
-        // call GMRES to compute predictor
-    	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,theta_alpha,geom,norm_pre_rhs);
-
-    	// Compute predictor advective term
-        AMREX_D_TERM(umacNew[0].FillBoundary(geom.periodicity());,
-                     umacNew[1].FillBoundary(geom.periodicity());,
-                     umacNew[2].FillBoundary(geom.periodicity()););
-
-        AMREX_D_TERM(MultiFab::Copy(uMom[0], umacNew[0], 0, 0, 1, 0);,
-                     MultiFab::Copy(uMom[1], umacNew[1], 0, 0, 1, 0);,
-                     MultiFab::Copy(uMom[2], umacNew[2], 0, 0, 1, 0););
-
-    	// let rho = 1
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  uMom[d].mult(1.0, 1);
-    	}
-
-        AMREX_D_TERM(uMom[0].FillBoundary(geom.periodicity());,
-                     uMom[1].FillBoundary(geom.periodicity());,
-                     uMom[2].FillBoundary(geom.periodicity()););
-
-    	MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
-
-    	// ADVANCE STEP (crank-nicolson + heun's method)
-
-    	// Compute gmres_rhs
-
-        // trapezoidal advective terms
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  advFluxdiv[d].mult(0.5, 1);
-    	  advFluxdivPred[d].mult(0.5, 1);
-    	}
-
-        // crank-nicolson terms
-        StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,theta_alpha);
-
-	// compute stochastic force terms
-	sMflux.stochMforce(mfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-
-    	AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
-                     MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
-                     MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  gmres_rhs_u[d].mult(dtinv, 1);
-    	}
-    	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[1], Lumac[1], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[2], Lumac[2], 0, 0, 1, 0););
-	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], mfluxdiv[0], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[1], mfluxdiv[1], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[2], mfluxdiv[2], 0, 0, 1, 0););
-    	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
-    	AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdivPred[0], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[1], advFluxdivPred[1], 0, 0, 1, 0);,
-                     MultiFab::Add(gmres_rhs_u[2], advFluxdivPred[2], 0, 0, 1, 0););
-
-        AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
-                     gmres_rhs_u[1].FillBoundary(geom.periodicity());,
-                     gmres_rhs_u[2].FillBoundary(geom.periodicity()););
-
-    	// initial guess for new solution
-    	AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-    		     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-    		     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
-    	pres.setVal(0.);  // initial guess
-
-        // call GMRES here
-    	GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,theta_alpha,geom,norm_pre_rhs);
-
-        AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
-                     MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
-                     MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+	// Advance umac
+        advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
+		alpha_fc,beta,gamma,beta_ed,geom,dt);
+	
 	//////////////////////////////////////////////////
 	
 	///////////////////////////////////////////
@@ -659,6 +412,5 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
-    amrex::Print() << "dt = " << dt << "\n";
 
 }
