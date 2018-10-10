@@ -60,6 +60,8 @@ module common_namelist_module
   double precision,   save :: initial_variance_mass
   integer,            save :: bc_lo(AMREX_SPACEDIM)
   integer,            save :: bc_hi(AMREX_SPACEDIM)
+  double precision,   save :: t_lo(AMREX_SPACEDIM)
+  double precision,   save :: t_hi(AMREX_SPACEDIM)
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   integer,            save :: struct_fact_int
@@ -176,6 +178,9 @@ module common_namelist_module
   namelist /common/ bc_lo
   namelist /common/ bc_hi
 
+  namelist /common/ t_lo
+  namelist /common/ t_hi
+
   ! Each no-slip wall may be moving with a specified tangential 
   ! velocity along the tangential directions
   ! In 2D:
@@ -230,8 +235,8 @@ contains
     rho0 = 1.
     variance_coef_mom = 1.
     variance_coef_mass = 1.
-    k_B = 1.38064852e-23
-    Runiv = 8.314462175d7
+    k_B = 1.38064852e-16
+    Runiv = 8.314462175e7
     T_init(:) = 1.d0
     algorithm_type = 0
     advection_type = 0
@@ -254,6 +259,8 @@ contains
     initial_variance_mass = 0.
     bc_lo(:) = 0
     bc_hi(:) = 0
+    t_lo(:) = 0
+    t_hi(:) = 0
     wallspeed_lo(:,:) = 0
     wallspeed_hi(:,:) = 0
     struct_fact_int = 0
@@ -290,6 +297,7 @@ contains
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
                                          bc_lo_in, bc_hi_in, &
+                                         t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          struct_fact_int_in, n_steps_skip_in, &
                                          histogram_unit_in, density_weights_in, &
@@ -355,6 +363,8 @@ contains
     double precision,       intent(inout) :: initial_variance_mass_in
     integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: t_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: t_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
     integer,                intent(inout) :: struct_fact_int_in
@@ -417,6 +427,8 @@ contains
     initial_variance_mass_in = initial_variance_mass
     bc_lo_in = bc_lo
     bc_hi_in = bc_hi
+    t_lo_in = t_lo
+    t_hi_in = t_hi
     wallspeed_lo_in = wallspeed_lo
     wallspeed_hi_in = wallspeed_hi
     struct_fact_int_in = struct_fact_int

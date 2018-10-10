@@ -43,6 +43,7 @@ extern "C"
                                      amrex::Real* initial_variance_mom,
                                      amrex::Real* initial_variance_mass,
                                      int* bc_lo, int* bc_hi,
+                                     amrex::Real* t_lo, amrex::Real* t_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
                                      int* struct_fact_int, int* n_steps_skip,
                                      int* histogram_unit, amrex::Real* density_weights,

@@ -19,15 +19,15 @@ contains
       integer         , intent(in   ) :: lo(3),hi(3)
       real(amrex_real), intent(in   ) :: dx(3), dt
 
-      real(amrex_real), intent(in   ) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
-      real(amrex_real), intent(inout) :: cup(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
+      real(amrex_real), intent(inout) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
+      real(amrex_real), intent(inout) :: cup(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
 
-      real(amrex_real), intent(in)    :: source(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
+      real(amrex_real), intent(in)    :: source(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
 
-      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
 #endif
       integer :: i,j,k,l
       real(amrex_real) :: dxinv(3)
@@ -39,18 +39,34 @@ contains
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
 
+!                if(l .eq. 5) then
+!                  print *, "Stage1"
+!                  print *, i,j,k
+!                  print *, "CUpre: ", cu(i,j,k,5)
+!                endif
+
                  cup(i,j,k,l) = cu(i,j,k,l)                                      &
-                                - dt*(xflux(i,j,k,l)-xflux(i-1,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j,k,l)-yflux(i,j-1,k,l))*dxinv(2)  &
+                                - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
+                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k,l)-zflux(i,j,k-1,l))*dxinv(3)  &
+                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
                                 + dt*source(i,j,k,l)
+
+!                if(l .eq. 5) then
+
+!                  print *, "FluxL: ", xflux(i,j,k,5)*dt*dxinv(1)
+!                  print *, "FluxR: ", -xflux(i+1,j,k,5)*dt*dxinv(1)
+!                  print *, "CUpost: ", cu(i,j,k,5)
+
+!                endif
 
            enddo
           enddo
         enddo
       enddo
+
+     !call exit()
 
   end subroutine rk3_stage1
 
@@ -64,15 +80,15 @@ contains
       real(amrex_real), intent(in   ) :: dx(3), dt
 
       real(amrex_real), intent(in   ) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
-      real(amrex_real), intent(in   ) :: cup(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
-      real(amrex_real), intent(inout) :: cup2(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
+      real(amrex_real), intent(in   ) :: cup(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
+      real(amrex_real), intent(inout) :: cup2(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
 
-      real(amrex_real), intent(in)    :: source(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
+      real(amrex_real), intent(in)    :: source(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
 
-      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
 #endif
       integer :: i,j,k,l
       real(amrex_real) :: dxinv(3)
@@ -85,12 +101,13 @@ contains
            do  i=lo(1),hi(1)
 
                  cup2(i,j,k,l) =  0.25d0*(3.0d0*cu(i,j,k,l) + cup(i,j,k,l)              &
-                                - dt*(xflux(i,j,k,l)-xflux(i-1,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j,k,l)-yflux(i,j-1,k,l))*dxinv(2)  &
+                                - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
+                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k,l)-zflux(i,j,k-1,l))*dxinv(3)  &
+                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
                                 + dt*source(i,j,k,l))
+
 
            enddo
           enddo
@@ -109,15 +126,15 @@ contains
       real(amrex_real), intent(in   ) :: dx(3), dt
 
       real(amrex_real), intent(inout) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
-      real(amrex_real), intent(in   ) :: cup(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
-      real(amrex_real), intent(in   ) :: cup2(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
+      real(amrex_real), intent(in   ) :: cup(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
+      real(amrex_real), intent(in   ) :: cup2(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
 
-      real(amrex_real), intent(in)    :: source(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3+ngc), nvars)
+      real(amrex_real), intent(in)    :: source(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
 
-      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
 #endif
       integer :: i,j,k,l
       real(amrex_real) :: dxinv(3), twothirds
@@ -131,18 +148,12 @@ contains
            do  i=lo(1),hi(1)
 
                  cu(i,j,k,l) =  twothirds*(0.5*cu(i,j,k,l) + cup2(i,j,k,l)              &
-                                - dt*(xflux(i,j,k,l)-xflux(i-1,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j,k,l)-yflux(i,j-1,k,l))*dxinv(2)  &
+                                - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
+                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k,l)-zflux(i,j,k-1,l))*dxinv(3)  &
+                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
                                 + dt*source(i,j,k,l))
-
-!           cu(i,j,k,iv) =1.d0/3.d0*( cu(i,j,k,iv)+ 2.d0*cup2(i,j,k,iv)  &
-!     &           - 2.d0 * dt * (fluxx(i,j,k,iv)-fluxx(i-1,j,k,iv))/dx   &
-!     &           - 2.d0 * dt * (fluxy(i,j,k,iv)-fluxy(i,j-1,k,iv))/dy   &
-!     &           - 2.d0 * dt * (fluxz(i,j,k,iv)-fluxz(i,j,k-1,iv))/dz   &
-!     &           + 2.d0 * dt * source(i,j,k,iv))
 
            enddo
           enddo

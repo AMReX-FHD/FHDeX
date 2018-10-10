@@ -18,3 +18,5 @@ void conservedToPrimitive(MultiFab& prim, const MultiFab& cons);
 
 void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
+void setBC(MultiFab& prim, MultiFab& cons, MultiFab& eta, MultiFab& zeta, MultiFab& kappa);
+

@@ -15,6 +15,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
 
+    setBC(prim, cu, eta, zeta, kappa);
+
     calculateFlux(cu, prim, eta, zeta, kappa, flux, dx);
 
 
@@ -43,6 +45,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+
+    setBC(prim, cup, eta, zeta, kappa);
 
     calculateFlux(cup, prim, eta, zeta, kappa, flux, dx);
 
@@ -73,6 +77,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+
+    setBC(prim, cup2, eta, zeta, kappa);
 
     calculateFlux(cup2, prim, eta, zeta, kappa, flux, dx);
 

@@ -33,6 +33,8 @@ void InitializeCommonNamespace() {
     T_init.resize(2);
     bc_lo.resize(AMREX_SPACEDIM);
     bc_hi.resize(AMREX_SPACEDIM);
+    t_lo.resize(AMREX_SPACEDIM);
+    t_hi.resize(AMREX_SPACEDIM);
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     density_weights.resize(MAX_SPECIES);
@@ -54,7 +56,7 @@ void InitializeCommonNamespace() {
                                 &seed_init_momentum, &visc_coef, &visc_type,
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
-                                &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(),
+                                &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(), t_lo.dataPtr(), t_hi.dataPtr(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 &struct_fact_int, &n_steps_skip,
                                 &histogram_unit,

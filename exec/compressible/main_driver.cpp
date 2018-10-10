@@ -21,6 +21,11 @@
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
+#include "compressible_functions.H"
+#include "compressible_functions_F.H"
+
+#include "exec_functions.H"
+
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -50,6 +55,9 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+
+    //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
+    get_hc_gas();
   
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -132,9 +140,25 @@ void main_driver(const char* argv)
     MultiFab cup2(ba,dmap,nvars,ngc);
     MultiFab cup3(ba,dmap,nvars,ngc);
 
+    MultiFab cuMeans(ba,dmap,nvars,ngc);
+    MultiFab cuVars(ba,dmap,nvars,ngc);
+
     //primative quantaties
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
+    MultiFab primMeans(ba,dmap,nprimvars,ngc);
+    MultiFab primVars(ba,dmap,nprimvars,ngc);
+
+    cuMeans.setVal(0.0);
+    cuVars.setVal(0.0);
+
+    primMeans.setVal(0.0);
+    primVars.setVal(0.0);
+
+    //possibly for later
+    MultiFab source(ba,dmap,nprimvars,ngc);
+
+    source.setVal(0.0);
 
     //Initialize physical parameters from input vals
 
@@ -144,11 +168,30 @@ void main_driver(const char* argv)
     prim.setVal(0,3,1,ngc);
     prim.setVal(T_init[0],4,1,ngc);
 
+    double massvec[nspecies];
+    double intEnergy, T0;
+
+    T0 = T_init[0];
+
+    for(int i=0;i<nspecies;i++)
+    {
+        prim.setVal(rhobar[i],6+i,1,ngc);
+        cu.setVal(rhobar[i],5+i,1,ngc);
+
+        massvec[i] = rhobar[i]*rho0;
+    }
+
+    get_energy(&intEnergy, massvec, &T0);
+
     cu.setVal(rho0,0,1,ngc);
     cu.setVal(0,1,1,ngc);
     cu.setVal(0,2,1,ngc);
     cu.setVal(0,3,1,ngc);
-    cu.setVal(T_init[0],4,1,ngc);
+    cu.setVal(intEnergy,4,1,ngc);
+
+    //Print() << intEnergy << "\n";
+
+    //while(true);
 
     //fluxes
     std::array< MultiFab, AMREX_SPACEDIM > flux;
@@ -156,10 +199,42 @@ void main_driver(const char* argv)
                  flux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
                  flux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
 
-    Print() << "cv: " << hcv[1] << "\n";
+    Real time = 0;
 
-    hcv[1] = 10;
+    int step, statsCount;
 
+    calculateTransportCoeffs(prim, eta, zeta, kappa);
 
+    //Time stepping loop
+    for(step=1;step<=max_step;++step)
+    {
+
+        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, geom, dx, dt);
+
+        if(step == 50000)
+        {
+
+            statsCount = 1;
+        }
+
+       
+        if(step >= 1 )
+        {
+
+            statsCount++;
+        }
+
+        if(step%plot_int == 0)
+        {    
+                amrex::Print() << "Advanced step " << step << "\n";
+        }
+
+        if (plot_int > 0 && step > 0 && step%plot_int == 0)
+        {
+            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars);
+        }
+
+        time = time + dt;
+    }
 
 }

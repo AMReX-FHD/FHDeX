@@ -110,6 +110,9 @@ namespace common {
     extern amrex::Vector<int>         bc_lo;
     extern amrex::Vector<int>         bc_hi;
 
+    extern amrex::Vector<amrex::Real>         t_lo;
+    extern amrex::Vector<amrex::Real>         t_hi;
+
     // Each no-slip wall may be moving with a specified tangential 
     // velocity along the tangential directions
     // In 2D:

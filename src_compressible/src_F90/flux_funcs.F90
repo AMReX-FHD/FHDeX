@@ -1,7 +1,8 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies
+  use conv_module, only : get_temperature, get_pressure_gas
   implicit none
 
   private
@@ -10,7 +11,11 @@ module flux_module
 
 contains
 
-  subroutine diff_flux(lo,hi, cons, prim, eta, zeta, kappa, xflux, yflux, zflux, dx) bind(C,name="diff_flux")
+  subroutine diff_flux(lo,hi, cons, prim, eta, zeta, kappa, xflux, yflux, &
+#if (AMREX_SPACEDIM == 3)
+                        zflux, &
+#endif
+                        dx) bind(C,name="diff_flux")
 
       integer         , intent(in   ) :: lo(3),hi(3)
       real(amrex_real), intent(in   ) :: dx(3)
@@ -37,7 +42,7 @@ contains
       dvz = 0
       dwz = 0
       dtz = 0
-      
+
       !x flux
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
@@ -105,9 +110,32 @@ contains
             !energy flux
             xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
+!            if(i .eq. -1) then
+! 
+!              print *, i,j,k, "temp: ", prim(i,j,k,5)
+!              print *, i+1,j,k, "temp: ", prim(i+1,j,k,5)
+
+!              !print *, i,j,k, "dty: ", dty
+
+!            endif
+
           end do
         end do
       end do
+
+!      do k = lo(3),hi(3)
+!        do j = lo(2),hi(2)
+!          do i = lo(1)-1,hi(1)
+
+
+!            totalE = totalE + cons(i,j,k,5)
+!          enddo
+!        enddo
+!      enddo
+
+
+!      print *, "fluxlo: ", fluxlo, " fluxhi: ", fluxhi
+!      print *, "Total E: ", totalE
 
       duz = 0
       dvz = 0
@@ -179,7 +207,7 @@ contains
             w = 0.5*(prim(i,j+1,k,4) - prim(i,j,k,4))            
 
             !energy flux
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
+            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
           end do
         end do
@@ -250,7 +278,7 @@ contains
             w = 0.5*(prim(i,j,k+1,4) + prim(i,j,k,4))            
 
             !energy flux
-            zflux(i,j,k,5) = zflux(i,j,k+1,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
+            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
           end do
         end do
@@ -259,34 +287,148 @@ contains
 
   end subroutine diff_flux
   
-!  subroutine hyp_flux(lo,hi, cons, prim, eta, zeta, kappa, xflux, yflux, zflux, dx, nvars, nprimvars) bind(C,name="hyp_flux")
+  subroutine hyp_flux(lo,hi, cons, prim, xflux, yflux, &
+#if (AMREX_SPACEDIM == 3)
+                        zflux, &
+#endif
+                        dx) bind(C,name="hyp_flux")
 
-!      integer         , intent(in   ) :: lo(3),hi(3), nvars, nprimvars
-!      real(amrex_real), intent(in   ) :: dx(3)
-!      real(amrex_real), intent(inout) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
-!      real(amrex_real), intent(inout) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
-!#if (AMREX_SPACEDIM == 3)
-!      real(amrex_real), intent(inout) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
-!#endif
+      integer         , intent(in   ) :: lo(3),hi(3)
+      real(amrex_real), intent(in   ) :: dx(3)
+      real(amrex_real), intent(inout) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+#if (AMREX_SPACEDIM == 3)
+      real(amrex_real), intent(inout) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+#endif
 
-!      real(amrex_real), intent(in   ) :: cons(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nvars)
-!      real(amrex_real), intent(in   ) :: prim(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3), nprimvars)
+      real(amrex_real), intent(in   ) :: cons(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
+      real(amrex_real), intent(in   ) :: prim(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
 
-!      real(amrex_real), intent(in   ) :: eta(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
-!      real(amrex_real), intent(in   ) :: zeta(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
-!      real(amrex_real), intent(in   ) :: kappa(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+      real(amrex_real) :: conserved(nvars), primitive(6), wgt1, wgt2, vsqr, intenergy, massvec(nspecies), fracvec(nspecies)
 
-!      integer :: i,j,k
-!      
-!      do k = lo(3),hi(3)
-!        do j = lo(2),hi(2)
-!          do i = lo(1),hi(1)
+      integer :: i,j,k,l
 
-!          end do
-!        end do
-!      end do
+      wgt2 = 1.0/12.0
+      wgt1 = 0.5 + wgt2 !fourth order interpolation with two ghost cells
 
-!  end subroutine hyp_flux
+      !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
+
+      !x flux
+     
+      do k = lo(3),hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1)-1,hi(1)
+
+            do l = 1,nvars 
+              conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l)) !Better to interpolate primitives here?
+            enddo
+
+            primitive(1) = conserved(1)  
+            primitive(2) = conserved(2)/conserved(1)
+            primitive(3) = conserved(3)/conserved(1)
+            primitive(4) = conserved(4)/conserved(1)
+
+            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+
+            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
+ 
+            fracvec = conserved(6:nvars)
+
+            massvec = fracvec*conserved(1)
+
+            call get_temperature(intenergy, massvec, primitive(5))
+
+            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+
+            xflux(i+1,j,k,1) = xflux(i+1,j,k,1) + primitive(1)*primitive(2)
+            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + primitive(1)*primitive(2)**2+primitive(6)
+            xflux(i+1,j,k,3) = xflux(i+1,j,k,3) + primitive(1)*primitive(3)*primitive(2)
+            xflux(i+1,j,k,4) = xflux(i+1,j,k,4) + primitive(1)*primitive(4)*primitive(2)
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
+
+
+          end do
+        end do
+      end do
+
+      !y flux
+     
+      do k = lo(3),hi(3)
+        do j = lo(2)-1,hi(2)
+          do i = lo(1),hi(1)
+
+            do l = 1,nvars 
+              conserved(l) = wgt1*(cons(i,j+1,k,l)+cons(i,j,k,l)) -wgt2*(cons(i,j-1,k,l)+cons(i,j+2,k,l)) !Better to interpolate primitives here?
+            enddo
+
+            primitive(1) = conserved(1)  
+            primitive(2) = conserved(2)/conserved(1)
+            primitive(3) = conserved(3)/conserved(1)
+            primitive(4) = conserved(4)/conserved(1)
+
+            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+
+            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
+ 
+            fracvec = conserved(6:nvars)
+
+            massvec = fracvec*conserved(1)
+
+            call get_temperature(intenergy, massvec, primitive(5))
+
+            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+
+            yflux(i,j+1,k,1) = yflux(i,j+1,k,1) + primitive(1)*primitive(3)
+            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) + primitive(1)*primitive(2)*primitive(3)
+            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + primitive(1)*primitive(3)**2+primitive(6)
+            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) + primitive(1)*primitive(4)*primitive(3)
+            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
+
+
+          end do
+        end do
+      end do
+
+      !z flux
+     
+      do k = lo(3)-1,hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+
+            do l = 1,nvars 
+              conserved(l) = wgt1*(cons(i,j,k+1,l)+cons(i,j,k,l)) -wgt2*(cons(i,j,k-1,l)+cons(i,j,k+2,l)) !Better to interpolate primitives here?
+            enddo
+
+            primitive(1) = conserved(1)  
+            primitive(2) = conserved(2)/conserved(1)
+            primitive(3) = conserved(3)/conserved(1)
+            primitive(4) = conserved(4)/conserved(1)
+
+            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+
+            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
+ 
+            fracvec = conserved(6:nvars)
+
+            massvec = fracvec*conserved(1)
+
+            call get_temperature(intenergy, massvec, primitive(5))
+
+            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+
+            zflux(i,j,k+1,1) = zflux(i,j,k+1,1) + primitive(1)*primitive(4)
+            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) + primitive(1)*primitive(2)*primitive(4)
+            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) + primitive(1)*primitive(3)*primitive(4)
+            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + primitive(1)*primitive(4)**2+primitive(6)
+            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
+
+
+          end do
+        end do
+      end do
+
+
+  end subroutine hyp_flux
 
 
 end module flux_module

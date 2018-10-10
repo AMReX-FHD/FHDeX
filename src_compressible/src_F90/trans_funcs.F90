@@ -61,10 +61,10 @@ contains
             eta(i,j,k) = rootT*specaveta
             kappa(i,j,k) = rootT*specavkappa
 
+
           enddo
         enddo
       enddo
-
 
   end subroutine trans_coeffs
 

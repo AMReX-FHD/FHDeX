@@ -1,12 +1,12 @@
 module conv_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b, nspecies, hcv, hcp
+  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b, nspecies, hcv, hcp, runiv, dof
   implicit none
 
   private
 
-  public :: cons_to_prim
+  public :: cons_to_prim, get_temperature, get_energy, get_hc_gas, get_pressure_gas
 
 contains
 
@@ -32,24 +32,21 @@ contains
 
             vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
 
-            intenergy = cons(i,j,k,5) - 0.5*vsqr*cons(i,j,k,4)
+            intenergy = cons(i,j,k,5) - 0.5*vsqr*cons(i,j,k,1)
 
-            massvec = cons(i,j,k,6:nvars)*cons(i,j,k,5)
+            massvec = cons(i,j,k,6:nvars)*cons(i,j,k,1)
 
             call get_temperature(intenergy, massvec, prim(i,j,k,5))
+
+!            if((i .eq. 36) .and. (j .eq. 0) .and. (k .eq. 0)) then
+
+!              print *, "primcalc: ", i,j,k, " energy: ", cons(i,j,k,5), " temp: ", prim(i,j,k,5)
+
+!            endif
 
           enddo
         enddo
       enddo
-
-
-!          rho = con(i,j,k,1)
-!          uvel = con(i,j,k,2) / rho
-!          vvel = con(i,j,k,3) / rho
-!          wvel = con(i,j,k,4) / rho
-!          vmag = (uvel**2 + vvel**2 + wvel**2 )
-!          eint = con(i,j,k,5)/rho -0.5d0*vmag
-
 
   end subroutine cons_to_prim
 
@@ -74,40 +71,63 @@ contains
 
   end subroutine
 
-!  subroutine calculate_hc_gas()     
+  subroutine get_energy(energy, massvec, temp)  bind(C,name="get_energy")    
 
-!    !This function originaly had a reference to e0 - check this.
+    !This function originaly had a reference to e0 - check this.
 
-!    real(amrex_real), intent(inout) :: temp
-!    real(amrex_real), intent(in   ) :: energy, massvec(nspecies)
+    real(amrex_real), intent(in   ) :: temp
+    real(amrex_real), intent(inout) :: energy, massvec(nspecies)
 
-!    integer :: i
-!    real(amrex_real) :: mgrams(nspecies)
+    integer :: i
+    real(amrex_real) :: cvmix
 
-!    mgrams = molmass/(6.022140857e23)
+    cvmix = 0.0d0
 
-!    do i = 1, nspecies
-!      if(hcv(i) .lt. 0) then
+    do i = 1, nspecies
+      cvmix = cvmix + massvec(i)*hcv(i)
 
-!        0.5d0*dof(ns)*Runiv/(mgrams(ns))
+    enddo
 
-!      endif
+    energy = temp*cvmix 
 
-!    enddo
+  end subroutine
 
-!    temp = (energy)/cvmix 
+  subroutine get_pressure_gas(pressure, fracvec, density, temp)  bind(C,name="get_pressure_gas")    
 
-!  end subroutine
+    real(amrex_real), intent(in   ) :: temp, fracvec(nspecies), density
+    real(amrex_real), intent(inout) :: pressure
+
+    integer :: i
+    real(amrex_real) :: avm
+
+    avm = 0.0d0
+
+    do i = 1, nspecies
+      avm = avm + fracvec(i)*molmass(i)
+
+    enddo
+
+    pressure = temp*runiv*density/avm 
+
+  end subroutine
+
+  subroutine get_hc_gas() bind(C,name="get_hc_gas")
+
+    integer :: i
+
+    do i=1, nspecies
+      if(hcv(i) .lt. 0) then   
+
+        hcv(i) = 0.5d0*dof(i)*Runiv/molmass(i)
+        hcp(i) = 0.5d0*(2+dof(i))*Runiv/molmass(i)
+
+      endif
+
+    enddo
+
+    !print *, hcv
+
+  end subroutine
 
 end module conv_module
 
-
-
-!    do ns =  1,nspecies
-!       e0ref(ns) = 0.d0
-!!      R_g(ns) = Runiv / molecular_weight(ns)
-!       molecular_mass(ns) = molecular_weight(ns) / AVOGADRO
-!       cvgas(ns) = 0.5d0*(3+int_deg_free(ns))*Runiv/molecular_weight(ns)
-!       cpgas(ns) = 0.5d0*(5+int_deg_free(ns))*Runiv/molecular_weight(ns)
-
-!    enddo

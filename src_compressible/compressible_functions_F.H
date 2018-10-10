@@ -30,10 +30,6 @@ extern "C"
   void hyp_flux(const int* lo, const int* hi,
 			      const amrex::Real* cons,
 			      const amrex::Real* prim,
-			      const amrex::Real* eta,
-			      const amrex::Real* zeta,
-			      const amrex::Real* zappa,
-
 			      amrex::Real* xflux,
 			      amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)
@@ -49,7 +45,7 @@ extern "C"
 
 
   void rk3_stage1(const int* lo, const int* hi,
-			      const amrex::Real* cu,
+			      amrex::Real* cu,
 			      amrex::Real* cup,
 			      const amrex::Real* source,
 			      const amrex::Real* xflux,
@@ -93,6 +89,20 @@ extern "C"
   void prim_to_cons(const int* lo, const int* hi,
 			      amrex::Real* cons,
 			      const amrex::Real* prim);
+
+  void set_bc(const int* lo, const int* hi,
+			      amrex::Real* cons,
+			      amrex::Real* prim,
+	  	      amrex::Real* eta,
+  		      amrex::Real* zeta,
+			      amrex::Real* zappa);
+
+  void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
+
+  void get_pressure_gas(amrex::Real* pressure, amrex::Real* fracvec, amrex::Real* density, amrex::Real* temp);
+
+  void get_hc_gas();
+
 
 #ifdef __cplusplus
 }
