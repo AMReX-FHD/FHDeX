@@ -12,7 +12,6 @@
 #include <AMReX_Vector.H>
 
 #include <AMReX_FluxRegister.H>
-//#include <AMReX_FMultiGrid.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
 
@@ -43,22 +42,12 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab macrhs(grids,dmap,1,1);
     macrhs.setVal(0.0);
 
-    Real beta0 = 1.0;
-    Real beta0v = 1./beta0;
-    
-    // convert Utilde^* to beta0*Utilde^*
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      umac[d].mult(beta0,1);
-    }
-
-    // compute the RHS for the solve, RHS = macrhs - div(beta0*umac)
+    // compute the RHS for the solve, RHS = macrhs - div(umac)
     ComputeMACSolverRHS(solverrhs,macrhs,umac,geom);
     
     // coefficients for solver
     MultiFab acoef;
     std::array< MultiFab, AMREX_SPACEDIM > face_bcoef;
-    // Vector<MultiFab> acoef(1);
-    // Vector<std::array< MultiFab, AMREX_SPACEDIM > > face_bcoef(1);
     acoef.define(grids, dmap, 1, 0);
     AMREX_D_TERM(face_bcoef[0].define(convert(grids,nodal_flag_x), dmap, 1, 0);,
 		 face_bcoef[1].define(convert(grids,nodal_flag_y), dmap, 1, 0);,
@@ -73,11 +62,6 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // AND 2) invert B coefficients to 1/rho
     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
       face_bcoef[idim].invert(1.0,0,1);
-    }
-
-    // multiply face-centered B coefficients by beta0 so they contain beta0/rho
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      umac[d].mult(beta0,1);
     }
 
     // 
@@ -107,10 +91,6 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     mac_mlmg.setVerbose(mg_verbose);
     mac_mlmg.setCGVerbose(cg_verbose);
 
-    // tolerance parameters taken from original MAESTRO fortran code
-    // const Real mac_tol_abs = 1.e-15;      // -1.e0
-    // const Real mac_tol_rel = mg_rel_tol;
-
     // for the preconditioner, we do 1 v-cycle and the bottom solver is smooths
     if (!full_solve) {
         mac_mlmg.setBottomSolver(amrex::MLMG::BottomSolver::smoother);
@@ -121,7 +101,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // solve for phi
     mac_mlmg.solve({&macphi}, {&solverrhs}, mg_rel_tol, mg_abs_tol);
 
-    // update velocity, beta0 * Utilde = beta0 * Utilde^* - B grad phi
+    // update velocity, Utilde = Utilde^* - B grad phi
 
     // storage for "-B grad_phi"
     std::array<MultiFab,AMREX_SPACEDIM> mac_fluxes;
@@ -135,13 +115,8 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     mac_mlmg.getFluxes({mac_fluxptr});
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-      // add -B grad phi to beta0*Utilde
+      // add -B grad phi to Utilde
       MultiFab::Add(umac[idim], mac_fluxes[idim], 0, 0, 1, 0);
-    }
-
-    // convert beta0*Utilde to Utilde
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      umac[d].mult(beta0v,1);
     }
 
     // fill periodic ghost cells
@@ -192,47 +167,6 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
 #endif
 #endif
 		     dx);
-
-    }
-}
-
-// Average bcoefs at faces using inverse of rho
-void AvgFaceBcoeffsInv(std::array< MultiFab, AMREX_SPACEDIM >& facebcoef,
-		       const MultiFab& rhocc)
-{
-    // timer for profiling
-    BL_PROFILE_VAR("AvgFaceBcoeffsInv()",AvgFaceBcoeffsInv);
-
-    // write an MFIter loop 
-    // get references to the MultiFabs
-    MultiFab& xbcoef_mf = facebcoef[0];
-#if (AMREX_SPACEDIM >= 2)
-    MultiFab& ybcoef_mf = facebcoef[1];
-#if (AMREX_SPACEDIM == 3)
-    MultiFab& zbcoef_mf = facebcoef[2];
-#endif
-#endif
-
-    // Must get cell-centered MultiFab boxes for MIter
-    const MultiFab& rhocc_mf = rhocc;
-
-    int lev = 0;
-    // loop over boxes
-    for ( MFIter mfi(rhocc_mf); mfi.isValid(); ++mfi) {
-
-      // Get the index space of valid region
-      const Box& validBox = mfi.validbox();
-
-      // call fortran subroutine
-      mac_bcoef_face(&lev,ARLIM_3D(validBox.loVect()),ARLIM_3D(validBox.hiVect()), 
-		     BL_TO_FORTRAN_3D(xbcoef_mf[mfi]), 
-#if (AMREX_SPACEDIM >= 2)
-		     BL_TO_FORTRAN_3D(ybcoef_mf[mfi]),
-#if (AMREX_SPACEDIM == 3)
-		     BL_TO_FORTRAN_3D(zbcoef_mf[mfi]),
-#endif
-#endif
-		     BL_TO_FORTRAN_3D(rhocc_mf[mfi]));
 
     }
 }
