@@ -33,7 +33,7 @@
 
   ! Stochastic parameters
   variance_coef_mom = 1.
-  initial_variance_mom = 0.
+  initial_variance_mom = 1.
   k_B = 1.
   T_init(1) = 1.
 

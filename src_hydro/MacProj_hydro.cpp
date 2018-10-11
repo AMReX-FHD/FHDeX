@@ -12,7 +12,7 @@
 #include <AMReX_Vector.H>
 
 #include <AMReX_FluxRegister.H>
-// #include <AMReX_FMultiGrid.H>
+//#include <AMReX_FMultiGrid.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
 
@@ -24,89 +24,68 @@ using namespace gmres;
 // macphi is the solution to the elliptic solve
 
 void
-MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
-	 MultiFab& macphi_in,
-	 const MultiFab& macrhs_in,
-	 const MultiFab& rho_in,
-	 const Geometry& geom_in)
+MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
+	 const MultiFab& rho,
+	 const Geometry& geom,
+	 const bool& full_solve)
 {
     // timer for profiling
     BL_PROFILE_VAR("MacProj()",MacProj);
 
-    // this will hold solver RHS = macrhs - div(beta0*umac)
-    Vector<MultiFab> solverrhs(1);
+    BoxArray grids = umac[0].boxArray();
+    grids = grids.enclosedCells();
+    DistributionMapping dmap = umac[0].DistributionMap();
 
-    // Define single component vectors of MultiFabs to "fool" AMReX linear solvers
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > > umac(1);
-    Vector<MultiFab> macphi(1);
-    Vector<MultiFab> macrhs(1);
-    Vector<MultiFab> rho(1);
+    MultiFab solverrhs; // this will hold solver RHS = macrhs - div(beta0*umac)
+    solverrhs.define(grids, dmap, 1, 0);
 
-    BoxArray ba_nodal = umac_in[0].boxArray();
-    Vector<BoxArray> grids(1);
-    grids[0] = ba_nodal.enclosedCells();
-    Vector<DistributionMapping> dmap(1);
-    dmap[0] = umac_in[0].DistributionMap();
-    Vector<Geometry> geom(1);
-    geom[0] = geom_in;
-    
-    solverrhs[0].define(grids[0], dmap[0], 1, 0);
-    
-    AMREX_D_TERM(umac[0][0].define(convert(grids[0],nodal_flag_x), dmap[0], 1, 1);,
-		 umac[0][1].define(convert(grids[0],nodal_flag_y), dmap[0], 1, 1);,
-		 umac[0][2].define(convert(grids[0],nodal_flag_z), dmap[0], 1, 1););
-    rho[0].define(grids[0], dmap[0], 1, 1);
-    macrhs[0].define(grids[0], dmap[0], 1, 1);
-    macphi[0].define(grids[0], dmap[0], 1, 1);
-
-    for (int d = 0; d < AMREX_SPACEDIM; d++) {
-      MultiFab::Copy(umac[0][d],umac_in[d],0,0,1,1);
-    }
-    MultiFab::Copy(rho[0],rho_in,0,0,1,1);
-    MultiFab::Copy(macrhs[0],macrhs_in,0,0,1,1);
-    MultiFab::Copy(macphi[0],macphi_in,0,0,1,1);
+    MultiFab macphi(grids,dmap,1,1);
+    MultiFab macrhs(grids,dmap,1,1);
+    macrhs.setVal(0.0);
 
     Real beta0 = 1.0;
-    Real beta0_inv = 1./beta0;
+    Real beta0v = 1./beta0;
     
     // convert Utilde^* to beta0*Utilde^*
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      umac[0][d].mult(beta0,1);
+      umac[d].mult(beta0,1);
     }
 
     // compute the RHS for the solve, RHS = macrhs - div(beta0*umac)
-    ComputeMACSolverRHS(solverrhs[0],macrhs[0],umac[0],geom[0]);
+    ComputeMACSolverRHS(solverrhs,macrhs,umac,geom);
     
     // coefficients for solver
-    Vector<MultiFab> acoef(1);
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > > face_bcoef(1);
-    acoef[0].define(grids[0], dmap[0], 1, 0);
-    AMREX_D_TERM(face_bcoef[0][0].define(convert(grids[0],nodal_flag_x), dmap[0], 1, 0);,
-		 face_bcoef[0][1].define(convert(grids[0],nodal_flag_y), dmap[0], 1, 0);,
-		 face_bcoef[0][2].define(convert(grids[0],nodal_flag_z), dmap[0], 1, 0););
+    MultiFab acoef;
+    std::array< MultiFab, AMREX_SPACEDIM > face_bcoef;
+    // Vector<MultiFab> acoef(1);
+    // Vector<std::array< MultiFab, AMREX_SPACEDIM > > face_bcoef(1);
+    acoef.define(grids, dmap, 1, 0);
+    AMREX_D_TERM(face_bcoef[0].define(convert(grids,nodal_flag_x), dmap, 1, 0);,
+		 face_bcoef[1].define(convert(grids,nodal_flag_y), dmap, 1, 0);,
+		 face_bcoef[2].define(convert(grids,nodal_flag_z), dmap, 1, 0););
 
     // set cell-centered A coefficient to zero
-    acoef[0].setVal(0.);
+    acoef.setVal(0.);
 
     // OR 1) average face-centered B coefficients to rho
-    AverageCCToFace(rho[0], 0, face_bcoef[0], 0, 1);
+    AverageCCToFace(rho, 0, face_bcoef, 0, 1);
 
     // AND 2) invert B coefficients to 1/rho
     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
-      face_bcoef[0][idim].invert(1.0,0,1);
+      face_bcoef[idim].invert(1.0,0,1);
     }
 
     // multiply face-centered B coefficients by beta0 so they contain beta0/rho
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      umac[0][d].mult(beta0,1);
+      umac[d].mult(beta0,1);
     }
 
     // 
     // Set up implicit solve using MLABecLaplacian class
     //
     LPInfo info;
-    MLABecLaplacian mlabec(geom, grids, dmap, info);
-
+    MLABecLaplacian mlabec({geom}, {grids}, {dmap}, info);
+    
     // order of stencil
     int linop_maxorder = 2;
     mlabec.setMaxOrder(linop_maxorder);
@@ -114,10 +93,10 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
     // set boundaries for mlabec using velocity bc's
     SetMacSolverBCs(mlabec);
 
-    mlabec.setLevelBC(0, &macphi[0]);  // mlabec.setLevelBC(level, &mf)
+    mlabec.setLevelBC(0, &macphi);
     mlabec.setScalars(0.0, 1.0);
-    mlabec.setACoeffs(0, acoef[0]);
-    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef[0]));
+    mlabec.setACoeffs(0, acoef);
+    mlabec.setBCoeffs(0, amrex::GetArrOfConstPtrs(face_bcoef));
 
     // solve -div B grad phi = RHS
 
@@ -129,46 +108,47 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac_in,
     mac_mlmg.setCGVerbose(cg_verbose);
 
     // tolerance parameters taken from original MAESTRO fortran code
-    const Real mac_tol_abs = -1.e0;
-    // FIXME: using GMRES namespace parameter
-    const Real mac_tol_rel = gmres_rel_tol;
+    // const Real mac_tol_abs = 1.e-15;      // -1.e0
+    // const Real mac_tol_rel = mg_rel_tol;
+
+    // for the preconditioner, we do 1 v-cycle and the bottom solver is smooths
+    if (!full_solve) {
+        mac_mlmg.setBottomSolver(amrex::MLMG::BottomSolver::smoother);
+        mac_mlmg.setFixedIter(1);
+        mac_mlmg.setBottomSmooth(8);
+    }
 
     // solve for phi
-    mac_mlmg.solve(GetVecOfPtrs(macphi), GetVecOfConstPtrs(solverrhs), mac_tol_rel, mac_tol_abs);
+    mac_mlmg.solve({&macphi}, {&solverrhs}, mg_rel_tol, mg_abs_tol);
 
     // update velocity, beta0 * Utilde = beta0 * Utilde^* - B grad phi
 
     // storage for "-B grad_phi"
     std::array<MultiFab,AMREX_SPACEDIM> mac_fluxes;
-    AMREX_D_TERM(mac_fluxes[0].define(convert(grids[0],nodal_flag_x), dmap[0], 1, 0);,
-		 mac_fluxes[1].define(convert(grids[0],nodal_flag_y), dmap[0], 1, 0);,
-		 mac_fluxes[2].define(convert(grids[0],nodal_flag_z), dmap[0], 1, 0););
+    AMREX_D_TERM(mac_fluxes[0].define(convert(grids,nodal_flag_x), dmap, 1, 0);,
+		 mac_fluxes[1].define(convert(grids,nodal_flag_y), dmap, 1, 0);,
+		 mac_fluxes[2].define(convert(grids,nodal_flag_z), dmap, 1, 0););
 
-    Vector< std::array<MultiFab*,AMREX_SPACEDIM> > mac_fluxptr(1);
+    std::array<MultiFab*,AMREX_SPACEDIM> mac_fluxptr;
     // fluxes computed are "-B grad phi"
-    mac_fluxptr[0] = GetArrOfPtrs(mac_fluxes);
-    mac_mlmg.getFluxes(mac_fluxptr);
+    mac_fluxptr = GetArrOfPtrs(mac_fluxes);
+    mac_mlmg.getFluxes({mac_fluxptr});
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
       // add -B grad phi to beta0*Utilde
-      MultiFab::Add(umac[0][idim], mac_fluxes[idim], 0, 0, 1, 0);
+      MultiFab::Add(umac[idim], mac_fluxes[idim], 0, 0, 1, 0);
     }
 
     // convert beta0*Utilde to Utilde
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      umac[0][d].mult(beta0_inv,1);
+      umac[d].mult(beta0v,1);
     }
 
     // fill periodic ghost cells
     for (int d = 0; d < AMREX_SPACEDIM; d++) {
-      umac[0][d].FillBoundary(geom[0].periodicity());
+      umac[d].FillBoundary(geom.periodicity());
     }
 
-    MultiFab::Copy(macphi_in,macphi[0],0,0,1,1);
-
-    for (int d = 0; d < AMREX_SPACEDIM; d++) {
-      MultiFab::Copy(umac_in[d],umac[0][d],0,0,1,1);
-    }
 }
 
 // compute the RHS for the solve, RHS = macrhs - div(beta0*umac)

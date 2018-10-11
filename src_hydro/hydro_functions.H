@@ -30,10 +30,9 @@ void MkAdvSFluxdiv(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umac,
 // in MacProj.cpp
 
 void MacProj (std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
-	      amrex::MultiFab& macphi,
-	      const amrex::MultiFab& macrhs,
 	      const amrex::MultiFab& rho,
-	      const amrex::Geometry& geom);
+	      const amrex::Geometry& geom,
+	      const bool& full_solve=true);
 
 void ComputeMACSolverRHS (amrex::MultiFab& solverrhs,
 			  const amrex::MultiFab& macrhs,

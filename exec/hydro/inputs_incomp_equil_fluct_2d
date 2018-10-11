@@ -2,7 +2,8 @@
 
   ! Problem specification
   prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
-  prob_hi(1:2) = 3200. 3200.   ! physical hi coordinate
+  prob_hi(1:2) = 6400. 6400.   ! physical hi coordinate
+  cell_depth = 1.5625e-4
   
   ! if prob_type = 1, vortex
   ! if prob_type = 2, KH - sine
@@ -10,9 +11,9 @@
   prob_type = 3
   
   ! number of cells in domain
-  n_cells(1:2) = 32 32
+  n_cells(1:2) = 64 64
   ! max number of cells in a box
-  max_grid_size(1:2) = 32 32
+  max_grid_size(1:2) = 64 64
 
   ! Time-step control
   fixed_dt = 10
@@ -33,7 +34,7 @@
 
   ! Stochastic parameters
   variance_coef_mom = 1.
-  initial_variance_mom = 0.
+  initial_variance_mom = 1.
 
   k_B = 1.
   T_init(1) = 1.
