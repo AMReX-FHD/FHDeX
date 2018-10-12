@@ -6,12 +6,12 @@ using namespace amrex;
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
-                   std::array<MultiFab, AMREX_SPACEDIM>& flux,
-	        	   const amrex::Real* dx);
+                   std::array<MultiFab, AMREX_SPACEDIM>& flux, std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,const amrex::Geometry geom,
+	        	   const amrex::Real* dx, const amrex::Real dt);
 
 void calculateTransportCoeffs(const MultiFab& prim, MultiFab& eta, MultiFab& zeta, MultiFab& kappa);
 
-void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux,
+void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux, std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
 	                   const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
 
 void conservedToPrimitive(MultiFab& prim, const MultiFab& cons);

@@ -1,0 +1,9 @@
+void WritePlotFile(int step,
+                   const amrex::Real time,
+                   const amrex::Geometry geom,
+	           const amrex::MultiFab& cu,
+	           const amrex::MultiFab& cuMeans,
+	           const amrex::MultiFab& cuVars,
+	           const amrex::MultiFab& prim,
+	           const amrex::MultiFab& primMeans,
+	           const amrex::MultiFab& primVars);

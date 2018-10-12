@@ -147,7 +147,7 @@ void main_driver(const char* argv)
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
-    MultiFab primVars(ba,dmap,nprimvars,ngc);
+    MultiFab primVars(ba,dmap,nprimvars + 4,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -199,6 +199,16 @@ void main_driver(const char* argv)
                  flux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
                  flux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
 
+    //stochastic fluxes
+    std::array< MultiFab, AMREX_SPACEDIM > stochFlux;
+    AMREX_D_TERM(stochFlux[0].define(convert(ba,nodal_flag_x), dmap, nvars, 0);,
+                 stochFlux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
+                 stochFlux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
+
+    AMREX_D_TERM(stochFlux[0].setVal(0.0);,
+                 stochFlux[1].setVal(0.0);,
+                 stochFlux[2].setVal(0.0););
+
     Real time = 0;
 
     int step, statsCount;
@@ -209,7 +219,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
-        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, geom, dx, dt);
+        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
 
         if(step == 50000)
         {

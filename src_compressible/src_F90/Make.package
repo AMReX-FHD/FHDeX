@@ -3,3 +3,4 @@ F90EXE_sources += trans_funcs.F90
 F90EXE_sources += time_step_funcs.F90
 F90EXE_sources += conv_funcs.F90
 F90EXE_sources += bound_funcs.F90
+F90EXE_sources += stats_funcs.F90
