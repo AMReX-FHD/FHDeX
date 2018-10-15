@@ -45,7 +45,7 @@ contains
 !                  print *, "CUpre: ", cu(i,j,k,5)
 !                endif
 
-                 cup(i,j,k,l) = cu(i,j,k,l)                                      &
+                 cu(i,j,k,l) = cu(i,j,k,l)                                      &
                                 - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
                                 - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
@@ -53,10 +53,12 @@ contains
 #endif
                                 + dt*source(i,j,k,l)
 
+
+                        
 !                if(l .eq. 5) then
 
-!                  print *, "FluxL: ", xflux(i,j,k,5)*dt*dxinv(1)
-!                  print *, "FluxR: ", -xflux(i+1,j,k,5)*dt*dxinv(1)
+!                  print *, "FluxL: ", zflux(i,j,k,5)*dt*dxinv(3)
+!                  print *, "FluxR: ", -zflux(i,j,k+1,5)*dt*dxinv(3)
 !                  print *, "CUpost: ", cu(i,j,k,5)
 
 !                endif

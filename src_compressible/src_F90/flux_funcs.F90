@@ -1,7 +1,7 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells
   use conv_module, only : get_temperature, get_pressure_gas
   implicit none
 
@@ -308,8 +308,9 @@ contains
 
       integer :: i,j,k,l
 
-      wgt2 = 1.0/12.0
-      wgt1 = 0.5 + wgt2 !fourth order interpolation with two ghost cells
+      wgt2 = 1.0/12.0 !fourth order interpolation
+      !wgt2 = 0  !second order interpolation
+      wgt1 = 0.5 + wgt2 
 
       !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
@@ -422,7 +423,6 @@ contains
             zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + primitive(1)*primitive(4)**2+primitive(6)
             zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
 
-
           end do
         end do
       end do
@@ -430,5 +430,179 @@ contains
 
   end subroutine hyp_flux
 
+  subroutine stoch_flux(lo,hi, cons, prim, xflux, yflux, &
+#if (AMREX_SPACEDIM == 3)
+                        zflux, &
+#endif
+                        xsflux, ysflux, &
+#if (AMREX_SPACEDIM == 3)
+                        zsflux, &
+#endif
+                        eta, zeta, kappa, dx, dt) bind(C,name="stoch_flux")
+
+      integer         , intent(in   ) :: lo(3),hi(3)
+      real(amrex_real), intent(in   ) :: dx(3), dt
+      real(amrex_real), intent(inout) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+#if (AMREX_SPACEDIM == 3)
+      real(amrex_real), intent(inout) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+#endif
+
+      real(amrex_real), intent(inout) :: xsflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: ysflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+#if (AMREX_SPACEDIM == 3)
+      real(amrex_real), intent(inout) :: zsflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+#endif
+
+      real(amrex_real), intent(in   ) :: cons(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
+      real(amrex_real), intent(in   ) :: prim(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
+
+
+      real(amrex_real), intent(in   ) :: eta(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc)
+      real(amrex_real), intent(in   ) :: zeta(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc)
+      real(amrex_real), intent(in   ) :: kappa(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc)
+
+      real(amrex_real) ::etatF, kappattF, dtinv, volinv, sFac, qFac, velF
+
+      integer :: i,j,k,l
+
+      dtinv = 1d0/dt
+#if (AMREX_SPACEDIM == 3)
+      volinv = 1d0/(dx(1)*dx(2)*dx(3))
+#endif
+
+#if (AMREX_SPACEDIM == 2)
+      volinv = 1d0/(dx(1)*dx(2)*cell_depth)
+#endif
+
+      sFac = 4d0*k_b*volinv*dtinv/3d0
+      qFac = k_b*volinv*dtinv
+
+     
+      do k = lo(3),hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1)-1,hi(1)
+
+            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i+1,j,k)*prim(i+1,j,k,5)*prim(i+1,j,k,5))
+            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i+1,j,k)*prim(i+1,j,k,5))
+            velF = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
+
+            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + sqrt(sFac*etatF)*xsflux(i+1,j,k,2)
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,5) + velF*sqrt(sFac)*xsflux(i+1,j,k,2)
+
+          end do
+        end do
+      end do
+
+      !if on lower bound and not periodic
+      if((lo(1) .eq. 0) .and. (bc_lo(1) .ne. -1)) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+            
+              xflux(0,j,k,2) = 0        
+              xflux(0,j,k,5) = 0        
+
+          end do
+        end do
+      endif
+
+      !if on upper bound and not periodic
+      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .ne. -1)) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+            
+              xflux(hi(1)+1,j,k,2) = 0        
+              xflux(hi(1)+1,j,k,5) = 0        
+
+          end do
+        end do
+      endif
+
+      do k = lo(3),hi(3)
+        do j = lo(2)-1,hi(2)
+          do i = lo(1),hi(1)
+
+            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
+            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
+            velF = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
+
+
+            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + sqrt(sFac*etatF)*ysflux(i,j+1,k,3)
+            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velF*sqrt(sFac)*ysflux(i,j+1,k,3)
+
+          end do
+        end do
+      end do
+
+      !if on lower bound and not periodic
+      if((lo(2) .eq. 0) .and. (bc_lo(2) .ne. -1)) then
+        do k = lo(3),hi(3)
+          do i = lo(1),hi(1)
+            
+              xflux(i,0,k,3) = 0        
+              xflux(i,0,k,5) = 0        
+
+          end do
+        end do
+      endif
+
+      !if on upper bound and not periodic
+      if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .ne. -1)) then
+        do k = lo(3),hi(3)
+          do i = lo(1),hi(1)
+            
+              xflux(i,hi(2)+1,k,3) = 0        
+              xflux(i,hi(2)+1,k,5) = 0        
+
+          end do
+        end do
+      endif
+
+      do k = lo(3)-1,hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+
+            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
+            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
+            velF = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
+
+            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
+            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velF*sqrt(sFac)*zsflux(i,j,k+1,4)
+
+          end do
+        end do
+      end do
+
+      !if on lower bound and not periodic
+      if((lo(3) .eq. 0) .and. (bc_lo(3) .ne. -1)) then
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+            
+              zflux(i,j,0,4) = 0        
+              zflux(i,j,0,5) = 0      
+
+              print *, "Here!"
+
+          end do
+        end do
+      endif
+
+      !if on upper bound and not periodic
+      if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .ne. -1)) then
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+            
+              zflux(i,j,hi(3)+1,4) = 0        
+              zflux(i,j,hi(3)+1,5) = 0        
+
+              print *, "Here!"
+
+          end do
+        end do
+      endif
+      
+
+
+  end subroutine stoch_flux
 
 end module flux_module
