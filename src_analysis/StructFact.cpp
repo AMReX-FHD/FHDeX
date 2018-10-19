@@ -8,14 +8,129 @@
 #include "AMReX_BoxArray.H"
 
 StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
-		       const Vector< std::string >& var_names, const int verbosity_in) {
+		       const Vector< std::string >& var_names, 
+		       const Vector< int >& s_pairA_in,
+		       const Vector< int >& s_pairB_in,
+		       const int verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
-  // static_assert(AMREX_SPACEDIM == 3, "3D only");
+  if (s_pairA_in.size() != s_pairA_in.size())
+        amrex::Error("Must have an equal number of components");
 
   N_VAR = var_names.size();
-  N_COV = N_VAR*(N_VAR+1)/2;
+
+  //////////////////////////////////////////////////////
+  // Reorder pair selecting vectors & error checking
+
+  N_COV = s_pairA_in.size();
+
+  amrex::Vector< int > spA_temp;
+  amrex::Vector< int > spB_temp;
+
+  spA_temp.resize(N_COV);
+  spB_temp.resize(N_COV);
+  
+  // Exchange vectors to satisfy A[n] >= B[n]: only upper diagonal of covariance matrix
+  for (int n=0; n<N_COV; n++) {
+    if (s_pairA_in[n] < s_pairB_in[n]) {
+      spA_temp[n] = s_pairB_in[n];
+      spB_temp[n] = s_pairA_in[n];
+    } else {
+      spA_temp[n] = s_pairA_in[n];
+      spB_temp[n] = s_pairB_in[n];
+    }
+  }
+
+  for (int n=0; n<N_COV; n++) {
+    Print() << "HACK 0: pairs (" << n << ") = " << spA_temp[n] << ", " << spB_temp[n] << std::endl;
+  }
+
+  // Reorder: increasing order using 2 vector "bubble sort"
+  int loop = 1;
+  int tot_iters = 0;
+  int x_temp;
+  while (loop == 1) {
+    loop = 0;
+    for (int n=1; n<N_COV; n++) {
+      if (spA_temp[n] < spA_temp[n-1]) {
+
+	x_temp = spA_temp[n];
+        spA_temp[n  ] = spA_temp[n-1];
+        spA_temp[n-1] = x_temp;
+
+	x_temp = spB_temp[n];
+        spB_temp[n  ] = spB_temp[n-1];
+        spB_temp[n-1] = x_temp;
+
+	loop = 1;
+
+      } else if (spA_temp[n] == spA_temp[n-1]) {
+	if (spB_temp[n] < spB_temp[n-1]) {
+
+	  x_temp = spA_temp[n];
+	  spA_temp[n-1] = spA_temp[n];
+	  spA_temp[n  ] = x_temp;
+
+	  x_temp = spB_temp[n];
+	  spB_temp[n-1] = spB_temp[n];
+	  spB_temp[n  ] = x_temp;
+
+	  loop = 1;
+	}
+      }
+    }
+
+    tot_iters++;
+
+    if (tot_iters > 2*N_COV) {
+      loop = 0;
+      amrex::Error("Bubble sort failed to converge");
+    }
+  }
+
+  for (int n=0; n<N_COV; n++) {
+    Print() << "HACK 1: pairs (" << n << ") = " << spA_temp[n] << ", " << spB_temp[n] << std::endl;
+  }
+
+  // Identify number of repeats
+  int N_dup = 0;
+  for (int n=1; n<N_COV; n++) {
+    if (spA_temp[n] == spA_temp[n-1] && spB_temp[n] == spB_temp[n-1]) {
+      N_dup = N_dup+1;
+    }
+  }
+  
+  // Resize A and B based on number of unique pairs
+  int N_u = N_COV - N_dup;
+  s_pairA.resize(N_u);
+  s_pairB.resize(N_u);
+  
+  // Only select unique pairs
+  int indx = 0;
+  s_pairA[indx] = spA_temp[0];
+  s_pairB[indx] = spB_temp[0];
+  for (int n=1; n<N_COV; n++) {
+    if (spA_temp[n] != spA_temp[n-1] || spB_temp[n] != spB_temp[n-1]) {
+      indx = indx+1;
+      s_pairA[indx] = spA_temp[n];
+      s_pairB[indx] = spB_temp[n];
+    }
+  }
+  
+  // Update number of covariances according to unique pairs
+  N_COV = N_u;
+  
+  for (int n=0; n<N_COV; n++) {
+    Print() << "HACK 2: pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
+  }
+  Print() << "HACK: N_COV = " << N_COV << std::endl;
+
+  for (int n=0; n<N_COV; n++) {
+    if(s_pairA[n]<0 || s_pairA[n]>=N_VAR || s_pairB[n]<0 || s_pairB[n]>=N_VAR)
+       amrex::Error("Invalid pair select values: must be between 0 and (num of varibles - 1)");
+  }
+  //////////////////////////////////////////////////////
 
   verbosity = verbosity_in;
 
@@ -31,16 +146,59 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   cov_names.resize(N_COV);
   std::string x;
   int cnt = 0;
+  for (int n=0; n<N_COV; n++) {
+    x = "struct_fact";
+    x += '_';
+    x += var_names[s_pairB[n]];
+    x += '_';
+    x += var_names[s_pairA[n]];
+    cov_names[cnt] = x;
+    cnt++;
+  }
+}
+
+StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
+		       const Vector< std::string >& var_names, const int verbosity_in) {
+  
+  BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
+
+  N_VAR = var_names.size();
+  N_COV = N_VAR*(N_VAR+1)/2;
+  
+  s_pairA.resize(N_COV);
+  s_pairB.resize(N_COV);
+  
+  int index = 0;
   for (int j=0; j<N_VAR; j++) {
     for (int i=j; i<N_VAR; i++) {
-      x = "struct_fact";
-      x += '_';
-      x += var_names[j];
-      x += '_';
-      x += var_names[i];
-      cov_names[cnt] = x;
-      cnt++;
+      s_pairA[index] = i;
+      s_pairB[index] = j;
+      index++;
     }
+  }
+
+  verbosity = verbosity_in;
+
+  // Note that we are defining with NO ghost cells
+
+  cov_real.define(ba_in, dmap_in, N_COV, 0);
+  cov_imag.define(ba_in, dmap_in, N_COV, 0);
+  cov_mag.define( ba_in, dmap_in, N_COV, 0);
+  cov_real.setVal(0.0);
+  cov_imag.setVal(0.0);
+  cov_mag.setVal( 0.0);
+
+  cov_names.resize(N_COV);
+  std::string x;
+  int cnt = 0;
+  for (int n=0; n<N_COV; n++) {
+    x = "struct_fact";
+    x += '_';
+    x += var_names[s_pairB[n]];
+    x += '_';
+    x += var_names[s_pairA[n]];
+    cov_names[cnt] = x;
+    cnt++;
   }
 }
 
@@ -66,28 +224,28 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   cov_temp.define(ba, dm, 1, 0);
 
   int index = 0;
-  for (int j=0; j<N_VAR; j++) {
-    for (int i=j; i<N_VAR; i++) {
+  for (int n=0; n<N_COV; n++) {
+    int i = s_pairA[n];
+    int j = s_pairB[n];
+    
+    // Compute temporary real and imaginary components of covariance
 
-      // Compute temporary real and imaginary components of covariance
+    // Real component of covariance
+    cov_temp.setVal(0.0);
+    MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_real,j,0,1,0);
+    MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_imag,j,0,1,0);
 
-      // Real component of covariance
-      cov_temp.setVal(0.0);
-      MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_real,j,0,1,0);
-      MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_imag,j,0,1,0);
+    MultiFab::Add(cov_real,cov_temp,0,index,1,0);
 
-      MultiFab::Add(cov_real,cov_temp,0,index,1,0);
-
-      // Imaginary component of covariance
-      cov_temp.setVal(0.0);
-      MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_real,j,0,1,0);
-      cov_temp.mult(-1.0,0);
-      MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_imag,j,0,1,0);
+    // Imaginary component of covariance
+    cov_temp.setVal(0.0);
+    MultiFab::AddProduct(cov_temp,variables_dft_imag,i,variables_dft_real,j,0,1,0);
+    cov_temp.mult(-1.0,0);
+    MultiFab::AddProduct(cov_temp,variables_dft_real,i,variables_dft_imag,j,0,1,0);
       
-      MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
+    MultiFab::Add(cov_imag,cov_temp,0,index,1,0);
       
-      index++;
-    }
+    index++;
   }
 
   bool write_data = false;
@@ -121,10 +279,8 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   varNames.resize(nPlot);
 
   int cnt = 0; // keep a counter for plotfile variables
-  for (int j=0; j<N_VAR; j++) {
-    for (int i=j; i<N_VAR; i++) {
-      varNames[cnt++] = cov_names[cnt];
-    }
+  for (int n=0; n<N_COV; n++) {
+    varNames[cnt++] = cov_names[cnt];
   }
   
   MultiFab::Copy(plotfile, cov_mag, 0, 0, N_COV, 0); // copy structure factor into plotfile
@@ -142,23 +298,19 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
 
   cnt = 0; // keep a counter for plotfile variables
   int index = 0;
-  for (int j=0; j<N_VAR; j++) {
-    for (int i=j; i<N_VAR; i++) {
-      varNames[cnt] = cov_names[cnt];
-      varNames[cnt] += "_real";
-      index++;
-      cnt++;
-    }
+  for (int n=0; n<N_COV; n++) {
+    varNames[cnt] = cov_names[cnt];
+    varNames[cnt] += "_real";
+    index++;
+    cnt++;
   }
 
   index = 0;
-  for (int j=0; j<N_VAR; j++) {
-    for (int i=j; i<N_VAR; i++) {
-      varNames[cnt] = cov_names[index];
-      varNames[cnt] += "_imag";
-      index++;
-      cnt++;
-    }
+  for (int n=0; n<N_COV; n++) {
+    varNames[cnt] = cov_names[index];
+    varNames[cnt] += "_imag";
+    index++;
+    cnt++;
   }
 
   MultiFab::Copy(plotfile,cov_real,0,    0,N_COV,0);

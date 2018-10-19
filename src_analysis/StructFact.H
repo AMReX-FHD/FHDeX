@@ -41,10 +41,18 @@ class StructFact {
   // Vector containing names of covariances
   amrex::Vector< std::string > cov_names;
 
+  // 2 vectors containing structure factor pairs
+  amrex::Vector< int > s_pairA;
+  amrex::Vector< int > s_pairB;
+
 public:
 
   StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
-	                const amrex::Vector< std::string >&, const int verbosity=0);
+  	                const amrex::Vector< std::string >&,
+			const amrex::Vector< int >&, const amrex::Vector< int >&, 
+  			const int verbosity=0);
+  StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
+  	                const amrex::Vector< std::string >&, const int verbosity=0);
   void FortStructure(   const amrex::MultiFab&, const amrex::Geometry);
   void Finalize(        const amrex::Real scale=1.0);
   void WritePlotFile(   const int, const amrex::Real, const amrex::Geometry);

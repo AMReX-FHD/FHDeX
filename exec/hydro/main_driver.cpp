@@ -277,7 +277,23 @@ void main_driver(const char* argv)
     MultiFab struct_in_cc;
     struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
     
-    StructFact structFact(ba,dmap,var_names);
+    // Select which variables to take a covariance of:
+    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
+    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
+
+    s_pairA[0] = 1;
+    s_pairB[0] = 0;
+    //
+    s_pairA[1] = 0;
+    s_pairB[1] = 2;
+    //
+#if (AMREX_SPACEDIM == 3)
+    s_pairA[2] = 0;
+    s_pairB[2] = 1;
+#endif
+    
+    // StructFact structFact(ba,dmap,var_names);
+    StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
     ///////////////////////////////////////////
 
