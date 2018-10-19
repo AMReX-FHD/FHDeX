@@ -18,116 +18,97 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   if (s_pairA_in.size() != s_pairA_in.size())
         amrex::Error("Must have an equal number of components");
 
-  N_VAR = var_names.size();
+  NVAR = var_names.size();
 
   //////////////////////////////////////////////////////
   // Reorder pair selecting vectors & error checking
 
-  N_COV = s_pairA_in.size();
-
-  amrex::Vector< int > spA_temp;
-  amrex::Vector< int > spB_temp;
-
-  spA_temp.resize(N_COV);
-  spB_temp.resize(N_COV);
+  NCOV = s_pairA_in.size();
+  s_pairA.resize(NCOV);
+  s_pairB.resize(NCOV);
   
-  // Exchange vectors to satisfy A[n] >= B[n]: only upper diagonal of covariance matrix
-  for (int n=0; n<N_COV; n++) {
-    if (s_pairA_in[n] < s_pairB_in[n]) {
-      spA_temp[n] = s_pairB_in[n];
-      spB_temp[n] = s_pairA_in[n];
-    } else {
-      spA_temp[n] = s_pairA_in[n];
-      spB_temp[n] = s_pairB_in[n];
-    }
+  // Set vectors identifying covariance pairs
+  for (int n=0; n<NCOV; n++) {
+    s_pairA[n] = s_pairA_in[n];
+    s_pairB[n] = s_pairB_in[n];
+  }
+  
+  // Create vector of unique variable indices to select which to take the FFT
+  NVARU = 2*NCOV;    // temporary before selecting unique variables
+  amrex::Vector< int > varu_temp (NVARU);
+  
+  // "Stack" on vectors A and B
+  int indx = 0;
+  for (int n=0; n<NCOV; n++) {
+    varu_temp[indx] = s_pairA_in[n];
+    indx++;
+  }
+  for (int n=0; n<NCOV; n++) {
+    varu_temp[indx] = s_pairB_in[n];
+    indx++;
   }
 
-  for (int n=0; n<N_COV; n++) {
-    Print() << "HACK 0: pairs (" << n << ") = " << spA_temp[n] << ", " << spB_temp[n] << std::endl;
-  }
-
-  // Reorder: increasing order using 2 vector "bubble sort"
+  // Reorder: ascending order using "bubble sort"
   int loop = 1;
   int tot_iters = 0;
   int x_temp;
   while (loop == 1) {
     loop = 0;
-    for (int n=1; n<N_COV; n++) {
-      if (spA_temp[n] < spA_temp[n-1]) {
+    for (int n=1; n<NVARU; n++) {
+      if (varu_temp[n] < varu_temp[n-1]) {
 
-	x_temp = spA_temp[n];
-        spA_temp[n  ] = spA_temp[n-1];
-        spA_temp[n-1] = x_temp;
-
-	x_temp = spB_temp[n];
-        spB_temp[n  ] = spB_temp[n-1];
-        spB_temp[n-1] = x_temp;
+	x_temp = varu_temp[n];
+        varu_temp[n  ] = varu_temp[n-1];
+        varu_temp[n-1] = x_temp;
 
 	loop = 1;
-
-      } else if (spA_temp[n] == spA_temp[n-1]) {
-	if (spB_temp[n] < spB_temp[n-1]) {
-
-	  x_temp = spA_temp[n];
-	  spA_temp[n-1] = spA_temp[n];
-	  spA_temp[n  ] = x_temp;
-
-	  x_temp = spB_temp[n];
-	  spB_temp[n-1] = spB_temp[n];
-	  spB_temp[n  ] = x_temp;
-
-	  loop = 1;
-	}
       }
     }
 
     tot_iters++;
 
-    if (tot_iters > 2*N_COV) {
+    if (tot_iters > 2*NVARU) {
       loop = 0;
       amrex::Error("Bubble sort failed to converge");
     }
   }
 
-  for (int n=0; n<N_COV; n++) {
-    Print() << "HACK 1: pairs (" << n << ") = " << spA_temp[n] << ", " << spB_temp[n] << std::endl;
+  for (int n=0; n<NVARU; n++) {
+    Print() << "HACK 1: vector (" << n << ") = " << varu_temp[n] << std::endl;
   }
 
   // Identify number of repeats
   int N_dup = 0;
-  for (int n=1; n<N_COV; n++) {
-    if (spA_temp[n] == spA_temp[n-1] && spB_temp[n] == spB_temp[n-1]) {
+  for (int n=1; n<NVARU; n++) {
+    if (varu_temp[n] == varu_temp[n-1]) {
       N_dup = N_dup+1;
     }
   }
   
-  // Resize A and B based on number of unique pairs
-  int N_u = N_COV - N_dup;
-  s_pairA.resize(N_u);
-  s_pairB.resize(N_u);
+  // Resize based on number of unique variables
+  int N_u = NVARU - N_dup;
+  var_u.resize(N_u);
   
   // Only select unique pairs
-  int indx = 0;
-  s_pairA[indx] = spA_temp[0];
-  s_pairB[indx] = spB_temp[0];
-  for (int n=1; n<N_COV; n++) {
-    if (spA_temp[n] != spA_temp[n-1] || spB_temp[n] != spB_temp[n-1]) {
+  indx = 0;
+  var_u[indx] = varu_temp[0];
+  for (int n=1; n<NVARU; n++) {
+    if (varu_temp[n] != varu_temp[n-1]) {
       indx = indx+1;
-      s_pairA[indx] = spA_temp[n];
-      s_pairB[indx] = spB_temp[n];
+      var_u[indx] = varu_temp[n];
     }
   }
   
-  // Update number of covariances according to unique pairs
-  N_COV = N_u;
+  // Update number of variables according to unique vars
+  NVARU = N_u;
   
-  for (int n=0; n<N_COV; n++) {
+  for (int n=0; n<NCOV; n++) {
     Print() << "HACK 2: pairs (" << n << ") = " << s_pairA[n] << ", " << s_pairB[n] << std::endl;
   }
-  Print() << "HACK: N_COV = " << N_COV << std::endl;
+  Print() << "HACK: NCOV = " << NCOV << std::endl;
 
-  for (int n=0; n<N_COV; n++) {
-    if(s_pairA[n]<0 || s_pairA[n]>=N_VAR || s_pairB[n]<0 || s_pairB[n]>=N_VAR)
+  for (int n=0; n<NCOV; n++) {
+    if(s_pairA[n]<0 || s_pairA[n]>=NVAR || s_pairB[n]<0 || s_pairB[n]>=NVAR)
        amrex::Error("Invalid pair select values: must be between 0 and (num of varibles - 1)");
   }
   //////////////////////////////////////////////////////
@@ -136,17 +117,17 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 
   // Note that we are defining with NO ghost cells
 
-  cov_real.define(ba_in, dmap_in, N_COV, 0);
-  cov_imag.define(ba_in, dmap_in, N_COV, 0);
-  cov_mag.define( ba_in, dmap_in, N_COV, 0);
+  cov_real.define(ba_in, dmap_in, NCOV, 0);
+  cov_imag.define(ba_in, dmap_in, NCOV, 0);
+  cov_mag.define( ba_in, dmap_in, NCOV, 0);
   cov_real.setVal(0.0);
   cov_imag.setVal(0.0);
   cov_mag.setVal( 0.0);
 
-  cov_names.resize(N_COV);
+  cov_names.resize(NCOV);
   std::string x;
   int cnt = 0;
-  for (int n=0; n<N_COV; n++) {
+  for (int n=0; n<NCOV; n++) {
     x = "struct_fact";
     x += '_';
     x += var_names[s_pairB[n]];
@@ -162,15 +143,22 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
-  N_VAR = var_names.size();
-  N_COV = N_VAR*(N_VAR+1)/2;
+  NVAR = var_names.size();
+  NCOV = NVAR*(NVAR+1)/2;
   
-  s_pairA.resize(N_COV);
-  s_pairB.resize(N_COV);
+  s_pairA.resize(NCOV);
+  s_pairB.resize(NCOV);
+  
+  // all variables are selected in this constructor
+  NVARU = NVAR;
+  var_u.resize(NVARU);
+  for (int n=0; n<NVARU; n++) {
+    var_u[n] = n;
+  }
   
   int index = 0;
-  for (int j=0; j<N_VAR; j++) {
-    for (int i=j; i<N_VAR; i++) {
+  for (int j=0; j<NVAR; j++) {
+    for (int i=j; i<NVAR; i++) {
       s_pairA[index] = i;
       s_pairB[index] = j;
       index++;
@@ -181,17 +169,17 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 
   // Note that we are defining with NO ghost cells
 
-  cov_real.define(ba_in, dmap_in, N_COV, 0);
-  cov_imag.define(ba_in, dmap_in, N_COV, 0);
-  cov_mag.define( ba_in, dmap_in, N_COV, 0);
+  cov_real.define(ba_in, dmap_in, NCOV, 0);
+  cov_imag.define(ba_in, dmap_in, NCOV, 0);
+  cov_mag.define( ba_in, dmap_in, NCOV, 0);
   cov_real.setVal(0.0);
   cov_imag.setVal(0.0);
   cov_mag.setVal( 0.0);
 
-  cov_names.resize(N_COV);
+  cov_names.resize(NCOV);
   std::string x;
   int cnt = 0;
-  for (int n=0; n<N_COV; n++) {
+  for (int n=0; n<NCOV; n++) {
     x = "struct_fact";
     x += '_';
     x += var_names[s_pairB[n]];
@@ -215,8 +203,8 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   }
 
   MultiFab variables_dft_real, variables_dft_imag;
-  variables_dft_real.define(ba, dm, N_VAR, 0);
-  variables_dft_imag.define(ba, dm, N_VAR, 0);
+  variables_dft_real.define(ba, dm, NVAR, 0);
+  variables_dft_imag.define(ba, dm, NVAR, 0);
 
   ComputeFFT(variables, variables_dft_real, variables_dft_imag, geom);
 
@@ -224,7 +212,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   cov_temp.define(ba, dm, 1, 0);
 
   int index = 0;
-  for (int n=0; n<N_COV; n++) {
+  for (int n=0; n<NCOV; n++) {
     int i = s_pairA[n];
     int j = s_pairB[n];
     
@@ -274,16 +262,16 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
   const std::string plotfilename1 = "plt_structure_factor_mag";
-  nPlot = N_COV;
+  nPlot = NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
 
   int cnt = 0; // keep a counter for plotfile variables
-  for (int n=0; n<N_COV; n++) {
+  for (int n=0; n<NCOV; n++) {
     varNames[cnt++] = cov_names[cnt];
   }
   
-  MultiFab::Copy(plotfile, cov_mag, 0, 0, N_COV, 0); // copy structure factor into plotfile
+  MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
 
   // write a plotfile
   WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
@@ -292,13 +280,13 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   // Write out real and imaginary components of structure factor to plot file
   //////////////////////////////////////////////////////////////////////////////////
   const std::string plotfilename2 = "plt_structure_factor_real_imag";
-  nPlot = 2*N_COV;
+  nPlot = 2*NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
 
   cnt = 0; // keep a counter for plotfile variables
   int index = 0;
-  for (int n=0; n<N_COV; n++) {
+  for (int n=0; n<NCOV; n++) {
     varNames[cnt] = cov_names[cnt];
     varNames[cnt] += "_real";
     index++;
@@ -306,15 +294,15 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   }
 
   index = 0;
-  for (int n=0; n<N_COV; n++) {
+  for (int n=0; n<NCOV; n++) {
     varNames[cnt] = cov_names[index];
     varNames[cnt] += "_imag";
     index++;
     cnt++;
   }
 
-  MultiFab::Copy(plotfile,cov_real,0,    0,N_COV,0);
-  MultiFab::Copy(plotfile,cov_imag,0,N_COV,N_COV,0);
+  MultiFab::Copy(plotfile,cov_real,0,    0,NCOV,0);
+  MultiFab::Copy(plotfile,cov_imag,0,NCOV,NCOV,0);
 
   // write a plotfile
   WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
@@ -345,8 +333,8 @@ void StructFact::Finalize(const amrex::Real scale) {
   cov_imag.mult(scale);
 
   cov_mag.setVal(0.0);
-  MultiFab::AddProduct(cov_mag,cov_real,0,cov_real,0,0,N_COV,0);
-  MultiFab::AddProduct(cov_mag,cov_imag,0,cov_imag,0,0,N_COV,0);
+  MultiFab::AddProduct(cov_mag,cov_real,0,cov_real,0,0,NCOV,0);
+  MultiFab::AddProduct(cov_mag,cov_imag,0,cov_imag,0,0,NCOV,0);
 
   SqrtMF(cov_mag);
 
@@ -444,63 +432,75 @@ void StructFact::ComputeFFT(const MultiFab& variables,
     }
   }
 
-  for (int dim=0; dim<N_VAR; dim++) {
+  for (int dim=0; dim<NVAR; dim++) {
+
+    bool comp_fft = false;
+    for (int i=0; i<NVARU; i++) {
+      if (dim == var_u[i]) {
+	comp_fft = true;
+	break;
+      }
+    }
+
+    if(comp_fft) {
    
-    for (MFIter mfi(variables_dft_real,false); mfi.isValid(); ++mfi) {
+      for (MFIter mfi(variables_dft_real,false); mfi.isValid(); ++mfi) {
    
-      std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
-      std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
+	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > a;
+	std::vector<complex_t, hacc::AlignedAllocator<complex_t, ALIGN> > b;
 
-      a.resize(nx*ny*nz);
-      b.resize(nx*ny*nz);
+	a.resize(nx*ny*nz);
+	b.resize(nx*ny*nz);
 
-      dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
+	dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
 
-      // *******************************************
-      // Copy real data from Rhs into real part of a -- no ghost cells and
-      // put into C++ ordering (not Fortran)
-      // *******************************************
-      complex_t zero(0.0, 0.0);
-      size_t local_indx = 0;
-      for(size_t k=0; k<(size_t)nz; k++) {
-	for(size_t j=0; j<(size_t)ny; j++) {
-	  for(size_t i=0; i<(size_t)nx; i++) {
+	// *******************************************
+	// Copy real data from Rhs into real part of a -- no ghost cells and
+	// put into C++ ordering (not Fortran)
+	// *******************************************
+	complex_t zero(0.0, 0.0);
+	size_t local_indx = 0;
+	for(size_t k=0; k<(size_t)nz; k++) {
+	  for(size_t j=0; j<(size_t)ny; j++) {
+	    for(size_t i=0; i<(size_t)nx; i++) {
 
-	    complex_t temp(variables[mfi].dataPtr(dim)[local_indx],0.);
-	    a[local_indx] = temp;
-	    local_indx++;
+	      complex_t temp(variables[mfi].dataPtr(dim)[local_indx],0.);
+	      a[local_indx] = temp;
+	      local_indx++;
 
+	    }
 	  }
 	}
-      }
 
-      //  *******************************************
-      //  Compute the forward transform
-      //  *******************************************
-      dfft.forward(&a[0]);
+	//  *******************************************
+	//  Compute the forward transform
+	//  *******************************************
+	dfft.forward(&a[0]);
 
-      // Redistribute data from z-pencils in k-space back to blocks
-      d.redistribute_2_to_3(&a[0],&b[0],2);
+	// Redistribute data from z-pencils in k-space back to blocks
+	d.redistribute_2_to_3(&a[0],&b[0],2);
 	
-      // Note: Scaling for inverse FFT
-      size_t global_size  = dfft.global_size();
+	// Note: Scaling for inverse FFT
+	size_t global_size  = dfft.global_size();
 	
-      // Real pi = 4.0*std::atan(1.0);
-      Real fac = sqrt(1.0 / (Real)global_size);
+	// Real pi = 4.0*std::atan(1.0);
+	Real fac = sqrt(1.0 / (Real)global_size);
 
-      local_indx = 0;
-      for(size_t k=0; k<(size_t)nz; k++) {
-	for(size_t j=0; j<(size_t)ny; j++) {
-	  for(size_t i=0; i<(size_t)nx; i++) {
+	local_indx = 0;
+	for(size_t k=0; k<(size_t)nz; k++) {
+	  for(size_t j=0; j<(size_t)ny; j++) {
+	    for(size_t i=0; i<(size_t)nx; i++) {
 
-	    // Divide by 2 pi N
-	    variables_dft_real[mfi].dataPtr(dim)[local_indx] = fac * std::real(b[local_indx]);
-	    variables_dft_imag[mfi].dataPtr(dim)[local_indx] = fac * std::imag(b[local_indx]);
-	    local_indx++;
+	      // Divide by 2 pi N
+	      variables_dft_real[mfi].dataPtr(dim)[local_indx] = fac * std::real(b[local_indx]);
+	      variables_dft_imag[mfi].dataPtr(dim)[local_indx] = fac * std::imag(b[local_indx]);
+	      local_indx++;
+	    }
 	  }
 	}
       }
     }
+
   }
 
   bool write_data = false;
@@ -527,7 +527,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out) {
   MultiFab dft_onegrid;
   dft_onegrid.define(ba_onegrid, dmap_onegrid, 1, 0);
 
-  for (int d=0; d<N_COV; d++) {
+  for (int d=0; d<NCOV; d++) {
     dft_onegrid.ParallelCopy(dft_out, d, 0, 1);
 
     // Shift DFT by N/2+1 (pi)

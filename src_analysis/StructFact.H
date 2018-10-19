@@ -22,8 +22,9 @@ using namespace common;
 
 class StructFact {
 
-  int N_VAR = 1;  // Number of variables
-  int N_COV = 1;  // Number of covariances (lower diagonal of matrix)
+  int NVAR = 1;        // Number of variable
+  int NVARU = NVAR;    // Number of unique variables
+  int NCOV = 1;        // Number of covariances (lower diagonal of matrix - by default)
 
   int verbosity = 0;
 
@@ -44,6 +45,9 @@ class StructFact {
   // 2 vectors containing structure factor pairs
   amrex::Vector< int > s_pairA;
   amrex::Vector< int > s_pairB;
+
+  // Define vector of unique selected variables
+  amrex::Vector< int > var_u;
 
 public:
 
