@@ -99,7 +99,7 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
 
 }
 
-
+#ifndef DSMC
 void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                            std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
@@ -109,6 +109,12 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount)
+
+#endif
+#ifdef DSMC
+void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount)
+
+#endif
 {
     
 
@@ -281,10 +287,7 @@ void FhdParticleContainer::CollideParticles(
     }
 }
 
-void FhdParticleContainer::InitializeFields(MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
+void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
                               MultiFab& cellVols, const species particleInfo)
 {
 
@@ -308,12 +311,7 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleMembers,
                          m_vector_size[grid_id].dataPtr(),
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
-                         BL_TO_FORTRAN_3D(particleMembers[pti]),
-                         BL_TO_FORTRAN_3D(particleDensity[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
+                         BL_TO_FORTRAN_3D(particleInstant[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&particleInfo.Neff, &Np, &particleInfo.R, &particleInfo.T
                         );
 
@@ -321,36 +319,9 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleMembers,
 }
 
 void FhdParticleContainer::EvaluateStats(
-                              MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
-                              std::array<MultiFab, 3>& particleMomentum,
-                              MultiFab& particleEnergy,
-                              MultiFab& particlePressure,
-
-                              MultiFab& particleMembersMean,
-                              MultiFab& particleDensityMean,
-                              std::array<MultiFab, 3>& particleVelocityMean,
-                              MultiFab& particleTemperatureMean,
-                              std::array<MultiFab, 3>& particleMomentumMean,
-                              MultiFab& particleEnergyMean,
-                              MultiFab& particlePressureMean,
-
-                              MultiFab& particleMembersVar,
-                              MultiFab& particleDensityVar,
-                              std::array<MultiFab, 3>& particleVelocityVar,
-                              MultiFab& particleTemperatureVar,
-                              std::array<MultiFab, 3>& particleMomentumVar,
-                              MultiFab& particleEnergyVar,
-                              MultiFab& particlePressureVar,
-
-                              MultiFab& particleGVar, 
-                              MultiFab& particleKGCross,
-                              MultiFab& particleKRhoCross, 
-                              MultiFab& particleRhoGCross,
-                              MultiFab& particleSpatialCross1,
-                              MultiFab& particleSpatialCross2,
+                              MultiFab& particleInstant,
+                              MultiFab& particleMeans,
+                              MultiFab& particleVars,
                               MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps)
@@ -387,26 +358,16 @@ void FhdParticleContainer::EvaluateStats(
                          m_vector_size[grid_id].dataPtr(),
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
-                         BL_TO_FORTRAN_3D(particleMembers[pti]),
-                         BL_TO_FORTRAN_3D(particleDensity[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergy[pti]),
-                         BL_TO_FORTRAN_3D(particlePressure[pti]),
+                         BL_TO_FORTRAN_3D(particleInstant[pti]),
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, &del1, &del2, &tm, &te
                         );
 
     }
 
-    ParallelDescriptor::ReduceRealSum(del1);
-    ParallelDescriptor::ReduceRealSum(tp);
-    ParallelDescriptor::ReduceRealSum(te);
-    ParallelDescriptor::ReduceRealSum(tm);
+    //ParallelDescriptor::ReduceRealSum(del1);
+   // ParallelDescriptor::ReduceRealSum(tp);
+    //ParallelDescriptor::ReduceRealSum(te);
+   // ParallelDescriptor::ReduceRealSum(tm);
 
     //Print() << "Total particles: " << tp << "\n";
     //Print() << "Total momentum: " << tm << "\n";
@@ -430,47 +391,10 @@ void FhdParticleContainer::EvaluateStats(
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
 
-                         BL_TO_FORTRAN_3D(particleMembers[pti]),
-                         BL_TO_FORTRAN_3D(particleDensity[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergy[pti]),
-                         BL_TO_FORTRAN_3D(particlePressure[pti]),
+                         BL_TO_FORTRAN_3D(particleInstant[pti]),
+                         BL_TO_FORTRAN_3D(particleMeans[pti]),
+                         BL_TO_FORTRAN_3D(particleVars[pti]),
 
-                         BL_TO_FORTRAN_3D(particleMembersMean[pti]),
-                         BL_TO_FORTRAN_3D(particleDensityMean[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityMean[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityMean[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityMean[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperatureMean[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumMean[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumMean[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumMean[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergyMean[pti]),
-                         BL_TO_FORTRAN_3D(particlePressureMean[pti]),
-
-                         BL_TO_FORTRAN_3D(particleMembersVar[pti]),
-                         BL_TO_FORTRAN_3D(particleDensityVar[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityVar[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityVar[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityVar[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperatureVar[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumVar[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumVar[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumVar[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergyVar[pti]),
-
-                         BL_TO_FORTRAN_3D(particleGVar[pti]),
-                         BL_TO_FORTRAN_3D(particleKGCross[pti]),
-                         BL_TO_FORTRAN_3D(particleKRhoCross[pti]),
-                         BL_TO_FORTRAN_3D(particleRhoGCross[pti]),
-                         BL_TO_FORTRAN_3D(particleSpatialCross1[pti]),
-                         BL_TO_FORTRAN_3D(particleSpatialCross2[pti]),
                          BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
 
                          BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2
@@ -499,51 +423,23 @@ void FhdParticleContainer::EvaluateStats(
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
 
-                         BL_TO_FORTRAN_3D(particleMembers[pti]),
-                         BL_TO_FORTRAN_3D(particleDensity[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocity[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperature[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentum[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergy[pti]),
-
-                         BL_TO_FORTRAN_3D(particleMembersMean[pti]),
-                         BL_TO_FORTRAN_3D(particleDensityMean[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityMean[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityMean[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityMean[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperatureMean[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumMean[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumMean[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumMean[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergyMean[pti]),
-
-                         BL_TO_FORTRAN_3D(particleMembersVar[pti]),
-                         BL_TO_FORTRAN_3D(particleDensityVar[pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityVar[0][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityVar[1][pti]),
-                         BL_TO_FORTRAN_3D(particleVelocityVar[2][pti]),
-                         BL_TO_FORTRAN_3D(particleTemperatureVar[pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumVar[0][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumVar[1][pti]),
-                         BL_TO_FORTRAN_3D(particleMomentumVar[2][pti]),
-                         BL_TO_FORTRAN_3D(particleEnergyVar[pti]),
-
-                         BL_TO_FORTRAN_3D(particleGVar[pti]),
-                         BL_TO_FORTRAN_3D(particleKGCross[pti]),
-                         BL_TO_FORTRAN_3D(particleKRhoCross[pti]),
-                         BL_TO_FORTRAN_3D(particleRhoGCross[pti]),
-                         BL_TO_FORTRAN_3D(particleSpatialCross1[pti]),
-                         BL_TO_FORTRAN_3D(particleSpatialCross2[pti]),
+                         BL_TO_FORTRAN_3D(particleInstant[pti]),
+                         BL_TO_FORTRAN_3D(particleMeans[pti]),
+                         BL_TO_FORTRAN_3D(particleVars[pti]),
 
                          BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
                         );
     }
 
-    ParallelDescriptor::ReduceRealSum(del3);
+//    ParallelDescriptor::ReduceRealSum(del1);
+//    ParallelDescriptor::ReduceRealSum(del2);
+//    ParallelDescriptor::ReduceRealSum(del3);
+
+//    if(steps%20 == 0)
+//    {
+//        //Print() << "rhovar: " << 0.000001*del1/(ParallelDescriptor::NProcs()) << "  jvar: " << 0.01*del2/(ParallelDescriptor::NProcs()) << "  evar: " << 100*del3/(ParallelDescriptor::NProcs()) << "\n";
+//        //Print() << "rhovar: " << 0.001*del1<< "  jvar: " << 0.1*del2<< "  evar: " << 10*del3 << "\n";
+//    }
 
     //MultiFab::Copy(particleMembraneFlux, particleTemperature, 0, 0, 1, 0);
     //MultiFab::Multiply(particleMembraneFlux,particleDensity,0,0,1,0);

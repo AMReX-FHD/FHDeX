@@ -147,13 +147,17 @@ void main_driver(const char* argv)
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
-    MultiFab primVars(ba,dmap,nprimvars + 4,ngc);
+    MultiFab primVars(ba,dmap,nprimvars + 5,ngc);
+
+    MultiFab spatialCross(ba,dmap,1,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
 
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
+
+    spatialCross.setVal(0.0);
 
     //possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
@@ -213,7 +217,24 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
+
+    //Initialise everything
     calculateTransportCoeffs(prim, eta, zeta, kappa);
+
+    conservedToPrimitive(prim, cu);
+    cu.FillBoundary(geom.periodicity());
+    prim.FillBoundary(geom.periodicity());
+
+    calculateTransportCoeffs(prim, eta, zeta, kappa);
+
+    eta.FillBoundary(geom.periodicity());
+    zeta.FillBoundary(geom.periodicity());
+    kappa.FillBoundary(geom.periodicity());
+
+    setBC(prim, cu, eta, zeta, kappa);
+
+    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
+    statsCount = 1;
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -221,18 +242,25 @@ void main_driver(const char* argv)
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
 
-        if(step == 50000)
+        if(step == n_steps_skip)
         {
+            cuMeans.setVal(0.0);
+            cuVars.setVal(0.0);
+
+            primMeans.setVal(0.0);
+            primVars.setVal(0.0);
+
+            spatialCross.setVal(0.0);
 
             statsCount = 1;
+
+            dt = 2.0*dt;
+
         }
 
-       
-        if(step >= 1 )
-        {
+        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, statsCount, dx);
 
-            statsCount++;
-        }
+        statsCount++;
 
         if(step%plot_int == 0)
         {    
@@ -241,7 +269,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {
-            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars);
+           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross);
         }
 
         time = time + dt;

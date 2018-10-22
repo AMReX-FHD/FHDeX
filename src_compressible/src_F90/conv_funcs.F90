@@ -40,7 +40,7 @@ contains
 
 !            if((i .eq. 36) .and. (j .eq. 0) .and. (k .eq. 0)) then
 
-!              print *, "primcalc: ", i,j,k, " energy: ", cons(i,j,k,5), " temp: ", prim(i,j,k,5)
+              !print *, "primcalc: ", i,j,k, " energy: ", cons(i,j,k,5), " temp: ", prim(i,j,k,5)
 
 !            endif
 
@@ -120,6 +120,8 @@ contains
 
         hcv(i) = 0.5d0*dof(i)*Runiv/molmass(i)
         hcp(i) = 0.5d0*(2+dof(i))*Runiv/molmass(i)
+
+        !print *, hcv(i)
 
       endif
 

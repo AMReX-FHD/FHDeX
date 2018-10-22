@@ -54,12 +54,12 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
 
     surfaceList[0].porosityLeft = 0;
     surfaceList[0].specularityLeft = 0;
-    surfaceList[0].temperatureLeft = 300;
+    surfaceList[0].temperatureLeft = 273;
     surfaceList[0].momentumConsLeft = 1;
 
     surfaceList[0].porosityRight = 0;
     surfaceList[0].specularityRight = 0;
-    surfaceList[0].temperatureRight = 300;
+    surfaceList[0].temperatureRight = 273;
     surfaceList[0].momentumConsRight = 1;
 
     surfaceList[0].periodicity = 0;
@@ -116,12 +116,12 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
 
     surfaceList[1].porosityLeft = 0;
     surfaceList[1].specularityLeft = 0;
-    surfaceList[1].temperatureLeft = 500;
+    surfaceList[1].temperatureLeft = 819;
     surfaceList[1].momentumConsLeft = 1;
 
     surfaceList[1].porosityRight = 0;
     surfaceList[1].specularityRight = 0;
-    surfaceList[1].temperatureRight = 500;
+    surfaceList[1].temperatureRight = 819;
     surfaceList[1].momentumConsRight = 1;
 
     surfaceList[1].periodicity = 0;

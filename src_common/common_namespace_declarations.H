@@ -13,7 +13,10 @@ amrex::Vector<int>         common::max_grid_size;
 amrex::Real                common::cell_depth;
 int                        common::ngc;           
 int                        common::nvars;         
-int                        common::nprimvars;     
+int                        common::nprimvars;
+
+int                        common::membrane_cell;
+int                        common::cross_cell;
 
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;

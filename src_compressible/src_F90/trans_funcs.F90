@@ -61,6 +61,7 @@ contains
             eta(i,j,k) = rootT*specaveta
             kappa(i,j,k) = rootT*specavkappa
 
+            !print *, eta(i,j,k), kappa(i,j,k)
 
           enddo
         enddo

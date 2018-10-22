@@ -78,7 +78,8 @@ contains
             down  = 0.5*(prim(i,j,k-1,4)+prim(i+1,j,k-1,4))
             dwz   = 0.5*(up - down)*dxinv(3)
 #endif
-            div = dux + dvy + dwz
+            !div = dux + dvy + dwz
+            div = dux !1D
 
             taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
             tauy = etaf*(duy + dvx)
@@ -108,16 +109,8 @@ contains
             w = 0.5*(prim(i+1,j,k,4) + prim(i,j,k,4))            
 
             !energy flux
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
-
-!            if(i .eq. -1) then
-! 
-!              print *, i,j,k, "temp: ", prim(i,j,k,5)
-!              print *, i+1,j,k, "temp: ", prim(i+1,j,k,5)
-
-!              !print *, i,j,k, "dty: ", dty
-
-!            endif
+            !xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux) - kappaf*(dtx) !1D
 
           end do
         end do
@@ -308,9 +301,12 @@ contains
 
       integer :: i,j,k,l
 
-      wgt2 = 1.0/12.0 !fourth order interpolation
-      !wgt2 = 0  !second order interpolation
-      wgt1 = 0.5 + wgt2 
+      !wgt2 = 1.0/12.0 !fourth order interpolation
+      !wgt1 = 0.5 + wgt2 
+
+      wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation
+      wgt1 = (sqrt(7d0)+1d0)/4d0
+
 
       !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
@@ -462,7 +458,7 @@ contains
       real(amrex_real), intent(in   ) :: zeta(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc)
       real(amrex_real), intent(in   ) :: kappa(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc)
 
-      real(amrex_real) ::etatF, kappattF, dtinv, volinv, sFac, qFac, velF
+      real(amrex_real) ::etatF, kappattF, dtinv, volinv, sFac, qFac, velF, wgt1, wgt2
 
       integer :: i,j,k,l
 
@@ -475,20 +471,31 @@ contains
       volinv = 1d0/(dx(1)*dx(2)*cell_depth)
 #endif
 
-      sFac = 4d0*k_b*volinv*dtinv/3d0
-      qFac = k_b*volinv*dtinv
+      sFac = 2d0*4d0*k_b*volinv*dtinv/3d0
+      qFac = 2d0*k_b*volinv*dtinv
 
-     
+      !wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation
+      !wgt1 = (sqrt(7d0)+1d0)/4d0
+
+      !wgt2 = 1.0/12.0 !fourth order interpolation
+      !wgt1 = 0.5 + wgt2
+
+      wgt2 = 0
+      wgt1 = 0.5 + wgt2 
+
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
           do i = lo(1)-1,hi(1)
 
             kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i+1,j,k)*prim(i+1,j,k,5)*prim(i+1,j,k,5))
             etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i+1,j,k)*prim(i+1,j,k,5))
-            velF = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
+            !velF = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
+            velF = wgt1*(prim(i,j,k,2)+prim(i+1,j,k,2)) - wgt2*(prim(i-1,j,k,2)+prim(i+2,j,k,2))
 
-            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + sqrt(sFac*etatF)*xsflux(i+1,j,k,2)
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,5) + velF*sqrt(sFac)*xsflux(i+1,j,k,2)
+            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + sqrt(sFac*etatF)*xsflux(i+1,j,k,1)
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,2) + velF*sqrt(sFac)*xsflux(i+1,j,k,1)
+
+            !print *, xsflux(i+1,j,k,3)
 
           end do
         end do
@@ -524,7 +531,8 @@ contains
 
             kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
             etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
-            velF = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
+            !velF = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
+            velF = wgt1*(prim(i,j,k,3)+prim(i,j+1,k,3)) - wgt2*(prim(i,j-1,k,3)+prim(i,j+2,k,3))
 
 
             yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + sqrt(sFac*etatF)*ysflux(i,j+1,k,3)
@@ -564,7 +572,8 @@ contains
 
             kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
             etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
-            velF = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
+            !velF = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
+            velF = wgt1*(prim(i,j,k,4)+prim(i,j,k+1,4)) - wgt2*(prim(i,j,k-1,4)+prim(i,j,k+2,4))
 
             zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
             zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velF*sqrt(sFac)*zsflux(i,j,k+1,4)
@@ -581,7 +590,6 @@ contains
               zflux(i,j,0,4) = 0        
               zflux(i,j,0,5) = 0      
 
-              print *, "Here!"
 
           end do
         end do
@@ -594,8 +602,6 @@ contains
             
               zflux(i,j,hi(3)+1,4) = 0        
               zflux(i,j,hi(3)+1,5) = 0        
-
-              print *, "Here!"
 
           end do
         end do

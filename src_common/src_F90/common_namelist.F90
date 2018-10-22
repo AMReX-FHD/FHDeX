@@ -17,6 +17,8 @@ module common_namelist_module
   integer,            save :: ngc
   integer,            save :: nvars
   integer,            save :: nprimvars
+  integer,            save :: membrane_cell
+  integer,            save :: cross_cell
 
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
@@ -86,6 +88,9 @@ module common_namelist_module
   namelist /common/ ngc           !number of ghost cells
   namelist /common/ nvars         !number of conserved variables      
   namelist /common/ nprimvars     !number of primative variables
+
+  namelist /common/ membrane_cell  !location of membrane
+  namelist /common/ cross_cell     !cell to compute spatial correlation
 
 
   ! Time-step control
@@ -269,6 +274,9 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
+    membrane_cell = -1
+    cross_cell = 0
+
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
@@ -278,7 +286,7 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, cell_depth_in, ngc_in, nvars_in, nprimvars_in, &
+                                         max_grid_size_in, cell_depth_in, ngc_in, nvars_in, nprimvars_in, membrane_cell_in, cross_cell_in, &
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
@@ -315,6 +323,9 @@ contains
     integer,                intent(inout) :: ngc_in
     integer,                intent(inout) :: nvars_in
     integer,                intent(inout) :: nprimvars_in
+
+    integer,                intent(inout) :: membrane_cell_in
+    integer,                intent(inout) :: cross_cell_in
 
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
@@ -381,6 +392,8 @@ contains
     ngc_in = ngc
     nvars_in = nvars
     nprimvars_in = nprimvars
+    membrane_cell_in = membrane_cell
+    cross_cell_in = cross_cell
     fixed_dt_in = fixed_dt
     cfl_in = cfl
     max_step_in = max_step

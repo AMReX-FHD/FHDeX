@@ -81,49 +81,22 @@ public:
                                           MultiFab& cellVols, const species particleInfo, const Real delt);
 
 
-    void InitializeFields(      MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
+    void InitializeFields(    MultiFab& particleInstant,
                               MultiFab& cellVols, const species particleInfo);
 
     void EvaluateStats(
-                              MultiFab& particleMembers,
-                              MultiFab& particleDensity,
-                              std::array<MultiFab, 3>& particleVelocity,
-                              MultiFab& particleTemperature,
-                              std::array<MultiFab, 3>& particleMomentum,
-                              MultiFab& particleEnergy,
-                              MultiFab& particlePressure,
-
-                              MultiFab& particleMembersMean,
-                              MultiFab& particleDensityMean,
-                              std::array<MultiFab, 3>& particleVelocityMean,
-                              MultiFab& particleTemperatureMean,
-                              std::array<MultiFab, 3>& particleMomentumMean,
-                              MultiFab& particleEnergyMean,
-                              MultiFab& particlePressureMean,
-
-                              MultiFab& particleMembersVar,
-                              MultiFab& particleDensityVar,
-                              std::array<MultiFab, 3>& particleVelocityVar,
-                              MultiFab& particleTemperatureVar,
-                              std::array<MultiFab, 3>& particleMomentumVar,
-                              MultiFab& particleEnergyVar,
-                              MultiFab& particlePressureVar,
-
-                              MultiFab& particleGVar, 
-                              MultiFab& particleKGCross,
-                              MultiFab& particleKRhoCross, 
-                              MultiFab& particleRhoGCross,
-                              MultiFab& particleSpatialCross1,
-                              MultiFab& particleSpatialCross2,
+                              MultiFab& particleInstant,
+                              MultiFab& particleMeans,
+                              MultiFab& particleVars,
                               MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
     void WriteParticlesAscii(int n);
 
+#ifdef DSMC
+    void MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount);
+#else
     void MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                            std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
@@ -133,7 +106,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount);
-
+#endif
     void ReBin();
 
     //void MoveParticles();

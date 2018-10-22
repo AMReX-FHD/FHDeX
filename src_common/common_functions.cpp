@@ -41,7 +41,7 @@ void InitializeCommonNamespace() {
     shift_cc_to_boundary.resize(AMREX_SPACEDIM*LOHI);
     
     initialize_common_namespace(prob_lo.dataPtr(), prob_hi.dataPtr(), n_cells.dataPtr(),
-                                max_grid_size.dataPtr(), &cell_depth, &ngc, &nvars, &nprimvars, &fixed_dt, &cfl, &max_step,
+                                max_grid_size.dataPtr(), &cell_depth, &ngc, &nvars, &nprimvars, &membrane_cell, &cross_cell, &fixed_dt, &cfl, &max_step,
                                 &plot_int, plot_base_name.c_str(), plot_base_name.size()+1,
                                 &chk_int, chk_base_name.c_str(), chk_base_name.size()+1,
                                 &prob_type, &restart, &print_int, &project_eos_int,

@@ -6,4 +6,5 @@ void WritePlotFile(int step,
 	           const amrex::MultiFab& cuVars,
 	           const amrex::MultiFab& prim,
 	           const amrex::MultiFab& primMeans,
-	           const amrex::MultiFab& primVars);
+	           const amrex::MultiFab& primVars,
+                   const amrex::MultiFab& spatialCross);

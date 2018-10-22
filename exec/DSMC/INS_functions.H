@@ -12,20 +12,11 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const amrex::Geometry cgeom,
-                   const MultiFab& rhotot,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	           const MultiFab& div,
-                   const MultiFab& particleMembers,
-                   const MultiFab& particleDensity,
-                   const std::array< MultiFab, 3 >& particleVelocity,
-                   const MultiFab& particleTemperature,
-                   const MultiFab& particlePressureMean,
-                   const MultiFab& particleEnergyMean,
-                   const MultiFab& spatialCorrelation,
-                   const MultiFab& densityVar,
-                   const MultiFab& density,
+                   const MultiFab& particleInstant,
+                   const MultiFab& particleMeans,
+                   const MultiFab& particleVars,
                    const MultiFab& particleMembraneFlux,
-                   FhdParticleContainer& particles);
+                   FhdParticleContainer& particles) ;
 
 ///////////////////////////
 

@@ -22,6 +22,9 @@ namespace common {
     extern int                        nvars;         //number of conserved variables
     extern int                        nprimvars;     //number of primitive variables
 
+    extern int                        membrane_cell;     //cell to locate membrane
+    extern int                        cross_cell;     //cell to compute spatial correlation
+
 
     // Time-step control
     extern amrex::Real                fixed_dt;

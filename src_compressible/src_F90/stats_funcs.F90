@@ -11,12 +11,12 @@ module stats_module
 
 contains
 
-  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, del1, del2) bind(c,name='evaluate_means')
+  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, del1, del2, del3) bind(c,name='evaluate_means')
 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: del1, del2
+      double precision, intent(inout   ) :: del1, del2, del3
 
       double precision, intent(inout   ) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
       double precision, intent(inout   ) :: cumeans(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
@@ -25,11 +25,17 @@ contains
       double precision, intent(inout   ) :: primmeans(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
 
       !double precision fac1, fac2, fac3, test, pairfrac
-      integer i,j,k,l
+      integer i,j,k,l, cells, ti
       double precision stepsminusone, stepsinv, densitymeaninv, fracvec(nspecies), massvec(nspecies)
 
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
+
+      del1 = 0
+     ! del2 = 0
+      del3 = 0
+
+      
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -49,8 +55,14 @@ contains
             primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv
             primmeans(i,j,k,4) = cumeans(i,j,k,4)*densitymeaninv
 
+            !print *, "Density: ", cu(i,j,k,1)
+
             call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
             call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
+
+            del1 = del1 + cu(i,j,k,1)
+            !del2 = del2 + cu(i,j,k,2)
+            del3 = del3 + cu(i,j,k,5)
 
           enddo
         enddo
@@ -64,32 +76,32 @@ contains
           !print *, "density: ", cu(1,1,1,1), ", mean: ", cumeans(1,1,1,1), ", density: ", cu(0,1,0,1), ", mean: ", cumeans(0,1,0,1)
       !endif
 
-  !    ti = 19
+       ti = 19
   !    tj = 0
   !    tk = 0
 
-  !    if((ti .ge. mlo(1)) .and. (ti .le. mhi(1))) then
-  !    
-  !      del2 = pxmean(ti,tj,tk)
+      if((ti .ge. lo(1)) .and. (ti .le. hi(1))) then
+      
+        del2 = cu(ti,0,0,2)-cumeans(ti,0,0,2)
 
-  !    else
-  !  
-  !      del2 = 0
+      else
+    
+       del2 = 0
 
-  !    endif
+      endif
 
-      !print *, "del1 in: ", del1
+      !print *, "del2 in: ", del2
           
     end subroutine evaluate_means
 
-  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, steps, del1, del2) bind(c,name='evaluate_corrs')
+  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, del1, del2, del3) bind(c,name='evaluate_corrs')
 
       !use iso_c_binding, only: c_ptr, c_int, c_f_pointer
 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: del1, del2
+      double precision, intent(inout   ) :: del1, del2, del3
 
       double precision, intent(inout   ) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
       double precision, intent(inout   ) :: cumeans(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
@@ -97,34 +109,19 @@ contains
 
       double precision, intent(inout   ) :: prim(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
       double precision, intent(inout   ) :: primmeans(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
-      double precision, intent(inout   ) :: primvars(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars + 4)
+      double precision, intent(inout   ) :: primvars(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars + 5)
 
-      !double precision fac1, fac2, fac3, test, pairfrac
-      integer i,j,k,l
-      double precision stepsminusone, stepsinv, cv, cvinv, rr, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
+      double precision, intent(inout   ) :: spatialcross(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, 1)
+
+      integer i,j,k,l, cells
+      double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
 
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
-
-      rr = 1d0
-      cvinv = 2.0/(3.0*rr)
-      cv = 1.0/cvinv
-
-      do k = lo(3), hi(3)
-        do j = lo(2), hi(2)
-          do i = lo(1), hi(1)
-
-            !Vars
-
-            delrho = cu(i,j,k,1) - cumeans(i,j,k,1)
-
-            cuvars(i,j,k,1) = (cuvars(i,j,k,1)*stepsminusone + delrho**2)*stepsinv
-            !vars(i,j,k,1) = delrho**2
-
-          enddo
-        enddo
-      enddo
-
+      cells = 0
+      del1 = 0
+      !del2 = 0
+      del3 = 0
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -152,7 +149,12 @@ contains
           cuvars(i,j,k,2) = (cuvars(i,j,k,2)*stepsminusone + delpx**2)*stepsinv
           cuvars(i,j,k,3) = (cuvars(i,j,k,3)*stepsminusone + delpy**2)*stepsinv
           cuvars(i,j,k,4) = (cuvars(i,j,k,4)*stepsminusone + delpz**2)*stepsinv
-          cuvars(i,j,k,5) = (cuvars(i,j,k,5)*stepsminusone + delenergy**2)*stepsinv      
+          cuvars(i,j,k,5) = (cuvars(i,j,k,5)*stepsminusone + delenergy**2)*stepsinv
+
+          del1 = del1 + cuvars(i,j,k,1)
+          !del2 = del2 + cuvars(i,j,k,2)
+          del3 = del3 + cuvars(i,j,k,5)
+          cells = cells + 1
 
           delvelx = (delpx - primmeans(i,j,k,2)*delrho)*densitymeaninv
           delvely = (delpy - primmeans(i,j,k,3)*delrho)*densitymeaninv
@@ -165,7 +167,7 @@ contains
 
          
 
-          delg = primvars(i,j,k,2)*delpx + primvars(i,j,k,3)*delpy + primvars(i,j,k,4)*delpz
+          delg = primmeans(i,j,k,2)*delpx + primmeans(i,j,k,3)*delpy + primmeans(i,j,k,4)*delpz
 
           primvars(i,j,k,nprimvars+1) = (primvars(i,j,k,nprimvars+1)*stepsminusone + delg**2)*stepsinv  !gvar
 
@@ -187,9 +189,17 @@ contains
 
           !print *, spatialcross1(i,j,k)
 
+          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*del2)*stepsinv
+
+          !print *, spatialcross(i,j,k,1)
+
         enddo
       enddo
     enddo
+
+    del1 = del1/cells
+    !del2 = del2/cells
+    del3 = del3/cells
           
     end subroutine evaluate_corrs
 

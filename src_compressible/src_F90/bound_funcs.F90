@@ -22,10 +22,83 @@ contains
       real(amrex_real), intent(inout) :: zeta(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
       real(amrex_real), intent(inout) :: kappa(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
 
-      integer :: i,j,k,l
+      integer :: i,j,k,l,bcell
 
       real(amrex_real) :: massvec(nspecies), intenergy
 
+      !Internal special case:
+
+      bcell = 20
+
+      if(lo(1) .eq. bcell) then !Interior rhs, apply slip adiabatic
+
+        !print *, "Bcell!"
+
+        do k = lo(3)-ngc,hi(3)+ngc
+          do j = lo(2)-ngc,hi(2)+ngc
+            do i = 1, ngc
+
+              eta(lo(1)-i,j,k,1) = eta(lo(1)-1+i,j,k,1)
+              zeta(lo(1)-i,j,k,1) = zeta(lo(1)-1+i,j,k,1)
+              kappa(lo(1)-i,j,k,1) = kappa(lo(1)-1+i,j,k,1)
+
+              cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
+              cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
+              cons(lo(1)-i,j,k,3) = cons(lo(1)-1+i,j,k,3) 
+              cons(lo(1)-i,j,k,4) = cons(lo(1)-1+i,j,k,4) 
+              cons(lo(1)-i,j,k,5) = cons(lo(1)-1+i,j,k,5) 
+             
+              prim(lo(1)-i,j,k,1) = prim(lo(1)-1+i,j,k,1)
+              prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
+              prim(lo(1)-i,j,k,3) = prim(lo(1)-1+i,j,k,3)
+              prim(lo(1)-i,j,k,4) = prim(lo(1)-1+i,j,k,4)
+              prim(lo(1)-i,j,k,5) = prim(lo(1)-1+i,j,k,5)
+              prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
+              
+              do l = 1, nspecies
+                cons(lo(1)-i,j,k,5+l) = cons(lo(1)-1+i,j,k,5+l)
+                prim(lo(1)-i,j,k,6+l) = prim(lo(1)-1+i,j,k,6+l)
+              enddo
+
+            enddo
+          enddo
+        enddo
+
+      endif
+
+
+      if(hi(1) .eq. bcell-1) then !Interior lhs, apply slip adiabatic
+
+        do k = lo(3)-ngc,hi(3)+ngc
+          do j = lo(2)-ngc,hi(2)+ngc
+            do i = 1, ngc
+
+              eta(hi(1)+i,j,k,1) = eta(hi(1)+1-i,j,k,1)
+              zeta(hi(1)+i,j,k,1) = zeta(hi(1)+1-i,j,k,1)
+              kappa(hi(1)+i,j,k,1) = kappa(hi(1)+1-i,j,k,1)         
+
+              cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
+              cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
+              cons(hi(1)+i,j,k,3) = cons(hi(1)+1-i,j,k,3) 
+              cons(hi(1)+i,j,k,4) = cons(hi(1)+1-i,j,k,4) 
+              cons(hi(1)+i,j,k,5) = cons(hi(1)+1-i,j,k,5) 
+             
+              prim(hi(1)+i,j,k,1) = prim(hi(1)+1-i,j,k,1)
+              prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
+              prim(hi(1)+i,j,k,3) = prim(hi(1)+1-i,j,k,3)
+              prim(hi(1)+i,j,k,4) = prim(hi(1)+1-i,j,k,4)
+              prim(hi(1)+i,j,k,5) = prim(hi(1)+1-i,j,k,5)
+              prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
+              
+              do l = 1, nspecies
+                cons(hi(1)+i,j,k,5+l) = cons(hi(1)+1-i,j,k,5+l)
+                prim(hi(1)+i,j,k,6+l) = prim(hi(1)+1-i,j,k,6+l)
+              enddo
+
+            enddo
+          enddo
+        enddo
+      endif
 
       if(lo(1) .eq. 0) then !lower x bound
 
