@@ -109,6 +109,8 @@ void WritePlotFile(int step,
     cplotfile.mult(0.1,21,1);
     cplotfile.mult(0.01,33,1);
 
+    cplotfile.mult(0.1*0.001,38,1); //cgscoords momentum/density cross
+
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
 

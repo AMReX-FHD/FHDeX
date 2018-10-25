@@ -124,6 +124,18 @@ extern "C"
   void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans, const amrex::Real* prim, amrex::Real* primmeans, const int* steps, amrex::Real* del1, amrex::Real* del2, amrex::Real* del3);
   void evaluate_corrs(const int* lo, const int* hi, const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars, const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars, amrex::Real* spatialcross, const int* steps, amrex::Real* del1, amrex::Real* del2, amrex::Real* del3);
 
+  void do_ssa(const int* lo, const int* hi,
+			      const amrex::Real* cu,
+			      const amrex::Real* prim,
+			      amrex::Real* xflux,
+                              const amrex::Real* dx,
+                              const amrex::Real* dt);
+
+  void apply_effusion(const int* lo, const int* hi,
+			      amrex::Real* cu,
+			      const amrex::Real* xflux,
+                              const amrex::Real* dx,
+                              const amrex::Real* dt);
 
 #ifdef __cplusplus
 }

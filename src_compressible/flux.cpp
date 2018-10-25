@@ -14,19 +14,12 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                  flux[1].setVal(0.0);,
                  flux[2].setVal(0.0););
 
-    AMREX_D_TERM(MultiFABFillRandom(stochFlux[0], 0, 1, geom);
-                 MultiFABFillRandom(stochFlux[0], 1, 1, geom);
-                 MultiFABFillRandom(stochFlux[0], 2, 1, geom);
-                 MultiFABFillRandom(stochFlux[0], 3, 1, geom);,
-                 MultiFABFillRandom(stochFlux[1], 0, 1, geom);
-                 MultiFABFillRandom(stochFlux[1], 1, 1, geom);
-                 MultiFABFillRandom(stochFlux[1], 2, 1, geom);
-                 MultiFABFillRandom(stochFlux[1], 3, 1, geom);,
-                 MultiFABFillRandom(stochFlux[2], 0, 1, geom);
-                 MultiFABFillRandom(stochFlux[2], 1, 1, geom);
-                 MultiFABFillRandom(stochFlux[2], 2, 1, geom);
-                 MultiFABFillRandom(stochFlux[2], 3, 1, geom););
-
+    for(int i=0;i<6;i++)
+    {
+        AMREX_D_TERM(MultiFABFillRandom(stochFlux[0], i, 1, geom);,
+                     MultiFABFillRandom(stochFlux[1], i, 1, geom);,
+                     MultiFABFillRandom(stochFlux[2], i, 1, geom););
+    }
 
     // Loop over boxes
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi)

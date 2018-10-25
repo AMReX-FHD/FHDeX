@@ -24,6 +24,7 @@ namespace common {
 
     extern int                        membrane_cell;     //cell to locate membrane
     extern int                        cross_cell;     //cell to compute spatial correlation
+    extern amrex::Real                transmission;
 
 
     // Time-step control

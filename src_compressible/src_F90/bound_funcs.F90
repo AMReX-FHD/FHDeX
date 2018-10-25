@@ -1,7 +1,7 @@
 module bound_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells
+  use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, membrane_cell
   use conv_module
 
   implicit none
@@ -28,7 +28,7 @@ contains
 
       !Internal special case:
 
-      bcell = 20
+      bcell = membrane_cell
 
       if(lo(1) .eq. bcell) then !Interior rhs, apply slip adiabatic
 

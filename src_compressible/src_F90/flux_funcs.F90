@@ -1,7 +1,7 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, membrane_cell
   use conv_module, only : get_temperature, get_pressure_gas
   implicit none
 
@@ -81,6 +81,7 @@ contains
             !div = dux + dvy + dwz
             div = dux !1D
 
+            !taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
             taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
             tauy = etaf*(duy + dvx)
             tauz = etaf*(duz + dwx)
@@ -301,11 +302,14 @@ contains
 
       integer :: i,j,k,l
 
-      !wgt2 = 1.0/12.0 !fourth order interpolation
+      wgt2 = 1.0/12.0 !fourth order interpolation
+      wgt1 = 0.5 + wgt2 
+
+      !wgt2 = 0
       !wgt1 = 0.5 + wgt2 
 
-      wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation
-      wgt1 = (sqrt(7d0)+1d0)/4d0
+      !wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation
+      !wgt1 = (sqrt(7d0)+1d0)/4d0
 
 
       !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
@@ -444,10 +448,10 @@ contains
       real(amrex_real), intent(inout) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
 #endif
 
-      real(amrex_real), intent(inout) :: xsflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(inout) :: ysflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: xsflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), 6)
+      real(amrex_real), intent(inout) :: ysflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), 6)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(inout) :: zsflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+      real(amrex_real), intent(inout) :: zsflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, 6)
 #endif
 
       real(amrex_real), intent(in   ) :: cons(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
@@ -501,8 +505,32 @@ contains
         end do
       end do
 
-      !if on lower bound and not periodic
-      if((lo(1) .eq. 0) .and. (bc_lo(1) .ne. -1)) then
+      !wall cell
+      if(lo(1) .eq. membrane_cell) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+            
+              xflux(membrane_cell,j,k,2) = 0        
+              xflux(membrane_cell,j,k,5) = 0        
+
+          end do
+        end do
+      endif
+
+      !wall cell
+      if(hi(1) .eq. membrane_cell-1) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+            
+              xflux(membrane_cell,j,k,2) = 0  
+              xflux(membrane_cell,j,k,5) = 0        
+
+          end do
+        end do
+      endif
+
+      !if on lower bound and specular
+      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
         do k = lo(3),hi(3)
           do j = lo(2),hi(2)
             
@@ -513,13 +541,37 @@ contains
         end do
       endif
 
-      !if on upper bound and not periodic
-      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .ne. -1)) then
+      !if on upper bound and specular
+      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
         do k = lo(3),hi(3)
           do j = lo(2),hi(2)
             
               xflux(hi(1)+1,j,k,2) = 0        
               xflux(hi(1)+1,j,k,5) = 0        
+
+          end do
+        end do
+      endif
+
+      !if on lower bound and diff
+      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+            
+              xflux(0,j,k,2) = 1.4142*xflux(0,j,k,2)        
+              xflux(0,j,k,5) = 1.4142*xflux(0,j,k,5)        
+
+          end do
+        end do
+      endif
+
+      !if on upper bound and diff
+      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+            
+              xflux(hi(1)+1,j,k,2) = 1.4142*xflux(hi(1)+1,j,k,2)        
+              xflux(hi(1)+1,j,k,5) = 1.4142*xflux(hi(1)+1,j,k,5)        
 
           end do
         end do
@@ -547,8 +599,8 @@ contains
         do k = lo(3),hi(3)
           do i = lo(1),hi(1)
             
-              xflux(i,0,k,3) = 0        
-              xflux(i,0,k,5) = 0        
+            !yflux(i,0,k,3) = 0        
+            !yflux(i,0,k,5) = 0        
 
           end do
         end do
@@ -559,8 +611,8 @@ contains
         do k = lo(3),hi(3)
           do i = lo(1),hi(1)
             
-              xflux(i,hi(2)+1,k,3) = 0        
-              xflux(i,hi(2)+1,k,5) = 0        
+            !yflux(i,hi(2)+1,k,3) = 0        
+            !yflux(i,hi(2)+1,k,5) = 0        
 
           end do
         end do
@@ -587,9 +639,8 @@ contains
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)
             
-              zflux(i,j,0,4) = 0        
-              zflux(i,j,0,5) = 0      
-
+            !zflux(i,j,0,4) = 0        
+            !zflux(i,j,0,5) = 0      
 
           end do
         end do
@@ -600,15 +651,13 @@ contains
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)
             
-              zflux(i,j,hi(3)+1,4) = 0        
-              zflux(i,j,hi(3)+1,5) = 0        
+            !zflux(i,j,hi(3)+1,4) = 0        
+            !zflux(i,j,hi(3)+1,5) = 0        
 
           end do
         end do
       endif
       
-
-
   end subroutine stoch_flux
 
 end module flux_module

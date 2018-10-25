@@ -254,7 +254,7 @@ void main_driver(const char* argv)
 
             statsCount = 1;
 
-            dt = 2.0*dt;
+            //dt = 2.0*dt;
 
         }
 
@@ -275,4 +275,11 @@ void main_driver(const char* argv)
         time = time + dt;
     }
 
+    Real stop_time = ParallelDescriptor::second() - strt_time;
+    ParallelDescriptor::ReduceRealMax(stop_time);
+    amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    amrex::Finalize();
+
 }
+

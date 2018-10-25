@@ -22,3 +22,5 @@ void setBC(MultiFab& prim, MultiFab& cons, MultiFab& eta, MultiFab& zeta, MultiF
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& spatialCross, const int steps, const amrex::Real* dx);
 
+void doSSA(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
+

@@ -4,6 +4,7 @@ CEXE_sources += transCoeffs.cpp
 CEXE_sources += timeStep.cpp
 CEXE_sources += conservedPrimitiveConversions.cpp
 CEXE_sources += boundary.cpp
+CEXE_sources += ssa.cpp
 
 CEXE_headers += compressible_functions.H
 CEXE_headers += compressible_functions_F.H

@@ -278,7 +278,7 @@ void main_driver(const char* argv)
 
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
+    int surfaceCount = 7;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif

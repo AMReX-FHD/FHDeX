@@ -17,6 +17,7 @@ int                        common::nprimvars;
 
 int                        common::membrane_cell;
 int                        common::cross_cell;
+amrex::Real                common::transmission;
 
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;

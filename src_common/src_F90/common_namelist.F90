@@ -19,6 +19,7 @@ module common_namelist_module
   integer,            save :: nprimvars
   integer,            save :: membrane_cell
   integer,            save :: cross_cell
+  double precision,   save :: transmission
 
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
@@ -91,6 +92,7 @@ module common_namelist_module
 
   namelist /common/ membrane_cell  !location of membrane
   namelist /common/ cross_cell     !cell to compute spatial correlation
+  namelist /common/ transmission 
 
 
   ! Time-step control
@@ -286,7 +288,7 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, cell_depth_in, ngc_in, nvars_in, nprimvars_in, membrane_cell_in, cross_cell_in, &
+                                         max_grid_size_in, cell_depth_in, ngc_in, nvars_in, nprimvars_in, membrane_cell_in, cross_cell_in, transmission_in, &
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
@@ -326,6 +328,7 @@ contains
 
     integer,                intent(inout) :: membrane_cell_in
     integer,                intent(inout) :: cross_cell_in
+    double precision,       intent(inout) :: transmission_in
 
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
@@ -394,6 +397,7 @@ contains
     nprimvars_in = nprimvars
     membrane_cell_in = membrane_cell
     cross_cell_in = cross_cell
+    transmission_in = transmission
     fixed_dt_in = fixed_dt
     cfl_in = cfl
     max_step_in = max_step

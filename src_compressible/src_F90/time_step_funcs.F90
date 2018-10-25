@@ -53,6 +53,9 @@ contains
 #endif
                                 + dt*source(i,j,k,l)
 
+                 if(cup(i,j,k,l) .ne. cup(i,j,k,l)) then
+                    print *, "NAN!"
+                 endif
 
                         
 !                if(l .eq. 1) then

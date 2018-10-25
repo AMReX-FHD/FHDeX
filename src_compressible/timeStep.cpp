@@ -93,6 +93,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
+    doSSA(cu, prim, flux, geom, ZFILL(dx), dt);
+
     calculateTransportCoeffs(prim, eta, zeta, kappa);
 
     eta.FillBoundary(geom.periodicity());
