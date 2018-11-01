@@ -16,7 +16,7 @@ void WritePlotFile(int step,
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
-    amrex::MultiFab plotfile(ba, dmap, 32, 0);
+    amrex::MultiFab plotfile(ba, dmap, 34, 0);
 
     amrex::MultiFab::Copy(plotfile,cuMeans,0,0,5,0);
     amrex::MultiFab::Copy(plotfile,primMeans,0,5,6,0);
@@ -24,11 +24,11 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(plotfile,prim,0,16,5,0);
     amrex::MultiFab::Copy(plotfile,cuVars,0,21,5,0);
     amrex::MultiFab::Copy(plotfile,primVars,0,26,5,0);
-    amrex::MultiFab::Copy(plotfile,spatialCross,0,31,1,0);
+    amrex::MultiFab::Copy(plotfile,spatialCross,0,31,3,0);
 
-    std::string plotfilename = amrex::Concatenate("plt",step,8);
+    std::string plotfilename = amrex::Concatenate("plt",step,9);
 
-    amrex::Vector<std::string> varNames(32);
+    amrex::Vector<std::string> varNames(34);
 
     varNames[0] = "rhoMean";
     varNames[1] = "jxMean";
@@ -67,7 +67,9 @@ void WritePlotFile(int step,
     varNames[29] = "uzVar";
     varNames[30] = "tVar";
 
-    varNames[31] = "spatialCross";
+    varNames[31] = "spatialCross1";
+    varNames[32] = "spatialCross2";
+    varNames[33] = "spatialCross3";
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);

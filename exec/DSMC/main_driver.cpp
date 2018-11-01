@@ -235,8 +235,9 @@ void main_driver(const char* argv)
     //RhoGCross
     //SpatialCross1
     //SpatialCross2
+    //SpatialCross3
     
-    MultiFab particleVars(bc, dmap, 17, 0);
+    MultiFab particleVars(bc, dmap, 18, 0);
 
 
     MultiFab particleMembraneFlux(bc, dmap, 1, 0);

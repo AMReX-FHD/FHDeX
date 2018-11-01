@@ -24,11 +24,6 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
     ParallelDescriptor::ReduceRealSum(del2);
     ParallelDescriptor::ReduceRealSum(del3);
 
-    if(steps%20 == 0)
-    {
-        //Print() << "rhotot: " << del1 << "  jtot: " << del2 << "  etot: " << del3 << "\n";
-    }
-
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -44,16 +39,4 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
                        &steps, &del1, &del2, &del3);
 
     }
-
-    ParallelDescriptor::ReduceRealSum(del1);
-    ParallelDescriptor::ReduceRealSum(del2);
-    ParallelDescriptor::ReduceRealSum(del3);
-
-    if(steps%100 == 0)
-    {
-        //Print() << "rhovar: " << del1/(ParallelDescriptor::NProcs()) << "  jvar: " << del2/(ParallelDescriptor::NProcs()) << "  evar: " << del3/(ParallelDescriptor::NProcs()) << "\n";
-        //Print() << "rhovar: " << del1 << "  jvar: " << del2 << "  evar: " << del3 << "\n";
-    }
-
-
 }

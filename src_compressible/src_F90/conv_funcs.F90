@@ -38,6 +38,8 @@ contains
 
             call get_temperature(intenergy, massvec, prim(i,j,k,5))
 
+            call get_pressure_gas(prim(i,j,k,6), cons(i,j,k,6:nvars), prim(i,j,k,1), prim(i,j,k,5))
+
 !            if((i .eq. 36) .and. (j .eq. 0) .and. (k .eq. 0)) then
 
               !print *, "primcalc: ", i,j,k, " energy: ", cons(i,j,k,5), " temp: ", prim(i,j,k,5)

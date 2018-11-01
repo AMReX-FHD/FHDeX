@@ -356,7 +356,7 @@ contains
                              vars, vlo, vhi, & 
                              membraneflux, mflo, mfhi, &
 
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, del1, del2) bind(c,name='evaluate_means')
+                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, del1, del2, del3) bind(c,name='evaluate_means')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -366,12 +366,12 @@ contains
     integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), mlo(3), mhi(3), vlo(3), vhi(3), mflo(3), mfhi(3)
     double precision, intent(in      ) :: neff, delt, n0, T0
 
-    double precision, intent(inout   ) :: del1, del2
+    double precision, intent(inout   ) :: del1, del2, del3
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
     double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),12)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),17)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
     double precision, intent(inout   ) :: membraneflux(mflo(1):mfhi(1),mflo(2):mfhi(2),mflo(3):mfhi(3))
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -435,11 +435,15 @@ contains
 
     if((ti .ge. mlo(1)) .and. (ti .le. mhi(1))) then
     
-      del2 = instant(ti,0,0,7)-means(ti,0,0,7)
+      del1 = instant(ti,0,0,10)-means(ti,0,0,10)
+      del2 = instant(ti,0,0,10)-means(ti,0,0,10)
+      del3 = instant(ti,0,0,7)-means(ti,0,0,7)
 
     else
   
+      del1 = 0
       del2 = 0
+      del3 = 0
 
     endif
 
@@ -468,7 +472,7 @@ contains
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
     double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),12)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),17)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -487,10 +491,6 @@ contains
     cvinv = 2.0/(3.0*particles(1)%R)
     cv = 1.0/cvinv
 
-!    del1 = 0     
-!    del2 = 0
-!    del3 = 0
-!    cells = 0
 
     do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
@@ -538,70 +538,13 @@ contains
 
           deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
-          vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delrho*del2)*stepsinv
-
-          !vars(i,j,k,17) = vars(i,j,k,17) - means(i,j,k,1)*del2
-
-          !spatialcross1(i,j,k) = (spatialcross1(i,j,k)*stepsminusone + del1*density(i,j,k) - del2*densitymean(i,j,k))*stepsinv
-          !spatialcross2(i,j,k) = (spatialcross2(i,j,k)*stepsminusone + del2*deltemp)*stepsinv
-
-          !print *, spatialcross1(i,j,k)
-
-!          del1 = del1 + instant(i,j,k,2)
-!          del2 = del2 + instant(i,j,k,7)
-!          del3 = del3 + instant(i,j,k,10)
-!          cells = cells +1
+          vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delrho*del1)*stepsinv
+          vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + delenergy*del2)*stepsinv
+          vars(i,j,k,18) = (vars(i,j,k,18)*stepsminusone + delrho*del3)*stepsinv
 
         enddo
       enddo
     enddo
-
-!    del1 = del1/cells
-!    del2 = del2/cells
-!    del3 = del3/cells
-
-!    it = 19
-!    jt = 0
-!    kt = 0
-
-!    if((jt .ge. mlo(2)) .and. (jt .le. mhi(2))) then
-
-!      spatialcross2(it,jt,kt) = spatialcross1(it,jt,kt) - particles(1)%mass*particles(1)%R*tempmean(it,jt,kt)*tempmean(it,jt,kt)/(cv*densitymean(it,jt,kt)*cellvols(it,jt,kt))
-
-!    endif
-
-   ! lhs = 0
-   ! rhs = 0
-   ! cellcount = 0
-   ! tempcm = 0
-   ! ncm = 0
-   ! velcm = 0
-   ! energycm = 0
-   ! momentumcm = 0
-   ! del3 = 0
-
-
-    ! do k = mlo(3), mhi(3)
-    !  do j = mlo(2), mhi(2)
-    !    do i = mlo(1), mhi(1)
-
-     !     del3 = del3 + spatialcross1(i,j,k)
-
-     !   enddo
-     ! enddo
-   ! enddo
-
-    !print *, "temp mean: ", tempmean(mlo(1) +0,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1) +0,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1) +0,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+ 0,mlo(2),mlo(3)))
-    !print *, "temp mean: ", tempmean(mlo(1) +5,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1) +5,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1) +5,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+ 5,mlo(2),mlo(3)))
-    !print *, "temp mean: ", tempmean(mlo(1)+10,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+10,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+10,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+10,mlo(2),mlo(3)))
-    !print *, "temp mean: ", tempmean(mlo(1)+15,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+15,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+15,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+15,mlo(2),mlo(3)))
-
-    !print *, "temp mean: ", tempmean(mlo(1)+20,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+20,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+20,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+20,mlo(2),mlo(3)))
-    !print *, "temp mean: ", tempmean(mlo(1)+25,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+25,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+25,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+25,mlo(2),mlo(3)))
-    !print *, "temp mean: ", tempmean(mlo(1)+30,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+30,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+30,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+30,mlo(2),mlo(3)))
-    !print *, "temp mean: ", tempmean(mlo(1)+35,mlo(2),mlo(3)), "vel mean: ", velxmean(mlo(1)+35,mlo(2),mlo(3)), "fluct: ", tempvar(mlo(1)+35,mlo(2),mlo(3)), particles(1)%R*T0*T0/(cv*n0*cellvols(mlo(1)+35,mlo(2),mlo(3)))
-   
-    !print *, "temp cell mean: ", tempcm/cellcount, "fluct cell mean: ", lhs/cellcount, rhs/cellcount
 
   end subroutine evaluate_corrs
 

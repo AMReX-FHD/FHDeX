@@ -31,11 +31,6 @@ contains
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
 
-      del1 = 0
-     ! del2 = 0
-      del3 = 0
-
-      
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -60,9 +55,6 @@ contains
             call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
             call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
 
-            del1 = del1 + cu(i,j,k,1)
-            !del2 = del2 + cu(i,j,k,2)
-            del3 = del3 + cu(i,j,k,5)
 
           enddo
         enddo
@@ -82,11 +74,15 @@ contains
 
       if((ti .ge. lo(1)) .and. (ti .le. hi(1))) then
       
-        del2 = cu(ti,0,0,2)-cumeans(ti,0,0,2)
+        del1 = cu(ti,0,0,5)-cumeans(ti,0,0,5)
+        del2 = cu(ti,0,0,5)-cumeans(ti,0,0,5)
+        del3 = cu(ti,0,0,2)-cumeans(ti,0,0,2)
 
       else
-    
+
+       del1 = 0    
        del2 = 0
+       del3 = 0
 
       endif
 
@@ -111,17 +107,13 @@ contains
       double precision, intent(inout   ) :: primmeans(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
       double precision, intent(inout   ) :: primvars(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars + 5)
 
-      double precision, intent(inout   ) :: spatialcross(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, 1)
+      double precision, intent(inout   ) :: spatialcross(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, 3)
 
-      integer i,j,k,l, cells
+      integer i,j,k,l
       double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
 
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
-      cells = 0
-      del1 = 0
-      !del2 = 0
-      del3 = 0
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -151,11 +143,6 @@ contains
           cuvars(i,j,k,4) = (cuvars(i,j,k,4)*stepsminusone + delpz**2)*stepsinv
           cuvars(i,j,k,5) = (cuvars(i,j,k,5)*stepsminusone + delenergy**2)*stepsinv
 
-          del1 = del1 + cuvars(i,j,k,1)
-          !del2 = del2 + cuvars(i,j,k,2)
-          del3 = del3 + cuvars(i,j,k,5)
-          cells = cells + 1
-
           delvelx = (delpx - primmeans(i,j,k,2)*delrho)*densitymeaninv
           delvely = (delpy - primmeans(i,j,k,3)*delrho)*densitymeaninv
           delvelz = (delpz - primmeans(i,j,k,4)*delrho)*densitymeaninv
@@ -165,8 +152,7 @@ contains
           primvars(i,j,k,3) = (primvars(i,j,k,3)*stepsminusone + delvely**2)*stepsinv
           primvars(i,j,k,4) = (primvars(i,j,k,4)*stepsminusone + delvelz**2)*stepsinv
 
-         
-
+      
           delg = primmeans(i,j,k,2)*delpx + primmeans(i,j,k,3)*delpy + primmeans(i,j,k,4)*delpz
 
           primvars(i,j,k,nprimvars+1) = (primvars(i,j,k,nprimvars+1)*stepsminusone + delg**2)*stepsinv  !gvar
@@ -178,28 +164,14 @@ contains
           primvars(i,j,k,5) = (primvars(i,j,k,5)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*(cuvars(i,j,k,5) + primvars(i,j,k,nprimvars+1) - 2*primvars(i,j,k,nprimvars+2) &
                             + qmean*(qmean*cuvars(i,j,k,1) - 2*primvars(i,j,k,nprimvars+3) + 2*primvars(i,j,k,nprimvars+4))))*stepsinv
 
-          !deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
-          !spatialcross1(i,j,k) = (spatialcross1(i,j,k)*stepsminusone + del1*density(i,j,k))*stepsinv
-
-          !spatialcross2(i,j,k) = spatialcross1(i,j,k) - densitymean(i,j,k)*del2
-
-          !spatialcross1(i,j,k) = (spatialcross1(i,j,k)*stepsminusone + del1*density(i,j,k) - del2*densitymean(i,j,k))*stepsinv
-          !spatialcross2(i,j,k) = (spatialcross2(i,j,k)*stepsminusone + del2*deltemp)*stepsinv
-
-          !print *, spatialcross1(i,j,k)
-
-          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*del2)*stepsinv
-
-          !print *, spatialcross(i,j,k,1)
+          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*del1)*stepsinv
+          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*del2)*stepsinv
+          spatialcross(i,j,k,3) = (spatialcross(i,j,k,2)*stepsminusone + delrho*del3)*stepsinv
 
         enddo
       enddo
     enddo
-
-    del1 = del1/cells
-    !del2 = del2/cells
-    del3 = del3/cells
           
     end subroutine evaluate_corrs
 

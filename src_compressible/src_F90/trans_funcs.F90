@@ -61,6 +61,9 @@ contains
             eta(i,j,k) = rootT*specaveta
             kappa(i,j,k) = rootT*specavkappa
 
+            if(kappa(i,j,k) .ne. kappa(i,j,k)) then
+               print *, "NAN! kappa ", i, j, k, prim(i,j,k,5)
+            endif
             !print *, eta(i,j,k), kappa(i,j,k)
 
           enddo

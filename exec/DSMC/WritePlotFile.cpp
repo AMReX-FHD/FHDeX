@@ -14,15 +14,15 @@ void WritePlotFile(int step,
                    FhdParticleContainer& particles) 
 {
 
-    std::string cplotfilename = Concatenate("cplt",step,8);
-    std::string pplotfilename = Concatenate("pplt",step,8);
+    std::string cplotfilename = Concatenate("cplt",step,9);
+    std::string pplotfilename = Concatenate("pplt",step,9);
 
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
 
  
 //    int cnPlot = 40;
-    int cnPlot = 40;
+    int cnPlot = 41;
 
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
@@ -30,7 +30,7 @@ void WritePlotFile(int step,
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
-    amrex::MultiFab::Copy(cplotfile,particleVars,0,23,17,0);
+    amrex::MultiFab::Copy(cplotfile,particleVars,0,23,18,0);
 
     cvarNames[0] = "membersInstant";
     cvarNames[1] = "densityInstant";
@@ -72,9 +72,9 @@ void WritePlotFile(int step,
     cvarNames[35] = "KGCross";
     cvarNames[36] = "KRhoCross";
     cvarNames[37] = "RhoGCross";
-    cvarNames[38] = "SpatialCross1";
-    cvarNames[39] = "SpatialCross2";
-
+    cvarNames[38] = "Energy-densityCross";
+    cvarNames[39] = "Energy-energyCross";
+    cvarNames[40] = "Momentum-densityCross";
 
     cplotfile.mult(0.001,2,1);    //cgs coords density
     cplotfile.mult(0.001,12,1);
@@ -109,7 +109,9 @@ void WritePlotFile(int step,
     cplotfile.mult(0.1,21,1);
     cplotfile.mult(0.01,33,1);
 
-    cplotfile.mult(0.1*0.001,38,1); //cgscoords momentum/density cross
+    cplotfile.mult(10*0.001,38,1); //cgscoords energy/density cross
+    cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
+    cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 

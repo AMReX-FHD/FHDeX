@@ -153,11 +153,8 @@ contains
                 prim(lo(1)-i,j,k,3) = -prim(lo(1)-1+i,j,k,3) 
                 prim(lo(1)-i,j,k,4) = -prim(lo(1)-1+i,j,k,4)
                 prim(lo(1)-i,j,k,5) = -prim(lo(1)-1+i,j,k,5) + 2*t_lo(1)
+                prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
 
-                cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
-                cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
-                cons(lo(1)-i,j,k,3) = -cons(lo(1)-1+i,j,k,3) 
-                cons(lo(1)-i,j,k,4) = -cons(lo(1)-1+i,j,k,4)
 
                 do l = 1, nspecies
                   cons(lo(1)-i,j,k,5+l) = cons(lo(1)-1+i,j,k,5+l)
@@ -227,6 +224,7 @@ contains
                 prim(hi(1)+i,j,k,3) = -prim(hi(1)+1-i,j,k,3) 
                 prim(hi(1)+i,j,k,4) = -prim(hi(1)+1-i,j,k,4)
                 prim(hi(1)+i,j,k,5) = -prim(hi(1)+1-i,j,k,5) + 2*t_hi(1)
+                prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
 
                 cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
                 cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 

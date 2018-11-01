@@ -39,11 +39,6 @@ contains
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
 
-!                if(l .eq. 1) then
-!                  print *, "Stage1"
-!                  print *, i,j,k
-!                  print *, "CUpre: ", cu(i,j,k,5)
-!                endif
 
                  cup(i,j,k,l) = cu(i,j,k,l)                                      &
                                 - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
@@ -52,19 +47,6 @@ contains
                                ! - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
                                 + dt*source(i,j,k,l)
-
-                 if(cup(i,j,k,l) .ne. cup(i,j,k,l)) then
-                    print *, "NAN!"
-                 endif
-
-                        
-!                if(l .eq. 1) then
-
-!                  print *, "FluxL: ", zflux(i,j,k,5)*dt*dxinv(3)
-!                  print *, "FluxR: ", -zflux(i,j,k+1,5)*dt*dxinv(3)
-!                  print *, "CUpost: ", cu(i,j,k,5)
-
-!                endif
 
            enddo
           enddo

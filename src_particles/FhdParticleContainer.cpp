@@ -364,14 +364,6 @@ void FhdParticleContainer::EvaluateStats(
 
     }
 
-    //ParallelDescriptor::ReduceRealSum(del1);
-   // ParallelDescriptor::ReduceRealSum(tp);
-    //ParallelDescriptor::ReduceRealSum(te);
-   // ParallelDescriptor::ReduceRealSum(tm);
-
-    //Print() << "Total particles: " << tp << "\n";
-    //Print() << "Total momentum: " << tm << "\n";
-    //Print() << "Total energy: " << te << "\n";
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -397,13 +389,13 @@ void FhdParticleContainer::EvaluateStats(
 
                          BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
                         );
     }
 
+    ParallelDescriptor::ReduceRealSum(del1);
     ParallelDescriptor::ReduceRealSum(del2);
-
-    //Print() << "del1: " << del1 << "\n";
+    ParallelDescriptor::ReduceRealSum(del3);
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -430,21 +422,6 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
                         );
     }
-
-//    ParallelDescriptor::ReduceRealSum(del1);
-//    ParallelDescriptor::ReduceRealSum(del2);
-//    ParallelDescriptor::ReduceRealSum(del3);
-
-//    if(steps%20 == 0)
-//    {
-//        //Print() << "rhovar: " << 0.000001*del1/(ParallelDescriptor::NProcs()) << "  jvar: " << 0.01*del2/(ParallelDescriptor::NProcs()) << "  evar: " << 100*del3/(ParallelDescriptor::NProcs()) << "\n";
-//        //Print() << "rhovar: " << 0.001*del1<< "  jvar: " << 0.1*del2<< "  evar: " << 10*del3 << "\n";
-//    }
-
-    //MultiFab::Copy(particleMembraneFlux, particleTemperature, 0, 0, 1, 0);
-    //MultiFab::Multiply(particleMembraneFlux,particleDensity,0,0,1,0);
-
-    //Print() << "del3: " << del3 << "\n";
 
 }
 

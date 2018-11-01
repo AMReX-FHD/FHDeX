@@ -149,7 +149,7 @@ void main_driver(const char* argv)
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
     MultiFab primVars(ba,dmap,nprimvars + 5,ngc);
 
-    MultiFab spatialCross(ba,dmap,1,ngc);
+    MultiFab spatialCross(ba,dmap,3,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -262,7 +262,7 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        if(step%plot_int == 0)
+        if(step%5000 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }

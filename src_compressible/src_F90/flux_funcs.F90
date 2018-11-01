@@ -2,7 +2,7 @@ module flux_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, membrane_cell
-  use conv_module, only : get_temperature, get_pressure_gas
+  use conv_module, only : get_temperature, get_pressure_gas, get_energy
   implicit none
 
   private
@@ -90,6 +90,8 @@ contains
             xflux(i+1,j,k,2) = xflux(i+1,j,k,2) - taux
             xflux(i+1,j,k,3) = xflux(i+1,j,k,3) - tauy
             xflux(i+1,j,k,4) = xflux(i+1,j,k,4) - tauz
+    
+            !print *,  taux
             
             ! x derivative of T on x face
             dtx = (prim(i+1,j,k,5) - prim(i,j,k,5))*dxinv(1)
@@ -320,33 +322,75 @@ contains
         do j = lo(2),hi(2)
           do i = lo(1)-1,hi(1)
 
-            do l = 1,nvars 
-              conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l)) !Better to interpolate primitives here?
+            do l = 1,nprimvars 
+               primitive(l) = wgt1*(prim(i+1,j,k,l)+prim(i,j,k,l)) -wgt2*(prim(i-1,j,k,l)+prim(i+2,j,k,l))
+               !conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l)) 
             enddo
 
-            primitive(1) = conserved(1)  
-            primitive(2) = conserved(2)/conserved(1)
-            primitive(3) = conserved(3)/conserved(1)
-            primitive(4) = conserved(4)/conserved(1)
+!            primitive(1) = conserved(1)  
+!            primitive(2) = conserved(2)/conserved(1)
+!            primitive(3) = conserved(3)/conserved(1)
+!            primitive(4) = conserved(4)/conserved(1)
 
-            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+            !vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
-            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
+            !intenergy = conserved(5) - 0.5*vsqr*conserved(1)
  
-            fracvec = conserved(6:nvars)
+            !fracvec = primitive(6:nvars)
+            fracvec(1:4) = (/ 0.25, 0.25, 0.25, 0.25 /)
 
-            massvec = fracvec*conserved(1)
+            massvec = fracvec*primitive(1)
 
-            call get_temperature(intenergy, massvec, primitive(5))
+            !call get_temperature(intenergy, massvec, primitive(5))
 
-            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+            call get_energy(intenergy, massvec, primitive(5))
+
+            conserved(5) = intenergy + 0.5*primitive(1)*((primitive(2)**2 + primitive(3)**2 + primitive(4)**2))
+
+            !call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+
+            !print *, "Pressure: ", primitive(6)
 
             xflux(i+1,j,k,1) = xflux(i+1,j,k,1) + primitive(1)*primitive(2)
-            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + primitive(1)*primitive(2)**2+primitive(6)
-            xflux(i+1,j,k,3) = xflux(i+1,j,k,3) + primitive(1)*primitive(3)*primitive(2)
-            xflux(i+1,j,k,4) = xflux(i+1,j,k,4) + primitive(1)*primitive(4)*primitive(2)
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
+            !if(i .ne. -1) then
 
+            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + primitive(1)*primitive(2)**2+primitive(6)
+           ! endif
+            !xflux(i+1,j,k,3) = xflux(i+1,j,k,3) + primitive(1)*primitive(3)*primitive(2)
+            !xflux(i+1,j,k,4) = xflux(i+1,j,k,4) + primitive(1)*primitive(4)*primitive(2)
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
+            
+
+!            if(i .eq. -1) then
+
+!              xflux(i+1,j,k,2) = 0
+!              xflux(i+1,j,k,3) = 0
+!              xflux(i+1,j,k,4) = 0
+
+!            endif
+          
+
+                 if(xflux(i+1,j,k,1) .ne. xflux(i+1,j,k,1)) then
+                    print *, "NAN! Hyperbolic mass flux ", i+1, j, k
+                 endif
+
+                 if(xflux(i+1,j,k,5) .ne. xflux(i+1,j,k,5)) then
+                    print *, "NAN! Hyperbolic energy flux ", i+1, j, k
+
+                    print *, conserved(5), primitive(1), primitive(5)
+                 endif
+
+                 if(xflux(i+1,j,k,2) .ne. xflux(i+1,j,k,2)) then
+                    print *, "NAN! Hyperbolic x momentum flux ", i+1, j, k
+                 endif
+
+                if(xflux(i+1,j,k,3) .ne. xflux(i+1,j,k,3)) then
+                    print *, "NAN! Hyperbolic x momentum flux ", i+1, j, k
+                 endif
+
+                if(xflux(i+1,j,k,4) .ne. xflux(i+1,j,k,4)) then
+                    print *, "NAN! Hyperbolic x momentum flux ", i+1, j, k
+                 endif
 
           end do
         end do
@@ -354,78 +398,78 @@ contains
 
       !y flux
      
-      do k = lo(3),hi(3)
-        do j = lo(2)-1,hi(2)
-          do i = lo(1),hi(1)
+!      do k = lo(3),hi(3)
+!        do j = lo(2)-1,hi(2)
+!          do i = lo(1),hi(1)
 
-            do l = 1,nvars 
-              conserved(l) = wgt1*(cons(i,j+1,k,l)+cons(i,j,k,l)) -wgt2*(cons(i,j-1,k,l)+cons(i,j+2,k,l)) !Better to interpolate primitives here?
-            enddo
+!            do l = 1,nvars 
+!              conserved(l) = wgt1*(cons(i,j+1,k,l)+cons(i,j,k,l)) -wgt2*(cons(i,j-1,k,l)+cons(i,j+2,k,l)) !Better to interpolate primitives here?
+!            enddo
 
-            primitive(1) = conserved(1)  
-            primitive(2) = conserved(2)/conserved(1)
-            primitive(3) = conserved(3)/conserved(1)
-            primitive(4) = conserved(4)/conserved(1)
+!            primitive(1) = conserved(1)  
+!            primitive(2) = conserved(2)/conserved(1)
+!            primitive(3) = conserved(3)/conserved(1)
+!            primitive(4) = conserved(4)/conserved(1)
 
-            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+!            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
-            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
- 
-            fracvec = conserved(6:nvars)
+!            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
+! 
+!            fracvec = conserved(6:nvars)
 
-            massvec = fracvec*conserved(1)
+!            massvec = fracvec*conserved(1)
 
-            call get_temperature(intenergy, massvec, primitive(5))
+!            call get_temperature(intenergy, massvec, primitive(5))
 
-            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+!            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
 
-            yflux(i,j+1,k,1) = yflux(i,j+1,k,1) + primitive(1)*primitive(3)
-            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) + primitive(1)*primitive(2)*primitive(3)
-            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + primitive(1)*primitive(3)**2+primitive(6)
-            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) + primitive(1)*primitive(4)*primitive(3)
-            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
+!            yflux(i,j+1,k,1) = yflux(i,j+1,k,1) + primitive(1)*primitive(3)
+!            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) + primitive(1)*primitive(2)*primitive(3)
+!            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + primitive(1)*primitive(3)**2+primitive(6)
+!            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) + primitive(1)*primitive(4)*primitive(3)
+!            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
 
 
-          end do
-        end do
-      end do
+!          end do
+!        end do
+!      end do
 
-      !z flux
-     
-      do k = lo(3)-1,hi(3)
-        do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+!      !z flux
+!     
+!      do k = lo(3)-1,hi(3)
+!        do j = lo(2),hi(2)
+!          do i = lo(1),hi(1)
 
-            do l = 1,nvars 
-              conserved(l) = wgt1*(cons(i,j,k+1,l)+cons(i,j,k,l)) -wgt2*(cons(i,j,k-1,l)+cons(i,j,k+2,l)) !Better to interpolate primitives here?
-            enddo
+!            do l = 1,nvars 
+!              conserved(l) = wgt1*(cons(i,j,k+1,l)+cons(i,j,k,l)) -wgt2*(cons(i,j,k-1,l)+cons(i,j,k+2,l)) !Better to interpolate primitives here?
+!            enddo
 
-            primitive(1) = conserved(1)  
-            primitive(2) = conserved(2)/conserved(1)
-            primitive(3) = conserved(3)/conserved(1)
-            primitive(4) = conserved(4)/conserved(1)
+!            primitive(1) = conserved(1)  
+!            primitive(2) = conserved(2)/conserved(1)
+!            primitive(3) = conserved(3)/conserved(1)
+!            primitive(4) = conserved(4)/conserved(1)
 
-            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+!            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
-            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
- 
-            fracvec = conserved(6:nvars)
+!            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
+! 
+!            fracvec = conserved(6:nvars)
 
-            massvec = fracvec*conserved(1)
+!            massvec = fracvec*conserved(1)
 
-            call get_temperature(intenergy, massvec, primitive(5))
+!            call get_temperature(intenergy, massvec, primitive(5))
 
-            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+!            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
 
-            zflux(i,j,k+1,1) = zflux(i,j,k+1,1) + primitive(1)*primitive(4)
-            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) + primitive(1)*primitive(2)*primitive(4)
-            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) + primitive(1)*primitive(3)*primitive(4)
-            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + primitive(1)*primitive(4)**2+primitive(6)
-            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
+!            zflux(i,j,k+1,1) = zflux(i,j,k+1,1) + primitive(1)*primitive(4)
+!            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) + primitive(1)*primitive(2)*primitive(4)
+!            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) + primitive(1)*primitive(3)*primitive(4)
+!            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + primitive(1)*primitive(4)**2+primitive(6)
+!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
 
-          end do
-        end do
-      end do
+!          end do
+!        end do
+!      end do
 
 
   end subroutine hyp_flux
@@ -499,8 +543,6 @@ contains
             xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + sqrt(sFac*etatF)*xsflux(i+1,j,k,1)
             xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,2) + velF*sqrt(sFac)*xsflux(i+1,j,k,1)
 
-            !print *, xsflux(i+1,j,k,3)
-
           end do
         end do
       end do
@@ -511,7 +553,10 @@ contains
           do j = lo(2),hi(2)
             
               xflux(membrane_cell,j,k,2) = 0        
-              xflux(membrane_cell,j,k,5) = 0        
+              xflux(membrane_cell,j,k,5) = 0
+
+!              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
+!              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
 
           end do
         end do
@@ -523,7 +568,10 @@ contains
           do j = lo(2),hi(2)
             
               xflux(membrane_cell,j,k,2) = 0  
-              xflux(membrane_cell,j,k,5) = 0        
+              xflux(membrane_cell,j,k,5) = 0
+
+!              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
+!              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
 
           end do
         end do
