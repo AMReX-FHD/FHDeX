@@ -167,7 +167,7 @@ contains
 
           spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*del1)*stepsinv
           spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*del2)*stepsinv
-          spatialcross(i,j,k,3) = (spatialcross(i,j,k,2)*stepsminusone + delrho*del3)*stepsinv
+          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*del3)*stepsinv
 
         enddo
       enddo

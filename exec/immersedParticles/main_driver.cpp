@@ -100,7 +100,7 @@ void main_driver(const char* argv)
     int totalCollisionCells = (lims[0]+1)*(lims[1]+1)*(lims[2]+1);
 #endif
 
-    species myGas;
+    species activeParticle;
 
     //Hard sphere nitrogen gas
     /*myGas.gamma1 = 1.27;
@@ -131,10 +131,10 @@ void main_driver(const char* argv)
     myGas.cp = sqrt(2.0*myGas.R*myGas.T);
     */
 
-    double depth = 1.252e-8;
+
 
 #if (AMREX_SPACEDIM == 2)
-    double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*depth;
+    double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*cell_depth;
 #endif
 #if (AMREX_SPACEDIM == 3)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
@@ -142,33 +142,17 @@ void main_driver(const char* argv)
 
     //1 micron particles with density of gold
        
-    myGas.gamma1 = 1.27;
     myGas.m = 1.5158e-8;
-    myGas.R = k_B/myGas.m;
-    myGas.T = 273;
-    myGas.mu = 2.1E-5;
-    //myGas.d = sqrt((myGas.gamma1*myGas.m*sqrt(myGas.R*myGas.T))/(4*sqrt(3.14159265359)*myGas.mu));
     myGas.d = 1e-6;        
-    //myGas.n0 = 1.0/(sqrt(2)*3.14159265359*myGas.d*myGas.d*myGas.mfp);
-    //myGas.n0 = 19300/myGas.m;
     myGas.n0 = 16/domainVol;
-    //Print() << myGas.n0*myGas.m << "\n";
-    myGas.P = myGas.R*myGas.m*myGas.n0*myGas.T;
-    myGas.cp = sqrt(2.0*myGas.R*myGas.T);
     myGas.propulsion = 0;
 
     double realParticles = domainVol*myGas.n0;
-    //myGas.Neff = realParticles/totalParticles;
-    //const int totalParticles = 1000000;
 
     Print() << "Real particles: " << realParticles << "\n";
 
-    Print() << "Modal speed: " << myGas.cp << "\n";
-
     myGas.Neff = 1;
     const int totalParticles = realParticles;
-
-    Print() << "Neff: " << myGas.Neff << "\n";
 
     const int ppc  = (int)ceil(((double)totalParticles)/((double)totalCollisionCells));
     const int ppb = (int)ceil(((double)totalParticles)/((double)ba.size()));

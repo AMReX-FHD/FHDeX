@@ -254,7 +254,7 @@ void main_driver(const char* argv)
 
             statsCount = 1;
 
-            //dt = 2.0*dt;
+            dt = 2.0*dt;
 
         }
 
