@@ -13,8 +13,12 @@
 
 #include "INS_functions.H"
 #include "rng_functions_F.H"
+
 #include "species.H"
 #include "surfaces.H"
+
+using namespace gmres;
+using namespace common;
 
 using namespace common;
 using namespace gmres;
@@ -22,8 +26,8 @@ using namespace gmres;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-
     // store the current time so we can later compute total run time.
+
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
@@ -102,37 +106,6 @@ void main_driver(const char* argv)
 
     species activeParticle;
 
-    //Hard sphere nitrogen gas
-    /*myGas.gamma1 = 1.27;
-    myGas.m = 4.65E-26;
-    myGas.R = 1.3806E-23/myGas.m;
-    myGas.T = 293;
-    myGas.mu = 1.757E-5;
-    myGas.d = sqrt((myGas.gamma1*myGas.m*sqrt(myGas.R*myGas.T))/(4*sqrt(3.14159265359)*myGas.mu));    
-    myGas.mfp = 5e-7;
-    myGas.n0 = 1.0/(sqrt(2)*3.14159265359*myGas.d*myGas.d*myGas.mfp);
-    myGas.P = myGas.R*myGas.m*myGas.n0*myGas.T;
-    myGas.cp = sqrt(2.0*myGas.R*myGas.T);*/
-
-    //Hard argon nitrogen gas
-    /*    
-    myGas.gamma1 = 1.27;
-    myGas.m = 6.63E-26;
-    myGas.R = 1.3806E-23/myGas.m;
-    myGas.T = 273;
-    myGas.mu = 2.1E-5;
-    //myGas.d = sqrt((myGas.gamma1*myGas.m*sqrt(myGas.R*myGas.T))/(4*sqrt(3.14159265359)*myGas.mu));
-    myGas.d = 3.66e-10;        
-    myGas.mfp = (6.26e-8);
-    //myGas.n0 = 1.0/(sqrt(2)*3.14159265359*myGas.d*myGas.d*myGas.mfp);
-    myGas.n0 = 1.78/myGas.m;
-    //Print() << myGas.n0*myGas.m << "\n";
-    myGas.P = myGas.R*myGas.m*myGas.n0*myGas.T;
-    myGas.cp = sqrt(2.0*myGas.R*myGas.T);
-    */
-
-
-
 #if (AMREX_SPACEDIM == 2)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*cell_depth;
 #endif
@@ -142,16 +115,16 @@ void main_driver(const char* argv)
 
     //1 micron particles with density of gold
        
-    myGas.m = 1.5158e-8;
-    myGas.d = 1e-6;        
-    myGas.n0 = 16/domainVol;
-    myGas.propulsion = 0;
+    activeParticle.m = 1.5158e-8;
+    activeParticle.d = 1e-6;        
+    activeParticle.n0 = 16/domainVol;
+    activeParticle.propulsion = 0;
 
-    double realParticles = domainVol*myGas.n0;
+    double realParticles = domainVol*activeParticle.n0;
 
     Print() << "Real particles: " << realParticles << "\n";
 
-    myGas.Neff = 1;
+    activeParticle.Neff = 1;
     const int totalParticles = realParticles;
 
     const int ppc  = (int)ceil(((double)totalParticles)/((double)totalCollisionCells));
@@ -163,8 +136,8 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Particles per cell: " << ppc << "\n";
 
-    Print() << "rho0: " << myGas.m*myGas.n0 << "\n";
-    Print() << "Adjusted rho0: " << myGas.m*myGas.Neff*totalParticles/domainVol << "\n";
+    Print() << "rho0: " << activeParticle.m*activeParticle.n0 << "\n";
+    Print() << "Adjusted rho0: " << activeParticle.m*activeParticle.Neff*totalParticles/domainVol << "\n";
     
 
     // how boxes are distrubuted among MPI processes
@@ -279,120 +252,68 @@ void main_driver(const char* argv)
                  umacOut[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
 
-    //These objects are temporary until Andrew modifies amrex to include a more suitiable type of Multifab
-    //Build collision cells off coarsened or refined box array from fluid cells. This ensures particle and fluid information is split the same way.
-
-
-    iMultiFab collisionCellMembers(bc, dmap, 1, 0);
-    iMultiFab collisionCellLists(bc, dmap, ppc, 0);
-
-
     MultiFab collisionPairs(bc, dmap, 1, 0);    
     MultiFab collisionFactor(bc, dmap, 1, 0);
-
-    collisionCellMembers.setVal(0);
-
-    collisionFactor.setVal(0);
-
-    MultiFab particleMembers(bc, dmap, 1, 0);
-    MultiFab particleDensity(bc, dmap, 1, 0);
-    MultiFab particleTemperature(bc, dmap, 1, 0);
-    std::array< MultiFab, 3> particleVelocity;
-    particleVelocity[0].define(bc, dmap, 1, 0);
-    particleVelocity[1].define(bc, dmap, 1, 0);
-    particleVelocity[2].define(bc, dmap, 1, 0);
-    std::array< MultiFab, 3> particleMomentum;
-    particleMomentum[0].define(bc, dmap, 1, 0);
-    particleMomentum[1].define(bc, dmap, 1, 0);
-    particleMomentum[2].define(bc, dmap, 1, 0);
-    MultiFab particleEnergy(bc, dmap, 1, 0);
-    MultiFab particlePressure(bc, dmap, 1, 0);
-
-    MultiFab particleMembersMean(bc, dmap, 1, 0);
-    MultiFab particleDensityMean(bc, dmap, 1, 0);
-    MultiFab particleTemperatureMean(bc, dmap, 1, 0);
-    MultiFab particleSpeedMean(bc, dmap, 1, 0);
-    std::array< MultiFab, 3> particleVelocityMean;
-    particleVelocityMean[0].define(bc, dmap, 1, 0);
-    particleVelocityMean[1].define(bc, dmap, 1, 0);
-    particleVelocityMean[2].define(bc, dmap, 1, 0);
-    std::array< MultiFab, 3> particleMomentumMean;
-    particleMomentumMean[0].define(bc, dmap, 1, 0);
-    particleMomentumMean[1].define(bc, dmap, 1, 0);
-    particleMomentumMean[2].define(bc, dmap, 1, 0);
-    MultiFab particleEnergyMean(bc, dmap, 1, 0);
-    MultiFab particlePressureMean(bc, dmap, 1, 0);
-
-    
-    MultiFab particleMembersVar(bc, dmap, 1, 0);
-    MultiFab particleDensityVar(bc, dmap, 1, 0);
-    MultiFab particleTemperatureVar(bc, dmap, 1, 0);
-    MultiFab particleSpeedVar(bc, dmap, 1, 0);
-    std::array< MultiFab, 3> particleVelocityVar;
-    particleVelocityVar[0].define(bc, dmap, 1, 0);
-    particleVelocityVar[1].define(bc, dmap, 1, 0);
-    particleVelocityVar[2].define(bc, dmap, 1, 0);
-    std::array< MultiFab, 3> particleMomentumVar;
-    particleMomentumVar[0].define(bc, dmap, 1, 0);
-    particleMomentumVar[1].define(bc, dmap, 1, 0);
-    particleMomentumVar[2].define(bc, dmap, 1, 0);
-    MultiFab particleEnergyVar(bc, dmap, 1, 0);
-    MultiFab particlePressureVar(bc, dmap, 1, 0);
-
-    MultiFab particleGVar(bc, dmap, 1, 0);
-    MultiFab particleKGCross(bc, dmap, 1, 0);
-    MultiFab particleKRhoCross(bc, dmap, 1, 0);
-    MultiFab particleRhoGCross(bc, dmap, 1, 0);
-    MultiFab particleSpatialCross1(bc, dmap, 1, 0);
-    MultiFab particleSpatialCross2(bc, dmap, 1, 0);
-
     MultiFab particleMembraneFlux(bc, dmap, 1, 0);
 
+    collisionFactor.setVal(0);
+    collisionPairs.setVal(0);
 
-    particleMembers.setVal(0.0);
-    particleDensity.setVal(0.0);
-    particleVelocity[0].setVal(0.0);
-    particleVelocity[1].setVal(0.0);
-    particleVelocity[2].setVal(0.0);
-    particleTemperature.setVal(0.0);
-    particleMomentum[0].setVal(0.0);
-    particleMomentum[1].setVal(0.0);
-    particleMomentum[2].setVal(0.0);
-    particleEnergy.setVal(0.0);
-    particlePressure.setVal(0.0);
+    //Members
+    //Density
+    //velx
+    //vely
+    //velz
+    //Temperature
+    //jx
+    //jy
+    //jz
+    //energyDensity
+    //pressure
 
-    particleMembersMean.setVal(0.0);
-    particleDensityMean.setVal(0);
-    particleVelocityMean[0].setVal(0);
-    particleVelocityMean[1].setVal(0);
-    particleVelocityMean[2].setVal(0);
-    particleTemperatureMean.setVal(0);
-    particleMomentumMean[0].setVal(0.0);
-    particleMomentumMean[1].setVal(0.0);
-    particleMomentumMean[2].setVal(0.0);
-    particleEnergyMean.setVal(0.0);
-    particlePressureMean.setVal(0.0);
 
-    particleMembersVar.setVal(0.0);
-    particleDensityVar.setVal(0);
-    particleVelocityVar[0].setVal(0);
-    particleVelocityVar[1].setVal(0);
-    particleVelocityVar[2].setVal(0);
-    particleTemperatureVar.setVal(0);
-    particleMomentumVar[0].setVal(0.0);
-    particleMomentumVar[1].setVal(0.0);
-    particleMomentumVar[2].setVal(0.0);
-    particleEnergyVar.setVal(0.0);
-    particlePressureVar.setVal(0.0);
+    MultiFab particleInstant(bc, dmap, 11, 0);
 
-    particleGVar.setVal(0.0);
-    particleKGCross.setVal(0.0);
-    particleKRhoCross.setVal(0.0);
-    particleRhoGCross.setVal(0.0);
-    particleSpatialCross1.setVal(0.0);
-    particleSpatialCross2.setVal(0.0);
 
-    particleMembraneFlux.setVal(0.0);
+    //Members
+    //Density
+    //velx
+    //vely
+    //velz
+    //Temperature
+    //jx
+    //jy
+    //jz
+    //energyDensity
+    //pressure
+    //speed
+    
+    MultiFab particleMeans(bc, dmap, 12, 0);
+
+    //Members
+    //Density
+    //velx
+    //vely
+    //velz
+    //Temperature
+    //jx
+    //jy
+    //jz
+    //energyDensity
+    //pressure
+    //GVar
+    //KGCross
+    //KRhoCross
+    //RhoGCross
+    //SpatialCross1
+    //SpatialCross2
+    //SpatialCross3
+    
+    MultiFab particleVars(bc, dmap, 18, 0);
+
+    particleInstant.setVal(0.0);
+    particleMeans.setVal(0.0);
+    particleVars.setVal(0.0);
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
@@ -400,12 +321,14 @@ void main_driver(const char* argv)
     MultiFab cellVols(bc, dmap, 1, 0);
 
 #if (AMREX_SPACEDIM == 2)
-    cellVols.setVal(dxc[0]*dxc[1]*depth);
 #elif (AMREX_SPACEDIM == 3)
+    cellVols.setVal(dxc[0]*dxc[1]*cell_depth);
     cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
 #endif
 
     const RealBox& realDomain = geom.ProbDomain();
+
+    Real dt = fixed_dt;
 
 
 	int dm = 0;
@@ -433,20 +356,6 @@ void main_driver(const char* argv)
     MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
     MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
-    
-    // compute the time step
-    //Real dt = 0.5*dx[0]*dx[0] / (2.0*AMREX_SPACEDIM);
-
-    // kinetic time step
-    Real dt = 0.1*myGas.mfp/sqrt(2.0*myGas.R*myGas.T);
-    //Print() << "Step size: " << dt << "\n";
-        
-    dt = 2e-4;
-    dt = dt;
-    Print() << "Step size: " << dt << "\n";
-
-    //while(true);
-
     int step = 0;
     Real time = 0.;
     int statsCount = 1;
@@ -473,14 +382,14 @@ void main_driver(const char* argv)
     //Find coordinates of cell faces. Used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
-    particles.InitParticles(ppc, myGas);
+    particles.InitParticles(ppc, activeParticle);
 
-    particles.InitializeFields(particleMembers, particleDensity, particleVelocity, particleTemperature, cellVols, myGas);
+    //particles.InitializeFields(particleInstant, cellVols, nitrogen);
 
-    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, myGas, dt);
+    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle, dt);
 
     // write out initial state
-    WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
+    //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -499,67 +408,27 @@ void main_driver(const char* argv)
         MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
         MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
         
-
-#if (AMREX_SPACEDIM == 2)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaEdge[0], rhotot, source, sourceTemp, surfaceList, surfaceCount);
-#endif
-#if (AMREX_SPACEDIM == 3)
-        particles.MoveParticles(dt, dx, realDomain.lo(), umac, umacNodal, RealFaceCoords, betaCC, betaNodal, rhotot, source, sourceTemp, surfaceList, surfaceCount);
-#endif
+        particles.MoveParticles(dt, surfaceList, surfaceCount);
 
         particles.Redistribute();
+
         particles.ReBin();
 
-        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, myGas, dt);
- 
-        if((step-10)%20000 == 0)
-        //if(step == 2000000)
+        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, activeParticle, dt);
+
+        if(step == n_steps_skip)
         {
-            particleMembersMean.setVal(0.0);
-            particleDensityMean.setVal(0);
-            particleVelocityMean[0].setVal(0);
-            particleVelocityMean[1].setVal(0);
-            particleVelocityMean[2].setVal(0);
-            particleTemperatureMean.setVal(0);
-            particleMomentumMean[0].setVal(0.0);
-            particleMomentumMean[1].setVal(0.0);
-            particleMomentumMean[2].setVal(0.0);
-            particleEnergyMean.setVal(0.0);
-            particlePressureMean.setVal(0.0);
-
-            particleMembersVar.setVal(0.0);
-            particleDensityVar.setVal(0);
-            particleVelocityVar[0].setVal(0);
-            particleVelocityVar[1].setVal(0);
-            particleVelocityVar[2].setVal(0);
-            particleTemperatureVar.setVal(0);
-            particleMomentumVar[0].setVal(0.0);
-            particleMomentumVar[1].setVal(0.0);
-            particleMomentumVar[2].setVal(0.0);
-            particleEnergyVar.setVal(0.0);
-            particlePressureVar.setVal(0.0);
-
-            particleGVar.setVal(0.0);
-            particleKGCross.setVal(0.0);
-            particleKRhoCross.setVal(0.0);
-            particleRhoGCross.setVal(0.0);
-            particleSpatialCross1.setVal(0.0);
-            particleSpatialCross2.setVal(0.0);
-            particleMembraneFlux.setVal(0.0);
-
+            particleMeans.setVal(0.0);
+            particleVars.setVal(0);
             statsCount = 1;
         }
-
        
-        if(step >= 1 )
-        {
-            particles.EvaluateStats(particleMembers, particleDensity, particleVelocity, particleTemperature, particleMomentum, particleEnergy, particlePressure, particleMembersMean, particleDensityMean, particleVelocityMean, particleTemperatureMean, particleMomentumMean, particleEnergyMean, particlePressureMean,
-                                    particleMembersVar, particleDensityVar, particleVelocityVar, particleTemperatureVar, particleMomentumVar, particleEnergyVar, particlePressureVar, particleGVar, particleKGCross, particleKRhoCross, particleRhoGCross, particleSpatialCross1, particleSpatialCross2, particleMembraneFlux, cellVols, myGas, dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, particleMembraneFlux, cellVols, activeParticle, dt,statsCount);
 
-            statsCount++;
-        }
+        statsCount++;
 
-        if(step%1 == 0)
+
+        if(step%5000 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
@@ -568,10 +437,9 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0)
         {
-            // write out rhotot and umac to a plotfile
-            WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembersMean ,particleDensityMean ,particleVelocityMean, particleTemperatureMean, particlePressureMean, particleSpatialCross2, particleMembraneFlux, particles);
+           
+          //  WritePlotFile(step,time,geom,geomConvert, particleInstant, particleMeans, particleVars, particleMembraneFlux, particles);
         }
-
 
     }
 
