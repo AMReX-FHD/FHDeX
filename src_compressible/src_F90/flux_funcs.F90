@@ -133,153 +133,153 @@ contains
 !      print *, "fluxlo: ", fluxlo, " fluxhi: ", fluxhi
 !      print *, "Total E: ", totalE
 
-      duz = 0
-      dvz = 0
-      dwz = 0
-      dtz = 0
+!      duz = 0
+!      dvz = 0
+!      dwz = 0
+!      dtz = 0
 
-      !y flux
-      do k = lo(3),hi(3)
-        do j = lo(2)-1,hi(2)
-          do i = lo(1),hi(1)
+!      !y flux
+!      do k = lo(3),hi(3)
+!        do j = lo(2)-1,hi(2)
+!          do i = lo(1),hi(1)
 
-            etaF = 0.5*(eta(i,j+1,k) + eta(i,j,k))
-            kappaF = 0.5*(kappa(i,j+1,k) + kappa(i,j,k))
-            zetaF = 0.5*(zeta(i,j+1,k) + zeta(i,j,k))
+!            etaF = 0.5*(eta(i,j+1,k) + eta(i,j,k))
+!            kappaF = 0.5*(kappa(i,j+1,k) + kappa(i,j,k))
+!            zetaF = 0.5*(zeta(i,j+1,k) + zeta(i,j,k))
 
-            ! y derivatives of u, v, and w on y face
-            duy = (prim(i,j+1,k,2) - prim(i,j,k,2))*dxinv(2)
-            dvy = (prim(i,j+1,k,3) - prim(i,j,k,3))*dxinv(2)
-            dwy = (prim(i,j+1,k,4) - prim(i,j,k,4))*dxinv(2)
+!            ! y derivatives of u, v, and w on y face
+!            duy = (prim(i,j+1,k,2) - prim(i,j,k,2))*dxinv(2)
+!            dvy = (prim(i,j+1,k,3) - prim(i,j,k,3))*dxinv(2)
+!            dwy = (prim(i,j+1,k,4) - prim(i,j,k,4))*dxinv(2)
 
-            ! x derivative of v on y face
-            up    = 0.5*(prim(i+1,j+1,k,3)+prim(i+1,j,k,3))
-            down  = 0.5*(prim(i-1,j+1,k,3)+prim(i-1,j,k,3))
-            dvx = 0.5*(up - down)*dxinv(1)
+!            ! x derivative of v on y face
+!            up    = 0.5*(prim(i+1,j+1,k,3)+prim(i+1,j,k,3))
+!            down  = 0.5*(prim(i-1,j+1,k,3)+prim(i-1,j,k,3))
+!            dvx = 0.5*(up - down)*dxinv(1)
 
-#if (AMREX_SPACEDIM == 3)
-            ! z derivative of v on y face
-            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j,k+1,3))
-            down  = 0.5*(prim(i,j+1,k-1,3)+prim(i,j,k-1,3))
-            dvz = 0.5*(up - down)*dxinv(3)
-#endif
-            ! x derivative of u on y face
-            up    = 0.5*(prim(i+1,j+1,k,2)+prim(i+1,j,k,2))
-            down  = 0.5*(prim(i-1,j+1,k,2)+prim(i-1,j,k,2))
-            dux = 0.5*(up - down)*dxinv(1)
-#if (AMREX_SPACEDIM == 3)
-            ! z derivative of w on y face
-            up    = 0.5*(prim(i,j+1,k+1,4)+prim(i,j,k+1,4))
-            down  = 0.5*(prim(i,j+1,k-1,4)+prim(i,j,k-1,4))
-            dwz = 0.5*(up - down)*dxinv(3)
-#endif
-            div = dux + dvy + dwz
+!#if (AMREX_SPACEDIM == 3)
+!            ! z derivative of v on y face
+!            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j,k+1,3))
+!            down  = 0.5*(prim(i,j+1,k-1,3)+prim(i,j,k-1,3))
+!            dvz = 0.5*(up - down)*dxinv(3)
+!#endif
+!            ! x derivative of u on y face
+!            up    = 0.5*(prim(i+1,j+1,k,2)+prim(i+1,j,k,2))
+!            down  = 0.5*(prim(i-1,j+1,k,2)+prim(i-1,j,k,2))
+!            dux = 0.5*(up - down)*dxinv(1)
+!#if (AMREX_SPACEDIM == 3)
+!            ! z derivative of w on y face
+!            up    = 0.5*(prim(i,j+1,k+1,4)+prim(i,j,k+1,4))
+!            down  = 0.5*(prim(i,j+1,k-1,4)+prim(i,j,k-1,4))
+!            dwz = 0.5*(up - down)*dxinv(3)
+!#endif
+!            div = dux + dvy + dwz
 
-            taux = etaf*(duy +  dvx)
-            tauy = zetaf*div + etaf*(2d0*dvy - twothirds*div)                  
-            tauz = etaf*(dvz + dwy)
+!            taux = etaf*(duy +  dvx)
+!            tauy = zetaf*div + etaf*(2d0*dvy - twothirds*div)                  
+!            tauz = etaf*(dvz + dwy)
 
-            !momentum fluxes
-            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) - taux
-            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) - tauy
-            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) - tauz
-            
-            ! y derivative of T on y face
-            dty = (prim(i,j+1,k,5) - prim(i,j,k,5))*dxinv(2)
+!            !momentum fluxes
+!            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) - taux
+!            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) - tauy
+!            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) - tauz
+!            
+!            ! y derivative of T on y face
+!            dty = (prim(i,j+1,k,5) - prim(i,j,k,5))*dxinv(2)
 
-            ! x derivative of T on y face
-            up    = 0.5*(prim(i+1,j+1,k,5)+prim(i+1,j,k,5))
-            down  = 0.5*(prim(i-1,j+1,k,5)+prim(i-1,j,k,5))
-            dtx = 0.5*(up - down)*dxinv(1)
-#if (AMREX_SPACEDIM == 3)
-            ! z derivative of T on y face
-            up    = 0.5*(prim(i,j+1,k+1,5)+prim(i,j,k+1,5))
-            down  = 0.5*(prim(i,j+1,k-1,5)+prim(i,j,k-1,5))
-            dtz = 0.5*(up - down)*dxinv(3)
-#endif
-            !u, v, and w on y face
-            u = 0.5*(prim(i,j+1,k,2) - prim(i,j,k,2))
-            v = 0.5*(prim(i,j+1,k,3) - prim(i,j,k,3))
-            w = 0.5*(prim(i,j+1,k,4) - prim(i,j,k,4))            
+!            ! x derivative of T on y face
+!            up    = 0.5*(prim(i+1,j+1,k,5)+prim(i+1,j,k,5))
+!            down  = 0.5*(prim(i-1,j+1,k,5)+prim(i-1,j,k,5))
+!            dtx = 0.5*(up - down)*dxinv(1)
+!#if (AMREX_SPACEDIM == 3)
+!            ! z derivative of T on y face
+!            up    = 0.5*(prim(i,j+1,k+1,5)+prim(i,j,k+1,5))
+!            down  = 0.5*(prim(i,j+1,k-1,5)+prim(i,j,k-1,5))
+!            dtz = 0.5*(up - down)*dxinv(3)
+!#endif
+!            !u, v, and w on y face
+!            u = 0.5*(prim(i,j+1,k,2) - prim(i,j,k,2))
+!            v = 0.5*(prim(i,j+1,k,3) - prim(i,j,k,3))
+!            w = 0.5*(prim(i,j+1,k,4) - prim(i,j,k,4))            
 
-            !energy flux
-            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
+!            !energy flux
+!            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
-          end do
-        end do
-      end do
+!          end do
+!        end do
+!      end do
 
-#if (AMREX_SPACEDIM == 3)
-      !z flux
-      do k = lo(3)-1,hi(3)
-        do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+!#if (AMREX_SPACEDIM == 3)
+!      !z flux
+!      do k = lo(3)-1,hi(3)
+!        do j = lo(2),hi(2)
+!          do i = lo(1),hi(1)
 
-            etaF   = 0.5*(eta(i,j,k+1) + eta(i,j,k))
-            kappaF = 0.5*(kappa(i,j,k+1) + kappa(i,j,k))
-            zetaF  = 0.5*(zeta(i,j,k+1) + zeta(i,j,k))
+!            etaF   = 0.5*(eta(i,j,k+1) + eta(i,j,k))
+!            kappaF = 0.5*(kappa(i,j,k+1) + kappa(i,j,k))
+!            zetaF  = 0.5*(zeta(i,j,k+1) + zeta(i,j,k))
 
-            ! z derivatives of u, v, and w on z face
-            duz = (prim(i,j,k+1,2) - prim(i,j,k,2))*dxinv(3)
-            dvz = (prim(i,j,k+1,3) - prim(i,j,k,3))*dxinv(3)
-            dwz = (prim(i,j,k+1,4) - prim(i,j,k,4))*dxinv(3)
+!            ! z derivatives of u, v, and w on z face
+!            duz = (prim(i,j,k+1,2) - prim(i,j,k,2))*dxinv(3)
+!            dvz = (prim(i,j,k+1,3) - prim(i,j,k,3))*dxinv(3)
+!            dwz = (prim(i,j,k+1,4) - prim(i,j,k,4))*dxinv(3)
 
-            ! x derivative of w on z face
-            up    = 0.5*(prim(i+1,j,k+1,4)+prim(i+1,j,k,4))
-            down  = 0.5*(prim(i-1,j,k+1,4)+prim(i-1,j,k,4))
-            dwx = 0.5*(up - down)*dxinv(1)
+!            ! x derivative of w on z face
+!            up    = 0.5*(prim(i+1,j,k+1,4)+prim(i+1,j,k,4))
+!            down  = 0.5*(prim(i-1,j,k+1,4)+prim(i-1,j,k,4))
+!            dwx = 0.5*(up - down)*dxinv(1)
 
-            ! y derivative of w on z face
-            up    = 0.5*(prim(i,j+1,k,4)+prim(i,j+1,k+1,4))
-            down  = 0.5*(prim(i,j-1,k,4)+prim(i,j-1,k+1,4))
-            dwy   = 0.5*(up - down)*dxinv(2)
+!            ! y derivative of w on z face
+!            up    = 0.5*(prim(i,j+1,k,4)+prim(i,j+1,k+1,4))
+!            down  = 0.5*(prim(i,j-1,k,4)+prim(i,j-1,k+1,4))
+!            dwy   = 0.5*(up - down)*dxinv(2)
 
-            ! x derivative of u on z face
-            up    = 0.5*(prim(i+1,j,k+1,2)+prim(i+1,j,k,2))
-            down  = 0.5*(prim(i-1,j,k+1,2)+prim(i-1,j,k,2))
-            dux   = 0.5*(up - down)*dxinv(1)
+!            ! x derivative of u on z face
+!            up    = 0.5*(prim(i+1,j,k+1,2)+prim(i+1,j,k,2))
+!            down  = 0.5*(prim(i-1,j,k+1,2)+prim(i-1,j,k,2))
+!            dux   = 0.5*(up - down)*dxinv(1)
 
-            ! y derivative of v on z face
-            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j+1,k,3))
-            down  = 0.5*(prim(i,j-1,k+1,3)+prim(i,j-1,k,3))
-            dvy   = 0.5*(up - down)*dxinv(2)
+!            ! y derivative of v on z face
+!            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j+1,k,3))
+!            down  = 0.5*(prim(i,j-1,k+1,3)+prim(i,j-1,k,3))
+!            dvy   = 0.5*(up - down)*dxinv(2)
 
-            div = dux + dvy + dwz
+!            div = dux + dvy + dwz
 
-            taux = etaf*(duz + dwx)
-            tauy = etaf*(dvz + dwy)
-            tauz = zetaf*div + etaf*(2d0*dwz - twothirds*div)
+!            taux = etaf*(duz + dwx)
+!            tauy = etaf*(dvz + dwy)
+!            tauz = zetaf*div + etaf*(2d0*dwz - twothirds*div)
 
-            !momentum fluxes
-            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) - taux
-            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) - tauy
-            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) - tauz
-            
-            ! z derivative of T on z face
-            dtz = (prim(i,j,k+1,5) - prim(i,j,k,5))*dxinv(1)
+!            !momentum fluxes
+!            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) - taux
+!            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) - tauy
+!            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) - tauz
+!            
+!            ! z derivative of T on z face
+!            dtz = (prim(i,j,k+1,5) - prim(i,j,k,5))*dxinv(1)
 
-            ! y derivative of T on z face
-            up    = 0.5*(prim(i,j+1,k,5)+prim(i,j+1,k+1,5))
-            down  = 0.5*(prim(i,j-1,k,5)+prim(i,j-1,k+1,5))
-            dty   = 0.5*(up - down)*dxinv(2)
+!            ! y derivative of T on z face
+!            up    = 0.5*(prim(i,j+1,k,5)+prim(i,j+1,k+1,5))
+!            down  = 0.5*(prim(i,j-1,k,5)+prim(i,j-1,k+1,5))
+!            dty   = 0.5*(up - down)*dxinv(2)
 
-            ! x derivative of T on z face
-            up    = 0.5*(prim(i+1,j,k+1,5)+prim(i+1,j,k,5))
-            down  = 0.5*(prim(i-1,j,k+1,5)+prim(i-1,j,k,5))
-            dtx = 0.5*(up - down)*dxinv(3)
+!            ! x derivative of T on z face
+!            up    = 0.5*(prim(i+1,j,k+1,5)+prim(i+1,j,k,5))
+!            down  = 0.5*(prim(i-1,j,k+1,5)+prim(i-1,j,k,5))
+!            dtx = 0.5*(up - down)*dxinv(3)
 
-            !u, v, and w on z face
-            u = 0.5*(prim(i,j,k+1,2) + prim(i,j,k,2))
-            v = 0.5*(prim(i,j,k+1,3) + prim(i,j,k,3))
-            w = 0.5*(prim(i,j,k+1,4) + prim(i,j,k,4))            
+!            !u, v, and w on z face
+!            u = 0.5*(prim(i,j,k+1,2) + prim(i,j,k,2))
+!            v = 0.5*(prim(i,j,k+1,3) + prim(i,j,k,3))
+!            w = 0.5*(prim(i,j,k+1,4) + prim(i,j,k,4))            
 
-            !energy flux
-            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
+!            !energy flux
+!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
-          end do
-        end do
-      end do
-#endif
+!          end do
+!        end do
+!      end do
+!#endif
 
   end subroutine diff_flux
   
@@ -300,7 +300,7 @@ contains
       real(amrex_real), intent(in   ) :: cons(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
       real(amrex_real), intent(in   ) :: prim(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
 
-      real(amrex_real) :: conserved(nvars), primitive(6), wgt1, wgt2, vsqr, intenergy, massvec(nspecies), fracvec(nspecies)
+      real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, massvec(nspecies), fracvec(nspecies)
 
       integer :: i,j,k,l
 

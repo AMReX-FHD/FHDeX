@@ -236,6 +236,12 @@ void main_driver(const char* argv)
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
     statsCount = 1;
 
+    //double* test;
+
+    //test = new double[nvars];
+
+    //test[10] = 1.0;    
+
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {

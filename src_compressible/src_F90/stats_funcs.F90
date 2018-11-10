@@ -68,7 +68,7 @@ contains
           !print *, "density: ", cu(1,1,1,1), ", mean: ", cumeans(1,1,1,1), ", density: ", cu(0,1,0,1), ", mean: ", cumeans(0,1,0,1)
       !endif
 
-       ti = 19
+       ti = 9
   !    tj = 0
   !    tk = 0
 
