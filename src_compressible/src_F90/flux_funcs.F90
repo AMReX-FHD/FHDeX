@@ -58,38 +58,38 @@ contains
             dwx = (prim(i+1,j,k,4) - prim(i,j,k,4))*dxinv(1)
 
             ! y derivative of u on x face
-            up    = 0.5*(prim(i,j+1,k,2)+prim(i+1,j+1,k,2))
-            down  = 0.5*(prim(i,j-1,k,2)+prim(i+1,j-1,k,2))
-            duy   = 0.5*(up - down)*dxinv(2)
+            !up    = 0.5*(prim(i,j+1,k,2)+prim(i+1,j+1,k,2))
+            !down  = 0.5*(prim(i,j-1,k,2)+prim(i+1,j-1,k,2))
+            !duy   = 0.5*(up - down)*dxinv(2)
 
 #if (AMREX_SPACEDIM == 3)
             ! z derivative of u on x face
-            up    = 0.5*(prim(i,j,k+1,2)+prim(i+1,j,k+1,2))
-            down  = 0.5*(prim(i,j,k-1,2)+prim(i+1,j,k-1,2))
-            duz   = 0.5*(up - down)*dxinv(3)
+            !up    = 0.5*(prim(i,j,k+1,2)+prim(i+1,j,k+1,2))
+            !down  = 0.5*(prim(i,j,k-1,2)+prim(i+1,j,k-1,2))
+            !duz   = 0.5*(up - down)*dxinv(3)
 #endif
             ! y derivative of v on x face
-            up    = 0.5*(prim(i,j+1,k,3)+prim(i+1,j+1,k,3))
-            down  = 0.5*(prim(i,j-1,k,3)+prim(i+1,j-1,k,3))
-            dvy   = 0.5*(up - down)*dxinv(2)
+            !up    = 0.5*(prim(i,j+1,k,3)+prim(i+1,j+1,k,3))
+            !down  = 0.5*(prim(i,j-1,k,3)+prim(i+1,j-1,k,3))
+            !dvy   = 0.5*(up - down)*dxinv(2)
 #if (AMREX_SPACEDIM == 3)
             ! z derivative of w on x face
-            up    = 0.5*(prim(i,j,k+1,4)+prim(i+1,j,k+1,4))
-            down  = 0.5*(prim(i,j,k-1,4)+prim(i+1,j,k-1,4))
-            dwz   = 0.5*(up - down)*dxinv(3)
+            !up    = 0.5*(prim(i,j,k+1,4)+prim(i+1,j,k+1,4))
+            !down  = 0.5*(prim(i,j,k-1,4)+prim(i+1,j,k-1,4))
+            !dwz   = 0.5*(up - down)*dxinv(3)
 #endif
             !div = dux + dvy + dwz
             div = dux !1D
 
             !taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
             taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
-            tauy = etaf*(duy + dvx)
-            tauz = etaf*(duz + dwx)
+            !tauy = etaf*(duy + dvx)
+            !tauz = etaf*(duz + dwx)
 
             !momentum fluxes
             xflux(i+1,j,k,2) = xflux(i+1,j,k,2) - taux
-            xflux(i+1,j,k,3) = xflux(i+1,j,k,3) - tauy
-            xflux(i+1,j,k,4) = xflux(i+1,j,k,4) - tauz
+            !xflux(i+1,j,k,3) = xflux(i+1,j,k,3) - tauy
+            !xflux(i+1,j,k,4) = xflux(i+1,j,k,4) - tauz
     
             !print *,  taux
             
@@ -97,14 +97,14 @@ contains
             dtx = (prim(i+1,j,k,5) - prim(i,j,k,5))*dxinv(1)
 
             ! y derivative of T on x face
-            up    = 0.5*(prim(i,j+1,k,5)+prim(i+1,j+1,k,5))
-            down  = 0.5*(prim(i,j-1,k,5)+prim(i+1,j-1,k,5))
-            dty   = 0.5*(up - down)*dxinv(2)
+            !up    = 0.5*(prim(i,j+1,k,5)+prim(i+1,j+1,k,5))
+            !down  = 0.5*(prim(i,j-1,k,5)+prim(i+1,j-1,k,5))
+            !dty   = 0.5*(up - down)*dxinv(2)
 #if (AMREX_SPACEDIM == 3)
             ! z derivative of T on x face
-            up    = 0.5*(prim(i,j,k+1,5)+prim(i+1,j,k+1,5))
-            down  = 0.5*(prim(i,j,k-1,5)+prim(i+1,j,k-1,5))
-            dtz = 0.5*(up - down)*dxinv(3)
+            !up    = 0.5*(prim(i,j,k+1,5)+prim(i+1,j,k+1,5))
+            !down  = 0.5*(prim(i,j,k-1,5)+prim(i+1,j,k-1,5))
+            !dtz = 0.5*(up - down)*dxinv(3)
 #endif
             !u, v, and w on x face
             u = 0.5*(prim(i+1,j,k,2) + prim(i,j,k,2))
