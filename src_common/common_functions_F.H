@@ -157,6 +157,11 @@ extern "C"
 			      const int* mflo, const int* mfhi, 
 			      const int* ncomp, const int* comp);
 
+    void multifab_fill_random_hack(const int* lo, const int* hi,
+			      const amrex_real* mf,
+			      const int* mflo, const int* mfhi, 
+			      const int* ncomp, const int* comp, const double* mytop, const double* mybottom);
+
 ///////////////////////////
 
 #ifdef __cplusplus

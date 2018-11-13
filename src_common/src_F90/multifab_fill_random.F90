@@ -73,6 +73,41 @@ contains
       end do
 
     end subroutine multifab_fill_random
+
+    subroutine multifab_fill_random_hack(lo,hi, &
+                                    mf,mflo,mfhi, &
+                                    ncomp,comp, mytop, mybottom) bind(C,name="multifab_fill_random_hack")
+
+      integer         , intent(in   ) :: lo(3),hi(3)
+      double precision, intent(in   ) :: mytop,mybottom
+      integer         , intent(in   ) :: mflo(3),mfhi(3)
+      double precision, intent(inout) :: mf(mflo(1):mfhi(1),mflo(2):mfhi(2),mflo(3):mfhi(3),ncomp)
+      integer         , intent(in   ) :: ncomp,comp
+
+      ! local
+      integer :: i,j,k
+      
+      !=============================
+      ! fill elements of array with random numbers
+      !=============================
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+      do i=lo(1)+1,hi(1)-1
+         mf(i,j,k,comp+1) = get_fhd_normal_func()
+      end do
+      end do
+      end do
+
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+
+         mf(lo(1),j,k,comp+1) = mybottom
+         mf(hi(1),j,k,comp+1) = mytop
+
+      end do
+      end do
+
+    end subroutine multifab_fill_random_hack
     
 #endif
 

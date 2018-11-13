@@ -127,7 +127,7 @@ contains
 
   end function get_uniform_func
 
-  function get_fhd_normal_func() result(test)
+  function get_fhd_normal_func() result(test) bind(c,name='get_fhd_normal_func')
 
       double precision test
 

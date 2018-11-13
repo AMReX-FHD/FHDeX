@@ -492,10 +492,10 @@ contains
       real(amrex_real), intent(inout) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
 #endif
 
-      real(amrex_real), intent(inout) :: xsflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), 6)
-      real(amrex_real), intent(inout) :: ysflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), 6)
+      real(amrex_real), intent(inout) :: xsflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: ysflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(inout) :: zsflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, 6)
+      real(amrex_real), intent(inout) :: zsflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
 #endif
 
       real(amrex_real), intent(in   ) :: cons(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
@@ -625,22 +625,22 @@ contains
         end do
       endif
 
-      do k = lo(3),hi(3)
-        do j = lo(2)-1,hi(2)
-          do i = lo(1),hi(1)
+!      do k = lo(3),hi(3)
+!        do j = lo(2)-1,hi(2)
+!          do i = lo(1),hi(1)
 
-            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
-            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
-            !velF = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
-            velF = wgt1*(prim(i,j,k,3)+prim(i,j+1,k,3)) - wgt2*(prim(i,j-1,k,3)+prim(i,j+2,k,3))
+!            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
+!            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
+!            !velF = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
+!            velF = wgt1*(prim(i,j,k,3)+prim(i,j+1,k,3)) - wgt2*(prim(i,j-1,k,3)+prim(i,j+2,k,3))
 
 
-            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + sqrt(sFac*etatF)*ysflux(i,j+1,k,3)
-            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velF*sqrt(sFac)*ysflux(i,j+1,k,3)
+!            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + sqrt(sFac*etatF)*ysflux(i,j+1,k,3)
+!            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velF*sqrt(sFac)*ysflux(i,j+1,k,3)
 
-          end do
-        end do
-      end do
+!          end do
+!        end do
+!      end do
 
       !if on lower bound and not periodic
       if((lo(2) .eq. 0) .and. (bc_lo(2) .ne. -1)) then
@@ -666,21 +666,21 @@ contains
         end do
       endif
 
-      do k = lo(3)-1,hi(3)
-        do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+!      do k = lo(3)-1,hi(3)
+!        do j = lo(2),hi(2)
+!          do i = lo(1),hi(1)
 
-            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
-            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
-            !velF = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
-            velF = wgt1*(prim(i,j,k,4)+prim(i,j,k+1,4)) - wgt2*(prim(i,j,k-1,4)+prim(i,j,k+2,4))
+!            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
+!            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
+!            !velF = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
+!            velF = wgt1*(prim(i,j,k,4)+prim(i,j,k+1,4)) - wgt2*(prim(i,j,k-1,4)+prim(i,j,k+2,4))
 
-            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
-            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velF*sqrt(sFac)*zsflux(i,j,k+1,4)
+!            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
+!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velF*sqrt(sFac)*zsflux(i,j,k+1,4)
 
-          end do
-        end do
-      end do
+!          end do
+!        end do
+!      end do
 
       !if on lower bound and not periodic
       if((lo(3) .eq. 0) .and. (bc_lo(3) .ne. -1)) then

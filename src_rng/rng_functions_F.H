@@ -12,6 +12,7 @@ extern "C"
     void get_angles(double* costheta, double* sintheta, double* cosphi, double* sinphi);
     double get_uniform_func();
     double get_particle_normal_func();
+    double get_fhd_normal_func();
 
 #ifdef __cplusplus
 }

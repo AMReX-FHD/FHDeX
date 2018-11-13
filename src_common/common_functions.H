@@ -52,4 +52,6 @@ void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& cc
 
 void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom);
 
+void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom);
+
 #endif
