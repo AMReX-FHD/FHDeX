@@ -16,11 +16,11 @@ contains
 
       integer         , intent(in   ) :: lo(3),hi(3)
 
-      real(amrex_real), intent(inout) :: prim(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
-      real(amrex_real), intent(inout) :: cons(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
-      real(amrex_real), intent(inout) :: eta(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
-      real(amrex_real), intent(inout) :: zeta(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
-      real(amrex_real), intent(inout) :: kappa(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
+      real(amrex_real), intent(inout) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
+      real(amrex_real), intent(inout) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
+      real(amrex_real), intent(inout) :: eta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
+      real(amrex_real), intent(inout) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
+      real(amrex_real), intent(inout) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
 
       integer :: i,j,k,l,bcell
 
@@ -34,13 +34,13 @@ contains
 
         !print *, "Bcell!"
 
-        do k = lo(3)-ngc,hi(3)+ngc
-          do j = lo(2)-ngc,hi(2)+ngc
-            do i = 1, ngc
+        do k = lo(3)-ngc(3),hi(3)+ngc(3)
+          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+            do i = 1, ngc(1)
 
-              eta(lo(1)-i,j,k,1) = eta(lo(1)-1+i,j,k,1)
-              zeta(lo(1)-i,j,k,1) = zeta(lo(1)-1+i,j,k,1)
-              kappa(lo(1)-i,j,k,1) = kappa(lo(1)-1+i,j,k,1)
+              eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
+              zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
+              kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
               cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
               cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
@@ -69,13 +69,13 @@ contains
 
       if(hi(1) .eq. bcell-1) then !Interior lhs, apply slip adiabatic
 
-        do k = lo(3)-ngc,hi(3)+ngc
-          do j = lo(2)-ngc,hi(2)+ngc
-            do i = 1, ngc
+        do k = lo(3)-ngc(3),hi(3)+ngc(3)
+          do j = lo(2)-ngc(2),hi(2)+ngc(2)
+            do i = 1, ngc(1)
 
-              eta(hi(1)+i,j,k,1) = eta(hi(1)+1-i,j,k,1)
-              zeta(hi(1)+i,j,k,1) = zeta(hi(1)+1-i,j,k,1)
-              kappa(hi(1)+i,j,k,1) = kappa(hi(1)+1-i,j,k,1)         
+              eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
+              zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
+              kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)         
 
               cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
               cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
@@ -104,15 +104,15 @@ contains
 
         if(bc_lo(1) .eq. 1) then ! slip adiabatic
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = 1, ngc          
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = 1, ngc(1)          
 
                 !print *, "Setting xLo slip: "
 
-                eta(lo(1)-i,j,k,1) = eta(lo(1)-1+i,j,k,1)
-                zeta(lo(1)-i,j,k,1) = zeta(lo(1)-1+i,j,k,1)
-                kappa(lo(1)-i,j,k,1) = kappa(lo(1)-1+i,j,k,1)
+                eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
+                zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
+                kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
                 cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
                 cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
@@ -140,13 +140,13 @@ contains
 
           !print *, "Setting xLo thermal: "
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = 1, ngc
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = 1, ngc(1)
 
-                eta(lo(1)-i,j,k,1) = eta(lo(1)-1+i,j,k,1)
-                zeta(lo(1)-i,j,k,1) = zeta(lo(1)-1+i,j,k,1)
-                kappa(lo(1)-i,j,k,1) = kappa(lo(1)-1+i,j,k,1)
+                eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
+                zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
+                kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
                 prim(lo(1)-i,j,k,1) = prim(lo(1)-1+i,j,k,1)
                 prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2) 
@@ -179,13 +179,13 @@ contains
 
         if(bc_hi(1) .eq. 1) then ! slip adiabatic
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = 1, ngc
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = 1, ngc(1)
 
-                eta(hi(1)+i,j,k,1) = eta(hi(1)+1-i,j,k,1)
-                zeta(hi(1)+i,j,k,1) = zeta(hi(1)+1-i,j,k,1)
-                kappa(hi(1)+i,j,k,1) = kappa(hi(1)+1-i,j,k,1)         
+                eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
+                zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
+                kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)         
 
                 cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
                 cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
@@ -211,13 +211,13 @@ contains
 
         elseif(bc_hi(1) .eq. 2) then ! no slip thermal
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = 1, ngc
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = 1, ngc(1)
 
-                eta(hi(1)+i,j,k,1) = eta(hi(1)+1-i,j,k,1)
-                zeta(hi(1)+i,j,k,1) = zeta(hi(1)+1-i,j,k,1)
-                kappa(hi(1)+i,j,k,1) = kappa(hi(1)+1-i,j,k,1)
+                eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
+                zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
+                kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)
 
                 prim(hi(1)+i,j,k,1) = prim(hi(1)+1-i,j,k,1)
                 prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2) 
@@ -256,13 +256,13 @@ contains
 
         if(bc_lo(2) .eq. 1) then ! slip adiabatic
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = 1,ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = 1,ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,lo(2)-j,k,1) = eta(i,lo(2)-1+j,k,1)
-                zeta(i,lo(2)-j,k,1) = zeta(i,lo(2)-1+j,k,1)
-                kappa(i,lo(2)-j,k,1) = kappa(i,lo(2)-1+j,k,1)                
+                eta(i,lo(2)-j,k) = eta(i,lo(2)-1+j,k)
+                zeta(i,lo(2)-j,k) = zeta(i,lo(2)-1+j,k)
+                kappa(i,lo(2)-j,k) = kappa(i,lo(2)-1+j,k)             
 
                 cons(i,lo(2)-j,k,1) = cons(i,lo(2)-1+j,k,1)
                 cons(i,lo(2)-j,k,2) = -cons(i,lo(2)-1+j,k,2) 
@@ -288,13 +288,13 @@ contains
 
         elseif(bc_lo(2) .eq. 2) then ! no slip thermal
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = 1,ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = 1,ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,lo(2)-j,k,1) = eta(i,lo(2)-1+j,k,1)
-                zeta(i,lo(2)-j,k,1) = zeta(i,lo(2)-1+j,k,1)
-                kappa(i,lo(2)-j,k,1) = kappa(i,lo(2)-1+j,k,1)
+                eta(i,lo(2)-j,k) = eta(i,lo(2)-1+j,k)
+                zeta(i,lo(2)-j,k) = zeta(i,lo(2)-1+j,k)
+                kappa(i,lo(2)-j,k) = kappa(i,lo(2)-1+j,k)
 
                 prim(i,lo(2)-j,k,1) = prim(i,lo(2)-1+j,k,1)
                 prim(i,lo(2)-j,k,2) = -prim(i,lo(2)-1+j,k,2) 
@@ -345,13 +345,13 @@ contains
 
         if(bc_hi(2) .eq. 1) then ! slip adiabatic
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = 1,ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = 1,ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,hi(2)+j,k,1) = eta(i,hi(2)+1-j,k,1)
-                zeta(i,hi(2)+j,k,1) = zeta(i,hi(2)+1-j,k,1)
-                kappa(i,hi(2)+j,k,1) = kappa(i,hi(2)+1-j,k,1)
+                eta(i,hi(2)+j,k) = eta(i,hi(2)+1-j,k)
+                zeta(i,hi(2)+j,k) = zeta(i,hi(2)+1-j,k)
+                kappa(i,hi(2)+j,k) = kappa(i,hi(2)+1-j,k)
 
                 cons(i,hi(2)+j,k,1) = cons(i,hi(2)+1-j,k,1)
                 cons(i,hi(2)+j,k,2) = -cons(i,hi(2)+1-j,k,2) 
@@ -377,13 +377,13 @@ contains
 
         elseif(bc_hi(2) .eq. 2) then ! no slip thermal
 
-          do k = lo(3)-ngc,hi(3)+ngc
-            do j = 1,ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = lo(3)-ngc(3),hi(3)+ngc(3)
+            do j = 1,ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,hi(2)+j,k,1) = eta(i,hi(2)+1-j,k,1)                
-                zeta(i,hi(2)+j,k,1) = zeta(i,hi(2)+1-j,k,1)
-                kappa(i,hi(2)+j,k,1) = kappa(i,hi(2)+1-j,k,1)
+                eta(i,hi(2)+j,k) = eta(i,hi(2)+1-j,k)              
+                zeta(i,hi(2)+j,k) = zeta(i,hi(2)+1-j,k)
+                kappa(i,hi(2)+j,k) = kappa(i,hi(2)+1-j,k)
 
                 prim(i,hi(2)+j,k,1) = prim(i,hi(2)+1-j,k,1)
                 prim(i,hi(2)+j,k,2) = -prim(i,hi(2)+1-j,k,2) 
@@ -420,13 +420,13 @@ contains
 
         if(bc_lo(3) .eq. 1) then ! slip adiabatic
 
-          do k = 1,ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = 1,ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,j,lo(3)-k,1) = eta(i,j,lo(3)-1+k,1)
-                zeta(i,j,lo(3)-k,1) = zeta(i,j,lo(3)-1+k,1)
-                kappa(i,j,lo(3)-k,1) = kappa(i,j,lo(3)-1+k,1)                
+                eta(i,j,lo(3)-k) = eta(i,j,lo(3)-1+k)
+                zeta(i,j,lo(3)-k) = zeta(i,j,lo(3)-1+k)
+                kappa(i,j,lo(3)-k) = kappa(i,j,lo(3)-1+k)              
 
                 cons(i,j,lo(3)-k,1) = cons(i,j,lo(3)-1+k,1)
                 cons(i,j,lo(3)-k,2) = -cons(i,j,lo(3)-1+k,2) 
@@ -452,13 +452,13 @@ contains
 
         elseif(bc_lo(3) .eq. 2) then ! no slip thermal
 
-          do k = 1,ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = 1,ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,j,lo(3)-k,1) = eta(i,j,lo(3)-1+k,1)                
-                zeta(i,j,lo(3)-k,1) = zeta(i,j,lo(3)-1+k,1)                
-                kappa(i,j,lo(3)-k,1) = kappa(i,j,lo(3)-1+k,1)                
+                eta(i,j,lo(3)-k) = eta(i,j,lo(3)-1+k)             
+                zeta(i,j,lo(3)-k) = zeta(i,j,lo(3)-1+k)               
+                kappa(i,j,lo(3)-k) = kappa(i,j,lo(3)-1+k)               
 
                 prim(i,j,lo(3)-k,1) = prim(i,j,lo(3)-1+k,1)
                 prim(i,j,lo(3)-k,2) = -prim(i,j,lo(3)-1+k,2) 
@@ -501,13 +501,13 @@ contains
 
         if(bc_hi(3) .eq. 1) then ! slip adiabatic
 
-          do k = 1,ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = 1,ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,j,hi(3)+k,1) = eta(i,j,hi(3)+1-k,1)                
-                zeta(i,j,hi(3)+k,1) = zeta(i,j,hi(3)+1-k,1)                
-                kappa(i,j,hi(3)+k,1) = kappa(i,j,hi(3)+1-k,1)                
+                eta(i,j,hi(3)+k) = eta(i,j,hi(3)+1-k)           
+                zeta(i,j,hi(3)+k) = zeta(i,j,hi(3)+1-k)            
+                kappa(i,j,hi(3)+k) = kappa(i,j,hi(3)+1-k)           
 
                 cons(i,j,hi(3)+k,1) = cons(i,j,hi(3)+1-k,1)
                 cons(i,j,hi(3)+k,2) = -cons(i,j,hi(3)+1-k,2) 
@@ -533,13 +533,13 @@ contains
 
         elseif(bc_hi(3) .eq. 2) then ! no slip thermal
 
-          do k = 1,ngc
-            do j = lo(2)-ngc,hi(2)+ngc
-              do i = lo(1)-ngc,hi(1)+ngc
+          do k = 1,ngc(3)
+            do j = lo(2)-ngc(2),hi(2)+ngc(2)
+              do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                eta(i,j,hi(3)+k,1) = eta(i,j,hi(3)+1-k,1)
-                zeta(i,j,hi(3)+k,1) = zeta(i,j,hi(3)+1-k,1)
-                kappa(i,j,hi(3)+k,1) = kappa(i,j,hi(3)+1-k,1)
+                eta(i,j,hi(3)+k) = eta(i,j,hi(3)+1-k)
+                zeta(i,j,hi(3)+k) = zeta(i,j,hi(3)+1-k)
+                kappa(i,j,hi(3)+k) = kappa(i,j,hi(3)+1-k)
 
                 prim(i,j,hi(3)+k,1) = prim(i,j,hi(3)+1-k,1)
                 prim(i,j,hi(3)+k,2) = -prim(i,j,hi(3)+1-k,2) 

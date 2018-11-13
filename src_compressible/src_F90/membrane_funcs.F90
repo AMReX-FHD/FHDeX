@@ -19,8 +19,8 @@ contains
       integer,          intent(in      ) :: lo(3), hi(3)
       double precision, intent(in      ) :: dx(3), dt
 
-      double precision, intent(in      ) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
-      double precision, intent(in      ) :: prim(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nprimvars)
+      double precision, intent(in      ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
+      double precision, intent(in      ) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
 
       double precision, intent(inout   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), 6)
 
@@ -112,7 +112,7 @@ contains
       integer,          intent(in      ) :: lo(3), hi(3)
       double precision, intent(in      ) :: dx(3), dt
 
-      double precision, intent(inout   ) :: cu(lo(1)-ngc:hi(1)+ngc,lo(2)-ngc:hi(2)+ngc,lo(3)-ngc:hi(3)+ngc, nvars)
+      double precision, intent(inout   ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
 
       double precision, intent(in      ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), 6)
 

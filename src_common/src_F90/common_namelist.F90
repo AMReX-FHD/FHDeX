@@ -14,7 +14,7 @@ module common_namelist_module
   integer,            save :: max_grid_size(AMREX_SPACEDIM)
   double precision,   save :: cell_depth
 
-  integer,            save :: ngc
+  integer,            save :: ngc(3)
   integer,            save :: nvars
   integer,            save :: nprimvars
   integer,            save :: membrane_cell
@@ -322,7 +322,7 @@ contains
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
 
-    integer,                intent(inout) :: ngc_in
+    integer,                intent(inout) :: ngc_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: nvars_in
     integer,                intent(inout) :: nprimvars_in
 

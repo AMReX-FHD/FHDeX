@@ -18,7 +18,7 @@ namespace common {
     extern amrex::Vector<int>         max_grid_size; // max number of cells in a box
     extern amrex::Real                cell_depth;
 
-    extern int                        ngc;           //number of chost cells
+    extern amrex::IntVect             ngc;           //number of chost cells
     extern int                        nvars;         //number of conserved variables
     extern int                        nprimvars;     //number of primitive variables
 
