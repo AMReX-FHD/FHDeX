@@ -17,11 +17,19 @@
 #include "species.H"
 #include "surfaces.H"
 
-using namespace gmres;
-using namespace common;
+#include "analysis_functions_F.H"
+#include "StochMFlux.H"
+#include "StructFact.H"
 
-using namespace common;
+#include "hydro_test_functions.H"
+#include "hydro_test_functions_F.H"
+
+#include "hydro_functions.H"
+#include "hydro_functions_F.H"
+
 using namespace gmres;
+using namespace common;
+//using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -41,6 +49,8 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
+    const int n_rngs = 1;
+
     int fhdSeed = ParallelDescriptor::MyProc() + 1;
     int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
     int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
@@ -58,6 +68,13 @@ void main_driver(const char* argv)
             is_periodic[i] = 1;
         }
     }*/
+
+    //---------------------------------------
+
+        //Terms prepended with a 'C' are related to the particle grid. Those without are for the hydro grid.
+        //The particle grid created as a corsening or refinement of the hydro grid.
+
+    //---------------------------------------
 
     // make BoxArray and Geometry
     BoxArray ba;
@@ -77,10 +94,6 @@ void main_driver(const char* argv)
     // note we are converting "Vector<int> max_grid_size" to an IntVect
     ba.maxSize(IntVect(max_grid_size));
 
-    //RealBox real_box({AMREX_D_DECL(0,0,0)},
-    //                 {AMREX_D_DECL( 1.0, 1.0, 1.0)});
-
-
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
@@ -94,7 +107,24 @@ void main_driver(const char* argv)
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
 
-    //DistributionMapping dmapc(bc);
+    // how boxes are distrubuted among MPI processes
+    DistributionMapping dmap(ba);
+
+    const Real* dx = geom.CellSize();
+    const Real* dxc = geomC.CellSize();
+
+    MultiFab cellVols(bc, dmap, 1, 0);
+
+#if (AMREX_SPACEDIM == 2)
+#elif (AMREX_SPACEDIM == 3)
+    cellVols.setVal(dxc[0]*dxc[1]*cell_depth);
+    cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
+#endif
+
+    const RealBox& realDomain = geom.ProbDomain();
+
+    Real dt = fixed_dt;
+    Real dtinv = 1.0/dt;
 
     const int* lims = domainC.hiVect();
 
@@ -138,118 +168,7 @@ void main_driver(const char* argv)
 
     Print() << "rho0: " << activeParticle.m*activeParticle.n0 << "\n";
     Print() << "Adjusted rho0: " << activeParticle.m*activeParticle.Neff*totalParticles/domainVol << "\n";
-    
 
-    // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap(ba);
-
-    // total density
-    MultiFab rhotot(ba, dmap, 1, 1);
-
-    // divergence
-    MultiFab div(ba, dmap, 1, 1);
-
-    // potential
-    MultiFab phi(ba, dmap, 1, 1);
-
-    // beta cell centred
-    MultiFab betaCC(ba, dmap, 1, 1);
-
-    // Nodal velocity for interpolations
-    std::array< MultiFab, AMREX_SPACEDIM > umacNodal;
-    AMREX_D_TERM(umacNodal[0].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
-                 umacNodal[1].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
-                 umacNodal[2].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1););
-
-    // gamma cell centred
-    MultiFab gammaCC(ba, dmap, 1, 1);
-
-    //Print() << nodal_flag_xy << "\n";
-    //while(true);
-
-    // beta on nodes in 2d
-    // beta on edges in 3d
-    std::array< MultiFab, NUM_EDGE > betaEdge;
-
-    double tempVisc = 9e-4;
-
-#if (AMREX_SPACEDIM == 2)
-    betaEdge[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    betaEdge[0].setVal(tempVisc);
-#elif (AMREX_SPACEDIM == 3)
-    betaEdge[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    betaEdge[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    betaEdge[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    betaEdge[0].setVal(tempVisc);  
-    betaEdge[1].setVal(tempVisc);
-    betaEdge[2].setVal(tempVisc);
-#endif
-
-    //Nodal beta. If running in 2D, betaEdge is already nodal.
-
-#if (AMREX_SPACEDIM == 3)
-    MultiFab betaNodal(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);
-#endif
-
-    //Replace with proper initialiser
-    phi.setVal(100.);
-
-    betaCC.setVal(1.);
-    gammaCC.setVal(0);
-
-    // temporary placeholder for potential gradients on cell faces
-    std::array< MultiFab, AMREX_SPACEDIM > umacT;
-    AMREX_D_TERM(umacT[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacT[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacT[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // set density to 1
-    rhotot.setVal(1.);
-
-    // staggered real coordinates
-    std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
-    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 1);,
-                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 1);,
-                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 1););
-
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // staggered source terms
-    std::array< MultiFab, AMREX_SPACEDIM > source;
-    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // staggered temporary holder for calculating source terms - This may not be necesssary, review later.
-    std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
-    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // alpha arrays
-    std::array< MultiFab, AMREX_SPACEDIM > alpha;
-    AMREX_D_TERM(alpha[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-                 alpha[0].setVal(0);,
-                 alpha[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-                 alpha[1].setVal(0);,
-                 alpha[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-                 alpha[2].setVal(0););
-
-    // For testing timestepping
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // For testing StagApplyOp
-    std::array< MultiFab, AMREX_SPACEDIM > umacOut;
-    AMREX_D_TERM(umacOut[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacOut[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacOut[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
 
     MultiFab collisionPairs(bc, dmap, 1, 0);    
@@ -314,25 +233,230 @@ void main_driver(const char* argv)
     particleInstant.setVal(0.0);
     particleMeans.setVal(0.0);
     particleVars.setVal(0.0);
+    
 
-    const Real* dx = geom.CellSize();
-    const Real* dxc = geomC.CellSize();
+    //-----------------------------
+    //  Hydro setup
 
-    MultiFab cellVols(bc, dmap, 1, 0);
+    ///////////////////////////////////////////
+    // rho, alpha, beta, gamma:
+    ///////////////////////////////////////////
+    
+    MultiFab rho(ba, dmap, 1, 1);
+    rho.setVal(1.);
 
+    // alpha_fc arrays
+    Real theta_alpha = 1.;
+    std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
+    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
+                 alpha_fc[1].setVal(dtinv);,
+                 alpha_fc[2].setVal(dtinv););
+
+    // beta cell centred
+    MultiFab beta(ba, dmap, 1, 1);
+    beta.setVal(visc_coef);
+
+    // beta on nodes in 2d
+    // beta on edges in 3d
+    std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
+    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    beta_ed[0].setVal(visc_coef);
 #elif (AMREX_SPACEDIM == 3)
-    cellVols.setVal(dxc[0]*dxc[1]*cell_depth);
-    cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
+    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    beta_ed[0].setVal(visc_coef);
+    beta_ed[1].setVal(visc_coef);
+    beta_ed[2].setVal(visc_coef);
 #endif
 
-    const RealBox& realDomain = geom.ProbDomain();
+    //Nodal beta for interpolations
+    MultiFab betaNodal(ba, dmap, 1, 1);
+    betaNodal.setVal(visc_coef);
 
-    Real dt = fixed_dt;
+    // cell-centered gamma
+    MultiFab gamma(ba, dmap, 1, 1);
+    gamma.setVal(0.);
+
+    ///////////////////////////////////////////
+
+    ///////////////////////////////////////////
+    // Define & initalize eta & temperature multifabs
+    ///////////////////////////////////////////
+    // eta & temperature
+    const Real eta_const = visc_coef;
+    const Real temp_const = T_init[0];      // [units: K]
+
+    // eta & temperature cell centered
+    MultiFab  eta_cc;
+    MultiFab temp_cc;
+    // eta & temperature nodal
+    std::array< MultiFab, NUM_EDGE >   eta_ed;
+    std::array< MultiFab, NUM_EDGE >  temp_ed;
+    // eta cell-centered
+    eta_cc.define(ba, dmap, 1, 1);
+    // temperature cell-centered
+    temp_cc.define(ba, dmap, 1, 1);
+#if (AMREX_SPACEDIM == 2)
+    // eta nodal
+    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+    // temperature nodal
+    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 3)
+    // eta nodal
+    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    // temperature nodal
+    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#endif
+
+    // Initalize eta & temperature multifabs
+    // eta cell-centered
+    eta_cc.setVal(eta_const);
+    // temperature cell-centered
+    temp_cc.setVal(temp_const);
+#if (AMREX_SPACEDIM == 2)
+    // eta nodal
+    eta_ed[0].setVal(eta_const);
+    // temperature nodal
+    temp_ed[0].setVal(temp_const);
+#elif (AMREX_SPACEDIM == 3)
+    // eta nodal
+    eta_ed[0].setVal(eta_const);
+    eta_ed[1].setVal(eta_const);
+    eta_ed[2].setVal(eta_const);
+    // temperature nodal
+    temp_ed[0].setVal(temp_const);
+    temp_ed[1].setVal(temp_const);
+    temp_ed[2].setVal(temp_const);
+#endif
+    ///////////////////////////////////////////
+
+    ///////////////////////////////////////////
+    // random fluxes:
+    ///////////////////////////////////////////
+
+    // mflux divergence, staggered in x,y,z
+
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
+    // Define mfluxdiv predictor multifabs
+    mfluxdiv_predict[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+    mfluxdiv_predict[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+#if (AMREX_SPACEDIM == 3)
+    mfluxdiv_predict[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
+#endif
+
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
+    // Define mfluxdiv corrector multifabs
+    mfluxdiv_correct[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
+    mfluxdiv_correct[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
+#if (AMREX_SPACEDIM == 3)
+    mfluxdiv_correct[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
+#endif
+
+    Vector< amrex::Real > weights;
+    // weights = {std::sqrt(0.5), std::sqrt(0.5)};
+    weights = {1.0};
+    
+    // Declare object of StochMFlux class 
+    StochMFlux sMflux (ba,dmap,geom,n_rngs);
+
+    ///////////////////////////////////////////
+
+    // tracer
+    MultiFab tracer(ba,dmap,1,1);
+
+    // pressure for GMRES solve
+    MultiFab pres(ba,dmap,1,1);
+    pres.setVal(0.);  // initial guess
+
+    // staggered velocities
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
+    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+
+    //Nodal velocity for interpolations
+    std::array< MultiFab, AMREX_SPACEDIM > umacNodal;
+    AMREX_D_TERM(umacNodal[0].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
+                 umacNodal[1].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
+                 umacNodal[2].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1););
+
+    // temporary placeholder for potential gradients on cell faces
+    std::array< MultiFab, AMREX_SPACEDIM > umacT;
+    AMREX_D_TERM(umacT[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacT[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacT[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    // staggered real coordinates
+    std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
+    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 1);,
+                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 1);,
+                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 1););
+
+    // staggered source terms
+    std::array< MultiFab, AMREX_SPACEDIM > source;
+    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    // staggered temporary holder for calculating source terms - This may not be necesssary, review later.
+    std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
+    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    ///////////////////////////////////////////
+    // structure factor:
+    ///////////////////////////////////////////
+    
+    Vector< std::string > var_names;
+    var_names.resize(AMREX_SPACEDIM);
+    int cnt = 0;
+    std::string x;
+    for (int d=0; d<var_names.size(); d++) {
+      x = "vel";
+      x += (120+d);
+      var_names[cnt++] = x;
+    }
+
+    MultiFab struct_in_cc;
+    struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
+    
+    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
+    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
+
+    // Select which variable pairs to include in structure factor:
+    s_pairA[0] = 0;
+    s_pairB[0] = 0;
+    //
+    s_pairA[1] = 1;
+    s_pairB[1] = 1;
+    //
+#if (AMREX_SPACEDIM == 3)
+    s_pairA[2] = 2;
+    s_pairB[2] = 2;
+#endif
+    
+    StructFact structFact(ba,dmap,var_names);
+    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
 
 	int dm = 0;
-	for ( MFIter mfi(rhotot); mfi.isValid(); ++mfi )
+	for ( MFIter mfi(beta); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
 
@@ -375,17 +499,16 @@ void main_driver(const char* argv)
 #endif
 
 
-
     //Particles! Build on geom & box array for collision cells
     FhdParticleContainer particles(geomC, dmap, bc);
 
-    //Find coordinates of cell faces. Used for interpolating fields to particle locations
+    //Find coordinates of cell faces. May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
+    //create particles
     particles.InitParticles(ppc, activeParticle);
 
-    //particles.InitializeFields(particleInstant, cellVols, nitrogen);
-
+    //setup initial DSMC collision parameters
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle, dt);
 
     // write out initial state
@@ -394,21 +517,42 @@ void main_driver(const char* argv)
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
-        AMREX_D_TERM(
-        umac[0].FillBoundary(geom.periodicity());,
-        umac[1].FillBoundary(geom.periodicity());,
-        umac[2].FillBoundary(geom.periodicity()););
 
-        //eulerStep(betaCC, gammaCC, 
-         //        betaEdge,
-         //        umac, umacOut, umacNew, alpha, geom, &dt);
+        //HYDRO
+        //--------------------------------------
 
-        AMREX_D_TERM(
-        MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,
-        MultiFab::Copy(umac[2], umacNew[2], 0, 0, 1, 0););
+	    // Fill stochastic terms
+	    sMflux.fillMStochastic();
+
+	    // compute stochastic force terms
+	    sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	    sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	
+	    // Advance umac
+            advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
+		    alpha_fc,beta,gamma,beta_ed,geom,dt);
+	
+	    //////////////////////////////////////////////////
+	
+	    ///////////////////////////////////////////
+	    // Update structure factor
+	    ///////////////////////////////////////////
+	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+	      for(int d=0; d<AMREX_SPACEDIM; d++) {
+	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+	      }
+	      structFact.FortStructure(struct_in_cc,geom);
+        }
+	    ///////////////////////////////////////////
+
+
+       //Particles
+        //--------------------------------------
+
+
+        //Probably don't need to pass ProbLo(), check later.
         
-        particles.MoveParticles(dt, surfaceList, surfaceCount);
+        particles.MoveParticles(dt, dx, geom.ProbLo(), umac, umacNodal, RealFaceCoords, beta, betaNodal, rho, source, sourceTemp, surfaceList, surfaceCount);
 
         particles.Redistribute();
 
@@ -427,7 +571,6 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-
         if(step%5000 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
@@ -442,15 +585,6 @@ void main_driver(const char* argv)
         }
 
     }
-
-
-    //Compute divergence, last arguement is flag for increment
-    
-    //ComputeDiv(div,umac,geom,0);
-
-    //Compute gradient
-    //ComputeGrad(phi,umacT,geom);
-
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
