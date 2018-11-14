@@ -245,6 +245,9 @@ void main_driver(const char* argv)
     MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
 
+    MultiFab rhoNodal(convert(ba,nodal_flag), dmap, 1, 1);
+    rhoNodal.setVal(1.);
+
     // alpha_fc arrays
     Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
@@ -275,7 +278,7 @@ void main_driver(const char* argv)
 #endif
 
     //Nodal beta for interpolations
-    MultiFab betaNodal(ba, dmap, 1, 1);
+    MultiFab betaNodal(convert(ba,nodal_flag), dmap, 1, 1);
     betaNodal.setVal(visc_coef);
 
     // cell-centered gamma
@@ -552,7 +555,7 @@ void main_driver(const char* argv)
 
         //Probably don't need to pass ProbLo(), check later.
         
-        particles.MoveParticles(dt, dx, geom.ProbLo(), umac, umacNodal, RealFaceCoords, beta, betaNodal, rho, source, sourceTemp, surfaceList, surfaceCount);
+        particles.MoveParticles(dt, dx, geom.ProbLo(), umac, umacNodal, RealFaceCoords, beta, betaNodal, rho, rhoNodal, source, sourceTemp, surfaceList, surfaceCount);
 
         particles.Redistribute();
 

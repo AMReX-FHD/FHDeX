@@ -105,7 +105,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, con
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            const MultiFab& betaCC, //Not necessary but may use later
                                            MultiFab& betaNodal, //Not necessary but may use later
-                                           const MultiFab& rho, //Not necessary but may use later
+                                           const MultiFab& rhoCC, //Not necessary but may use later
+                                           const MultiFab& rhoNodal, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount)
@@ -134,7 +135,9 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
 
 #if (AMREX_SPACEDIM == 3)
     FindNodalValues(umac[2], umacNodal[2], betaCC);
-    FindNodalValues(betaCC, betaNodal, betaCC);
+
+    //While beta is constant we will pass a prefilled betaNodal
+    //FindNodalValues(betaCC, betaNodal, betaCC);
 #endif
 
 #endif
@@ -185,8 +188,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(betaCC[pti]),
-                         BL_TO_FORTRAN_3D(rho[pti]),
+                         BL_TO_FORTRAN_3D(betaNodal[pti]),
+                         BL_TO_FORTRAN_3D(rhoNodal[pti]),
 
                          BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
                          BL_TO_FORTRAN_3D(sourceTemp[1][pti])

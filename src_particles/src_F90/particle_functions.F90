@@ -191,6 +191,100 @@ subroutine redirect(part)
 
 end subroutine redirect
 
+subroutine get_interpolation_weights(cc, rr, ctotal, ixf, onemdxf)
+
+  use amrex_fort_module, only: amrex_real
+  use common_namelist_module, only: visc_type, k_B
+
+#if (BL_SPACEDIM == 3)
+  c000 = onemdxf(1)*onemdxf(2)*onemdxf(3)
+  c001 = onemdxf(1)*onemdxf(2)*ixf(3)
+  c010 = onemdxf(1)*onemdxf(3)*ixf(2)
+  c011 = onemdxf(1)*ixf(2)*ixf(3)
+  c101 = onemdxf(2)*onemdxf(3)*ixf(1)
+  c100 = onemdxf(2)*ixf(1)*ixf(3)
+  c110 = onemdxf(3)*ixf(1)*ixf(2)
+  c111 = ixf(1)*ixf(2)*ixf(3)
+
+  ctotal = (c000 + c001 + c010 + c011 + c100 + c101 + c110 + c111)
+
+  r000 = c000/ctotal
+  r001 = c001/ctotal
+  r010 = c010/ctotal
+  r011 = c011/ctotal
+  r100 = c100/ctotal
+  r101 = c101/ctotal
+  r110 = c110/ctotal
+  r111 = c111/ctotal
+#endif
+
+#if (BL_SPACEDIM == 2)
+  c00 = onemdxf(1)*onemdxf(2)
+  c01 = onemdxf(1)*ixf(2)
+  c10 = ixf(1)*onemdxf(2)
+  c11 = ixf(1)*ixf(2)
+
+  ctotal = (c00 + c01 + c10 + c11)*2
+
+  r00 = c00/ctotal
+  r01 = c01/ctotal
+  r10 = c10/ctotal
+  r11 = c11/ctotal
+#endif
+
+
+end subroutine get_interpolation_weights
+
+#if (BL_SPACEDIM == 3)
+subroutine get_local_properties(ixf, dxf, fi, onemdxf, velx, vely, velz, beta, localvel)
+#endif
+#if (BL_SPACEDIM == 2)
+subroutine get_local_properties(ixf, dxf, fi, onemdxf, velx, vely, beta, localvel)
+#endif
+
+  use amrex_fort_module, only: amrex_real
+  use common_namelist_module, only: visc_type, k_B
+  
+  implicit none
+
+  integer,          intent(in   )         :: fi(3)
+  double precision, intent(in   )         :: ixf(3), dxf(3)
+
+  double precision, intent(in   ) :: beta(betalo(1):betahi(1),betalo(2):betahi(2),betalo(3):betahi(3))
+
+
+
+
+
+#if (BL_SPACEDIM == 3)
+
+
+  if (visc_type .gt. 0) then
+    localbeta = beta(fi(1),fi(2),fi(3))
+  else
+    !3d visc
+    localbeta = r000*beta(fi(1),fi(2),fi(3)) + r001*beta(fi(1),fi(2),fi(3)+1) + r010*beta(fi(1),fi(2)+1,fi(3)) + r011*beta(fi(1),fi(2)+1,fi(3)+1) + r100*beta(fi(1)+1,fi(2),fi(3)) + r101*beta(fi(1)+1,fi(2),fi(3)+1) + r110*beta(fi(1)+1,fi(2)+1,fi(3)) + r111*beta(fi(1)+1,fi(2)+1,fi(3)+1)
+  endif
+
+  localvel(1) = r000*velx(fi(1),fi(2),fi(3)) + r001*velx(fi(1),fi(2),fi(3)+1) + r010*velx(fi(1),fi(2)+1,fi(3)) + r011*velx(fi(1),fi(2)+1,fi(3)+1) + r100*velx(fi(1)+1,fi(2),fi(3)) + r101*velx(fi(1)+1,fi(2),fi(3)+1) + r110*velx(fi(1)+1,fi(2)+1,fi(3)) + r111*velx(fi(1)+1,fi(2)+1,fi(3)+1)
+  localvel(2) = r000*vely(fi(1),fi(2),fi(3)) + r001*vely(fi(1),fi(2),fi(3)+1) + r010*vely(fi(1),fi(2)+1,fi(3)) + r011*vely(fi(1),fi(2)+1,fi(3)+1) + r100*vely(fi(1)+1,fi(2),fi(3)) + r101*vely(fi(1)+1,fi(2),fi(3)+1) + r110*vely(fi(1)+1,fi(2)+1,fi(3)) + r111*vely(fi(1)+1,fi(2)+1,fi(3)+1)
+  localvel(3) = r000*velz(fi(1),fi(2),fi(3)) + r001*velz(fi(1),fi(2),fi(3)+1) + r010*velz(fi(1),fi(2)+1,fi(3)) + r011*velz(fi(1),fi(2)+1,fi(3)+1) + r100*velz(fi(1)+1,fi(2),fi(3)) + r101*velz(fi(1)+1,fi(2),fi(3)+1) + r110*velz(fi(1)+1,fi(2)+1,fi(3)) + r111*velz(fi(1)+1,fi(2)+1,fi(3)+1)
+#endif
+
+#if (BL_SPACEDIM == 2)
+
+  if (visc_type .gt. 0) then
+    localbeta = beta(fi(1),fi(2),fi(3))
+  else
+    localbeta = beta(fi(1),fi(2),fi(3))*c00 + beta(fi(1),fi(2)+1,fi(3))*c01 + beta(fi(1)+1,fi(2),fi(3))*c10 + beta(fi(1)+1,fi(2)+1,fi(3))*c11
+  endif
+    !2d xvel
+  localvel(1) = velx(fi(1),fi(2),fi(3))*c00 + velx(fi(1),fi(2)+1,fi(3))*c01 + velx(fi(1)+1,fi(2),fi(3))*c10 + velx(fi(1)+1,fi(2)+1,fi(3))*c11
+  localvel(2) = vely(fi(1),fi(2),fi(3))*c00 + vely(fi(1),fi(2)+1,fi(3))*c01 + vely(fi(1)+1,fi(2),fi(3))*c10 + vely(fi(1)+1,fi(2)+1,fi(3))*c11
+#endif
+
+end subroutine get_local_properties
+
 subroutine move_particles_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
                                      velx, velxlo, velxhi, &
@@ -260,21 +354,13 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
   integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount
-  integer :: ni, nj, nk, fi, fj, fk
+  integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3)
 
-#if (BL_SPACEDIM == 3)
-  double precision c000,c001,c010,c011,c100,c101,c110,c111, ctotal
-  double precision r000,r001,r010,r011,r100,r101,r110,r111
-#endif
-
-#if (BL_SPACEDIM == 2)
-  double precision c00,c01,c10,c11, ctotal
-  double precision r00,r01,r10,r11
-#endif
+  double precision cc(8), rr(8), ctotal
 
   !Zero source terms
   do k = sourcexlo(3), sourcexhi(3)
@@ -356,76 +442,32 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
 
 
                 !find fluid cell
-              fi = floor((part%pos(1) - plof(1))*dxfinv(1))
-              fj = floor((part%pos(2) - plof(2))*dxfinv(2))
+              fi(1) = floor((part%pos(1) - plof(1))*dxfinv(1))
+              fi(2) = floor((part%pos(2) - plof(2))*dxfinv(2))
 #if (BL_SPACEDIM == 3)
-              fk = floor((part%pos(3) - plof(3))*dxfinv(3))
+              fi(3) = floor((part%pos(3) - plof(3))*dxfinv(3))
 #else
-              fk = 0
+              fi(3) = 0
 #endif
-              !Interpolate fluid fields
-              ixf(1) = (part%pos(1) - coordsx(fi,fj,fk,1))*dxfInv(1)
-              ixf(2) = (part%pos(2) - coordsy(fi,fj,fk,2))*dxfInv(2)
+              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
+              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
+              ixf(2) = (part%pos(2) - coordsy(fi(1),fi(2),fi(3),2))*dxfInv(2)
 #if (BL_SPACEDIM == 3)
-              ixf(3) = (part%pos(3) - coordsz(fi,fj,fk,3))*dxfInv(3)
+              ixf(3) = (part%pos(3) - coordsz(fi(1),fi(2),fi(3),3))*dxfInv(3)
 #endif
+
+              !dxf is the size of the fluid cell
+
+              call get_interpolation_weights(cc, rr, ctotal, ixf, onemdxf)
 
 #if (BL_SPACEDIM == 3)
-              c000 = onemdxf(1)*onemdxf(2)*onemdxf(3)
-              c001 = onemdxf(1)*onemdxf(2)*ixf(3)
-              c010 = onemdxf(1)*onemdxf(3)*ixf(2)
-              c011 = onemdxf(1)*ixf(2)*ixf(3)
-              c101 = onemdxf(2)*onemdxf(3)*ixf(1)
-              c100 = onemdxf(2)*ixf(1)*ixf(3)
-              c110 = onemdxf(3)*ixf(1)*ixf(2)
-              c111 = ixf(1)*ixf(2)*ixf(3)
-
-              ctotal = (c000 + c001 + c010 + c011 + c100 + c101 + c110 + c111)
-
-              r000 = c000/ctotal
-              r001 = c001/ctotal
-              r010 = c010/ctotal
-              r011 = c011/ctotal
-              r100 = c100/ctotal
-              r101 = c101/ctotal
-              r110 = c110/ctotal
-              r111 = c111/ctotal
-
-              if (visc_type .gt. 0) then
-                localbeta = beta(fi,fj,fk)
-              else
-                !3d visc
-                localbeta = r000*beta(fi,fj,fk) + r001*beta(fi,fj,fk+1) + r010*beta(fi,fj+1,fk) + r011*beta(fi,fj+1,fk+1) + r100*beta(fi+1,fj,fk) + r101*beta(fi+1,fj,fk+1) + r110*beta(fi+1,fj+1,fk) + r111*beta(fi+1,fj+1,fk+1)
-              endif
-
-              localvel(1) = r000*velx(fi,fj,fk) + r001*velx(fi,fj,fk+1) + r010*velx(fi,fj+1,fk) + r011*velx(fi,fj+1,fk+1) + r100*velx(fi+1,fj,fk) + r101*velx(fi+1,fj,fk+1) + r110*velx(fi+1,fj+1,fk) + r111*velx(fi+1,fj+1,fk+1)
-              localvel(2) = r000*vely(fi,fj,fk) + r001*vely(fi,fj,fk+1) + r010*vely(fi,fj+1,fk) + r011*vely(fi,fj+1,fk+1) + r100*vely(fi+1,fj,fk) + r101*vely(fi+1,fj,fk+1) + r110*vely(fi+1,fj+1,fk) + r111*vely(fi+1,fj+1,fk+1)
-              localvel(3) = r000*velz(fi,fj,fk) + r001*velz(fi,fj,fk+1) + r010*velz(fi,fj+1,fk) + r011*velz(fi,fj+1,fk+1) + r100*velz(fi+1,fj,fk) + r101*velz(fi+1,fj,fk+1) + r110*velz(fi+1,fj+1,fk) + r111*velz(fi+1,fj+1,fk+1)
+              call get_local_properties(ixf, dxf, fi, onemdxf, velx, vely, velz, beta, localvel)
 #endif
-
 #if (BL_SPACEDIM == 2)
-
-              c00 = onemdxf(1)*onemdxf(2)
-              c01 = onemdxf(1)*ixf(2)
-              c10 = ixf(1)*onemdxf(2)
-              c11 = ixf(1)*ixf(2)
-
-              ctotal = (c00 + c01 + c10 + c11)*2
-
-              r00 = c00/ctotal
-              r01 = c01/ctotal
-              r10 = c10/ctotal
-              r11 = c11/ctotal
-
-              if (visc_type .gt. 0) then
-                localbeta = beta(fi,fj,fk)
-              else
-                localbeta = beta(fi,fj,fk)*c00 + beta(fi,fj+1,fk)*c01 + beta(fi+1,fj,fk)*c10 + beta(fi+1,fj+1,fk)*c11
-              endif
-                !2d xvel
-              localvel(1) = velx(fi,fj,fk)*c00 + velx(fi,fj+1,fk)*c01 + velx(fi+1,fj,fk)*c10 + velx(fi+1,fj+1,fk)*c11
-              localvel(2) = vely(fi,fj,fk)*c00 + vely(fi,fj+1,fk)*c01 + vely(fi+1,fj,fk)*c10 + vely(fi+1,fj+1,fk)*c11
+              call get_local_properties(ixf, dxf, fi, onemdxf, velx, vely, beta, localvel)
 #endif
+
+
 
                 !Brownian forcing
 
@@ -471,186 +513,186 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
               !distribute x momentum change 
                nodalp = r000*deltap(1)
-               sourcex(fi,fj,fk) = sourcex(fi,fj,fk) + nodalp
-               sourcex(fi,fj-1,fk) = sourcex(fi,fj-1,fk) + nodalp
-               sourcex(fi,fj,fk-1) = sourcex(fi,fj,fk-1) + nodalp
-               sourcex(fi,fj-1,fk-1) = sourcex(fi,fj-1,fk-1) + nodalp
+               sourcex(fi(1),fi(2),fi(3)) = sourcex(fi(1),fi(2),fi(3)) + nodalp
+               sourcex(fi(1),fi(2)-1,fi(3)) = sourcex(fi(1),fi(2)-1,fi(3)) + nodalp
+               sourcex(fi(1),fi(2),fi(3)-1) = sourcex(fi(1),fi(2),fi(3)-1) + nodalp
+               sourcex(fi(1),fi(2)-1,fi(3)-1) = sourcex(fi(1),fi(2)-1,fi(3)-1) + nodalp
 
                nodalp = r001*deltap(1)
-               sourcex(fi,fj,fk+1) = sourcex(fi,fj,fk+1) + nodalp
-               sourcex(fi,fj-1,fk+1) = sourcex(fi,fj-1,fk+1) + nodalp
-               sourcex(fi,fj,fk) = sourcex(fi,fj,fk) + nodalp
-               sourcex(fi,fj-1,fk) = sourcex(fi,fj-1,fk) + nodalp
+               sourcex(fi(1),fi(2),fi(3)+1) = sourcex(fi(1),fi(2),fi(3)+1) + nodalp
+               sourcex(fi(1),fi(2)-1,fi(3)+1) = sourcex(fi(1),fi(2)-1,fi(3)+1) + nodalp
+               sourcex(fi(1),fi(2),fi(3)) = sourcex(fi(1),fi(2),fi(3)) + nodalp
+               sourcex(fi(1),fi(2)-1,fi(3)) = sourcex(fi(1),fi(2)-1,fi(3)) + nodalp
 
                nodalp = r010*deltap(1)
-               sourcex(fi,fj+1,fk) = sourcex(fi,fj+1,fk) + nodalp
-               sourcex(fi,fj,fk) = sourcex(fi,fj,fk) + nodalp
-               sourcex(fi,fj+1,fk-1) = sourcex(fi,fj+1,fk-1) + nodalp
-               sourcex(fi,fj,fk-1) = sourcex(fi,fj,fk-1) + nodalp
+               sourcex(fi(1),fi(2)+1,fi(3)) = sourcex(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcex(fi(1),fi(2),fi(3)) = sourcex(fi(1),fi(2),fi(3)) + nodalp
+               sourcex(fi(1),fi(2)+1,fi(3)-1) = sourcex(fi(1),fi(2)+1,fi(3)-1) + nodalp
+               sourcex(fi(1),fi(2),fi(3)-1) = sourcex(fi(1),fi(2),fi(3)-1) + nodalp
 
                nodalp = r011*deltap(1)
-               sourcex(fi,fj+1,fk+1) = sourcex(fi,fj+1,fk+1) + nodalp
-               sourcex(fi,fj,fk+1) = sourcex(fi,fj,fk+1) + nodalp
-               sourcex(fi,fj+1,fk) = sourcex(fi,fj+1,fk) + nodalp
-               sourcex(fi,fj,fk) = sourcex(fi,fj,fk) + nodalp
+               sourcex(fi(1),fi(2)+1,fi(3)+1) = sourcex(fi(1),fi(2)+1,fi(3)+1) + nodalp
+               sourcex(fi(1),fi(2),fi(3)+1) = sourcex(fi(1),fi(2),fi(3)+1) + nodalp
+               sourcex(fi(1),fi(2)+1,fi(3)) = sourcex(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcex(fi(1),fi(2),fi(3)) = sourcex(fi(1),fi(2),fi(3)) + nodalp
 
                nodalp = r100*deltap(1)
-               sourcex(fi+1,fj,fk) = sourcex(fi+1,fj,fk) + nodalp
-               sourcex(fi+1,fj-1,fk) = sourcex(fi+1,fj-1,fk) + nodalp
-               sourcex(fi+1,fj,fk-1) = sourcex(fi+1,fj,fk-1) + nodalp
-               sourcex(fi+1,fj-1,fk-1) = sourcex(fi+1,fj-1,fk-1) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)) = sourcex(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2)-1,fi(3)) = sourcex(fi(1)+1,fi(2)-1,fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)-1) = sourcex(fi(1)+1,fi(2),fi(3)-1) + nodalp
+               sourcex(fi(1)+1,fi(2)-1,fi(3)-1) = sourcex(fi(1)+1,fi(2)-1,fi(3)-1) + nodalp
 
                nodalp = r101*deltap(1)
-               sourcex(fi+1,fj,fk+1) = sourcex(fi+1,fj,fk+1) + nodalp
-               sourcex(fi+1,fj-1,fk+1) = sourcex(fi+1,fj-1,fk+1) + nodalp
-               sourcex(fi+1,fj,fk) = sourcex(fi+1,fj,fk) + nodalp
-               sourcex(fi+1,fj-1,fk) = sourcex(fi+1,fj-1,fk) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)+1) = sourcex(fi(1)+1,fi(2),fi(3)+1) + nodalp
+               sourcex(fi(1)+1,fi(2)-1,fi(3)+1) = sourcex(fi(1)+1,fi(2)-1,fi(3)+1) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)) = sourcex(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2)-1,fi(3)) = sourcex(fi(1)+1,fi(2)-1,fi(3)) + nodalp
 
                nodalp = r110*deltap(1)
-               sourcex(fi+1,fj+1,fk) = sourcex(fi+1,fj+1,fk) + nodalp
-               sourcex(fi+1,fj,fk) = sourcex(fi+1,fj,fk) + nodalp
-               sourcex(fi+1,fj+1,fk-1) = sourcex(fi+1,fj+1,fk-1) + nodalp
-               sourcex(fi+1,fj,fk-1) = sourcex(fi+1,fj,fk-1) + nodalp
+               sourcex(fi(1)+1,fi(2)+1,fi(3)) = sourcex(fi(1)+1,fi(2)+1,fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)) = sourcex(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2)+1,fi(3)-1) = sourcex(fi(1)+1,fi(2)+1,fi(3)-1) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)-1) = sourcex(fi(1)+1,fi(2),fi(3)-1) + nodalp
 
                nodalp = r111*deltap(1)
-               sourcex(fi+1,fj+1,fk+1) = sourcex(fi+1,fj+1,fk+1) + nodalp
-               sourcex(fi+1,fj,fk+1) = sourcex(fi+1,fj,fk+1) + nodalp
-               sourcex(fi+1,fj+1,fk) = sourcex(fi+1,fj+1,fk) + nodalp
-               sourcex(fi+1,fj,fk) = sourcex(fi+1,fj,fk) + nodalp
+               sourcex(fi(1)+1,fi(2)+1,fi(3)+1) = sourcex(fi(1)+1,fi(2)+1,fi(3)+1) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)+1) = sourcex(fi(1)+1,fi(2),fi(3)+1) + nodalp
+               sourcex(fi(1)+1,fi(2)+1,fi(3)) = sourcex(fi(1)+1,fi(2)+1,fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)) = sourcex(fi(1)+1,fi(2),fi(3)) + nodalp
 
               !distribute y momentum change 
                nodalp = r000*deltap(2)
-               sourcey(fi,fj,fk) = sourcey(fi,fj,fk) + nodalp
-               sourcey(fi-1,fj,fk) = sourcey(fi-1,fj,fk) + nodalp
-               sourcey(fi,fj,fk-1) = sourcey(fi,fj,fk-1) + nodalp
-               sourcey(fi-1,fj,fk-1) = sourcey(fi-1,fj,fk-1) + nodalp
+               sourcey(fi(1),fi(2),fi(3)) = sourcey(fi(1),fi(2),fi(3)) + nodalp
+               sourcey(fi(1)-1,fi(2),fi(3)) = sourcey(fi(1)-1,fi(2),fi(3)) + nodalp
+               sourcey(fi(1),fi(2),fi(3)-1) = sourcey(fi(1),fi(2),fi(3)-1) + nodalp
+               sourcey(fi(1)-1,fi(2),fi(3)-1) = sourcey(fi(1)-1,fi(2),fi(3)-1) + nodalp
 
                nodalp = r001*deltap(2)
-               sourcey(fi,fj,fk+1) = sourcey(fi,fj,fk+1) + nodalp
-               sourcey(fi-1,fj,fk+1) = sourcey(fi-1,fj,fk+1) + nodalp
-               sourcey(fi,fj,fk) = sourcey(fi,fj,fk) + nodalp
-               sourcey(fi-1,fj,fk) = sourcey(fi-1,fj,fk) + nodalp
+               sourcey(fi(1),fi(2),fi(3)+1) = sourcey(fi(1),fi(2),fi(3)+1) + nodalp
+               sourcey(fi(1)-1,fi(2),fi(3)+1) = sourcey(fi(1)-1,fi(2),fi(3)+1) + nodalp
+               sourcey(fi(1),fi(2),fi(3)) = sourcey(fi(1),fi(2),fi(3)) + nodalp
+               sourcey(fi(1)-1,fi(2),fi(3)) = sourcey(fi(1)-1,fi(2),fi(3)) + nodalp
 
                nodalp = r010*deltap(2)
-               sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
-               sourcey(fi-1,fj+1,fk) = sourcey(fi-1,fj+1,fk) + nodalp
-               sourcey(fi,fj+1,fk-1) = sourcey(fi,fj+1,fk-1) + nodalp
-               sourcey(fi-1,fj+1,fk-1) = sourcey(fi-1,fj+1,fk-1) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)) = sourcey(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1)-1,fi(2)+1,fi(3)) = sourcey(fi(1)-1,fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)-1) = sourcey(fi(1),fi(2)+1,fi(3)-1) + nodalp
+               sourcey(fi(1)-1,fi(2)+1,fi(3)-1) = sourcey(fi(1)-1,fi(2)+1,fi(3)-1) + nodalp
 
                nodalp = r011*deltap(2)
-               sourcey(fi,fj+1,fk+1) = sourcey(fi,fj+1,fk+1) + nodalp
-               sourcey(fi-1,fj+1,fk+1) = sourcey(fi-1,fj+1,fk+1) + nodalp
-               sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
-               sourcey(fi-1,fj+1,fk) = sourcey(fi-1,fj+1,fk) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)+1) = sourcey(fi(1),fi(2)+1,fi(3)+1) + nodalp
+               sourcey(fi(1)-1,fi(2)+1,fi(3)+1) = sourcey(fi(1)-1,fi(2)+1,fi(3)+1) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)) = sourcey(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1)-1,fi(2)+1,fi(3)) = sourcey(fi(1)-1,fi(2)+1,fi(3)) + nodalp
 
                nodalp = r100*deltap(2)
-               sourcey(fi+1,fj,fk) = sourcey(fi+1,fj,fk) + nodalp
-               sourcey(fi,fj,fk) = sourcey(fi,fj,fk) + nodalp
-               sourcey(fi+1,fj,fk-1) = sourcey(fi+1,fj,fk-1) + nodalp
-               sourcey(fi,fj,fk-1) = sourcey(fi,fj,fk-1) + nodalp
+               sourcey(fi(1)+1,fi(2),fi(3)) = sourcey(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcey(fi(1),fi(2),fi(3)) = sourcey(fi(1),fi(2),fi(3)) + nodalp
+               sourcey(fi(1)+1,fi(2),fi(3)-1) = sourcey(fi(1)+1,fi(2),fi(3)-1) + nodalp
+               sourcey(fi(1),fi(2),fi(3)-1) = sourcey(fi(1),fi(2),fi(3)-1) + nodalp
 
                nodalp = r101*deltap(2)
-               sourcey(fi+1,fj,fk+1) = sourcey(fi+1,fj,fk+1) + nodalp
-               sourcey(fi,fj,fk+1) = sourcey(fi,fj,fk+1) + nodalp
-               sourcey(fi+1,fj,fk) = sourcey(fi+1,fj,fk) + nodalp
-               sourcey(fi,fj,fk) = sourcey(fi,fj,fk) + nodalp
+               sourcey(fi(1)+1,fi(2),fi(3)+1) = sourcey(fi(1)+1,fi(2),fi(3)+1) + nodalp
+               sourcey(fi(1),fi(2),fi(3)+1) = sourcey(fi(1),fi(2),fi(3)+1) + nodalp
+               sourcey(fi(1)+1,fi(2),fi(3)) = sourcey(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcey(fi(1),fi(2),fi(3)) = sourcey(fi(1),fi(2),fi(3)) + nodalp
 
                nodalp = r110*deltap(2)
-               sourcey(fi+1,fj+1,fk) = sourcey(fi+1,fj+1,fk) + nodalp
-               sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
-               sourcey(fi+1,fj+1,fk-1) = sourcey(fi+1,fj+1,fk-1) + nodalp
-               sourcey(fi,fj+1,fk-1) = sourcey(fi,fj+1,fk-1) + nodalp
+               sourcey(fi(1)+1,fi(2)+1,fi(3)) = sourcey(fi(1)+1,fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)) = sourcey(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1)+1,fi(2)+1,fi(3)-1) = sourcey(fi(1)+1,fi(2)+1,fi(3)-1) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)-1) = sourcey(fi(1),fi(2)+1,fi(3)-1) + nodalp
 
                nodalp = r111*deltap(2)
-               sourcey(fi+1,fj+1,fk+1) = sourcey(fi+1,fj+1,fk+1) + nodalp
-               sourcey(fi,fj+1,fk+1) = sourcey(fi,fj+1,fk+1) + nodalp
-               sourcey(fi+1,fj+1,fk) = sourcey(fi+1,fj+1,fk) + nodalp
-               sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
+               sourcey(fi(1)+1,fi(2)+1,fi(3)+1) = sourcey(fi(1)+1,fi(2)+1,fi(3)+1) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)+1) = sourcey(fi(1),fi(2)+1,fi(3)+1) + nodalp
+               sourcey(fi(1)+1,fi(2)+1,fi(3)) = sourcey(fi(1)+1,fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)) = sourcey(fi(1),fi(2)+1,fi(3)) + nodalp
 
               !distribute z momentum change 
                nodalp = r000*deltap(3)
-               sourcez(fi,fj,fk) = sourcez(fi,fj,fk) + nodalp
-               sourcez(fi-1,fj,fk) = sourcez(fi-1,fj,fk) + nodalp
-               sourcez(fi,fj-1,fk) = sourcez(fi,fj-1,fk) + nodalp
-               sourcez(fi-1,fj-1,fk) = sourcez(fi-1,fj-1,fk) + nodalp
+               sourcez(fi(1),fi(2),fi(3)) = sourcez(fi(1),fi(2),fi(3)) + nodalp
+               sourcez(fi(1)-1,fi(2),fi(3)) = sourcez(fi(1)-1,fi(2),fi(3)) + nodalp
+               sourcez(fi(1),fi(2)-1,fi(3)) = sourcez(fi(1),fi(2)-1,fi(3)) + nodalp
+               sourcez(fi(1)-1,fi(2)-1,fi(3)) = sourcez(fi(1)-1,fi(2)-1,fi(3)) + nodalp
 
                nodalp = r001*deltap(3)
-               sourcez(fi,fj,fk+1) = sourcez(fi,fj,fk+1) + nodalp
-               sourcez(fi-1,fj,fk+1) = sourcez(fi-1,fj,fk+1) + nodalp
-               sourcez(fi,fj-1,fk+1) = sourcez(fi,fj-1,fk+1) + nodalp
-               sourcez(fi-1,fj-1,fk+1) = sourcez(fi-1,fj-1,fk+1) + nodalp
+               sourcez(fi(1),fi(2),fi(3)+1) = sourcez(fi(1),fi(2),fi(3)+1) + nodalp
+               sourcez(fi(1)-1,fi(2),fi(3)+1) = sourcez(fi(1)-1,fi(2),fi(3)+1) + nodalp
+               sourcez(fi(1),fi(2)-1,fi(3)+1) = sourcez(fi(1),fi(2)-1,fi(3)+1) + nodalp
+               sourcez(fi(1)-1,fi(2)-1,fi(3)+1) = sourcez(fi(1)-1,fi(2)-1,fi(3)+1) + nodalp
 
                nodalp = r010*deltap(3)
-               sourcez(fi,fj+1,fk) = sourcez(fi,fj+1,fk) + nodalp
-               sourcez(fi-1,fj+1,fk) = sourcez(fi-1,fj+1,fk) + nodalp
-               sourcez(fi,fj,fk) = sourcez(fi,fj,fk) + nodalp
-               sourcez(fi-1,fj,fk) = sourceZ(fi-1,fj,fk) + nodalp
+               sourcez(fi(1),fi(2)+1,fi(3)) = sourcez(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcez(fi(1)-1,fi(2)+1,fi(3)) = sourcez(fi(1)-1,fi(2)+1,fi(3)) + nodalp
+               sourcez(fi(1),fi(2),fi(3)) = sourcez(fi(1),fi(2),fi(3)) + nodalp
+               sourcez(fi(1)-1,fi(2),fi(3)) = sourceZ(fi(1)-1,fi(2),fi(3)) + nodalp
 
                nodalp = r011*deltap(3)
-               sourcez(fi,fj+1,fk+1) = sourcez(fi,fj+1,fk+1) + nodalp
-               sourcez(fi-1,fj+1,fk+1) = sourcez(fi-1,fj+1,fk+1) + nodalp
-               sourcez(fi,fj,fk+1) = sourcez(fi,fj,fk+1) + nodalp
-               sourcez(fi-1,fj,fk+1) = sourcez(fi-1,fj,fk+1) + nodalp
+               sourcez(fi(1),fi(2)+1,fi(3)+1) = sourcez(fi(1),fi(2)+1,fi(3)+1) + nodalp
+               sourcez(fi(1)-1,fi(2)+1,fi(3)+1) = sourcez(fi(1)-1,fi(2)+1,fi(3)+1) + nodalp
+               sourcez(fi(1),fi(2),fi(3)+1) = sourcez(fi(1),fi(2),fi(3)+1) + nodalp
+               sourcez(fi(1)-1,fi(2),fi(3)+1) = sourcez(fi(1)-1,fi(2),fi(3)+1) + nodalp
 
                nodalp = r100*deltap(3)
-               sourcez(fi+1,fj,fk) = sourcez(fi+1,fj,fk) + nodalp
-               sourcez(fi,fj,fk) = sourcez(fi,fj,fk) + nodalp
-               sourcez(fi+1,fj-1,fk) = sourcez(fi+1,fj-1,fk) + nodalp
-               sourcez(fi,fj-1,fk) = sourcez(fi,fj-1,fk) + nodalp
+               sourcez(fi(1)+1,fi(2),fi(3)) = sourcez(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcez(fi(1),fi(2),fi(3)) = sourcez(fi(1),fi(2),fi(3)) + nodalp
+               sourcez(fi(1)+1,fi(2)-1,fi(3)) = sourcez(fi(1)+1,fi(2)-1,fi(3)) + nodalp
+               sourcez(fi(1),fi(2)-1,fi(3)) = sourcez(fi(1),fi(2)-1,fi(3)) + nodalp
 
                nodalp = r101*deltap(3)
-               sourcez(fi+1,fj,fk+1) = sourcez(fi+1,fj,fk+1) + nodalp
-               sourcez(fi,fj,fk+1) = sourcez(fi,fj,fk+1) + nodalp
-               sourcez(fi+1,fj-1,fk+1) = sourcez(fi+1,fj-1,fk+1) + nodalp
-               sourcez(fi,fj-1,fk+1) = sourcez(fi,fj-1,fk+1) + nodalp
+               sourcez(fi(1)+1,fi(2),fi(3)+1) = sourcez(fi(1)+1,fi(2),fi(3)+1) + nodalp
+               sourcez(fi(1),fi(2),fi(3)+1) = sourcez(fi(1),fi(2),fi(3)+1) + nodalp
+               sourcez(fi(1)+1,fi(2)-1,fi(3)+1) = sourcez(fi(1)+1,fi(2)-1,fi(3)+1) + nodalp
+               sourcez(fi(1),fi(2)-1,fi(3)+1) = sourcez(fi(1),fi(2)-1,fi(3)+1) + nodalp
 
                nodalp = r110*deltap(3)
-               sourcez(fi+1,fj+1,fk) = sourcez(fi+1,fj+1,fk) + nodalp
-               sourcez(fi,fj+1,fk) = sourcez(fi,fj+1,fk) + nodalp
-               sourcez(fi+1,fj,fk) = sourcez(fi+1,fj,fk) + nodalp
-               sourcez(fi,fj,fk) = sourcez(fi,fj,fk) + nodalp
+               sourcez(fi(1)+1,fi(2)+1,fi(3)) = sourcez(fi(1)+1,fi(2)+1,fi(3)) + nodalp
+               sourcez(fi(1),fi(2)+1,fi(3)) = sourcez(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcez(fi(1)+1,fi(2),fi(3)) = sourcez(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcez(fi(1),fi(2),fi(3)) = sourcez(fi(1),fi(2),fi(3)) + nodalp
 
                nodalp = r111*deltap(3)
-               sourcez(fi+1,fj+1,fk+1) = sourcez(fi+1,fj+1,fk+1) + nodalp
-               sourcez(fi,fj+1,fk+1) = sourcez(fi,fj+1,fk+1) + nodalp
-               sourcez(fi+1,fj,fk+1) = sourcez(fi+1,fj,fk+1) + nodalp
-               sourcez(fi,fj,fk+1) = sourcez(fi,fj,fk+1) + nodalp
+               sourcez(fi(1)+1,fi(2)+1,fi(3)+1) = sourcez(fi(1)+1,fi(2)+1,fi(3)+1) + nodalp
+               sourcez(fi(1),fi(2)+1,fi(3)+1) = sourcez(fi(1),fi(2)+1,fi(3)+1) + nodalp
+               sourcez(fi(1)+1,fi(2),fi(3)+1) = sourcez(fi(1)+1,fi(2),fi(3)+1) + nodalp
+               sourcez(fi(1),fi(2),fi(3)+1) = sourcez(fi(1),fi(2),fi(3)+1) + nodalp
 #endif
 
 #if (BL_SPACEDIM == 2)
               !distribute x momentum change 
                nodalp = r00*deltap(1)
-               sourcex(fi,fj,fk) = sourcex(fi,fj,fk) + nodalp
-               sourcex(fi,fj-1,fk) = sourcex(fi,fj-1,fk) + nodalp
+               sourcex(fi(1),fi(2),fi(3)) = sourcex(fi(1),fi(2),fi(3)) + nodalp
+               sourcex(fi(1),fi(2)-1,fi(3)) = sourcex(fi(1),fi(2)-1,fi(3)) + nodalp
 
                nodalp = r01*deltap(1)
-               sourcex(fi,fj+1,fk) = sourcex(fi,fj+1,fk) + nodalp
-               sourcex(fi,fj,fk) = sourcex(fi,fj,fk) + nodalp
+               sourcex(fi(1),fi(2)+1,fi(3)) = sourcex(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcex(fi(1),fi(2),fi(3)) = sourcex(fi(1),fi(2),fi(3)) + nodalp
 
                nodalp = r10*deltap(1)
-               sourcex(fi+1,fj,fk) = sourcex(fi+1,fj,fk) + nodalp
-               sourcex(fi+1,fj-1,fk) = sourcex(fi+1,fj-1,fk) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)) = sourcex(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2)-1,fi(3)) = sourcex(fi(1)+1,fi(2)-1,fi(3)) + nodalp
 
                nodalp = r11*deltap(1)
-               sourcex(fi+1,fj+1,fk) = sourcex(fi+1,fj+1,fk) + nodalp
-               sourcex(fi+1,fj,fk) = sourcex(fi+1,fj,fk) + nodalp
+               sourcex(fi(1)+1,fi(2)+1,fi(3)) = sourcex(fi(1)+1,fi(2)+1,fi(3)) + nodalp
+               sourcex(fi(1)+1,fi(2),fi(3)) = sourcex(fi(1)+1,fi(2),fi(3)) + nodalp
 
               !distribute y momentum change
                nodalp = r00*deltap(2)
-               sourcey(fi,fj,fk) = sourcey(fi,fj,fk) + nodalp
-               sourcey(fi-1,fj,fk) = sourcey(fi-1,fj,fk) + nodalp
+               sourcey(fi(1),fi(2),fi(3)) = sourcey(fi(1),fi(2),fi(3)) + nodalp
+               sourcey(fi(1)-1,fi(2),fi(3)) = sourcey(fi(1)-1,fi(2),fi(3)) + nodalp
 
                nodalp = r01*deltap(2)
-               sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
-               sourcey(fi-1,fj+1,fk) = sourcey(fi-1,fj+1,fk) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)) = sourcey(fi(1),fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1)-1,fi(2)+1,fi(3)) = sourcey(fi(1)-1,fi(2)+1,fi(3)) + nodalp
 
                nodalp = r10*deltap(2)
-               sourcey(fi+1,fj,fk) = sourcey(fi+1,fj,fk) + nodalp
-               sourcey(fi,fj,fk) = sourcey(fi,fj,fk) + nodalp
+               sourcey(fi(1)+1,fi(2),fi(3)) = sourcey(fi(1)+1,fi(2),fi(3)) + nodalp
+               sourcey(fi(1),fi(2),fi(3)) = sourcey(fi(1),fi(2),fi(3)) + nodalp
 
                nodalp = r11*deltap(2)
-               sourcey(fi+1,fj+1,fk) = sourcey(fi+1,fj+1,fk) + nodalp
-               sourcey(fi,fj+1,fk) = sourcey(fi,fj+1,fk) + nodalp
+               sourcey(fi(1)+1,fi(2)+1,fi(3)) = sourcey(fi(1)+1,fi(2)+1,fi(3)) + nodalp
+               sourcey(fi(1),fi(2)+1,fi(3)) = sourcey(fi(1),fi(2)+1,fi(3)) + nodalp
 #endif
 
               do while (runtime .gt. 0)
@@ -708,15 +750,15 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
-              ni = floor((part%pos(1) - plo(1))*dxinv(1))
-              nj = floor((part%pos(2) - plo(2))*dxinv(2))
+              ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
+              ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
 #if (BL_SPACEDIM == 3)
-              nk = floor((part%pos(3) - plo(3))*dxinv(3))
+              ni(3) = floor((part%pos(3) - plo(3))*dxinv(3))
 #else
-              nk = 0
+              ni(3) = 0
 #endif
 
-              if ((ni /= i) .or. (nj /= j) .or. (nk /= k)) then
+              if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
                  part%sorted = 0
                  call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
               else

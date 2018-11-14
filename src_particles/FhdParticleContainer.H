@@ -102,7 +102,8 @@ public:
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            const MultiFab& betaCC, //Not necessary but may use later
                                            MultiFab& betaNodal, //Not necessary but may use later
-                                           const MultiFab& rho, //Not necessary but may use later
+                                           const MultiFab& rhoCC, //Not necessary but may use later
+                                           const MultiFab& rhoNodal, //Not necessary but may use later
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount);
