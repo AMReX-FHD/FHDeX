@@ -268,7 +268,7 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        if(step%5000 == 0)
+        if(step%50000 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
