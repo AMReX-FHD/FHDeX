@@ -150,6 +150,25 @@ void main_driver(const char* argv)
     activeParticle.n0 = 200/domainVol;
     activeParticle.propulsion = 0;
 
+    activeParticle.gamma1 = 1.27;
+    activeParticle.R = 1.3806E-23/activeParticle.m;
+    activeParticle.T = 273;
+    //nitrogen.mu = 2.1E-5;
+    //nitrogen.d = sqrt((nitrogen.gamma1*nitrogen.m*sqrt(nitrogen.R*nitrogen.T))/(4*sqrt(3.14159265359)*nitrogen.mu));
+    //nitrogen.d = 3.66e-10;        
+
+    //nitrogen.mfp = (6.26e-8);
+
+    //nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
+
+    //nitrogen.n0 = 1.78/nitrogen.m;
+
+    //Print() << nitrogen.n0*nitrogen.m << "\n";
+
+    //nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
+
+    //nitrogen.cp = sqrt(2.0*nitrogen.R*nitrogen.T);
+
     double realParticles = domainVol*activeParticle.n0;
 
     Print() << "Real particles: " << realParticles << "\n";
