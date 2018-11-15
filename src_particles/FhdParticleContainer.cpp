@@ -245,6 +245,8 @@ void FhdParticleContainer::InitCollisionCells(
         auto& particles = particle_tile.GetArrayOfStructs();
         const int Np = particles.numParticles();
 
+            Print() << "Here5!\n";
+
         init_cells(particles.data(),
                          ARLIM_3D(tile_box.loVect()), 
                          ARLIM_3D(tile_box.hiVect()),

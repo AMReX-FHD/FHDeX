@@ -33,12 +33,13 @@ contains
     type(particle_t), pointer :: p1
     !type(particle_t), pointer :: p2
 
-
     double precision fac
     integer i,j,k,l,cell_np
     !integer m
 
     !fac1 = delt*neff/4d0
+
+    print *, "Here7!"
 
     do k = lo(3), hi(3)
       do j = lo(2), hi(2)

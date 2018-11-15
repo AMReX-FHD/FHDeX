@@ -170,6 +170,7 @@ void main_driver(const char* argv)
     Print() << "Adjusted rho0: " << activeParticle.m*activeParticle.Neff*totalParticles/domainVol << "\n";
 
 
+    Print() << "Here1!\n";
 
     MultiFab collisionPairs(bc, dmap, 1, 0);    
     MultiFab collisionFactor(bc, dmap, 1, 0);
@@ -192,7 +193,7 @@ void main_driver(const char* argv)
 
 
     MultiFab particleInstant(bc, dmap, 11, 0);
-
+    Print() << "Here2!\n";
 
     //Members
     //Density
@@ -234,7 +235,7 @@ void main_driver(const char* argv)
     particleMeans.setVal(0.0);
     particleVars.setVal(0.0);
     
-
+    Print() << "Here3!\n";
     //-----------------------------
     //  Hydro setup
 
@@ -513,6 +514,8 @@ void main_driver(const char* argv)
 
     //setup initial DSMC collision parameters
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle, dt);
+
+    Print() << "Here4!\n";
 
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
