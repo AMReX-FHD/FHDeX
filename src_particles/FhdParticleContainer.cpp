@@ -54,6 +54,8 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = plo[2] + (iv[2]+get_uniform_func())*dx[2];
 #endif
+
+
                 p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();

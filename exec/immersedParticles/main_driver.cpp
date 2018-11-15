@@ -147,7 +147,7 @@ void main_driver(const char* argv)
        
     activeParticle.m = 1.5158e-8;
     activeParticle.d = 1e-6;        
-    activeParticle.n0 = 16/domainVol;
+    activeParticle.n0 = 200/domainVol;
     activeParticle.propulsion = 0;
 
     double realParticles = domainVol*activeParticle.n0;
@@ -170,8 +170,6 @@ void main_driver(const char* argv)
     Print() << "Adjusted rho0: " << activeParticle.m*activeParticle.Neff*totalParticles/domainVol << "\n";
 
 
-    Print() << "Here1!\n";
-
     MultiFab collisionPairs(bc, dmap, 1, 0);    
     MultiFab collisionFactor(bc, dmap, 1, 0);
     MultiFab particleMembraneFlux(bc, dmap, 1, 0);
@@ -193,7 +191,6 @@ void main_driver(const char* argv)
 
 
     MultiFab particleInstant(bc, dmap, 11, 0);
-    Print() << "Here2!\n";
 
     //Members
     //Density
@@ -235,7 +232,6 @@ void main_driver(const char* argv)
     particleMeans.setVal(0.0);
     particleVars.setVal(0.0);
     
-    Print() << "Here3!\n";
     //-----------------------------
     //  Hydro setup
 
@@ -512,10 +508,11 @@ void main_driver(const char* argv)
     //create particles
     particles.InitParticles(ppc, activeParticle);
 
+    particles.InitializeFields(particleInstant, cellVols, activeParticle);
+
     //setup initial DSMC collision parameters
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle, dt);
 
-    Print() << "Here4!\n";
 
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
@@ -528,27 +525,27 @@ void main_driver(const char* argv)
         //--------------------------------------
 
 	    // Fill stochastic terms
-	    sMflux.fillMStochastic();
+//	    sMflux.fillMStochastic();
 
 	    // compute stochastic force terms
-	    sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	    sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+///	    sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+//	    sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	
 	    // Advance umac
-            advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-		    alpha_fc,beta,gamma,beta_ed,geom,dt);
+ //           advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
+//		    alpha_fc,beta,gamma,beta_ed,geom,dt);
 	
 	    //////////////////////////////////////////////////
 	
 	    ///////////////////////////////////////////
 	    // Update structure factor
 	    ///////////////////////////////////////////
-	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	      for(int d=0; d<AMREX_SPACEDIM; d++) {
-	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	      }
-	      structFact.FortStructure(struct_in_cc,geom);
-        }
+//	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+//	      for(int d=0; d<AMREX_SPACEDIM; d++) {
+//	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+//	      }
+//	      structFact.FortStructure(struct_in_cc,geom);
+//     }
 	    ///////////////////////////////////////////
 
 

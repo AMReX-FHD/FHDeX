@@ -39,14 +39,12 @@ contains
 
     !fac1 = delt*neff/4d0
 
-    print *, "Here7!"
-
     do k = lo(3), hi(3)
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)
 
           cell_np = cell_part_cnt(i,j,k)
-          call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
+          call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])	
 
           if (cell_np .lt. 2) then
 
@@ -87,9 +85,7 @@ contains
 
                   cellfactor(i,j,k) = 1.5*fac
 
-                endif         
-
-              
+                endif                      
             enddo
           
           endif
