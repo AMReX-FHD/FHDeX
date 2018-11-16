@@ -62,11 +62,11 @@ void main_driver(const char* argv)
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-   /* for (int i=0; i<AMREX_SPACEDIM; ++i) {
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
         }
-    }*/
+    }
 
     //---------------------------------------
 
@@ -544,27 +544,27 @@ void main_driver(const char* argv)
         //--------------------------------------
 
 	    // Fill stochastic terms
-//	    sMflux.fillMStochastic();
+	    sMflux.fillMStochastic();
 
 	    // compute stochastic force terms
-///	    sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-//	    sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	    sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	    sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	
 	    // Advance umac
- //           advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-//		    alpha_fc,beta,gamma,beta_ed,geom,dt);
+            advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
+		    alpha_fc,beta,gamma,beta_ed,geom,dt);
 	
 	    //////////////////////////////////////////////////
 	
 	    ///////////////////////////////////////////
 	    // Update structure factor
 	    ///////////////////////////////////////////
-//	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-//	      for(int d=0; d<AMREX_SPACEDIM; d++) {
-//	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-//	      }
-//	      structFact.FortStructure(struct_in_cc,geom);
-//     }
+	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+	      for(int d=0; d<AMREX_SPACEDIM; d++) {
+	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+	      }
+	      structFact.FortStructure(struct_in_cc,geom);
+         }
 	    ///////////////////////////////////////////
 
 
