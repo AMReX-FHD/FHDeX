@@ -48,8 +48,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  bc_lo(1:3) = 2 -1 -1
-  bc_hi(1:3) = 2 -1 -1
+  bc_lo(1:3) = -1 -1 -1
+  bc_hi(1:3) = -1 -1 -1
 
   membrane_cell = -10
   transmission = 0.1

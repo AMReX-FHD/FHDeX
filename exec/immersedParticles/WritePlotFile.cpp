@@ -7,101 +7,115 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const amrex::Geometry cgeom,
-                   const MultiFab& rhotot,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	           const MultiFab& div,
-                   const MultiFab& particleMembers,
-                   const MultiFab& particleDensity,
-                   const std::array< MultiFab, 3 >& particleVelocity,
-                   const MultiFab& particleTemperature,
-                   const MultiFab& particlePressure,
-                   const MultiFab& spatialCorrelation,
+                   const MultiFab& particleInstant,
+                   const MultiFab& particleMeans,
+                   const MultiFab& particleVars,
                    const MultiFab& particleMembraneFlux,
                    FhdParticleContainer& particles) 
 {
 
-    std::string plotfilename = Concatenate("plt",step,7);
-    std::string cplotfilename = Concatenate("cplt",step,7);
+    std::string cplotfilename = Concatenate("cplt",step,9);
+    std::string pplotfilename = Concatenate("parplt",step,9);
 
-    BoxArray ba = rhotot.boxArray();
-    BoxArray cba = particleMembers.boxArray();
+    BoxArray cba = particleInstant.boxArray();
+    DistributionMapping cdmap = particleInstant.DistributionMap();
 
-    DistributionMapping dmap = rhotot.DistributionMap();
-    DistributionMapping cdmap = particleMembers.DistributionMap();
+ 
+//    int cnPlot = 40;
+    int cnPlot = 41;
 
-    int nPlot = 2+AMREX_SPACEDIM;
-    int cnPlot = 9;
-
-    MultiFab plotfile(ba, dmap, nPlot, 0);
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
-    Vector<std::string> varNames(nPlot);
     Vector<std::string> cvarNames(cnPlot);
 
-    // keep a counter for plotfile variables
-    int cnt = 0;
+    amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
+    amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
+    amrex::MultiFab::Copy(cplotfile,particleVars,0,23,18,0);
 
-    varNames[cnt++] = "rhotot";
+    cvarNames[0] = "membersInstant";
+    cvarNames[1] = "densityInstant";
+    cvarNames[2] = "velxInstant";
+    cvarNames[3] = "velyInstant";
+    cvarNames[4] = "velzInstant";
+    cvarNames[5] = "temperatureInstant";
+    cvarNames[6] = "jxInstant";
+    cvarNames[7] = "jyInstant";
+    cvarNames[8] = "jzInstant";
+    cvarNames[9] = "energyInstant";
+    cvarNames[10] = "pressureInstant";
 
-    cvarNames[0] = "particles";
-    cvarNames[1] = "particle density";
-    cvarNames[2] = "particle xVel";
-    cvarNames[3] = "particle yVel";
-    cvarNames[4] = "particle zVel";
-    cvarNames[5] = "particle temperature";
-    cvarNames[6] = "particle pressure";
-    cvarNames[7] = "spatial correlation";
-    cvarNames[8] = "diff flux";
+    cvarNames[11] = "membersMean";
+    cvarNames[12] = "densityMean";
+    cvarNames[13] = "velxMean";
+    cvarNames[14] = "velyMean";
+    cvarNames[15] = "velzMean";
+    cvarNames[16] = "temperatureMean";
+    cvarNames[17] = "jxMean";
+    cvarNames[18] = "jyMean";
+    cvarNames[19] = "jzMean";
+    cvarNames[20] = "energyMean";
+    cvarNames[21] = "pressureMean";
+    cvarNames[22] = "speedMean";
 
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        std::string x = "vel";
-        x += (120+i);
-        varNames[cnt++] = x;
-    }
+    cvarNames[23] = "membersVar";
+    cvarNames[24] = "densityVar";
+    cvarNames[25] = "velxVar";
+    cvarNames[26] = "velyVar";
+    cvarNames[27] = "velzVar";
+    cvarNames[28] = "temperatureVar";
+    cvarNames[29] = "jxVar";
+    cvarNames[30] = "jyVar";
+    cvarNames[31] = "jzVar";
+    cvarNames[32] = "energyVar";
+    cvarNames[33] = "pressureVar";
+    cvarNames[34] = "GVar";
+    cvarNames[35] = "KGCross";
+    cvarNames[36] = "KRhoCross";
+    cvarNames[37] = "RhoGCross";
+    cvarNames[38] = "Energy-densityCross";
+    cvarNames[39] = "Energy-energyCross";
+    cvarNames[40] = "Momentum-densityCross";
 
-	varNames[cnt++] = "div";
+    cplotfile.mult(0.001,2,1);    //cgs coords density
+    cplotfile.mult(0.001,12,1);
+    cplotfile.mult(0.000001,24,1);   
 
-    // reset plotfile variable counter
-    cnt = 0;
+    cplotfile.mult(100,2,1);  //cgs coords velocity
+    cplotfile.mult(100,3,1);
+    cplotfile.mult(100,4,1);
+    cplotfile.mult(100,13,1);
+    cplotfile.mult(100,14,1);
+    cplotfile.mult(100,15,1);
+    cplotfile.mult(10000,25,1);
+    cplotfile.mult(10000,26,1);
+    cplotfile.mult(10000,27,1);
+
+    cplotfile.mult(0.1,6,1);  //cgs coords momentum density
+    cplotfile.mult(0.1,7,1);
+    cplotfile.mult(0.1,8,1);
+    cplotfile.mult(0.1,17,1);
+    cplotfile.mult(0.1,18,1);
+    cplotfile.mult(0.1,19,1);
+    cplotfile.mult(0.01,29,1);
+    cplotfile.mult(0.01,30,1);
+    cplotfile.mult(0.01,31,1);
 
 
-    // copy rhotot into plotfile
-    plotfile.copy(rhotot,0,cnt,1);
-    cnt++;
+    cplotfile.mult(10,9,1); //cgs coords energy density
+    cplotfile.mult(10,20,1);
+    cplotfile.mult(100,32,1);
 
-    cplotfile.copy(particleMembers,0,0,1); 
-    cplotfile.copy(particleDensity,0,1,1);
-    cplotfile.copy(particleVelocity[0],0,2,1);
-    cplotfile.copy(particleVelocity[1],0,3,1);
-    cplotfile.copy(particleVelocity[2],0,4,1);
-    cplotfile.copy(particleTemperature,0,5,1);
-    cplotfile.copy(particlePressure,0,6,1);
-    cplotfile.copy(spatialCorrelation,0,7,1);
-    cplotfile.copy(particleMembraneFlux,0,8,1);
+    cplotfile.mult(0.1,10,1); //cgs coords pressure
+    cplotfile.mult(0.1,21,1);
+    cplotfile.mult(0.01,33,1);
 
-    // average staggered velocities to cell-centers and copy into plotfile
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        AverageFaceToCC(umac[i],0,plotfile,cnt,1);
-        cnt++;
-    }
-
-    plotfile.copy(div,0,cnt,1);
-
-    // write a plotfile
-    WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
-
+    cplotfile.mult(10*0.001,38,1); //cgscoords energy/density cross
+    cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
+    cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
-    //particles.WriteParticlesAscii(step);
 
-    /*Vector<std::string> particle_varnames;
-    particle_varnames.push_back("weight");
-    particle_varnames.push_back("vx");
-    particle_varnames.push_back("vy");
-    particle_varnames.push_back("vz");*/
-
-
-    particles.Checkpoint(plotfilename, "particle0");
+    particles.Checkpoint(pplotfilename, "particle0");
 
 }

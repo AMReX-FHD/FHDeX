@@ -21,7 +21,6 @@
 #include "StochMFlux.H"
 #include "StructFact.H"
 
-#include "hydro_test_functions.H"
 #include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
@@ -106,6 +105,7 @@ void main_driver(const char* argv)
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
+
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
@@ -603,7 +603,11 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
            
-          //  WritePlotFile(step,time,geom,geomConvert, particleInstant, particleMeans, particleVars, particleMembraneFlux, particles);
+            //This write particle data and associated fields
+            WritePlotFile(step,time,geom,geomC, particleInstant, particleMeans, particleVars, particleMembraneFlux, particles);
+
+            //Writes instantaneous flow field and some other stuff? Check with Guy.
+            WritePlotFileHydro(step,time,geom,umac,tracer,pres);
         }
 
     }
