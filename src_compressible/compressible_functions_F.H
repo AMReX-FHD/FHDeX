@@ -124,6 +124,9 @@ extern "C"
   void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans, const amrex::Real* prim, amrex::Real* primmeans, const int* steps, amrex::Real* del1, amrex::Real* del2, amrex::Real* del3);
   void evaluate_corrs(const int* lo, const int* hi, const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars, const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars, amrex::Real* spatialcross, const int* steps, amrex::Real* del1, amrex::Real* del2, amrex::Real* del3);
 
+
+  void multifab_yzav(const int* lo, const int* hi, const amrex::Real* fabin, amrex::Real* fabout, const int* comps);
+
   void do_ssa(const int* lo, const int* hi,
 			      const amrex::Real* cu,
 			      const amrex::Real* prim,

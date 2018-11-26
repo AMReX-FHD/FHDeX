@@ -143,13 +143,21 @@ void main_driver(const char* argv)
     MultiFab cuMeans(ba,dmap,nvars,ngc);
     MultiFab cuVars(ba,dmap,nvars,ngc);
 
+    MultiFab cuMeansAv(ba,dmap,nvars,ngc);
+    MultiFab cuVarsAv(ba,dmap,nvars,ngc);
+
     //primative quantaties
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
     MultiFab primVars(ba,dmap,nprimvars + 5,ngc);
 
+    MultiFab primMeansAv(ba,dmap,nprimvars,ngc);
+    MultiFab primVarsAv(ba,dmap,nprimvars + 5,ngc);
+
     MultiFab spatialCross(ba,dmap,3,ngc);
+
+    MultiFab spatialCrossAv(ba,dmap,3,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -268,14 +276,17 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        if(step%50000 == 0)
+        if(step%5000 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {
-           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross);
+
+           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+
+           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCross);
         }
 
         time = time + dt;

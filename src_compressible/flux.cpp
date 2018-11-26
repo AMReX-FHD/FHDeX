@@ -14,26 +14,19 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                  flux[1].setVal(0.0);,
                  flux[2].setVal(0.0););
 
-//    for(int i=0;i<6;i++)
-//    {
-//        AMREX_D_TERM(MultiFABFillRandomHack(stochFlux[0], i, 1, geom);,
-//                     MultiFABFillRandomHack(stochFlux[1], i, 1, geom);,
-//                     MultiFABFillRandomHack(stochFlux[2], i, 1, geom););
-//    }
-
     for(int i=0;i<2;i++)
     {
-        MultiFABFillRandomHack(stochFlux[0], i, 1, geom);
+        MultiFABFillRandom(stochFlux[0], i, 1, geom);
+        MultiFABFillRandom(stochFlux[1], i, 1, geom);
+        MultiFABFillRandom(stochFlux[2], i, 1, geom);
     }
-
-    //MultiFABFillRandomHack(stochFlux[0], 1, 1, geom);
 
     // Loop over boxes
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
 
-//        //Must do stoch first
+        //Must do stoch first
 
         stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                        cons[mfi].dataPtr(),  
@@ -66,16 +59,16 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 #endif
     			       ZFILL(dx));
 
-//        hyp_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-//                       cons[mfi].dataPtr(),  
-//                       prim[mfi].dataPtr(),    
-//        		       flux[0][mfi].dataPtr(),
-//        		       flux[1][mfi].dataPtr(),
-//#if (AMREX_SPACEDIM == 3)
-//        		       flux[2][mfi].dataPtr(),
-//#endif
-//    			       ZFILL(dx));
-//   
+        hyp_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                       cons[mfi].dataPtr(),  
+                       prim[mfi].dataPtr(),    
+        		       flux[0][mfi].dataPtr(),
+        		       flux[1][mfi].dataPtr(),
+#if (AMREX_SPACEDIM == 3)
+        		       flux[2][mfi].dataPtr(),
+#endif
+    			       ZFILL(dx));
+   
     }
 
 }

@@ -58,38 +58,37 @@ contains
             dwx = (prim(i+1,j,k,4) - prim(i,j,k,4))*dxinv(1)
 
             ! y derivative of u on x face
-            !up    = 0.5*(prim(i,j+1,k,2)+prim(i+1,j+1,k,2))
-            !down  = 0.5*(prim(i,j-1,k,2)+prim(i+1,j-1,k,2))
-            !duy   = 0.5*(up - down)*dxinv(2)
+            up    = 0.5*(prim(i,j+1,k,2)+prim(i+1,j+1,k,2))
+            down  = 0.5*(prim(i,j-1,k,2)+prim(i+1,j-1,k,2))
+            duy   = 0.5*(up - down)*dxinv(2)
 
 #if (AMREX_SPACEDIM == 3)
             ! z derivative of u on x face
-            !up    = 0.5*(prim(i,j,k+1,2)+prim(i+1,j,k+1,2))
-            !down  = 0.5*(prim(i,j,k-1,2)+prim(i+1,j,k-1,2))
-            !duz   = 0.5*(up - down)*dxinv(3)
+            up    = 0.5*(prim(i,j,k+1,2)+prim(i+1,j,k+1,2))
+            down  = 0.5*(prim(i,j,k-1,2)+prim(i+1,j,k-1,2))
+            duz   = 0.5*(up - down)*dxinv(3)
 #endif
             ! y derivative of v on x face
-            !up    = 0.5*(prim(i,j+1,k,3)+prim(i+1,j+1,k,3))
-            !down  = 0.5*(prim(i,j-1,k,3)+prim(i+1,j-1,k,3))
-            !dvy   = 0.5*(up - down)*dxinv(2)
+            up    = 0.5*(prim(i,j+1,k,3)+prim(i+1,j+1,k,3))
+            down  = 0.5*(prim(i,j-1,k,3)+prim(i+1,j-1,k,3))
+            dvy   = 0.5*(up - down)*dxinv(2)
 #if (AMREX_SPACEDIM == 3)
             ! z derivative of w on x face
-            !up    = 0.5*(prim(i,j,k+1,4)+prim(i+1,j,k+1,4))
-            !down  = 0.5*(prim(i,j,k-1,4)+prim(i+1,j,k-1,4))
-            !dwz   = 0.5*(up - down)*dxinv(3)
+            up    = 0.5*(prim(i,j,k+1,4)+prim(i+1,j,k+1,4))
+            down  = 0.5*(prim(i,j,k-1,4)+prim(i+1,j,k-1,4))
+            dwz   = 0.5*(up - down)*dxinv(3)
 #endif
-            !div = dux + dvy + dwz
-            div = dux !1D
+            div = dux + dvy + dwz
+            !div = dux !1D
 
-            !taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
             taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
-            !tauy = etaf*(duy + dvx)
-            !tauz = etaf*(duz + dwx)
+            tauy = etaf*(duy + dvx)
+            tauz = etaf*(duz + dwx)
 
             !momentum fluxes
             xflux(i+1,j,k,2) = xflux(i+1,j,k,2) - taux
-            !xflux(i+1,j,k,3) = xflux(i+1,j,k,3) - tauy
-            !xflux(i+1,j,k,4) = xflux(i+1,j,k,4) - tauz
+            xflux(i+1,j,k,3) = xflux(i+1,j,k,3) - tauy
+            xflux(i+1,j,k,4) = xflux(i+1,j,k,4) - tauz
     
             !print *,  taux
             
@@ -97,14 +96,14 @@ contains
             dtx = (prim(i+1,j,k,5) - prim(i,j,k,5))*dxinv(1)
 
             ! y derivative of T on x face
-            !up    = 0.5*(prim(i,j+1,k,5)+prim(i+1,j+1,k,5))
-            !down  = 0.5*(prim(i,j-1,k,5)+prim(i+1,j-1,k,5))
-            !dty   = 0.5*(up - down)*dxinv(2)
+            up    = 0.5*(prim(i,j+1,k,5)+prim(i+1,j+1,k,5))
+            down  = 0.5*(prim(i,j-1,k,5)+prim(i+1,j-1,k,5))
+            dty   = 0.5*(up - down)*dxinv(2)
 #if (AMREX_SPACEDIM == 3)
             ! z derivative of T on x face
-            !up    = 0.5*(prim(i,j,k+1,5)+prim(i+1,j,k+1,5))
-            !down  = 0.5*(prim(i,j,k-1,5)+prim(i+1,j,k-1,5))
-            !dtz = 0.5*(up - down)*dxinv(3)
+            up    = 0.5*(prim(i,j,k+1,5)+prim(i+1,j,k+1,5))
+            down  = 0.5*(prim(i,j,k-1,5)+prim(i+1,j,k-1,5))
+            dtz = 0.5*(up - down)*dxinv(3)
 #endif
             !u, v, and w on x face
             u = 0.5*(prim(i+1,j,k,2) + prim(i,j,k,2))
@@ -112,174 +111,155 @@ contains
             w = 0.5*(prim(i+1,j,k,4) + prim(i,j,k,4))            
 
             !energy flux
-            !xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux) - kappaf*(dtx) !1D
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
+            !xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux) - kappaf*(dtx) !1D
 
           end do
         end do
       end do
 
-!      do k = lo(3),hi(3)
-!        do j = lo(2),hi(2)
-!          do i = lo(1)-1,hi(1)
+      !y flux
+      do k = lo(3),hi(3)
+        do j = lo(2)-1,hi(2)
+          do i = lo(1),hi(1)
 
+            etaF = 0.5*(eta(i,j+1,k) + eta(i,j,k))
+            kappaF = 0.5*(kappa(i,j+1,k) + kappa(i,j,k))
+            zetaF = 0.5*(zeta(i,j+1,k) + zeta(i,j,k))
 
-!            totalE = totalE + cons(i,j,k,5)
-!          enddo
-!        enddo
-!      enddo
+            ! y derivatives of u, v, and w on y face
+            duy = (prim(i,j+1,k,2) - prim(i,j,k,2))*dxinv(2)
+            dvy = (prim(i,j+1,k,3) - prim(i,j,k,3))*dxinv(2)
+            dwy = (prim(i,j+1,k,4) - prim(i,j,k,4))*dxinv(2)
 
+            ! x derivative of v on y face
+            up    = 0.5*(prim(i+1,j+1,k,3)+prim(i+1,j,k,3))
+            down  = 0.5*(prim(i-1,j+1,k,3)+prim(i-1,j,k,3))
+            dvx = 0.5*(up - down)*dxinv(1)
 
-!      print *, "fluxlo: ", fluxlo, " fluxhi: ", fluxhi
-!      print *, "Total E: ", totalE
+#if (AMREX_SPACEDIM == 3)
+            ! z derivative of v on y face
+            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j,k+1,3))
+            down  = 0.5*(prim(i,j+1,k-1,3)+prim(i,j,k-1,3))
+            dvz = 0.5*(up - down)*dxinv(3)
+#endif
+            ! x derivative of u on y face
+            up    = 0.5*(prim(i+1,j+1,k,2)+prim(i+1,j,k,2))
+            down  = 0.5*(prim(i-1,j+1,k,2)+prim(i-1,j,k,2))
+            dux = 0.5*(up - down)*dxinv(1)
+#if (AMREX_SPACEDIM == 3)
+            ! z derivative of w on y face
+            up    = 0.5*(prim(i,j+1,k+1,4)+prim(i,j,k+1,4))
+            down  = 0.5*(prim(i,j+1,k-1,4)+prim(i,j,k-1,4))
+            dwz = 0.5*(up - down)*dxinv(3)
+#endif
+            div = dux + dvy + dwz
 
-!      duz = 0
-!      dvz = 0
-!      dwz = 0
-!      dtz = 0
+            taux = etaf*(duy +  dvx)
+            tauy = zetaf*div + etaf*(2d0*dvy - twothirds*div)                  
+            tauz = etaf*(dvz + dwy)
 
-!      !y flux
-!      do k = lo(3),hi(3)
-!        do j = lo(2)-1,hi(2)
-!          do i = lo(1),hi(1)
+            !momentum fluxes
+            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) - taux
+            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) - tauy
+            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) - tauz
+            
+            ! y derivative of T on y face
+            dty = (prim(i,j+1,k,5) - prim(i,j,k,5))*dxinv(2)
 
-!            etaF = 0.5*(eta(i,j+1,k) + eta(i,j,k))
-!            kappaF = 0.5*(kappa(i,j+1,k) + kappa(i,j,k))
-!            zetaF = 0.5*(zeta(i,j+1,k) + zeta(i,j,k))
+            ! x derivative of T on y face
+            up    = 0.5*(prim(i+1,j+1,k,5)+prim(i+1,j,k,5))
+            down  = 0.5*(prim(i-1,j+1,k,5)+prim(i-1,j,k,5))
+            dtx = 0.5*(up - down)*dxinv(1)
+#if (AMREX_SPACEDIM == 3)
+            ! z derivative of T on y face
+            up    = 0.5*(prim(i,j+1,k+1,5)+prim(i,j,k+1,5))
+            down  = 0.5*(prim(i,j+1,k-1,5)+prim(i,j,k-1,5))
+            dtz = 0.5*(up - down)*dxinv(3)
+#endif
+            !u, v, and w on y face
+            u = 0.5*(prim(i,j+1,k,2) - prim(i,j,k,2))
+            v = 0.5*(prim(i,j+1,k,3) - prim(i,j,k,3))
+            w = 0.5*(prim(i,j+1,k,4) - prim(i,j,k,4))            
 
-!            ! y derivatives of u, v, and w on y face
-!            duy = (prim(i,j+1,k,2) - prim(i,j,k,2))*dxinv(2)
-!            dvy = (prim(i,j+1,k,3) - prim(i,j,k,3))*dxinv(2)
-!            dwy = (prim(i,j+1,k,4) - prim(i,j,k,4))*dxinv(2)
+            !energy flux
+            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
-!            ! x derivative of v on y face
-!            up    = 0.5*(prim(i+1,j+1,k,3)+prim(i+1,j,k,3))
-!            down  = 0.5*(prim(i-1,j+1,k,3)+prim(i-1,j,k,3))
-!            dvx = 0.5*(up - down)*dxinv(1)
+          end do
+        end do
+      end do
 
-!#if (AMREX_SPACEDIM == 3)
-!            ! z derivative of v on y face
-!            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j,k+1,3))
-!            down  = 0.5*(prim(i,j+1,k-1,3)+prim(i,j,k-1,3))
-!            dvz = 0.5*(up - down)*dxinv(3)
-!#endif
-!            ! x derivative of u on y face
-!            up    = 0.5*(prim(i+1,j+1,k,2)+prim(i+1,j,k,2))
-!            down  = 0.5*(prim(i-1,j+1,k,2)+prim(i-1,j,k,2))
-!            dux = 0.5*(up - down)*dxinv(1)
-!#if (AMREX_SPACEDIM == 3)
-!            ! z derivative of w on y face
-!            up    = 0.5*(prim(i,j+1,k+1,4)+prim(i,j,k+1,4))
-!            down  = 0.5*(prim(i,j+1,k-1,4)+prim(i,j,k-1,4))
-!            dwz = 0.5*(up - down)*dxinv(3)
-!#endif
-!            div = dux + dvy + dwz
+#if (AMREX_SPACEDIM == 3)
+      !z flux
+      do k = lo(3)-1,hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
 
-!            taux = etaf*(duy +  dvx)
-!            tauy = zetaf*div + etaf*(2d0*dvy - twothirds*div)                  
-!            tauz = etaf*(dvz + dwy)
+            etaF   = 0.5*(eta(i,j,k+1) + eta(i,j,k))
+            kappaF = 0.5*(kappa(i,j,k+1) + kappa(i,j,k))
+            zetaF  = 0.5*(zeta(i,j,k+1) + zeta(i,j,k))
 
-!            !momentum fluxes
-!            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) - taux
-!            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) - tauy
-!            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) - tauz
-!            
-!            ! y derivative of T on y face
-!            dty = (prim(i,j+1,k,5) - prim(i,j,k,5))*dxinv(2)
+            ! z derivatives of u, v, and w on z face
+            duz = (prim(i,j,k+1,2) - prim(i,j,k,2))*dxinv(3)
+            dvz = (prim(i,j,k+1,3) - prim(i,j,k,3))*dxinv(3)
+            dwz = (prim(i,j,k+1,4) - prim(i,j,k,4))*dxinv(3)
 
-!            ! x derivative of T on y face
-!            up    = 0.5*(prim(i+1,j+1,k,5)+prim(i+1,j,k,5))
-!            down  = 0.5*(prim(i-1,j+1,k,5)+prim(i-1,j,k,5))
-!            dtx = 0.5*(up - down)*dxinv(1)
-!#if (AMREX_SPACEDIM == 3)
-!            ! z derivative of T on y face
-!            up    = 0.5*(prim(i,j+1,k+1,5)+prim(i,j,k+1,5))
-!            down  = 0.5*(prim(i,j+1,k-1,5)+prim(i,j,k-1,5))
-!            dtz = 0.5*(up - down)*dxinv(3)
-!#endif
-!            !u, v, and w on y face
-!            u = 0.5*(prim(i,j+1,k,2) - prim(i,j,k,2))
-!            v = 0.5*(prim(i,j+1,k,3) - prim(i,j,k,3))
-!            w = 0.5*(prim(i,j+1,k,4) - prim(i,j,k,4))            
+            ! x derivative of w on z face
+            up    = 0.5*(prim(i+1,j,k+1,4)+prim(i+1,j,k,4))
+            down  = 0.5*(prim(i-1,j,k+1,4)+prim(i-1,j,k,4))
+            dwx = 0.5*(up - down)*dxinv(1)
 
-!            !energy flux
-!            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
+            ! y derivative of w on z face
+            up    = 0.5*(prim(i,j+1,k,4)+prim(i,j+1,k+1,4))
+            down  = 0.5*(prim(i,j-1,k,4)+prim(i,j-1,k+1,4))
+            dwy   = 0.5*(up - down)*dxinv(2)
 
-!          end do
-!        end do
-!      end do
+            ! x derivative of u on z face
+            up    = 0.5*(prim(i+1,j,k+1,2)+prim(i+1,j,k,2))
+            down  = 0.5*(prim(i-1,j,k+1,2)+prim(i-1,j,k,2))
+            dux   = 0.5*(up - down)*dxinv(1)
 
-!#if (AMREX_SPACEDIM == 3)
-!      !z flux
-!      do k = lo(3)-1,hi(3)
-!        do j = lo(2),hi(2)
-!          do i = lo(1),hi(1)
+            ! y derivative of v on z face
+            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j+1,k,3))
+            down  = 0.5*(prim(i,j-1,k+1,3)+prim(i,j-1,k,3))
+            dvy   = 0.5*(up - down)*dxinv(2)
 
-!            etaF   = 0.5*(eta(i,j,k+1) + eta(i,j,k))
-!            kappaF = 0.5*(kappa(i,j,k+1) + kappa(i,j,k))
-!            zetaF  = 0.5*(zeta(i,j,k+1) + zeta(i,j,k))
+            div = dux + dvy + dwz
 
-!            ! z derivatives of u, v, and w on z face
-!            duz = (prim(i,j,k+1,2) - prim(i,j,k,2))*dxinv(3)
-!            dvz = (prim(i,j,k+1,3) - prim(i,j,k,3))*dxinv(3)
-!            dwz = (prim(i,j,k+1,4) - prim(i,j,k,4))*dxinv(3)
+            taux = etaf*(duz + dwx)
+            tauy = etaf*(dvz + dwy)
+            tauz = zetaf*div + etaf*(2d0*dwz - twothirds*div)
 
-!            ! x derivative of w on z face
-!            up    = 0.5*(prim(i+1,j,k+1,4)+prim(i+1,j,k,4))
-!            down  = 0.5*(prim(i-1,j,k+1,4)+prim(i-1,j,k,4))
-!            dwx = 0.5*(up - down)*dxinv(1)
+            !momentum fluxes
+            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) - taux
+            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) - tauy
+            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) - tauz
+            
+            ! z derivative of T on z face
+            dtz = (prim(i,j,k+1,5) - prim(i,j,k,5))*dxinv(1)
 
-!            ! y derivative of w on z face
-!            up    = 0.5*(prim(i,j+1,k,4)+prim(i,j+1,k+1,4))
-!            down  = 0.5*(prim(i,j-1,k,4)+prim(i,j-1,k+1,4))
-!            dwy   = 0.5*(up - down)*dxinv(2)
+            ! y derivative of T on z face
+            up    = 0.5*(prim(i,j+1,k,5)+prim(i,j+1,k+1,5))
+            down  = 0.5*(prim(i,j-1,k,5)+prim(i,j-1,k+1,5))
+            dty   = 0.5*(up - down)*dxinv(2)
 
-!            ! x derivative of u on z face
-!            up    = 0.5*(prim(i+1,j,k+1,2)+prim(i+1,j,k,2))
-!            down  = 0.5*(prim(i-1,j,k+1,2)+prim(i-1,j,k,2))
-!            dux   = 0.5*(up - down)*dxinv(1)
+            ! x derivative of T on z face
+            up    = 0.5*(prim(i+1,j,k+1,5)+prim(i+1,j,k,5))
+            down  = 0.5*(prim(i-1,j,k+1,5)+prim(i-1,j,k,5))
+            dtx = 0.5*(up - down)*dxinv(3)
 
-!            ! y derivative of v on z face
-!            up    = 0.5*(prim(i,j+1,k+1,3)+prim(i,j+1,k,3))
-!            down  = 0.5*(prim(i,j-1,k+1,3)+prim(i,j-1,k,3))
-!            dvy   = 0.5*(up - down)*dxinv(2)
+            !u, v, and w on z face
+            u = 0.5*(prim(i,j,k+1,2) + prim(i,j,k,2))
+            v = 0.5*(prim(i,j,k+1,3) + prim(i,j,k,3))
+            w = 0.5*(prim(i,j,k+1,4) + prim(i,j,k,4))            
 
-!            div = dux + dvy + dwz
+            !energy flux
+            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
-!            taux = etaf*(duz + dwx)
-!            tauy = etaf*(dvz + dwy)
-!            tauz = zetaf*div + etaf*(2d0*dwz - twothirds*div)
-
-!            !momentum fluxes
-!            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) - taux
-!            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) - tauy
-!            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) - tauz
-!            
-!            ! z derivative of T on z face
-!            dtz = (prim(i,j,k+1,5) - prim(i,j,k,5))*dxinv(1)
-
-!            ! y derivative of T on z face
-!            up    = 0.5*(prim(i,j+1,k,5)+prim(i,j+1,k+1,5))
-!            down  = 0.5*(prim(i,j-1,k,5)+prim(i,j-1,k+1,5))
-!            dty   = 0.5*(up - down)*dxinv(2)
-
-!            ! x derivative of T on z face
-!            up    = 0.5*(prim(i+1,j,k+1,5)+prim(i+1,j,k,5))
-!            down  = 0.5*(prim(i-1,j,k+1,5)+prim(i-1,j,k,5))
-!            dtx = 0.5*(up - down)*dxinv(3)
-
-!            !u, v, and w on z face
-!            u = 0.5*(prim(i,j,k+1,2) + prim(i,j,k,2))
-!            v = 0.5*(prim(i,j,k+1,3) + prim(i,j,k,3))
-!            w = 0.5*(prim(i,j,k+1,4) + prim(i,j,k,4))            
-
-!            !energy flux
-!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
-
-!          end do
-!        end do
-!      end do
-!#endif
+          end do
+        end do
+      end do
+#endif
 
   end subroutine diff_flux
   
@@ -308,9 +288,9 @@ contains
       wgt1 = 0.5 + wgt2 
 
       !wgt2 = 0
-      !wgt1 = 0.5 + wgt2 
+      !wgt1 = 0.5 + wgt2 !second order
 
-      !wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation
+      !wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
       !wgt1 = (sqrt(7d0)+1d0)/4d0
 
 
@@ -322,75 +302,32 @@ contains
         do j = lo(2),hi(2)
           do i = lo(1)-1,hi(1)
 
-            do l = 1,nprimvars 
-               primitive(l) = wgt1*(prim(i+1,j,k,l)+prim(i,j,k,l)) -wgt2*(prim(i-1,j,k,l)+prim(i+2,j,k,l))
-               !conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l)) 
+            do l = 1,nvars             
+               conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l)) 
             enddo
+  
+            primitive(2) = conserved(2)/conserved(1)
+            primitive(3) = conserved(3)/conserved(1)
+            primitive(4) = conserved(4)/conserved(1)
 
-!            primitive(1) = conserved(1)  
-!            primitive(2) = conserved(2)/conserved(1)
-!            primitive(3) = conserved(3)/conserved(1)
-!            primitive(4) = conserved(4)/conserved(1)
+            primitive(6) = wgt1*(prim(i+1,j,k,6)+prim(i,j,k,6)) -wgt2*(prim(i-1,j,k,6)+prim(i+2,j,k,6))  !directly interpolate pressure because reasons.
 
-            !vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
-
+            !vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2  !These lines were included when experimenting with different kinds of interpolation.
             !intenergy = conserved(5) - 0.5*vsqr*conserved(1)
- 
-            !fracvec = primitive(6:nvars)
-            fracvec(1:4) = (/ 0.25, 0.25, 0.25, 0.25 /)
-
-            massvec = fracvec*primitive(1)
-
+            !fracvec = primitive(5:nprimvars)
+            !massvec = fracvec*primitive(1)
             !call get_temperature(intenergy, massvec, primitive(5))
-
-            call get_energy(intenergy, massvec, primitive(5))
-
-            conserved(5) = intenergy + 0.5*primitive(1)*((primitive(2)**2 + primitive(3)**2 + primitive(4)**2))
-
+            !call get_energy(intenergy, massvec, primitive(5))
+            !conserved(5) = intenergy + 0.5*primitive(1)*((primitive(2)**2 + primitive(3)**2 + primitive(4)**2))
             !call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
 
-            !print *, "Pressure: ", primitive(6)
 
-            xflux(i+1,j,k,1) = xflux(i+1,j,k,1) + primitive(1)*primitive(2)
-            !if(i .ne. -1) then
-
-            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + primitive(1)*primitive(2)**2+primitive(6)
-           ! endif
-            !xflux(i+1,j,k,3) = xflux(i+1,j,k,3) + primitive(1)*primitive(3)*primitive(2)
-            !xflux(i+1,j,k,4) = xflux(i+1,j,k,4) + primitive(1)*primitive(4)*primitive(2)
+            xflux(i+1,j,k,1) = xflux(i+1,j,k,1) + conserved(1)*primitive(2)
+            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + conserved(1)*(primitive(2)**2)+primitive(6)
+            xflux(i+1,j,k,3) = xflux(i+1,j,k,3) + conserved(1)*primitive(3)*primitive(2)
+            xflux(i+1,j,k,4) = xflux(i+1,j,k,4) + conserved(1)*primitive(4)*primitive(2)
             xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
-            
-
-!            if(i .eq. -1) then
-
-!              xflux(i+1,j,k,2) = 0
-!              xflux(i+1,j,k,3) = 0
-!              xflux(i+1,j,k,4) = 0
-
-!            endif
-          
-
-                 if(xflux(i+1,j,k,1) .ne. xflux(i+1,j,k,1)) then
-                    print *, "NAN! Hyperbolic mass flux ", i+1, j, k
-                 endif
-
-                 if(xflux(i+1,j,k,5) .ne. xflux(i+1,j,k,5)) then
-                    print *, "NAN! Hyperbolic energy flux ", i+1, j, k
-
-                    print *, conserved(5), primitive(1), primitive(5)
-                 endif
-
-                 if(xflux(i+1,j,k,2) .ne. xflux(i+1,j,k,2)) then
-                    print *, "NAN! Hyperbolic x momentum flux ", i+1, j, k
-                 endif
-
-                if(xflux(i+1,j,k,3) .ne. xflux(i+1,j,k,3)) then
-                    print *, "NAN! Hyperbolic x momentum flux ", i+1, j, k
-                 endif
-
-                if(xflux(i+1,j,k,4) .ne. xflux(i+1,j,k,4)) then
-                    print *, "NAN! Hyperbolic x momentum flux ", i+1, j, k
-                 endif
+           
 
           end do
         end do
@@ -398,78 +335,69 @@ contains
 
       !y flux
      
-!      do k = lo(3),hi(3)
-!        do j = lo(2)-1,hi(2)
-!          do i = lo(1),hi(1)
+      do k = lo(3),hi(3)
+        do j = lo(2)-1,hi(2)
+          do i = lo(1),hi(1)
 
-!            do l = 1,nvars 
-!              conserved(l) = wgt1*(cons(i,j+1,k,l)+cons(i,j,k,l)) -wgt2*(cons(i,j-1,k,l)+cons(i,j+2,k,l)) !Better to interpolate primitives here?
-!            enddo
+            do l = 1,nvars 
+              conserved(l) = wgt1*(cons(i,j+1,k,l)+cons(i,j,k,l)) -wgt2*(cons(i,j-1,k,l)+cons(i,j+2,k,l))
+            enddo
+ 
+            primitive(2) = conserved(2)/conserved(1)
+            primitive(3) = conserved(3)/conserved(1)
+            primitive(4) = conserved(4)/conserved(1)
 
-!            primitive(1) = conserved(1)  
-!            primitive(2) = conserved(2)/conserved(1)
-!            primitive(3) = conserved(3)/conserved(1)
-!            primitive(4) = conserved(4)/conserved(1)
-
-!            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
-
-!            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
-! 
-!            fracvec = conserved(6:nvars)
-
-!            massvec = fracvec*conserved(1)
-
-!            call get_temperature(intenergy, massvec, primitive(5))
-
-!            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
-
-!            yflux(i,j+1,k,1) = yflux(i,j+1,k,1) + primitive(1)*primitive(3)
-!            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) + primitive(1)*primitive(2)*primitive(3)
-!            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + primitive(1)*primitive(3)**2+primitive(6)
-!            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) + primitive(1)*primitive(4)*primitive(3)
-!            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
-
-
-!          end do
-!        end do
-!      end do
-
-!      !z flux
-!     
-!      do k = lo(3)-1,hi(3)
-!        do j = lo(2),hi(2)
-!          do i = lo(1),hi(1)
-
-!            do l = 1,nvars 
-!              conserved(l) = wgt1*(cons(i,j,k+1,l)+cons(i,j,k,l)) -wgt2*(cons(i,j,k-1,l)+cons(i,j,k+2,l)) !Better to interpolate primitives here?
-!            enddo
-
-!            primitive(1) = conserved(1)  
-!            primitive(2) = conserved(2)/conserved(1)
-!            primitive(3) = conserved(3)/conserved(1)
-!            primitive(4) = conserved(4)/conserved(1)
+            primitive(6) = wgt1*(prim(i,j+1,k,6)+prim(i,j,k,6)) -wgt2*(prim(i,j-1,k,6)+prim(i,j+2,k,6))  !directly interpolate pressure because reasons.
 
 !            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
-
 !            intenergy = conserved(5) - 0.5*vsqr*conserved(1)
-! 
 !            fracvec = conserved(6:nvars)
-
 !            massvec = fracvec*conserved(1)
-
 !            call get_temperature(intenergy, massvec, primitive(5))
-
 !            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
 
-!            zflux(i,j,k+1,1) = zflux(i,j,k+1,1) + primitive(1)*primitive(4)
-!            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) + primitive(1)*primitive(2)*primitive(4)
-!            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) + primitive(1)*primitive(3)*primitive(4)
-!            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + primitive(1)*primitive(4)**2+primitive(6)
-!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
+            yflux(i,j+1,k,1) = yflux(i,j+1,k,1) + conserved(1)*primitive(3)
+            yflux(i,j+1,k,2) = yflux(i,j+1,k,2) + conserved(1)*primitive(2)*primitive(3)
+            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + conserved(1)*primitive(3)**2+primitive(6)
+            yflux(i,j+1,k,4) = yflux(i,j+1,k,4) + conserved(1)*primitive(4)*primitive(3)
+            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + conserved(3)*conserved(5) + primitive(6)*primitive(3)
 
-!          end do
-!        end do
-!      end do
+          end do
+        end do
+      end do
+
+      !z flux
+     
+      do k = lo(3)-1,hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)
+
+            do l = 1,nvars 
+              conserved(l) = wgt1*(cons(i,j,k+1,l)+cons(i,j,k,l)) -wgt2*(cons(i,j,k-1,l)+cons(i,j,k+2,l))
+            enddo
+
+            primitive(2) = conserved(2)/conserved(1)
+            primitive(3) = conserved(3)/conserved(1)
+            primitive(4) = conserved(4)/conserved(1)
+
+            primitive(6) = wgt1*(prim(i,j,k+1,6)+prim(i,j,k,6)) -wgt2*(prim(i,j,k-1,6)+prim(i,j,k+2,6))  !directly interpolate pressure because reasons.
+
+!            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+!            intenergy = conserved(5) - 0.5*vsqr*conserved(1) 
+!            fracvec = conserved(6:nvars)
+!            massvec = fracvec*conserved(1)
+!            call get_temperature(intenergy, massvec, primitive(5))
+!            call get_pressure_gas(primitive(6), fracvec, primitive(1), primitive(5))
+
+            zflux(i,j,k+1,1) = zflux(i,j,k+1,1) + conserved(1)*primitive(4)
+            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) + conserved(1)*primitive(2)*primitive(4)
+            zflux(i,j,k+1,3) = zflux(i,j,k+1,3) + conserved(1)*primitive(3)*primitive(4)
+            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + conserved(1)*primitive(4)**2+primitive(6)
+            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + conserved(4)*conserved(5) + primitive(6)*primitive(4)
+
+          end do
+        end do
+      end do
 
 
   end subroutine hyp_flux
@@ -522,32 +450,25 @@ contains
       sFac = 2d0*4d0*k_b*volinv*dtinv/3d0
       qFac = 2d0*k_b*volinv*dtinv
 
-      !wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation
-      !wgt1 = (sqrt(7d0)+1d0)/4d0
-
-      !wgt2 = 1.0/12.0 !fourth order interpolation
-      !wgt1 = 0.5 + wgt2
-
-      wgt2 = 0
-      wgt1 = 0.5 + wgt2 
-
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
           do i = lo(1)-1,hi(1)
 
             kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i+1,j,k)*prim(i+1,j,k,5)*prim(i+1,j,k,5))
             etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i+1,j,k)*prim(i+1,j,k,5))
-            !velF = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
-            velF = wgt1*(prim(i,j,k,2)+prim(i+1,j,k,2)) - wgt2*(prim(i-1,j,k,2)+prim(i+2,j,k,2))
-
+            velF = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
+           
             xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + sqrt(sFac*etatF)*xsflux(i+1,j,k,1)
             xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,2) + velF*sqrt(sFac)*xsflux(i+1,j,k,1)
+
+            print *, xflux(i+1,j,k,2)
 
           end do
         end do
       end do
 
-      !wall cell
+
+      !wall cell - hard wired for specular adiabatic for now
       if(lo(1) .eq. membrane_cell) then
         do k = lo(3),hi(3)
           do j = lo(2),hi(2)
@@ -625,86 +546,85 @@ contains
         end do
       endif
 
-!      do k = lo(3),hi(3)
-!        do j = lo(2)-1,hi(2)
+      do k = lo(3),hi(3)
+        do j = lo(2)-1,hi(2)
+          do i = lo(1),hi(1)
+
+            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
+            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
+            velF = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
+
+            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + sqrt(sFac*etatF)*ysflux(i,j+1,k,1)
+            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,2) + velF*sqrt(sFac)*ysflux(i,j+1,k,1)
+
+          end do
+        end do
+      end do
+
+    !Assuming non periodic boundaries only on x-bound for now.
+
+!      !if on lower bound and not periodic
+!      if((lo(2) .eq. 0) .and. (bc_lo(2) .ne. -1)) then
+!        do k = lo(3),hi(3)
 !          do i = lo(1),hi(1)
-
-!            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
-!            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
-!            !velF = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
-!            velF = wgt1*(prim(i,j,k,3)+prim(i,j+1,k,3)) - wgt2*(prim(i,j-1,k,3)+prim(i,j+2,k,3))
-
-
-!            yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + sqrt(sFac*etatF)*ysflux(i,j+1,k,3)
-!            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velF*sqrt(sFac)*ysflux(i,j+1,k,3)
+!            
+!            !yflux(i,0,k,3) = 0        
+!            !yflux(i,0,k,5) = 0        
 
 !          end do
 !        end do
-!      end do
+!      endif
 
-      !if on lower bound and not periodic
-      if((lo(2) .eq. 0) .and. (bc_lo(2) .ne. -1)) then
-        do k = lo(3),hi(3)
+!      !if on upper bound and not periodic
+!      if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .ne. -1)) then
+!        do k = lo(3),hi(3)
+!          do i = lo(1),hi(1)
+!            
+!            !yflux(i,hi(2)+1,k,3) = 0        
+!            !yflux(i,hi(2)+1,k,5) = 0        
+
+!          end do
+!        end do
+!      endif
+
+      do k = lo(3)-1,hi(3)
+        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
+
+            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
+            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
+            velF = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
             
-            !yflux(i,0,k,3) = 0        
-            !yflux(i,0,k,5) = 0        
+            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + sqrt(sFac*etatF)*zsflux(i,j,k+1,1)
+            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,2) + velF*sqrt(sFac)*zsflux(i,j,k+1,1)
 
           end do
         end do
-      endif
+      end do
 
-      !if on upper bound and not periodic
-      if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .ne. -1)) then
-        do k = lo(3),hi(3)
-          do i = lo(1),hi(1)
-            
-            !yflux(i,hi(2)+1,k,3) = 0        
-            !yflux(i,hi(2)+1,k,5) = 0        
-
-          end do
-        end do
-      endif
-
-!      do k = lo(3)-1,hi(3)
+!      !if on lower bound and not periodic
+!      if((lo(3) .eq. 0) .and. (bc_lo(3) .ne. -1)) then
 !        do j = lo(2),hi(2)
 !          do i = lo(1),hi(1)
-
-!            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
-!            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
-!            !velF = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
-!            velF = wgt1*(prim(i,j,k,4)+prim(i,j,k+1,4)) - wgt2*(prim(i,j,k-1,4)+prim(i,j,k+2,4))
-
-!            zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
-!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velF*sqrt(sFac)*zsflux(i,j,k+1,4)
+!            
+!            !zflux(i,j,0,4) = 0        
+!            !zflux(i,j,0,5) = 0      
 
 !          end do
 !        end do
-!      end do
+!      endif
 
-      !if on lower bound and not periodic
-      if((lo(3) .eq. 0) .and. (bc_lo(3) .ne. -1)) then
-        do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-            
-            !zflux(i,j,0,4) = 0        
-            !zflux(i,j,0,5) = 0      
+!      !if on upper bound and not periodic
+!      if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .ne. -1)) then
+!        do j = lo(2),hi(2)
+!          do i = lo(1),hi(1)
+!            
+!            !zflux(i,j,hi(3)+1,4) = 0        
+!            !zflux(i,j,hi(3)+1,5) = 0        
 
-          end do
-        end do
-      endif
-
-      !if on upper bound and not periodic
-      if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .ne. -1)) then
-        do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
-            
-            !zflux(i,j,hi(3)+1,4) = 0        
-            !zflux(i,j,hi(3)+1,5) = 0        
-
-          end do
-        end do
-      endif
+!          end do
+!        end do
+!      endif
       
   end subroutine stoch_flux
 

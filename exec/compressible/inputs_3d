@@ -2,12 +2,11 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-!  prob_hi(1:3) = 1.25e-4 3.75e-6 3.75e-6      ! physical hi coordinate
-  prob_hi(1:3) = 2.5e-4 1.25e-6 1.25e-6      ! physical hi coordinate
+  prob_hi(1:3) = 2.5e-4 6.25e-6 6.25e-6      ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
-  ngc = 2 0 0     
+  ngc = 2 2 2     
   nvars = 9
   nprimvars = 10
     
@@ -21,8 +20,8 @@
 
   ! Controls for number of steps between actions
   max_step = 304000000
-  plot_int = 1000000
-  n_steps_skip = 4000000
+  plot_int = 50010
+  n_steps_skip = 50000
 
 
   ! Viscous friction L phi operator
@@ -48,8 +47,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  bc_lo(1:3) = -1 -1 -1
-  bc_hi(1:3) = -1 -1 -1
+  bc_lo(1:3) = 2 -1 -1
+  bc_hi(1:3) = 2 -1 -1
 
   membrane_cell = -10
   transmission = 0.1

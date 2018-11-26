@@ -21,7 +21,6 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
     
 //----------------------------------------
 
-//error in here?
     // Scale standard gaussian samples by standard deviation
     mf.mult(sqrt(variance), comp, 1, 0);
 

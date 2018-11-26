@@ -63,6 +63,7 @@ contains
 
             if(kappa(i,j,k) .ne. kappa(i,j,k)) then
                print *, "NAN! kappa ", i, j, k, prim(i,j,k,5)
+               call exit()
             endif
             !print *, eta(i,j,k), kappa(i,j,k)
 
