@@ -11,12 +11,12 @@ module stats_module
 
 contains
 
-  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, del1, del2, del3) bind(c,name='evaluate_means')
+  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, delHolder1, delHolder2, delHolder3) bind(c,name='evaluate_means')
 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: del1, del2, del3
+      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3))
 
       double precision, intent(inout   ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(inout   ) :: cumeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
@@ -25,7 +25,7 @@ contains
       double precision, intent(inout   ) :: primmeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
 
       !double precision fac1, fac2, fac3, test, pairfrac
-      integer i,j,k,l, cells, ti
+      integer i,j,k,l, cells, ti, jc, kc
       double precision stepsminusone, stepsinv, densitymeaninv, fracvec(nspecies), massvec(nspecies)
 
       stepsminusone = steps - 1
@@ -64,32 +64,42 @@ contains
   !    tj = 0
   !    tk = 0
 
+      do kc=0,n_cells(3)-1
+        do jc=1,n_cells(2)
+          
+          delholder1( (n_cells(2))*(kc) + jc) = 0
+          delholder2( (n_cells(2))*(kc) + jc) = 0
+          delholder3( (n_cells(2))*(kc) + jc) = 0
+
+        enddo
+      enddo     
+
       if((ti .ge. lo(1)) .and. (ti .le. hi(1))) then
-      
-        del1 = cu(ti,0,0,5)-cumeans(ti,0,0,5)
-        del2 = cu(ti,0,0,5)-cumeans(ti,0,0,5)
-        del3 = cu(ti,0,0,2)-cumeans(ti,0,0,2)
 
-      else
+        do k = lo(3), hi(3)
+         
+          do j = lo(2), hi(2)
 
-       del1 = 0    
-       del2 = 0
-       del3 = 0
-
+            delholder1((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
+            delholder2((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
+            delholder3((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,2)-cumeans(ti,j,k,2)
+ 
+          enddo
+        enddo
       endif
 
       !print *, "del2 in: ", del2
           
     end subroutine evaluate_means
 
-  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, del1, del2, del3) bind(c,name='evaluate_corrs')
+  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, delHolder1, delHolder2, delHolder3) bind(c,name='evaluate_corrs')
 
       !use iso_c_binding, only: c_ptr, c_int, c_f_pointer
 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: del1, del2, del3
+      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3))
 
       double precision, intent(inout   ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(inout   ) :: cumeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
@@ -157,9 +167,9 @@ contains
                             + qmean*(qmean*cuvars(i,j,k,1) - 2*primvars(i,j,k,nprimvars+3) + 2*primvars(i,j,k,nprimvars+4))))*stepsinv
 
 
-          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*del1)*stepsinv
-          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*del2)*stepsinv
-          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*del3)*stepsinv
+          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
+          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
+          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
 
         enddo
       enddo

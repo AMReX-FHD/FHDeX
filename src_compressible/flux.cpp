@@ -10,15 +10,15 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 	           const amrex::Real* dx, const amrex::Real dt)
 {
 
-    AMREX_D_TERM(flux[0].setVal(0.0);,
-                 flux[1].setVal(0.0);,
-                 flux[2].setVal(0.0););
+    AMREX_D_TERM(flux[0].setVal(0);,
+                 flux[1].setVal(0);,
+                 flux[2].setVal(0););
 
     for(int i=0;i<2;i++)
     {
-        MultiFABFillRandom(stochFlux[0], i, 1, geom);
-        MultiFABFillRandom(stochFlux[1], i, 1, geom);
-        MultiFABFillRandom(stochFlux[2], i, 1, geom);
+          MultiFABFillRandom(stochFlux[0], i, 1, geom);
+          MultiFABFillRandom(stochFlux[1], i, 1, geom);
+          MultiFABFillRandom(stochFlux[2], i, 1, geom);
     }
 
     // Loop over boxes

@@ -7,7 +7,7 @@
 using namespace common;
 
 
-void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& spatialCross, const int steps, const amrex::Real* dx)
+void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& spatialCross, Real* delHolder1, Real* delHolder2, Real* delHolder3, const int steps, const amrex::Real* dx)
 {
     double del1;
     double del2;
@@ -21,10 +21,11 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
                        cons[mfi].dataPtr(),  
                        consMean[mfi].dataPtr(),
                        prim[mfi].dataPtr(),
-                       primMean[mfi].dataPtr(), &steps, &del1, &del2, &del3);
+                       primMean[mfi].dataPtr(), &steps, delHolder1, delHolder2, delHolder3);
 
     }
 
+//    for(int j=0;j<n_cels
     ParallelDescriptor::ReduceRealSum(del1);
     ParallelDescriptor::ReduceRealSum(del2);
     ParallelDescriptor::ReduceRealSum(del3);
@@ -41,7 +42,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
                        primMean[mfi].dataPtr(),
                        primVar[mfi].dataPtr(),
                        spatialCross[mfi].dataPtr(),
-                       &steps, &del1, &del2, &del3);
+                       &steps, delHolder1, delHolder2, delHolder3);
 
     }
 

@@ -155,6 +155,10 @@ void main_driver(const char* argv)
     MultiFab primMeansAv(ba,dmap,nprimvars,ngc);
     MultiFab primVarsAv(ba,dmap,nprimvars + 5,ngc);
 
+    Real delHolder1[n_cells[1]*n_cells[2]];
+    Real delHolder2[n_cells[1]*n_cells[2]];
+    Real delHolder3[n_cells[1]*n_cells[2]];
+
     MultiFab spatialCross(ba,dmap,3,ngc);
 
     MultiFab spatialCrossAv(ba,dmap,3,ngc);
@@ -272,7 +276,7 @@ void main_driver(const char* argv)
 
         }
 
-        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, statsCount, dx);
+        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, delHolder1, delHolder2, delHolder3, statsCount,dx);
 
         statsCount++;
 
@@ -286,7 +290,7 @@ void main_driver(const char* argv)
 
            yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
 
-           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCross);
+           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv);
         }
 
         time = time + dt;
