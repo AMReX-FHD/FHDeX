@@ -43,11 +43,21 @@ contains
       double precision :: dxinv
 
       double precision :: tracer_visc_coef
+      double precision :: courant_number
 
       dxinv = 1.d0/dx(1)
       
       !! Coefficient of viscous term to reduce cell-reynolds number:
-      ! tracer_visc_coef = 0.05d0*(0.5d0*dx(1)*dx(1)/(AMREX_SPACEDIM*fixed_dt))
+      
+      ! Assumes u_max = 1.0
+      tracer_visc_coef = 1.1d0*(0.5d0*1.d0*dx(1))    ! To obey "cell Reynolds" restriction 
+
+      courant_number = AMREX_SPACEDIM*tracer_visc_coef*fixed_dt/(dx(1)*dx(1))
+      print*, "Hack: Tracer Courant Number", courant_number
+      
+      if (courant_number.gt.0.4d0) then
+         print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
+      endif
 
       !=============================
       ! fluxes and divergence
@@ -60,8 +70,8 @@ contains
          m_update(i,j) = -( m_fluxx + m_fluxy )
          
          !! Add viscous term
-         ! m_update(i,j) = m_update(i,j) &
-         !      + tracer_visc_coef*(dxinv**2)*(m(i-1,j)+m(i+1,j)+m(i,j-1)+m(i,j+1)-4.0d0*m(i,j))
+         m_update(i,j) = m_update(i,j) &
+              + tracer_visc_coef*(dxinv**2)*(m(i-1,j)+m(i+1,j)+m(i,j-1)+m(i,j+1)-4.0d0*m(i,j))
 
       end do
       end do
@@ -109,6 +119,7 @@ contains
       double precision :: dxinv
 
       dxinv = 1.d0/dx(1)
+      dxinv2 = dxinv*dxinv;
 
       !=============================
       ! fluxes and divergence
@@ -124,6 +135,21 @@ contains
       end do
       end do
       end do
+      
+      !! Add viscous term
+      !=============================
+      ! diffusion
+      !=============================
+      ! do k=lo(3),hi(3)
+      ! do j=lo(2),hi(2)
+      ! do i=lo(1),hi(1)
+      !    phi_lap = ....
+      !    phi_lap = (diff_coef*dxinv2)*phi_lap
+
+      !    m_update(i,j,k) = m_update(i,j,k) + phi_lap
+      ! end do
+      ! end do
+      ! end do
 
     end subroutine mk_advective_s_fluxdiv
     

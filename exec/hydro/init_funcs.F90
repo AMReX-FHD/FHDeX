@@ -111,7 +111,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
                       *(1d0+tanh(k2_inv*((width1/2.d0) - relpos(2))))
                  vel(i,j,k) = fun_ptrb
 
-                 vel(i,j,k) = 0.d0
+                 ! vel(i,j,k) = 0.d0
               end do
            end do
         end do
