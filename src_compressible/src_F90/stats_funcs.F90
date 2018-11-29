@@ -60,7 +60,7 @@ contains
         enddo
       enddo
 
-       ti = 9
+       ti = cross_cell
   !    tj = 0
   !    tk = 0
 

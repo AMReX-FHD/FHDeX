@@ -51,6 +51,7 @@
   bc_hi(1:3) = 2 -1 -1
 
   membrane_cell = -10
+  cross_cell = 9
   transmission = 0.1
 
   ! Temperature if thermal BC specified

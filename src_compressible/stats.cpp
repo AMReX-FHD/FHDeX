@@ -78,7 +78,7 @@ void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab
 
     // Loop over boxes
 
-    int three = 3; //Look up how to avoid this later?
+    int six = 6; //Look up how to avoid this later?
     int primVarsPlusFive = nprimvars + 5;
 
     for ( MFIter mfi(consMean); mfi.isValid(); ++mfi)
@@ -107,7 +107,7 @@ void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab
 
         multifab_yzav(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
                        spatialCross[mfi].dataPtr(),
-                       spatialCrossAv[mfi].dataPtr(), &three);
+                       spatialCrossAv[mfi].dataPtr(), &six);
 
     }
 

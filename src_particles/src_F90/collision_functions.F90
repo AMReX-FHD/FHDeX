@@ -426,7 +426,7 @@ contains
       enddo
     enddo
 
-       ti = 19
+       ti = cross_cell
   !    tj = 0
   !    tk = 0
 

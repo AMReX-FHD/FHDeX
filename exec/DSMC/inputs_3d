@@ -30,6 +30,8 @@
   rhobar(1:2) = 1. 1.
   rho0 = 1.
 
+  cross_cell = 19
+
   ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
   variance_coef_mom = 1.
   variance_coef_mass = 1.
