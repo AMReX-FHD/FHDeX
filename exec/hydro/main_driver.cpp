@@ -224,6 +224,10 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 3)
     mfluxdiv_predict[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
+    
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      mfluxdiv_predict[d].setVal(0.0);
+    }
 
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
     // Define mfluxdiv corrector multifabs
@@ -232,6 +236,10 @@ void main_driver(const char* argv)
 #if (AMREX_SPACEDIM == 3)
     mfluxdiv_correct[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
 #endif
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      mfluxdiv_correct[d].setVal(0.0);
+    }
 
     Vector< amrex::Real > weights;
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
@@ -366,17 +374,21 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
-    
-	// Fill stochastic terms
-	sMflux.fillMStochastic();
 
-	// compute stochastic force terms
-	sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	if(variance_coef_mom != 0.0) {
+    
+	  // Fill stochastic terms
+	  sMflux.fillMStochastic();
+
+	  // compute stochastic force terms
+	  sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	  sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	
-	// Advance umac
-        advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-		alpha_fc,beta,gamma,beta_ed,geom,dt);
+	  // Advance umac
+	  advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
+		  alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+	}
 	
 	//////////////////////////////////////////////////
 	

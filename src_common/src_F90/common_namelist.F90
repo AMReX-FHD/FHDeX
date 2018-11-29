@@ -14,7 +14,7 @@ module common_namelist_module
   integer,            save :: max_grid_size(AMREX_SPACEDIM)
   double precision,   save :: cell_depth
 
-  integer,            save :: ngc(3)
+  integer,            save :: ngc(AMREX_SPACEDIM)
   integer,            save :: nvars
   integer,            save :: nprimvars
   integer,            save :: membrane_cell
@@ -220,6 +220,7 @@ contains
     ! default values
     prob_lo(:) = 0.d0
     prob_hi(:) = 1.d0
+    ngc(:) = 1
     n_cells(:) = 1
     max_grid_size(:) = 1
     cell_depth = 1.d0

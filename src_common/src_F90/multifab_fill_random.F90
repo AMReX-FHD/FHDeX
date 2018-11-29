@@ -74,6 +74,8 @@ contains
 
     end subroutine multifab_fill_random
 
+#endif
+
     subroutine multifab_fill_random_hack(lo,hi, &
                                     mf,mflo,mfhi, &
                                     ncomp,comp, mytop, mybottom) bind(C,name="multifab_fill_random_hack")
@@ -108,7 +110,6 @@ contains
       end do
 
     end subroutine multifab_fill_random_hack
-    
-#endif
+   
 
 end module multifab_fill_random_module
