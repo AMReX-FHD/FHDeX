@@ -87,7 +87,7 @@ public:
     void EvaluateStats(
                               MultiFab& particleInstant,
                               MultiFab& particleMeans,
-                              MultiFab& particleVars,
+                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
                               MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);

@@ -7,8 +7,10 @@
 #include "FhdParticleContainer.H"
 #include "particle_functions_F.H"
 #include "rng_functions_F.H"
+#include "common_namespace.H"
 
 using namespace amrex;
+using namespace common;
 
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
@@ -328,7 +330,8 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
 void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleInstant,
                               MultiFab& particleMeans,
-                              MultiFab& particleVars,
+                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
+
                               MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps)
@@ -341,6 +344,9 @@ void FhdParticleContainer::EvaluateStats(
     double del1 = 0;
     double del2 = 0;
     double del3 = 0;
+    double del4 = 0;
+    double del5 = 0;
+    double del6 = 0;
 
     double tp = 0;
     double te = 0;
@@ -396,13 +402,36 @@ void FhdParticleContainer::EvaluateStats(
 
                          BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
                         );
     }
 
-    ParallelDescriptor::ReduceRealSum(del1);
-    ParallelDescriptor::ReduceRealSum(del2);
-    ParallelDescriptor::ReduceRealSum(del3);
+    //this is a bit of a hack? Reduce real sum should work with vectors
+    for(int i=0;i<(n_cells[1]*n_cells[2]);i++)
+    {
+        //Fix to directly address array elements
+
+        del1 = delHolder1[i];
+        del2 = delHolder2[i];
+        del3 = delHolder3[i];
+        del4 = delHolder4[i];
+        del5 = delHolder5[i];
+        del6 = delHolder6[i];
+
+        ParallelDescriptor::ReduceRealSum(del1);
+        ParallelDescriptor::ReduceRealSum(del2);
+        ParallelDescriptor::ReduceRealSum(del3);
+        ParallelDescriptor::ReduceRealSum(del4);
+        ParallelDescriptor::ReduceRealSum(del5);
+        ParallelDescriptor::ReduceRealSum(del6);
+
+        delHolder1[i] = del1;
+        delHolder2[i] = del2;
+        delHolder3[i] = del3;
+        delHolder4[i] = del4;
+        delHolder5[i] = del5;
+        delHolder6[i] = del6;
+    }
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -426,7 +455,7 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleMeans[pti]),
                          BL_TO_FORTRAN_3D(particleVars[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
                         );
     }
 

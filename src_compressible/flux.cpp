@@ -17,8 +17,8 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
     for(int i=0;i<2;i++)
     {
           MultiFABFillRandom(stochFlux[0], i, 1, geom);
-          MultiFABFillRandom(stochFlux[1], i, 1, geom);
-          MultiFABFillRandom(stochFlux[2], i, 1, geom);
+          //MultiFABFillRandom(stochFlux[1], i, 1, geom);
+          //MultiFABFillRandom(stochFlux[2], i, 1, geom);
     }
 
     // Loop over boxes

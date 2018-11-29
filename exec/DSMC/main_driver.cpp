@@ -236,8 +236,18 @@ void main_driver(const char* argv)
     //SpatialCross1
     //SpatialCross2
     //SpatialCross3
+    //SpatialCross4
+    //SpatialCross5
+    //SpatialCross6
     
-    MultiFab particleVars(bc, dmap, 18, 0);
+    MultiFab particleVars(bc, dmap, 21, 0);
+
+    Real delHolder1[n_cells[1]*n_cells[2]];
+    Real delHolder2[n_cells[1]*n_cells[2]];
+    Real delHolder3[n_cells[1]*n_cells[2]];
+    Real delHolder4[n_cells[1]*n_cells[2]];
+    Real delHolder5[n_cells[1]*n_cells[2]];
+    Real delHolder6[n_cells[1]*n_cells[2]];
 
 
     MultiFab particleMembraneFlux(bc, dmap, 1, 0);
@@ -329,7 +339,7 @@ void main_driver(const char* argv)
         }
 
        
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, particleMembraneFlux, cellVols, nitrogen, dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, nitrogen, dt,statsCount);
 
         statsCount++;
 

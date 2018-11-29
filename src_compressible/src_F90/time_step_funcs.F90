@@ -42,9 +42,9 @@ contains
 
                  cup(i,j,k,l) = cu(i,j,k,l)                                      &
                                 - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
+                                !- dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
+                                !- dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
                                 + dt*source(i,j,k,l)
 
@@ -89,9 +89,9 @@ contains
 
                  cup2(i,j,k,l) =  0.25d0*(3.0d0*cu(i,j,k,l) + cup(i,j,k,l)              &
                                 - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
+                                !- dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
+                                !- dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
                                 + dt*source(i,j,k,l))
 
@@ -136,9 +136,9 @@ contains
 
                  cu(i,j,k,l) =  twothirds*(0.5*cu(i,j,k,l) + cup2(i,j,k,l)              &
                                 - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
+                                !- dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
+                                !- dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
                                 + dt*source(i,j,k,l))
 

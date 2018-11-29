@@ -65,6 +65,7 @@ void main_driver(const char* argv)
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
         }
+        //is_periodic[i] = 0;
     }
 
 
@@ -158,10 +159,13 @@ void main_driver(const char* argv)
     Real delHolder1[n_cells[1]*n_cells[2]];
     Real delHolder2[n_cells[1]*n_cells[2]];
     Real delHolder3[n_cells[1]*n_cells[2]];
+    Real delHolder4[n_cells[1]*n_cells[2]];
+    Real delHolder5[n_cells[1]*n_cells[2]];
+    Real delHolder6[n_cells[1]*n_cells[2]];
 
-    MultiFab spatialCross(ba,dmap,3,ngc);
+    MultiFab spatialCross(ba,dmap,6,ngc);
 
-    MultiFab spatialCrossAv(ba,dmap,3,ngc);
+    MultiFab spatialCrossAv(ba,dmap,6,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -248,12 +252,6 @@ void main_driver(const char* argv)
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
     statsCount = 1;
 
-    //double* test;
-
-    //test = new double[nvars];
-
-    //test[10] = 1.0;    
-
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
@@ -273,10 +271,9 @@ void main_driver(const char* argv)
             statsCount = 1;
 
             dt = 2.0*dt;
-
         }
 
-        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, delHolder1, delHolder2, delHolder3, statsCount,dx);
+        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount,dx);
 
         statsCount++;
 
