@@ -1,7 +1,7 @@
 module stats_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, hcv
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, hcv, cross_cell
   use conv_module
   implicit none
 
@@ -83,6 +83,8 @@ contains
          
           do j = lo(2), hi(2)
 
+            !print *,  (n_cells(2))*(k) + (j+1)
+  
             delholder1((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
             delholder2((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
             delholder3((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,2)-cumeans(ti,j,k,2)
@@ -173,6 +175,8 @@ contains
                             + qmean*(qmean*cuvars(i,j,k,1) - 2*primvars(i,j,k,nprimvars+3) + 2*primvars(i,j,k,nprimvars+4))))*stepsinv
 
           deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
+
+          !print *, (n_cells(2))*(k) + (j+1), k, j
 
           spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
           spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv

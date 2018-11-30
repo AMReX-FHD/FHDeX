@@ -19,7 +19,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     : ParticleContainer<RealData::ncomps, IntData::ncomps> (geom, dmap, ba)
 {}
 
-void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
+void FhdParticleContainer::InitParticles(species particleInfo)
 {
     
     const int lev = 0;
@@ -42,21 +42,30 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
         const int tile_id = mfi.LocalTileIndex();
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
-            for (int i_part=0; i_part<ppc;i_part++) {
+        //Assuming tile=box for now, i.e. no tiling.
+        IntVect smallEnd = tile_box.smallEnd();
+        IntVect bigEnd = tile_box.bigEnd();       
+
+        //for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        //{
+            for (int i_part=0; i_part<particleInfo.ppb;i_part++) {
                 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = plo[0] + (iv[0]+get_uniform_func())*dx[0];
-                p.pos(1) = plo[1] + (iv[1]+get_uniform_func())*dx[1];
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]);
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = plo[2] + (iv[2]+get_uniform_func())*dx[2];
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]);
 #endif
 
+                p.rdata(RealData::ox) = p.pos(0);
+                p.rdata(RealData::oy) = p.pos(1);
+#if (BL_SPACEDIM == 3)
+                p.rdata(RealData::oz) = p.pos(2);
+#endif
 
                 p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
@@ -92,11 +101,11 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
                 //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
                 p.rdata(RealData::propulsion) = 0;
 
-                AMREX_ASSERT(this->Index(p, lev) == iv);
+                //AMREX_ASSERT(this->Index(p, lev) == iv);
                 
                 particle_tile.push_back(p);
             }
-        }
+        //}
     }
 
     Print() << "Initial energy: " << totalEnergy << "\n";
@@ -237,6 +246,8 @@ void FhdParticleContainer::InitCollisionCells(
                               MultiFab& collisionFactor, 
                               MultiFab& cellVols, const species particleInfo, const Real delt)
 {
+
+    UpdateCellVectors();
     const int lev = 0;
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 

@@ -39,6 +39,11 @@ void InitializeCommonNamespace() {
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     density_weights.resize(MAX_SPECIES);
     shift_cc_to_boundary.resize(AMREX_SPACEDIM*LOHI);
+
+    mass.resize(MAX_SPECIES);
+    nfrac.resize(MAX_SPECIES);
+    particle_count.resize(MAX_SPECIES);
+    particle_n0.resize(MAX_SPECIES);
     
     initialize_common_namespace(prob_lo.dataPtr(), prob_hi.dataPtr(), n_cells.dataPtr(),
                                 max_grid_size.dataPtr(), &cell_depth, ngc.getVect(), &nvars, &nprimvars, &membrane_cell, &cross_cell, &transmission, &fixed_dt, &cfl, &max_step,
@@ -60,7 +65,7 @@ void InitializeCommonNamespace() {
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 &struct_fact_int, &n_steps_skip,
                                 &histogram_unit,
-                                density_weights.dataPtr(), shift_cc_to_boundary.dataPtr());
+                                density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(), &particle_placement, particle_count.dataPtr(), &particle_neff, particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr());
 
 }
 

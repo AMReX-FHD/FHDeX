@@ -302,15 +302,18 @@ contains
         do j = lo(2),hi(2)
           do i = lo(1)-1,hi(1)
 
-            do l = 1,nvars             
-               conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l)) 
+            do l = 1,nprimvars             
+               !conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l))
+                primitive(l) = wgt1*(prim(i+1,j,k,l)+prim(i,j,k,l)) -wgt2*(prim(i-1,j,k,l)+prim(i+2,j,k,l))  
             enddo
   
-            primitive(2) = conserved(2)/conserved(1)
-            primitive(3) = conserved(3)/conserved(1)
-            primitive(4) = conserved(4)/conserved(1)
+            !primitive(2) = conserved(2)/conserved(1)
+            !primitive(3) = conserved(3)/conserved(1)
+            !primitive(4) = conserved(4)/conserved(1)
 
-            primitive(6) = wgt1*(prim(i+1,j,k,6)+prim(i,j,k,6)) -wgt2*(prim(i-1,j,k,6)+prim(i+2,j,k,6))  !directly interpolate pressure because reasons.
+            !primitive(6) = wgt1*(prim(i+1,j,k,6)+prim(i,j,k,6)) -wgt2*(prim(i-1,j,k,6)+prim(i+2,j,k,6))  !directly interpolate pressure because reasons.
+            conserved(1) = wgt1*(cons(i+1,j,k,1)+cons(i,j,k,1)) -wgt2*(cons(i-1,j,k,1)+cons(i+2,j,k,1))  !directly interpolate pressure because reasons.
+            conserved(5) = wgt1*(cons(i+1,j,k,5)+cons(i,j,k,5)) -wgt2*(cons(i-1,j,k,5)+cons(i+2,j,k,5))  !directly interpolate pressure because reasons.
 
             !vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2  !These lines were included when experimenting with different kinds of interpolation.
             !intenergy = conserved(5) - 0.5*vsqr*conserved(1)

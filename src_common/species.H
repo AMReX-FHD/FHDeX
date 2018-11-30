@@ -4,6 +4,8 @@
 typedef struct {
 
   int type;
+  int total;
+  int ppb;
   double m;
   double d;
   double T;

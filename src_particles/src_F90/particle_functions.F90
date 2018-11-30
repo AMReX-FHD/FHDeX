@@ -26,8 +26,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   type(surface_t), pointer :: surf
   real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx
 
-  !adj = 0.99999999
-  adj = 0.999999
+  adj = 0.9999999
   adjalt = 2d0*(1d0 - adj)
 
   inv_dx = 1.d0/dx

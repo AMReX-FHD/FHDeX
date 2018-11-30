@@ -102,10 +102,6 @@ void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab
                        primVarAv[mfi].dataPtr(), &nprimvars);
 
         multifab_yzav(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-                       primVar[mfi].dataPtr(),
-                       primVarAv[mfi].dataPtr(), &primVarsPlusFive);
-
-        multifab_yzav(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
                        spatialCross[mfi].dataPtr(),
                        spatialCrossAv[mfi].dataPtr(), &six);
 

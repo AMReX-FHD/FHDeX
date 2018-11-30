@@ -76,7 +76,7 @@ void WritePlotFile(int step,
     cvarNames[39] = "Energy-energyCross";
     cvarNames[40] = "Momentum-densityCross";
     cvarNames[38] = "Temperature-densityCross";
-    cvarNames[39] = "Temperature-energyCross";
+    cvarNames[39] = "Temperature-temperatueCross";
     cvarNames[40] = "velocity-densityCross";
 
     cplotfile.mult(0.001,2,1);    //cgs coords density

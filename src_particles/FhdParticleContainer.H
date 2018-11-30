@@ -59,7 +59,7 @@ public:
                                   const DistributionMapping & dmap,
                                   const BoxArray            & ba);
 
-    void InitParticles(const int ppc, species particleInfo);
+    void InitParticles(species particleInfo);
     //void InitParticles(const IntVect& a_num_particles_per_cell);
 
     void updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,

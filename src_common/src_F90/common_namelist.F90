@@ -78,6 +78,14 @@ module common_namelist_module
   double precision,   save :: hcv(MAX_SPECIES)
   double precision,   save :: hcp(MAX_SPECIES)
 
+  double precision,   save :: mass(MAX_SPECIES)
+  double precision,   save :: nfrac(MAX_SPECIES)
+
+  integer,            save :: particle_placement  
+  integer,            save :: particle_count(MAX_SPECIES)
+  double precision,   save :: particle_n0(MAX_SPECIES)
+  double precision,   save :: particle_neff
+
   
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
@@ -93,6 +101,14 @@ module common_namelist_module
   namelist /common/ membrane_cell  !location of membrane
   namelist /common/ cross_cell     !cell to compute spatial correlation
   namelist /common/ transmission 
+
+  namelist /common/ mass
+  namelist /common/ nfrac
+
+  namelist /common/ particle_placement  
+  namelist /common/ particle_count
+  namelist /common/ particle_n0
+  namelist /common/ particle_neff
 
 
   ! Time-step control
@@ -312,8 +328,18 @@ contains
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          struct_fact_int_in, n_steps_skip_in, &
                                          histogram_unit_in, density_weights_in, &
-                                         shift_cc_to_boundary_in) &
+                                         shift_cc_to_boundary_in, &
+                                         particle_placement_in, particle_count_in, particle_neff_in, particle_n0_in, mass_in, nfrac_in) &
                                          bind(C, name="initialize_common_namespace")
+
+
+    double precision,       intent(inout) :: mass_in(MAX_SPECIES)
+    double precision,       intent(inout) :: nfrac_in(MAX_SPECIES)
+    double precision,       intent(inout) :: particle_n0_in(MAX_SPECIES)
+    double precision,       intent(inout) :: particle_neff_in
+    integer,                intent(inout) :: particle_count_in(MAX_SPECIES)
+    integer,                intent(inout) :: particle_placement_in
+
 
     double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
@@ -454,6 +480,13 @@ contains
     histogram_unit_in = histogram_unit
     density_weights_in = density_weights
     shift_cc_to_boundary_in = shift_cc_to_boundary
+
+    mass_in = mass
+    nfrac_in = nfrac
+    particle_n0_in = particle_n0
+    particle_neff_in = particle_neff
+    particle_count_in = particle_count
+    particle_placement_in = particle_placement
 
   end subroutine initialize_common_namespace
 
