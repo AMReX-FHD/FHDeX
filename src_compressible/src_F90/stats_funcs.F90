@@ -1,7 +1,7 @@
 module stats_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, hcv
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, hcv, cross_cell
   use conv_module
   implicit none
 
@@ -11,12 +11,12 @@ module stats_module
 
 contains
 
-  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, delHolder1, delHolder2, delHolder3) bind(c,name='evaluate_means')
+  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6) bind(c,name='evaluate_means')
 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3))
+      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3))
 
       double precision, intent(inout   ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(inout   ) :: cumeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
@@ -60,7 +60,7 @@ contains
         enddo
       enddo
 
-       ti = 9
+       ti = cross_cell
   !    tj = 0
   !    tk = 0
 
@@ -70,6 +70,9 @@ contains
           delholder1( (n_cells(2))*(kc) + jc) = 0
           delholder2( (n_cells(2))*(kc) + jc) = 0
           delholder3( (n_cells(2))*(kc) + jc) = 0
+          delholder4( (n_cells(2))*(kc) + jc) = 0
+          delholder5( (n_cells(2))*(kc) + jc) = 0
+          delholder6( (n_cells(2))*(kc) + jc) = 0
 
         enddo
       enddo     
@@ -80,9 +83,14 @@ contains
          
           do j = lo(2), hi(2)
 
+            !print *,  (n_cells(2))*(k) + (j+1)
+  
             delholder1((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
             delholder2((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
             delholder3((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,2)-cumeans(ti,j,k,2)
+            delholder4((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,5)-primmeans(ti,j,k,5)
+            delholder5((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,5)-primmeans(ti,j,k,5)
+            delholder6((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,2)-primmeans(ti,j,k,2)
  
           enddo
         enddo
@@ -92,14 +100,14 @@ contains
           
     end subroutine evaluate_means
 
-  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, delHolder1, delHolder2, delHolder3) bind(c,name='evaluate_corrs')
+  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6) bind(c,name='evaluate_corrs')
 
       !use iso_c_binding, only: c_ptr, c_int, c_f_pointer
 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3))
+      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3))
 
       double precision, intent(inout   ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(inout   ) :: cumeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
@@ -109,10 +117,10 @@ contains
       double precision, intent(inout   ) :: primmeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
       double precision, intent(inout   ) :: primvars(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars + 5)
 
-      double precision, intent(inout   ) :: spatialcross(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 3)
+      double precision, intent(inout   ) :: spatialcross(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 6)
 
       integer i,j,k,l
-      double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
+      double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp
 
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
@@ -166,10 +174,16 @@ contains
           primvars(i,j,k,5) = (primvars(i,j,k,5)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*(cuvars(i,j,k,5) + primvars(i,j,k,nprimvars+1) - 2*primvars(i,j,k,nprimvars+2) &
                             + qmean*(qmean*cuvars(i,j,k,1) - 2*primvars(i,j,k,nprimvars+3) + 2*primvars(i,j,k,nprimvars+4))))*stepsinv
 
+          deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
+
+          !print *, (n_cells(2))*(k) + (j+1), k, j
 
           spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
           spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
           spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
+          spatialcross(i,j,k,4) = (spatialcross(i,j,k,4)*stepsminusone + deltemp*delholder4((n_cells(2))*(k) + (j+1)))*stepsinv
+          spatialcross(i,j,k,5) = (spatialcross(i,j,k,5)*stepsminusone + delrho*delholder5((n_cells(2))*(k) + (j+1)))*stepsinv
+          spatialcross(i,j,k,6) = (spatialcross(i,j,k,6)*stepsminusone + delrho*delholder6((n_cells(2))*(k) + (j+1)))*stepsinv
 
         enddo
       enddo

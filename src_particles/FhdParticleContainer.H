@@ -59,7 +59,7 @@ public:
                                   const DistributionMapping & dmap,
                                   const BoxArray            & ba);
 
-    void InitParticles(const int ppc, species particleInfo);
+    void InitParticles(species particleInfo);
     //void InitParticles(const IntVect& a_num_particles_per_cell);
 
     void updateParticles(const Real dt, const Real* dx, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
@@ -87,7 +87,7 @@ public:
     void EvaluateStats(
                               MultiFab& particleInstant,
                               MultiFab& particleMeans,
-                              MultiFab& particleVars,
+                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
                               MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);

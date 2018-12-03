@@ -22,7 +22,7 @@ void WritePlotFile(int step,
 
  
 //    int cnPlot = 40;
-    int cnPlot = 41;
+    int cnPlot = 44;
 
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
@@ -30,7 +30,7 @@ void WritePlotFile(int step,
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
-    amrex::MultiFab::Copy(cplotfile,particleVars,0,23,18,0);
+    amrex::MultiFab::Copy(cplotfile,particleVars,0,23,21,0);
 
     cvarNames[0] = "membersInstant";
     cvarNames[1] = "densityInstant";
@@ -75,6 +75,9 @@ void WritePlotFile(int step,
     cvarNames[38] = "Energy-densityCross";
     cvarNames[39] = "Energy-energyCross";
     cvarNames[40] = "Momentum-densityCross";
+    cvarNames[38] = "Temperature-densityCross";
+    cvarNames[39] = "Temperature-temperatueCross";
+    cvarNames[40] = "velocity-densityCross";
 
     cplotfile.mult(0.001,2,1);    //cgs coords density
     cplotfile.mult(0.001,12,1);
@@ -111,7 +114,11 @@ void WritePlotFile(int step,
 
     cplotfile.mult(10*0.001,38,1); //cgscoords energy/density cross
     cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
-    cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
+    cplotfile.mult(0.1*0.001,40,1); //cgscoords momentum/density cross
+
+    cplotfile.mult(1*0.001,38,1); //cgscoords temperature/density cross
+    cplotfile.mult(1,39,1); //cgscoords temperature/temperature cross
+    cplotfile.mult(100*0.001,40,1); //cgscoords velocity/density cross
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 

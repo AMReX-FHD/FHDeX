@@ -78,3 +78,12 @@ int                        common::n_steps_skip;
 int                        common::histogram_unit;
 amrex::Vector<amrex::Real> common::density_weights;
 amrex::Vector<int>         common::shift_cc_to_boundary;
+
+int                        common::particle_placement;
+amrex::Vector<int>         common::particle_count;
+amrex::Real                common::particle_neff;
+amrex::Vector<amrex::Real> common::particle_n0;
+amrex::Vector<amrex::Real> common::mass;
+amrex::Vector<amrex::Real> common::nfrac;
+
+

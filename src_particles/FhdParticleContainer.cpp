@@ -7,8 +7,10 @@
 #include "FhdParticleContainer.H"
 #include "particle_functions_F.H"
 #include "rng_functions_F.H"
+#include "common_namespace.H"
 
 using namespace amrex;
+using namespace common;
 
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
@@ -17,7 +19,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     : ParticleContainer<RealData::ncomps, IntData::ncomps> (geom, dmap, ba)
 {}
 
-void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
+void FhdParticleContainer::InitParticles(species particleInfo)
 {
     
     const int lev = 0;
@@ -40,21 +42,30 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
         const int tile_id = mfi.LocalTileIndex();
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
-            for (int i_part=0; i_part<ppc;i_part++) {
+        //Assuming tile=box for now, i.e. no tiling.
+        IntVect smallEnd = tile_box.smallEnd();
+        IntVect bigEnd = tile_box.bigEnd();       
+
+        //for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        //{
+            for (int i_part=0; i_part<particleInfo.ppb;i_part++) {
                 
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = plo[0] + (iv[0]+get_uniform_func())*dx[0];
-                p.pos(1) = plo[1] + (iv[1]+get_uniform_func())*dx[1];
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]);
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = plo[2] + (iv[2]+get_uniform_func())*dx[2];
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]);
 #endif
 
+                p.rdata(RealData::ox) = p.pos(0);
+                p.rdata(RealData::oy) = p.pos(1);
+#if (BL_SPACEDIM == 3)
+                p.rdata(RealData::oz) = p.pos(2);
+#endif
 
                 p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
@@ -90,11 +101,11 @@ void FhdParticleContainer::InitParticles(const int ppc, species particleInfo)
                 //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
                 p.rdata(RealData::propulsion) = 0;
 
-                AMREX_ASSERT(this->Index(p, lev) == iv);
+                //AMREX_ASSERT(this->Index(p, lev) == iv);
                 
                 particle_tile.push_back(p);
             }
-        }
+        //}
     }
 
     Print() << "Initial energy: " << totalEnergy << "\n";
@@ -235,6 +246,8 @@ void FhdParticleContainer::InitCollisionCells(
                               MultiFab& collisionFactor, 
                               MultiFab& cellVols, const species particleInfo, const Real delt)
 {
+
+    UpdateCellVectors();
     const int lev = 0;
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
@@ -328,7 +341,8 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
 void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleInstant,
                               MultiFab& particleMeans,
-                              MultiFab& particleVars,
+                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
+
                               MultiFab& particleMembraneFlux,
 
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps)
@@ -341,6 +355,9 @@ void FhdParticleContainer::EvaluateStats(
     double del1 = 0;
     double del2 = 0;
     double del3 = 0;
+    double del4 = 0;
+    double del5 = 0;
+    double del6 = 0;
 
     double tp = 0;
     double te = 0;
@@ -396,13 +413,36 @@ void FhdParticleContainer::EvaluateStats(
 
                          BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
                         );
     }
 
-    ParallelDescriptor::ReduceRealSum(del1);
-    ParallelDescriptor::ReduceRealSum(del2);
-    ParallelDescriptor::ReduceRealSum(del3);
+    //this is a bit of a hack? Reduce real sum should work with vectors
+    for(int i=0;i<(n_cells[1]*n_cells[2]);i++)
+    {
+        //Fix to directly address array elements
+
+        del1 = delHolder1[i];
+        del2 = delHolder2[i];
+        del3 = delHolder3[i];
+        del4 = delHolder4[i];
+        del5 = delHolder5[i];
+        del6 = delHolder6[i];
+
+        ParallelDescriptor::ReduceRealSum(del1);
+        ParallelDescriptor::ReduceRealSum(del2);
+        ParallelDescriptor::ReduceRealSum(del3);
+        ParallelDescriptor::ReduceRealSum(del4);
+        ParallelDescriptor::ReduceRealSum(del5);
+        ParallelDescriptor::ReduceRealSum(del6);
+
+        delHolder1[i] = del1;
+        delHolder2[i] = del2;
+        delHolder3[i] = del3;
+        delHolder4[i] = del4;
+        delHolder5[i] = del5;
+        delHolder6[i] = del6;
+    }
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -426,7 +466,7 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleMeans[pti]),
                          BL_TO_FORTRAN_3D(particleVars[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, &del1, &del2, &del3
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
                         );
     }
 

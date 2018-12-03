@@ -134,8 +134,6 @@ void main_driver(const char* argv)
     int totalCollisionCells = (lims[0]+1)*(lims[1]+1)*(lims[2]+1);
 #endif
 
-    species activeParticle;
-
 #if (AMREX_SPACEDIM == 2)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*cell_depth;
 #endif
@@ -143,51 +141,63 @@ void main_driver(const char* argv)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 #endif
 
-    //1 micron particles with density of gold
-       
-    activeParticle.m = 1.5158e-8;
-    activeParticle.d = 1e-6;        
-    activeParticle.n0 = 200/domainVol;
-    activeParticle.propulsion = 0;
+    species activeParticle[nspecies];
 
-    activeParticle.gamma1 = 1.27;
-    activeParticle.R = 1.3806E-23/activeParticle.m;
-    activeParticle.T = 273;
-    //nitrogen.mu = 2.1E-5;
-    //nitrogen.d = sqrt((nitrogen.gamma1*nitrogen.m*sqrt(nitrogen.R*nitrogen.T))/(4*sqrt(3.14159265359)*nitrogen.mu));
-    //nitrogen.d = 3.66e-10;        
+    double realParticles = 0;
+    double simParticles = 0;
 
-    //nitrogen.mfp = (6.26e-8);
+    for(int i=0;i<nspecies;i++)
+    {       
+        activeParticle[i].m = mass[i];
+        activeParticle[i].d = diameter[i];
 
-    //nitrogen.n0 = 1.0/(sqrt(2)*3.14159265359*nitrogen.d*nitrogen.d*nitrogen.mfp);
+        if(particle_count[i] >= 0)
+        {
+            activeParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
 
-    //nitrogen.n0 = 1.78/nitrogen.m;
+            activeParticle[i].total = activeParticle[i].ppb*ba.size();
 
-    //Print() << nitrogen.n0*nitrogen.m << "\n";
+            activeParticle[i].n0 = activeParticle[i].total/domainVol;
 
-    //nitrogen.P = nitrogen.R*nitrogen.m*nitrogen.n0*nitrogen.T;
+            Print() << "Species " << i << " count adjusted to " << activeParticle[i].total << "\n";
 
-    //nitrogen.cp = sqrt(2.0*nitrogen.R*nitrogen.T);
+        }else
+        {
+            activeParticle[i].n0 = particle_n0[i];
+            activeParticle[i].total = (int)ceil(activeParticle[i].n0*domainVol/particle_neff);
 
-    double realParticles = domainVol*activeParticle.n0;
+            activeParticle[i].ppb = (int)ceil((double)activeParticle[i].total/(double)ba.size());
 
-    Print() << "Real particles: " << realParticles << "\n";
+            activeParticle[i].total = activeParticle[i].ppb*ba.size();
 
-    activeParticle.Neff = 1;
-    const int totalParticles = realParticles;
+            activeParticle[i].n0 = activeParticle[i].total/domainVol;
 
-    const int ppc  = (int)ceil(((double)totalParticles)/((double)totalCollisionCells));
-    const int ppb = (int)ceil(((double)totalParticles)/((double)ba.size()));
+            Print() << "Species " << i << " n0 adjusted to " << activeParticle[i].n0 << "\n";
+        }
 
-    Print() << "Total particles: " << totalParticles << "\n";
-    Print() << "Particles per box: " << ppb << "\n";
+        Print() << "Species " << i << " particles per box: " <<  activeParticle[i].ppb << "\n";
+
+        realParticles = realParticles + activeParticle[i].total;
+        simParticles = simParticles + activeParticle[i].total*particle_neff;
+
+        activeParticle[i].Neff = particle_neff;
+
+        activeParticle[i].propulsion = 0;
+
+        activeParticle[i].gamma1 = 1.27;
+        activeParticle[i].R = k_B/activeParticle[i].m;
+        activeParticle[i].T = 273;
+    }
+
+    
+
+    Print() << "Total real particles: " << realParticles << "\n";
+    Print() << "Total sim particles: " << simParticles << "\n";
+
+    Print() << "Sim particles per box: " << simParticles/(double)ba.size() << "\n";
 
     Print() << "Collision cells: " << totalCollisionCells << "\n";
-    Print() << "Particles per cell: " << ppc << "\n";
-
-    Print() << "rho0: " << activeParticle.m*activeParticle.n0 << "\n";
-    Print() << "Adjusted rho0: " << activeParticle.m*activeParticle.Neff*totalParticles/domainVol << "\n";
-
+    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
     MultiFab collisionPairs(bc, dmap, 1, 0);    
     MultiFab collisionFactor(bc, dmap, 1, 0);
@@ -244,8 +254,19 @@ void main_driver(const char* argv)
     //SpatialCross1
     //SpatialCross2
     //SpatialCross3
+    //SpatialCross4
+    //SpatialCross5
+    //SpatialCross6
+
     
-    MultiFab particleVars(bc, dmap, 18, 0);
+    MultiFab particleVars(bc, dmap, 21, 0);
+
+    Real delHolder1[n_cells[1]*n_cells[2]];
+    Real delHolder2[n_cells[1]*n_cells[2]];
+    Real delHolder3[n_cells[1]*n_cells[2]];
+    Real delHolder4[n_cells[1]*n_cells[2]];
+    Real delHolder5[n_cells[1]*n_cells[2]];
+    Real delHolder6[n_cells[1]*n_cells[2]];
 
     particleInstant.setVal(0.0);
     particleMeans.setVal(0.0);
@@ -525,12 +546,12 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
-    particles.InitParticles(ppc, activeParticle);
+    particles.InitParticles(activeParticle[0]);
 
-    particles.InitializeFields(particleInstant, cellVols, activeParticle);
+    //particles.InitializeFields(particleInstant, cellVols, activeParticle[0]);
 
     //setup initial DSMC collision parameters
-    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle, dt);
+    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
 
 
     // write out initial state
@@ -580,7 +601,7 @@ void main_driver(const char* argv)
 
         particles.ReBin();
 
-        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, activeParticle, dt);
+        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
 
         if(step == n_steps_skip)
         {
@@ -589,7 +610,7 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
        
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, particleMembraneFlux, cellVols, activeParticle, dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, activeParticle[0], dt,statsCount);
 
         statsCount++;
 

@@ -11,9 +11,9 @@
   cfl = 0.5
 
   ! Controls for number of steps between actions
-  max_step = 100000
-  plot_int = 10000
-  n_steps_skip = 8000000
+  max_step = 603000000
+  plot_int = 1000000
+  n_steps_skip = 3000000
 
   plot_base_name = "plt"
   chk_int = 0
@@ -29,6 +29,8 @@
   molmass(1:2) = 1. 1.
   rhobar(1:2) = 1. 1.
   rho0 = 1.
+
+  cross_cell = 19
 
   ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
   variance_coef_mom = 1.

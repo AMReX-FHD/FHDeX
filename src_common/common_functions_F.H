@@ -47,7 +47,8 @@ extern "C"
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
                                      int* struct_fact_int, int* n_steps_skip,
                                      int* histogram_unit, amrex::Real* density_weights,
-                                     int* shift_cc_to_boundary);
+                                     int* shift_cc_to_boundary,
+                                     int* particle_placement, int* particle_count, amrex::Real* particle_neff, amrex::Real* particle_n0, amrex::Real* mass, amrex::Real* nfrac);
 ///////////////////////////
 
 ///////////////////////////

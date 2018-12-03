@@ -145,5 +145,12 @@ namespace common {
     extern int                        histogram_unit;
     extern amrex::Vector<amrex::Real> density_weights;
     extern amrex::Vector<int>         shift_cc_to_boundary;
+
+    extern int                        particle_placement;
+    extern amrex::Vector<int>         particle_count;
+    extern amrex::Real                particle_neff;
+    extern amrex::Vector<amrex::Real> particle_n0;
+    extern amrex::Vector<amrex::Real> mass;
+    extern amrex::Vector<amrex::Real> nfrac;
 }
 
