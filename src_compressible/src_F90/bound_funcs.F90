@@ -148,13 +148,17 @@ contains
                 zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
                 kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
+                cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
+                cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
+                cons(lo(1)-i,j,k,3) = -cons(lo(1)-1+i,j,k,3) 
+                cons(lo(1)-i,j,k,4) = -cons(lo(1)-1+i,j,k,4)
+
                 prim(lo(1)-i,j,k,1) = prim(lo(1)-1+i,j,k,1)
                 prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2) 
                 prim(lo(1)-i,j,k,3) = -prim(lo(1)-1+i,j,k,3) 
                 prim(lo(1)-i,j,k,4) = -prim(lo(1)-1+i,j,k,4)
                 prim(lo(1)-i,j,k,5) = -prim(lo(1)-1+i,j,k,5) + 2*t_lo(1)
                 prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
-
 
                 do l = 1, nspecies
                   cons(lo(1)-i,j,k,5+l) = cons(lo(1)-1+i,j,k,5+l)
@@ -165,7 +169,9 @@ contains
 
                 call get_energy(intenergy, massvec, prim(lo(1)-i,j,k,5))
 
-                cons(lo(1)-i,j,k,5) = intenergy + 0.5*cons(lo(1)-i,j,k,1)*(cons(lo(1)-i,j,k,2)**2 + cons(lo(1)-i,j,k,3)**2 + cons(lo(1)-i,j,k,4)**2)
+                !cons(lo(1)-i,j,k,5) = intenergy + 0.5*cons(lo(1)-i,j,k,1)*(cons(lo(1)-i,j,k,2)**2 + cons(lo(1)-i,j,k,3)**2 + cons(lo(1)-i,j,k,4)**2)
+
+                cons(lo(1)-i,j,k,5) = intenergy + 0.5*cons(lo(1)-i,j,k,1)*(prim(lo(1)-i,j,k,2)**2 + prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
 
               enddo
             enddo
@@ -240,7 +246,8 @@ contains
 
                 call get_energy(intenergy, massvec, prim(hi(1)+i,j,k,5))
 
-                cons(hi(1)+i,j,k,5) = intenergy + 0.5*cons(hi(1)+i,j,k,1)*(cons(hi(1)+i,j,k,2)**2 + cons(hi(1)+i,j,k,3)**2 + cons(hi(1)+i,j,k,4)**2)
+                !cons(hi(1)+i,j,k,5) = intenergy + 0.5*cons(hi(1)+i,j,k,1)*(cons(hi(1)+i,j,k,2)**2 + cons(hi(1)+i,j,k,3)**2 + cons(hi(1)+i,j,k,4)**2)
+                cons(hi(1)+i,j,k,5) = intenergy + 0.5*cons(hi(1)+i,j,k,1)*(prim(hi(1)+i,j,k,2)**2 + prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
 
 
               enddo
@@ -250,6 +257,8 @@ contains
 
         endif
       endif
+
+       !print *, "bc: ", prim(1,0,0,1), prim(0,0,0,1), prim(-2,0,0,1), prim(-1,0,0,1)
 
 
 !      if(lo(2) .eq. 0) then !lower y bound
@@ -317,6 +326,7 @@ contains
 !                call get_energy(intenergy, massvec, prim(i,lo(2)-j,k,5))
 
 !                cons(i,lo(2)-j,k,5) = intenergy + 0.5*cons(i,lo(2)-j,k,1)*(cons(i,lo(2)-j,k,2)**2 + cons(i,lo(2)-j,k,3)**2 + cons(i,lo(2)-j,k,4)**2)
+!                cons(i,lo(2)-j,k,5) = intenergy + 0.5*cons(i,lo(2)-j,k,1)*(prim(i,lo(2)-j,k,2)**2 + prim(i,lo(2)-j,k,3)**2 + prim(i,lo(2)-j,k,4)**2)
 
 
 !              enddo
@@ -392,6 +402,7 @@ contains
 !                call get_energy(intenergy, massvec, prim(i,hi(2)+j,k,5))
 
 !                cons(i,hi(2)+j,k,5) = intenergy + 0.5*cons(i,hi(2)+j,k,1)*(cons(i,hi(2)+j,k,2)**2 + cons(i,hi(2)+j,k,3)**2 + cons(i,hi(2)+j,k,4)**2)
+!                cons(i,hi(2)+j,k,5) = intenergy + 0.5*cons(i,hi(2)+j,k,1)*(prim(i,hi(2)+j,k,2)**2 + prim(i,hi(2)+j,k,3)**2 + prim(i,hi(2)+j,k,4)**2)
 
 
 !              enddo
@@ -467,6 +478,7 @@ contains
 !                call get_energy(intenergy, massvec, prim(i,j,lo(3)-k,5))
 
 !                cons(i,j,lo(3)-k,5) = intenergy + 0.5*cons(i,j,lo(3)-k,1)*(cons(i,j,lo(3)-k,2)**2 + cons(i,j,lo(3)-k,3)**2 + cons(i,j,lo(3)-k,4)**2)
+!                cons(i,j,lo(3)-k,5) = intenergy + 0.5*cons(i,j,lo(3)-k,1)*(prim(i,j,lo(3)-k,2)**2 + prim(i,j,lo(3)-k,3)**2 + prim(i,j,lo(3)-k,4)**2)
 
 
 !              enddo

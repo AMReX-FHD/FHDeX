@@ -79,8 +79,8 @@ void WritePlotFile(int step,
     varNames[32] = "Energy-energyCross";
     varNames[33] = "Momentum-densityCross";
 
-    varNames[34] = "Temperature-densityCross";
-    varNames[35] = "Temperature-temperatureCross";
+    varNames[34] = "Temperature-temperatureCross";
+    varNames[35] = "Temperature-densityCross";
     varNames[36] = "Velelocity-densityCross";
 
 

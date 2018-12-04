@@ -168,6 +168,8 @@ void main_driver(const char* argv)
     const int ppc  = (int)ceil(((double)totalParticles)/((double)totalCollisionCells));
     const int ppb = (int)ceil(((double)totalParticles)/((double)ba.size()));
 
+    nitrogen.ppb = ppb;    
+
     Print() << "Total particles: " << totalParticles << "\n";
     Print() << "Particles per box: " << ppb << "\n";
 
@@ -304,7 +306,7 @@ void main_driver(const char* argv)
     //Particles! Build on geom & box array for collision cells
     FhdParticleContainer particles(geomC, dmap, bc);
 
-    particles.InitParticles(ppc, nitrogen);
+    particles.InitParticles(nitrogen);
 
     //particles.UpdateCellVectors();
 
@@ -328,7 +330,7 @@ void main_driver(const char* argv)
         particles.ReBin();
     //    //particles.UpdateCellVectors();
 
-        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
         //if((step-10)%20000 == 0)
         if(step == n_steps_skip)

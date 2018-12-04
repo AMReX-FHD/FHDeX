@@ -30,7 +30,7 @@ contains
       double precision vol, area, mm, rr, hole, tm, massflux, energyflux, taul, taur, rn1, rn2, rn3, rn4, ratel, rater, nl, nr, theta, energy
 
 
-      if((lo(1) .eq. membrane_cell) .or. (hi(2)+1 .eq. membrane_cell)) then
+      if((lo(1) .eq. membrane_cell) .or. (hi(1)+1 .eq. membrane_cell)) then
 
 #if (AMREX_SPACEDIM == 3)
         vol = dx(1)*dx(2)*dx(3)
@@ -64,6 +64,8 @@ contains
              theta = -log(rn1)/(ratel + rater)
              tm = tm + theta
 
+             !print *, "tm: ", tm, " dt: ", dt
+
              do while (tm .lt. dt)
 
               rn1 = get_uniform_func()
@@ -77,6 +79,8 @@ contains
 
                 massflux = massflux + mm
                 energyflux = energyflux + energy
+
+              fluxcount = fluxcount + 1
                 
               else
                 !right to left 
@@ -86,16 +90,22 @@ contains
                 massflux = massflux - mm
                 energyflux = energyflux - energy
 
+              fluxcount = fluxcount + 1
+
               endif
 
               theta = -log(rn4)/(ratel + rater)
 
               tm = tm + theta
-              fluxcount = fluxcount + 1
 
              enddo
              xflux(membrane_cell,j,k,1) = massflux/vol
              xflux(membrane_cell,j,k,5) = energyflux/vol
+
+
+!                print *, "lo(1): ", lo(1), ", hi(1): ", hi(1)
+!                print *, "fluxcount: ", fluxcount
+!                print *, "saving: ", xflux(membrane_cell,j,k,5)
           
           enddo
         enddo
@@ -123,16 +133,19 @@ contains
         do  k=lo(3),hi(3)
           do  j=lo(2),hi(2)
 
+            !print *, "old energy: ", cu(membrane_cell,j,k,5)
+            !print *, "adding: ", xflux(membrane_cell,j,k,5)
+
             cu(membrane_cell,j,k,1) = cu(membrane_cell,j,k,1) + xflux(membrane_cell,j,k,1)
             cu(membrane_cell,j,k,5) = cu(membrane_cell,j,k,5) + xflux(membrane_cell,j,k,5)
 
                 
-
-              !print *, "Effusing!"
+            !print *, "new energy: ", cu(membrane_cell,j,k,5)
+            ! print *, "Effusing!"
 
             if((cu(membrane_cell,j,k,1) .lt. 0) .or. (cu(membrane_cell,j,k,5) .lt. 0)) then
     
-              print *, "Negative effusion removed"
+             ! print *, "Negative effusion removed"
 
               cu(membrane_cell,j,k,1) = cu(membrane_cell,j,k,1) - xflux(membrane_cell,j,k,1)
               cu(membrane_cell,j,k,5) = cu(membrane_cell,j,k,5) - xflux(membrane_cell,j,k,5)

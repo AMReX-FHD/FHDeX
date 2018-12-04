@@ -52,6 +52,8 @@ contains
 
             cellfactor(i, j, k) = 3.14159265359*d*d*cp;
 
+            !print *, "update cell ", i,j,k
+
           else
 
             !fac2 = fac1*(cell_np**2)/cellvols(i,j,k)
@@ -134,6 +136,8 @@ contains
         do i = lo(1), hi(1)
 
           cell_np = cell_part_cnt(i,j,k)
+
+          !print *, cell_np
           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
           if (cell_np .gt. 1) then
