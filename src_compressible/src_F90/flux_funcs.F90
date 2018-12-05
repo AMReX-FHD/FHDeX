@@ -304,8 +304,6 @@ contains
         do j = lo(2),hi(2)
           do i = lo(1)-1,hi(1)
 
-
-
             do l = 1,nvars             
                conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l))
                !primitive(l) = wgt1*(prim(i+1,j,k,l)+prim(i,j,k,l)) -wgt2*(prim(i-1,j,k,l)+prim(i+2,j,k,l))  

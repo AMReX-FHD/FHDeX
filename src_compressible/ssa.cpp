@@ -23,7 +23,6 @@ void doSSA(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>&
 
     flux[0].OverrideSync(geom.periodicity());
 
-
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
