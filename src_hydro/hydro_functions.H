@@ -6,8 +6,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_MLABecLaplacian.H>
 
-void advance_timestep_inertial();
-
 /////////////////////////////////////////////////////////////////////////////////
 // in MkAdvMFluxdiv.cpp
 
