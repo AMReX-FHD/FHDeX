@@ -16,6 +16,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
     double del5;
     double del6;
 
+    double totalMass;
+
     // Loop over boxes
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
     {
@@ -25,7 +27,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
                        cons[mfi].dataPtr(),  
                        consMean[mfi].dataPtr(),
                        prim[mfi].dataPtr(),
-                       primMean[mfi].dataPtr(), &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6);
+                       primMean[mfi].dataPtr(), &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, &totalMass);
 
     }
 
@@ -55,6 +57,10 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
         delHolder5[i] = del5;
         delHolder6[i] = del6;
     }
+
+    ParallelDescriptor::ReduceRealSum(totalMass);
+
+    //Print() << "Total mass: " << totalMass << "\n";
 
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
     {

@@ -357,7 +357,7 @@ contains
                              vars, vlo, vhi, & 
                              membraneflux, mflo, mfhi, &
 
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6) bind(c,name='evaluate_means')
+                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, totalmass) bind(c,name='evaluate_means')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -367,7 +367,7 @@ contains
     integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), mlo(3), mhi(3), vlo(3), vhi(3), mflo(3), mfhi(3)
     double precision, intent(in      ) :: neff, delt, n0, T0
 
-    double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3))
+    double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3)), totalmass
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
@@ -389,6 +389,8 @@ contains
 
     cvinv = 2.0/(3.0*particles(1)%R)
     cv = 1.0/cvinv
+
+    totalmass = 0     
 
     do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
@@ -424,6 +426,8 @@ contains
           means(i,j,k,11) = particles(1)%R*cvinv*(means(i,j,k,10) -0.5*densitymeaninv*(means(i,j,k,7)*means(i,j,k,7) + means(i,j,k,8)*means(i,j,k,8) + means(i,j,k,9)*means(i,j,k,9))  ) !pressure - wrong for multispec
 
           membraneflux(i,j,k) = sqrt(means(i,j,k,6))*means(i,j,k,2)
+
+          totalmass = totalmass + instant(i,j,k,2)
 
 
         enddo

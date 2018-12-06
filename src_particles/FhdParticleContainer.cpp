@@ -366,6 +366,8 @@ void FhdParticleContainer::EvaluateStats(
     double te = 0;
     double tm = 0;
 
+    double totalMass;    
+
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -416,7 +418,7 @@ void FhdParticleContainer::EvaluateStats(
 
                          BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, &totalMass
                         );
     }
 
@@ -446,6 +448,10 @@ void FhdParticleContainer::EvaluateStats(
         delHolder5[i] = del5;
         delHolder6[i] = del6;
     }
+
+    ParallelDescriptor::ReduceRealSum(totalMass);
+
+    //Print() << "Total mass: " << totalMass << "\n";
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {

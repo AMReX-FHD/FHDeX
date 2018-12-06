@@ -273,6 +273,21 @@ void main_driver(const char* argv)
             dt = 2.0*dt;
         }
 
+//        if(step == (int)floor((double)n_steps_skip/2.0))
+//        {
+//            cuMeans.setVal(0.0);
+//            cuVars.setVal(0.0);
+
+//            primMeans.setVal(0.0);
+//            primVars.setVal(0.0);
+
+//            spatialCross.setVal(0.0);
+
+//            statsCount = 1;
+
+//            dt = 2.0*dt;
+//        }
+
         evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount,dx);
 
         statsCount++;
