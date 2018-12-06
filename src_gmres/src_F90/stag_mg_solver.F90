@@ -1,4 +1,4 @@
-module convert_stag_module
+module stag_solver_module
 
   use amrex_error_module
   use common_namelist_module
@@ -1257,4 +1257,4 @@ contains
 
   end subroutine stag_mg_update
 
-end module convert_stag_module
+end module stag_solver_module

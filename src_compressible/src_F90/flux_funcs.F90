@@ -284,11 +284,11 @@ contains
 
       integer :: i,j,k,l
 
-      wgt2 = 1.0/12.0 !fourth order interpolation
-      wgt1 = 0.5 + wgt2 
+      !wgt2 = 1.0/12.0 !fourth order interpolation
+      !wgt1 = 0.5 + wgt2 
 
-      !wgt2 = 0
-      !wgt1 = 0.5 + wgt2 !second order
+      wgt2 = 0
+      wgt1 = 0.5 + wgt2 !second order
 
       !wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
       !wgt1 = (sqrt(7d0)+1d0)/4d0
