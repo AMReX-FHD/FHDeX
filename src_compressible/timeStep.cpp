@@ -4,10 +4,9 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
 
-void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux, std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
-	                                         const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
+void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux, std::array<MultiFab, AMREX_SPACEDIM>& stochFlux, 
+                                                 std::array<MultiFab, AMREX_SPACEDIM>& cornx, std::array<MultiFab, AMREX_SPACEDIM>& corny, std::array<MultiFab, AMREX_SPACEDIM>& cornz, MultiFab& visccorn, MultiFab& rancorn, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
 {
-
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -36,7 +35,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 
     setBC(prim, cup, eta, zeta, kappa);
 
-    calculateFlux(cup, prim, eta, zeta, kappa, flux, stochFlux, geom, ZFILL(dx), dt);
+    calculateFlux(cup, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, ZFILL(dx), dt);
 
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
@@ -68,8 +67,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 
     setBC(prim, cup2, eta, zeta, kappa);
 
-    calculateFlux(cup2, prim, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
-
+    calculateFlux(cup2, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
@@ -103,7 +101,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 
     setBC(prim, cu, eta, zeta, kappa);
 
-    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
+    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
 }
 

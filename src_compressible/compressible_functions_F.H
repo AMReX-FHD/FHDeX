@@ -27,6 +27,30 @@ extern "C"
 #endif
                               const amrex::Real* dx);
 
+  void diff_flux_sym(const int* lo, const int* hi,
+			      const amrex::Real* cons,
+			      const amrex::Real* prim,
+			      const amrex::Real* eta,
+			      const amrex::Real* zeta,
+			      const amrex::Real* zappa,
+
+			      amrex::Real* xflux,
+			      amrex::Real* yfluz,
+#if (AMREX_SPACEDIM == 3)
+			      amrex::Real* zflux,
+#endif
+                              amrex::Real* cornux,
+                              amrex::Real* cornvx,
+                              amrex::Real* cornwx,
+                              amrex::Real* cornuy,
+                              amrex::Real* cornvy,
+                              amrex::Real* cornwy,
+                              amrex::Real* cornuz,
+                              amrex::Real* cornvz,
+                              amrex::Real* cornwz,
+                              amrex::Real* visccorn,
+                              const amrex::Real* dx);
+
   void hyp_flux(const int* lo, const int* hi,
 			      const amrex::Real* cons,
 			      const amrex::Real* prim,
@@ -50,7 +74,8 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
 			      amrex::Real* zsflux,
 #endif
-			      const amrex::Real* eta,
+     			      const amrex::Real* rancorn,
+                              const amrex::Real* eta,
 			      const amrex::Real* zeta,
 			      const amrex::Real* zappa,
                    const amrex::Real* dx, const amrex::Real* dt);
@@ -118,6 +143,7 @@ extern "C"
   void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 
   void get_pressure_gas(amrex::Real* pressure, amrex::Real* fracvec, amrex::Real* density, amrex::Real* temp);
+  void get_density_gas(amrex::Real* pressure,amrex::Real* density, amrex::Real* temp);
 
   void get_hc_gas();
 

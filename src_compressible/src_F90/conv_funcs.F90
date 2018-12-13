@@ -6,7 +6,7 @@ module conv_module
 
   private
 
-  public :: cons_to_prim, get_temperature, get_energy, get_hc_gas, get_pressure_gas
+  public :: cons_to_prim, get_temperature, get_energy, get_hc_gas, get_pressure_gas, get_density_gas
 
 contains
 
@@ -110,6 +110,25 @@ contains
     enddo
 
     pressure = temp*runiv*density/avm 
+
+  end subroutine
+
+  subroutine get_density_gas(pressure, density, temp)  bind(C,name="get_density_gas")    
+
+    real(amrex_real), intent(in   ) :: temp, pressure
+    real(amrex_real), intent(inout) :: density
+
+    integer :: i
+    real(amrex_real) :: avm
+
+    avm = 0.0d0
+
+    do i = 1, nspecies
+      avm = avm + (1d0/nspecies)*molmass(i)
+
+    enddo
+
+   density = avm*pressure/(temp*runiv)
 
   end subroutine
 

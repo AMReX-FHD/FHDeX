@@ -43,8 +43,6 @@ void main_driver(const char* argv)
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
-
-
     std::string inputs_file = argv;
 
     // read in parameters from inputs file into F90 modules
@@ -64,11 +62,10 @@ void main_driver(const char* argv)
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
+            Print() << "Periodic: " << is_periodic[i] << "\n";
         }
         //is_periodic[i] = 0;
     }
-
-
 
     // make BoxArray and Geometry
     BoxArray ba;
@@ -105,21 +102,21 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
     const int n_rngs = 1;
 
-    int fhdSeed = 1;
+    const int proc = ParallelDescriptor::MyProc();
+
+    int fhdSeed = 0;
     int particleSeed = 2;
     int selectorSeed = 3;
     int thetaSeed = 4;
     int phiSeed = 5;
-    int generalSeed = 6;
+    int generalSeed = 0;
 
-    const int proc = ParallelDescriptor::MyProc();
-
-    fhdSeed += 10000*proc;
+    //fhdSeed += 10000*proc;
     particleSeed += 20000*proc;
     selectorSeed += 30000*proc;
     thetaSeed += 40000*proc;
     phiSeed += 50000*proc;
-    generalSeed += 60000*proc;
+    //generalSeed += 60000*proc;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -229,6 +226,28 @@ void main_driver(const char* argv)
                  stochFlux[1].setVal(0.0);,
                  stochFlux[2].setVal(0.0););
 
+    MultiFab rancorn;
+    rancorn.define(ba, dmap, 2, 1);
+
+    //nodal arrays used for calculating viscous stress
+    std::array< MultiFab, AMREX_SPACEDIM > cornx;
+    AMREX_D_TERM(cornx[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
+                 cornx[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
+                 cornx[2].define(convert(ba,nodal_flag), dmap, 1, 0););
+
+    std::array< MultiFab, AMREX_SPACEDIM > corny;
+    AMREX_D_TERM(corny[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
+                 corny[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
+                 corny[2].define(convert(ba,nodal_flag), dmap, 1, 0););
+
+    std::array< MultiFab, AMREX_SPACEDIM > cornz;
+    AMREX_D_TERM(cornz[0].define(convert(ba,nodal_flag), dmap, 1, 0);,
+                 cornz[1].define(convert(ba,nodal_flag), dmap, 1, 0);,
+                 cornz[2].define(convert(ba,nodal_flag), dmap, 1, 0););
+
+    MultiFab visccorn;
+    visccorn.define(convert(ba,nodal_flag), dmap, 1, 0);
+
     Real time = 0;
 
     int step, statsCount;
@@ -249,14 +268,14 @@ void main_driver(const char* argv)
 
     setBC(prim, cu, eta, zeta, kappa);
 
-    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
+    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
     statsCount = 1;
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
 
-        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, stochFlux, geom, dx, dt);
+        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
         if(step == n_steps_skip)
         {
@@ -270,7 +289,7 @@ void main_driver(const char* argv)
 
             statsCount = 1;
 
-            dt = 2.0*dt;
+            //dt = 2.0*dt;
         }
 
 //        if(step == (int)floor((double)n_steps_skip/2.0))
