@@ -556,7 +556,7 @@ contains
           vars(i,j,k,14) = (vars(i,j,k,14)*stepsminusone + delrho*delenergy)*stepsinv
           vars(i,j,k,15) = (vars(i,j,k,15)*stepsminusone + delrho*delg)*stepsinv
 
-          vars(i,j,k,6) = (vars(i,j,k,6)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*(vars(i,j,k,10) + vars(i,j,k,12) - 2*vars(i,j,k,13) + qmean*(qmean*vars(i,j,k,1) - 2*vars(i,j,k,14) + 2*vars(i,j,k,15))))*stepsinv
+          vars(i,j,k,6) = (vars(i,j,k,6)*stepsminusone + cvinv*cvinv*densitymeaninv*densitymeaninv*(vars(i,j,k,10) + vars(i,j,k,12) - 2*vars(i,j,k,13) + qmean*(qmean*vars(i,j,k,2) - 2*vars(i,j,k,14) + 2*vars(i,j,k,15))))*stepsinv
 
           deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
@@ -564,7 +564,7 @@ contains
 !          vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + delenergy*del2)*stepsinv
 !          vars(i,j,k,18) = (vars(i,j,k,18)*stepsminusone + delrho*del3)*stepsinv
 
-         deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
+         !deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
           vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
           vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv

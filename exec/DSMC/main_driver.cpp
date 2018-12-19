@@ -19,13 +19,22 @@
 
 using namespace common;
 using namespace gmres;
+using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
 
     // store the current time so we can later compute total run time.
-    Real strt_time = ParallelDescriptor::second();
+  //  Real strt_time = ParallelDescriptor::second();
+
+    int argc = 0;
+
+    char* ptr1 = (char*)argv;
+
+    char** ptr2 = &ptr1;
+        
+    amrex::Initialize(argc,ptr2);
 
     std::string inputs_file = argv;
 
@@ -45,11 +54,13 @@ void main_driver(const char* argv)
     int phiSeed = 5*ParallelDescriptor::MyProc()*60 + 5 + 10000;
     int generalSeed = 6*ParallelDescriptor::MyProc()*70 + 6 + 10000;
 
+
+
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic(AMREX_SPACEDIM,1);  // set to 0 (not periodic) by default
    /* for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
@@ -289,9 +300,8 @@ void main_driver(const char* argv)
 
     //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
 
-
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 7;
+    int surfaceCount = 6;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -300,8 +310,6 @@ void main_driver(const char* argv)
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
-
-
 
     //Particles! Build on geom & box array for collision cells
     FhdParticleContainer particles(geomC, dmap, bc);
@@ -328,9 +336,9 @@ void main_driver(const char* argv)
    //     Print() << "Here2\n";
         particles.Redistribute();
         particles.ReBin();
-    //    //particles.UpdateCellVectors();
 
-        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
+
+        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, nitrogen, dt);
 
         //if((step-10)%20000 == 0)
         if(step == n_steps_skip)
@@ -346,7 +354,7 @@ void main_driver(const char* argv)
         statsCount++;
 
 
-        if(step%5000 == 0)
+        if(step%500 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
@@ -364,9 +372,9 @@ void main_driver(const char* argv)
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
-    Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << std::endl;
+    //Real stop_time = ParallelDescriptor::second() - strt_time;
+   // ParallelDescriptor::ReduceRealMax(stop_time);
+   // amrex::Print() << "Run time = " << stop_time << std::endl;
 
     amrex::Finalize();
 }

@@ -134,14 +134,16 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
 #endif
 {
     
-
-
     UpdateCellVectors();
 
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
+
+BL_PROFILE_VAR_NS("particle_move", particle_move);
+
+BL_PROFILE_VAR_START(particle_move);
 
 #ifndef DSMC
 
@@ -171,6 +173,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
+
+        //Print() << "parts: " << np << std::endl;
         
 #ifdef DSMC
         //Print() << "DSMC\n";        
@@ -242,6 +246,9 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
     source[2].FillBoundary(Geom(lev).periodicity());
 #endif
 #endif
+
+BL_PROFILE_VAR_STOP(particle_move);
+
 }
 
 void FhdParticleContainer::InitCollisionCells(

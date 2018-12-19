@@ -9,7 +9,7 @@ COMP      = gnu
 DIM       = 3
 DSMC      = TRUE
 
-TINY_PROFILE  = FALSE
+TINY_PROFILE  = TRUE
 USE_PARTICLES = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
