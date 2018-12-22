@@ -13,24 +13,27 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    MultiFab& visccorn,
                    MultiFab& rancorn,
                    const amrex::Geometry geom,
-	           const amrex::Real* dx, const amrex::Real dt)
+	               const amrex::Real* dx, const amrex::Real dt)
 {
 
     AMREX_D_TERM(flux[0].setVal(0);,
                  flux[1].setVal(0);,
                  flux[2].setVal(0););
 
-    for(int i=0;i<5;i++)
-    {
-          MultiFABFillRandom(stochFlux[0], i, 1, geom);
-          MultiFABFillRandom(stochFlux[1], i, 1, geom);
-          MultiFABFillRandom(stochFlux[2], i, 1, geom);
-    }
+//    for(int i=1;i<5;i++)
+//    {
+//          MultiFABFillRandom(stochFlux[0], i, 1, geom);
+//          MultiFABFillRandom(stochFlux[1], i, 1, geom);
+//          MultiFABFillRandom(stochFlux[2], i, 1, geom);
+//    }
 
-    for(int i=0;i<2;i++)
-    {
-          MultiFABFillRandom(rancorn, i, 1, geom);
-    }
+      MultiFABFillRandom(stochFlux[0], 1, 1, geom);
+      MultiFABFillRandom(stochFlux[0], 4, 1, geom);
+
+//    for(int i=0;i<2;i++)
+//    {
+//          MultiFABFillRandom(rancorn, i, 1, geom);
+//    }
 
     // Loop over boxes
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi)
@@ -57,6 +60,7 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                        zeta[mfi].dataPtr(),  
                        kappa[mfi].dataPtr(),
     			       ZFILL(dx), &dt);
+
 
         diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                        cons[mfi].dataPtr(),  

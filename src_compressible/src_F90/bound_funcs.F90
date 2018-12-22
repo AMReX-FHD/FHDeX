@@ -3,6 +3,7 @@ module bound_module
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, membrane_cell
   use conv_module
+  use trans_module
 
   implicit none
 
@@ -144,45 +145,52 @@ contains
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
               do i = 1, ngc(1)
 
-                eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
-                zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
-                kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
-
                 !cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
                 !cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
                 !cons(lo(1)-i,j,k,3) = -cons(lo(1)-1+i,j,k,3) 
                 !cons(lo(1)-i,j,k,4) = -cons(lo(1)-1+i,j,k,4)
 
-                prim(lo(1)-i,j,k,1) = prim(lo(1)-1+i,j,k,1)
+                eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
+                zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
+                kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
+
+                !prim(lo(1)-i,j,k,1) = prim(lo(1)-1+i,j,k,1)
                 prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2) 
                 prim(lo(1)-i,j,k,3) = -prim(lo(1)-1+i,j,k,3) 
                 prim(lo(1)-i,j,k,4) = -prim(lo(1)-1+i,j,k,4)
                 prim(lo(1)-i,j,k,5) = -prim(lo(1)-1+i,j,k,5) + 2*t_lo(1)
-                !prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
+                prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
 
                 do l = 1, nspecies
                   cons(lo(1)-i,j,k,5+l) = cons(lo(1)-1+i,j,k,5+l)
                   prim(lo(1)-i,j,k,6+l) = prim(lo(1)-1+i,j,k,6+l)
                 enddo
 
+                !rho = prim(lo(1)-i,j,k,1)
                 temp = prim(lo(1)-i,j,k,5)
-                rho = prim(lo(1)-i,j,k,1)
+                pt = prim(lo(1)-i,j,k,6)
 
-                !call get_density_gas(pt,rho, temp)
+                fracvec = cons(lo(1)-i,j,k,6:nvars)
+                !massvec = fracvec*rho
+
+                !call get_pressure_gas(pt, fracvec, rho, temp)
+
+                !prim(lo(1)-i,j,k,6) = pt
+
+                call get_density_gas(pt,rho, temp)
 
                 cons(lo(1)-i,j,k,1) = rho
+                prim(lo(1)-i,j,k,1) = rho
                 cons(lo(1)-i,j,k,2) = rho*prim(lo(1)-i,j,k,2)
                 cons(lo(1)-i,j,k,3) = rho*prim(lo(1)-i,j,k,3)
                 cons(lo(1)-i,j,k,4) = rho*prim(lo(1)-i,j,k,4)
 
-                fracvec = cons(lo(1)-i,j,k,6:nvars)
-                massvec = fracvec*cons(lo(1)-i,j,k,1)
-
-                call get_pressure_gas(prim(lo(1)-i,j,k,6), fracvec, rho, temp)
-
-                call get_energy(intenergy, massvec, temp)
+                !call get_energy(intenergy, massvec, temp)
+                call get_energy_gas(pt, intenergy)
 
                 cons(lo(1)-i,j,k,5) = intenergy + 0.5*cons(lo(1)-i,j,k,1)*(prim(lo(1)-i,j,k,2)**2 + prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
+
+                !call get_trans_coeff(temp, fracvec, eta(lo(1)-i,j,k), zeta(lo(1)-i,j,k), kappa(lo(1)-i,j,k))
 
                 !print *, "lo: ", cons(lo(1)-i,j,k,1:5)
 
@@ -236,14 +244,14 @@ contains
 
                 eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
                 zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
-                kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)
+                kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k) 
 
-                prim(hi(1)+i,j,k,1) = prim(hi(1)+1-i,j,k,1)
+                !prim(hi(1)+i,j,k,1) = prim(hi(1)+1-i,j,k,1)
                 prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2) 
                 prim(hi(1)+i,j,k,3) = -prim(hi(1)+1-i,j,k,3) 
                 prim(hi(1)+i,j,k,4) = -prim(hi(1)+1-i,j,k,4)
                 prim(hi(1)+i,j,k,5) = -prim(hi(1)+1-i,j,k,5) + 2*t_hi(1)
-                !prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
+                prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
 
 !                cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
 !                cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
@@ -255,26 +263,32 @@ contains
                   prim(hi(1)+i,j,k,6+l) = prim(hi(1)+1-i,j,k,6+l)
                 enddo
 
-                rho = prim(hi(1)+i,j,k,1)
+                !rho = prim(hi(1)+i,j,k,1)
                 temp = prim(hi(1)+i,j,k,5)
+                pt = prim(hi(1)+i,j,k,6)
 
-                !call get_density_gas(pt,rho, temp)
+                fracvec = cons(hi(1)+i,j,k,6:nvars)
+                !massvec = fracvec*rho
 
+                !call get_pressure_gas(pt, fracvec, rho, temp)
+
+                !prim(hi(1)+i,j,k,6) = pt
+
+                call get_density_gas(pt,rho, temp)
+               
                 cons(hi(1)+i,j,k,1) = rho
+                prim(hi(1)+i,j,k,1) = rho
                 cons(hi(1)+i,j,k,2) = rho*prim(hi(1)+i,j,k,2)
                 cons(hi(1)+i,j,k,3) = rho*prim(hi(1)+i,j,k,3)
                 cons(hi(1)+i,j,k,4) = rho*prim(hi(1)+i,j,k,4)
 
-                fracvec = cons(hi(1)+i,j,k,6:nvars)
-                massvec = fracvec*cons(hi(1)+i,j,k,1)
 
-                call get_pressure_gas(prim(hi(1)+i,j,k,6), fracvec, rho, temp)
-
-                call get_energy(intenergy, massvec, temp)
+                !call get_energy(intenergy, massvec, temp)
+                call get_energy_gas(pt, intenergy) 
 
                 cons(hi(1)+i,j,k,5) = intenergy + 0.5*cons(hi(1)+i,j,k,1)*(prim(hi(1)+i,j,k,2)**2 + prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
 
-                !print *, "hi: ", cons(hi(1)+i,j,k,1:5)
+                !call get_trans_coeff(temp, fracvec, eta(hi(1)+i,j,k), zeta(hi(1)+i,j,k), kappa(hi(1)+i,j,k))
 
               enddo
             enddo

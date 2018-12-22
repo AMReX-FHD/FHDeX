@@ -47,12 +47,19 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-    int fhdSeed = ParallelDescriptor::MyProc()*20 + 1 + 10000;
-    int particleSeed = 2*ParallelDescriptor::MyProc()*30 + 2 + 10000;
-    int selectorSeed = 3*ParallelDescriptor::MyProc()*40 + 3 + 10000;
-    int thetaSeed = 4*ParallelDescriptor::MyProc()*50 + 4 + 10000;
-    int phiSeed = 5*ParallelDescriptor::MyProc()*60 + 5 + 10000;
-    int generalSeed = 6*ParallelDescriptor::MyProc()*70 + 6 + 10000;
+//    int fhdSeed = ParallelDescriptor::MyProc()*20 + 1 + 10000;
+//    int particleSeed = 2*ParallelDescriptor::MyProc()*30 + 2 + 10000;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc()*40 + 3 + 10000;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc()*50 + 4 + 10000;
+//    int phiSeed = 5*ParallelDescriptor::MyProc()*60 + 5 + 10000;
+//    int generalSeed = 6*ParallelDescriptor::MyProc()*70 + 6 + 10000;
+
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
 
 

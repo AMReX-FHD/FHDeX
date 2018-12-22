@@ -7,7 +7,7 @@ module trans_module
 
   private
 
-  public :: trans_coeffs
+  public :: trans_coeffs, get_trans_coeff
 
 contains
 
@@ -73,4 +73,56 @@ contains
 
   end subroutine trans_coeffs
 
+  subroutine get_trans_coeff(temp, fracvec, eta, zeta, kappa) bind(C,name="get_trans_coeff")
+
+
+      double precision, intent(in   ) :: temp, fracvec(nspecies)
+      double precision, intent(inout) :: eta, zeta, kappa
+
+      integer :: l 
+      real(amrex_real) :: mgrams(MAX_SPECIES)
+      real(amrex_real) :: vconst(nspecies), tconst(nspecies), R(nspecies), gamma1, gamma2, rootT, specaveta, specavkappa
+
+      mgrams = molmass/(6.022140857e23)
+      R = k_B/mgrams
+
+      gamma1 = 1.2700
+      gamma2 = 1.9223
+
+      do l = 1, nspecies
+
+        vconst(l) = sqrt(R(l))*(mgrams(l)/(diameter(l)**2))*(gamma1/4)*sqrt(1/3.14159265359)
+        tconst(l) = R(l)*sqrt(R(l))*(mgrams(l)/(diameter(l)**2))*(5*gamma2/8)*sqrt(1/3.14159265359)
+
+      enddo
+
+      specaveta = 0
+      specavkappa = 0
+
+      do l = 1, nspecies
+        specaveta = specaveta + fracvec(l)*vconst(l)
+        specavkappa = specavkappa + fracvec(l)*tconst(l)
+      enddo
+
+      rootT = sqrt(temp)
+
+      zeta = 0 !no bulk viscosity for now
+
+      eta = rootT*specaveta
+      kappa = rootT*specavkappa
+
+      if(kappa .ne. kappa) then
+         print *, "NAN! kappa bc", temp, specavkappa
+         call exit()
+      endif
+
+
+  end subroutine get_trans_coeff
+
 end module trans_module
+
+
+
+
+
+

@@ -262,7 +262,6 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
-
     //Initialise everything
     calculateTransportCoeffs(prim, eta, zeta, kappa);
 
@@ -279,7 +278,12 @@ void main_driver(const char* argv)
     setBC(prim, cu, eta, zeta, kappa);
 
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
+
+
     statsCount = 1;
+
+
+
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -299,7 +303,7 @@ void main_driver(const char* argv)
 
             statsCount = 1;
 
-            dt = 2.0*dt;
+            //dt = 2.0*dt;
         }
 
 //        if(step == (int)floor((double)n_steps_skip/2.0))
@@ -330,8 +334,9 @@ void main_driver(const char* argv)
         {
 
            yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, etaMean, kappaMean, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
-
            WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
+
+           //WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, etaMean, kappaMean);
         }
 
         time = time + dt;

@@ -46,9 +46,7 @@ contains
 #if (AMREX_SPACEDIM == 3)
                                 - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
-                                + dt*source(i,j,k,l)
-
-                                !print *, xflux(i+1,j,k,l)
+                                + dt*source(i,j,k,l)                                
            enddo
           enddo
         enddo
