@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 
-DEBUG     = FALSE
+DEBUG     = FASLE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
@@ -29,13 +29,13 @@ include ../../src_compressible/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/src_F90
 INCLUDE_LOCATIONS += ../../src_compressible/src_F90
 
-include ../../src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/src_F90
-INCLUDE_LOCATIONS += ../../src_analysis/src_F90
+#include ../../src_analysis/src_F90/Make.package
+#VPATH_LOCATIONS   += ../../src_analysis/src_F90
+#INCLUDE_LOCATIONS += ../../src_analysis/src_F90
 
-include ../../src_analysis/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/
-INCLUDE_LOCATIONS += ../../src_analysis/
+#include ../../src_analysis/Make.package
+#VPATH_LOCATIONS   += ../../src_analysis/
+#INCLUDE_LOCATIONS += ../../src_analysis/
 
 include ../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_rng/src_F90

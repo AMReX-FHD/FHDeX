@@ -6,7 +6,7 @@ module conv_module
 
   private
 
-  public :: cons_to_prim, get_temperature, get_energy, get_hc_gas, get_pressure_gas
+  public :: cons_to_prim, get_temperature, get_energy, get_hc_gas, get_pressure_gas, get_density_gas, get_temperature_gas, get_energy_gas
 
 contains
 
@@ -38,7 +38,9 @@ contains
 
             call get_temperature(intenergy, massvec, prim(i,j,k,5))
 
-            call get_pressure_gas(prim(i,j,k,6), cons(i,j,k,6:nvars), prim(i,j,k,1), prim(i,j,k,5))
+            !call get_pressure_gas(prim(i,j,k,6), cons(i,j,k,6:nvars), prim(i,j,k,1), prim(i,j,k,5))
+
+            prim(i,j,k,6) = 2.0*intenergy/3.0
 
 !            if((i .eq. 36) .and. (j .eq. 0) .and. (k .eq. 0)) then
 
@@ -110,6 +112,53 @@ contains
     enddo
 
     pressure = temp*runiv*density/avm 
+
+  end subroutine
+
+  subroutine get_energy_gas(pressure, intenergy)  bind(C,name="get_energy_gas")    
+
+    real(amrex_real), intent(in   ) :: pressure
+    real(amrex_real), intent(inout) :: intenergy
+
+    intenergy = pressure*3d0/2d0
+
+  end subroutine
+
+  subroutine get_temperature_gas(pressure, fracvec, density, temp)  bind(C,name="get_temperature_gas")    
+
+    real(amrex_real), intent(in   ) :: pressure, fracvec(nspecies), density
+    real(amrex_real), intent(inout) :: temp
+
+    integer :: i
+    real(amrex_real) :: avm
+
+    avm = 0.0d0
+
+    do i = 1, nspecies
+      avm = avm + fracvec(i)*molmass(i)
+
+    enddo
+
+    temp = avm*pressure/(runiv*density)
+
+  end subroutine
+
+  subroutine get_density_gas(pressure, density, temp)  bind(C,name="get_density_gas")    
+
+    real(amrex_real), intent(in   ) :: temp, pressure
+    real(amrex_real), intent(inout) :: density
+
+    integer :: i
+    real(amrex_real) :: avm
+
+    avm = 0.0d0
+
+    do i = 1, nspecies
+      avm = avm + (1d0/nspecies)*molmass(i)
+
+    enddo
+
+   density = avm*pressure/(temp*runiv)
 
   end subroutine
 

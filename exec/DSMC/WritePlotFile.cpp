@@ -75,9 +75,9 @@ void WritePlotFile(int step,
     cvarNames[38] = "Energy-densityCross";
     cvarNames[39] = "Energy-energyCross";
     cvarNames[40] = "Momentum-densityCross";
-    cvarNames[38] = "Temperature-densityCross";
-    cvarNames[39] = "Temperature-temperatueCross";
-    cvarNames[40] = "velocity-densityCross";
+    cvarNames[41] = "Temperature-densityCross";
+    cvarNames[42] = "Temperature-temperatueCross";
+    cvarNames[43] = "velocity-densityCross";
 
     cplotfile.mult(0.001,2,1);    //cgs coords density
     cplotfile.mult(0.001,12,1);
@@ -116,9 +116,9 @@ void WritePlotFile(int step,
     cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
     cplotfile.mult(0.1*0.001,40,1); //cgscoords momentum/density cross
 
-    cplotfile.mult(1*0.001,38,1); //cgscoords temperature/density cross
-    cplotfile.mult(1,39,1); //cgscoords temperature/temperature cross
-    cplotfile.mult(100*0.001,40,1); //cgscoords velocity/density cross
+    cplotfile.mult(1*0.001,41,1); //cgscoords temperature/density cross
+    cplotfile.mult(1,42,1); //cgscoords temperature/temperature cross
+    cplotfile.mult(100*0.001,43,1); //cgscoords velocity/density cross
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 

@@ -11,12 +11,12 @@ module stats_module
 
 contains
 
-  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6) bind(c,name='evaluate_means')
+  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, totalmass) bind(c,name='evaluate_means')
 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3))
+      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3)), totalmass
 
       double precision, intent(inout   ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(inout   ) :: cumeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
@@ -31,6 +31,7 @@ contains
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
 
+      totalmass = 0  
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -54,6 +55,8 @@ contains
 
             call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
             call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
+
+            totalmass = totalmass + cu(i,j,k,1)
 
 
           enddo

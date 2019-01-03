@@ -9,7 +9,7 @@ void WritePlotFile(int step,
 	           const amrex::MultiFab& prim,
 	           const amrex::MultiFab& primMeans,
 	           const amrex::MultiFab& primVars,
-	           const amrex::MultiFab& spatialCross) 
+	           const amrex::MultiFab& spatialCross, const amrex::MultiFab& etaMeanAv, const amrex::MultiFab& kappaMeanAv) 
 {
 
 
@@ -17,7 +17,7 @@ void WritePlotFile(int step,
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
-    amrex::MultiFab plotfile(ba, dmap, 37, 0);
+    amrex::MultiFab plotfile(ba, dmap, 39, 0);
 
     amrex::MultiFab::Copy(plotfile,cuMeans,0,0,5,0);
     amrex::MultiFab::Copy(plotfile,primMeans,0,5,6,0);
@@ -32,11 +32,13 @@ void WritePlotFile(int step,
 
     amrex::MultiFab::Copy(plotfile,spatialCross,0,31,6,0);
 
+    amrex::MultiFab::Copy(plotfile,etaMeanAv,0,37,1,0);
+    amrex::MultiFab::Copy(plotfile,kappaMeanAv,0,38,1,0);
 
 
     std::string plotfilename = amrex::Concatenate("plt",step,9);
 
-    amrex::Vector<std::string> varNames(37);
+    amrex::Vector<std::string> varNames(39);
 
     varNames[0] = "rhoMean";
     varNames[1] = "jxMean";
@@ -79,13 +81,15 @@ void WritePlotFile(int step,
     varNames[32] = "Energy-energyCross";
     varNames[33] = "Momentum-densityCross";
 
-    varNames[34] = "Temperature-densityCross";
-    varNames[35] = "Temperature-temperatureCross";
+    varNames[34] = "Temperature-temperatureCross";
+    varNames[35] = "Temperature-densityCross";
     varNames[36] = "Velelocity-densityCross";
+
+    varNames[37] = "eta";
+    varNames[38] = "kappa";
 
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 
-    amrex::Print() << "End plot: " << step << "\n";
 }

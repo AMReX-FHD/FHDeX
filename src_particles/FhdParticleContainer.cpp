@@ -46,6 +46,9 @@ void FhdParticleContainer::InitParticles(species particleInfo)
         IntVect smallEnd = tile_box.smallEnd();
         IntVect bigEnd = tile_box.bigEnd();       
 
+
+        //Print() << "Big end: " << bigEnd << " small end: " << smallEnd << "\n";
+
         //for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         //{
             for (int i_part=0; i_part<particleInfo.ppb;i_part++) {
@@ -55,10 +58,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]);
-                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]);
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]);
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
 
                 p.rdata(RealData::ox) = p.pos(0);
@@ -131,14 +134,16 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
 #endif
 {
     
-
-
     UpdateCellVectors();
 
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
+
+BL_PROFILE_VAR_NS("particle_move", particle_move);
+
+BL_PROFILE_VAR_START(particle_move);
 
 #ifndef DSMC
 
@@ -168,6 +173,8 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
+
+        //Print() << "parts: " << np << std::endl;
         
 #ifdef DSMC
         //Print() << "DSMC\n";        
@@ -239,6 +246,9 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
     source[2].FillBoundary(Geom(lev).periodicity());
 #endif
 #endif
+
+BL_PROFILE_VAR_STOP(particle_move);
+
 }
 
 void FhdParticleContainer::InitCollisionCells(
@@ -363,6 +373,8 @@ void FhdParticleContainer::EvaluateStats(
     double te = 0;
     double tm = 0;
 
+    double totalMass;    
+
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -413,7 +425,7 @@ void FhdParticleContainer::EvaluateStats(
 
                          BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, &totalMass
                         );
     }
 
@@ -443,6 +455,10 @@ void FhdParticleContainer::EvaluateStats(
         delHolder5[i] = del5;
         delHolder6[i] = del6;
     }
+
+    ParallelDescriptor::ReduceRealSum(totalMass);
+
+    //Print() << "Total mass: " << totalMass << "\n";
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {

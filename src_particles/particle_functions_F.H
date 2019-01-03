@@ -111,7 +111,7 @@ extern "C"
                         amrex_real* membraneflux, const int* mflo, const int* mfhi,
 
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
-                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps, amrex::Real* delHolder1, amrex::Real* delHolder2, amrex::Real* delHolder3, amrex::Real* delHolder4, amrex::Real* delHolder5, amrex::Real* delHolder6);
+                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps, amrex::Real* delHolder1, amrex::Real* delHolder2, amrex::Real* delHolder3, amrex::Real* delHolder4, amrex::Real* delHolder5, amrex::Real* delHolder6, amrex::Real* totalmass);
 
    void evaluate_corrs(void* particles,
                         const int* lo, const int* hi,

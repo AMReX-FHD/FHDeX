@@ -697,7 +697,7 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
               bfac(2) = std*normalrand(2)
               bfac(3) = std*normalrand(3)
 
-              print *, "brownian: ", bfac, " propusive: ", part%dir*part%propulsion*runtime
+              !print *, "brownian: ", bfac, " propusive: ", part%dir*part%propulsion*runtime
 
                 !print *, "Position 1: ", part%pos, " Vel 1: ", part%vel, "localvel: ", localbeta
 

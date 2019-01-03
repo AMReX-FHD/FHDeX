@@ -7,7 +7,7 @@
 using namespace common;
 
 
-void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& spatialCross, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6, const int steps, const amrex::Real* dx)
+void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& spatialCross, MultiFab& eta, MultiFab& etaMean, MultiFab& kappa, MultiFab& kappaMean, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6, const int steps, const amrex::Real* dx)
 {
     double del1;
     double del2;
@@ -15,6 +15,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
     double del4;
     double del5;
     double del6;
+
+    double totalMass;
 
     // Loop over boxes
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
@@ -25,7 +27,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
                        cons[mfi].dataPtr(),  
                        consMean[mfi].dataPtr(),
                        prim[mfi].dataPtr(),
-                       primMean[mfi].dataPtr(), &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6);
+                       primMean[mfi].dataPtr(), &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, &totalMass);
 
     }
 
@@ -56,6 +58,10 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
         delHolder6[i] = del6;
     }
 
+    ParallelDescriptor::ReduceRealSum(totalMass);
+
+    //Print() << "Total mass: " << totalMass << "\n";
+
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -73,7 +79,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
 
 }
 
-void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab& primMean, const MultiFab& primVar, const MultiFab& spatialCross, MultiFab& consMeanAv, MultiFab& consVarAv, MultiFab& primMeanAv, MultiFab& primVarAv, MultiFab& spatialCrossAv)
+void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab& primMean, const MultiFab& primVar, const MultiFab& spatialCross, const MultiFab& etaMean, const MultiFab& kappaMean, MultiFab& consMeanAv, MultiFab& consVarAv, MultiFab& primMeanAv, MultiFab& primVarAv, MultiFab& spatialCrossAv, MultiFab& etaMeanAv, MultiFab& kappaMeanAv)
 {
 
     // Loop over boxes
