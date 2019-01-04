@@ -1,0 +1,1 @@
+F90EXE_sources += multispec_namelist.F90

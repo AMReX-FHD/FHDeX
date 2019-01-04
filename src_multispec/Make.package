@@ -1,0 +1,3 @@
+CEXE_headers   += multispec_namespace.H
+CEXE_headers   += multispec_namespace_declarations.H
+
