@@ -43,7 +43,7 @@ module multispec_namelist_module
   namelist /multispec/ start_time
   namelist /multispec/ inverse_type       ! Only for LAPACK:  1=inverse, 2=pseudo inverse
   namelist /multispec/ correct_flux       ! Manually ensure mass is conserved to roundoff 
-  namelist /multispec/ print_error_norms   
+   namelist /multispec/ print_error_norms   
   namelist /multispec/ is_ideal_mixture   ! If T assume Gamma=I (H=0) and simplify
   namelist /multispec/ is_nonisothermal   ! If T Soret effect will be included
   namelist /multispec/ use_lapack         ! Use LAPACK or iterative method for diffusion matrix (recommend False)
