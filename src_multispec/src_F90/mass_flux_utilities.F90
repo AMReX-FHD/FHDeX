@@ -16,7 +16,7 @@ contains
                                       rho, rlo, rhi, nspecies, &
                                       rhotot, rtlo, rthi, &
                                       molarconc, mclo, mchi, &
-                                      molmtot, mtlo, mthi)
+                                      molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
  
     integer         , intent(in   ) :: tlo(2),thi(2),nspecies
     integer         , intent(in   ) :: rlo(2),rhi(2), rtlo(2),rthi(2), mclo(2),mchi(2), mtlo(2),mthi(2)
@@ -48,7 +48,7 @@ contains
                                       rho, rlo, rhi, nspecies, &
                                       rhotot, rtlo, rthi, &
                                       molarconc, mclo, mchi, &
-                                      molmtot, mtlo, mthi)
+                                      molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
  
     integer         , intent(in   ) :: tlo(3),thi(3),nspecies
     integer         , intent(in   ) :: rlo(3),rhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), mtlo(3),mthi(3)
@@ -110,7 +110,7 @@ contains
   subroutine compute_Gamma(tlo,thi, &
                            molarconc, mclo, mchi, nspecies, &
                            Hessian, hlo, hhi, & 
-                           Gamma, glo, ghi)
+                           Gamma, glo, ghi) bind(C,name="compute_Gamma")
 
     integer, intent(in   )          :: tlo(2),thi(2),nspecies
     integer, intent(in   )          :: mclo(2),mchi(2), hlo(2),hhi(2), glo(2),ghi(2) 
@@ -139,7 +139,7 @@ contains
   subroutine compute_Gamma(tlo,thi, &
                            molarconc, mclo, mchi, nspecies, &
                            Hessian, hlo, hhi, & 
-                           Gamma, glo, ghi)
+                           Gamma, glo, ghi) bind(C,name="compute_Gamma")
 
     integer, intent(in   )          :: tlo(3),thi(3),nspecies
     integer, intent(in   )          :: mclo(3),mchi(3), hlo(3),hhi(3), glo(3),ghi(3) 
@@ -208,7 +208,7 @@ contains
                               rhotot, rtlo, rthi, &
                               molarconc, mclo, mchi, &
                               rhoWchi, rwclo, rwchi, &
-                              D_bar, dblo, dbhi)
+                              D_bar, dblo, dbhi) bind(C,name="compute_rhoWchi")
  
     integer         , intent(in   ) :: tlo(2),thi(2),nspecies
     integer         , intent(in   ) :: rlo(2),rhi(2), rtlo(2),rthi(2), mclo(2),mchi(2), rwclo(2),rwchi(2), dblo(2),dbhi(2)
@@ -242,7 +242,7 @@ contains
                               rhotot, rtlo, rthi, &
                               molarconc, mclo, mchi, &
                               rhoWchi, rwclo, rwchi, &
-                              D_bar, dblo, dbhi)
+                              D_bar, dblo, dbhi) bind(C,name="compute_rhoWchi")
  
     integer         , intent(in   ) :: tlo(3),thi(3),nspecies
     integer         , intent(in   ) :: rlo(3),rhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), rwclo(3),rwchi(3), dblo(3),dbhi(3)
@@ -636,7 +636,7 @@ contains
                                   D_bar,dblo,dbhi, & 
                                   Temp,tplo,tphi, & 
                                   zeta_by_Temp,ztlo,zthi, &
-                                  D_therm,dtlo,dthi)
+                                  D_therm,dtlo,dthi) bind(C,name="compute_zeta_by_Temp")
 
     integer,          intent(in   ) :: tlo(2),thi(2),nspecies
     integer,          intent(in   ) :: mclo(2),mchi(2), dblo(2),dbhi(2), tplo(2),tphi(2), ztlo(2),zthi(2), dtlo(2),dthi(2)
@@ -671,7 +671,7 @@ contains
                                   D_bar,dblo,dbhi, & 
                                   Temp,tplo,tphi, & 
                                   zeta_by_Temp,ztlo,zthi, &
-                                  D_therm,dtlo,dthi)
+                                  D_therm,dtlo,dthi) bind(C,name="compute_zeta_by_Temp")
 
     integer,          intent(in   ) :: tlo(3),thi(3),nspecies
     integer,          intent(in   ) :: mclo(3),mchi(3), dblo(3),dbhi(3), tplo(3),tphi(3), ztlo(3),zthi(3), dtlo(3),dthi(3)

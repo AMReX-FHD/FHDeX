@@ -8,7 +8,6 @@ void InitializeMultispecNamespace() {
 
     int max_element = MAX_SPECIES*(MAX_SPECIES-1)/2;
 
-    T_init.resize(2);
     Dbar.resize(max_element);
     Dtherm.resize(MAX_SPECIES);
     H_offdiag.resize(max_element);
@@ -27,11 +26,11 @@ void InitializeMultispecNamespace() {
 
     initialize_multispec_namespace( &inverse_type, &temp_type, 
 				    &chi_iterations, &start_time, 
-				    T_init.dataPtr(), Dbar.dataPtr(), 
-				    Dtherm.dataPtr(), H_offdiag.dataPtr(), 
-				    H_diag.dataPtr(), &fraction_tolerance, 
-				    &correct_flux, &print_error_norms,
-				    &plot_stag, &is_nonisothermal, &is_ideal_mixture,
+				    Dbar.dataPtr(), Dtherm.dataPtr(), 
+				    H_offdiag.dataPtr(), H_diag.dataPtr(), 
+				    &fraction_tolerance, &correct_flux, 
+				    &print_error_norms, &plot_stag, 
+				    &is_nonisothermal, &is_ideal_mixture,
 				    &use_lapack, 
 				    (c_init.dataPtr()->data()), 
 				    (c_init.dataPtr()->dataPtr()), 

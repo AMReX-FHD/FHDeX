@@ -18,8 +18,7 @@ extern "C"
     void initialize_multispec_namespace (const int* inverse_type,
     const int* temp_type,
     const int* chi_iterations,
-    const amrex_real* start_time,
-    const amrex_real* T_init, 
+    const amrex_real* start_time, 
     const amrex_real* Dbar,
     const amrex_real* Dtherm,
     const amrex_real* H_offdiag,
@@ -48,10 +47,10 @@ extern "C"
 // in mass_flux_utilities.F90
 
   void compute_molconc_molmtot(const int* tlo, const int* thi,
-			       const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
-			       const amrex_real* rhotot, const int* rtlo, const int* rthi,
-			       const amrex_real* molarconc, const int* mclo, const int* mchi,
-			       const amrex_real* molmtot, const int* mtlo, const int* mthi);
+  			       const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+  			       const amrex_real* rhotot, const int* rtlo, const int* rthi,
+  			       const amrex_real* molarconc, const int* mclo, const int* mchi,
+  			       const amrex_real* molmtot, const int* mtlo, const int* mthi);
   
   void compute_Gamma(const int* tlo, const int* thi,
 		     const amrex_real* molarconc, const int* mclo, const int* mchi, const int* nspecies,

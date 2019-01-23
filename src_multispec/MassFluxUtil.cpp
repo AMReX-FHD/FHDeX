@@ -3,16 +3,20 @@
 
 #include "common_functions.H"
 #include "common_functions_F.H"
-// #include "common_namespace.H"
 
+#include "multispec_namespace.H"
+#include "common_namespace.H"
+
+using namespace multispec;
 // using namespace common;
+using namespace amrex;
 
 void ComputeMolconcMolmtot(const MultiFab& rho,
 			   const MultiFab& rhotot,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot)
 {
-  
+
     BL_PROFILE_VAR("ComputeMolconcMolmtot()",ComputeMolconcMolmtot);
 
     // Loop over boxes

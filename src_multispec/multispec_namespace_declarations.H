@@ -1,6 +1,7 @@
-int                        multispec::inverse_type,temp_type, chi_iterations;
+int                        multispec::inverse_type;
+int                        multispec::temp_type;
+int                        multispec::chi_iterations;
 amrex::Real                multispec::start_time;
-amrex::Vector<amrex::Real> multispec::T_init;
 amrex::Vector<amrex::Real> multispec::Dbar;
 amrex::Vector<amrex::Real> multispec::Dtherm;
 amrex::Vector<amrex::Real> multispec::H_offdiag;

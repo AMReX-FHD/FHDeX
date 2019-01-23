@@ -2,9 +2,10 @@ namespace multispec {
 
     // Below are items that are read in from the multispec namelist
 
-    extern int                        inverse_type,temp_type, chi_iterations;
+    extern int                        inverse_type;
+    extern int                        temp_type;
+    extern int                        chi_iterations;
     extern amrex::Real                start_time;
-    extern amrex::Vector<amrex::Real> T_init;
     extern amrex::Vector<amrex::Real> Dbar;
     extern amrex::Vector<amrex::Real> Dtherm;
     extern amrex::Vector<amrex::Real> H_offdiag;

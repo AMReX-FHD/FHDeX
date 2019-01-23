@@ -11,8 +11,7 @@ module multispec_namelist_module
   integer,            save :: inverse_type
   integer,            save :: temp_type
   integer,            save :: chi_iterations
-  double precision,   save :: start_time
-  double precision,   save :: T_init(2) 
+  double precision,   save :: start_time 
   double precision,   save :: Dbar(max_element)
   double precision,   save :: Dtherm(MAX_SPECIES)
   double precision,   save :: H_offdiag(max_element)
@@ -51,7 +50,7 @@ module multispec_namelist_module
 
   ! Initial and boundary conditions 
   !----------------------
-  namelist /multispec/ T_init     ! initial values for temperature (bottom/top, inside/outside circle, etc.)
+
   namelist /multispec/ temp_type  ! for initializing temperature
   namelist /multispec/ c_init     ! initial values for c
   namelist /multispec/ c_bc       ! c_i boundary conditions (dir,lohi,species)
@@ -102,7 +101,6 @@ contains
     is_nonisothermal   = 0
     use_lapack         = 0
     chi_iterations     = 10
-    T_init             = 1.0d0
     temp_type          = 0
     c_init             = 1.0d0
     c_bc               = 0.d0
@@ -124,7 +122,7 @@ contains
 
   ! copy contents of multispec_params_module to C++ multispec namespace
   subroutine initialize_multispec_namespace( inverse_type_in, temp_type_in, chi_iterations_in, start_time_in, &
-                                             T_init_in, Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
+                                             Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
                                              plot_stag_in, is_nonisothermal_in, is_ideal_mixture_in, &
                                              use_lapack_in, c_init_in, c_bc_in, &
@@ -136,8 +134,7 @@ contains
     integer,                intent(inout) :: inverse_type_in
     integer,                intent(inout) :: temp_type_in
     integer,                intent(inout) :: chi_iterations_in
-    double precision,       intent(inout) :: start_time_in
-    double precision,       intent(inout) :: T_init_in(2) 
+    double precision,       intent(inout) :: start_time_in 
     double precision,       intent(inout) :: Dbar_in(max_element)
     double precision,       intent(inout) :: Dtherm_in(MAX_SPECIES)
     double precision,       intent(inout) :: H_offdiag_in(max_element)
@@ -165,7 +162,6 @@ contains
     temp_type_in = temp_type
     chi_iterations_in = chi_iterations
     start_time_in = start_time
-    T_init_in = T_init
     Dbar_in = Dbar
     Dtherm_in = Dtherm
     H_offdiag_in = H_offdiag
