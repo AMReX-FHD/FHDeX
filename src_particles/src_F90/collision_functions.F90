@@ -463,10 +463,15 @@ contains
             delholder4((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,6)-means(ti,j,k,6)
             delholder5((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,6)-means(ti,j,k,6)
             delholder6((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,3)-means(ti,j,k,3)
+
+           ! print *, (n_cells(2))*(k) + (j+1), delholder6((n_cells(2))*(k) + (j+1))
+           ! print *, "1", delholder6(1)
  
           enddo
         enddo
       endif
+
+      !print *, "check", delholder6(1)
 
 
 
@@ -573,6 +578,7 @@ contains
           vars(i,j,k,20) = (vars(i,j,k,20)*stepsminusone + delrho*delholder5((n_cells(2))*(k) + (j+1)))*stepsinv
           vars(i,j,k,21) = (vars(i,j,k,21)*stepsminusone + delrho*delholder6((n_cells(2))*(k) + (j+1)))*stepsinv
 
+          !print *, delrho
         enddo
       enddo
     enddo

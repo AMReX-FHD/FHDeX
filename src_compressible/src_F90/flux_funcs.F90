@@ -531,6 +531,7 @@ contains
             kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i+1,j,k)*prim(i+1,j,k,5)*prim(i+1,j,k,5))
             etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i+1,j,k)*prim(i+1,j,k,5))
             velu = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
+            !velu = 0
             !velv = 0.5*(prim(i,j,k,3)+prim(i+1,j,k,3))
             !velw = 0.5*(prim(i,j,k,4)+prim(i+1,j,k,4))
 

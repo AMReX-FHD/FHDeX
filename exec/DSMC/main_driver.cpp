@@ -308,7 +308,7 @@ void main_driver(const char* argv)
     //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
+    int surfaceCount = 7;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -361,7 +361,7 @@ void main_driver(const char* argv)
         statsCount++;
 
 
-        if(step%500 == 0)
+        if(step%5000 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }

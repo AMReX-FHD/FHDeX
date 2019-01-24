@@ -291,7 +291,7 @@ void main_driver(const char* argv)
 
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-        if(step == n_steps_skip)
+        if((step-1)%n_steps_skip == 0)
         {
             cuMeans.setVal(0.0);
             cuVars.setVal(0.0);

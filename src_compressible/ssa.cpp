@@ -17,7 +17,12 @@ void doSSA(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>&
 
         do_ssa(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                    cons[mfi].dataPtr(),  
-                   prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);    
+                   prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);
+
+
+        do_langevin(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                   cons[mfi].dataPtr(),  
+                   prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);   
        
     }
 

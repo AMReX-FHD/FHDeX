@@ -160,6 +160,13 @@ extern "C"
                               const amrex::Real* dx,
                               const amrex::Real* dt);
 
+  void do_langevin(const int* lo, const int* hi,
+			      const amrex::Real* cu,
+			      const amrex::Real* prim,
+			      amrex::Real* xflux,
+                              const amrex::Real* dx,
+                              const amrex::Real* dt);
+
   void apply_effusion(const int* lo, const int* hi,
 			      amrex::Real* cu,
 			      const amrex::Real* xflux,

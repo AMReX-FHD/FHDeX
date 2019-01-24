@@ -429,6 +429,8 @@ void FhdParticleContainer::EvaluateStats(
                         );
     }
 
+    //Print() << "c++: " << delHolder6[0] << "\n";
+
     //this is a bit of a hack? Reduce real sum should work with vectors
     for(int i=0;i<(n_cells[1]*n_cells[2]);i++)
     {
