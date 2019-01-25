@@ -32,7 +32,7 @@
   visc_type = 1
 
   ! Stochastic parameters
-  variance_coef_mom = 0.
+  variance_coef_mom = 1.
   k_B = 1.
   T_init(1) = 1.
 
