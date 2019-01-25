@@ -18,8 +18,8 @@
   fixed_dt = 10
 
   ! Controls for number of steps between actions
-  max_step = 5
-  plot_int = 5
+  max_step = 150000
+  plot_int = 15000
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -32,13 +32,12 @@
   visc_type = 1
 
   ! Stochastic parameters
-  variance_coef_mom = 1.
-  initial_variance_mom = 1.
+  variance_coef_mom = 0.
   k_B = 1.
   T_init(1) = 1.
 
   struct_fact_int = 1
-  n_steps_skip = 0
+  n_steps_skip = 30000
 
   ! Boundary conditions
   ! ----------------------
