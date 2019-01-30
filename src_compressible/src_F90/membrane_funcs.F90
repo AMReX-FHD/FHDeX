@@ -104,7 +104,8 @@ contains
              !print *, "ssa rho: ", xflux(membrane_cell,j,k,1)
              !print *, "ssa E: ", xflux(membrane_cell,j,k,5)
 
-
+              !print *, "rho flux: ", massflux/vol
+              !print *, "E flux: ", energyflux/vol
 !                print *, "lo(1): ", lo(1), ", hi(1): ", hi(1)
 !                print *, "fluxcount: ", fluxcount
 !                print *, "saving: ", xflux(membrane_cell,j,k,5)
@@ -131,13 +132,13 @@ contains
 
       !double precision fac1, fac2, fac3, test, pairfrac
       integer i,j,k,l, fluxcount
-      double precision vol, area, mm, tl, tr, nl, nr, nd, td, l11, l12, l21, l22, nav, tav
-      double precision bigA
-
+      double precision vol, area, mm, tl, tr, rhol, rhor, fac1,fac3, fac5, sqrttl, sqrttr, um, nm, uv, nv, cross, corr, rn1, rn2, rn3
 
       mm = molmass(1)/(6.02d23)
 
-      bigA = transmission*sqrt(mm*k_B/(2.0*3.142))
+      fac5 = transmission*(k_b**2.5)*6.0/sqrt(2*mm*3.142)      
+      fac3 = transmission*(k_b**1.5)*2.0/sqrt(2*mm*3.142)
+      fac1 = transmission*(k_b**0.5)/sqrt(2*mm*3.142)
 
       if((lo(1) .eq. membrane_cell) .or. (hi(1)+1 .eq. membrane_cell)) then
 
@@ -152,27 +153,40 @@ contains
         do  k=lo(3),hi(3)
           do  j=lo(2),hi(2)
 
-             nl = cu(membrane_cell-1,j,k,1)/mm
-             nr = cu(membrane_cell,j,k,1)/mm
+             rhol = cu(membrane_cell-1,j,k,1)
+             rhor = cu(membrane_cell,j,k,1)
 
              tl = prim(membrane_cell-1,j,k,5)
              tr = prim(membrane_cell,j,k,5)
 
-             nav = (nl+nr)/2
-             tav = (tl+tr)/2
+             sqrttl = sqrt(tl)
+             sqrttr = sqrt(tr)
 
-             nd = nr-nl
-             td = tr-tl
+             um = fac3*(sqrttl*tl*rhol-sqrttr*tr*rhor)
+             nm = fac1*(sqrttl*rhol-sqrttr*rhor)
 
-             l11 = bigA*nav*sqrt(tav)/k_b
-             l12 = 2*bigA*nav*tav*sqrt(tav)
-             l21 = l12
-             l22 = 4.5*k_b*bigA*nav*tav**2.5             
+             uv = fac5*(sqrttl*tl*tl*rhol+sqrttr*tr*tr*rhor)
+             nv = fac1*(sqrttl*rhol+sqrttr*rhor)
 
-             !rn1 = get_uniform_func()
-             
-             xflux(membrane_cell,j,k,1) = 0.1*((-k_b*mm*l11/nav)*nd + (1.5*k_b*mm*l11/tav - mm*l12/(tav**2))*td)/vol
-             xflux(membrane_cell,j,k,5) = 0.1*((-k_b*l21/nav)*nd + (1.5*k_b*l21/tav - l22/(tav**2))*td)/vol
+             cross = fac3*(sqrttl*tl*rhol+sqrttr*tr*rhor)
+
+             corr = cross/(sqrt(uv)*sqrt(nv))
+
+             rn1 = get_fhd_normal_func()
+             rn2 = get_fhd_normal_func()
+             rn3 = rn1*corr + sqrt(1-corr**2)*rn2
+            
+             !xflux(membrane_cell,j,k,1) = (dt/area)*mm*(nm + sqrt(nv)*rn1)/vol
+             !xflux(membrane_cell,j,k,5) = (dt/area)*(um + sqrt(uv)*rn3)/vol
+
+             xflux(membrane_cell,j,k,1) = dt*area*(nm + sqrt(nv)*rn1)/vol
+             xflux(membrane_cell,j,k,5) = dt*area*(um + sqrt(uv)*rn3)/(vol*mm)
+
+             !xflux(membrane_cell,j,k,1) = mm*(nm )/vol
+             !xflux(membrane_cell,j,k,5) = (um)/vol
+
+           ! print *, "rho flux: ", dt*area*(nm)/vol
+           ! print *, "E flux: ", dt*area*(um)/(vol*mm)
 
              !print *, "langevin rho: ",  (-k_b*mm*l11/nav)*nd + (1.5*k_b*mm*l11/tav - mm*l12/(tav**2))*td
              !print *, "langevin E: ", (-k_b*l21/nav)*nd + (1.5*k_b*l21/tav - l12/(tav**2))*td
@@ -181,6 +195,55 @@ contains
         enddo
 
       endif
+
+
+!      mm = molmass(1)/(6.02d23)
+
+!      bigA = transmission*sqrt(mm*k_B/(2.0*3.142))
+
+!      if((lo(1) .eq. membrane_cell) .or. (hi(1)+1 .eq. membrane_cell)) then
+
+!#if (AMREX_SPACEDIM == 3)
+!        vol = dx(1)*dx(2)*dx(3)
+!        area = dx(2)*dx(3)
+!#else
+!        vol = dx(1)*dx(2)*cell_depth
+!        area = dx(2)*cell_depth
+!#endif
+
+!        do  k=lo(3),hi(3)
+!          do  j=lo(2),hi(2)
+
+!             nl = cu(membrane_cell-1,j,k,1)/mm
+!             nr = cu(membrane_cell,j,k,1)/mm
+
+!             tl = prim(membrane_cell-1,j,k,5)
+!             tr = prim(membrane_cell,j,k,5)
+
+!             nav = (nl+nr)/2
+!             tav = (tl+tr)/2
+
+!             nd = nr-nl
+!             td = tr-tl
+
+!             l11 = bigA*nav*sqrt(tav)/k_b
+!             l12 = 2*bigA*nav*tav*sqrt(tav)
+!             l21 = l12
+!             l22 = 4.5*k_b*bigA*nav*tav**2.5             
+
+!             !rn1 = get_uniform_func()
+!             
+!             xflux(membrane_cell,j,k,1) = 0.1*((-k_b*mm*l11/nav)*nd + (1.5*k_b*mm*l11/tav - mm*l12/(tav**2))*td)/vol
+!             xflux(membrane_cell,j,k,5) = 0.1*((-k_b*l21/nav)*nd + (1.5*k_b*l21/tav - l22/(tav**2))*td)/vol
+
+!             !print *, "langevin rho: ",  (-k_b*mm*l11/nav)*nd + (1.5*k_b*mm*l11/tav - mm*l12/(tav**2))*td
+!             !print *, "langevin E: ", (-k_b*l21/nav)*nd + (1.5*k_b*l21/tav - l12/(tav**2))*td
+
+!          enddo
+!        enddo
+
+!      endif
+        
         
     end subroutine do_langevin
 
@@ -215,7 +278,7 @@ contains
 
             if((cu(membrane_cell,j,k,1) .lt. 0) .or. (cu(membrane_cell,j,k,5) .lt. 0)) then
     
-             ! print *, "Negative effusion removed"
+              print *, "Negative effusion removed"
 
               cu(membrane_cell,j,k,1) = cu(membrane_cell,j,k,1) - xflux(membrane_cell,j,k,1)
               cu(membrane_cell,j,k,5) = cu(membrane_cell,j,k,5) - xflux(membrane_cell,j,k,5)
