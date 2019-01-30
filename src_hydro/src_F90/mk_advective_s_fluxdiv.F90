@@ -119,7 +119,6 @@ contains
       double precision :: dxinv
 
       dxinv = 1.d0/dx(1)
-      dxinv2 = dxinv*dxinv;
 
       !=============================
       ! fluxes and divergence
@@ -135,21 +134,6 @@ contains
       end do
       end do
       end do
-      
-      !! Add viscous term
-      !=============================
-      ! diffusion
-      !=============================
-      ! do k=lo(3),hi(3)
-      ! do j=lo(2),hi(2)
-      ! do i=lo(1),hi(1)
-      !    phi_lap = ....
-      !    phi_lap = (diff_coef*dxinv2)*phi_lap
-
-      !    m_update(i,j,k) = m_update(i,j,k) + phi_lap
-      ! end do
-      ! end do
-      ! end do
 
     end subroutine mk_advective_s_fluxdiv
     

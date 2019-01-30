@@ -51,6 +51,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   if (di .EQ. 0) then
 
      SELECT CASE (prob_type)
+     CASE (0)
+        vel = 0.d0
      CASE (1)
         !! Vortex:
         do k = lo(3), hi(3)
@@ -124,6 +126,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   if (di .EQ. 1) then
 
      SELECT CASE (prob_type)
+     CASE (0)
+        vel = 0.d0
      CASE (1)
         !! Vortex:
 
@@ -192,6 +196,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   if (di .EQ. 2) then
 
      SELECT CASE (prob_type)
+     CASE (0)
+        vel = 0.d0
      CASE (1)
         do k = lo(3), hi(3) + 1
            do j = lo(2), hi(2)
