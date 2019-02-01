@@ -47,7 +47,7 @@ void SetMacSolverBCs(amrex::MLABecLaplacian& mlabec);
 /////////////////////////////////////////////////////////////////////////////////
 // in advance.cpp
 void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
-	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew, 
+	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
 	     amrex::MultiFab& pres, amrex::MultiFab& tracer,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,

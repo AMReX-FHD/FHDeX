@@ -15,8 +15,9 @@ module rng_functions_module
   private
 
   public :: rng_initialize, &
-            get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, get_angles, get_half_angles, get_fhd_normal_func
- 
+       &    get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, &
+       &    get_angles, get_half_angles, get_fhd_normal_func
+
   type(bl_rng_engine)      , save :: rng_eng_fhd
   type(bl_rng_engine)      , save :: rng_eng_particle
   type(bl_rng_engine)      , save :: rng_eng_select
@@ -40,7 +41,7 @@ contains
     integer, intent(in) :: fhd, particle, sel, theta, phi, general
 
     call bl_rng_build_engine(rng_eng_fhd, fhd)
-    call bl_rng_build_engine(rng_eng_particle, particle)       
+    call bl_rng_build_engine(rng_eng_particle, particle)
     call bl_rng_build_engine(rng_eng_select, sel)
     call bl_rng_build_engine(rng_eng_scatter_theta, theta)
     call bl_rng_build_engine(rng_eng_scatter_phi, phi)
@@ -134,37 +135,5 @@ contains
       test = bl_rng_get(nm_fhd, rng_eng_fhd)
 
   end function get_fhd_normal_func
-  
+
 end module rng_functions_module
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

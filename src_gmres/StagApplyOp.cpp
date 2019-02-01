@@ -5,11 +5,11 @@
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 
-//Takes cell centred and nodal viscosity multifabs, and face centred velcoity multifab, and outputs to 
+//Takes cell centred and nodal viscosity multifabs, and face centred velcoity multifab, and outputs to
 
 void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
-                 const std::array<MultiFab, NUM_EDGE>& betaEdge, 
-                 const std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
+                 const std::array<MultiFab, NUM_EDGE>& betaEdge,
+                 const std::array<MultiFab, AMREX_SPACEDIM>& umacIn,
                  std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
                  const std::array<MultiFab, AMREX_SPACEDIM>& alpha,
                  const Real* dx,
@@ -47,16 +47,9 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
 #if (AMREX_SPACEDIM == 3)
                       BL_TO_FORTRAN_ANYD(alpha[2][mfi]),
 #endif
-                      
+
                       dx, &color);
 
     }
 
 }
-
-
-
-
-
-
-

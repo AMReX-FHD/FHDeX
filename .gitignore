@@ -1,0 +1,17 @@
+
+# Get rid of noise
+
+## C/E tags
+TAGS
+tags
+
+## Compiler debris
+**/tmp_build_dir
+
+## All compiled programs
+**/*.gnu.*.ex
+
+## Plot files
+
+exec/*/plt*
+exec/*/stag*

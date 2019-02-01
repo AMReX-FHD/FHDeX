@@ -14,7 +14,7 @@ class StochMFlux {
 
   const int ncomp_ed = 2;
   int n_rngs;
-  
+
   Geometry geom;
 
   // Vectors containing mflux Gaussian white noise field at each stage:
@@ -33,19 +33,19 @@ public:
   StochMFlux(                 BoxArray,DistributionMapping,Geometry,int);
   void fillMStochastic(       );
   void weightMflux(           Vector< amrex::Real >);
-  void multbyVarSqrtEtaTemp(  const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&, 
+  void multbyVarSqrtEtaTemp(  const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::Real&);
   void stochMforce(           std::array< amrex::MultiFab, AMREX_SPACEDIM >&, const amrex::MultiFab&,
 			      const std::array< amrex::MultiFab, NUM_EDGE >&, const amrex::MultiFab&,
 			      const std::array< amrex::MultiFab, NUM_EDGE >&,
 			      const amrex::Vector< amrex::Real >&, const amrex::Real&);
-  void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
-			      const amrex::MultiFab&, const amrex::MultiFab&, 
+  void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+			      const amrex::MultiFab&, const amrex::MultiFab&,
 			      const amrex::Real&, Geometry);
-  void addMfluctuations_stag( std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
-			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
-			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&, 
+  void addMfluctuations_stag( std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const amrex::Real&, Geometry);
   void SqrtMF(                amrex::MultiFab&);
   void writeMFs(              std::array< MultiFab, AMREX_SPACEDIM >&);
@@ -53,4 +53,3 @@ public:
 };
 
 #endif
-

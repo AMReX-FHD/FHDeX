@@ -11,8 +11,8 @@ amrex::Vector<amrex::Real> common::prob_hi;
 amrex::Vector<int>         common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
 amrex::Real                common::cell_depth;
-amrex::IntVect             common::ngc;           
-int                        common::nvars;         
+amrex::IntVect             common::ngc;
+int                        common::nvars;
 int                        common::nprimvars;
 
 int                        common::membrane_cell;
@@ -85,5 +85,3 @@ amrex::Real                common::particle_neff;
 amrex::Vector<amrex::Real> common::particle_n0;
 amrex::Vector<amrex::Real> common::mass;
 amrex::Vector<amrex::Real> common::nfrac;
-
-

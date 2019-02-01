@@ -28,13 +28,13 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
     if (gmres_verbose >= 1) {
         Print() << "Begin call to GMRES" << std::endl;
-    } 
+    }
 
     Vector<Real> cs(gmres_max_inner);
     Vector<Real> sn(gmres_max_inner);
     Vector<Real>  y(gmres_max_inner);
     Vector<Real>  s(gmres_max_inner+1);
-    
+
     Vector<Vector<Real>> H(gmres_max_inner+1,Vector<Real>(gmres_max_inner));
 
     int outer_iter, total_iter, i_copy; // for looping iteration
@@ -52,7 +52,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
     Real norm_u; // temporary norms used to build full-state norm
     Real norm_p; // temporary norms used to build full-state norm
-    
+
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
 
@@ -119,12 +119,12 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     norm_b = sqrt(norm_u*norm_u+norm_p*norm_p);
 
     //! If norm_b=0 we should return zero as the solution and "return" from this routine
-    // It is important to use gmres_abs_tol and not 0 since sometimes due to roundoff we 
+    // It is important to use gmres_abs_tol and not 0 since sometimes due to roundoff we
     // get a nonzero number that should really be zero
     if (gmres_verbose >= 1) {
         // Useful to print out to give expected scale for gmres_abs_tol
-        Print() << "GMRES.cpp: GMRES called with ||rhs||=" << norm_b << std::endl; 
-    } 
+        Print() << "GMRES.cpp: GMRES called with ||rhs||=" << norm_b << std::endl;
+    }
     if (norm_b <= gmres_abs_tol) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             x_u[d].setVal(0.);
@@ -151,10 +151,10 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Subtract(tmp_u[d],b_u[d],0,0,1,0);
             tmp_u[d].mult(-1.,0,1,0);
-        }            
+        }
         MultiFab::Subtract(tmp_p,b_p,0,0,1,0);
         tmp_p.mult(-1.,0,1,0);
-        
+
         // un-preconditioned residuals
         StagL2Norm(tmp_u,0,norm_u_noprecon);
         CCL2Norm(tmp_p,0,norm_p_noprecon);
@@ -166,12 +166,12 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
         if (gmres_verbose >= 2) {
             Print() << "total Iters = " << total_iter << std::endl;
-            Print() << "r/(r_0,b) = " << norm_resid_Stokes/norm_init_Stokes << "  " 
+            Print() << "r/(r_0,b) = " << norm_resid_Stokes/norm_init_Stokes << "  "
                     << norm_resid_Stokes/norm_b << std::endl;
         }
         if (gmres_verbose >= 3) {
             Print() << "un-Precond. rel. resid. (u,v,p) = " << norm_resid_Stokes/norm_init_Stokes
-                    << "  " << norm_u_noprecon/norm_init_Stokes 
+                    << "  " << norm_u_noprecon/norm_init_Stokes
                     << "  " << norm_p_noprecon/norm_init_Stokes << std::endl;
         }
 
@@ -191,14 +191,14 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         }
 
         if (gmres_verbose >= 3) {
-            Print() << "Precond. rel. res. (u,v,p) = " << norm_resid/norm_init_resid << "  " 
+            Print() << "Precond. rel. res. (u,v,p) = " << norm_resid/norm_init_resid << "  "
                     << norm_u/norm_init_resid << "  " << norm_p/norm_init_resid << std::endl;
         }
 
         // We need to test the residual now and exit OuterLoop if converged
         if (total_iter >= gmres_max_iter) {
             if (gmres_verbose >= 1) {
-                Print() << "GMRES did not converge in max number of total inner iterations: Exiting" 
+                Print() << "GMRES did not converge in max number of total inner iterations: Exiting"
                         << std::endl;
             }
             break;
@@ -207,24 +207,24 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
             // other options
             if(norm_resid <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid)) {
                 if (gmres_verbose >= 2) {
-                    Print() << "GMRES converged: Outer = " << outer_iter << ",  Inner = " << i 
+                    Print() << "GMRES converged: Outer = " << outer_iter << ",  Inner = " << i
                             << " Total=" << total_iter << std::endl;
                 }
 
                 if (norm_resid_Stokes >= 10*gmres_rel_tol*std::min(norm_b, norm_init_Stokes)) {
-                    Print() << "GMRES.cpp: Warning: gmres may not have converged: |r|/|b|= " 
-                            << norm_resid_Stokes/norm_b << " |r|/|r0|=" 
+                    Print() << "GMRES.cpp: Warning: gmres may not have converged: |r|/|b|= "
+                            << norm_resid_Stokes/norm_b << " |r|/|r0|="
                             << norm_resid_Stokes/norm_init_Stokes << std::endl;
                 }
 
-                // Only exit if the *true* preconditioned residual is less than tolerance: 
+                // Only exit if the *true* preconditioned residual is less than tolerance:
                 // Do not trust the gmres estimate
                 break; // exit OuterLoop
             }
             else if (norm_resid <= gmres_abs_tol) {
 
                 if (gmres_verbose >= 2) {
-                    Print() << "GMRES converged: Outer = " << outer_iter << ",  Inner = " << i 
+                    Print() << "GMRES converged: Outer = " << outer_iter << ",  Inner = " << i
                             << " Total=" << total_iter << std::endl;
                 }
 
@@ -378,7 +378,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     if (gmres_verbose >= 1) {
         Print() << "Done with GMRES:" << std::endl;
         Print() << "  total ITERs = " << total_iter << std::endl;
-        Print() << "  residual/(norm_b,initial) = " << norm_resid/norm_b << "  " 
+        Print() << "  residual/(norm_b,initial) = " << norm_resid/norm_b << "  "
                 << norm_resid/norm_init_resid << std::endl;
     }
 
@@ -403,7 +403,7 @@ void UpdateSol(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
     }
 }
 
-void LeastSquares(int i, 
+void LeastSquares(int i,
                   Vector<Vector<Real>>& H,
                   Vector<Real>& cs,
                   Vector<Real>& sn,
@@ -415,7 +415,7 @@ void LeastSquares(int i,
     for (int k=0; k<=i-1; ++k) {
         temp      =  cs[k]*H[k][i] + sn[k]*H[k+1][i];
         H[k+1][i] = -sn[k]*H[k][i] + cs[k]*H[k+1][i];
-        H[k][i] = temp;        
+        H[k][i] = temp;
     }
 
     // form i-th rotation matrix
@@ -464,6 +464,6 @@ void SolveUTriangular(int k, Vector<Vector<Real>>& H, Vector<Real>& s, Vector<Re
 
         y[i] = (s[i] - dot) / H[i][i];
     }
-    
+
 
 }
