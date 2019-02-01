@@ -3,6 +3,7 @@ module mass_flux_utilities_module
   use amrex_error_module
   use common_namelist_module
   use multispec_namelist_module
+  use matrix_utilities_module
 
   implicit none
 

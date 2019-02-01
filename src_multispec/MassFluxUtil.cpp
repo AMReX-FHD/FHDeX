@@ -8,7 +8,7 @@
 #include "common_namespace.H"
 
 using namespace multispec;
-// using namespace common;
+using namespace common;
 using namespace amrex;
 
 void ComputeMolconcMolmtot(const MultiFab& rho,
@@ -35,8 +35,7 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 }
 
 void ComputeRhotot(const MultiFab& rho,
-		   MultiFab& rhotot,
-		   const Geometry& geom)
+		   MultiFab& rhotot)
 {
   
     BL_PROFILE_VAR("ComputeRhotot()",ComputeRhotot);
@@ -47,8 +46,6 @@ void ComputeRhotot(const MultiFab& rho,
     
     for (int i=0; i<nspecies; i++)
       MultiFab::Add (rhotot,rho,i,0,1,0);
-
-    rhotot.FillBoundary(geom.periodicity());
 
 }
 

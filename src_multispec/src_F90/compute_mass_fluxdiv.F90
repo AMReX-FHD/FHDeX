@@ -1,26 +1,10 @@
 module compute_mass_fluxdiv_module
 
-  use multifab_module
-  use define_bc_module
-  use bc_module
-  use div_and_grad_module
-  use diffusive_mass_fluxdiv_module
-  use stochastic_mass_fluxdiv_module
-  use compute_mixture_properties_module
-  use external_force_module
-  use ml_layout_module
-  use mass_flux_utilities_module
-  use convert_stag_module
-  use electrodiffusive_mass_fluxdiv_module
-  use probin_common_module, only: variance_coef_mass, nspecies, molmass, &
-                                  shift_cc_to_boundary, k_B
-  use probin_charged_module, only: use_charged_fluid, charge_per_mass
+  
 
   implicit none
 
   private
-
-  public :: compute_mass_fluxdiv
 
 contains
 

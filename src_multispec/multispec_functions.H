@@ -25,8 +25,7 @@ void ComputeMolconcMolmtot(const amrex::MultiFab& rho,
 			   amrex::MultiFab& molmtot);
   
 void ComputeRhotot(const amrex::MultiFab& rho,
-		   amrex::MultiFab& rhotot,
-		   const amrex::Geometry& geom);
+		   amrex::MultiFab& rhotot);
 
 void ComputeGamma(const amrex::MultiFab& molarconc,
 		  const amrex::MultiFab& Hessian,
@@ -45,5 +44,22 @@ void ComputeZetaByTemp(const amrex::MultiFab& molarconc,
 		       const amrex::MultiFab& D_therm);
 
 /////////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// in ComputeMassFluxdiv.cpp
+
+void ComputeMassFluxdiv(amrex::MultiFab& rho,
+			amrex::MultiFab& rhotot,
+			amrex::MultiFab& diff_mass_fluxdiv,
+			amrex::MultiFab& stoch_mass_fluxdiv,
+			amrex::MultiFab& diff_mass_flux,
+			amrex::MultiFab& stoch_mass_flux,
+			const amrex::Real& dt,
+			const amrex::Real& stage_time,
+			const amrex::Geometry& geom);
+
+/////////////////////////////////////////////////////////////////////////////////
+
 
 #endif
