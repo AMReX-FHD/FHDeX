@@ -35,17 +35,19 @@ using namespace gmres;
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
 //! nodal_flag_[x,y,z]). Each MultiFab has 1 component, and 1 ghost cell
-inline void defineStaggered(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
-                            const BoxArray & ba, const DistributionMapping & dm) {
-    AMREX_D_TERM(mf_in[0].define(convert(ba, nodal_flag_x), dm, 1, 1);,
-                 mf_in[1].define(convert(ba, nodal_flag_y), dm, 1, 1);,
-                 mf_in[2].define(convert(ba, nodal_flag_z), dm, 1, 1););
+inline void define(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
+                   const BoxArray & ba, const DistributionMapping & dm,
+                   const Array< IntVect, AMREX_SPACEDIM > & nd_flags) {
+    AMREX_D_TERM(mf_in[0].define(convert(ba, nd_flags[0]), dm, 1, 1);,
+                 mf_in[1].define(convert(ba, nd_flags[1]), dm, 1, 1);,
+                 mf_in[2].define(convert(ba, nd_flags[2]), dm, 1, 1););
 }
 
 
+
 //! Sets the value for each component of staggered MultiFab
-inline void setValStaggered(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
-                            Real set_val) {
+inline void setVal(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
+                   Real set_val) {
     AMREX_D_TERM(mf_in[0].setVal(set_val);,
                  mf_in[1].setVal(set_val);,
                  mf_in[2].setVal(set_val););
@@ -156,61 +158,76 @@ void main_driver(const char * argv) {
     rng_initialize( & fhdSeed, & particleSeed, & selectorSeed,
                     & thetaSeed, & phiSeed, & generalSeed);
 
-    ///////////////////////////////////////////
-    // rho, alpha, beta, gamma:
-    ///////////////////////////////////////////
 
+
+    /****************************************************************************
+     *                                                                          *
+     * Initialize physical parameters                                           *
+     *                                                                          *
+     ***************************************************************************/
+
+    //___________________________________________________________________________
+    // Set face and edge nodal_flags
+
+    Array< IntVect, AMREX_SPACEDIM > stag_nd_flags {
+        nodal_flag_x, nodal_flag_y, nodal_flag_z
+    };
+
+    Array< IntVect, AMREX_SPACEDIM > edge_nd_flags {
+        nodal_flag_xy, nodal_flag_xz, nodal_flag_yz
+    };
+
+
+    //___________________________________________________________________________
+    // Set rho, alpha, beta, gamma:
+
+    // rho is cell-centered
     MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
 
-    // alpha_fc arrays
+    // alpha_fc is face-centered
     Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    defineStaggered(alpha_fc, ba, dmap);
-    setValStaggered(alpha_fc, dtinv);
+    define(alpha_fc, ba, dmap, stag_nd_flags);
+    setVal(alpha_fc, dtinv);
 
-    // beta cell centred
+    // beta is cell-centered
     MultiFab beta(ba, dmap, 1, 1);
     beta.setVal(visc_coef);
 
-    // beta on nodes in 2d
-    // beta on edges in 3d
+    // beta is on nodes in 2D, and is on edges in 3D
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
-    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    beta_ed[0].define(convert(ba, nodal_flag), dmap, 1, 1);
     beta_ed[0].setVal(visc_coef);
 #elif (AMREX_SPACEDIM == 3)
-    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
-    beta_ed[1].setVal(visc_coef);
-    beta_ed[2].setVal(visc_coef);
+    define(beta_ed, ba, dmap, edge_nd_flags);
+    setVal(beta_ed, visc_coef);
 #endif
 
     // cell-centered gamma
     MultiFab gamma(ba, dmap, 1, 1);
     gamma.setVal(0.);
 
-    ///////////////////////////////////////////
 
-    ///////////////////////////////////////////
-    // Define & initalize eta & temperature multifabs
-    ///////////////////////////////////////////
+
+    //___________________________________________________________________________
+    // Define & initialize eta & temperature MultiFabs
+
     // eta & temperature
-    const Real eta_const = visc_coef;
+    const Real eta_const  = visc_coef;
     const Real temp_const = T_init[0];      // [units: K]
 
+
+    // NOTE: eta and temperature live on both cell-centers and edges
+
     // eta & temperature cell centered
-    MultiFab  eta_cc;
-    MultiFab temp_cc;
+    MultiFab  eta_cc(ba, dmap, 1, 1);
+    MultiFab temp_cc(ba, dmap, 1, 1);
     // eta & temperature nodal
     std::array< MultiFab, NUM_EDGE >   eta_ed;
     std::array< MultiFab, NUM_EDGE >  temp_ed;
-    // eta cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
-    // temperature cell-centered
-    temp_cc.define(ba, dmap, 1, 1);
+    // eta_ed and temp_ed are on nodes in 2D, and on edges in 3D
 #if (AMREX_SPACEDIM == 2)
     // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
@@ -218,13 +235,15 @@ void main_driver(const char * argv) {
     temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
     // eta nodal
-    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    // eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    // eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    // eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    define(eta_ed, ba, dmap, edge_nd_flags);
     // temperature nodal
-    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    // temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    // temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    // temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    define(temp_ed, ba, dmap, edge_nd_flags);
 #endif
 
     // Initalize eta & temperature multifabs
