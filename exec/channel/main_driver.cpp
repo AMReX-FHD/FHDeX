@@ -32,25 +32,60 @@ using namespace amrex;
 using namespace common;
 using namespace gmres;
 
+
+//! Defines staggered MultiFab arrays (BoxArrays set according to the
+//! nodal_flag_[x,y,z]). Each MultiFab has 1 component, and 1 ghost cell
+inline void defineStaggered(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
+                            const BoxArray & ba, const DistributionMapping & dm) {
+    AMREX_D_TERM(mf_in[0].define(convert(ba, nodal_flag_x), dm, 1, 1);,
+                 mf_in[1].define(convert(ba, nodal_flag_y), dm, 1, 1);,
+                 mf_in[2].define(convert(ba, nodal_flag_z), dm, 1, 1););
+}
+
+
+//! Sets the value for each component of staggered MultiFab
+inline void setValStaggered(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
+                            Real set_val) {
+    AMREX_D_TERM(mf_in[0].setVal(set_val);,
+                 mf_in[1].setVal(set_val);,
+                 mf_in[2].setVal(set_val););
+}
+
+
+
 // argv contains the name of the inputs file entered at the command line
-void main_driver(const char* argv)
-{
+void main_driver(const char * argv) {
 
     BL_PROFILE_VAR("main_driver()",main_driver);
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Initialize simulation                                                    *
+     *                                                                          *
+     ***************************************************************************/
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
+
+    //___________________________________________________________________________
+    // Load parameters from inputs file, and initialize global parameters
     std::string inputs_file = argv;
 
-    // read in parameters from inputs file into F90 modules
-    // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
+    // read in parameters from inputs file into F90 modules NOTE: we use "+1"
+    // because of amrex_string_c_to_f expects a null char termination
+    read_common_namelist(inputs_file.c_str(), inputs_file.size()+1);
+    read_gmres_namelist(inputs_file.c_str(), inputs_file.size()+1);
 
-    // copy contents of F90 modules to C++ namespaces
+    // copy contents of F90 modules to C++ namespaces NOTE: any changes to
+    // global settings in fortran/c++ after this point need to be synchronized
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+
+
+    //___________________________________________________________________________
+    // Set boundary conditions
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -60,59 +95,66 @@ void main_driver(const char* argv)
         }
     }
 
-    // make BoxArray and Geometry
+    //___________________________________________________________________________
+    // Make BoxArray, DistributionMapping, and Geometry
     BoxArray ba;
     Geometry geom;
     {
-        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+        IntVect dom_lo(AMREX_D_DECL(             0,              0,              0));
+        IntVect dom_hi(AMREX_D_DECL(n_cells[0] - 1, n_cells[1] - 1, n_cells[2] - 1));
         Box domain(dom_lo, dom_hi);
 
         // Initialize the boxarray "ba" from the single box "bx"
         ba.define(domain);
 
-        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-        // note we are converting "Vector<int> max_grid_size" to an IntVect
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size"
+        // along a direction note we are converting "Vector<int> max_grid_size"
+        // to an IntVect
         ba.maxSize(IntVect(max_grid_size));
 
-       // This defines the physical box, [-1,1] in each direction.
-        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                         {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+        // This defines the physical box, [-1, 1] in each direction
+        RealBox real_box({AMREX_D_DECL(prob_lo[0], prob_lo[1], prob_lo[2])},
+                         {AMREX_D_DECL(prob_hi[0], prob_hi[1], prob_hi[2])});
 
         // This defines a Geometry object
-        geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+        geom.define(domain, & real_box, CoordSys::cartesian, is_periodic.data());
     }
-
-    Real dt = fixed_dt;
-    Real dtinv = 1.0/dt;
-    const Real* dx = geom.CellSize();
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
-    /////////////////////////////////////////
-    //Initialise rngs
-    /////////////////////////////////////////
+
+    //___________________________________________________________________________
+    // Cell size, and time step
+    Real dt         = fixed_dt;
+    Real dtinv      = 1.0 / dt;
+    const Real * dx = geom.CellSize();
+
+
+    //___________________________________________________________________________
+    // Initialize random number generators
     const int n_rngs = 1;
 
-    int fhdSeed = 1;
+    // this seems really random :P
+    int fhdSeed      = 1;
     int particleSeed = 2;
     int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 6;
+    int thetaSeed    = 4;
+    int phiSeed      = 5;
+    int generalSeed  = 6;
 
-    // const int proc = ParallelDescriptor::MyProc();
-    // fhdSeed += proc;
-    // particleSeed += proc;
-    // selectorSeed += proc;
-    // thetaSeed += proc;
-    // phiSeed += proc;
-    // generalSeed += proc;
+    // each CPU gets a different random seed
+    const int proc = ParallelDescriptor::MyProc();
+    fhdSeed      += proc;
+    particleSeed += proc;
+    selectorSeed += proc;
+    thetaSeed    += proc;
+    phiSeed      += proc;
+    generalSeed  += proc;
 
-    //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-    /////////////////////////////////////////
+    // initialize rngs
+    rng_initialize( & fhdSeed, & particleSeed, & selectorSeed,
+                    & thetaSeed, & phiSeed, & generalSeed);
 
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
@@ -124,12 +166,8 @@ void main_driver(const char* argv)
     // alpha_fc arrays
     Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
-                 alpha_fc[1].setVal(dtinv);,
-                 alpha_fc[2].setVal(dtinv););
+    defineStaggered(alpha_fc, ba, dmap);
+    setValStaggered(alpha_fc, dtinv);
 
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);

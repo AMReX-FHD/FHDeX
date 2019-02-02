@@ -81,12 +81,12 @@ module common_namelist_module
   double precision,   save :: mass(MAX_SPECIES)
   double precision,   save :: nfrac(MAX_SPECIES)
 
-  integer,            save :: particle_placement  
+  integer,            save :: particle_placement
   integer,            save :: particle_count(MAX_SPECIES)
   double precision,   save :: particle_n0(MAX_SPECIES)
   double precision,   save :: particle_neff
 
-  
+
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -95,17 +95,17 @@ module common_namelist_module
   namelist /common/ cell_depth
 
   namelist /common/ ngc           !number of ghost cells
-  namelist /common/ nvars         !number of conserved variables      
+  namelist /common/ nvars         !number of conserved variables
   namelist /common/ nprimvars     !number of primative variables
 
   namelist /common/ membrane_cell  !location of membrane
   namelist /common/ cross_cell     !cell to compute spatial correlation
-  namelist /common/ transmission 
+  namelist /common/ transmission
 
   namelist /common/ mass
   namelist /common/ nfrac
 
-  namelist /common/ particle_placement  
+  namelist /common/ particle_placement
   namelist /common/ particle_count
   namelist /common/ particle_n0
   namelist /common/ particle_neff
@@ -204,7 +204,7 @@ module common_namelist_module
   namelist /common/ t_lo
   namelist /common/ t_hi
 
-  ! Each no-slip wall may be moving with a specified tangential 
+  ! Each no-slip wall may be moving with a specified tangential
   ! velocity along the tangential directions
   ! In 2D:
   ! wallspeed_lo/hi_x - yvel
@@ -219,8 +219,8 @@ module common_namelist_module
   ! structure factor analysis
   namelist /common/ struct_fact_int
   namelist /common/ n_steps_skip
-  
-  ! These are mostly used for reaction-diffusion: 
+
+  ! These are mostly used for reaction-diffusion:
   namelist /common/ histogram_unit
   namelist /common/ density_weights
   namelist /common/ shift_cc_to_boundary
@@ -313,7 +313,7 @@ contains
                                          grav_in, nspecies_in, molmass_in, diameter_in, dof_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
-                                         k_B_in, Runiv_in, T_init_in, algorithm_type_in, & 
+                                         k_B_in, Runiv_in, T_init_in, algorithm_type_in, &
                                          advection_type_in, &
                                          barodiffusion_type_in, use_bl_rng_in, seed_in, &
                                          seed_momentum_in, seed_diffusion_in, &
