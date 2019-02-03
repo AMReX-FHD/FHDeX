@@ -61,5 +61,35 @@ void ComputeMassFluxdiv(amrex::MultiFab& rho,
 
 /////////////////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////////////////////////////
+// in DiffusiveMassFlux.cpp
+
+void DiffusiveMassFluxdiv(const amrex::MultiFab& rho,
+		     const amrex::MultiFab& rhotot,
+		     const amrex::MultiFab& molarconc,
+		     const amrex::MultiFab& rhoWchi,
+		     const amrex::MultiFab& Gamma,
+		     amrex::MultiFab& diff_mass_fluxdiv,
+		     std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+		     const amrex::Geometry& geom);
+
+void DiffusiveMassFlux(const amrex::MultiFab& rho,
+		  const amrex::MultiFab& rhotot,
+		  const amrex::MultiFab& molarconc,
+		  const amrex::MultiFab& rhoWchi,
+		  const amrex::MultiFab& Gamma,
+		  std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+		  const amrex::Geometry& geom);
+
+/////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
+// in MatvecMul.cpp
+
+void MatvecMul(amrex::MultiFab& x,
+	  const amrex::MultiFab& A,
+	  const int& nc);
+
+/////////////////////////////////////////////////////////////////////////////////
 
 #endif

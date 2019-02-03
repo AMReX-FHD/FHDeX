@@ -27,7 +27,7 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
 
   const Real* dx = geom.CellSize();
   
-  MultiFab rhoWchi(         ba, dmap, 1, 1);  // rho*W*chi*Gamma
+  MultiFab rhoWchi(         ba, dmap, nspecies2, 1);  // rho*W*chi*Gamma
   MultiFab molarconc(       ba, dmap, nspecies, 1);  // molar concentration
   MultiFab molmtot(         ba, dmap, 1, 1);  // total molar mass
   MultiFab Hessian(         ba, dmap, nspecies2, 1);  // Hessian-matrix

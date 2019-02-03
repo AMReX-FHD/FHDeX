@@ -71,6 +71,14 @@ extern "C"
 			    const amrex_real* zeta_by_Temp, const int* ztlo, const int* zthi,
 			    const amrex_real* D_therm, const int* dtlo, const int* dthi);
 
+///////////////////////////
+  
+///////////////////////////
+// in mass_flux_utilities.F90
+
+  void matvec_mul(const int* tlo, const int* thi,
+		  const amrex_real* xp, const int* xlo, const int* xhi,
+                  const amrex_real* ap, const int* alo, const int* ahi, const int* nc);
 
 ///////////////////////////
 
