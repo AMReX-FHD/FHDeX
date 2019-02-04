@@ -234,15 +234,7 @@ void main_driver(const char * argv) {
     // temperature nodal
     temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
-    // eta nodal
-    // eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    // eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    // eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
     define(eta_ed, ba, dmap, edge_nd_flags);
-    // temperature nodal
-    // temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    // temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    // temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
     define(temp_ed, ba, dmap, edge_nd_flags);
 #endif
 

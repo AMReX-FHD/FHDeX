@@ -73,6 +73,15 @@ include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
 INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
 VPATH_LOCATIONS		+= $(AMREX_HOME)/Src/Extern/SWFFT
 
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
+
+# check if running on macOS (as there are some subtle differences to linux).
+UNAME_S = $(shell uname -s)
+ifeq ($(UNAME_S), Darwin)
+    # on macOS (if libfftw3 has been installed via homebrew, there are no
+    # separated omp and mpi libraries)
+    LIBRARIES += -L$(FFTW_DIR) -lfftw3
+else
+    LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
+endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
