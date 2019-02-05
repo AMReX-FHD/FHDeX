@@ -11,6 +11,8 @@ using namespace multispec;
 using namespace common;
 using namespace amrex;
 
+// FIXME: Fill ghost cells
+
 void DiffusiveMassFluxdiv(const MultiFab& rho,
 			  const MultiFab& rhotot,
 			  const MultiFab& molarconc,
@@ -28,7 +30,7 @@ void DiffusiveMassFluxdiv(const MultiFab& rho,
     DiffusiveMassFlux(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_flux,geom);
 
     // compute divergence of determinstic flux 
-    ComputeDiv(diff_mass_flux,diff_mass_fluxdiv,geom,nspecies);
+    ComputeDiv(diff_mass_fluxdiv,diff_mass_flux,0,0,nspecies,geom,0);  // increment = 0
 
 }
 
@@ -75,17 +77,17 @@ void DiffusiveMassFlux(const MultiFab& rho,
 
     // MatvecMul needs to add A*x result to x
     for(i=0;i<AMREX_SPACEDIM;i++) {
-      MatvecMul(diff_mass_flux[i], Gama_face[i], nspecies);
+      MatvecMul(diff_mass_flux[i], Gamma_face[i], nspecies);
     }
 
     for(i=0;i<AMREX_SPACEDIM;i++) {
       MatvecMul(diff_mass_flux[i], rhoWchi_face[i], nspecies);
     }
 
-    // //correct fluxes to ensure mass conservation to roundoff
-    // if (correct_flux==1 && (nspecies > 1)) {
-    //   // Print() << "Checking conservation of deterministic fluxes \n";
-    //   correction_flux(mla, rho, rhotot, diff_mass_flux, the_bc_tower%bc_tower_array);
-    // }
+    //correct fluxes to ensure mass conservation to roundoff
+    if (correct_flux==1 && (nspecies > 1)) {
+      // Print() << "Checking conservation of deterministic fluxes \n";
+      CorrectionFlux(rho,rhotot,diff_mass_flux);
+    }
 
 }
