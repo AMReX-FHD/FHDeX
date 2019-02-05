@@ -227,68 +227,41 @@ void main_driver(const char * argv) {
     // eta & temperature nodal
     std::array< MultiFab, NUM_EDGE >   eta_ed;
     std::array< MultiFab, NUM_EDGE >  temp_ed;
+
     // eta_ed and temp_ed are on nodes in 2D, and on edges in 3D
 #if (AMREX_SPACEDIM == 2)
-    // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-    // temperature nodal
     temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+
+    eta_ed[0].setVal(eta_const);
+    temp_ed[0].setVal(temp_const);
 #elif (AMREX_SPACEDIM == 3)
     define(eta_ed, ba, dmap, edge_nd_flags);
     define(temp_ed, ba, dmap, edge_nd_flags);
+
+    setVal(eta_ed, eta_const);
+    setVal(temp_ed, temp_const);
 #endif
 
-    // Initalize eta & temperature multifabs
-    // eta cell-centered
+    // eta_cc and temp_cc are always cell-centered
     eta_cc.setVal(eta_const);
-    // temperature cell-centered
     temp_cc.setVal(temp_const);
-#if (AMREX_SPACEDIM == 2)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    // temperature nodal
-    temp_ed[0].setVal(temp_const);
-#elif (AMREX_SPACEDIM == 3)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    eta_ed[1].setVal(eta_const);
-    eta_ed[2].setVal(eta_const);
-    // temperature nodal
-    temp_ed[0].setVal(temp_const);
-    temp_ed[1].setVal(temp_const);
-    temp_ed[2].setVal(temp_const);
-#endif
-    ///////////////////////////////////////////
 
-    ///////////////////////////////////////////
-    // random fluxes:
-    ///////////////////////////////////////////
 
-    // mflux divergence, staggered in x,y,z
+    //___________________________________________________________________________
+    // Define random fluxes
 
+    // mflux (mass-flux?) divergence, staggered in x,y,z
+
+    // mfluxdiv predictor multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
-    // Define mfluxdiv predictor multifabs
-    mfluxdiv_predict[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    mfluxdiv_predict[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-    mfluxdiv_predict[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
+    define(mfluxdiv_predict, ba, dmap, stag_nd_flags);
+    setVal(mfluxdiv_predict, 0.);
 
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      mfluxdiv_predict[d].setVal(0.0);
-    }
-
+    // mfluxdiv corrector multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
-    // Define mfluxdiv corrector multifabs
-    mfluxdiv_correct[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    mfluxdiv_correct[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-    mfluxdiv_correct[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      mfluxdiv_correct[d].setVal(0.0);
-    }
+    define(mfluxdiv_correct, ba, dmap, stag_nd_flags);
+    setVal(mfluxdiv_correct, 0.);
 
     Vector< amrex::Real > weights;
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
