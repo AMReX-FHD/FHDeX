@@ -13,7 +13,8 @@ using namespace amrex;
 
 void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
 			MultiFab& diff_mass_fluxdiv, MultiFab& stoch_mass_fluxdiv,
-			MultiFab& diff_mass_flux, MultiFab& stoch_mass_flux,
+			std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+		        std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
 			const Real& dt, const Real& stage_time, const Geometry& geom)
   
 {
@@ -46,15 +47,10 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   sqrtLonsager_fc.setVal(0.);
   
   ComputeRhotot(rho,rhotot);
-
-  rhotot.FillBoundary(geom.periodicity());
     
   // compute molmtot, molarconc (primitive variables) for 
   // each-cell from rho(conserved) 
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
-
-  molarconc.FillBoundary(geom.periodicity());
-  molmtot.FillBoundary(geom.periodicity());
     
   // populate D_bar and Hessian matrix 
   // compute_mixture_properties(mla,rho,rhotot,D_bar,D_therm,Hessian);
@@ -65,33 +61,27 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   
   // compute Gamma from Hessian
   ComputeGamma(molarconc,Hessian,Gamma);
-
-  Gamma.FillBoundary(geom.periodicity());
    
   // compute rho*W*chi and zeta/Temp
   ComputeRhoWChi(rho,rhotot,molarconc,rhoWchi,D_bar);
 
-  rhoWchi.FillBoundary(geom.periodicity());
-
   // compute diffusive mass fluxes, "-F = rho*W*chi*Gamma*grad(x) - ..."
-  // diffusive_mass_fluxdiv(mla,rho,rhotot,molarconc,rhoWchi,Gamma,
-  // 			   diff_mass_fluxdiv,Temp,zeta_by_Temp,gradp_baro,
-  // 			   diff_mass_flux,dx,the_bc_tower);
+  DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
 
   // compute external forcing for manufactured solution and add to diff_mass_fluxdiv
   // we should move this to occur before the call to compute_mass_fluxdiv and into
   // the advance_timestep routines
-  // external_source(mla,rho,diff_mass_fluxdiv,dx,stage_time);
+  // external_source(rho,diff_mass_fluxdiv,stage_time,geom);
 
   // compute stochastic fluxdiv 
   // if (variance_coef_mass != 0.0) {
 
   //   // compute face-centered cholesky-factored Lonsager^(1/2)
-  //   compute_sqrtLonsager_fc(rho,rhotot,sqrtLonsager_fc,dx);
+  //   compute_sqrtLonsager_fc(rho,rhotot,sqrtLonsager_fc,geom);
 
   //   stochastic_mass_fluxdiv(rho,rhotot,sqrtLonsager_fc,
   //   			       stoch_mass_fluxdiv,stoch_mass_flux,
-  //   			       dx,dt,weights,the_bc_tower%bc_tower_array);
+  //   			       dt,geom);
 
   // }
 

@@ -36,7 +36,7 @@ void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
                 int start_incomp, int start_outcomp, int ncomp, 
                 const Geometry& geom, int increment);
 
-void ComputeGrad(MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, 
+void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, 
                  int start_incomp, int start_outcomp, int ncomp, const Geometry& geom);
 
 
