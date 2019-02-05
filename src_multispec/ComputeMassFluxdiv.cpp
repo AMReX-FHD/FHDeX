@@ -53,11 +53,11 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
     
   // populate D_bar and Hessian matrix 
-  // compute_mixture_properties(mla,rho,rhotot,D_bar,D_therm,Hessian);
+  ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);
 
-  D_bar.FillBoundary(geom.periodicity());
-  D_therm.FillBoundary(geom.periodicity());
-  Hessian.FillBoundary(geom.periodicity());
+  // D_bar.FillBoundary(geom.periodicity());
+  // D_therm.FillBoundary(geom.periodicity());
+  // Hessian.FillBoundary(geom.periodicity());
   
   // compute Gamma from Hessian
   ComputeGamma(molarconc,Hessian,Gamma);
