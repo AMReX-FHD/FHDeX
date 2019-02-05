@@ -89,7 +89,7 @@ contains
                 massflux = massflux - mm
                 energyflux = energyflux - energy
 
-              fluxcount = fluxcount + 1
+              !fluxcount = fluxcount + 1
 
               endif
 
@@ -109,6 +109,7 @@ contains
 !                print *, "lo(1): ", lo(1), ", hi(1): ", hi(1)
 !                print *, "fluxcount: ", fluxcount
 !                print *, "saving: ", xflux(membrane_cell,j,k,5)
+             !print *, "Fluxcount: :", fluxcount
           
           enddo
         enddo
@@ -171,6 +172,8 @@ contains
              cross = fac3*(sqrttl*tl*rhol+sqrttr*tr*rhor)
 
              corr = cross/(sqrt(uv)*sqrt(nv))
+
+                !print *, corr
 
              rn1 = get_fhd_normal_func()
              rn2 = get_fhd_normal_func()
