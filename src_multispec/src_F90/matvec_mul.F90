@@ -58,7 +58,7 @@ contains
     double precision, intent(in   ) :: ap(alo(1):ahi(1),alo(2):ahi(2),alo(3):ahi(3),nc)
 
     ! local
-    integer :: i,j
+    integer :: i,j,k
     
     do k=tlo(3),thi(3)
        do j=tlo(2),thi(2)

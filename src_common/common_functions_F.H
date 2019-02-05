@@ -115,7 +115,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                     amrex_real* zdata, const int* zdlo, const int* zdhi,
 #endif
-                    amrex_real* div, const int* divlo, const int* divhi,
+                    const amrex_real* div, const int* divlo, const int* divhi,
                     const amrex_real* dx);
 
 ///////////////////////////

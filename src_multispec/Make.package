@@ -5,6 +5,8 @@ CEXE_headers   += multispec_functions.H
 CEXE_headers   += multispec_functions_F.H
 
 CEXE_sources   += multispec_functions.cpp
-CEXE_sources   += MassFluxUtil.cpp
 CEXE_sources   += ComputeMassFluxdiv.cpp
+CEXE_sources   += DiffusiveMassFluxdiv.cpp
+CEXE_sources   += MassFluxUtil.cpp
+CEXE_sources   += CorrectionFlux.cpp
 CEXE_sources   += MatvecMul.cpp

@@ -82,6 +82,21 @@ extern "C"
 
 ///////////////////////////
 
+///////////////////////////
+// in correction_flux.F90
+  
+  void correction_flux(const int* lo, const int* hi,
+		       const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+		       const amrex_real* rhotot, const int* rtlo, const int* rthi,
+		       const amrex_real* flux_x, const int* fxlo, const int* fxhi, 
+		       const amrex_real* flux_y, const int* fylo, const int* fyhi
+#if (AMREX_SPACEDIM == 3)
+		       ,const amrex_real* flux_z, const int* fzlo, const int* fzhi
+#endif		       
+		       );
+
+///////////////////////////
+
 #ifdef __cplusplus
 }
 #endif
