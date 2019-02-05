@@ -170,11 +170,11 @@ void main_driver(const char * argv) {
     // Set face and edge nodal_flags
 
     Array< IntVect, AMREX_SPACEDIM > stag_nd_flags {
-        nodal_flag_x, nodal_flag_y, nodal_flag_z
+        AMREX_D_DECL(nodal_flag_x, nodal_flag_y, nodal_flag_z)
     };
 
     Array< IntVect, AMREX_SPACEDIM > edge_nd_flags {
-        nodal_flag_xy, nodal_flag_xz, nodal_flag_yz
+        AMREX_D_DECL(nodal_flag_xy, nodal_flag_xz, nodal_flag_yz)
     };
 
 
@@ -267,13 +267,11 @@ void main_driver(const char * argv) {
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
 
-    // Declare object of StochMFlux class
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
-
-    ///////////////////////////////////////////
-
     // tracer
     MultiFab tracer(ba,dmap,1,1);
+
+    //___________________________________________________________________________
+    // Define velocities and pressure
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
@@ -352,6 +350,9 @@ void main_driver(const char * argv) {
     		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
     }
+
+    // Declare object of StochMFlux class
+    StochMFlux sMflux (ba, dmap, geom, n_rngs);
 
     // Add initial equilibrium fluctuations
     sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
