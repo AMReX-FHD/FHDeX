@@ -32,6 +32,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     BL_PROFILE_VAR("MacProj()",MacProj);
 
     BoxArray grids = umac[0].boxArray();
+    // Cell-centered grids based on velocity (staggered) grids
     grids = grids.enclosedCells();
     DistributionMapping dmap = umac[0].DistributionMap();
 
@@ -44,7 +45,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // compute the RHS for the solve, RHS = macrhs - div(umac)
     ComputeMACSolverRHS(solverrhs,macrhs,umac,geom);
-    
+
     // coefficients for solver
     MultiFab acoef;
     std::array< MultiFab, AMREX_SPACEDIM > face_bcoef;
@@ -64,12 +65,12 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
       face_bcoef[idim].invert(1.0,0,1);
     }
 
-    // 
+    //
     // Set up implicit solve using MLABecLaplacian class
     //
     LPInfo info;
     MLABecLaplacian mlabec({geom}, {grids}, {dmap}, info);
-    
+
     // order of stencil
     int linop_maxorder = 2;
     mlabec.setMaxOrder(linop_maxorder);
@@ -156,10 +157,10 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
       const Real* dx = geom.CellSize();
 
       // call fortran subroutine
-      mac_solver_rhs(&lev,ARLIM_3D(validBox.loVect()),ARLIM_3D(validBox.hiVect()), 
-		     BL_TO_FORTRAN_3D(solverrhs_mf[mfi]), 
-		     BL_TO_FORTRAN_3D(macrhs_mf[mfi]), 
-		     BL_TO_FORTRAN_3D(uedge_mf[mfi]), 
+      mac_solver_rhs(&lev,ARLIM_3D(validBox.loVect()),ARLIM_3D(validBox.hiVect()),
+		     BL_TO_FORTRAN_3D(solverrhs_mf[mfi]),
+		     BL_TO_FORTRAN_3D(macrhs_mf[mfi]),
+		     BL_TO_FORTRAN_3D(uedge_mf[mfi]),
 #if (AMREX_SPACEDIM >= 2)
 		     BL_TO_FORTRAN_3D(vedge_mf[mfi]),
 #if (AMREX_SPACEDIM == 3)
@@ -172,7 +173,7 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
 }
 
 // Set boundaries for MAC velocities
-void SetMacSolverBCs(MLABecLaplacian& mlabec) 
+void SetMacSolverBCs(MLABecLaplacian& mlabec)
 {
     // timer for profiling
     BL_PROFILE_VAR("SetMacSolverBCs()",SetMacSolverBCs);
@@ -181,14 +182,14 @@ void SetMacSolverBCs(MLABecLaplacian& mlabec)
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
     std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
 
-    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) 
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
 	if (Geometry::isPeriodic(idim)) {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         }
         else {
 	  amrex::Error("Invalid BC");
-        }	
+        }
     }
 
     mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
