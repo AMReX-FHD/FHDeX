@@ -58,7 +58,7 @@ void UpdateSol(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
                amrex::Vector<amrex::Real>& y,
                int i);
 
-void LeastSquares(int i, 
+void LeastSquares(int i,
                   amrex::Vector<amrex::Vector<amrex::Real>>& H,
                   amrex::Vector<amrex::Real>& cs,
                   amrex::Vector<amrex::Real>& sn,
@@ -68,8 +68,8 @@ void RotMat(amrex::Real a, amrex::Real b,
             amrex::Real& cs, amrex::Real& sn);
 
 void SolveUTriangular(int k,
-                      amrex::Vector<amrex::Vector<amrex::Real>>& H, 
-                      amrex::Vector<amrex::Real>& s, 
+                      amrex::Vector<amrex::Vector<amrex::Real>>& H,
+                      amrex::Vector<amrex::Real>& s,
                       amrex::Vector<amrex::Real>& y);
 
 // In MacProj.cpp
@@ -102,7 +102,7 @@ void SumCC(const amrex::MultiFab& m1,
 	   const bool& divide_by_ncells = false);
 
 void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
-                   const int& comp1, 
+                   const int& comp1,
                    const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m2,
                    const int& comp2,
                    amrex::Vector<amrex::Real>& prod_val);
@@ -147,16 +147,16 @@ int ComputeNlevsMG(const amrex::BoxArray& ba);
 void CCRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f,
                    const amrex::Geometry& geom_c);
 
-void StagRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
+void StagRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c,
                      const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil=0);
 
-void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f); 
+void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
 
-void EdgeRestriction(std::array< amrex::MultiFab, NUM_EDGE >& phi_c, 
+void EdgeRestriction(std::array< amrex::MultiFab, NUM_EDGE >& phi_c,
                       const std::array< amrex::MultiFab, NUM_EDGE >& phi_f);
 
-void StagProlongation(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c, 
+void StagProlongation(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c,
                       std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f);
 
 void StagMGUpdate(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
@@ -170,10 +170,10 @@ void StagMGUpdate(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
                   const int& color = 0);
 
 // In StagApplyOp.cpp
-void StagApplyOp(const amrex::MultiFab& betaCC, 
-                 const amrex::MultiFab& gammaCC, 
-                 const std::array<amrex::MultiFab, NUM_EDGE>& betaEdge, 
-                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn, 
+void StagApplyOp(const amrex::MultiFab& betaCC,
+                 const amrex::MultiFab& gammaCC,
+                 const std::array<amrex::MultiFab, NUM_EDGE>& betaEdge,
+                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn,
                  std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
                  const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha,
                  const amrex::Real* dx,
