@@ -42,11 +42,11 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (geom.isPeriodic(i)) {
-            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;            
+            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;
         }
         else {
             Abort("ApplyPrecon only works for periodic");
-        }        
+        }
     }
     mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
     mlabec.setLevelBC(lev, &phi);
@@ -64,7 +64,7 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
         mlmg.setFixedIter(1);
         mlmg.setBottomSmooth(8);
     }
-   
+
     mlmg.solve({&phi}, {&mac_rhs}, mg_rel_tol, mg_abs_tol);
 
     phi.FillBoundary(geom.periodicity());
@@ -87,7 +87,7 @@ void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         MultiFab::Multiply(gradp[i],alphainv_fc[i],0,0,1,0);
-        MultiFab::Saxpy(x_u[i],-1.,gradp[i],0,0,1,0);        
+        MultiFab::Saxpy(x_u[i],-1.,gradp[i],0,0,1,0);
     }
 }
 
@@ -118,11 +118,11 @@ void CCApplyOp(MultiFab& phi,
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (geom.isPeriodic(i)) {
-            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;            
+            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;
         }
         else {
             Abort("ApplyPrecon only works for periodic");
-        }        
+        }
     }
     mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
     mlabec.setLevelBC(lev, &phi);

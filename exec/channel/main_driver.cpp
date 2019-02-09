@@ -170,11 +170,11 @@ void main_driver(const char * argv) {
     // Set face and edge nodal_flags
 
     Array< IntVect, AMREX_SPACEDIM > stag_nd_flags {
-        nodal_flag_x, nodal_flag_y, nodal_flag_z
+        AMREX_D_DECL(nodal_flag_x, nodal_flag_y, nodal_flag_z)
     };
 
     Array< IntVect, AMREX_SPACEDIM > edge_nd_flags {
-        nodal_flag_xy, nodal_flag_xz, nodal_flag_yz
+        AMREX_D_DECL(nodal_flag_xy, nodal_flag_xz, nodal_flag_yz)
     };
 
 
@@ -249,9 +249,7 @@ void main_driver(const char * argv) {
 
 
     //___________________________________________________________________________
-    // Define random fluxes
-
-    // mflux (mass-flux?) divergence, staggered in x,y,z
+    // Define random fluxes mflux (momentum-flux) divergence, staggered in x,y,z
 
     // mfluxdiv predictor multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
@@ -267,13 +265,12 @@ void main_driver(const char * argv) {
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
 
-    // Declare object of StochMFlux class
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
-
-    ///////////////////////////////////////////
-
     // tracer
-    MultiFab tracer(ba,dmap,1,1);
+    MultiFab tracer(ba, dmap, 1,1);
+
+
+    //___________________________________________________________________________
+    // Define velocities and pressure
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
@@ -281,27 +278,23 @@ void main_driver(const char * argv) {
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    define(umac, ba, dmap, stag_nd_flags);
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    define(umacNew, ba, dmap, stag_nd_flags);
 
-    ///////////////////////////////////////////
-    // structure factor:
-    ///////////////////////////////////////////
+
+    //___________________________________________________________________________
+    // Define structure factor:
 
     Vector< std::string > var_names;
     var_names.resize(AMREX_SPACEDIM);
     int cnt = 0;
     std::string x;
     for (int d=0; d<var_names.size(); d++) {
-      x = "vel";
-      x += (120+d);
-      var_names[cnt++] = x;
+        x = "vel";
+        x += (120+d);
+        var_names[cnt++] = x;
     }
 
     MultiFab struct_in_cc;
@@ -322,10 +315,12 @@ void main_driver(const char * argv) {
     s_pairB[2] = 2;
 #endif
 
-    StructFact structFact(ba,dmap,var_names);
-    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
+    StructFact structFact(ba, dmap, var_names);
+    // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
 
-    ///////////////////////////////////////////
+
+    //___________________________________________________________________________
+    // Initialize velocities (fluid and tracers)
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
@@ -353,14 +348,21 @@ void main_driver(const char * argv) {
 
     }
 
+
+    //___________________________________________________________________________
+    // Add random momentum fluctuations
+
+    // Declare object of StochMFlux class
+    StochMFlux sMflux (ba, dmap, geom, n_rngs);
+
     // Add initial equilibrium fluctuations
     sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
 
     // Project umac onto divergence free field
-    MultiFab macphi(ba,dmap,1,1);
-    MultiFab macrhs(ba,dmap,1,1);
-    macrhs.setVal(0.0);
-    MacProj(umac,rho,geom,true);
+    MultiFab macphi(ba,dmap, 1, 1);
+    MultiFab macrhs(ba,dmap, 1, 1);
+    macrhs.setVal(0.);
+    MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
     AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
@@ -370,26 +372,28 @@ void main_driver(const char * argv) {
     int step = 0;
     Real time = 0.;
 
-    // write out initial state
-    if (plot_int > 0)
-      {
-	WritePlotFile(step,time,geom,umac,tracer,pres);
-      }
 
-    //////////////////////////
-    //// FFT test
-    if (struct_fact_int > 0) {
-      // // std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-      // // mf_cc[0].define(ba, dmap, 1, 0);
-      // // mf_cc[1].define(ba, dmap, 1, 0);
-      // // mf_cc[2].define(ba, dmap, 1, 0);
-      // // for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-      // //   const Box& bx = mfi.validbox();
-      // //   init_s_vel(BL_TO_FORTRAN_BOX(bx),
-      // // 		   BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-      // // 		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-      // // }
+    //___________________________________________________________________________
+    // Write out initial state
+    if (plot_int > 0) {
+	WritePlotFile(step,time,geom,umac,tracer,pres);
     }
+
+
+    //___________________________________________________________________________
+    // FFT test
+    // if (struct_fact_int > 0) {
+    //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
+    //     mf_cc[0].define(ba, dmap, 1, 0);
+    //     mf_cc[1].define(ba, dmap, 1, 0);
+    //     mf_cc[2].define(ba, dmap, 1, 0);
+    //     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
+    //         const Box& bx = mfi.validbox();
+    //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
+    //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
+    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+    //     }
+    // }
     //////////////////////////
 
     //Time stepping loop

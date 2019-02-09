@@ -46,6 +46,10 @@ contains
 
       dxinv = 1.d0/dx(1)
 
+      !! Note: we are computing Eq (42) in 10.2140/camcos.2014.9.47
+      !! Low mach number fluctuating hydrodynamics of diffusively mixing fluids.
+      !! A. Donev, A. Nonaka, Y. Sun, T. G. Fai, A. Garcia and J. Bell
+
       !=============================
       ! mx fluxes and divergence
       !=============================
@@ -288,7 +292,7 @@ contains
       end if
 
     end subroutine mk_advective_m_fluxdiv
-    
+
 #endif
 
 end module mk_advective_m_fluxdiv_module
