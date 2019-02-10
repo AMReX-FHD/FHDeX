@@ -1,0 +1,11 @@
+To perform convergence testing in 2D and 3D, simply run the .sh script file to generate plot files of your solution:
+
+./run_convergence_tests.sh
+
+This script edits values within the "inputs_dtrmnistic_convergence_${dim}d" input files, and runs three test cases back-to-back: (1) coarse in space, fine in time (2) medium-coarse in space, medium-coarse in time (3) fine in space, coarse in time. In each subsequent case the number of spacial gridpoints dividing the domain increases, and timestep decreases, by a factor of 2.
+
+The user simply needs to specify these dimensions in "run_convergence_tests.sh". This script, when ran, will also update the correct values in "compute_convergence_rate.sh", which is the script that uses AMReX plotfile convergence tools which computes the desired norm difference between the values contained withing each plotfile.
+
+./compute_convergence_rate.sh
+
+Running this script will print the two norm differences to the terminal: one between the coarse and semicoarse grid solns, and another between the semicoarse and fine solns. Taking the ratio between these two numbers will result in the convergence factor: an approximation the product between the order of accuracy due to increased spacial grid resolution and finer time-stepping.
