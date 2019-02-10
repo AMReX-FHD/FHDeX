@@ -5,35 +5,36 @@ clear
 unset ALL_PROXY
 rm -r plt* stag*
 
-## Select grids
-# Nsteps=("005" "010" "020")
-# Spacedim=("064" "128" "256")
-# dim="2"
-
-Nsteps=("005" "010" "020")
+# Select grids
+Nsteps=("010" "020" "040")
 Spacedim=("032" "064" "128")
-dim="3"
+dims="3"
 
 Visctype=("1" "2" "neg1" "neg2")
 Visc=("1" "2" "-1" "-2")
 
+# Choose name of output plotfile to perform convergence tests
 plottype="stagx"
 zeros_plt="0000"
 
+data_dir="Data_Convergence_CR"
 ## Tool location and name
 conv_tool_loc="amrex/Tools/C_util/Convergence"
-conv_tool_exec="DiffSameDomainRefinedStag${dim}d.gnu.ex"
+conv_tool_exec="DiffSameDomainRefinedStag${dims}d.gnu.ex"
 
-for visc_ind in 0
+# Loop over viscosity types
+for visc_ind in 1
 do
-
+    
+    # Create directory name
     visctype=${Visctype[$visc_ind]}
+    dir_top="${data_dir}/${dims}D/Data_visc_${visctype}"
 
-    dir_top="Data_Convergence_CR/Data_visc_${visctype}/${dim}D"
-
+    # Loop over grids
     for grid in 0 1 2
     do
-	folder="plots_${Spacedim[$grid]}^${dim}x${Nsteps[$grid]}"
+	# Collect filename
+	folder="plots_${Spacedim[$grid]}^${dims}x${Nsteps[$grid]}"
 	dir=$dir_top/$folder
 	filename=$plottype$zeros_plt${Nsteps[$grid]}
 	file[$grid]=$dir/$filename

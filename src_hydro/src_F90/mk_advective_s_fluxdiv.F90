@@ -53,11 +53,12 @@ contains
       tracer_visc_coef = 1.1d0*(0.5d0*1.d0*dx(1))    ! to obey "cell reynolds" restriction
 
       courant_number = AMREX_SPACEDIM*tracer_visc_coef*fixed_dt/(dx(1)*dx(1))
-      print*, "Hack: Tracer Courant Number", courant_number
 
-      if (courant_number.gt.0.4d0) then
-         print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
-      endif
+      ! print*, "Hack: Tracer Courant Number", courant_number
+
+      ! if (courant_number.gt.0.49d0) then
+      !    print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
+      ! endif
 
       !=============================
       ! fluxes and divergence
@@ -129,11 +130,11 @@ contains
       tracer_visc_coef = 1.1d0*(0.5d0*1.d0*dx(1))    ! to obey "cell reynolds" restriction
 
       courant_number = AMREX_SPACEDIM*tracer_visc_coef*fixed_dt/(dx(1)*dx(1))
-      print*, "Hack: Tracer Courant Number", courant_number
+      ! print*, "Hack: Tracer Courant Number", courant_number
 
-      if (courant_number.gt.0.4d0) then
-         print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
-      endif
+      ! if (courant_number.gt.0.49d0) then
+      !    print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
+      ! endif
 
       !=============================
       ! fluxes and divergence
