@@ -1,6 +1,6 @@
 
 module mac_solver_module
-  
+
   implicit none
 
   private
@@ -18,9 +18,9 @@ contains
 #endif
 #endif
                              dx) bind(C, name="mac_solver_rhs")
-    
+
     integer         , intent(in   ) :: lev, lo(3), hi(3)
-    integer         , intent(in   ) :: nrhs_lo(3), nrhs_hi(3) 
+    integer         , intent(in   ) :: nrhs_lo(3), nrhs_hi(3)
     double precision, intent(inout) :: newrhs(nrhs_lo(1):nrhs_hi(1),nrhs_lo(2):nrhs_hi(2),nrhs_lo(3):nrhs_hi(3))
     integer         , intent(in   ) :: orhs_lo(3), orhs_hi(3)
     double precision, intent(in   ) :: oldrhs(orhs_lo(1):orhs_hi(1),orhs_lo(2):orhs_hi(2),orhs_lo(3):orhs_hi(3))
@@ -43,10 +43,10 @@ contains
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)
     do i = lo(1),hi(1)
-       newrhs(i,j,k) = oldrhs(i,j,k) & 
-                                     - ( (uedge(i+1,j,k)-uedge(i,j,k))/dx(1) & 
+       newrhs(i,j,k) = oldrhs(i,j,k) &
+                                     - ( (uedge(i+1,j,k)-uedge(i,j,k))/dx(1) &
 #if (AMREX_SPACEDIM >= 2)
-                                        + (vedge(i,j+1,k)-vedge(i,j,k))/dx(2) & 
+                                        + (vedge(i,j+1,k)-vedge(i,j,k))/dx(2) &
 #if (AMREX_SPACEDIM == 3)
                                         + (wedge(i,j,k+1)-wedge(i,j,k))/dx(3) &
 #endif
@@ -69,7 +69,7 @@ contains
 #endif
 #endif
                    rhocc, r_lo, r_hi) bind(C, name="mac_bcoef_face")
-    
+
     integer         , intent(in   ) :: lev, lo(3), hi(3)
     integer         , intent(in   ) :: x_lo(3), x_hi(3)
     double precision, intent(inout) :: xface(x_lo(1):x_hi(1),x_lo(2):x_hi(2),x_lo(3):x_hi(3))
@@ -95,7 +95,7 @@ contains
     end do
     end do
 
-#if (AMREX_SPACEDIM >= 2)        
+#if (AMREX_SPACEDIM >= 2)
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)+1
     do i = lo(1),hi(1)

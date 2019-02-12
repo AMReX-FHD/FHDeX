@@ -62,4 +62,7 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     const amrex::Geometry geom, const amrex::Real& dt);
 /////////////////////////////////////////////////////////////////////////////////
 
+void setBC(amrex::MultiFab& u_mac, amrex::MultiFab& v_mac, amrex::MultiFab& w_mac);
+
+
 #endif

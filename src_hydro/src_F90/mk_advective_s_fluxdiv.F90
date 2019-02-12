@@ -46,30 +46,33 @@ contains
       double precision :: courant_number
 
       dxinv = 1.d0/dx(1)
-      
+
       !! Coefficient of viscous term to reduce cell-reynolds number:
-      
+
       ! Assumes u_max = 1.0
-      tracer_visc_coef = 1.1d0*(0.5d0*1.d0*dx(1))    ! To obey "cell Reynolds" restriction 
+      tracer_visc_coef = 1.1d0*(0.5d0*1.d0*dx(1))    ! to obey "cell reynolds" restriction
 
       courant_number = AMREX_SPACEDIM*tracer_visc_coef*fixed_dt/(dx(1)*dx(1))
-      print*, "Hack: Tracer Courant Number", courant_number
-      
-      if (courant_number.gt.0.4d0) then
-         print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
-      endif
+
+      ! print*, "Hack: Tracer Courant Number", courant_number
+
+      ! if (courant_number.gt.0.49d0) then
+      !    print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
+      ! endif
 
       !=============================
       ! fluxes and divergence
       !=============================
       do j=lo(2),hi(2)
       do i=lo(1),hi(1)
+         !! grad(m)
          m_fluxx = dxinv*(mx(i,j)*umac(i,j) - mx(i-1,j)*umac(i-1,j))
          m_fluxy = dxinv*(my(i,j)*vmac(i,j) - my(i,j-1)*vmac(i,j-1))
 
+         !! - div(m)
          m_update(i,j) = -( m_fluxx + m_fluxy )
-         
-         !! Add viscous term
+
+         !! Add viscous term (a.k.a. div(grad(m)))
          m_update(i,j) = m_update(i,j) &
               + tracer_visc_coef*(dxinv**2)*(m(i-1,j)+m(i+1,j)+m(i,j-1)+m(i,j+1)-4.0d0*m(i,j))
 
@@ -118,7 +121,20 @@ contains
 
       double precision :: dxinv
 
+      double precision :: tracer_visc_coef
+      double precision :: courant_number
+
       dxinv = 1.d0/dx(1)
+
+      ! Assumes u_max = 1.0
+      tracer_visc_coef = 1.1d0*(0.5d0*1.d0*dx(1))    ! to obey "cell reynolds" restriction
+
+      courant_number = AMREX_SPACEDIM*tracer_visc_coef*fixed_dt/(dx(1)*dx(1))
+      ! print*, "Hack: Tracer Courant Number", courant_number
+
+      ! if (courant_number.gt.0.49d0) then
+      !    print*, "Warning: TRACER COURANT NUMBER EXCEEDED"
+      ! endif
 
       !=============================
       ! fluxes and divergence
@@ -126,17 +142,26 @@ contains
       do k=lo(3),hi(3)
       do j=lo(2),hi(2)
       do i=lo(1),hi(1)
+
+         !! grad(m)
          m_fluxx = dxinv*(mx(i  ,j  ,k  )*umac(i  ,j  ,k  ) - mx(i-1,j  ,k  )*umac(i-1,j  ,k  ))
          m_fluxy = dxinv*(my(i  ,j  ,k  )*vmac(i  ,j  ,k  ) - my(i  ,j-1,k  )*vmac(i  ,j-1,k  ))
          m_fluxz = dxinv*(mz(i  ,j  ,k  )*wmac(i  ,j  ,k  ) - mz(i  ,j  ,k-1)*wmac(i  ,j  ,k-1))
 
+         !! -div(m)
          m_update(i,j,k) = -( m_fluxx + m_fluxy + m_fluxz)
+
+         !! Add viscous term (a.k.a. div(grad(m)))
+         m_update(i,j,k) = m_update(i,j,k) &
+              + tracer_visc_coef*(dxinv**2)*(m(i-1,j,k)+m(i+1,j,k)+m(i,j-1,k)+m(i,j+1,k) + &
+              &                              m(i,j,k-1)+m(i,j,k+1) - 8.0d0*m(i,j,k))
+
       end do
       end do
       end do
 
     end subroutine mk_advective_s_fluxdiv
-    
+
 #endif
 
 end module mk_advective_s_fluxdiv_module

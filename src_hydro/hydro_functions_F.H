@@ -130,7 +130,15 @@ void mac_bcoef_face(const int* lev, const int* lo, const int* hi,
 #endif
 #endif
 		    const amrex::Real* rhocc, const int* r_lo, const int* r_hi);
+
 ///////////////////////////
+
+///////////////////////////
+// in bound_funcs.F90
+void set_bc(const int* lo, const int* hi,
+			amrex::Real* u_mac,
+			amrex::Real* v_mac,
+			amrex::Real* w_mac);
 
 #ifdef __cplusplus
 }

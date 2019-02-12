@@ -30,7 +30,7 @@ void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
 }
 
 //Computes gradient at cell faces of cell centred scalar
-void ComputeGrad(MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, 
+void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, 
                  int start_incomp, int start_outcomp, int ncomp, const Geometry& geom)
 {
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
@@ -46,7 +46,7 @@ void ComputeGrad(MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
 #if (AMREX_SPACEDIM==3)
                          BL_TO_FORTRAN_N_ANYD(gphi[2][mfi],outcomp),
 #endif
-                         BL_TO_FORTRAN_N_ANYD(phi[mfi],incomp),					
+                         BL_TO_FORTRAN_N_ANYD(phi[mfi],incomp),
                          geom.CellSize());
         }
     }

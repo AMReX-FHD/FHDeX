@@ -43,7 +43,7 @@ contains
        end do
        end do
        end do
-   
+
     end do
 
   end subroutine average_face_to_cc
@@ -53,7 +53,7 @@ contains
                                 facex, x_lo, x_hi, nc_x, &
                                 facey, y_lo, y_hi, nc_y, &
 #if (AMREX_SPACEDIM == 3)
-                                facez, z_lo, z_hi, nc_z, &                                
+                                facez, z_lo, z_hi, nc_z, &
 #endif
                                 cc_comp, face_comp, ncomp) bind (C,name="average_cc_to_face")
 
@@ -149,7 +149,7 @@ contains
        end do
        end do
        end do
-   
+
     end do
 
   end subroutine shift_face_to_cc
