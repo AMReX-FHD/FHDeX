@@ -1,6 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../amrex/
+AMREX_HOME ?= ../../../amrex
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -62,6 +62,15 @@ include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
 
+include ../../src_immersed-boundary/src_F90/Make.package
+VPATH_LOCATIONS   += ../../src_immersed-boundary/src_F90
+INCLUDE_LOCATIONS += ../../src_immersed-boundary/src_F90
+
+include ../../src_immersed-boundary/Make.package
+VPATH_LOCATIONS   += ../../src_immersed-boundary
+INCLUDE_LOCATIONS += ../../src_immersed-boundary
+
+
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
@@ -70,8 +79,8 @@ include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 
 include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
-INCLUDE_LOCATIONS	+= $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS		+= $(AMREX_HOME)/Src/Extern/SWFFT
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
+VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
 
 
 # check if running on macOS (as there are some subtle differences to linux).
