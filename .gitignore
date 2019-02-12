@@ -1,4 +1,3 @@
-
 # Get rid of noise
 
 ## C/E tags
@@ -11,7 +10,12 @@ tags
 ## All compiled programs
 **/*.gnu.*.ex
 
-## Plot files
+## MacOS creates dynamic linker symbol files
+*.dSym
 
+## Python caches
+**/__pycache__
+
+## Plot files
 exec/*/plt*
 exec/*/stag*
