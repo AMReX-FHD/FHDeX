@@ -150,6 +150,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       umac[1].FillBoundary(geom.periodicity());,
 	       umac[2].FillBoundary(geom.periodicity()););
 
+	//add function that will fill the wall boundary conditions	
+
   //////////////////////////
   // Advance tracer
   //////////////////////////
