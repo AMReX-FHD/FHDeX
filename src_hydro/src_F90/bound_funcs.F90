@@ -112,7 +112,7 @@ contains
                    w_mac(i, j, hi(3)+k)=-w_mac(i, j, hi(3)-k)
 
                    u_mac(i, j, hi(3)+k)=-u_mac(i, j, hi(3)+1-k)
-                   w_mac(i, j, hi(3)+k)=-w_mac(i, j, hi(3)+1-k)
+                   v_mac(i, j, hi(3)+k)=-v_mac(i, j, hi(3)+1-k)
 
                 end do
              end do
