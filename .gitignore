@@ -10,6 +10,9 @@ tags
 ## Compiler debris
 **/tmp_build_dir
 
+## Crash debris
+**/Backtrace.*
+
 ## All compiled programs
 **/*.gnu.*.ex
 
