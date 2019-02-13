@@ -109,7 +109,7 @@ contains
 !                print *, "lo(1): ", lo(1), ", hi(1): ", hi(1)
 !                print *, "fluxcount: ", fluxcount
 !                print *, "saving: ", xflux(membrane_cell,j,k,5)
-             !print *, "Fluxcount: :", fluxcount
+             print *, "Fluxcount: :", fluxcount
           
           enddo
         enddo
@@ -179,11 +179,16 @@ contains
              rn2 = get_fhd_normal_func()
              rn3 = rn1*corr + sqrt(1-corr**2)*rn2
             
-             !xflux(membrane_cell,j,k,1) = (dt/area)*mm*(nm + sqrt(nv)*rn1)/vol
-             !xflux(membrane_cell,j,k,5) = (dt/area)*(um + sqrt(uv)*rn3)/vol
+             !xflux(membrane_cell,j,k,1) = (dt*area*nm + sqrt(dt*area*mm*nv)*rn1)/vol
+             !xflux(membrane_cell,j,k,5) = (dt*area*um + sqrt(dt*area*mm*uv)*rn3)/(vol*mm)
 
-             xflux(membrane_cell,j,k,1) = dt*area*(nm + sqrt(nv)*rn1)/vol
-             xflux(membrane_cell,j,k,5) = dt*area*(um + sqrt(uv)*rn3)/(vol*mm)
+
+
+             xflux(membrane_cell,j,k,1) = (dt*area*nm + sqrt(dt*area*mm*nv)*rn1)/vol
+             xflux(membrane_cell,j,k,5) = (dt*area*um + sqrt(dt*area*mm*uv)*rn3)/(vol*mm)
+
+
+                !print *, nm, sqrt(nv/dt)
 
              !xflux(membrane_cell,j,k,1) = mm*(nm )/vol
              !xflux(membrane_cell,j,k,5) = (um)/vol
