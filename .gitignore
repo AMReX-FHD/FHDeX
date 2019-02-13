@@ -1,5 +1,8 @@
 # Get rid of noise
 
+## Local path config
+tools/Path.local
+
 ## C/E tags
 TAGS
 tags

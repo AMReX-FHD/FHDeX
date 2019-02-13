@@ -1,5 +1,11 @@
-# AMREX_HOME defines the directory in which we will find all the AMReX code.
-# If you set AMREX_HOME as an environment variable, this line will be ignored
+# AMREX_HOME defines the directory in which we will find all the AMReX code. It
+# can be defined in tools/Path.local (we have to check if it exists first though)
+ifneq ("$(wildcard ../../tools/Path.local)","")
+  $(info Loading tools/Path.local...)
+  include        ../../tools/Path.local
+endif
+# ... alternatively if you set AMREX_HOME as an environment variable, this line
+# will be ignored => this line acts as a default
 AMREX_HOME ?= ../../../amrex
 
 DEBUG     = FALSE
