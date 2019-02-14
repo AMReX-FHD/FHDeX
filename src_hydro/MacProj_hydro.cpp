@@ -188,9 +188,9 @@ void SetMacSolverBCs(MLABecLaplacian& mlabec)
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         } else {
             //amrex::Error("Invalid BC");
-            mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Dirichlet;
+            mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Neumann;
             Print() << "Warning! non-periodic boundary conditions in MacProj_hydro." << std::endl
-                    << " => Assuming Dirichlet. But preconditioner might not work properly." << std::endl;
+                    << " => Assuming Neumann. But preconditioner might not work properly." << std::endl;
         }
     }
 

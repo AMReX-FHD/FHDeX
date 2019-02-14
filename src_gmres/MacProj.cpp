@@ -45,7 +45,7 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
             mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;
         } else {
             // Abort("ApplyPrecon only works for periodic");
-            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Dirichlet;
+            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Neumann;
         }
     }
     mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
