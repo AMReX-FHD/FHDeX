@@ -43,9 +43,9 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (geom.isPeriodic(i)) {
             mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;
-        }
-        else {
-            Abort("ApplyPrecon only works for periodic");
+        } else {
+            // Abort("ApplyPrecon only works for periodic");
+            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Dirichlet;
         }
     }
     mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
