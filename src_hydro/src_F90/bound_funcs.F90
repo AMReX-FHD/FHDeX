@@ -117,8 +117,8 @@ contains
                    ! Indices about y-face are symmetric
                    v_mac(i, lo(2)-j, k) = -v_mac(i, lo(2)+j, k)
 
-                   u_mac(i, lo(2)+j, k) = -u_mac(i, lo(2)-1+j, k)
-                   w_mac(i, lo(2)+j, k) = -w_mac(i, lo(2)-1+j, k)
+                   u_mac(i, lo(2)-j, k) = -u_mac(i, lo(2)-1+j, k)
+                   w_mac(i, lo(2)-j, k) = -w_mac(i, lo(2)-1+j, k)
 
                 end do
              end do
