@@ -6,7 +6,7 @@ void setBC(amrex::MultiFab & u_mac, amrex::MultiFab & v_mac, amrex::MultiFab & w
     // Loop over boxes
 
     for ( amrex::MFIter mfi(u_mac); mfi.isValid(); ++mfi) {
-        const amrex::Box& bx = mfi.validbox();
+        const amrex::Box & bx = mfi.validbox();
 
         set_bc(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                u_mac[mfi].dataPtr(),
@@ -14,5 +14,13 @@ void setBC(amrex::MultiFab & u_mac, amrex::MultiFab & v_mac, amrex::MultiFab & w
                w_mac[mfi].dataPtr());
 
     }
+}
 
+void MultiFABPhysBC(amrex::MultiFab & pressure) {
+
+    for (amrex::MFIter mfi(pressure); mfi.isValid(); ++mfi) {
+        const amrex::Box & bx = mfi.validbox();
+        fab_physbc(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                   pressure[mfi].dataPtr());
+    }
 }
