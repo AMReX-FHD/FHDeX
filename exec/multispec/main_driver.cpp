@@ -125,7 +125,10 @@ void main_driver(const char* argv)
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
     
-    MultiFab rho(ba, dmap, 1, 1);
+    MultiFab rhotot(ba, dmap, 1, 1);
+    rhotot.setVal(1.);
+
+    MultiFab rho(ba, dmap, nspecies, 1);
     rho.setVal(1.);
 
     // alpha_fc arrays
@@ -219,11 +222,11 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     ///////////////////////////////////////////
-    // random fluxes:
+    // Mass and momentum flux divergence MultiFabs:
     ///////////////////////////////////////////
 
     // mflux divergence, staggered in x,y,z
-
+    
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
     // Define mfluxdiv predictor multifabs
     mfluxdiv_predict[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
@@ -247,6 +250,20 @@ void main_driver(const char* argv)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       mfluxdiv_correct[d].setVal(0.0);
     }
+
+    // mass flux divergence
+    
+    MultiFab mass_fluxdiv_predict(ba,dmap,nspecies,1);
+    mass_fluxdiv_predict.setVal(0.0);
+    
+    MultiFab mass_fluxdiv_correct(ba,dmap,nspecies,1);
+    mass_fluxdiv_correct.setVal(0.0);
+    
+    ///////////////////////////////////////////
+
+    ///////////////////////////////////////////
+    // Stochastic flux divergence class
+    ///////////////////////////////////////////
 
     Vector< amrex::Real > weights;
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
@@ -298,10 +315,8 @@ void main_driver(const char* argv)
     // Select which variable pairs to include in structure factor:
     s_pairA[0] = 0;
     s_pairB[0] = 0;
-    //
     s_pairA[1] = 1;
     s_pairB[1] = 1;
-    //
 #if (AMREX_SPACEDIM == 3)
     s_pairA[2] = 2;
     s_pairB[2] = 2;
@@ -339,13 +354,13 @@ void main_driver(const char* argv)
     }
     
     // Add initial equilibrium fluctuations
-    sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+    sMflux.addMfluctuations(umac, rhotot, temp_cc, initial_variance_mom, geom);
     
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap,1,1);
     MultiFab macrhs(ba,dmap,1,1);
     macrhs.setVal(0.0);
-    MacProj(umac,rho,geom,true);
+    MacProj(umac,rhotot,geom,true);
 
     // initial guess for new solution
     AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
@@ -388,14 +403,17 @@ void main_driver(const char* argv)
 	  sMflux.fillMStochastic();
 
 	  // compute stochastic force terms
-	  sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	  sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	
-	  // Advance umac
-	  advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-		  alpha_fc,beta,gamma,beta_ed,geom,dt);
+	  sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,
+			     weights,dt);
+	  sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,
+			     weights,dt);
 
 	}
+
+	// Advance umac
+	advance(umac,umacNew,pres,tracer,rho,rhotot,
+		mfluxdiv_predict,mfluxdiv_correct,
+		alpha_fc,beta,gamma,beta_ed,geom,dt);
 	
 	//////////////////////////////////////////////////
 	
@@ -434,7 +452,7 @@ void main_driver(const char* argv)
 	tot_n_cells = n_cells[2]*tot_n_cells;
       }
     
-      // let rho = 1
+      // let rhotot = 1
       Real SFscale = dVol/(k_B*temp_const);
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       

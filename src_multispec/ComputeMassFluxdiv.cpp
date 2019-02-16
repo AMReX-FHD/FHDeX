@@ -32,7 +32,7 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   MultiFab molarconc(       ba, dmap, nspecies, 1);  // molar concentration
   MultiFab molmtot(         ba, dmap, 1, 1);  // total molar mass
   MultiFab Hessian(         ba, dmap, nspecies2, 1);  // Hessian-matrix
-  MultiFab Gamma(            ba, dmap, nspecies2, 1);  // Gamma-matrix
+  MultiFab Gamma(           ba, dmap, nspecies2, 1);  // Gamma-matrix
   MultiFab D_bar(           ba, dmap, nspecies2, 1);  // D_bar-matrix
   MultiFab D_therm(         ba, dmap, nspecies2, 1);  // DT-matrix
   MultiFab sqrtLonsager_fc( ba, dmap, nspecies2, 1);  // cholesky factored Lonsager on faces
@@ -45,19 +45,17 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   D_bar.setVal(0.);
   D_therm.setVal(0.);
   sqrtLonsager_fc.setVal(0.);
+
+  // phi.FillBoundary(geom.periodicity());
   
   ComputeRhotot(rho,rhotot);
-    
+  
   // compute molmtot, molarconc (primitive variables) for 
   // each-cell from rho(conserved) 
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
     
   // populate D_bar and Hessian matrix 
   ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);
-
-  // D_bar.FillBoundary(geom.periodicity());
-  // D_therm.FillBoundary(geom.periodicity());
-  // Hessian.FillBoundary(geom.periodicity());
   
   // compute Gamma from Hessian
   ComputeGamma(molarconc,Hessian,Gamma);

@@ -1,4 +1,3 @@
-CEXE_sources += advance.cpp
 CEXE_sources += MkAdvMFluxdiv.cpp
 CEXE_sources += MkAdvSFluxdiv.cpp
 CEXE_sources += StochMFlux.cpp
