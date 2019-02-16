@@ -60,9 +60,12 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     const std::array< amrex::MultiFab, 3 >& beta_ed,
 # endif
 	     const amrex::Geometry geom, const amrex::Real& dt);
+
 /////////////////////////////////////////////////////////////////////////////////
 // in boundary.cpp
-void setBC(amrex::MultiFab& u_mac, amrex::MultiFab& v_mac, amrex::MultiFab& w_mac);
+void setBC(amrex::MultiFab & u_mac, amrex::MultiFab & v_mac, amrex::MultiFab & w_mac);
+
+void MultiFABPhysBC(amrex::MultiFab & pressure);
 
 
 #endif

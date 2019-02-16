@@ -67,35 +67,40 @@ void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
 
 void StochMFlux::fillMStochastic() {
 
-  BL_PROFILE_VAR("StochMFlux::StochMFlux()",StochMFlux);
+    BL_PROFILE_VAR("StochMFlux::StochMFlux()",StochMFlux);
 
-  for (int i=0; i<n_rngs; ++i){
-    switch(stoch_stress_form) {
-    case 0: // Non-symmetric
-      // Print() << "Non-symmetric \n";
-      for (int n=0; n<AMREX_SPACEDIM; ++n) {
-	MultiFABFillRandom(mflux_cc[i],n,1.0,geom);
-      }
+    for (int i=0; i<n_rngs; ++i) {
 
-      for (int d=0; d<NUM_EDGE; ++d) {
-	for (int n=0; n<ncomp_ed; ++n) {
-	  MultiFABFillRandom(mflux_ed[i][d],n,1.0,geom);
-	}
-      }
-      break;
-    default: // Symmetric
-      // Print() << "Symmetric \n";
-      for (int n=0; n<AMREX_SPACEDIM; ++n) {
-	MultiFABFillRandom(mflux_cc[i],n,2.0,geom);
-      }
+        switch(stoch_stress_form) {
 
-      for (int d=0; d<NUM_EDGE; ++d) {
-	MultiFABFillRandom(mflux_ed[i][d],0,1.0,geom);
-        MultiFab::Copy(mflux_ed[i][d], mflux_ed[i][d], 0, 1, ncomp_ed-1, 0);
-      }
-      break;
+        case 0: // Non-symmetric
+            // Print() << "Non-symmetric \n";
+            for (int n=0; n<AMREX_SPACEDIM; ++n) {
+                MultiFABFillRandom(mflux_cc[i],n,1.0,geom);
+            }
+
+            for (int d=0; d<NUM_EDGE; ++d) {
+                for (int n=0; n<ncomp_ed; ++n) {
+                    MultiFABFillRandom(mflux_ed[i][d],n,1.0,geom);
+                }
+            }
+            break;
+
+        default: // Symmetric
+            // Print() << "Symmetric \n";
+            for (int n=0; n<AMREX_SPACEDIM; ++n) {
+                MultiFABFillRandom(mflux_cc[i],n,2.0,geom);
+            }
+
+            for (int d=0; d<NUM_EDGE; ++d) {
+                MultiFABFillRandom(mflux_ed[i][d],0,1.0,geom);
+                MultiFab::Copy(mflux_ed[i][d], mflux_ed[i][d], 0, 1, ncomp_ed-1, 0);
+            }
+            break;
+        }
     }
-  }
+
+    // TODO: Put stochastic BCs here ?
 }
 
 void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
@@ -271,6 +276,9 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
     // Fill momentum with random numbers, scaled by sqrt(var*k_B/dV)
     MultiFABFillRandom(mac_temp[d],0,variance_mom,geom);
+
+    // TODO: add stochastic BCs here?
+
 
     // Scale random momenta further by factor of sqrt(rho*temp)
     MultiFab::Multiply(mac_temp[d],variance_mfab[d],0,0,1,1);

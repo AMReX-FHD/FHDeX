@@ -140,6 +140,11 @@ void set_bc(const int * lo, const int * hi,
             amrex::Real * v_mac,
             amrex::Real * w_mac);
 
+
+void fab_physbc(const int * lo, const int * hi,
+                amrex::Real * pressure);
+
+
 #ifdef __cplusplus
 }
 #endif

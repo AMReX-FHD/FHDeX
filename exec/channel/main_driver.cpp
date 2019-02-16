@@ -210,7 +210,6 @@ void main_driver(const char * argv) {
     gamma.setVal(0.);
 
 
-
     //___________________________________________________________________________
     // Define & initialize eta & temperature MultiFabs
 
@@ -319,6 +318,13 @@ void main_driver(const char * argv) {
     // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
 
 
+
+    /****************************************************************************
+     *                                                                          *
+     * Set Initial Conditions                                                   *
+     *                                                                          *
+     ***************************************************************************/
+
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
 
@@ -376,9 +382,16 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-	WritePlotFile(step,time,geom,umac,tracer,pres);
+	WritePlotFile(step, time, geom, umac, tracer, pres);
     }
 
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Advance Time Steps                                                       *
+     *                                                                          *
+     ***************************************************************************/
 
     //___________________________________________________________________________
     // FFT test
@@ -394,40 +407,40 @@ void main_driver(const char * argv) {
     //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
     //     }
     // }
-    //////////////////////////
 
-    //Time stepping loop
-    for(step=1;step<=max_step;++step) {
+    for(step = 1; step <= max_step; ++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
 	if(variance_coef_mom != 0.0) {
 
-	  // Fill stochastic terms
-	  sMflux.fillMStochastic();
+            //___________________________________________________________________
+            // Fill stochastic terms
 
-	  // compute stochastic force terms
-	  sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	  sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+            sMflux.fillMStochastic();
 
-	  // Advance umac
-	  advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-		  alpha_fc,beta,gamma,beta_ed,geom,dt);
+            // Compute stochastic force terms (and apply to mfluxdiv_*)
+            sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+            sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+
+            //___________________________________________________________________
+            // Advance umac
+
+            advance(umac, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
+                    alpha_fc, beta, gamma, beta_ed, geom,dt);
 
 	}
 
-	//////////////////////////////////////////////////
 
-	///////////////////////////////////////////
+	//_______________________________________________________________________
 	// Update structure factor
-	///////////////////////////////////////////
+
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  for(int d=0; d<AMREX_SPACEDIM; d++) {
-	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	  }
-	  structFact.FortStructure(struct_in_cc,geom);
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+            }
+            structFact.FortStructure(struct_in_cc,geom);
         }
-	///////////////////////////////////////////
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -444,25 +457,25 @@ void main_driver(const char * argv) {
 
     ///////////////////////////////////////////
     if (struct_fact_int > 0) {
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
+        Real dVol = dx[0]*dx[1];
+        int tot_n_cells = n_cells[0]*n_cells[1];
+        if (AMREX_SPACEDIM == 2) {
+            dVol *= cell_depth;
+        } else if (AMREX_SPACEDIM == 3) {
+            dVol *= dx[2];
+            tot_n_cells = n_cells[2]*tot_n_cells;
+        }
 
-      // let rho = 1
-      Real SFscale = dVol/(k_B*temp_const);
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+        // let rho = 1
+        Real SFscale = dVol/(k_B*temp_const);
+        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
+        structFact.Finalize(SFscale);
+        structFact.WritePlotFile(step,time,geom);
     }
 
-    // Call the timer again and compute the maximum difference between the start time
-    // and stop time over all processors
+    // Call the timer again and compute the maximum difference between the start
+    // time and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
