@@ -13,6 +13,7 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 		   MultiFab& m_update,
 		   const amrex::Real* dx,
 		   const Geometry& geom,
+		   const int& m_comp,
 		   const int& increment)
 {
 
@@ -24,7 +25,7 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
       	          m_fc[1].define(convert(m.boxArray(),nodal_flag_y), dmap, 1, 1);,
 	          m_fc[2].define(convert(m.boxArray(),nodal_flag_z), dmap, 1, 1););
 
-     AverageCCToFace(m, 0, m_fc, 0, 1);
+     AverageCCToFace(m, m_comp, m_fc, 0, 1);
 
      AMREX_D_TERM(m_fc[0].FillBoundary(geom.periodicity());,
 		  m_fc[1].FillBoundary(geom.periodicity());,
@@ -47,8 +48,8 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 #if (AMREX_SPACEDIM == 3)
 			       BL_TO_FORTRAN_ANYD(m_fc[2][mfi]),
 #endif
-			       BL_TO_FORTRAN_ANYD(m[mfi]),
-        		       BL_TO_FORTRAN_ANYD(m_update[mfi]),
+			       BL_TO_FORTRAN_N_ANYD(m[mfi],m_comp),
+        		       BL_TO_FORTRAN_N_ANYD(m_update[mfi],m_comp),
 			       dx, &increment);
     }
 

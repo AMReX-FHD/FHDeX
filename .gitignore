@@ -1,11 +1,17 @@
 # Get rid of noise
 
+## Local path config
+tools/Path.local
+
 ## C/E tags
 TAGS
 tags
 
 ## Compiler debris
 **/tmp_build_dir
+
+## Crash debris
+**/Backtrace.*
 
 ## All compiled programs
 **/*.gnu.*.ex

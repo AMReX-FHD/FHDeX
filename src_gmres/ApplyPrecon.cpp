@@ -28,7 +28,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
 
     Real         mean_val_pres;
     Vector<Real> mean_val_umac(AMREX_SPACEDIM);
-    
+
 
     MultiFab phi     (ba,dmap,1,1);
     MultiFab mac_rhs (ba,dmap,1,0);
@@ -56,7 +56,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     AMREX_D_TERM(b_u_tmp[0].    define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  b_u_tmp[1].    define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  b_u_tmp[2].    define(convert(ba,nodal_flag_z), dmap, 1, 0););
-    
+
     // set alphainv_fc to 1/alpha_fc
     // set one_fab_fc to 1
     // set zero_fab_fc to 0
@@ -120,11 +120,11 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
         if (visc_schur_approx == 0) {
             // if precon_type = +1, or theta_alpha=0 then x_p = theta_alpha*Phi - c*beta*(mac_rhs)
             // if precon_type = -1                   then x_p = theta_alpha*Phi - c*beta*L_alpha Phi
-           
+
             if (precon_type == 1 || theta_alpha == 0) {
-                // first set x_p = -mac_rhs 
+                // first set x_p = -mac_rhs
                 MultiFab::Copy(x_p,mac_rhs,0,0,1,0);
-                x_p.mult(-1.,0,1,0);                
+                x_p.mult(-1.,0,1,0);
             }
             else {
                 // first set x_p = -L_alpha Phi
@@ -142,7 +142,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
             }
             else if (abs(visc_type) == 3) {
 
-                // multiply x_p by gamma, use mac_rhs a temparary to save x_p 
+                // multiply x_p by gamma, use mac_rhs a temparary to save x_p
                 MultiFab::Copy(mac_rhs,x_p,0,0,1,0);
                 MultiFab::Multiply(mac_rhs,gamma,0,0,1,0);
                 // multiply x_p by beta; x_p = -beta L_alpha Phi
@@ -170,7 +170,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     ////////////////////
     // STEP 5: Handle null-space issues in MG solvers
     ////////////////////
-    
+
     // subtract off mean value: Single level only! No need for ghost cells
     SumStag(x_u,0,mean_val_umac,true);
     SumCC(x_p,0,mean_val_pres,true);

@@ -15,37 +15,6 @@ void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
 
-
-/////////////////////////////////////////////////////////////////////////////////
-// in MassFluxUtil.cpp
-
-void ComputeMolconcMolmtot(const amrex::MultiFab& rho,
-			   const amrex::MultiFab& rhotot,
-			   amrex::MultiFab& molarconc,
-			   amrex::MultiFab& molmtot);
-  
-void ComputeRhotot(const amrex::MultiFab& rho,
-		   amrex::MultiFab& rhotot);
-
-void ComputeGamma(const amrex::MultiFab& molarconc,
-		  const amrex::MultiFab& Hessian,
-		  amrex::MultiFab& Gamma);
-
-void ComputeRhoWChi(const amrex::MultiFab& rho,
-		    const amrex::MultiFab& rhotot,
-		    const amrex::MultiFab& molarconc,
-		    amrex::MultiFab& rhoWchi,
-		    const amrex::MultiFab& D_bar);
-
-void ComputeZetaByTemp(const amrex::MultiFab& molarconc,
-		       const amrex::MultiFab& D_bar,
-		       const amrex::MultiFab& Temp,
-		       amrex::MultiFab& zeta_by_Temp,
-		       const amrex::MultiFab& D_therm);
-
-/////////////////////////////////////////////////////////////////////////////////
-
-
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeMassFluxdiv.cpp
 
@@ -84,12 +53,52 @@ void DiffusiveMassFlux(const amrex::MultiFab& rho,
 /////////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////////
+// in ComputeMixtureProperties.cpp
+void ComputeMixtureProperties(const amrex::MultiFab& rho,
+			      const amrex::MultiFab& rhotot,
+			      amrex::MultiFab& D_bar,
+			      amrex::MultiFab& D_therm,
+			      amrex::MultiFab& Hessian);
+
+/////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
 // in CorrectionFlux.cpp
 
 void CorrectionFlux(const amrex::MultiFab& rho, const amrex::MultiFab& rhotot,
 		    std::array< amrex::MultiFab, AMREX_SPACEDIM >& flux);
 
 /////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////
+// in MassFluxUtil.cpp
+
+void ComputeMolconcMolmtot(const amrex::MultiFab& rho,
+			   const amrex::MultiFab& rhotot,
+			   amrex::MultiFab& molarconc,
+			   amrex::MultiFab& molmtot);
+  
+void ComputeRhotot(const amrex::MultiFab& rho,
+		   amrex::MultiFab& rhotot);
+
+void ComputeGamma(const amrex::MultiFab& molarconc,
+		  const amrex::MultiFab& Hessian,
+		  amrex::MultiFab& Gamma);
+
+void ComputeRhoWChi(const amrex::MultiFab& rho,
+		    const amrex::MultiFab& rhotot,
+		    const amrex::MultiFab& molarconc,
+		    amrex::MultiFab& rhoWchi,
+		    const amrex::MultiFab& D_bar);
+
+// void ComputeZetaByTemp(const amrex::MultiFab& molarconc,
+// 		       const amrex::MultiFab& D_bar,
+// 		       const amrex::MultiFab& Temp,
+// 		       amrex::MultiFab& zeta_by_Temp,
+// 		       const amrex::MultiFab& D_therm);
+
+/////////////////////////////////////////////////////////////////////////////////
+
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MatvecMul.cpp

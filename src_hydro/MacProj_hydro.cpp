@@ -176,19 +176,21 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
 void SetMacSolverBCs(MLABecLaplacian& mlabec)
 {
     // timer for profiling
-    BL_PROFILE_VAR("SetMacSolverBCs()",SetMacSolverBCs);
+    BL_PROFILE_VAR("SetMacSolverBCs()", SetMacSolverBCs);
 
     // build array of boundary conditions needed by MLABecLaplacian
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    std::array<LinOpBCType, AMREX_SPACEDIM> mlmg_lobc;
+    std::array<LinOpBCType, AMREX_SPACEDIM> mlmg_hibc;
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
 	if (Geometry::isPeriodic(idim)) {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
-        }
-        else {
-	  amrex::Error("Invalid BC");
+        } else {
+            //amrex::Error("Invalid BC");
+            mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Neumann;
+            Print() << "Warning! non-periodic boundary conditions in MacProj_hydro." << std::endl
+                    << " => Assuming Neumann. But preconditioner might not work properly." << std::endl;
         }
     }
 

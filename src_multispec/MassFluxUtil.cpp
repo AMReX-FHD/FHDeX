@@ -95,27 +95,27 @@ void ComputeRhoWChi(const MultiFab& rho,
 
 }
 
-void ComputeZetaByTemp(const MultiFab& molarconc,
-		       const MultiFab& D_bar,
-		       const MultiFab& Temp,
-		       MultiFab& zeta_by_Temp,
-		       const MultiFab& D_therm)
-{
+// void ComputeZetaByTemp(const MultiFab& molarconc,
+// 		       const MultiFab& D_bar,
+// 		       const MultiFab& Temp,
+// 		       MultiFab& zeta_by_Temp,
+// 		       const MultiFab& D_therm)
+// {
   
-    BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
+//     BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
 
-    // Loop over boxes
-    for (MFIter mfi(molarconc); mfi.isValid(); ++mfi) {
+//     // Loop over boxes
+//     for (MFIter mfi(molarconc); mfi.isValid(); ++mfi) {
 
-        // Create cell-centered box
-        const Box& validBox = mfi.validbox();
+//         // Create cell-centered box
+//         const Box& validBox = mfi.validbox();
 
-        compute_zeta_by_Temp(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-			     BL_TO_FORTRAN_FAB(molarconc[mfi]),
-			     BL_TO_FORTRAN_ANYD(D_bar[mfi]),
-			     BL_TO_FORTRAN_ANYD(Temp[mfi]),
-			     BL_TO_FORTRAN_ANYD(zeta_by_Temp[mfi]),
-			     BL_TO_FORTRAN_ANYD(D_therm[mfi]));
-    }
+//         compute_zeta_by_Temp(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+// 			     BL_TO_FORTRAN_FAB(molarconc[mfi]),
+// 			     BL_TO_FORTRAN_ANYD(D_bar[mfi]),
+// 			     BL_TO_FORTRAN_ANYD(Temp[mfi]),
+// 			     BL_TO_FORTRAN_ANYD(zeta_by_Temp[mfi]),
+// 			     BL_TO_FORTRAN_ANYD(D_therm[mfi]));
+//     }
 
-}
+// }
