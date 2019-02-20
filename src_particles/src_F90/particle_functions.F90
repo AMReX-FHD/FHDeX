@@ -46,7 +46,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
     surf%fyright = 0
     surf%fzright = 0
 
-  enddo        
+  enddo
+      
   
   intcount = 0
 
