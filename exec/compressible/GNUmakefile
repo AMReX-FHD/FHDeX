@@ -18,13 +18,13 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-#include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
-#VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
-#INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
+include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
+VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
+INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
 
-include $(FBOXLIB_HOME)/Src/BaseLib/FParallelMG2.mak
-VPATH_LOCATIONS   += $(FBOXLIB_HOME)/Src/BaseLib/
-INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/Src/BaseLib/
+#include $(FBOXLIB_HOME)/Src/BaseLib/FParallelMG_RNG.mak
+#VPATH_LOCATIONS   += $(FBOXLIB_HOME)/Src/BaseLib/
+#INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/Src/BaseLib/
 
 
 include ../../src_compressible/Make.package

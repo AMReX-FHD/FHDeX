@@ -91,7 +91,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    doMembrane(cu, prim, flux, geom, ZFILL(dx), dt);
+    //doMembrane(cu, prim, flux, geom, ZFILL(dx), dt);
 
     calculateTransportCoeffs(prim, eta, zeta, kappa);
 
