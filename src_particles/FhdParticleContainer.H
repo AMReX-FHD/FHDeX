@@ -108,6 +108,12 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount);
 #endif
+
+    void MoveIons(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const surface* surfaceList, const int surfaceCount);
     void ReBin();
 
     //void MoveParticles();
