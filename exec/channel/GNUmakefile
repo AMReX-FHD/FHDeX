@@ -7,6 +7,7 @@ endif
 # ... alternatively if you set AMREX_HOME as an environment variable, this line
 # will be ignored => this line acts as a default
 AMREX_HOME ?= ../../../amrex
+FBOXLIB_HOME ?= ../../../FBoxLib
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -24,9 +25,17 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
-VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
+ifneq ("$(wildcard $(AMREX_HOME)/Src/F_BaseLib)", "")
+  $(info Loading AMReX F_BaseLib)
+  include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
+  VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
+  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
+else
+  $(info Loading FBoxLib)
+  include $(FBOXLIB_HOME)/Src/BaseLib/FParallelMG_RNG.mak
+  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/Src/BaseLib/
+  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/Src/BaseLib/
+endif
 
 include ../../src_hydro/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/src_F90
@@ -90,13 +99,13 @@ VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
 
 
 # check if running on macOS (as there are some subtle differences to linux).
-UNAME_S = $(shell uname -s)
-ifeq ($(UNAME_S), Darwin)
-    # on macOS (if libfftw3 has been installed via homebrew, there are no
-    # separated omp and mpi libraries)
-    LIBRARIES += -L$(FFTW_DIR) -lfftw3
-else
+# UNAME_S = $(shell uname -s)
+# ifeq ($(UNAME_S), Darwin)
+#     # on macOS (if libfftw3 has been installed via homebrew, there are no
+#     # separated omp and mpi libraries)
+#     LIBRARIES += -L$(FFTW_DIR) -lfftw3
+# else
     LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
-endif
+# endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
