@@ -20,17 +20,17 @@ using namespace common;
 using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
-void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-	       MultiFab& pres, MultiFab& tracer,
+void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 
+	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew, 
+	       MultiFab& pres, MultiFab& tracer, 
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	       const MultiFab& beta, const MultiFab& gamma,
-	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
+	       const std::array< MultiFab, NUM_EDGE >& beta_ed, 
 	       const Geometry geom, const Real& dt)
 {
-
+  
   BL_PROFILE_VAR("advance()",advance);
 
   const Real* dx = geom.CellSize();
@@ -90,80 +90,80 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       alpha_fc_0[2].setVal(0.););
 
   // Scaled by 1/2:
-  // beta_wtd cell centered
-  MultiFab beta_wtd(ba, dmap, 1, 1);
-  MultiFab::Copy(beta_wtd, beta, 0, 0, 1, 1);
-  beta_wtd.mult(0.5, 1);
+  // beta_hlf cell centered
+  MultiFab beta_hlf(ba, dmap, 1, 1);
+  MultiFab::Copy(beta_hlf, beta, 0, 0, 1, 1);
+  beta_hlf.mult(0.5, 1);
 
-  // beta_wtd on nodes in 2d
-  // beta_wtd on edges in 3d
-  std::array< MultiFab, NUM_EDGE > beta_ed_wtd;
+  // beta_hlf on nodes in 2d
+  // beta_hlf on edges in 3d
+  std::array< MultiFab, NUM_EDGE > beta_ed_hlf;
 #if (AMREX_SPACEDIM == 2)
-  beta_ed_wtd[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-  MultiFab::Copy(beta_ed_wtd[0], beta_ed[0], 0, 0, 1, 1);
-  beta_ed_wtd[0].mult(0.5, 1);
+  beta_ed_hlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+  MultiFab::Copy(beta_ed_hlf[0], beta_ed[0], 0, 0, 1, 1);
+  beta_ed_hlf[0].mult(0.5, 1);
 #elif (AMREX_SPACEDIM == 3)
-  beta_ed_wtd[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-  beta_ed_wtd[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-  beta_ed_wtd[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+  beta_ed_hlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+  beta_ed_hlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+  beta_ed_hlf[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
   for(int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(beta_ed_wtd[d], beta_ed[d], 0, 0, 1, 1);
-    beta_ed_wtd[d].mult(0.5, 1);
+    MultiFab::Copy(beta_ed_hlf[d], beta_ed[d], 0, 0, 1, 1);
+    beta_ed_hlf[d].mult(0.5, 1);
   }
 #endif
 
-  // cell-centered gamma_wtd
-  MultiFab gamma_wtd(ba, dmap, 1, 1);
-  MultiFab::Copy(gamma_wtd, gamma, 0, 0, 1, 1);
-  gamma_wtd.mult(-0.5, 1);
+  // cell-centered gamma_hlf
+  MultiFab gamma_hlf(ba, dmap, 1, 1);
+  MultiFab::Copy(gamma_hlf, gamma, 0, 0, 1, 1);
+  gamma_hlf.mult(-0.5, 1);
 
   // Scaled by -1/2:
-  // beta_negwtd cell centered
-  MultiFab beta_negwtd(ba, dmap, 1, 1);
-  MultiFab::Copy(beta_negwtd, beta, 0, 0, 1, 1);
-  beta_negwtd.mult(-0.5, 1);
+  // beta_neghlf cell centered
+  MultiFab beta_neghlf(ba, dmap, 1, 1);
+  MultiFab::Copy(beta_neghlf, beta, 0, 0, 1, 1);
+  beta_neghlf.mult(-0.5, 1);
 
-  // beta_negwtd on nodes in 2d
-  // beta_negwtd on edges in 3d
-  std::array< MultiFab, NUM_EDGE > beta_ed_negwtd;
+  // beta_neghlf on nodes in 2d
+  // beta_neghlf on edges in 3d
+  std::array< MultiFab, NUM_EDGE > beta_ed_neghlf;
 #if (AMREX_SPACEDIM == 2)
-  beta_ed_negwtd[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-  MultiFab::Copy(beta_ed_negwtd[0], beta_ed[0], 0, 0, 1, 1);
-  beta_ed_negwtd[0].mult(-0.5, 1);
+  beta_ed_neghlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+  MultiFab::Copy(beta_ed_neghlf[0], beta_ed[0], 0, 0, 1, 1);
+  beta_ed_neghlf[0].mult(-0.5, 1);
 #elif (AMREX_SPACEDIM == 3)
-  beta_ed_negwtd[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-  beta_ed_negwtd[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-  beta_ed_negwtd[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+  beta_ed_neghlf[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+  beta_ed_neghlf[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+  beta_ed_neghlf[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
   for(int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(beta_ed_negwtd[d], beta_ed[d], 0, 0, 1, 1);
-    beta_ed_negwtd[d].mult(-0.5, 1);
+    MultiFab::Copy(beta_ed_neghlf[d], beta_ed[d], 0, 0, 1, 1);
+    beta_ed_neghlf[d].mult(-0.5, 1);
   }
 #endif
 
   // cell-centered gamma
-  MultiFab gamma_negwtd(ba, dmap, 1, 1);
-  MultiFab::Copy(gamma_negwtd, gamma, 0, 0, 1, 1);
-  gamma_negwtd.mult(-0.5, 1);
+  MultiFab gamma_neghlf(ba, dmap, 1, 1);
+  MultiFab::Copy(gamma_neghlf, gamma, 0, 0, 1, 1);
+  gamma_neghlf.mult(-0.5, 1);
   ///////////////////////////////////////////
 
   AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
 	       umac[1].FillBoundary(geom.periodicity());,
 	       umac[2].FillBoundary(geom.periodicity()););
-
+	
   //////////////////////////
   // Advance tracer
   //////////////////////////
 
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0,0);
+  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0);
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
   MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0,0);
+  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0);
   advFluxdivS.mult(dt, 1);
 
   // advance in time
@@ -196,7 +196,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
 
   // crank-nicolson terms
-  StagApplyOp(beta_negwtd,gamma_negwtd,beta_ed_negwtd,umac,Lumac,alpha_fc_0,dx,theta_alpha);
+  StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
   AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
 	       MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
@@ -225,7 +225,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   pres.setVal(0.);  // initial guess
 
   // call GMRES to compute predictor
-  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,theta_alpha,geom,norm_pre_rhs);
+  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,theta_alpha,geom,norm_pre_rhs);
 
   // Compute predictor advective term
   AMREX_D_TERM(umacNew[0].FillBoundary(geom.periodicity());,
@@ -258,7 +258,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   // crank-nicolson terms
-  StagApplyOp(beta_negwtd,gamma_negwtd,beta_ed_negwtd,umac,Lumac,alpha_fc_0,dx,theta_alpha);
+  StagApplyOp(beta_neghlf,gamma_neghlf,beta_ed_neghlf,umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
   AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
 	       MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
@@ -290,7 +290,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   pres.setVal(0.);  // initial guess
 
   // call GMRES here
-  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,theta_alpha,geom,norm_pre_rhs);
+  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_hlf,beta_ed_hlf,gamma_hlf,theta_alpha,geom,norm_pre_rhs);
 
   AMREX_D_TERM(MultiFab::Copy(umac[0], umacNew[0], 0, 0, 1, 0);,
 	       MultiFab::Copy(umac[1], umacNew[1], 0, 0, 1, 0);,

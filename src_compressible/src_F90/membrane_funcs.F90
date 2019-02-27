@@ -137,6 +137,8 @@ contains
 
       mm = molmass(1)/(6.02d23)
 
+        !print *, mm
+
       fac5 = transmission*(k_b**2.5)*6.0/sqrt(2*mm*3.142)      
       fac3 = transmission*(k_b**1.5)*2.0/sqrt(2*mm*3.142)
       fac1 = transmission*(k_b**0.5)/sqrt(2*mm*3.142)
@@ -188,7 +190,7 @@ contains
              xflux(membrane_cell,j,k,5) = (dt*area*um + sqrt(dt*area*mm*uv)*rn3)/(vol*mm)
 
 
-                !print *, nm, sqrt(nv/dt)
+             !print *, dt*area*nm, dt*area*nv
 
              !xflux(membrane_cell,j,k,1) = mm*(nm )/vol
              !xflux(membrane_cell,j,k,5) = (um)/vol

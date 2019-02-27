@@ -5,12 +5,15 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
 
-#include "common_namespace.H"
-
 #include "gmres_functions.H"
 #include "gmres_functions_F.H"
 
+#include "multispec_functions.H"
+#include "multispec_functions_F.H"
+
+#include "common_namespace.H"
 #include "gmres_namespace.H"
+#include "multispec_namespace.H"
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
@@ -18,11 +21,13 @@
 using namespace amrex;
 using namespace common;
 using namespace gmres;
+using namespace multispec;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 
 	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew, 
-	       MultiFab& pres, MultiFab& tracer, 
+	       MultiFab& pres, MultiFab& tracer,
+	       MultiFab& rho, MultiFab& rhotot,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
@@ -75,6 +80,27 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   MultiFab tracerPred(ba,dmap,1,1);
   MultiFab advFluxdivS(ba,dmap,1,1);
+
+  MultiFab rhoPred(ba,dmap,nspecies,1);
+  MultiFab adv_mass_fluxdiv(ba,dmap,nspecies,1);
+
+  MultiFab diff_mass_fluxdiv(ba,dmap,nspecies,1);
+  std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
+  AMREX_D_TERM(diff_mass_flux[0].define(convert(ba,nodal_flag_x),
+					dmap, nspecies, 1);,
+	       diff_mass_flux[1].define(convert(ba,nodal_flag_y),
+					dmap, nspecies, 1);,
+	       diff_mass_flux[2].define(convert(ba,nodal_flag_z),
+					dmap, nspecies, 1););
+
+  MultiFab stoch_mass_fluxdiv(ba,dmap,nspecies,1);
+  std::array< MultiFab, AMREX_SPACEDIM > stoch_mass_flux;
+  AMREX_D_TERM(stoch_mass_flux[0].define(convert(ba,nodal_flag_x),
+					 dmap, nspecies, 1);,
+	       stoch_mass_flux[1].define(convert(ba,nodal_flag_y),
+					 dmap, nspecies, 1);,
+	       stoch_mass_flux[2].define(convert(ba,nodal_flag_z),
+					 dmap, nspecies, 1););
 
   ///////////////////////////////////////////
   // Scaled alpha, beta, gamma:
@@ -156,14 +182,14 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0);
+  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0,0);
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
   MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0);
+  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0,0);
   advFluxdivS.mult(dt, 1);
 
   // advance in time
@@ -175,7 +201,30 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   //////////////////////////
 
   //////////////////////////////////////////////////
-  // ADVANCE velocity field
+  // ADVANCE species concentration (Stage 1)
+  //////////////////////////////////////////////////
+
+  rho.FillBoundary(geom.periodicity());
+
+  // FIXME: stage_time = 0.0
+  ComputeMassFluxdiv(rho,rhotot,diff_mass_fluxdiv,
+		     stoch_mass_fluxdiv,diff_mass_flux,
+		     stoch_mass_flux,dt,0.0,geom);
+
+  for(int i=0; i<nspecies; i++) {
+    MkAdvSFluxdiv(umac,rho,adv_mass_fluxdiv,dx,geom,i,0);
+  }
+
+  diff_mass_fluxdiv.mult(dt);
+  MultiFab::Add(rhoPred,diff_mass_fluxdiv,0,0,nspecies,0);
+
+  adv_mass_fluxdiv.mult(-dt);
+  MultiFab::Add(rhoPred,adv_mass_fluxdiv, 0,0,nspecies,0);
+
+  //////////////////////////////////////////////////
+    
+  //////////////////////////////////////////////////
+  // ADVANCE velocity field (Stage 1)
   //////////////////////////////////////////////////
 
   // PREDICTOR STEP (heun's method: part 1)
@@ -226,6 +275,39 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // call GMRES to compute predictor
   GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,theta_alpha,geom,norm_pre_rhs);
+
+  //////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////
+  // ADVANCE species concentration (Stage 2)
+  //////////////////////////////////////////////////
+
+  rhoPred.FillBoundary(geom.periodicity());
+
+  // FIXME: stage_time = 0.0
+  ComputeMassFluxdiv(rhoPred,rhotot,diff_mass_fluxdiv,
+		     stoch_mass_fluxdiv,diff_mass_flux,
+		     stoch_mass_flux,dt,0.0,geom);
+
+  for(int i=0; i<nspecies; i++) {
+    MkAdvSFluxdiv(umacNew,rhoPred,adv_mass_fluxdiv,dx,geom,i,0);
+  }
+
+  diff_mass_fluxdiv.mult(dt);
+  MultiFab::Add(rho,diff_mass_fluxdiv,0,0,nspecies,0);
+
+  adv_mass_fluxdiv.mult(-dt);
+  MultiFab::Add(rho,adv_mass_fluxdiv, 0,0,nspecies,0);
+
+  MultiFab::Add(rho,rhoPred,0,0,nspecies,0);
+
+  rho.mult(0.5);
+
+  //////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////
+  // ADVANCE velocity field (Stage 2)
+  //////////////////////////////////////////////////
 
   // Compute predictor advective term
   AMREX_D_TERM(umacNew[0].FillBoundary(geom.periodicity());,
