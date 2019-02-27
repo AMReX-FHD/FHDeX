@@ -66,9 +66,9 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
                  r_u[2].define(convert(ba,nodal_flag_z), dmap, 1, x_u[0].nGrow()););
 
     std::array< MultiFab, AMREX_SPACEDIM > w_u;
-    AMREX_D_TERM(w_u[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 w_u[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 w_u[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(w_u[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 w_u[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 w_u[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
     std::array< MultiFab, AMREX_SPACEDIM > tmp_u;
     AMREX_D_TERM(tmp_u[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
