@@ -123,8 +123,8 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // fill periodic ghost cells
     for (int d = 0; d < AMREX_SPACEDIM; d++) {
       umac[d].FillBoundary(geom.periodicity());
+      // Do not apply BCs here (as the MLMG solver already satisfies BCs)
     }
-
 }
 
 // compute the RHS for the solve, RHS = macrhs - div(beta0*umac)

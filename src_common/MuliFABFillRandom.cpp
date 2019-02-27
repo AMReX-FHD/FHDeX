@@ -3,6 +3,9 @@
 #include "rng_functions_F.H"
 #include "common_namespace.H"
 
+//TODO: Move to src_common after debugging
+#include "hydro_functions.H"
+
 using namespace common;
 using namespace amrex;
 
@@ -18,7 +21,7 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 	multifab_fill_random(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
 			     BL_TO_FORTRAN_FAB(mf[mfi]), &comp);
     }
-    
+
 //----------------------------------------
 
     // Scale standard gaussian samples by standard deviation
@@ -29,7 +32,8 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 
     mf.FillBoundary(geom.periodicity());
 
-    
+    //TODO: is this the correct BC?
+    MultiFABPhysBC(mf);
 
 //----------------------------------------
 }
@@ -87,7 +91,7 @@ void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& va
 	    multifab_fill_random_hack(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
 			         BL_TO_FORTRAN_FAB(mf[mfi]), &comp, &myTopNumber, &myBottomNumber);
     }
-    
+
 //----------------------------------------
 
 //error in here?
@@ -97,7 +101,7 @@ void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& va
     // Enforce boundary conditions on nodal boundaries & ghost cells
     //mf.OverrideSync(geom.periodicity());
 
-    mf.FillBoundary(geom.periodicity());    
+    mf.FillBoundary(geom.periodicity());
 
 //----------------------------------------
 }

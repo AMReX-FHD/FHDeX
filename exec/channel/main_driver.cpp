@@ -356,6 +356,19 @@ void main_driver(const char * argv) {
 
 
     //___________________________________________________________________________
+    // Ensure that ICs satisfy BCs
+
+    pres.FillBoundary(geom.periodicity());
+    MultiFABPhysBC(pres);
+
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        umac[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[i], i);
+        MultiFABPhysBCMacVel(umac[i], i);
+    }
+
+
+    //___________________________________________________________________________
     // Add random momentum fluctuations
 
     // Declare object of StochMFlux class
@@ -371,9 +384,9 @@ void main_driver(const char * argv) {
     MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
+                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 1);,
+                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 1););
 
     int step = 0;
     Real time = 0.;
@@ -425,7 +438,6 @@ void main_driver(const char * argv) {
 
             //___________________________________________________________________
             // Advance umac
-
             advance(umac, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
                     alpha_fc, beta, gamma, beta_ed, geom,dt);
 

@@ -6,6 +6,9 @@
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 
+// TODO: move to common_functions when done
+#include "hydro_functions.H"
+
 using namespace common;
 using namespace gmres;
 
@@ -50,8 +53,11 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     // fill ghost cells for x_u and x_p
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         x_u[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(x_u[i], i);
+        MultiFABPhysBCMacVel(x_u[i], i);
     }
     x_p.FillBoundary(geom.periodicity());
+    MultiFABPhysBC(x_p);
 
     std::array< MultiFab, AMREX_SPACEDIM > gx_p;
     AMREX_D_TERM(gx_p[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,

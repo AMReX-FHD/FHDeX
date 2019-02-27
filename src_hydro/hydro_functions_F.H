@@ -142,7 +142,13 @@ void set_bc(const int * lo, const int * hi,
 
 
 void fab_physbc(const int * lo, const int * hi,
-                amrex::Real * pressure);
+                amrex::Real * pressure, const int * dim_fill_ghost);
+
+void fab_physbc_domainvel(const int * lo, const int * hi,
+                          amrex::Real * vel, const int * dim_fill_ghost);
+
+void fab_physbc_macvel(const int * lo, const int * hi,
+                       amrex::Real * vel, const int * dim_fill_ghost);
 
 
 #ifdef __cplusplus

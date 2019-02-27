@@ -47,15 +47,15 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     AMREX_D_TERM(alphainv_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  alphainv_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  alphainv_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
-    AMREX_D_TERM(one_fab_fc[0]. define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                 one_fab_fc[1]. define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                 one_fab_fc[2]. define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM( one_fab_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                  one_fab_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                  one_fab_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
     AMREX_D_TERM(zero_fab_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                  zero_fab_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                  zero_fab_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
-    AMREX_D_TERM(b_u_tmp[0].    define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                 b_u_tmp[1].    define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                 b_u_tmp[2].    define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    AMREX_D_TERM(    b_u_tmp[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                     b_u_tmp[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                     b_u_tmp[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
     // set alphainv_fc to 1/alpha_fc
     // set one_fab_fc to 1

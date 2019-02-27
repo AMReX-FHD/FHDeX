@@ -4,7 +4,11 @@
 
 #include "common_functions.H"
 #include "common_namespace.H"
+
 #include <AMReX_VisMF.H>
+
+// TODO: move this to common_functions after debugging
+#include "hydro_functions.H"
 
 using namespace amrex;
 using namespace gmres;
@@ -29,7 +33,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const Real& theta,
                   const Geometry& geom)
 {
-  
+
     BL_PROFILE_VAR("StagMGSolver()",StagMGSolver);
 
     if (stag_mg_verbosity >= 1) {
@@ -100,9 +104,9 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         geom_mg[n].define(pd,&real_box,CoordSys::cartesian,is_periodic.data());
 
         // create the boxarray for this multigrid level
-        BoxArray ba(ba_base); 
+        BoxArray ba(ba_base);
         ba.coarsen(pow(2,n));
-     
+
         if ( n == 0 && !(ba == ba_base) ) {
             Abort("Finest multigrid level boxarray and coarsest problem boxarrays do not match");
         }
@@ -114,9 +118,9 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         AMREX_D_TERM(alpha_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
                      alpha_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
                      alpha_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
-        AMREX_D_TERM(  rhs_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                       rhs_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                       rhs_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+        AMREX_D_TERM(  rhs_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                       rhs_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                       rhs_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
         AMREX_D_TERM(  phi_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                        phi_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                        phi_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
@@ -151,7 +155,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         MultiFab::Copy(beta_ed_mg[0][1],beta_ed[1],0,0,1,0);
         MultiFab::Copy(beta_ed_mg[0][2],beta_ed[2],0,0,1,0);
     }
-    
+
     // coarsen coefficients
     for (n=1; n<nlevs_mg; ++n) {
         // need ghost cells set to zero to prevent intermediate NaN states
@@ -187,26 +191,30 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         // fill periodic ghost cells
         phi_fc_mg[0][d].FillBoundary(geom_mg[0].periodicity());
 
+        // fill boundary cells
+        // TODO: are these the correct BC?
+        MultiFABPhysBCDomainVel(phi_fc_mg[0][d], d);
+        MultiFABPhysBCMacVel(phi_fc_mg[0][d], d);
     }
 
     // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,0);
+        MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,1);
     }
 
     // compute norm of initial residual
     // first compute Lphi
     StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
                 phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],dx_mg[0].data(),1.);
-    
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // compute Lphi - rhs
-        MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
+        MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,1);
 
         // compute L0 norm of Lphi - rhs
-        resid0[d] = Lphi_fc_mg[0][d].norm0(); 
+        resid0[d] = Lphi_fc_mg[0][d].norm0();
 // FIXME - need to write an L2 norm for staggered fields
-//        resid0_l2[d] = Lphi_fc_mg[0][d].norm2(); 
+//        resid0_l2[d] = Lphi_fc_mg[0][d].norm2();
         if (stag_mg_verbosity >= 2) {
             Print() << "Initial residual " << d << " " << resid0[d] << std::endl;
         }
@@ -226,7 +234,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 // FIXME - need to write an L2 norm for staggered fields
 //        std::fill(resid0_l2.begin(), resid0_l2.end(), *max_element(resid0_l2.begin(), resid0_l2.end()));
     }
-      
+
     if (stag_mg_smoother == 0) {
         color_start = 0;
         color_end = 0;
@@ -235,7 +243,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         color_start = 1;
         color_end = 2*AMREX_SPACEDIM;
     }
-    
+
     for (int vcycle=1; vcycle<=stag_mg_max_vcycles; ++vcycle) {
 
         if (stag_mg_verbosity >= 2) {
@@ -258,12 +266,12 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 // compute Lphi
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-    
+
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " before    smooths at level " 
+                    Print() << "Residual for comp " << d << " before    smooths at level "
                             << n << " " << resid_temp << std::endl;
                 }
             }
@@ -292,6 +300,15 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
                     }
 
+                    // fill boundary cells
+                    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+                        // TODO: are these the correct BC?
+                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d);
+                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], d);
+                    }
+
+
                 } // end loop over colors
 
                 // print out residual
@@ -300,12 +317,12 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     // compute Lphi
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-    
+
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         // compute Lphi - rhs, and report residual
                         MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                         resid_temp = Lphi_fc_mg[n][d].norm0();
-                        Print() << "Residual for comp " << d << " after    smooth " << m << " at level " 
+                        Print() << "Residual for comp " << d << " after    smooth " << m << " at level "
                                 << n << " " << resid_temp << std::endl;
                     }
                 }
@@ -326,13 +343,19 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 Lphi_fc_mg[n][d].mult(-1.,0,1,0);
                 if (stag_mg_verbosity >= 3) {
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " after all smooths at level " 
+                    Print() << "Residual for comp " << d << " after all smooths at level "
                             << n << " " << resid_temp << std::endl;
                 }
 
                 // fill periodic ghost cells
                 Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
+            }
+
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+                // TODO: are these the correct BC?
+                MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d);
+                MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d);
             }
 
             // restrict/coarsen residual and put it in rhs_fc
@@ -346,7 +369,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         if (stag_mg_verbosity >= 3) {
             Print() << "Begin bottom solve" << std::endl;
         }
-            
+
         ////////////////////////////
         // just do smooths at the current level as the bottom solve
 
@@ -361,7 +384,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 // compute Lphi - rhs, and report residual
                 MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                 resid_temp = Lphi_fc_mg[n][d].norm0();
-                Print() << "Residual for comp " << d << " before    smooths at level " 
+                Print() << "Residual for comp " << d << " before    smooths at level "
                         << n << " " << resid_temp << std::endl;
             }
         }
@@ -389,20 +412,28 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                 }
+
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+                    // TODO: are these the correct BC?
+                    MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d);
+                    MultiFABPhysBCMacVel(phi_fc_mg[n][d], d);
+                }
+
             } // end loop over colors
 
             // print out residual
             if (stag_mg_verbosity >= 4) {
-                
+
                 // compute Lphi
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-                
+
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " after    smooth " << m << " at level " 
+                    Print() << "Residual for comp " << d << " after    smooth " << m << " at level "
                             << n << " " << resid_temp << std::endl;
                 }
             }
@@ -415,21 +446,28 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         // compute Lphi
         StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                     phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-        
+
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            
+
             // compute Lphi - rhs, and then multiply by -1
             MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
             Lphi_fc_mg[n][d].mult(-1.,0,1,0);
             if (stag_mg_verbosity >= 3) {
                 resid_temp = Lphi_fc_mg[n][d].norm0();
-                Print() << "Residual for comp " << d << " after all smooths at level " 
+                Print() << "Residual for comp " << d << " after all smooths at level "
                         << n << " " << resid_temp << std::endl;
             }
 
             // fill periodic ghost cells
             Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+            // TODO: are these the correct BC?
+            MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d);
+            MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d);
         }
 
         if (stag_mg_verbosity >= 3) {
@@ -449,18 +487,25 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
             }
 
+            for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+                // TODO: are these the correct BC?
+                MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d);
+                MultiFABPhysBCMacVel(phi_fc_mg[n][d], d);
+            }
+
             // print out residual
             if (stag_mg_verbosity >= 3) {
 
                 // compute Lphi
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-    
+
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " before    smooths at level " 
+                    Print() << "Residual for comp " << d << " before    smooths at level "
                             << n << " " << resid_temp << std::endl;
                 }
             }
@@ -489,6 +534,13 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
                     }
 
+                    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+                        // TODO: are these the correct BC?
+                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d);
+                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], d);
+                    }
+
                 } // end loop over colors
 
                 // print out residual
@@ -497,12 +549,12 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     // compute Lphi
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-    
+
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         // compute Lphi - rhs, and report residual
                         MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                         resid_temp = Lphi_fc_mg[n][d].norm0();
-                        Print() << "Residual for comp " << d << " after    smooth " << m << " at level " 
+                        Print() << "Residual for comp " << d << " after    smooth " << m << " at level "
                                 << n << " " << resid_temp << std::endl;
                     }
                 }
@@ -514,12 +566,12 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 // compute Lphi
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-        
+
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                     resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " after all smooths at level " 
+                    Print() << "Residual for comp " << d << " after all smooths at level "
                             << n << " " << resid_temp << std::endl;
                 }
             }
@@ -541,10 +593,10 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             // compute Lphi - rhs
             MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
         }
-	
+
 	//////// TEST INNER PROD /////////////////////
 	// Print() << "\t TEST INNER PROD: \n";
-	  
+
 	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
 	//   phi_fc_mg[0][d].setVal(1.);
 	//   Lphi_fc_mg[0][d].setVal(2.);
@@ -583,9 +635,9 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
         // compute L0 norm of Lphi - rhs and determine if the problem is solved
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            resid[d] = Lphi_fc_mg[0][d].norm0(); 
+            resid[d] = Lphi_fc_mg[0][d].norm0();
 // FIXME - need to write an L2 norm for staggered fields
-//            resid_l2[d] = Lphi_fc_mg[0][d].norm2(); 
+//            resid_l2[d] = Lphi_fc_mg[0][d].norm2();
             if (stag_mg_verbosity >= 2) {
                 Print() << "Residual     " << d << " " << resid[d] << std::endl;
                 Print() << "resid/resid0 " << d << " " << resid[d]/resid0[d] << std::endl;
@@ -611,7 +663,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             resid[d] /= resid0[d];
         }
-        
+
         if ( std::all_of(resid.begin(), resid.end(), [](Real x){return x <= stag_mg_rel_tol;}) ) {
             if (stag_mg_verbosity >= 1) {
                 Print() << "Solved in " << vcycle << " staggered V-cycles" << std::endl;
@@ -621,7 +673,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
             }
 	    break;
         }
-        
+
         if (vcycle == stag_mg_max_vcycles) {
             if (stag_mg_verbosity >= 1) {
                 Print() << "Exiting staggered multigrid; maximum number of V-Cycles reached" << std::endl;
@@ -647,12 +699,18 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 
     }
 
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        // TODO: are these the correct BC?
+        MultiFABPhysBCDomainVel(phi_fc[d], d);
+        MultiFABPhysBCMacVel(phi_fc[d], d);
+    }
+
     // vcycle_counter += AMREX_SPACEDIM*stag_mg_max_vcycles;
 
     if (stag_mg_verbosity >= 1) {
         Print() << "End call to stag_mg_solver\n";
     }
-
 }
 
 // compute the number of multigrid levels assuming minwidth is the length of the
@@ -702,7 +760,7 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
 
 }
 
-void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
+void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                      const std::array< MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil)
 {
@@ -745,7 +803,7 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     }
 }
 
-void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c, 
+void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
                      const std::array< MultiFab, NUM_EDGE >& phi_f)
 {
     if (AMREX_SPACEDIM != 3) {
@@ -770,7 +828,7 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
     }
 }
 
-void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c, 
+void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                       std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
 {
 

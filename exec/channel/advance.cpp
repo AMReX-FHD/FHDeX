@@ -157,10 +157,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Copy(gamma_negwtd, gamma, 0, 0, 1, 1);
     gamma_negwtd.mult(-0.5, 1);
 
-    AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
-                 umac[1].FillBoundary(geom.periodicity());,
-                 umac[2].FillBoundary(geom.periodicity()););
-
 
     /****************************************************************************
      *                                                                          *
@@ -168,7 +164,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      ***************************************************************************/
 
-    setBC(umac[0], umac[1], umac[2]);
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        umac[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[i], i);
+        MultiFABPhysBCMacVel(umac[i], i);
+    }
 
 
     /****************************************************************************
@@ -203,36 +203,48 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // PREDICTOR STEP (heun's method: part 1)
     // compute advective term
-    AMREX_D_TERM(MultiFab::Copy(uMom[0], umac[0], 0, 0, 1, 0);,
-                 MultiFab::Copy(uMom[1], umac[1], 0, 0, 1, 0);,
-                 MultiFab::Copy(uMom[2], umac[2], 0, 0, 1, 0););
+    AMREX_D_TERM(MultiFab::Copy(uMom[0], umac[0], 0, 0, 1, 1);,
+                 MultiFab::Copy(uMom[1], umac[1], 0, 0, 1, 1);,
+                 MultiFab::Copy(uMom[2], umac[2], 0, 0, 1, 1););
 
     // let rho = 1
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         uMom[d].mult(1.0, 1);
     }
 
-    AMREX_D_TERM(uMom[0].FillBoundary(geom.periodicity());,
-                 uMom[1].FillBoundary(geom.periodicity());,
-                 uMom[2].FillBoundary(geom.periodicity()););
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        uMom[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(uMom[i], i);
+        MultiFABPhysBCMacVel(uMom[i], i);
+    }
 
     MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
 
     // crank-nicolson terms
     StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
-    AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
-                 MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
-                 MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        Lumac[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(Lumac[i], i);
+        MultiFABPhysBCMacVel(Lumac[i], i);
+    }
+
+    AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 1);,
+                 MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 1);,
+                 MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 1););
+
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         gmres_rhs_u[d].mult(dtinv, 1);
     }
+
     AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], mfluxdiv_predict[0], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[1], mfluxdiv_predict[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], mfluxdiv_predict[2], 0, 0, 1, 0););
+
     AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], Lumac[0], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[1], Lumac[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], Lumac[2], 0, 0, 1, 0););
+
     AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
@@ -241,11 +253,13 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  gmres_rhs_u[1].FillBoundary(geom.periodicity());,
                  gmres_rhs_u[2].FillBoundary(geom.periodicity()););
 
+
     // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
+                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 1);,
+                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 1););
     pres.setVal(0.);  // initial guess
+
 
     // call GMRES to compute predictor
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
@@ -285,9 +299,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // crank-nicolson terms
     StagApplyOp(beta_negwtd,gamma_negwtd,beta_ed_negwtd,umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
-    AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 0);,
-                 MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 0);,
-                 MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 0););
+    AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 1);,
+                 MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 1);,
+                 MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 1););
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         gmres_rhs_u[d].mult(dtinv, 1);
     }

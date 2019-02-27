@@ -391,6 +391,7 @@ contains
                                     -velyin(i-1,j,k)*betaxy(i,j,k)*dxsqinv &
                                     -velyin(i,j,k+1)*betayz(i,j,k+1)*dzsqinv &
                                     -velyin(i,j,k-1)*betayz(i,j,k)*dzsqinv
+
                 enddo
              enddo
           enddo
@@ -588,6 +589,26 @@ contains
                                     +velyin(i,j,k)*betayz(i,j,k)*dydzinv &
                                     +velyin(i,j+1,k-1)*betayz(i,j+1,k)*dydzinv &
                                     -velyin(i,j,k-1)*betayz(i,j,k)*dydzinv
+
+                   ! if ( velzout(i,j,k) /= velzout(i,j,k) ) then
+                   !    write(*,*) i, j, k, velzout(i,j,k), dxsqinv, dysqinv, dzsqinv
+                   !    write(*,*) i+1,j,k-1, velxin(i+1,j,k-1), betaxz(i+1,j,k)
+                   !    write(*,*) i,j+1,k-1, velyin(i,j+1,k-1), betayz(i,j+1,k)
+                   !    write(*,*) "velx",          velxin(i,j,k),   velxin(i-1,j,k), velxin(i+1,j,k), &
+                   !         &     velxin(i,j-1,k), velxin(i,j+1,k), velxin(i,j,k-1), velxin(i,j,k+1)
+                   !    write(*,*) "vely",          velyin(i,j,k),   velyin(i-1,j,k), velyin(i+1,j,k), &
+                   !         &     velyin(i,j-1,k), velyin(i,j+1,k), velyin(i,j,k-1), velyin(i,j,k+1)
+                   !    write(*,*) "velz",          velzin(i,j,k),   velzin(i-1,j,k), velzin(i+1,j,k), &
+                   !         &     velzin(i,j-1,k), velzin(i,j+1,k), velzin(i,j,k-1), velzin(i,j,k+1)
+                   !    write(*,*) "betacc",        betacc(i,j,k),   betacc(i-1,j,k), betacc(i+1,j,k), &
+                   !         &     betacc(i,j-1,k), betacc(i,j+1,k), betacc(i,j,k-1), betacc(i,j,k+1)
+                   !    write(*,*) "betaxz",        betaxz(i,j,k),   betaxz(i-1,j,k), betaxz(i+1,j,k), &
+                   !         &     betaxz(i,j-1,k), betaxz(i,j+1,k), betaxz(i,j,k-1), betaxz(i,j,k+1)
+                   !    write(*,*) "betayz",        betayz(i,j,k),   betayz(i-1,j,k), betayz(i+1,j,k), &
+                   !         &     betayz(i,j-1,k), betayz(i,j+1,k), betayz(i,j,k-1), betayz(i,j,k+1)
+                   !    write(*,*) "alphaz",        alphaz(i,j,k),   alphaz(i-1,j,k), alphaz(i+1,j,k), &
+                   !         &     alphaz(i,j-1,k), alphaz(i,j+1,k), alphaz(i,j,k-1), alphaz(i,j,k+1)
+                   ! end if
                 enddo
              enddo
           enddo
@@ -659,6 +680,24 @@ contains
                                     +velzin(i,j,k)*betayz(i,j,k)*dydzinv &
                                     +velzin(i,j-1,k+1)*betayz(i,j,k+1)*dydzinv &
                                     -velzin(i,j-1,k)*betayz(i,j,k)*dydzinv
+
+                   ! if ( velyout(i,j,k) /= velyout(i,j,k) ) then
+                   !    write(*,*) i, j, k, velyout(i,j,k), dxsqinv, dysqinv, dzsqinv
+                   !    write(*,*) "velx",          velxin(i,j,k),   velxin(i-1,j,k), velxin(i+1,j,k), &
+                   !         &     velxin(i,j-1,k), velxin(i,j+1,k), velxin(i,j,k-1), velxin(i,j,k+1)
+                   !    write(*,*) "vely",          velyin(i,j,k),   velyin(i-1,j,k), velyin(i+1,j,k), &
+                   !         &     velyin(i,j-1,k), velyin(i,j+1,k), velyin(i,j,k-1), velyin(i,j,k+1)
+                   !    write(*,*) "velz",          velzin(i,j,k),   velzin(i-1,j,k), velzin(i+1,j,k), &
+                   !         &     velzin(i,j-1,k), velzin(i,j+1,k), velzin(i,j,k-1), velzin(i,j,k+1)
+                   !    write(*,*) "betacc",        betacc(i,j,k),   betacc(i-1,j,k), betacc(i+1,j,k), &
+                   !         &     betacc(i,j-1,k), betacc(i,j+1,k), betacc(i,j,k-1), betacc(i,j,k+1)
+                   !    write(*,*) "betaxy",        betaxy(i,j,k),   betaxy(i-1,j,k), betaxy(i+1,j,k), &
+                   !         &     betaxy(i,j-1,k), betaxy(i,j+1,k), betaxy(i,j,k-1), betaxy(i,j,k+1)
+                   !    write(*,*) "betayz",        betayz(i,j,k),   betayz(i-1,j,k), betayz(i+1,j,k), &
+                   !         &     betayz(i,j-1,k), betayz(i,j+1,k), betayz(i,j,k-1), betayz(i,j,k+1)
+                   !    write(*,*) "alphay",        alphay(i,j,k),   alphay(i-1,j,k), alphay(i+1,j,k), &
+                   !         &     alphay(i,j-1,k), alphay(i,j+1,k), alphay(i,j,k-1), alphay(i,j,k+1)
+                   ! end if
                 enddo
              enddo
           enddo
@@ -692,6 +731,27 @@ contains
                                     +velyin(i,j,k)*betayz(i,j,k)*dydzinv &
                                     +velyin(i,j+1,k-1)*betayz(i,j+1,k)*dydzinv &
                                     -velyin(i,j,k-1)*betayz(i,j,k)*dydzinv
+
+
+                   ! if ( velzout(i,j,k) /= velzout(i,j,k) ) then
+                   !    write(*,*) i, j, k, velzout(i,j,k), dxsqinv, dysqinv, dzsqinv
+                   !    write(*,*) i+1,j,k-1, velxin(i+1,j,k-1), betaxz(i+1,j,k)
+                   !    write(*,*) i,j+1,k-1, velyin(i,j+1,k-1), betayz(i,j+1,k)
+                   !    write(*,*) "velx",          velxin(i,j,k),   velxin(i-1,j,k), velxin(i+1,j,k), &
+                   !         &     velxin(i,j-1,k), velxin(i,j+1,k), velxin(i,j,k-1), velxin(i,j,k+1)
+                   !    write(*,*) "vely",          velyin(i,j,k),   velyin(i-1,j,k), velyin(i+1,j,k), &
+                   !         &     velyin(i,j-1,k), velyin(i,j+1,k), velyin(i,j,k-1), velyin(i,j,k+1)
+                   !    write(*,*) "velz",          velzin(i,j,k),   velzin(i-1,j,k), velzin(i+1,j,k), &
+                   !         &     velzin(i,j-1,k), velzin(i,j+1,k), velzin(i,j,k-1), velzin(i,j,k+1)
+                   !    write(*,*) "betacc",        betacc(i,j,k),   betacc(i-1,j,k), betacc(i+1,j,k), &
+                   !         &     betacc(i,j-1,k), betacc(i,j+1,k), betacc(i,j,k-1), betacc(i,j,k+1)
+                   !    write(*,*) "betaxz",        betaxz(i,j,k),   betaxz(i-1,j,k), betaxz(i+1,j,k), &
+                   !         &     betaxz(i,j-1,k), betaxz(i,j+1,k), betaxz(i,j,k-1), betaxz(i,j,k+1)
+                   !    write(*,*) "betayz",        betayz(i,j,k),   betayz(i-1,j,k), betayz(i+1,j,k), &
+                   !         &     betayz(i,j-1,k), betayz(i,j+1,k), betayz(i,j,k-1), betayz(i,j,k+1)
+                   !    write(*,*) "alphaz",        alphaz(i,j,k),   alphaz(i-1,j,k), alphaz(i+1,j,k), &
+                   !         &     alphaz(i,j-1,k), alphaz(i,j+1,k), alphaz(i,j,k-1), alphaz(i,j,k+1)
+                   ! end if
                 enddo
              enddo
           enddo

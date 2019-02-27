@@ -26,30 +26,38 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 
      AverageCCToFace(m, 0, m_fc, 0, 1);
 
-     AMREX_D_TERM(m_fc[0].FillBoundary(geom.periodicity());,
-		  m_fc[1].FillBoundary(geom.periodicity());,
-		  m_fc[2].FillBoundary(geom.periodicity()););
+     // AMREX_D_TERM(m_fc[0].FillBoundary(geom.periodicity());,
+     //    	  m_fc[1].FillBoundary(geom.periodicity());,
+     //    	  m_fc[2].FillBoundary(geom.periodicity()););
 
-    // Loop over boxes
-    for (MFIter mfi(umac[0]); mfi.isValid(); ++mfi) {
+     // //TODO: this will break in 2D
+     // setBC(m_fc[0], m_fc[1], m_fc[2]);
 
-        // Create cell-centered box from semi-nodal box
-        const Box& validBox_cc = enclosedCells(mfi.validbox());
+     for (int d=0; d<AMREX_SPACEDIM; ++d) {
+         m_fc[d].FillBoundary(geom.periodicity());
+         MultiFABPhysBC(m_fc[d]);
+     }
 
-        mk_advective_s_fluxdiv(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
-        		       BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-			       BL_TO_FORTRAN_ANYD(umac[1][mfi]),
+     // Loop over boxes
+     for (MFIter mfi(umac[0]); mfi.isValid(); ++mfi) {
+
+         // Create cell-centered box from semi-nodal box
+         const Box& validBox_cc = enclosedCells(mfi.validbox());
+
+         mk_advective_s_fluxdiv(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
+                                BL_TO_FORTRAN_ANYD(umac[0][mfi]),
+                                BL_TO_FORTRAN_ANYD(umac[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-			       BL_TO_FORTRAN_ANYD(umac[2][mfi]),
+                                BL_TO_FORTRAN_ANYD(umac[2][mfi]),
 #endif
-        		       BL_TO_FORTRAN_ANYD(m_fc[0][mfi]),
-			       BL_TO_FORTRAN_ANYD(m_fc[1][mfi]),
+                                BL_TO_FORTRAN_ANYD(m_fc[0][mfi]),
+                                BL_TO_FORTRAN_ANYD(m_fc[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-			       BL_TO_FORTRAN_ANYD(m_fc[2][mfi]),
+                                BL_TO_FORTRAN_ANYD(m_fc[2][mfi]),
 #endif
-			       BL_TO_FORTRAN_ANYD(m[mfi]),
-        		       BL_TO_FORTRAN_ANYD(m_update[mfi]),
-			       dx, &increment);
-    }
+                                BL_TO_FORTRAN_ANYD(m[mfi]),
+                                BL_TO_FORTRAN_ANYD(m_update[mfi]),
+                                dx, &increment);
+     }
 
 }

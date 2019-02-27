@@ -65,7 +65,24 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 // in boundary.cpp
 void setBC(amrex::MultiFab & u_mac, amrex::MultiFab & v_mac, amrex::MultiFab & w_mac);
 
-void MultiFABPhysBC(amrex::MultiFab & pressure);
 
+/********************************************************************************
+ *                                                                              *
+ * Functions to fill physical boundary conditions                               *
+ *  -> dim_fill_ghost sets for which dimension to fill ghost cells              *
+ *                                                                              *
+ *******************************************************************************/
+
+void MultiFABPhysBC(amrex::MultiFab & pressure);
+void MultiFABPhysBC(amrex::MultiFab & pressure, int seq_fill_ghost);
+void MultiFABPhysBC(amrex::MultiFab & pressure, const amrex::IntVect & dim_fill_ghost);
+
+void MultiFABPhysBCDomainVel(amrex::MultiFab & vel);
+void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, int seq_fill_ghost);
+void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, const amrex::IntVect & dim_fill_ghost);
+
+void MultiFABPhysBCMacVel(amrex::MultiFab & vel);
+void MultiFABPhysBCMacVel(amrex::MultiFab & vel, int seq_fill_ghost);
+void MultiFABPhysBCMacVel(amrex::MultiFab & vel, const amrex::IntVect & dim_fill_ghost);
 
 #endif

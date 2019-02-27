@@ -8,6 +8,9 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
 
+// TODO: Move to src_common after debugging
+#include "hydro_functions.H"
+
 StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
 		       int n_rngs_in) {
 
@@ -56,12 +59,17 @@ void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
   }
   mflux_cc_weighted.FillBoundary(geom.periodicity());
 
+  MultiFABPhysBC(mflux_cc_weighted);
+
   for (int d=0; d<NUM_EDGE; ++d) {
     mflux_ed_weighted[d].setVal(0.0);
     for (int i=0; i<n_rngs; ++i) {
       MultiFab::Saxpy(mflux_ed_weighted[d], weights[i], mflux_ed[i][d], 0, 0, ncomp_ed, 0);
     }
     mflux_ed_weighted[d].FillBoundary(geom.periodicity());
+
+    // TODO: is this the correct BC?
+    MultiFABPhysBC(mflux_ed_weighted[d]);
   }
 }
 
@@ -203,7 +211,11 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
   }
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    mfluxdiv[d].FillBoundary(geom.periodicity());
+      mfluxdiv[d].FillBoundary(geom.periodicity());
+      //TODO: is this the right BC?
+      MultiFABPhysBC(mfluxdiv[d], d);
+      // MultiFABPhysBCDomainVel(mfluxdiv[d], d);
+      // MultiFABPhysBCMacVel(mfluxdiv[d], d);
   }
 }
 
@@ -216,28 +228,37 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   std::array< MultiFab, AMREX_SPACEDIM > Temp_fc;
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    m_old[d].define(     umac[d].boxArray(), umac[d].DistributionMap(),1,1);
-    rhotot_fc[d].define( umac[d].boxArray(), umac[d].DistributionMap(),1,1);
-    Temp_fc[d].define(   umac[d].boxArray(), umac[d].DistributionMap(),1,1);
+    m_old[d].define(     umac[d].boxArray(), umac[d].DistributionMap(), 1, 1);
+    rhotot_fc[d].define( umac[d].boxArray(), umac[d].DistributionMap(), 1, 1);
+    Temp_fc[d].define(   umac[d].boxArray(), umac[d].DistributionMap(), 1, 1);
   }
 
+  // NOTE: these only operate on valid cells
   AverageCCToFace(rhotot, 0, rhotot_fc, 0, 1);
-  AverageCCToFace(Temp,   0, Temp_fc,    0, 1);
+  AverageCCToFace(Temp,   0, Temp_fc,   0, 1);
+
+  for (int d=0; d<AMREX_SPACEDIM; d++) {
+      rhotot_fc[d].FillBoundary(geom.periodicity());
+      Temp_fc[d].FillBoundary(geom.periodicity());
+
+      MultiFABPhysBC(rhotot_fc[d], d);
+      MultiFABPhysBC(Temp_fc[d], d);
+  }
 
   // Convert umac to momenta, rho*umac
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(     m_old[d],umac[d],      0,0,1,1);
-    MultiFab::Multiply( m_old[d],rhotot_fc[d],0,0,1,1);
+    MultiFab::Copy(     m_old[d], umac[d],      0, 0, 1, 1);
+    MultiFab::Multiply( m_old[d], rhotot_fc[d], 0, 0, 1, 1);
   }
 
-  addMfluctuations_stag(m_old,rhotot_fc,Temp_fc,variance,geom);
+  addMfluctuations_stag(m_old, rhotot_fc, Temp_fc, variance,geom);
+
 
   // Convert momenta to umac, (1/rho)*momentum
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(   umac[d],m_old[d],    0,0,1,1);
-    MultiFab::Divide( umac[d],rhotot_fc[d],0,0,1,1);
+      MultiFab::Copy(   umac[d], m_old[d],     0, 0, 1, 1);
+      MultiFab::Divide( umac[d], rhotot_fc[d], 0, 0, 1, 1);
   }
-
 }
 
 void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
@@ -301,6 +322,12 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
       m_old[d].OverrideSync(geom.periodicity());
       m_old[d].FillBoundary(geom.periodicity());
     }
+  }
+
+  for (int i=0; i<AMREX_SPACEDIM; i++) {
+      m_old[i].FillBoundary(geom.periodicity());
+      MultiFABPhysBCDomainVel(m_old[i], i);
+      MultiFABPhysBCMacVel(m_old[i], i);
   }
 }
 

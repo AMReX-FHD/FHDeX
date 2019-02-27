@@ -47,7 +47,6 @@ void StagApplyOp(const MultiFab& betaCC, const MultiFab& gammaCC,
 #if (AMREX_SPACEDIM == 3)
                       BL_TO_FORTRAN_ANYD(alpha[2][mfi]),
 #endif
-
                       dx, &color);
 
     }
