@@ -539,7 +539,7 @@ void main_driver(const char* argv)
 #endif
 
 
-    //Particles! Build on geom & box array for collision cells
+    //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc);
 
     //Find coordinates of cell faces. May be used for interpolating fields to particle locations
