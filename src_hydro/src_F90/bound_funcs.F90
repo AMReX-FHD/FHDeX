@@ -464,12 +464,12 @@ contains
                    ! Normal face-centered indices are symmetric
                    vel(i, lo(2)-j, k, :) = -vel(i, lo(2)+j, k, :)
 
-                   if ( -vel(i, lo(2)+j, k, 1) /= -vel(i, lo(2)+j, k, 1) ) then
-                      write(*,*) lo, hi, ngc
-                      write(*,*) "domainvel lo", i, lo(2)+j, k, -vel(i, lo(2)+j, k, :)
+                   ! if ( -vel(i, lo(2)+j, k, 1) /= -vel(i, lo(2)+j, k, 1) ) then
+                   !    write(*,*) lo, hi, ngc
+                   !    write(*,*) "domainvel lo", i, lo(2)+j, k, -vel(i, lo(2)+j, k, :)
 
-                      stop 0
-                   end if
+                   !    stop 0
+                   ! end if
 
                 end do
              end do
@@ -496,12 +496,12 @@ contains
                    ! Normal face-centered indices are symmetric
                    vel(i, hi(2)+j, k, :) = -vel(i, hi(2)-j, k, :)
 
-                   if ( -vel(i, hi(2)-j, k, 1) /= -vel(i, hi(2)-j, k, 1) ) then
-                      write(*,*) lo, hi
-                      write(*,*) "domainvel hi", i, hi(2)-j, k, -vel(i, hi(2)-j, k, :)
+                   ! if ( -vel(i, hi(2)-j, k, 1) /= -vel(i, hi(2)-j, k, 1) ) then
+                   !    write(*,*) lo, hi
+                   !    write(*,*) "domainvel hi", i, hi(2)-j, k, -vel(i, hi(2)-j, k, :)
 
-                      stop 0
-                   end if
+                   !    stop 0
+                   ! end if
 
 
                 end do
@@ -727,12 +727,12 @@ contains
 
                    vel(i, lo(2)-j, k, :) = -vel(i, lo(2)-1+j, k, :)
 
-                   if ( -vel(i, lo(2)-1+j, k, 1) /= -vel(i, lo(2)-1+j, k, 1) ) then
-                      write(*,*) lo, hi
-                      write(*,*) "macvel", i, lo(2)-1+j, k, -vel(i, lo(2)-1+j, k, :)
+                   ! if ( -vel(i, lo(2)-1+j, k, 1) /= -vel(i, lo(2)-1+j, k, 1) ) then
+                   !    write(*,*) lo, hi
+                   !    write(*,*) "macvel", i, lo(2)-1+j, k, -vel(i, lo(2)-1+j, k, :)
 
-                      stop 0
-                   end if
+                   !    stop 0
+                   ! end if
 
                 end do
              end do
@@ -750,12 +750,12 @@ contains
 
                    vel(i, hi(2)+j, k, :) = -vel(i, hi(2)+1-j, k, :)
 
-                   if ( -vel(i, hi(2)+1-j, k, 1) /= -vel(i, hi(2)+1-j, k, 1) ) then
-                      write(*,*) lo, hi
-                      write(*,*) "macvel", i, hi(2)+1-j, k, -vel(i, hi(2)+1-j, k, :)
+                   ! if ( -vel(i, hi(2)+1-j, k, 1) /= -vel(i, hi(2)+1-j, k, 1) ) then
+                   !    write(*,*) lo, hi
+                   !    write(*,*) "macvel", i, hi(2)+1-j, k, -vel(i, hi(2)+1-j, k, :)
 
-                      stop 0
-                   end if
+                   !    stop 0
+                   ! end if
 
 
                 end do
