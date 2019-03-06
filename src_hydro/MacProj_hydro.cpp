@@ -42,6 +42,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab macphi(grids,dmap,1,1);
     MultiFab macrhs(grids,dmap,1,1);
     macrhs.setVal(0.0);
+    macphi.setVal(0.0);
 
     // compute the RHS for the solve, RHS = macrhs - div(umac)
     ComputeMACSolverRHS(solverrhs,macrhs,umac,geom);
@@ -59,6 +60,21 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // OR 1) average face-centered B coefficients to rho
     AverageCCToFace(rho, 0, face_bcoef, 0, 1);
+
+    // TODO: Cleanup after debug:
+    // for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+    //     // initialize phi_fc_mg = phi_fc as an initial guess
+
+    //     // fill periodic ghost cells
+    //     face_bcoef[d].FillBoundary(geom.periodicity());
+
+    //     // fill boundary cells
+    //     MultiFABPhysBC(face_bcoef[d], d, geom);
+    //     // TODO: are these the correct BC?
+    //     //MultiFABPhysBCDomainVel(face_bcoef[d], d, geom);
+    //     //MultiFABPhysBCMacVel(face_bcoef[d], d, geom);
+    // }
 
     // AND 2) invert B coefficients to 1/rho
     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
@@ -123,7 +139,10 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // fill periodic ghost cells
     for (int d = 0; d < AMREX_SPACEDIM; d++) {
       umac[d].FillBoundary(geom.periodicity());
-      // Do not apply BCs here (as the MLMG solver already satisfies BCs)
+
+      // Do apply BCs so that all ghost cells are filled
+      MultiFABPhysBCDomainVel(umac[d], d, geom);
+      MultiFABPhysBCMacVel(umac[d], d, geom);
     }
 }
 

@@ -249,10 +249,15 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
 
-    AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
-                 gmres_rhs_u[1].FillBoundary(geom.periodicity());,
-                 gmres_rhs_u[2].FillBoundary(geom.periodicity()););
+    // AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
+    //              gmres_rhs_u[1].FillBoundary(geom.periodicity());,
+    //              gmres_rhs_u[2].FillBoundary(geom.periodicity()););
 
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        gmres_rhs_u[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(gmres_rhs_u[i], i, geom);
+        MultiFABPhysBCMacVel(gmres_rhs_u[i], i, geom);
+    }
 
     // initial guess for new solution
     AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
