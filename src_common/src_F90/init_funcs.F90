@@ -103,7 +103,9 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
   double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad
 
   center = (realhi - reallo)/2d0;
-  partdom = ((realhi(1) - reallo(1))/4d0)**2;
+  partdom = ((realhi(1) - reallo(1))/2d0)**2;
+
+  print *, partdom, realhi(1), reallo(1)
 
   if (di .EQ. 0) then
      do k = lo(3), hi(3)
@@ -117,6 +119,8 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, reallo,
               pos = reallo + itVec
               relpos = pos - center
               rad = DOT_PRODUCT(relpos,relpos)
+
+              !print *, "rad: ", rad, "partdom: ", partdom
 
               if (rad .LT. partdom) then
                  vel(i,j,k) = -200*exp(-rad/(10*partdom*partdom))*relpos(2)

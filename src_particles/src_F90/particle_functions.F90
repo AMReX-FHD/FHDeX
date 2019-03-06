@@ -875,7 +875,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   double precision  :: cc(0:7)
   double precision  :: rr(0:7)
 
-  double precision :: int_weights(-3:3,-3:3,-3:3)
+  double precision :: u_weights(-3:3,-3:3,-3:3)
+  double precision :: v_weights(-3:3,-3:3,-3:3)
+  double precision :: w_weights(-3:3,-3:3,-3:3)
 
 
   !Zero source terms
@@ -978,8 +980,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               call get_particle_normal(normalrand(1))
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
-
-              print *, "RAND: ", normalrand(1)
 
               runerr = 1d0;
 

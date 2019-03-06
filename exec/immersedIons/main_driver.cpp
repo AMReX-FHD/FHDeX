@@ -50,12 +50,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -429,11 +436,11 @@ void main_driver(const char* argv)
                  umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
 
-    //Nodal velocity for interpolations
-    std::array< MultiFab, AMREX_SPACEDIM > umacNodal;
-    AMREX_D_TERM(umacNodal[0].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
-                 umacNodal[1].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
-                 umacNodal[2].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1););
+//    //Nodal velocity for interpolations
+//    std::array< MultiFab, AMREX_SPACEDIM > umacNodal;
+//    AMREX_D_TERM(umacNodal[0].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
+//                 umacNodal[1].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
+//                 umacNodal[2].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1););
 
     // temporary placeholder for potential gradients on cell faces
     std::array< MultiFab, AMREX_SPACEDIM > umacT;
@@ -495,8 +502,8 @@ void main_driver(const char* argv)
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
 
-	int dm = 0;
-	for ( MFIter mfi(beta); mfi.isValid(); ++mfi )
+    int dm = 0;
+    for ( MFIter mfi(beta); mfi.isValid(); ++mfi )
     {
         const Box& bx = mfi.validbox();
 
@@ -511,7 +518,7 @@ void main_driver(const char* argv)
                                     geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
     }
 
-    AMREX_D_TERM(umac[0].setVal(0);,
+    AMREX_D_TERM(umac[0].setVal(1);,
                  umac[1].setVal(0);,
                  umac[2].setVal(0););
 
@@ -551,7 +558,7 @@ void main_driver(const char* argv)
     //particles.InitializeFields(particleInstant, cellVols, activeParticle[0]);
 
     //setup initial DSMC collision parameters
-    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
+    //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
 
 
     // write out initial state
@@ -580,12 +587,12 @@ void main_driver(const char* argv)
 	    ///////////////////////////////////////////
 	    // Update structure factor
 	    ///////////////////////////////////////////
-	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	      for(int d=0; d<AMREX_SPACEDIM; d++) {
-	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	      }
-	      structFact.FortStructure(struct_in_cc,geom);
-         }
+//	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+//	      for(int d=0; d<AMREX_SPACEDIM; d++) {
+//	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+//	      }
+//	      structFact.FortStructure(struct_in_cc,geom);
+//         }
 	    ///////////////////////////////////////////
 
 
@@ -594,27 +601,28 @@ void main_driver(const char* argv)
 
 
         //Probably don't need to pass ProbLo(), check later.
-        
-        particles.MoveParticles(dt, dx, geom.ProbLo(), umac, umacNodal, RealFaceCoords, beta, betaNodal, rho, rhoNodal, source, sourceTemp, surfaceList, surfaceCount);
 
-        particles.Redistribute();
 
-        particles.ReBin();
+        //particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
-        particles.CollideParticles(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
+        //particles.Redistribute();
 
-        if(step == n_steps_skip)
-        {
-            particleMeans.setVal(0.0);
-            particleVars.setVal(0);
-            statsCount = 1;
-        }
+        //particles.ReBin();
+
+        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
+
+//        if(step == n_steps_skip)
+//        {
+//            particleMeans.setVal(0.0);
+//            particleVars.setVal(0);
+//            statsCount = 1;
+//        }
        
-        particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, activeParticle[0], dt,statsCount);
+        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, activeParticle[0], dt,statsCount);
 
         statsCount++;
 
-        if(step%5000 == 0)
+        if(step%1 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
