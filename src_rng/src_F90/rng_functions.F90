@@ -5,10 +5,10 @@ module rng_functions_module
   use amrex_constants_module
   use common_namelist_module
 
-  use bl_types
+  !use bl_types
   use bl_random_module
-  use parallel
-  use bl_error_module
+  !use parallel
+  !use bl_error_module
 
 
   implicit none

@@ -1,0 +1,2 @@
+CEXE_sources += bl_random_c.cpp
+CEXE_headers += bl_random_c.H
