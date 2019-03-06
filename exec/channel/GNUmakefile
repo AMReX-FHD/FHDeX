@@ -26,17 +26,17 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-ifneq ("$(wildcard $(AMREX_HOME)/Src/F_BaseLib)", "")
-  $(info Loading AMReX F_BaseLib)
-  include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
-  VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
-  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
-else
-  $(info Loading FBoxLib)
-  include $(FBOXLIB_HOME)/Src/BaseLib/FParallelMG_RNG.mak
-  VPATH_LOCATIONS   += $(FBOXLIB_HOME)/Src/BaseLib/
-  INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/Src/BaseLib/
-endif
+# ifneq ("$(wildcard $(AMREX_HOME)/Src/F_BaseLib)", "")
+#  $(info Loading AMReX F_BaseLib)
+#  include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
+#  VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
+#  INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
+# else
+#   $(info Loading FBoxLib)
+#   include $(FBOXLIB_HOME)/Src/BaseLib/FParallelMG_RNG.mak
+#   VPATH_LOCATIONS   += $(FBOXLIB_HOME)/Src/BaseLib/
+#   INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/Src/BaseLib/
+# endif
 
 include ../../src_hydro/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/src_F90
@@ -82,9 +82,9 @@ include ../../src_immersed-boundary/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_immersed-boundary/src_F90
 INCLUDE_LOCATIONS += ../../src_immersed-boundary/src_F90
 
-include ../../src_immersed-boundary/Make.package
-VPATH_LOCATIONS   += ../../src_immersed-boundary
-INCLUDE_LOCATIONS += ../../src_immersed-boundary
+# include ../../src_immersed-boundary/Make.package
+# VPATH_LOCATIONS   += ../../src_immersed-boundary
+# INCLUDE_LOCATIONS += ../../src_immersed-boundary
 
 
 include $(AMREX_HOME)/Src/Base/Make.package
