@@ -979,6 +979,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
 
+              print *, "RAND: ", normalrand(1)
+
               runerr = 1d0;
 
               deltap(1) = part%vel(1)

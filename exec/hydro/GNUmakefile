@@ -8,19 +8,12 @@ USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
 DIM       = 2
-DSMC      = TRUE
-
-USE_PARTICLES = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
-
-include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
-VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
 
 include ../../src_hydro/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/src_F90
