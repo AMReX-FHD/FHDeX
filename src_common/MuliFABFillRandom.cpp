@@ -33,7 +33,7 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
     mf.FillBoundary(geom.periodicity());
 
     //TODO: is this the correct BC?
-    MultiFABPhysBC(mf);
+    MultiFABPhysBC(mf, geom);
 
 //----------------------------------------
 }

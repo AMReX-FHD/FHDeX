@@ -36,7 +36,7 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 
      for (int d=0; d<AMREX_SPACEDIM; ++d) {
          m_fc[d].FillBoundary(geom.periodicity());
-         MultiFABPhysBC(m_fc[d]);
+         MultiFABPhysBC(m_fc[d], d, geom);
      }
 
      // Loop over boxes

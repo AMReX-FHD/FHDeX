@@ -4,6 +4,7 @@ ifneq ("$(wildcard ../../tools/Path.local)","")
   $(info Loading tools/Path.local...)
   include        ../../tools/Path.local
 endif
+
 # ... alternatively if you set AMREX_HOME as an environment variable, this line
 # will be ignored => this line acts as a default
 AMREX_HOME ?= ../../../amrex

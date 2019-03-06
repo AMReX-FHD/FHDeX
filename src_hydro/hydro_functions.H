@@ -56,16 +56,22 @@ void setBC(amrex::MultiFab & u_mac, amrex::MultiFab & v_mac, amrex::MultiFab & w
  *                                                                              *
  *******************************************************************************/
 
-void MultiFABPhysBC(amrex::MultiFab & pressure);
-void MultiFABPhysBC(amrex::MultiFab & pressure, int seq_fill_ghost);
-void MultiFABPhysBC(amrex::MultiFab & pressure, const amrex::IntVect & dim_fill_ghost);
+void MultiFABPhysBC(amrex::MultiFab & pressure, const amrex::Geometry & geom);
+void MultiFABPhysBC(amrex::MultiFab & pressure, int seq_fill_ghost,
+                    const amrex::Geometry & geom);
+void MultiFABPhysBC(amrex::MultiFab & pressure, const amrex::IntVect & dim_fill_ghost,
+                    const amrex::Geometry & geom);
 
-void MultiFABPhysBCDomainVel(amrex::MultiFab & vel);
-void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, int seq_fill_ghost);
-void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, const amrex::IntVect & dim_fill_ghost);
+void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, const amrex::Geometry & geom);
+void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, int seq_fill_ghost,
+                             const amrex::Geometry & geom);
+void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, const amrex::IntVect & dim_fill_ghost,
+                             const amrex::Geometry & geom);
 
-void MultiFABPhysBCMacVel(amrex::MultiFab & vel);
-void MultiFABPhysBCMacVel(amrex::MultiFab & vel, int seq_fill_ghost);
-void MultiFABPhysBCMacVel(amrex::MultiFab & vel, const amrex::IntVect & dim_fill_ghost);
+void MultiFABPhysBCMacVel(amrex::MultiFab & vel, const amrex::Geometry & geom);
+void MultiFABPhysBCMacVel(amrex::MultiFab & vel, int seq_fill_ghost,
+                          const amrex::Geometry & geom);
+void MultiFABPhysBCMacVel(amrex::MultiFab & vel, const amrex::IntVect & dim_fill_ghost,
+                          const amrex::Geometry & geom);
 
 #endif

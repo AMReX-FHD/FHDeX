@@ -166,8 +166,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i);
-        MultiFABPhysBCMacVel(umac[i], i);
+        MultiFABPhysBCDomainVel(umac[i], i, geom);
+        MultiFABPhysBCMacVel(umac[i], i, geom);
     }
 
 
@@ -214,8 +214,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], i);
-        MultiFABPhysBCMacVel(uMom[i], i);
+        MultiFABPhysBCDomainVel(uMom[i], i, geom);
+        MultiFABPhysBCMacVel(uMom[i], i, geom);
     }
 
     MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
@@ -225,8 +225,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         Lumac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(Lumac[i], i);
-        MultiFABPhysBCMacVel(Lumac[i], i);
+        MultiFABPhysBCDomainVel(Lumac[i], i, geom);
+        MultiFABPhysBCMacVel(Lumac[i], i, geom);
     }
 
     AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 1);,

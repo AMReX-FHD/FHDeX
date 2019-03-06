@@ -59,7 +59,7 @@ void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
   }
   mflux_cc_weighted.FillBoundary(geom.periodicity());
 
-  MultiFABPhysBC(mflux_cc_weighted);
+  MultiFABPhysBC(mflux_cc_weighted, geom);
 
   for (int d=0; d<NUM_EDGE; ++d) {
     mflux_ed_weighted[d].setVal(0.0);
@@ -69,7 +69,7 @@ void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
     mflux_ed_weighted[d].FillBoundary(geom.periodicity());
 
     // TODO: is this the correct BC?
-    MultiFABPhysBC(mflux_ed_weighted[d]);
+    MultiFABPhysBC(mflux_ed_weighted[d], d, geom);
   }
 }
 
@@ -213,7 +213,7 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       mfluxdiv[d].FillBoundary(geom.periodicity());
       //TODO: is this the right BC?
-      MultiFABPhysBC(mfluxdiv[d], d);
+      MultiFABPhysBC(mfluxdiv[d], d, geom);
       // MultiFABPhysBCDomainVel(mfluxdiv[d], d);
       // MultiFABPhysBCMacVel(mfluxdiv[d], d);
   }
@@ -241,8 +241,8 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
       rhotot_fc[d].FillBoundary(geom.periodicity());
       Temp_fc[d].FillBoundary(geom.periodicity());
 
-      MultiFABPhysBC(rhotot_fc[d], d);
-      MultiFABPhysBC(Temp_fc[d], d);
+      MultiFABPhysBC(rhotot_fc[d], d, geom);
+      MultiFABPhysBC(Temp_fc[d], d, geom);
   }
 
   // Convert umac to momenta, rho*umac
@@ -326,8 +326,8 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
   for (int i=0; i<AMREX_SPACEDIM; i++) {
       m_old[i].FillBoundary(geom.periodicity());
-      MultiFABPhysBCDomainVel(m_old[i], i);
-      MultiFABPhysBCMacVel(m_old[i], i);
+      MultiFABPhysBCDomainVel(m_old[i], i, geom);
+      MultiFABPhysBCMacVel(m_old[i], i, geom);
   }
 }
 

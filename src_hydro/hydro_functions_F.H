@@ -97,7 +97,7 @@ extern "C"
 			     const amrex_real* temperature_nodal, const int* tempndlo, const int* tempndhi);
 #endif
 #if (AMREX_SPACEDIM == 3)
-  const amrex_real* temperature_xy, const int* tempxylo, const int* tempxyhi,
+    const amrex_real* temperature_xy, const int* tempxylo, const int* tempxyhi,
     const amrex_real* temperature_xz, const int* tempxzlo, const int* tempxzhi,
     const amrex_real* temperature_yz, const int* tempyzlo, const int* tempyzhi);
 #endif
@@ -135,21 +135,25 @@ void mac_bcoef_face(const int* lev, const int* lo, const int* hi,
 
 ///////////////////////////
 // in bound_funcs.F90
-void set_bc(const int * lo, const int * hi,
-            amrex::Real * u_mac,
-            amrex::Real * v_mac,
-            amrex::Real * w_mac);
+
+// void set_bc(const int * lo, const int * hi,
+//             amrex::Real * u_mac,
+//             amrex::Real * v_mac,
+//             amrex::Real * w_mac);
 
 
-void fab_physbc(const int * lo, const int * hi,
-                amrex::Real * pressure, const int * p_lo, const int * p_hi, const int * p_ncomp,
-                int ngc, const int * dim_fill_ghost);
+void fab_physbc(const int * lo,     const int * hi,
+                const int * dom_lo, const int * dom_hi,
+                amrex::Real * pressure, const int * p_lo, const int * p_hi,
+                const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
-void fab_physbc_domainvel(const int * lo, const int * hi,
+void fab_physbc_domainvel(const int * lo,     const int * hi,
+                          const int * dom_lo, const int * dom_hi,
                           amrex::Real * vel, const int * v_lo, const int * v_hi,
                           const int * v_ncomp, int ngc, const int * dim_fill_ghost);
 
-void fab_physbc_macvel(const int * lo, const int * hi,
+void fab_physbc_macvel(const int * lo,     const int * hi,
+                       const int * dom_lo, const int * dom_hi,
                        amrex::Real * vel, const int * v_lo, const int * v_hi,
                        const int * v_ncopm, int ngc, const int * dim_fill_ghost);
 

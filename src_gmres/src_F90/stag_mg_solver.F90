@@ -25,7 +25,7 @@ contains
     integer :: i,j,k
 
 #if (AMREX_SPACEDIM == 2)
-    
+
     k = 0
     do j=lo_c(2),hi_c(2)
     do i=lo_c(1),hi_c(1)
@@ -218,7 +218,7 @@ contains
     integer :: i,j,k
 
 #if (AMREX_SPACEDIM == 2)
-    
+
     k = 0
     do j=lo_c(2),hi_c(2)+1
     do i=lo_c(1),hi_c(1)+1
@@ -604,7 +604,7 @@ contains
     integer         , intent(in   ) :: color
 
 #if (AMREX_SPACEDIM == 2)
-    
+
     ! local
     integer :: i,j,k
 
@@ -852,7 +852,7 @@ contains
     end if
 
 #elif (AMREX_SPACEDIM == 3)
-    
+
     ! local
     integer :: i,j,k
 
