@@ -39,8 +39,9 @@ void MultiFABPhysBC(amrex::MultiFab & pressure, const amrex::IntVect & dim_fill_
     for (amrex::MFIter mfi(pressure); mfi.isValid(); ++mfi) {
 
         const amrex::Box & bx = mfi.validbox();
+
         fab_physbc(BL_TO_FORTRAN_BOX(bx),
-                   pressure[mfi].dataPtr(),
+                   BL_TO_FORTRAN_FAB(pressure[mfi]), pressure.nGrow(),
                    dim_fill_ghost.getVect());
     }
 }
@@ -70,7 +71,7 @@ void MultiFABPhysBCDomainVel(amrex::MultiFab & vel, const amrex::IntVect & dim_f
 
         const amrex::Box & bx = mfi.validbox();
         fab_physbc_domainvel(BL_TO_FORTRAN_BOX(bx),
-                             vel[mfi].dataPtr(),
+                             BL_TO_FORTRAN_FAB(vel[mfi]), vel.nGrow(),
                              dim_fill_ghost.getVect());
     }
 }
@@ -100,7 +101,7 @@ void MultiFABPhysBCMacVel(amrex::MultiFab & vel, const amrex::IntVect & dim_fill
 
         const amrex::Box & bx = mfi.validbox();
         fab_physbc_macvel(BL_TO_FORTRAN_BOX(bx),
-                          vel[mfi].dataPtr(),
+                          BL_TO_FORTRAN_FAB(vel[mfi]), vel.nGrow(),
                           dim_fill_ghost.getVect());
     }
 }
