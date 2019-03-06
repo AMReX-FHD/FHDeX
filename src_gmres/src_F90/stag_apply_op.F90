@@ -608,6 +608,7 @@ contains
                    !         &     betayz(i,j-1,k), betayz(i,j+1,k), betayz(i,j,k-1), betayz(i,j,k+1)
                    !    write(*,*) "alphaz",        alphaz(i,j,k),   alphaz(i-1,j,k), alphaz(i+1,j,k), &
                    !         &     alphaz(i,j-1,k), alphaz(i,j+1,k), alphaz(i,j,k-1), alphaz(i,j,k+1)
+                   !    stop 0
                    ! end if
                 enddo
              enddo
@@ -697,6 +698,8 @@ contains
                    !         &     betayz(i,j-1,k), betayz(i,j+1,k), betayz(i,j,k-1), betayz(i,j,k+1)
                    !    write(*,*) "alphay",        alphay(i,j,k),   alphay(i-1,j,k), alphay(i+1,j,k), &
                    !         &     alphay(i,j-1,k), alphay(i,j+1,k), alphay(i,j,k-1), alphay(i,j,k+1)
+
+                   !    stop 0
                    ! end if
                 enddo
              enddo
@@ -751,6 +754,8 @@ contains
                    !         &     betayz(i,j-1,k), betayz(i,j+1,k), betayz(i,j,k-1), betayz(i,j,k+1)
                    !    write(*,*) "alphaz",        alphaz(i,j,k),   alphaz(i-1,j,k), alphaz(i+1,j,k), &
                    !         &     alphaz(i,j-1,k), alphaz(i,j+1,k), alphaz(i,j,k-1), alphaz(i,j,k+1)
+
+                   !    stop 0
                    ! end if
                 enddo
              enddo

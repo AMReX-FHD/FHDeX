@@ -53,11 +53,11 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     // fill ghost cells for x_u and x_p
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         x_u[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(x_u[i], i);
-        MultiFABPhysBCMacVel(x_u[i], i);
+        MultiFABPhysBCDomainVel(x_u[i], i, geom);
+        MultiFABPhysBCMacVel(x_u[i], i, geom);
     }
     x_p.FillBoundary(geom.periodicity());
-    MultiFABPhysBC(x_p);
+    MultiFABPhysBC(x_p, geom);
 
     std::array< MultiFab, AMREX_SPACEDIM > gx_p;
     AMREX_D_TERM(gx_p[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,

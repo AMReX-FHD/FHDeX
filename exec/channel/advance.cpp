@@ -166,8 +166,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i);
-        MultiFABPhysBCMacVel(umac[i], i);
+        MultiFABPhysBCDomainVel(umac[i], i, geom);
+        MultiFABPhysBCMacVel(umac[i], i, geom);
     }
 
 
@@ -214,8 +214,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], i);
-        MultiFABPhysBCMacVel(uMom[i], i);
+        MultiFABPhysBCDomainVel(uMom[i], i, geom);
+        MultiFABPhysBCMacVel(uMom[i], i, geom);
     }
 
     MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
@@ -225,8 +225,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         Lumac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(Lumac[i], i);
-        MultiFABPhysBCMacVel(Lumac[i], i);
+        MultiFABPhysBCDomainVel(Lumac[i], i, geom);
+        MultiFABPhysBCMacVel(Lumac[i], i, geom);
     }
 
     AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 1);,
@@ -249,10 +249,15 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
 
-    AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
-                 gmres_rhs_u[1].FillBoundary(geom.periodicity());,
-                 gmres_rhs_u[2].FillBoundary(geom.periodicity()););
+    // AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
+    //              gmres_rhs_u[1].FillBoundary(geom.periodicity());,
+    //              gmres_rhs_u[2].FillBoundary(geom.periodicity()););
 
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        gmres_rhs_u[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(gmres_rhs_u[i], i, geom);
+        MultiFABPhysBCMacVel(gmres_rhs_u[i], i, geom);
+    }
 
     // initial guess for new solution
     AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
