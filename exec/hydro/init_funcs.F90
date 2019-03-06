@@ -30,7 +30,7 @@ subroutine init_vel(lo, hi, vel, vello, velhi, dx, prob_lo, prob_hi, di, &
   !! IC parameters
   L_hlf = (realhi(1) - reallo(1))/2d0
   ! k1 & k2 determine steepness of velocity profile:
-  k1 = 1d-2*L_hlf
+  k1 = 1d-1*L_hlf
   ! k1 = 1d-6*L_hlf
   k2 = k1
   k1_inv = 1/k1
