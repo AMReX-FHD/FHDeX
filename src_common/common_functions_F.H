@@ -121,6 +121,15 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
+// in debug.F90
+
+    void print_mf(const int* lo, const int* hi,
+                  const amrex::Real* mf,
+                  const int* m_lo, const int* m_hi, const int* nc_m);
+    
+///////////////////////////
+    
+///////////////////////////
 // in time_step.F90
 
     void euler_step_stag(const int* lo, const int* hi,

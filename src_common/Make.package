@@ -12,6 +12,7 @@ CEXE_headers   += species.H
 
 CEXE_sources += ConvertStag.cpp
 CEXE_sources += ComputeDivAndGrad.cpp
+CEXE_sources += Debug.cpp
 
 CEXE_sources += FindCoords.cpp
 
