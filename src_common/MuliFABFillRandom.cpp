@@ -3,8 +3,6 @@
 #include "rng_functions_F.H"
 #include "common_namespace.H"
 
-//TODO: Move to src_common after debugging
-#include "hydro_functions.H"
 
 using namespace common;
 using namespace amrex;

@@ -6,8 +6,6 @@
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 
-// TODO: move to common_functions when done
-#include "hydro_functions.H"
 
 using namespace common;
 using namespace gmres;

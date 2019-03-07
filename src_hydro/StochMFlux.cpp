@@ -8,8 +8,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
 
-// TODO: Move to src_common after debugging
-#include "hydro_functions.H"
 
 StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
 		       int n_rngs_in) {

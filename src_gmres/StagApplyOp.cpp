@@ -11,7 +11,8 @@
 
 using namespace common;
 
-//Takes cell centred and nodal viscosity multifabs, and face centred velcoity multifab, and outputs to
+//Takes cell centred and nodal viscosity multifabs, and face centred velocity
+//multifab, and outputs to face-centered velocity multifab.
 
 void StagApplyOp(const MultiFab& beta_cc, const MultiFab& gamma_cc,
                  const std::array<MultiFab, NUM_EDGE>& beta_ed,
@@ -27,7 +28,7 @@ void StagApplyOp(const MultiFab& beta_cc, const MultiFab& gamma_cc,
 
     const BoxArray& ba = beta_cc.boxArray();
     const DistributionMapping& dmap = beta_cc.DistributionMap();
-  
+
     // alpha_fc_temp arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_temp;
     AMREX_D_TERM(alpha_fc_temp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
@@ -40,7 +41,7 @@ void StagApplyOp(const MultiFab& beta_cc, const MultiFab& gamma_cc,
 		 alpha_fc_temp[1].mult(theta_alpha,1);,
 		 alpha_fc_temp[2].mult(theta_alpha,1););
 
-    
+
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(beta_cc); mfi.isValid(); ++mfi) {
 

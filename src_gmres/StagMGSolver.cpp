@@ -7,8 +7,6 @@
 
 #include <AMReX_VisMF.H>
 
-// TODO: move this to common_functions after debugging
-#include "hydro_functions.H"
 
 using namespace amrex;
 using namespace gmres;

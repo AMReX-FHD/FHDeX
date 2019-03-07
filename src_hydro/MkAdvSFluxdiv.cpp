@@ -27,13 +27,6 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 
      AverageCCToFace(m, m_comp, m_fc, 0, 1);
 
-     // AMREX_D_TERM(m_fc[0].FillBoundary(geom.periodicity());,
-     //    	  m_fc[1].FillBoundary(geom.periodicity());,
-     //    	  m_fc[2].FillBoundary(geom.periodicity()););
-
-     // //TODO: this will break in 2D
-     // setBC(m_fc[0], m_fc[1], m_fc[2]);
-
      for (int d=0; d<AMREX_SPACEDIM; ++d) {
          m_fc[d].FillBoundary(geom.periodicity());
          MultiFABPhysBC(m_fc[d], d, geom);

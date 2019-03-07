@@ -57,4 +57,28 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 
 void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom);
 
+
+///////////////////////////
+// in MultiFABPhysBC.cpp
+
+/********************************************************************************
+ *                                                                              *
+ * Functions to fill physical boundary conditions                               *
+ *  -> dim_fill_ghost sets for which dimension to fill ghost cells              *
+ *                                                                              *
+ *******************************************************************************/
+
+void MultiFABPhysBC(MultiFab & pressure, const Geometry & geom);
+void MultiFABPhysBC(MultiFab & pressure, int seq_fill_ghost, const Geometry & geom);
+void MultiFABPhysBC(MultiFab & pressure, const IntVect & dim_fill_ghost, const Geometry & geom);
+
+void MultiFABPhysBCDomainVel(MultiFab & vel, const Geometry & geom);
+void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom);
+void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom);
+
+void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom);
+void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom);
+void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom);
+
+
 #endif
