@@ -35,22 +35,29 @@ using namespace gmres;
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
 //! nodal_flag_[x,y,z]). Each MultiFab has 1 component, and 1 ghost cell
-inline void define(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
-                   const BoxArray & ba, const DistributionMapping & dm,
-                   const Array< IntVect, AMREX_SPACEDIM > & nd_flags) {
-    AMREX_D_TERM(mf_in[0].define(convert(ba, nd_flags[0]), dm, 1, 1);,
-                 mf_in[1].define(convert(ba, nd_flags[1]), dm, 1, 1);,
-                 mf_in[2].define(convert(ba, nd_flags[2]), dm, 1, 1););
+inline void defineFC(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
+                     const BoxArray & ba, const DistributionMapping & dm,
+                     int nghost) {
+
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+        mf_in[i].define(convert(ba, nodal_flag_dir[i]), dm, 1, nghost);
 }
 
+inline void defineEdge(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
+                     const BoxArray & ba, const DistributionMapping & dm,
+                     int nghost) {
+
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+        mf_in[i].define(convert(ba, nodal_flag_edge[i]), dm, 1, nghost);
+}
 
 
 //! Sets the value for each component of staggered MultiFab
 inline void setVal(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
                    Real set_val) {
-    AMREX_D_TERM(mf_in[0].setVal(set_val);,
-                 mf_in[1].setVal(set_val);,
-                 mf_in[2].setVal(set_val););
+
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+        mf_in[i].setVal(set_val);
 }
 
 
@@ -167,18 +174,6 @@ void main_driver(const char * argv) {
      ***************************************************************************/
 
     //___________________________________________________________________________
-    // Set face and edge nodal_flags
-
-    Array< IntVect, AMREX_SPACEDIM > stag_nd_flags {
-        AMREX_D_DECL(nodal_flag_x, nodal_flag_y, nodal_flag_z)
-    };
-
-    Array< IntVect, AMREX_SPACEDIM > edge_nd_flags {
-        AMREX_D_DECL(nodal_flag_xy, nodal_flag_xz, nodal_flag_yz)
-    };
-
-
-    //___________________________________________________________________________
     // Set rho, alpha, beta, gamma:
 
     // rho is cell-centered
@@ -188,7 +183,7 @@ void main_driver(const char * argv) {
     // alpha_fc is face-centered
     Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    define(alpha_fc, ba, dmap, stag_nd_flags);
+    defineFC(alpha_fc, ba, dmap, 1);
     setVal(alpha_fc, dtinv);
 
     // beta is cell-centered
@@ -201,7 +196,7 @@ void main_driver(const char * argv) {
     beta_ed[0].define(convert(ba, nodal_flag), dmap, 1, 1);
     beta_ed[0].setVal(visc_coef);
 #elif (AMREX_SPACEDIM == 3)
-    define(beta_ed, ba, dmap, edge_nd_flags);
+    defineEdge(beta_ed, ba, dmap, 1);
     setVal(beta_ed, visc_coef);
 #endif
 
@@ -235,8 +230,8 @@ void main_driver(const char * argv) {
     eta_ed[0].setVal(eta_const);
     temp_ed[0].setVal(temp_const);
 #elif (AMREX_SPACEDIM == 3)
-    define(eta_ed, ba, dmap, edge_nd_flags);
-    define(temp_ed, ba, dmap, edge_nd_flags);
+    defineEdge(eta_ed, ba, dmap, 1);
+    defineEdge(temp_ed, ba, dmap, 1);
 
     setVal(eta_ed, eta_const);
     setVal(temp_ed, temp_const);
@@ -252,12 +247,12 @@ void main_driver(const char * argv) {
 
     // mfluxdiv predictor multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
-    define(mfluxdiv_predict, ba, dmap, stag_nd_flags);
+    defineFC(mfluxdiv_predict, ba, dmap, 1);
     setVal(mfluxdiv_predict, 0.);
 
     // mfluxdiv corrector multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
-    define(mfluxdiv_correct, ba, dmap, stag_nd_flags);
+    defineFC(mfluxdiv_correct, ba, dmap, 1);
     setVal(mfluxdiv_correct, 0.);
 
     Vector< amrex::Real > weights;
@@ -278,10 +273,10 @@ void main_driver(const char * argv) {
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    define(umac, ba, dmap, stag_nd_flags);
+    defineFC(umac, ba, dmap, 1);
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    define(umacNew, ba, dmap, stag_nd_flags);
+    defineFC(umacNew, ba, dmap, 1);
 
 
     //___________________________________________________________________________
