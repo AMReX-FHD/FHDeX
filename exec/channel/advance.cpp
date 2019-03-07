@@ -49,7 +49,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
     // RHS pressure in GMRES
-    MultiFab gmres_rhs_p(ba, dmap, 1, 0);
+    MultiFab gmres_rhs_p(ba, dmap, 1, 1);
     gmres_rhs_p.setVal(0.);
 
     // RHS velocities in GMRES
@@ -253,10 +253,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], advFluxdiv[0], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
-
-    // AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
-    //              gmres_rhs_u[1].FillBoundary(geom.periodicity());,
-    //              gmres_rhs_u[2].FillBoundary(geom.periodicity()););
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         gmres_rhs_u[i].FillBoundary(geom.periodicity());
