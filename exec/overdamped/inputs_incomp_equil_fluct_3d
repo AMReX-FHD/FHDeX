@@ -30,7 +30,7 @@
   ! negative = assume spatially-varying coefficients
   ! visc_coef = 1.
   visc_coef = 1.
-  visc_type = 1
+  visc_type = 2
 
   ! Stochastic parameters
   variance_coef_mom = 1.
