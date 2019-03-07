@@ -121,6 +121,105 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 
 }
 
+
+void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
+{
+    
+    const int lev = 0;
+    const Geometry& geom = Geom(lev);
+    const Real* dx = geom.CellSize();
+    const Real* plo = geom.ProbLo();
+
+    double totalEnergy = 0;
+
+    double cosTheta, sinTheta, cosPhi, sinPhi;    
+
+    //double initTemp = 0;
+    //double pc = 0;
+
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        const Box& tile_box  = mfi.tilebox();
+        const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+
+        //Assuming tile=box for now, i.e. no tiling.
+        IntVect smallEnd = tile_box.smallEnd();
+        IntVect bigEnd = tile_box.bigEnd();       
+
+
+        //Print() << "Big end: " << bigEnd << " small end: " << smallEnd << "\n";
+
+        //for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        //{
+            for (int i_part=0; i_part<particleInfo.ppb;i_part++) {
+                
+                ParticleType p;
+                p.id()  = ParticleType::NextID();
+                p.cpu() = ParallelDescriptor::MyProc();
+                p.idata(IntData::sorted) = 0;
+                
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+#endif
+
+                p.rdata(RealData::ox) = p.pos(0);
+                p.rdata(RealData::oy) = p.pos(1);
+#if (BL_SPACEDIM == 3)
+                p.rdata(RealData::oz) = p.pos(2);
+#endif
+
+                //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+                //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+
+                p.rdata(RealData::vx) = 0;
+                p.rdata(RealData::vy) = 0;
+                p.rdata(RealData::vz) = 0;
+
+                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
+
+                //initTemp 
+
+                p.rdata(RealData::mass) = particleInfo.m; //mass
+                p.rdata(RealData::R) = particleInfo.R; //R
+                p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
+                p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
+                p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
+                p.rdata(RealData::angularVel1) = 0; //angular velocity 1
+                p.rdata(RealData::angularVel2) = 0; //angular velocity 2
+                p.rdata(RealData::angularVel3) = 0; //angular velocity 2
+
+                get_angles(&cosTheta, &sinTheta, &cosPhi, &sinPhi);
+
+                //p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
+                //p.rdata(RealData::diry) = sinTheta*sinPhi; 
+                //p.rdata(RealData::dirz) = cosTheta;
+
+                p.rdata(RealData::dirx) = 1; //Unit vector giving orientation
+                p.rdata(RealData::diry) = 0; 
+                p.rdata(RealData::dirz) = 0;
+
+                //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
+                p.rdata(RealData::propulsion) = 0;
+
+                //AMREX_ASSERT(this->Index(p, lev) == iv);
+                
+                particle_tile.push_back(p);
+            }
+        //}
+    }
+
+    Print() << "Initial energy: " << totalEnergy << "\n";
+
+}
+
+
+
 #ifndef DSMC
 void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                            std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
