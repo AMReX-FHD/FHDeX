@@ -129,15 +129,14 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
     beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
 #elif (AMREX_SPACEDIM == 3)
     beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
     beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
     beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
-    beta_ed[1].setVal(visc_coef);
-    beta_ed[2].setVal(visc_coef);
 #endif
+    for (int d=0; d<NUM_EDGE; ++d) {
+        beta_ed[d].setVal(visc_coef);
+    }
 
     // cell-centered gamma
     MultiFab gamma(ba, dmap, 1, 1);
@@ -148,6 +147,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Define & initalize eta & temperature multifabs
     ///////////////////////////////////////////
+    
     // eta & temperature
     const Real eta_const = visc_coef;
     const Real temp_const = T_init[0];      // [units: K]
@@ -156,48 +156,32 @@ void main_driver(const char* argv)
     MultiFab  eta_cc;
     MultiFab temp_cc;
     // eta & temperature nodal
-    std::array< MultiFab, NUM_EDGE >   eta_ed;
-    std::array< MultiFab, NUM_EDGE >  temp_ed;
-    // eta cell-centered
+    std::array< MultiFab, NUM_EDGE >  eta_ed;
+    std::array< MultiFab, NUM_EDGE > temp_ed;
+    // eta and temperature; cell-centered
     eta_cc.define(ba, dmap, 1, 1);
-    // temperature cell-centered
     temp_cc.define(ba, dmap, 1, 1);
+    // eta and temperature; nodal
 #if (AMREX_SPACEDIM == 2)
-    // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-    // temperature nodal
     temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
-    // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
     eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
     eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-    // temperature nodal
     temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
     temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
     temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
 
     // Initalize eta & temperature multifabs
-    // eta cell-centered
     eta_cc.setVal(eta_const);
-    // temperature cell-centered
     temp_cc.setVal(temp_const);
-#if (AMREX_SPACEDIM == 2)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    // temperature nodal
-    temp_ed[0].setVal(temp_const);
-#elif (AMREX_SPACEDIM == 3)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    eta_ed[1].setVal(eta_const);
-    eta_ed[2].setVal(eta_const);
-    // temperature nodal
-    temp_ed[0].setVal(temp_const);
-    temp_ed[1].setVal(temp_const);
-    temp_ed[2].setVal(temp_const);
-#endif
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].setVal(eta_const);
+        temp_ed[d].setVal(temp_const);
+    }
+    
     ///////////////////////////////////////////
 
     ///////////////////////////////////////////
@@ -252,16 +236,11 @@ void main_driver(const char* argv)
     amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
 
     // Select which variable pairs to include in structure factor:
-    s_pairA[0] = 0;
-    s_pairB[0] = 0;
-    //
-    s_pairA[1] = 1;
-    s_pairB[1] = 1;
-    //
-#if (AMREX_SPACEDIM == 3)
-    s_pairA[2] = 2;
-    s_pairB[2] = 2;
-#endif
+    // u-u, v-v, and w-w (for 3D)
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        s_pairA[d] = d;
+        s_pairB[d] = d;
+    }
 
     StructFact structFact(ba,dmap,var_names);
 
