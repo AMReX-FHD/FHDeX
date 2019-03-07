@@ -115,12 +115,10 @@ void main_driver(const char* argv)
 
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
-                 alpha_fc[1].setVal(dtinv);,
-                 alpha_fc[2].setVal(dtinv););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        alpha_fc[d].setVal(dtinv);
+    }
 
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
@@ -210,14 +208,9 @@ void main_driver(const char* argv)
 
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
     // Define mfluxdiv predictor multifabs
-    stochMfluxdiv[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    stochMfluxdiv[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-    stochMfluxdiv[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-      stochMfluxdiv[d].setVal(0.0);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        stochMfluxdiv[d].setVal(0.0);
     }
 
     Vector< amrex::Real > weights;
@@ -234,9 +227,9 @@ void main_driver(const char* argv)
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+    }
 
     ///////////////////////////////////////////
     // structure factor:
@@ -296,10 +289,10 @@ void main_driver(const char* argv)
 
     }
 
-  // fill periodic ghost cells
-    AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
-                 umac[1].FillBoundary(geom.periodicity());,
-                 umac[2].FillBoundary(geom.periodicity()););
+    // fill periodic ghost cells
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac[d].FillBoundary(geom.periodicity());
+    }
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {

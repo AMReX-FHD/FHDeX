@@ -44,21 +44,19 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // rhs_u GMRES solve
   std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
-  AMREX_D_TERM(gmres_rhs_u[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-	       gmres_rhs_u[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-	       gmres_rhs_u[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
-  AMREX_D_TERM(gmres_rhs_u[0].setVal(0.);,
-	       gmres_rhs_u[1].setVal(0.);,
-	       gmres_rhs_u[2].setVal(0.););
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      gmres_rhs_u[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+      gmres_rhs_u[d].setVal(0.);
+  }
 
   //////////////////////////////////////////////////
   // ADVANCE velocity field
   //////////////////////////////////////////////////
 
   // add stochastic forcing to gmres_rhs_u
-  AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], stochMfluxdiv[0], 0, 0, 1, 0);,
-	       MultiFab::Add(gmres_rhs_u[1], stochMfluxdiv[1], 0, 0, 1, 0);,
-	       MultiFab::Add(gmres_rhs_u[2], stochMfluxdiv[2], 0, 0, 1, 0););
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      MultiFab::Add(gmres_rhs_u[d], stochMfluxdiv[d], 0, 0, 1, 0);
+  }
 
   // HERE is where you would add the particle forcing to gmres_rhs_u
   //
@@ -69,10 +67,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
 
   // fill periodic ghost cells
-  AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
-	       umac[1].FillBoundary(geom.periodicity());,
-	       umac[2].FillBoundary(geom.periodicity()););
-
-  //////////////////////////////////////////////////
-
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      umac[d].FillBoundary(geom.periodicity());
+  }
 }
