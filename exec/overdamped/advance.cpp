@@ -32,8 +32,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   BL_PROFILE_VAR("advance()",advance);
 
-  const Real* dx = geom.CellSize();
-  const Real dtinv = 1.0/dt;
   Real theta_alpha = 0.;
   Real norm_pre_rhs;
 
@@ -66,12 +64,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   //
   //
   //
-  
-  AMREX_D_TERM(umac[0].setVal(0.);,
-	       umac[1].setVal(0.);,
-	       umac[2].setVal(0.););
-  pres.setVal(0.);
-
   
   // call GMRES
   GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
