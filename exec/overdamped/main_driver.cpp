@@ -114,7 +114,6 @@ void main_driver(const char* argv)
     rho.setVal(1.);
 
     // alpha_fc arrays
-    Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
@@ -239,11 +238,6 @@ void main_driver(const char* argv)
                  umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
@@ -283,6 +277,7 @@ void main_driver(const char* argv)
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
 
+    // initialize velocity
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
@@ -301,15 +296,15 @@ void main_driver(const char* argv)
 
     }
 
+  // fill periodic ghost cells
+    AMREX_D_TERM(umac[0].FillBoundary(geom.periodicity());,
+                 umac[1].FillBoundary(geom.periodicity());,
+                 umac[2].FillBoundary(geom.periodicity()););
+
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-      sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
     }
-
-    // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
     int step = 0;
     Real time = 0.;
@@ -319,33 +314,30 @@ void main_driver(const char* argv)
 	WritePlotFile(step,time,geom,umac,pres);
     }
     
-    //Time stepping loop
+    // Time stepping loop
     for(step=1;step<=max_step;++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
 	if(variance_coef_mom != 0.0) {
 
-	  // Fill stochastic terms
+	  // compute the random numbers needed for the stochastic momentum forcing
 	  sMflux.fillMStochastic();
 
-	  // compute stochastic force terms
+	  // compute stochastic momentum force
 	  sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	}
 
 	// Advance umac
-	advance(umac,umacNew,pres,stochMfluxdiv,alpha_fc,beta,gamma,beta_ed,geom,dt);
-
-	//////////////////////////////////////////////////
+	advance(umac,pres,stochMfluxdiv,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 	///////////////////////////////////////////
 	// Update structure factor
-	///////////////////////////////////////////
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  for(int d=0; d<AMREX_SPACEDIM; d++) {
-	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	  }
-	  structFact.FortStructure(struct_in_cc,geom);
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+            }
+            structFact.FortStructure(struct_in_cc,geom);
         }
 	///////////////////////////////////////////
 
@@ -363,23 +355,25 @@ void main_driver(const char* argv)
     }
 
     ///////////////////////////////////////////
+    // Write structure factor to plotfile
     if (struct_fact_int > 0) {
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      }
-      else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
+        Real dVol = dx[0]*dx[1];
+        int tot_n_cells = n_cells[0]*n_cells[1];
+        if (AMREX_SPACEDIM == 2) {
+            dVol *= cell_depth;
+        }
+        else if (AMREX_SPACEDIM == 3) {
+            dVol *= dx[2];
+            tot_n_cells = n_cells[2]*tot_n_cells;
+        }
 
-      // let rho = 1
-      Real SFscale = dVol/(k_B*temp_const);
+        // let rho = 1
+        Real SFscale = dVol/(k_B*temp_const);
 
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
+        structFact.Finalize(SFscale);
+        structFact.WritePlotFile(step,time,geom);
     }
+    ///////////////////////////////////////////
 
     // Call the timer again and compute the maximum difference between the start time
     // and stop time over all processors

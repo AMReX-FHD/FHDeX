@@ -7,12 +7,12 @@
 ///////////////////////////
 // in advance.cpp
 void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
-	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
 	     amrex::MultiFab& pres,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
-	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	     const amrex::MultiFab& beta, const amrex::MultiFab& gamma,
-	     const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
+	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
+	     amrex::MultiFab& beta,
+             amrex::MultiFab& gamma,
+	     std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
 	     const amrex::Geometry geom, const amrex::Real& dt);
 
 ///////////////////////////

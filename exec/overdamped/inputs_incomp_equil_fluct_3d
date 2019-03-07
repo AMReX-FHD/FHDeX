@@ -13,14 +13,14 @@
   ! number of cells in domain
   n_cells(1:3) = 32 32 32
   ! max number of cells in a box
-  max_grid_size(1:3) = 32 32 32
+  max_grid_size(1:3) = 16 16 16
 
   ! Time-step control
   fixed_dt = 10
 
   ! Controls for number of steps between actions
-  max_step = 150000
-  plot_int = 15000
+  max_step = 150
+  plot_int = 15
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -39,7 +39,7 @@
   k_B = 1.
   T_init(1) = 1.
 
-  struct_fact_int = 1
+  struct_fact_int = 0
   n_steps_skip = 30000
 
   ! Boundary conditions
