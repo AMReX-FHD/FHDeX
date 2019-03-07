@@ -2,7 +2,7 @@
 #define _common_params_F_H_
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
@@ -19,9 +19,9 @@ extern "C"
                                      int* max_grid_size, amrex::Real* cell_depth,
                                      int* ngc, int* nvars, int* nprimvars, int* membrane_cell, int* cross_cell, amrex::Real* transmission,
                                      amrex::Real* fixed_dt,
-                                     amrex::Real* cfl, int* max_step, int* plot_int, 
-                                     const char* plot_base_name, 
-                                     const int plot_base_name_len, 
+                                     amrex::Real* cfl, int* max_step, int* plot_int,
+                                     const char* plot_base_name,
+                                     const int plot_base_name_len,
                                      int* chk_int,
                                      const char* chk_base_name, const int chk_base_name_len,
                                      int* prob_type, int* restart, int* print_int,
@@ -33,10 +33,10 @@ extern "C"
                                      int* algorithm_type,
                                      int* advection_type,
                                      int* barodiffusion_type, int* use_bl_rng, int* seed,
-                                     int* seed_momentum, int* seed_diffusion, 
-                                     int* seed_reaction, 
+                                     int* seed_momentum, int* seed_diffusion,
+                                     int* seed_reaction,
                                      int* seed_init_mass, int* seed_init_momentum,
-                                     amrex::Real* visc_coef, int* visc_type, 
+                                     amrex::Real* visc_coef, int* visc_type,
                                      int* filtering_width, int* stoch_stress_form,
                                      amrex::Real* u_init, amrex::Real* perturb_width,
                                      amrex::Real* smoothing_width,
@@ -55,30 +55,30 @@ extern "C"
 // in convert_stag.F90
 
     void average_face_to_cc(const int* lo, const int* hi,
-                            const amrex::Real* face, 
+                            const amrex::Real* face,
                             const int* f_lo, const int* f_hi, const int* nc_f,
-                            amrex::Real* cc, 
+                            amrex::Real* cc,
                             const int* c_lo, const int* c_hi, const int* nc_c,
                             const int* face_comp, const int* cc_comp, const int* ncomp,
                             const int* av_dim);
 
     void average_cc_to_face(const int* lo, const int* hi,
-                            const amrex::Real* cc, 
+                            const amrex::Real* cc,
                             const int* c_lo, const int* c_hi, const int* nc_c,
-                            amrex::Real* facex, 
+                            amrex::Real* facex,
                             const int* x_lo, const int* x_hi, const int* nc_x,
-                            amrex::Real* facey, 
+                            amrex::Real* facey,
                             const int* y_lo, const int* y_hi, const int* nc_y,
 #if (AMREX_SPACEDIM == 3)
-                            amrex::Real* facez, 
+                            amrex::Real* facez,
                             const int* z_lo, const int* z_hi, const int* nc_z,
 #endif
                             const int* cc_comp, const int* face_comp, const int* ncomp);
 
     void shift_face_to_cc(const int* lo, const int* hi,
-                            const amrex::Real* face, 
+                            const amrex::Real* face,
                             const int* f_lo, const int* f_hi, const int* nc_f,
-                            amrex::Real* cc, 
+                            amrex::Real* cc,
                             const int* c_lo, const int* c_hi, const int* nc_c,
                             const int* face_comp, const int* cc_comp, const int* ncomp,
                             const int* av_dim);
@@ -126,9 +126,9 @@ extern "C"
     void print_mf(const int* lo, const int* hi,
                   const amrex::Real* mf,
                   const int* m_lo, const int* m_hi, const int* nc_m);
-    
+
 ///////////////////////////
-    
+
 ///////////////////////////
 // in time_step.F90
 
@@ -164,12 +164,12 @@ extern "C"
 
     void multifab_fill_random(const int* lo, const int* hi,
 			      const amrex_real* mf,
-			      const int* mflo, const int* mfhi, 
+			      const int* mflo, const int* mfhi,
 			      const int* ncomp, const int* comp);
 
     void multifab_fill_random_hack(const int* lo, const int* hi,
 			      const amrex_real* mf,
-			      const int* mflo, const int* mfhi, 
+			      const int* mflo, const int* mfhi,
 			      const int* ncomp, const int* comp, const double* mytop, const double* mybottom);
 
 ///////////////////////////
@@ -179,10 +179,3 @@ extern "C"
 #endif
 
 #endif
-
-
-
-
-
-
-

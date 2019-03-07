@@ -7,7 +7,7 @@ module debug_module
 contains
 
   subroutine print_mf(lo, hi, mf, m_lo, m_hi, nc_m) bind (C,name="print_mf")
-    
+
     integer         , intent (in   ) :: lo(3), hi(3)
     integer         , intent (in   ) :: m_lo(3), m_hi(3), nc_m
     double precision, intent (inout) :: mf(m_lo(1):m_hi(1),m_lo(2):m_hi(2),m_lo(3):m_hi(3),nc_m)
