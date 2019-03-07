@@ -1,5 +1,6 @@
 amrex::IntVect                common::nodal_flag;
 amrex::Vector<amrex::IntVect> common::nodal_flag_dir;
+amrex::Vector<amrex::IntVect> common::nodal_flag_edge;
 amrex::IntVect                common::nodal_flag_x;
 amrex::IntVect                common::nodal_flag_y;
 amrex::IntVect                common::nodal_flag_z;
