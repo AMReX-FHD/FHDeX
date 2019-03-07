@@ -148,52 +148,52 @@ void main_driver(const char* argv)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 #endif
 
-    species activeParticle[nspecies];
+    species ionParticle[nspecies];
 
     double realParticles = 0;
     double simParticles = 0;
 
     for(int i=0;i<nspecies;i++)
     {       
-        activeParticle[i].m = mass[i];
-        activeParticle[i].d = diameter[i];
+        ionParticle[i].m = mass[i];
+        ionParticle[i].d = diameter[i];
 
         if(particle_count[i] >= 0)
         {
-            activeParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
+            ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
 
-            activeParticle[i].total = activeParticle[i].ppb*ba.size();
+            ionParticle[i].total = ionParticle[i].ppb*ba.size();
 
-            activeParticle[i].n0 = activeParticle[i].total/domainVol;
+            ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
-            Print() << "Species " << i << " count adjusted to " << activeParticle[i].total << "\n";
+            Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
 
         }else
         {
-            activeParticle[i].n0 = particle_n0[i];
-            activeParticle[i].total = (int)ceil(activeParticle[i].n0*domainVol/particle_neff);
+            ionParticle[i].n0 = particle_n0[i];
+            ionParticle[i].total = (int)ceil(ionParticle[i].n0*domainVol/particle_neff);
 
-            activeParticle[i].ppb = (int)ceil((double)activeParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
 
-            activeParticle[i].total = activeParticle[i].ppb*ba.size();
+            ionParticle[i].total = ionParticle[i].ppb*ba.size();
 
-            activeParticle[i].n0 = activeParticle[i].total/domainVol;
+            ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
-            Print() << "Species " << i << " n0 adjusted to " << activeParticle[i].n0 << "\n";
+            Print() << "Species " << i << " n0 adjusted to " << ionParticle[i].n0 << "\n";
         }
 
-        Print() << "Species " << i << " particles per box: " <<  activeParticle[i].ppb << "\n";
+        Print() << "Species " << i << " particles per box: " <<  ionParticle[i].ppb << "\n";
 
-        realParticles = realParticles + activeParticle[i].total;
-        simParticles = simParticles + activeParticle[i].total*particle_neff;
+        realParticles = realParticles + ionParticle[i].total;
+        simParticles = simParticles + ionParticle[i].total*particle_neff;
 
-        activeParticle[i].Neff = particle_neff;
+        ionParticle[i].Neff = particle_neff;
 
-        activeParticle[i].propulsion = 0;
+        ionParticle[i].propulsion = 0;
 
-        activeParticle[i].gamma1 = 1.27;
-        activeParticle[i].R = k_B/activeParticle[i].m;
-        activeParticle[i].T = 273;
+        ionParticle[i].gamma1 = 1.27;
+        ionParticle[i].R = k_B/ionParticle[i].m;
+        ionParticle[i].T = 273;
     }
 
     
@@ -424,16 +424,18 @@ void main_driver(const char* argv)
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
 
+    int ng = 2;
+
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
+                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
+                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
+                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
+                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
 
 
 //    //Nodal velocity for interpolations
@@ -450,21 +452,21 @@ void main_driver(const char* argv)
 
     // staggered real coordinates
     std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
-    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 1);,
-                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 1);,
-                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 1););
+    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, ng);,
+                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, ng);,
+                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, ng););
 
     // staggered source terms
     std::array< MultiFab, AMREX_SPACEDIM > source;
-    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
+                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
+                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
 
     // staggered temporary holder for calculating source terms - This may not be necesssary, review later.
     std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
-    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
+                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
+                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
 
     ///////////////////////////////////////////
     // structure factor:
@@ -553,12 +555,12 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
-    particles.InitParticles(activeParticle[0]);
+    particles.InitParticles(ionParticle[0]);
 
-    //particles.InitializeFields(particleInstant, cellVols, activeParticle[0]);
+    //particles.InitializeFields(particleInstant, cellVols, ionParticle[0]);
 
     //setup initial DSMC collision parameters
-    //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
+    //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
 
 
     // write out initial state
@@ -572,15 +574,15 @@ void main_driver(const char* argv)
         //--------------------------------------
 
 	    // Fill stochastic terms
-	    sMflux.fillMStochastic();
+	    //sMflux.fillMStochastic();
 
 	    // compute stochastic force terms
-	    sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	    sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	    //sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	    //sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	
 	    // Advance umac
-            advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-		    alpha_fc,beta,gamma,beta_ed,geom,dt);
+           // advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
+		   // alpha_fc,beta,gamma,beta_ed,geom,dt);
 	
 	    //////////////////////////////////////////////////
 	
@@ -603,13 +605,13 @@ void main_driver(const char* argv)
         //Probably don't need to pass ProbLo(), check later.
 
 
-        //particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
         //particles.Redistribute();
 
         //particles.ReBin();
 
-        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
+        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
 
 //        if(step == n_steps_skip)
 //        {
@@ -618,7 +620,7 @@ void main_driver(const char* argv)
 //            statsCount = 1;
 //        }
        
-        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, activeParticle[0], dt,statsCount);
+        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, ionParticle[0], dt,statsCount);
 
         statsCount++;
 

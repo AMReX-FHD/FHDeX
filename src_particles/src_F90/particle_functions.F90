@@ -805,6 +805,164 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
   
 end subroutine move_particles_fhd
 
+
+subroutine peskin_3pt(r,w)
+
+  double precision, intent(in   ) :: r
+  double precision, intent(inout) :: w
+
+  if(r .le. -2) then
+
+    w = 0
+
+  elseif(r .le. -1) then
+
+    w = 0.125*(5 + 2*r - sqrt(-7 - 12*r - 4*r*r))
+
+  elseif(r .le. 0) then
+
+    w = 0.125*(3 + 2*r + sqrt(1 - 4*r - 4*r*r))
+
+  elseif(r .le. 1) then
+
+    w = 0.125*(3 - 2*r + sqrt(1 + 4*r - 4*r*r))
+
+  elseif(r .le. 2) then
+
+    w = 0.125*(5 - 2*r - sqrt(-7 + 12*r - 4*r*r))
+
+  else
+
+    w = 0
+
+  endif
+
+
+end subroutine peskin_3pt
+
+
+
+subroutine get_weights(dxf, dxfinv, weights, &
+                              coordsu, coordsulo, coordsuhi, &
+                              coordsv, coordsvlo, coordsvhi, &
+#if (BL_SPACEDIM == 3)
+                              coordsw, coordswlo, coordswhi, &
+#endif
+                              part, ks, lo, hi, plof)
+
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only: particle_t
+
+  implicit none
+
+  double precision, intent(in   ) :: dxf(3), dxfinv(3), plof(3)
+  integer,          intent(in   ) :: ks, coordsulo(3), coordsvlo(3), coordswlo(3), coordsuhi(3), coordsvhi(3), coordswhi(3), lo(3), hi(3) 
+  type(particle_t), intent(in   ) :: part
+  double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
+
+  double precision, intent(in   ) :: coordsu(coordsulo(1):coordsuhi(1),coordsulo(2):coordsuhi(2),coordsulo(3):coordsuhi(3),1:AMREX_SPACEDIM)
+  double precision, intent(in   ) :: coordsv(coordsvlo(1):coordsvhi(1),coordsvlo(2):coordsvhi(2),coordsvlo(3):coordsvhi(3),1:AMREX_SPACEDIM)
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(in   ) :: coordsw(coordswlo(1):coordswhi(1),coordswlo(2):coordswhi(2),coordswlo(3):coordswhi(3),1:AMREX_SPACEDIM)
+#endif
+
+  integer :: fi(3), fn(3),i, j, k
+  double precision :: xx,yy,zz, w1, w2, w3, fr(3), fd(3), wcheck(3)
+
+  !find fluid cell
+
+  fr(1) = (part%pos(1) - plof(1))*dxfinv(1)
+  fr(2) = (part%pos(2) - plof(2))*dxfinv(2)
+  fr(3) = (part%pos(3) - plof(3))*dxfinv(3)
+
+  fi(1) = floor(fr(1))
+  fi(2) = floor(fr(2))
+  fi(3) = floor(fr(3))
+
+  fd(1) = fr(1) - fi(1)
+  fd(2) = fr(2) - fi(2)
+  fd(3) = fr(3) - fi(3)
+
+  if(fd(1) .lt. 0.5) then
+    fn(1) = -1
+  else
+    fn(1) = 0
+  endif
+
+  if(fd(2) .lt. 0.5) then
+    fn(2) = -1
+  else
+    fn(2) = 0
+  endif  
+
+  if(fd(3) .lt. 0.5) then
+    fn(3) = -1
+  else
+    fn(3) = 0
+  endif    
+
+  wcheck = 0
+
+  do k = -(ks-1), ks
+    do j = -(ks-1), ks
+      do i = -(ks-1), ks
+
+        xx = part%pos(1) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),1)
+        yy = part%pos(2) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),2)
+        zz = part%pos(3) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),3)
+
+        call peskin_3pt(xx*dxfinv(1),w1)
+        call peskin_3pt(yy*dxfinv(2),w2)
+        call peskin_3pt(zz*dxfinv(3),w3)
+
+        weights(i,j,k,1) = w1*w2*w3
+
+        wcheck(1) = wcheck(1) + weights(i,j,k,1)
+
+        xx = part%pos(1) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),1)
+        yy = part%pos(2) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),2)
+        zz = part%pos(3) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),3)
+
+        call peskin_3pt(xx*dxfinv(1),w1)
+        call peskin_3pt(yy*dxfinv(2),w2)
+        call peskin_3pt(zz*dxfinv(3),w3)
+
+        weights(i,j,k,2) = w1*w2*w3
+
+        wcheck(2) = wcheck(2) + weights(i,j,k,2)
+
+
+        xx = part%pos(1) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,1)
+        yy = part%pos(2) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,2)
+        zz = part%pos(3) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,3)
+
+        call peskin_3pt(xx*dxfinv(1),w1)
+        call peskin_3pt(yy*dxfinv(2),w2)
+        call peskin_3pt(zz*dxfinv(3),w3)
+
+        weights(i,j,k,3) = w1*w2*w3
+
+        wcheck(3) = wcheck(3) + weights(i,j,k,3)
+
+      enddo
+    enddo
+  enddo
+
+
+  print*, "Total: ", wcheck
+
+!              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
+!              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
+!              ixf(2) = (part%pos(2) - coordsy(fi(1),fi(2),fi(3),2))*dxfInv(2)
+!#if (BL_SPACEDIM == 3)
+!              ixf(3) = (part%pos(3) - coordsz(fi(1),fi(2),fi(3),3))*dxfInv(3)
+!#endif
+
+
+
+end subroutine get_weights
+
+
 subroutine move_ions_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
                                      velx, velxlo, velxhi, &
@@ -865,7 +1023,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks
   integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
@@ -875,9 +1033,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   double precision  :: cc(0:7)
   double precision  :: rr(0:7)
 
-  double precision :: u_weights(-3:3,-3:3,-3:3)
-  double precision :: v_weights(-3:3,-3:3,-3:3)
-  double precision :: w_weights(-3:3,-3:3,-3:3)
+  double precision :: weights(-1:2,-1:2,-1:2,3)
+
+  ks = 2
 
 
   !Zero source terms
@@ -954,127 +1112,19 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               runtime = dt
               part => particles(cell_parts(p))
 
-                !find fluid cell
-              fi(1) = floor((part%pos(1) - plof(1))*dxfinv(1))
-              fi(2) = floor((part%pos(2) - plof(2))*dxfinv(2))
-#if (BL_SPACEDIM == 3)
-              fi(3) = floor((part%pos(3) - plof(3))*dxfinv(3))
-#else
-              fi(3) = 0
-#endif
-              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
-              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
-              ixf(2) = (part%pos(2) - coordsy(fi(1),fi(2),fi(3),2))*dxfInv(2)
-#if (BL_SPACEDIM == 3)
-              ixf(3) = (part%pos(3) - coordsz(fi(1),fi(2),fi(3),3))*dxfInv(3)
-#endif
 
               !dxf is the size of the fluid cell
 
 
-              call get_interpolation_weights(cc, rr, ixf, onemdxf)
-
-
-                !Brownian forcing
-
-              call get_particle_normal(normalrand(1))
-              call get_particle_normal(normalrand(2))
-              call get_particle_normal(normalrand(3))
-
-              runerr = 1d0;
-
-              deltap(1) = part%vel(1)
-              deltap(2) = part%vel(1)
+              call get_weights(dxf, dxfinv, weights, &
+                              coordsx, coordsxlo, coordsxhi, &
+                              coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
-              deltap(3) = part%vel(1)
+                              coordsz, coordszlo, coordszhi, &
 #endif
-
-!this velocity update introduces a timetep error when a boundary intersection occurs. Need to use some kind of iteration to get a consistent intersection time and velocity update.
-
-              std = sqrt(-part%drag_factor*localbeta*k_B*2d0*runtime*293d0)/part%mass
-
-              bfac(1) = std*normalrand(1)
-              bfac(2) = std*normalrand(2)
-              bfac(3) = std*normalrand(3)
-
-              !print *, "brownian: ", bfac, " propusive: ", part%dir*part%propulsion*runtime
-
-                !print *, "Position 1: ", part%pos, " Vel 1: ", part%vel, "localvel: ", localbeta
-
-              part%vel(1) = part%accel_factor*localbeta*(part%vel(1)-localvel(1))*runtime + bfac(1) + part%vel(1)
-              part%vel(2) = part%accel_factor*localbeta*(part%vel(2)-localvel(2))*runtime + bfac(2) + part%vel(2)
-#if (BL_SPACEDIM == 3)
-              part%vel(3) = part%accel_factor*localbeta*(part%vel(3)-localvel(3))*runtime + bfac(3) + part%vel(3)
-#endif
-              call redirect(part)
-  
-              part%vel = part%dir*part%propulsion*runtime + part%vel
-
-              deltap(1) = part%mass*(part%vel(1) - deltap(1))
-              deltap(2) = part%mass*(part%vel(2) - deltap(2))
-#if (BL_SPACEDIM == 3)
-              deltap(3) = part%mass*(part%vel(3) - deltap(3))
-#endif
-
-#if (BL_SPACEDIM == 3)
-              call distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, sourcey, sourceylo, sourceyhi, sourcez, sourcezlo, sourcezhi)
-#endif
-#if (BL_SPACEDIM == 2)
-              call distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, sourcey, sourceylo, sourceyhi)
-#endif
-
-              do while (runtime .gt. 0)
-
-                !if(part%id .eq. 5) then
-                !  print *, "Starting vel: ", part%vel, " Starting pos: ", part%pos/phi
-                !endif
+                              part, ks, lo, hi, plof)
 
 
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-
-                posalt(1) = inttime*part%vel(1)*adjalt
-                posalt(2) = inttime*part%vel(2)*adjalt
-#if (BL_SPACEDIM == 3)
-                posalt(3) = inttime*part%vel(3)*adjalt
-#endif
-
-                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
-#if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
-#endif
-
-                runtime = runtime - inttime
-
-                if(intsurf .gt. 0) then
-
-                  surf => surfaces(intsurf)
-                  !if(intsurf .eq. 7) then
-                 !   print *, part%id, " prevel: ", part%vel
-                  !endif
-                  call apply_bc(surf, part, intside, domsize, push)
-                  !if(intsurf .eq. 7) then
-                 !   print *, part%id, " postvel: ", part%vel
-                 ! endif
-
-
-                    if(push .eq. 1) then
-                      
-                      part%pos(1) = part%pos(1) + posalt(1)
-                      part%pos(2) = part%pos(2) + posalt(2)
-#if (BL_SPACEDIM == 3)
-                      part%pos(3) = part%pos(3) + posalt(3)
-#endif
-                    endif
-                    
-                endif
-
-               ! if(part%id .eq. 5) then
-               !   print *, "Final vel: ", part%vel, " Final pos: ", part%pos/phi
-              !  endif
-
-              enddo
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue

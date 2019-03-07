@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 1.0 1.0 1.0      ! physical hi coordinate
+  prob_hi(1:3) = 4e-7 4e-7 4e-7      ! physical hi coordinate
   
   ! if prob_type = 1, vortex
   ! if prob_type = 2, KH - sine
@@ -10,9 +10,9 @@
   prob_type = 1
   
   ! number of cells in domain
-  n_cells(1:3) = 4 4 4
+  n_cells(1:3) = 9 9 9
   ! max number of cells in a box
-  max_grid_size(1:3) = 4 4 2 
+  max_grid_size(1:3) = 9 9 9 
 
   ! Time-step control
   fixed_dt = 8e-2
@@ -20,7 +20,7 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 1000
+  max_step = 1
   plot_int = 100
 
   ! Viscous friction L phi operator
@@ -37,7 +37,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 5
+  particle_count = 1
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -46,12 +46,12 @@
   !Kinetic species info
   !--------------
   nspecies = 1
-  mass = 1.5158e-8
-  diameter =  1e-6
+  mass = 4e-23
+  diameter =  4e-8
   !nfrac =  1
 
   ! Stochastic parameters
-  k_B = 1.38064852e-23
+  k_B = 1.38064852e-16
   T_init(1) = 295.00
   variance_coef_mom = 0.
   initial_variance_mom = 1.      
