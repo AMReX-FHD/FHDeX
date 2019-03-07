@@ -6,8 +6,13 @@ using namespace common;
 
 void InitializeCommonNamespace() {
 
+    nodal_flag_dir.resize(AMREX_SPACEDIM);
+    
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         nodal_flag[i] = 1;
+        AMREX_D_TERM(nodal_flag_dir[0][i] = int(i==0);,
+                     nodal_flag_dir[1][i] = int(i==1);,
+                     nodal_flag_dir[2][i] = int(i==2););
         nodal_flag_x[i] = int(i==0);
         nodal_flag_y[i] = int(i==1);
         nodal_flag_z[i] = int(i==2);

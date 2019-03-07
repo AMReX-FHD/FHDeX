@@ -2,6 +2,7 @@ namespace common {
 
     // misc global variables
     extern amrex::IntVect nodal_flag;
+    extern amrex::Vector<amrex::IntVect> nodal_flag_dir;
     extern amrex::IntVect nodal_flag_x;
     extern amrex::IntVect nodal_flag_y;
     extern amrex::IntVect nodal_flag_z;
