@@ -30,7 +30,7 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                   const MultiFab& gamma_cc,
                   std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                   const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
-                  const Real& theta,
+                  const Real& theta_alpha,
                   const Geometry& geom)
 {
 
@@ -149,8 +149,8 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
     MultiFab::Copy(gamma_cc_mg[0],gamma_cc,0,0,1,1);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(alpha_fc_mg[0][d],alpha_fc[d],0,0,1,0);
-        // multiply alpha_fc_mg by theta
-        alpha_fc_mg[0][d].mult(theta,0,1,0);
+        // multiply alpha_fc_mg by theta_alpha
+        alpha_fc_mg[0][d].mult(theta_alpha,0,1,0);
     }
     MultiFab::Copy(beta_ed_mg[0][0],beta_ed[0],0,0,1,0);
     if (AMREX_SPACEDIM == 3) {

@@ -19,7 +19,7 @@ zeros_plt="0000"
 
 data_dir="Data_Convergence_CR"
 ## Tool location and name
-conv_tool_loc="amrex/Tools/C_util/Convergence"
+conv_tool_loc="../../../amrex/Tools/C_util/Convergence"
 conv_tool_exec="DiffSameDomainRefinedStag${dims}d.gnu.ex"
 
 # Loop over viscosity types
@@ -43,9 +43,9 @@ do
     ## Run convergence computations
     echo "VISC TYPE = $visctype"
     echo "COARSE COMPUTED ERROR:"
-    ~/$conv_tool_loc/$conv_tool_exec reffile=${file[1]} infile1=${file[0]} norm=1
+    $conv_tool_loc/$conv_tool_exec reffile=${file[1]} infile1=${file[0]} norm=1
     echo "FINE COMPUTED ERROR:"
-    ~/$conv_tool_loc/$conv_tool_exec reffile=${file[2]} infile1=${file[1]} norm=1
+    $conv_tool_loc/$conv_tool_exec reffile=${file[2]} infile1=${file[1]} norm=1
     echo " "
 
 done

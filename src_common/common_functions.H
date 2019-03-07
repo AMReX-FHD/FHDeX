@@ -39,6 +39,9 @@ void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
 void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, 
                  int start_incomp, int start_outcomp, int ncomp, const Geometry& geom);
 
+///////////////////////////
+// in Debug.cpp
+void PrintMF(const MultiFab& MF);
 
 ///////////////////////////
 // in FindCoords.cpp
