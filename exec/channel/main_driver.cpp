@@ -266,6 +266,7 @@ void main_driver(const char * argv) {
 
     // tracer
     MultiFab tracer(ba, dmap, 1,1);
+    tracer.setVal(0.);
 
 
     //___________________________________________________________________________
