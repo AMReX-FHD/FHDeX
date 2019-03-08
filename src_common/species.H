@@ -10,6 +10,7 @@ typedef struct {
   double d;
   double T;
   double R;
+  double q;
   double gamma1;
   double mu;
   double n0;

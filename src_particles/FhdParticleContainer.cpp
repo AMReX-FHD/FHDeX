@@ -58,17 +58,17 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-#if (BL_SPACEDIM == 3)
-                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-#endif
-
-//                p.pos(0) = 0.5*prob_hi[0];
-//                p.pos(1) = 0.5*prob_hi[1];
+//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
 //#if (BL_SPACEDIM == 3)
-//                p.pos(2) = 0.5*prob_hi[2];
+//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 //#endif
+
+                p.pos(0) = 0.5*prob_hi[0];
+                p.pos(1) = 0.5*prob_hi[1];
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = 0.5*prob_hi[2];
+#endif
 
                 p.rdata(RealData::ox) = p.pos(0);
                 p.rdata(RealData::oy) = p.pos(1);
@@ -375,6 +375,18 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 #pragma omp parallel
 #endif
 
+    source[0].setVal(0.0);
+    source[1].setVal(0.0);
+#if (AMREX_SPACEDIM == 3)
+    source[2].setVal(0.0);
+#endif
+
+    sourceTemp[0].setVal(0.0);
+    sourceTemp[1].setVal(0.0);
+#if (AMREX_SPACEDIM == 3)
+    sourceTemp[2].setVal(0.0);
+#endif
+
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
@@ -427,11 +439,13 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 #if (AMREX_SPACEDIM == 3)
     sourceTemp[2].SumBoundary(Geom(lev).periodicity());
 #endif
+
     MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
     MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
 #if (AMREX_SPACEDIM == 3)
     MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
 #endif
+
     source[0].FillBoundary(Geom(lev).periodicity());
     source[1].FillBoundary(Geom(lev).periodicity());
 #if (AMREX_SPACEDIM == 3)

@@ -1047,7 +1047,7 @@ subroutine spread_op(weights, indicies, &
     enddo
   enddo
 
-  print*, uloc, wloc, vloc
+  !print*, "Fluid vel: ", uloc, wloc, vloc
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
@@ -1057,8 +1057,7 @@ subroutine spread_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3))
-
+        sourceu(ii,jj,kk) = ((part%vel(1)-uloc) + part%q)*(1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3))
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
@@ -1075,6 +1074,8 @@ subroutine spread_op(weights, indicies, &
       enddo
     enddo
   enddo
+
+  !print*, "Spreadvel: ", part%vel(1) - uloc, part%vel(2) - vloc, part%vel(3) - wloc
 
 end subroutine spread_op
 
@@ -1116,23 +1117,25 @@ subroutine inter_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        part%vel(1) = weights(i,j,k,1)*velu(ii,jj,kk)
+        part%vel(1) = part%vel(1) + weights(i,j,k,1)*velu(ii,jj,kk)
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
         kk = indicies(i,j,k,2,3)
 
-        part%vel(2) = weights(i,j,k,2)*velv(ii,jj,kk)
+        part%vel(2) = part%vel(2) + weights(i,j,k,2)*velv(ii,jj,kk)
 
         ii = indicies(i,j,k,3,1)
         jj = indicies(i,j,k,3,2)
         kk = indicies(i,j,k,3,3)
 
-        part%vel(3) = weights(i,j,k,3)*velw(ii,jj,kk)
+        part%vel(3) = part%vel(3) + weights(i,j,k,3)*velw(ii,jj,kk)
 
       enddo
     enddo
   enddo
+
+  !print*, "Intervel: ", part%vel
 
 end subroutine inter_op
 
@@ -1211,40 +1214,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   ks = 2
 
-
-  !Zero source terms
-  do k = sourcexlo(3), sourcexhi(3)
-    do j = sourcexlo(2), sourcexhi(2)
-      do i = sourcexlo(1), sourcexhi(1)
-
-        sourcex(i,j,k) = 0;
-
-      enddo
-    enddo
-  enddo
-
-  do k = sourceylo(3), sourceyhi(3)
-    do j = sourceylo(2), sourceyhi(2)
-      do i = sourceylo(1), sourceyhi(1)
-
-        sourcey(i,j,k) = 0;
-
-      enddo
-    enddo
-  enddo
-
-#if (BL_SPACEDIM == 3)
-  do k = sourcezlo(3), sourcezhi(3)
-    do j = sourcezlo(2), sourcezhi(2)
-      do i = sourcezlo(1), sourcezhi(1)
-
-        sourcez(i,j,k) = 0;
-
-      enddo
-    enddo
-  enddo
-#endif
-
    
   domsize = phi - plo
 
@@ -1299,7 +1268,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                               part, ks, lo, hi, plof)
               if(sw .ne. 2) then
-
+        
+               !print*, "INTERPOLATE"
+      
                call inter_op(weights, indicies, &
                                 velx, velxlo, velxhi, &
                                 vely, velylo, velyhi, &
@@ -1310,10 +1281,17 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               endif
 
+                !print*, "MOVE"
+              !print*, "OldPos: ", part%pos
+             ! print*, "MoveVel: ", part%vel
+
               part%pos = part%pos + dt*part%vel
+
+             ! print*, "NewPos: ", part%pos
 
               if(sw .ne. 1) then
 
+              !  print*, "SPREAD"
                 call spread_op(weights, indicies, &
                                 sourcex, sourcexlo, sourcexhi, &
                                 sourcey, sourceylo, sourceyhi, &
@@ -1352,8 +1330,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
         end do
      end do
   end do
-
-  !print *, "Ending"        
   
 end subroutine move_ions_fhd
 

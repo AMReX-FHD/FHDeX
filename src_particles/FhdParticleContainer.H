@@ -19,6 +19,7 @@ struct RealData
         mass,
         R,
         radius,
+        q,
         accelFactor,
         dragFactor,
         angularVel1,

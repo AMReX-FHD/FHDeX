@@ -20,6 +20,7 @@ module cell_sorted_particle_module
      real(amrex_particle_real) :: mass
      real(amrex_particle_real) :: R
      real(amrex_particle_real) :: radius
+     real(amrex_particle_real) :: q
      real(amrex_particle_real) :: accel_factor
      real(amrex_particle_real) :: drag_factor
      real(amrex_particle_real) :: angular_vel(3)
