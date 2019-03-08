@@ -504,9 +504,7 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    int sw=1; //1: interpolate only. 2: spread only. 3: both
-
-    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2);
+    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -534,6 +532,8 @@ void main_driver(const char* argv)
 	// Advance umac
 	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
+
+    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both*/ );
 
        //Particles
         //--------------------------------------
