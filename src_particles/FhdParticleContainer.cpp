@@ -361,7 +361,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount)
+                                           const surface* surfaceList, const int surfaceCount, int sw)
 {
     
     UpdateCellVectors();
@@ -409,7 +409,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
-                         , surfaceList, &surfaceCount
+                         , surfaceList, &surfaceCount, &sw
                          );
 
 

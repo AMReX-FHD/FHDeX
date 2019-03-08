@@ -493,7 +493,7 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
-    particles.InitParticlesBrownian(ionParticle[0]);
+    particles.InitParticles(ionParticle[0]);
 
     //particles.InitializeFields(particleInstant, cellVols, ionParticle[0]);
 
@@ -504,13 +504,13 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
+    int sw=1; //1: interpolate only. 2: spread only. 3: both
+
+    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2);
+
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
-
-
-
-        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
         //particles.Redistribute();
 

@@ -115,7 +115,7 @@ public:
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount);
+                                           const surface* surfaceList, const int surfaceCount, int sw);
 
 
     void ReBin();
