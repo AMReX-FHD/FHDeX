@@ -2,12 +2,13 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 
-DEBUG     = TRUE
+DEBUG     = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
 DIM       = 3
-DSMC      = FLASE
+DSMC      = FALSE
+
 
 TINY_PROFILE  = FALSE
 USE_PARTICLES = TRUE
@@ -42,10 +43,9 @@ include ../../src_analysis/Make.package
 VPATH_LOCATIONS   += ../../src_analysis/
 INCLUDE_LOCATIONS += ../../src_analysis/
 
-
-include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
-VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
+#include $(AMREX_HOME)/Src/test/FParallelMG_RNG.mak
+#VPATH_LOCATIONS   += $(AMREX_HOME)/Src/test/
+#INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/test/
 
 include ../../src_gmres/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_gmres/src_F90

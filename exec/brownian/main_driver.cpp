@@ -50,12 +50,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -141,70 +148,54 @@ void main_driver(const char* argv)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 #endif
 
-    species activeParticle[nspecies];
+    species ionParticle[nspecies];
 
     double realParticles = 0;
     double simParticles = 0;
 
     for(int i=0;i<nspecies;i++)
     {       
-        activeParticle[i].m = mass[i];
-        activeParticle[i].d = diameter[i];
+        ionParticle[i].m = mass[i];
+        ionParticle[i].d = diameter[i];
 
         if(particle_count[i] >= 0)
         {
-            activeParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
+            ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
 
-            activeParticle[i].total = activeParticle[i].ppb*ba.size();
+            ionParticle[i].total = ionParticle[i].ppb*ba.size();
 
-            activeParticle[i].n0 = activeParticle[i].total/domainVol;
+            ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
-            Print() << "Species " << i << " count adjusted to " << activeParticle[i].total << "\n";
+            Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
 
         }else
         {
-            activeParticle[i].n0 = particle_n0[i];
-            activeParticle[i].total = (int)ceil(activeParticle[i].n0*domainVol/particle_neff);
+            ionParticle[i].n0 = particle_n0[i];
+            ionParticle[i].total = (int)ceil(ionParticle[i].n0*domainVol/particle_neff);
 
-            activeParticle[i].ppb = (int)ceil((double)activeParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
 
-            activeParticle[i].total = activeParticle[i].ppb*ba.size();
+            ionParticle[i].total = ionParticle[i].ppb*ba.size();
 
-            activeParticle[i].n0 = activeParticle[i].total/domainVol;
+            ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
-            Print() << "Species " << i << " n0 adjusted to " << activeParticle[i].n0 << "\n";
+            Print() << "Species " << i << " n0 adjusted to " << ionParticle[i].n0 << "\n";
         }
 
-        Print() << "Species " << i << " particles per box: " <<  activeParticle[i].ppb << "\n";
+        Print() << "Species " << i << " particles per box: " <<  ionParticle[i].ppb << "\n";
 
-        realParticles = realParticles + activeParticle[i].total;
-        simParticles = simParticles + activeParticle[i].total*particle_neff;
+        realParticles = realParticles + ionParticle[i].total;
+        simParticles = simParticles + ionParticle[i].total*particle_neff;
 
-        activeParticle[i].Neff = particle_neff;
+        ionParticle[i].Neff = particle_neff;
 
-        activeParticle[i].propulsion = 0;
+        ionParticle[i].propulsion = 0;
 
-        activeParticle[i].gamma1 = 1.27;
-        activeParticle[i].R = k_B/activeParticle[i].m;
-        activeParticle[i].T = 273;
+        ionParticle[i].gamma1 = 1.27;
+        ionParticle[i].R = k_B/ionParticle[i].m;
+        ionParticle[i].T = 273;
     }
 
-    
-
-    Print() << "Total real particles: " << realParticles << "\n";
-    Print() << "Total sim particles: " << simParticles << "\n";
-
-    Print() << "Sim particles per box: " << simParticles/(double)ba.size() << "\n";
-
-    Print() << "Collision cells: " << totalCollisionCells << "\n";
-    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
-
-    MultiFab collisionPairs(bc, dmap, 1, 0);    
-    MultiFab collisionFactor(bc, dmap, 1, 0);
-    MultiFab particleMembraneFlux(bc, dmap, 1, 0);
-
-    collisionFactor.setVal(0);
-    collisionPairs.setVal(0);
 
     //Members
     //Density
@@ -260,17 +251,16 @@ void main_driver(const char* argv)
 
     
     MultiFab particleVars(bc, dmap, 21, 0);
+    
 
-    Real delHolder1[n_cells[1]*n_cells[2]];
-    Real delHolder2[n_cells[1]*n_cells[2]];
-    Real delHolder3[n_cells[1]*n_cells[2]];
-    Real delHolder4[n_cells[1]*n_cells[2]];
-    Real delHolder5[n_cells[1]*n_cells[2]];
-    Real delHolder6[n_cells[1]*n_cells[2]];
+    Print() << "Total real particles: " << realParticles << "\n";
+    Print() << "Total sim particles: " << simParticles << "\n";
 
-    particleInstant.setVal(0.0);
-    particleMeans.setVal(0.0);
-    particleVars.setVal(0.0);
+    Print() << "Sim particles per box: " << simParticles/(double)ba.size() << "\n";
+
+    Print() << "Collision cells: " << totalCollisionCells << "\n";
+    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
+
     
     //-----------------------------
     //  Hydro setup
@@ -278,22 +268,18 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
-    
+
+    int ng = 3;
+
     MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
 
-    MultiFab rhoNodal(convert(ba,nodal_flag), dmap, 1, 1);
-    rhoNodal.setVal(1.);
-
     // alpha_fc arrays
-    Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
-                 alpha_fc[1].setVal(dtinv);,
-                 alpha_fc[2].setVal(dtinv););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ng);
+        alpha_fc[d].setVal(dtinv);
+    }
 
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
@@ -303,23 +289,18 @@ void main_driver(const char* argv)
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
-    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
+    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
 #elif (AMREX_SPACEDIM == 3)
-    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
-    beta_ed[1].setVal(visc_coef);
-    beta_ed[2].setVal(visc_coef);
+    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
+    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
+    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
 #endif
-
-    //Nodal beta for interpolations
-    MultiFab betaNodal(convert(ba,nodal_flag), dmap, 1, 1);
-    betaNodal.setVal(visc_coef);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        beta_ed[d].setVal(visc_coef);
+    }
 
     // cell-centered gamma
-    MultiFab gamma(ba, dmap, 1, 1);
+    MultiFab gamma(ba, dmap, 1, ng);
     gamma.setVal(0.);
 
     ///////////////////////////////////////////
@@ -335,48 +316,31 @@ void main_driver(const char* argv)
     MultiFab  eta_cc;
     MultiFab temp_cc;
     // eta & temperature nodal
-    std::array< MultiFab, NUM_EDGE >   eta_ed;
-    std::array< MultiFab, NUM_EDGE >  temp_ed;
-    // eta cell-centered
+    std::array< MultiFab, NUM_EDGE >  eta_ed;
+    std::array< MultiFab, NUM_EDGE > temp_ed;
+    // eta and temperature; cell-centered
     eta_cc.define(ba, dmap, 1, 1);
-    // temperature cell-centered
     temp_cc.define(ba, dmap, 1, 1);
+    // eta and temperature; nodal
 #if (AMREX_SPACEDIM == 2)
-    // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-    // temperature nodal
     temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
-    // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
     eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
     eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-    // temperature nodal
     temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
     temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
     temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
 
     // Initalize eta & temperature multifabs
-    // eta cell-centered
     eta_cc.setVal(eta_const);
-    // temperature cell-centered
     temp_cc.setVal(temp_const);
-#if (AMREX_SPACEDIM == 2)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    // temperature nodal
-    temp_ed[0].setVal(temp_const);
-#elif (AMREX_SPACEDIM == 3)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    eta_ed[1].setVal(eta_const);
-    eta_ed[2].setVal(eta_const);
-    // temperature nodal
-    temp_ed[0].setVal(temp_const);
-    temp_ed[1].setVal(temp_const);
-    temp_ed[2].setVal(temp_const);
-#endif
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].setVal(eta_const);
+        temp_ed[d].setVal(temp_const);
+    }
     ///////////////////////////////////////////
 
     ///////////////////////////////////////////
@@ -385,33 +349,20 @@ void main_driver(const char* argv)
 
     // mflux divergence, staggered in x,y,z
 
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
+    std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
     // Define mfluxdiv predictor multifabs
-    mfluxdiv_predict[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    mfluxdiv_predict[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-    mfluxdiv_predict[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
-
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
-    // Define mfluxdiv corrector multifabs
-    mfluxdiv_correct[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    mfluxdiv_correct[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-    mfluxdiv_correct[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ng);
+        stochMfluxdiv[d].setVal(0.0);
+    }
 
     Vector< amrex::Real > weights;
-    // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
-    
-    // Declare object of StochMFlux class 
+
+    // Declare object of StochMFlux class
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
-
-    // tracer
-    MultiFab tracer(ba,dmap,1,1);
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
@@ -419,49 +370,15 @@ void main_driver(const char* argv)
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ng);
+    }
 
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-
-    //Nodal velocity for interpolations
-    std::array< MultiFab, AMREX_SPACEDIM > umacNodal;
-    AMREX_D_TERM(umacNodal[0].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
-                 umacNodal[1].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1);,
-                 umacNodal[2].define(convert(ba,IntVect{AMREX_D_DECL(1, 1, 1)}), dmap, 1, 1););
-
-    // temporary placeholder for potential gradients on cell faces
-    std::array< MultiFab, AMREX_SPACEDIM > umacT;
-    AMREX_D_TERM(umacT[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacT[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacT[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // staggered real coordinates
-    std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
-    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, 1);,
-                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, 1);,
-                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, 1););
-
-    // staggered source terms
-    std::array< MultiFab, AMREX_SPACEDIM > source;
-    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // staggered temporary holder for calculating source terms - This may not be necesssary, review later.
-    std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
-    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
+
     
     Vector< std::string > var_names;
     var_names.resize(AMREX_SPACEDIM);
@@ -495,30 +412,60 @@ void main_driver(const char* argv)
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
 
-	int dm = 0;
-	for ( MFIter mfi(beta); mfi.isValid(); ++mfi )
-    {
+    int dm = 0;
+    for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
         AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                                    geom.ProbLo(), geom.ProbHi() ,&dm,
+                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
                      dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-            			            BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-            			            geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
+                                    geom.ProbLo(), geom.ProbHi() ,&dm,
+                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
                      dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm, ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+                                    geom.ProbLo(), geom.ProbHi() ,&dm,
+                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+
     }
 
     AMREX_D_TERM(umac[0].setVal(0);,
                  umac[1].setVal(0);,
                  umac[2].setVal(0););
 
-    AMREX_D_TERM(
-    MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-    MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-    MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+    // fill periodic ghost cells
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac[d].FillBoundary(geom.periodicity());
+    }
+
+    // Add initial equilibrium fluctuations
+    if(initial_variance_mom != 0.0) {
+        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+    }
+
+    // staggered real coordinates
+    std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
+    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, ng);,
+                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, ng);,
+                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, ng););
+
+    // staggered source terms
+    std::array< MultiFab, AMREX_SPACEDIM > source;
+    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
+                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
+                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
+
+    // staggered temporary holder for calculating source terms - This may not be necesssary, review later.
+    std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
+    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
+                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
+                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        source[d].setVal(0.0);
+    }
 
     int step = 0;
     Real time = 0.;
@@ -539,19 +486,19 @@ void main_driver(const char* argv)
 #endif
 
 
-    //Particles! Build on geom & box array for collision cells
+    //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc);
 
     //Find coordinates of cell faces. May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
-    particles.InitParticles(activeParticle[0]);
+    particles.InitParticlesBrownian(ionParticle[0]);
 
-    //particles.InitializeFields(particleInstant, cellVols, activeParticle[0]);
+    //particles.InitializeFields(particleInstant, cellVols, ionParticle[0]);
 
     //setup initial DSMC collision parameters
-    particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
+    //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
 
 
     // write out initial state
@@ -561,32 +508,31 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
+
+
+        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+
+        //particles.Redistribute();
+
+        //particles.ReBin();
+
+
         //HYDRO
         //--------------------------------------
 
 	    // Fill stochastic terms
-	   // sMflux.fillMStochastic();
+	if(variance_coef_mom != 0.0) {
 
-	    // compute stochastic force terms
-	  //  sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	  //  sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	
-	    // Advance umac
-        //    advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-	//	    alpha_fc,beta,gamma,beta_ed,geom,dt);
-	
-	    //////////////////////////////////////////////////
-	
-	    ///////////////////////////////////////////
-	    // Update structure factor
-	    ///////////////////////////////////////////
-	//    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	//      for(int d=0; d<AMREX_SPACEDIM; d++) {
-	//        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	//      }
-	 //     structFact.FortStructure(struct_in_cc,geom);
-        // }
-	    ///////////////////////////////////////////
+	  // compute the random numbers needed for the stochastic momentum forcing
+	  sMflux.fillMStochastic();
+
+
+	  // compute stochastic momentum force
+	  sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	}
+
+	// Advance umac
+	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 
        //Particles
@@ -594,27 +540,22 @@ void main_driver(const char* argv)
 
 
         //Probably don't need to pass ProbLo(), check later.
-        
-        particles.MoveParticles(dt, dx, geom.ProbLo(), umac, umacNodal, RealFaceCoords, beta, betaNodal, rho, rhoNodal, source, sourceTemp, surfaceList, surfaceCount);
 
-        particles.Redistribute();
 
-        particles.ReBin();
+        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
 
-        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, activeParticle[0], dt);
-
-        if(step == n_steps_skip)
-        {
-            particleMeans.setVal(0.0);
-            particleVars.setVal(0);
-            statsCount = 1;
-        }
+//        if(step == n_steps_skip)
+//        {
+//            particleMeans.setVal(0.0);
+//            particleVars.setVal(0);
+//            statsCount = 1;
+//        }
        
-        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, activeParticle[0], dt,statsCount);
+        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, ionParticle[0], dt,statsCount);
 
         statsCount++;
 
-        if(step%5000 == 0)
+        if(step%1 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
@@ -625,10 +566,10 @@ void main_driver(const char* argv)
         {
            
             //This write particle data and associated fields
-            //WritePlotFile(step,time,geom,geomC, particleInstant, particleMeans, particleVars, particleMembraneFlux, particles);
+            WritePlotFile(step,time,geom,geomC, particleInstant, particleMeans, particleVars, particles);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-           // WritePlotFileHydro(step,time,geom,umac,tracer,pres);
+            WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
     }

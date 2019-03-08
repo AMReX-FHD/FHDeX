@@ -565,27 +565,26 @@ void main_driver(const char* argv)
         //--------------------------------------
 
 	    // Fill stochastic terms
-	    sMflux.fillMStochastic();
+	if(variance_coef_mom != 0.0) {
 
-	    // compute stochastic force terms
-	    sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	    sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	
-	    // Advance umac
-            advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
-		    alpha_fc,beta,gamma,beta_ed,geom,dt);
-	
-	    //////////////////////////////////////////////////
-	
-	    ///////////////////////////////////////////
-	    // Update structure factor
-	    ///////////////////////////////////////////
-	    if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	      for(int d=0; d<AMREX_SPACEDIM; d++) {
-	        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	      }
-	      structFact.FortStructure(struct_in_cc,geom);
-         }
+	  // compute the random numbers needed for the stochastic momentum forcing
+	  sMflux.fillMStochastic();
+
+	  // compute stochastic momentum force
+	  sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	}
+
+	// Advance umac
+	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+	///////////////////////////////////////////
+	// Update structure factor
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+            }
+            structFact.FortStructure(struct_in_cc,geom);
+        }
 	    ///////////////////////////////////////////
 
 

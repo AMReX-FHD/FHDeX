@@ -842,7 +842,7 @@ end subroutine peskin_3pt
 
 
 
-subroutine get_weights(dxf, dxfinv, weights, &
+subroutine get_weights(dxf, dxfinv, weights, indicies, &
                               coordsu, coordsulo, coordsuhi, &
                               coordsv, coordsvlo, coordsvhi, &
 #if (BL_SPACEDIM == 3)
@@ -859,6 +859,7 @@ subroutine get_weights(dxf, dxfinv, weights, &
   integer,          intent(in   ) :: ks, coordsulo(3), coordsvlo(3), coordswlo(3), coordsuhi(3), coordsvhi(3), coordswhi(3), lo(3), hi(3) 
   type(particle_t), intent(in   ) :: part
   double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
+  integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
 
   double precision, intent(in   ) :: coordsu(coordsulo(1):coordsuhi(1),coordsulo(2):coordsuhi(2),coordsulo(3):coordsuhi(3),1:AMREX_SPACEDIM)
   double precision, intent(in   ) :: coordsv(coordsvlo(1):coordsvhi(1),coordsvlo(2):coordsvhi(2),coordsvlo(3):coordsvhi(3),1:AMREX_SPACEDIM)
@@ -917,7 +918,13 @@ subroutine get_weights(dxf, dxfinv, weights, &
 
         weights(i,j,k,1) = w1*w2*w3
 
+        indicies(i,j,k,1,1) = fi(1)+i
+        indicies(i,j,k,1,2) = fi(2)+j+fn(2)
+        indicies(i,j,k,1,3) = fi(3)+k+fn(3)
+
         wcheck(1) = wcheck(1) + weights(i,j,k,1)
+
+        print*, weights(i,j,k,1)
 
         xx = part%pos(1) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),1)
         yy = part%pos(2) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),2)
@@ -928,6 +935,10 @@ subroutine get_weights(dxf, dxfinv, weights, &
         call peskin_3pt(zz*dxfinv(3),w3)
 
         weights(i,j,k,2) = w1*w2*w3
+
+        indicies(i,j,k,2,1) = fi(1)+i+fn(1)
+        indicies(i,j,k,2,2) = fi(2)+j
+        indicies(i,j,k,2,3) = fi(3)+k+fn(3)
 
         wcheck(2) = wcheck(2) + weights(i,j,k,2)
 
@@ -941,6 +952,10 @@ subroutine get_weights(dxf, dxfinv, weights, &
         call peskin_3pt(zz*dxfinv(3),w3)
 
         weights(i,j,k,3) = w1*w2*w3
+
+        indicies(i,j,k,3,1) = fi(1)+i+fn(1)
+        indicies(i,j,k,3,2) = fi(2)+j+fn(2)
+        indicies(i,j,k,3,3) = fi(3)+k
 
         wcheck(3) = wcheck(3) + weights(i,j,k,3)
 
@@ -962,6 +977,63 @@ subroutine get_weights(dxf, dxfinv, weights, &
 
 end subroutine get_weights
 
+subroutine spread_vel(weights, indicies, &
+                              sourceu, sourceulo, sourceuhi, &
+                              sourcev, sourcevlo, sourcevhi, &
+#if (BL_SPACEDIM == 3)
+                              sourcew, sourcewlo, sourcewhi, &
+#endif
+                              part, ks, dxf)
+
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only: particle_t
+
+  implicit none
+
+  integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
+  double precision, intent(in   ) :: dxf(3)
+  type(particle_t), intent(in   ) :: part
+  double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
+  integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
+
+  double precision, intent(inout) :: sourceu(sourceulo(1):sourceuhi(1),sourceulo(2):sourceuhi(2),sourceulo(3):sourceuhi(3))
+  double precision, intent(inout) :: sourcev(sourcevlo(1):sourcevhi(1),sourcevlo(2):sourcevhi(2),sourcevlo(3):sourcevhi(3))
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(inout) :: sourcew(sourcewlo(1):sourcewhi(1),sourcewlo(2):sourcewhi(2),sourcewlo(3):sourcewhi(3))
+#endif
+
+  integer :: i, j, k, ii, jj, kk
+
+
+  do k = -(ks-1), ks
+    do j = -(ks-1), ks
+      do i = -(ks-1), ks
+
+        ii = indicies(i,j,k,1,1)
+        jj = indicies(i,j,k,1,2)
+        kk = indicies(i,j,k,1,3)
+
+        sourceu(ii,jj,kk) = (1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3))
+
+        print *, sourceu(ii,jj,kk), part%radius
+
+        ii = indicies(i,j,k,2,1)
+        jj = indicies(i,j,k,2,2)
+        kk = indicies(i,j,k,2,3)
+
+        sourcev(ii,jj,kk) = 0
+
+        ii = indicies(i,j,k,3,1)
+        jj = indicies(i,j,k,3,2)
+        kk = indicies(i,j,k,3,3)
+
+        sourcew(ii,jj,kk) = 0
+
+      enddo
+    enddo
+  enddo
+
+end subroutine spread_vel
 
 subroutine move_ions_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
@@ -1034,6 +1106,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   double precision  :: rr(0:7)
 
   double precision :: weights(-1:2,-1:2,-1:2,3)
+  integer :: indicies(-1:2,-1:2,-1:2,3,3)
 
   ks = 2
 
@@ -1116,7 +1189,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !dxf is the size of the fluid cell
 
 
-              call get_weights(dxf, dxfinv, weights, &
+              call get_weights(dxf, dxfinv, weights, indicies, &
                               coordsx, coordsxlo, coordsxhi, &
                               coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
@@ -1124,6 +1197,14 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                               part, ks, lo, hi, plof)
 
+
+              call spread_vel(weights, indicies, &
+                              sourcex, sourcexlo, sourcexhi, &
+                              sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                              sourcez, sourcezlo, sourcezhi, &
+#endif
+                              part, ks, dxf)
 
 
               ! if it has changed cells, remove from vector.

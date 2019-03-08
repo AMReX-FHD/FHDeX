@@ -1,5 +1,4 @@
 rm -r plt*
-rm -r pplt*
+rm -r parplt*
 rm -r cplt*
 rm -r stag*
-rm -r parplt*
