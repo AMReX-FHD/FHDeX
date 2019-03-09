@@ -50,19 +50,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+//    int fhdSeed = 0;
+//    int particleSeed = 0;
+//    int selectorSeed = 0;
+//    int thetaSeed = 0;
+//    int phiSeed = 0;
+//    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -157,6 +157,8 @@ void main_driver(const char* argv)
     {       
         ionParticle[i].m = mass[i];
         ionParticle[i].d = diameter[i];
+
+        ionParticle[i].q = 1.6e-19;
 
         if(particle_count[i] >= 0)
         {
@@ -493,7 +495,7 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
-    particles.InitParticles(ionParticle[0]);
+    particles.InitParticlesBrownian(ionParticle[0]);
 
     //particles.InitializeFields(particleInstant, cellVols, ionParticle[0]);
 
@@ -504,36 +506,51 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    int sw=1; //1: interpolate only. 2: spread only. 3: both
-
-    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2);
+    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.Redistribute();
+    particles.ReBin();
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
 
-        //particles.Redistribute();
 
-        //particles.ReBin();
 
 
         //HYDRO
         //--------------------------------------
 
 	    // Fill stochastic terms
-	if(variance_coef_mom != 0.0) {
+	    if(variance_coef_mom != 0.0) {
 
-	  // compute the random numbers needed for the stochastic momentum forcing
-	  sMflux.fillMStochastic();
+	      // compute the random numbers needed for the stochastic momentum forcing
+	      sMflux.fillMStochastic();
 
 
-	  // compute stochastic momentum force
-	  sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	}
+	      // compute stochastic momentum force
+	      sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	    }
 
-	// Advance umac
-	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+	    // Advance umac
+        //Print() << "STOKES SOLVE\n";
+	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
+        if (plot_int > 0 && step%plot_int == 0)
+        {
+           
+            //This write particle data and associated fields
+            WritePlotFile(step,time,geom,geomC, particleInstant, particleMeans, particleVars, particles);
+
+            //Writes instantaneous flow field and some other stuff? Check with Guy.
+            WritePlotFileHydro(step,time,geom,umac,pres);
+        }
+
+
+        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both*/ );
+
+        particles.Redistribute();
+
+        particles.ReBin();
 
        //Particles
         //--------------------------------------
@@ -562,15 +579,7 @@ void main_driver(const char* argv)
         
         time = time + dt;
 
-        if (plot_int > 0 && step%plot_int == 0)
-        {
-           
-            //This write particle data and associated fields
-            WritePlotFile(step,time,geom,geomC, particleInstant, particleMeans, particleVars, particles);
 
-            //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres);
-        }
 
     }
 

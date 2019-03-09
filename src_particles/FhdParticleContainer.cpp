@@ -91,6 +91,7 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.rdata(RealData::mass) = particleInfo.m; //mass
                 p.rdata(RealData::R) = particleInfo.R; //R
                 p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
+                p.rdata(RealData::q) = particleInfo.q; //charge
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
                 p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
                 p.rdata(RealData::angularVel1) = 0; //angular velocity 1
@@ -188,6 +189,7 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.rdata(RealData::mass) = particleInfo.m; //mass
                 p.rdata(RealData::R) = particleInfo.R; //R
                 p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
+                p.rdata(RealData::q) = particleInfo.q; //charge
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
                 p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
                 p.rdata(RealData::angularVel1) = 0; //angular velocity 1
