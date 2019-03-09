@@ -22,17 +22,12 @@ struct RealData
         q,
         accelFactor,
         dragFactor,
-        angularVel1,
-        angularVel2,
-        angularVel3,
-        dirx,
-        diry,
-        dirz,
-        propulsion,
         ox,
         oy,
         oz,
-        dist,
+        ax,
+        ay,
+        az,
         ncomps
     };
 };

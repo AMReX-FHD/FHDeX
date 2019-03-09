@@ -173,23 +173,23 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   
 end subroutine move_particles_dsmc
 
-subroutine redirect(part)
+!subroutine redirect(part)
 
-    use cell_sorted_particle_module, only: particle_t
+!    use cell_sorted_particle_module, only: particle_t
 
-    implicit none
+!    implicit none
 
-    type(particle_t), intent(inout) :: part
+!    type(particle_t), intent(inout) :: part
 
-    double precision speed
+!    double precision speed
 
-    speed = sqrt(part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2)
+!    speed = sqrt(part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2)
 
-    if(speed .ne. 0) then
-      part%dir = part%vel/speed
-    endif
+!    if(speed .ne. 0) then
+!      part%dir = part%vel/speed
+!    endif
 
-end subroutine redirect
+!end subroutine redirect
 
 subroutine get_interpolation_weights(cc, rr, ixf, onemdxf)
 
@@ -707,9 +707,9 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
               part%vel(3) = part%accel_factor*localbeta*(part%vel(3)-localvel(3))*runtime + bfac(3) + part%vel(3)
 #endif
-              call redirect(part)
+              !call redirect(part)
   
-              part%vel = part%dir*part%propulsion*runtime + part%vel
+              !part%vel = part%dir*part%propulsion*runtime + part%vel
 
               deltap(1) = part%mass*(part%vel(1) - deltap(1))
               deltap(2) = part%mass*(part%vel(2) - deltap(2))
@@ -1014,7 +1014,9 @@ subroutine spread_op(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk
-  double precision :: uloc, vloc, wloc
+  double precision :: uloc, vloc, wloc, volinv
+
+  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
   uloc = 0
   vloc = 0
@@ -1057,20 +1059,19 @@ subroutine spread_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3)) + 20e9*part%q*weights(i,j,k,1)/(dxf(1)*dxf(2)*dxf(3))
-        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3))
+        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
         kk = indicies(i,j,k,2,3)
 
-        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3))
+        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv
 
         ii = indicies(i,j,k,3,1)
         jj = indicies(i,j,k,3,2)
         kk = indicies(i,j,k,3,3)
 
-        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3))
+        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv
 
       enddo
     enddo
@@ -1285,11 +1286,13 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
                 !print*, "MOVE"
               !print*, "OldPos: ", part%pos
-             ! print*, "MoveVel: ", part%vel
+              !print*, "MoveVel: ", part%vel
 
               part%pos = part%pos + dt*part%vel
 
-             ! print*, "NewPos: ", part%pos
+              part%abspos = part%abspos + dt*part%vel
+
+              !print*, "NewPos: ", part%pos
 
               if(sw .ne. 1) then
 

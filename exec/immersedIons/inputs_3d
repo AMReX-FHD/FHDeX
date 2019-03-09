@@ -53,7 +53,7 @@
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
-  variance_coef_mom = 0.
+  variance_coef_mom = 1.
   initial_variance_mom = 0.      
 
   ! struct_fact_int = 100

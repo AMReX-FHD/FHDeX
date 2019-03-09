@@ -80,38 +80,22 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
 
-                p.rdata(RealData::vx) = 1;
+                p.rdata(RealData::vx) = 0;
                 p.rdata(RealData::vy) = 0;
                 p.rdata(RealData::vz) = 0;
 
-                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
+                p.rdata(RealData::ax) = 0;
+                p.rdata(RealData::ay) = 0;
+                p.rdata(RealData::az) = 0;
 
-                //initTemp 
+                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
                 p.rdata(RealData::mass) = particleInfo.m; //mass
                 p.rdata(RealData::R) = particleInfo.R; //R
                 p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
                 p.rdata(RealData::q) = particleInfo.q; //charge
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                p.rdata(RealData::angularVel1) = 0; //angular velocity 1
-                p.rdata(RealData::angularVel2) = 0; //angular velocity 2
-                p.rdata(RealData::angularVel3) = 0; //angular velocity 2
-
-                get_angles(&cosTheta, &sinTheta, &cosPhi, &sinPhi);
-
-                //p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
-                //p.rdata(RealData::diry) = sinTheta*sinPhi; 
-                //p.rdata(RealData::dirz) = cosTheta;
-
-                p.rdata(RealData::dirx) = 1; //Unit vector giving orientation
-                p.rdata(RealData::diry) = 0; 
-                p.rdata(RealData::dirz) = 0;
-
-                //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
-                p.rdata(RealData::propulsion) = 0;
-
-                //AMREX_ASSERT(this->Index(p, lev) == iv);
+                p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
                 
                 particle_tile.push_back(p);
             }
@@ -162,10 +146,16 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+//#endif
+
+                p.pos(0) = 0.5*prob_hi[0];
+                p.pos(1) = 0.5*prob_hi[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+                p.pos(2) = 0.5*prob_hi[2];
 #endif
 
                 p.rdata(RealData::ox) = p.pos(0);
@@ -182,9 +172,11 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.rdata(RealData::vy) = 0;
                 p.rdata(RealData::vz) = 0;
 
-                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
+                p.rdata(RealData::ax) = 0;
+                p.rdata(RealData::ay) = 0;
+                p.rdata(RealData::az) = 0;
 
-                //initTemp 
+                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
                 p.rdata(RealData::mass) = particleInfo.m; //mass
                 p.rdata(RealData::R) = particleInfo.R; //R
@@ -192,24 +184,6 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.rdata(RealData::q) = particleInfo.q; //charge
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
                 p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                p.rdata(RealData::angularVel1) = 0; //angular velocity 1
-                p.rdata(RealData::angularVel2) = 0; //angular velocity 2
-                p.rdata(RealData::angularVel3) = 0; //angular velocity 2
-
-                get_angles(&cosTheta, &sinTheta, &cosPhi, &sinPhi);
-
-                //p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
-                //p.rdata(RealData::diry) = sinTheta*sinPhi; 
-                //p.rdata(RealData::dirz) = cosTheta;
-
-                p.rdata(RealData::dirx) = 1; //Unit vector giving orientation
-                p.rdata(RealData::diry) = 0; 
-                p.rdata(RealData::dirz) = 0;
-
-                //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
-                p.rdata(RealData::propulsion) = 0;
-
-                //AMREX_ASSERT(this->Index(p, lev) == iv);
                 
                 particle_tile.push_back(p);
             }
