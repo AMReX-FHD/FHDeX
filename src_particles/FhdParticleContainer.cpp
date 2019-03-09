@@ -64,10 +64,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 //#endif
 
-                p.pos(0) = 0.854*prob_hi[0];
-                p.pos(1) = 0.44*prob_hi[1];
+                p.pos(0) = 0.5*prob_hi[0];
+                p.pos(1) = 0.5*prob_hi[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = 0.6*prob_hi[2];
+                p.pos(2) = 0.5*prob_hi[2];
 #endif
 
                 p.rdata(RealData::ox) = p.pos(0);
@@ -84,33 +84,18 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.rdata(RealData::vy) = 0;
                 p.rdata(RealData::vz) = 0;
 
-                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
+                p.rdata(RealData::ax) = 0;
+                p.rdata(RealData::ay) = 0;
+                p.rdata(RealData::az) = 0;
 
-                //initTemp 
+                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
                 p.rdata(RealData::mass) = particleInfo.m; //mass
                 p.rdata(RealData::R) = particleInfo.R; //R
                 p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
+                p.rdata(RealData::q) = particleInfo.q; //charge
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                p.rdata(RealData::angularVel1) = 0; //angular velocity 1
-                p.rdata(RealData::angularVel2) = 0; //angular velocity 2
-                p.rdata(RealData::angularVel3) = 0; //angular velocity 2
-
-                get_angles(&cosTheta, &sinTheta, &cosPhi, &sinPhi);
-
-                //p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
-                //p.rdata(RealData::diry) = sinTheta*sinPhi; 
-                //p.rdata(RealData::dirz) = cosTheta;
-
-                p.rdata(RealData::dirx) = 1; //Unit vector giving orientation
-                p.rdata(RealData::diry) = 0; 
-                p.rdata(RealData::dirz) = 0;
-
-                //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
-                p.rdata(RealData::propulsion) = 0;
-
-                //AMREX_ASSERT(this->Index(p, lev) == iv);
+                p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
                 
                 particle_tile.push_back(p);
             }
@@ -161,10 +146,16 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+//#endif
+
+                p.pos(0) = 0.5*prob_hi[0];
+                p.pos(1) = 0.5*prob_hi[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+                p.pos(2) = 0.5*prob_hi[2];
 #endif
 
                 p.rdata(RealData::ox) = p.pos(0);
@@ -181,33 +172,18 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.rdata(RealData::vy) = 0;
                 p.rdata(RealData::vz) = 0;
 
-                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
+                p.rdata(RealData::ax) = 0;
+                p.rdata(RealData::ay) = 0;
+                p.rdata(RealData::az) = 0;
 
-                //initTemp 
+                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
                 p.rdata(RealData::mass) = particleInfo.m; //mass
                 p.rdata(RealData::R) = particleInfo.R; //R
                 p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
+                p.rdata(RealData::q) = particleInfo.q; //charge
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
                 p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                p.rdata(RealData::angularVel1) = 0; //angular velocity 1
-                p.rdata(RealData::angularVel2) = 0; //angular velocity 2
-                p.rdata(RealData::angularVel3) = 0; //angular velocity 2
-
-                get_angles(&cosTheta, &sinTheta, &cosPhi, &sinPhi);
-
-                //p.rdata(RealData::dirx) = sinTheta*cosPhi; //Unit vector giving orientation
-                //p.rdata(RealData::diry) = sinTheta*sinPhi; 
-                //p.rdata(RealData::dirz) = cosTheta;
-
-                p.rdata(RealData::dirx) = 1; //Unit vector giving orientation
-                p.rdata(RealData::diry) = 0; 
-                p.rdata(RealData::dirz) = 0;
-
-                //p.rdata(RealData::propulsion) = -p.rdata(RealData::accelFactor)*9e-4*1e-1;  //propulsive acceleration
-                p.rdata(RealData::propulsion) = 0;
-
-                //AMREX_ASSERT(this->Index(p, lev) == iv);
                 
                 particle_tile.push_back(p);
             }
@@ -361,7 +337,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount)
+                                           const surface* surfaceList, const int surfaceCount, int sw)
 {
     
     UpdateCellVectors();
@@ -373,6 +349,18 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 
 #ifdef _OPENMP
 #pragma omp parallel
+#endif
+
+    source[0].setVal(0.0);
+    source[1].setVal(0.0);
+#if (AMREX_SPACEDIM == 3)
+    source[2].setVal(0.0);
+#endif
+
+    sourceTemp[0].setVal(0.0);
+    sourceTemp[1].setVal(0.0);
+#if (AMREX_SPACEDIM == 3)
+    sourceTemp[2].setVal(0.0);
 #endif
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -409,7 +397,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
-                         , surfaceList, &surfaceCount
+                         , surfaceList, &surfaceCount, &sw
                          );
 
 
@@ -427,11 +415,13 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 #if (AMREX_SPACEDIM == 3)
     sourceTemp[2].SumBoundary(Geom(lev).periodicity());
 #endif
+
     MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
     MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
 #if (AMREX_SPACEDIM == 3)
     MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
 #endif
+
     source[0].FillBoundary(Geom(lev).periodicity());
     source[1].FillBoundary(Geom(lev).periodicity());
 #if (AMREX_SPACEDIM == 3)

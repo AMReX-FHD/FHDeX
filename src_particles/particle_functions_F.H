@@ -91,7 +91,7 @@ extern "C"
                         const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
                         const void* surfaces,
-                        const int* ns);
+                        const int* ns, int* sw);
 
 
     void init_particles(void* particles, const int* np, const amrex::Real* dx,

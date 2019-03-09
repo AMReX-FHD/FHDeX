@@ -10,7 +10,6 @@ void WritePlotFile(int step,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
-                   const MultiFab& particleMembraneFlux,
                    FhdParticleContainer& particles) 
 {
 
