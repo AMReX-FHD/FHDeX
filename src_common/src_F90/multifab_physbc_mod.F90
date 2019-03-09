@@ -1,13 +1,12 @@
 module multifab_physbc_module
 
-  use amrex_fort_module, only : amrex_real
+  use amrex_fort_module,      only : amrex_real
   use common_namelist_module, only : bc_lo, bc_hi
 
   implicit none
 
   private
 
-  ! public :: set_bc
   public :: fab_physbc
   public :: fab_physbc_domainvel
   public :: fab_physbc_macvel
@@ -26,7 +25,7 @@ contains
          &                             d_lo(3), d_hi(3), d_ncomp
     integer,          intent(in   ) :: dim_fill_ghost(2)
     integer, value,   intent(in   ) :: ngc
-    real(amrex_real), intent(inout) :: data(p_lo(1):p_hi(1), &
+    real(amrex_real), intent(inout) :: data(d_lo(1):d_hi(1), &
          &                                  d_lo(2):d_hi(2), d_ncomp)
 
     ! ** loop indices
@@ -132,7 +131,7 @@ contains
     ! Apply BC to X faces
 
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
-       if(bc_lo(1) .eq. 2) then ! no slip thermal
+       if (bc_lo(1) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
@@ -147,8 +146,8 @@ contains
        end if
     end if
 
-    if(hi(1) .eq. dom_hi(1)) then ! upper bound
-       if(bc_hi(1) .eq. 2) then ! no slip thermal
+    if (hi(1) .eq. dom_hi(1)) then ! upper bound
+       if (bc_hi(1) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
@@ -167,8 +166,8 @@ contains
     !____________________________________________________________________________
     ! Apply BC to Y faces
 
-    if(lo(2) .eq. dom_lo(2)) then ! lower bound
-       if(bc_lo(2) .eq. 2) then ! no slip thermal
+    if (lo(2) .eq. dom_lo(2)) then ! lower bound
+       if (bc_lo(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = 1, ngc ! always fill the ghost cells at the bc face
@@ -183,8 +182,8 @@ contains
        end if
     end if
 
-    if(hi(2) .eq. dom_hi(2)) then ! upper bound
-       if(bc_hi(2) .eq. 2) then ! no slip thermal
+    if (hi(2) .eq. dom_hi(2)) then ! upper bound
+       if (bc_hi(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = 1, ngc ! always fill the ghost cells at the bc face
@@ -203,8 +202,8 @@ contains
     !____________________________________________________________________________
     ! Apply BC to Z faces
 
-    if(lo(3) .eq. dom_lo(3)) then ! lower bound
-       if(bc_lo(3) .eq. 2) then ! no slip thermal
+    if (lo(3) .eq. dom_lo(3)) then ! lower bound
+       if (bc_lo(3) .eq. 2) then ! no slip thermal
 
           do k = 1, ngc ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
@@ -219,8 +218,8 @@ contains
        end if
     end if
 
-    if(hi(3) .eq. dom_hi(3)) then ! upper bound
-       if(bc_hi(3) .eq. 2) then ! no slip thermal
+    if (hi(3) .eq. dom_hi(3)) then ! upper bound
+       if (bc_hi(3) .eq. 2) then ! no slip thermal
 
           do k = 1, ngc ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)

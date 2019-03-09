@@ -70,6 +70,9 @@ amrex::Real                common::initial_variance_mass;
 amrex::Vector<int>         common::bc_lo;
 amrex::Vector<int>         common::bc_hi;
 
+amrex::Vector<amrex::Real> common::p_lo;
+amrex::Vector<amrex::Real> common::p_hi;
+
 amrex::Vector<amrex::Real> common::t_lo;
 amrex::Vector<amrex::Real> common::t_hi;
 

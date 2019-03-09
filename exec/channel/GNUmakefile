@@ -78,9 +78,9 @@ include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
 
-include ../../src_immersed-boundary/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_immersed-boundary/src_F90
-INCLUDE_LOCATIONS += ../../src_immersed-boundary/src_F90
+#include ../../src_immersed-boundary/src_F90/Make.package
+#VPATH_LOCATIONS   += ../../src_immersed-boundary/src_F90
+#INCLUDE_LOCATIONS += ../../src_immersed-boundary/src_F90
 
 # include ../../src_immersed-boundary/Make.package
 # VPATH_LOCATIONS   += ../../src_immersed-boundary

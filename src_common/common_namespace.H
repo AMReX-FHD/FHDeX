@@ -108,16 +108,21 @@ namespace common {
     // ----------------------
     // BC specifications:
     // -1 = periodic
+    // -2 = periodic with pressure drop (p_lo and p_hi)
     // 100 = no-slip wall      (Dir condition for normal vel; Dir velocity condition for trans vel)
     // 101 = no-slip reservoir (Dir condition for normal vel; Dir velocity condition for trans vel)
     // 200 = slip wall         (Dir condition for normal vel; Dir traction condition for trans vel)
     // 201 = slip reservoir    (Dir condition for normal vel; Dir traction condition for trans vel)
     // For a complete list see ???
-    extern amrex::Vector<int>         bc_lo;
-    extern amrex::Vector<int>         bc_hi;
+    extern amrex::Vector<int>          bc_lo;
+    extern amrex::Vector<int>          bc_hi;
 
-    extern amrex::Vector<amrex::Real>         t_lo;
-    extern amrex::Vector<amrex::Real>         t_hi;
+    // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
+    extern amrex::Vector<amrex::Real>  p_lo;
+    extern amrex::Vector<amrex::Real>  p_hi;
+
+    extern amrex::Vector<amrex::Real>  t_lo;
+    extern amrex::Vector<amrex::Real>  t_hi;
 
     // Each no-slip wall may be moving with a specified tangential
     // velocity along the tangential directions

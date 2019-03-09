@@ -63,6 +63,8 @@ module common_namelist_module
   double precision,   save :: initial_variance_mass
   integer,            save :: bc_lo(AMREX_SPACEDIM)
   integer,            save :: bc_hi(AMREX_SPACEDIM)
+  double precision,   save :: p_lo(AMREX_SPACEDIM)
+  double precision,   save :: p_hi(AMREX_SPACEDIM)
   double precision,   save :: t_lo(AMREX_SPACEDIM)
   double precision,   save :: t_hi(AMREX_SPACEDIM)
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
@@ -193,6 +195,7 @@ module common_namelist_module
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic
+  ! -2 = periodic with pressure drop (p_lo and p_hi)
   ! 100 = no-slip wall      (Dir condition for normal vel; Dir velocity condition for trans vel)
   ! 101 = no-slip reservoir (Dir condition for normal vel; Dir velocity condition for trans vel)
   ! 200 = slip wall         (Dir condition for normal vel; Dir traction condition for trans vel)
@@ -200,6 +203,10 @@ module common_namelist_module
   ! For a complete list see ???
   namelist /common/ bc_lo
   namelist /common/ bc_hi
+
+  ! Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
+  namelist /common/ p_lo
+  namelist /common/ p_hi
 
   namelist /common/ t_lo
   namelist /common/ t_hi
@@ -285,6 +292,8 @@ contains
     bc_hi(:) = 0
     t_lo(:) = 0
     t_hi(:) = 0
+    p_lo(:) = 0
+    p_hi(:) = 0
     wallspeed_lo(:,:) = 0
     wallspeed_hi(:,:) = 0
     struct_fact_int = 0
@@ -305,12 +314,15 @@ contains
 
   ! copy contents of common_params_module to C++ common namespace
   subroutine initialize_common_namespace(prob_lo_in, prob_hi_in, n_cells_in, &
-                                         max_grid_size_in, cell_depth_in, ngc_in, nvars_in, nprimvars_in, membrane_cell_in, cross_cell_in, transmission_in, &
+                                         max_grid_size_in, cell_depth_in, ngc_in, &
+                                         nvars_in, nprimvars_in, &
+                                         membrane_cell_in, cross_cell_in, transmission_in, &
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
                                          restart_in, print_int_in, project_eos_int_in, &
-                                         grav_in, nspecies_in, molmass_in, diameter_in, dof_in, hcv_in, hcp_in, rhobar_in, &
+                                         grav_in, nspecies_in, molmass_in, diameter_in, &
+                                         dof_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
                                          variance_coef_mass_in, &
                                          k_B_in, Runiv_in, T_init_in, algorithm_type_in, &
@@ -324,12 +336,14 @@ contains
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
                                          bc_lo_in, bc_hi_in, &
+                                         p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          struct_fact_int_in, n_steps_skip_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
-                                         particle_placement_in, particle_count_in, particle_neff_in, particle_n0_in, mass_in, nfrac_in) &
+                                         particle_placement_in, particle_count_in, particle_neff_in,&
+                                         particle_n0_in, mass_in, nfrac_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -404,6 +418,8 @@ contains
     double precision,       intent(inout) :: initial_variance_mass_in
     integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: p_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: p_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
@@ -471,6 +487,8 @@ contains
     initial_variance_mass_in = initial_variance_mass
     bc_lo_in = bc_lo
     bc_hi_in = bc_hi
+    p_lo_in = p_lo
+    p_hi_in = p_hi
     t_lo_in = t_lo
     t_hi_in = t_hi
     wallspeed_lo_in = wallspeed_lo
