@@ -1057,8 +1057,8 @@ subroutine spread_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3)) + 20e9*part%q*weights(i,j,k,1)/(dxf(1)*dxf(2)*dxf(3))
-
+        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3)) + 20e9*part%q*weights(i,j,k,1)/(dxf(1)*dxf(2)*dxf(3))
+        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%radius*3.142*6/(dxf(1)*dxf(2)*dxf(3))
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
