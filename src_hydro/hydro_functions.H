@@ -6,42 +6,54 @@
 #include <AMReX_Vector.H>
 #include <AMReX_MLABecLaplacian.H>
 
+
+using namespace amrex;
+
 /////////////////////////////////////////////////////////////////////////////////
 // in MkAdvMFluxdiv.cpp
 
-void MkAdvMFluxdiv(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umac,
-		   const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m,
-		   std::array<amrex::MultiFab, AMREX_SPACEDIM>& m_update,
-		   const amrex::Real* dx,
-		   const int& increment=0);
+void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac,
+		   const std::array<MultiFab, AMREX_SPACEDIM> & m,
+		   std::array<MultiFab, AMREX_SPACEDIM> & m_update,
+		   const Real * dx,
+		   const int & increment=0);
 
-void MkAdvSFluxdiv(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umac,
-		   const amrex::MultiFab& m,
-		   amrex::MultiFab& m_update,
-		   const amrex::Real* dx,
-		   const amrex::Geometry& geom,
-		   const int& m_comp=0,
-		   const int& increment=0);
+void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac,
+		   const MultiFab & m,
+		   MultiFab & m_update,
+		   const Real * dx,
+		   const Geometry & geom,
+		   const int & m_comp=0,
+		   const int & increment=0);
 
 /////////////////////////////////////////////////////////////////////////////////
+
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MacProj.cpp
 
-void MacProj (std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
-	      const amrex::MultiFab& rho,
-	      const amrex::Geometry& geom,
-	      const bool& full_solve=true);
+void MacProj(std::array<MultiFab, AMREX_SPACEDIM> & umac,
+             const MultiFab & rho,
+             const Geometry & geom,
+             const bool & full_solve=true);
 
-void ComputeMACSolverRHS (amrex::MultiFab& solverrhs,
-			  const amrex::MultiFab& macrhs,
-			  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
-			  const amrex::Geometry& geom);
+void ComputeMACSolverRHS(MultiFab & solverrhs,
+			 const MultiFab & macrhs,
+			 const std::array<MultiFab, AMREX_SPACEDIM> & umac,
+			 const Geometry & geom);
 
-void AvgFaceBcoeffsInv(std::array< amrex::MultiFab, AMREX_SPACEDIM >& facebcoef,
-		       const amrex::MultiFab& rhocc);
+void AvgFaceBcoeffsInv(std::array<MultiFab, AMREX_SPACEDIM> & facebcoef,
+		       const MultiFab & rhocc);
 
-void SetMacSolverBCs(amrex::MLABecLaplacian& mlabec);
+void SetMacSolverBCs(MLABecLaplacian & mlabec);
+
+/////////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// in HydroBCs.cpp
+
+void SetPressureBC(MultiFab & pressure, const Geometry & geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 

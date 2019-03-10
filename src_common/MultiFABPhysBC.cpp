@@ -3,34 +3,34 @@
 
 
 
-void MultiFABPhysBC(MultiFab & pressure, const Geometry & geom) {
-    MultiFABPhysBC(pressure, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
+void MultiFABPhysBC(MultiFab & data, const Geometry & geom) {
+    MultiFABPhysBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }
 
 
 
-void MultiFABPhysBC(MultiFab & pressure, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABPhysBC(pressure, fill_ghost, geom);
+    MultiFABPhysBC(data, fill_ghost, geom);
 
 }
 
 
 
-void MultiFABPhysBC(MultiFab & pressure, const IntVect & dim_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost, const Geometry & geom) {
 
     Box dom(geom.Domain());
 
-    for (MFIter mfi(pressure); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(data); mfi.isValid(); ++mfi) {
 
         const Box & bx = mfi.validbox();
         fab_physbc(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_BOX(dom),
-                   BL_TO_FORTRAN_FAB(pressure[mfi]), pressure.nGrow(),
+                   BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
                    dim_fill_ghost.getVect());
     }
 }

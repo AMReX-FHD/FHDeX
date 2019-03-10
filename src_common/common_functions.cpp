@@ -7,18 +7,35 @@ using namespace common;
 void InitializeCommonNamespace() {
 
     nodal_flag_dir.resize(AMREX_SPACEDIM);
-    
+    nodal_flag_edge.resize(AMREX_SPACEDIM);
+
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
+
+        //_______________________________________________________________________
+        // Designates data on nodes
         nodal_flag[i] = 1;
-        AMREX_D_TERM(nodal_flag_dir[0][i] = int(i==0);,
-                     nodal_flag_dir[1][i] = int(i==1);,
-                     nodal_flag_dir[2][i] = int(i==2););
+
+        //_______________________________________________________________________
+        // Designates data on faces
         nodal_flag_x[i] = int(i==0);
         nodal_flag_y[i] = int(i==1);
         nodal_flag_z[i] = int(i==2);
+
+        // Enable indexing flags above in loops
+        AMREX_D_TERM(nodal_flag_dir[0][i] = nodal_flag_x[i];,
+                     nodal_flag_dir[1][i] = nodal_flag_y[i];,
+                     nodal_flag_dir[2][i] = nodal_flag_z[i];);
+
+        //_______________________________________________________________________
+        // Designates data on edges
         nodal_flag_xy[i] = int(i==0 || i==1);
         nodal_flag_xz[i] = int(i==0 || i==2);
         nodal_flag_yz[i] = int(i==1 || i==2);
+
+        // Enable indexing flags above in loops
+        AMREX_D_TERM(nodal_flag_edge[0][i] = nodal_flag_xy[i];,
+                     nodal_flag_edge[1][i] = nodal_flag_xz[i];,
+                     nodal_flag_edge[2][i] = nodal_flag_yz[i];);
     }
 
     prob_lo.resize(AMREX_SPACEDIM);
@@ -36,12 +53,22 @@ void InitializeCommonNamespace() {
     rhobar.resize(MAX_SPECIES);
     u_init.resize(2);
     T_init.resize(2);
+
+    // boundary condition flags
     bc_lo.resize(AMREX_SPACEDIM);
     bc_hi.resize(AMREX_SPACEDIM);
+
+    // bcs: wall temperatures
     t_lo.resize(AMREX_SPACEDIM);
     t_hi.resize(AMREX_SPACEDIM);
+
+    // bcs: inflow/outflow pressure
+    p_lo.resize(AMREX_SPACEDIM);
+    p_hi.resize(AMREX_SPACEDIM);
+
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
+
     density_weights.resize(MAX_SPECIES);
     shift_cc_to_boundary.resize(AMREX_SPACEDIM*LOHI);
 
@@ -49,28 +76,35 @@ void InitializeCommonNamespace() {
     nfrac.resize(MAX_SPECIES);
     particle_count.resize(MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
-    
+
     initialize_common_namespace(prob_lo.dataPtr(), prob_hi.dataPtr(), n_cells.dataPtr(),
-                                max_grid_size.dataPtr(), &cell_depth, ngc.getVect(), &nvars, &nprimvars, &membrane_cell, &cross_cell, &transmission, &fixed_dt, &cfl, &max_step,
+                                max_grid_size.dataPtr(), &cell_depth, ngc.getVect(),
+                                &nvars, &nprimvars,
+                                &membrane_cell, &cross_cell, &transmission,
+                                &fixed_dt, &cfl, &max_step,
                                 &plot_int, plot_base_name.c_str(), plot_base_name.size()+1,
                                 &chk_int, chk_base_name.c_str(), chk_base_name.size()+1,
                                 &prob_type, &restart, &print_int, &project_eos_int,
-                                grav.dataPtr(), &nspecies, molmass.dataPtr(), diameter.dataPtr(), dof.dataPtr(), hcv.dataPtr(), hcp.dataPtr(), 
+                                grav.dataPtr(), &nspecies, molmass.dataPtr(), diameter.dataPtr(),
+                                dof.dataPtr(), hcv.dataPtr(), hcp.dataPtr(),
                                 rhobar.dataPtr(),
                                 &rho0, &variance_coef_mom, &variance_coef_mass, &k_B, &Runiv,
                                 T_init.dataPtr(),
                                 &algorithm_type,  &advection_type,
                                 &barodiffusion_type, &use_bl_rng, &seed,
-                                &seed_momentum, &seed_diffusion, &seed_reaction, 
+                                &seed_momentum, &seed_diffusion, &seed_reaction,
                                 &seed_init_mass,
                                 &seed_init_momentum, &visc_coef, &visc_type,
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
-                                &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(), t_lo.dataPtr(), t_hi.dataPtr(),
+                                &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(),
+                                p_lo.dataPtr(), p_hi.dataPtr(),
+                                t_lo.dataPtr(), t_hi.dataPtr(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 &struct_fact_int, &n_steps_skip,
                                 &histogram_unit,
-                                density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(), &particle_placement, particle_count.dataPtr(), &particle_neff, particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr());
+                                density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
+                                &particle_placement, particle_count.dataPtr(), &particle_neff,
+                                particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr());
 
 }
-

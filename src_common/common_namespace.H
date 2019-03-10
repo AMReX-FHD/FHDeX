@@ -3,6 +3,7 @@ namespace common {
     // misc global variables
     extern amrex::IntVect nodal_flag;
     extern amrex::Vector<amrex::IntVect> nodal_flag_dir;
+    extern amrex::Vector<amrex::IntVect> nodal_flag_edge;
     extern amrex::IntVect nodal_flag_x;
     extern amrex::IntVect nodal_flag_y;
     extern amrex::IntVect nodal_flag_z;
@@ -23,8 +24,8 @@ namespace common {
     extern int                        nvars;         //number of conserved variables
     extern int                        nprimvars;     //number of primitive variables
 
-    extern int                        membrane_cell;     //cell to locate membrane
-    extern int                        cross_cell;     //cell to compute spatial correlation
+    extern int                        membrane_cell; //cell to locate membrane
+    extern int                        cross_cell;    //cell to compute spatial correlation
     extern amrex::Real                transmission;
 
 
@@ -50,7 +51,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> molmass;
     extern amrex::Vector<amrex::Real> rhobar;
     extern amrex::Real                rho0;
-    extern amrex::Vector<amrex::Real> diameter;   
+    extern amrex::Vector<amrex::Real> diameter;
     extern amrex::Vector<int>         dof;
     extern amrex::Vector<amrex::Real> hcv;
     extern amrex::Vector<amrex::Real> hcp;
@@ -107,18 +108,23 @@ namespace common {
     // ----------------------
     // BC specifications:
     // -1 = periodic
+    // -2 = periodic with pressure drop (p_lo and p_hi)
     // 100 = no-slip wall      (Dir condition for normal vel; Dir velocity condition for trans vel)
     // 101 = no-slip reservoir (Dir condition for normal vel; Dir velocity condition for trans vel)
     // 200 = slip wall         (Dir condition for normal vel; Dir traction condition for trans vel)
     // 201 = slip reservoir    (Dir condition for normal vel; Dir traction condition for trans vel)
     // For a complete list see ???
-    extern amrex::Vector<int>         bc_lo;
-    extern amrex::Vector<int>         bc_hi;
+    extern amrex::Vector<int>          bc_lo;
+    extern amrex::Vector<int>          bc_hi;
 
-    extern amrex::Vector<amrex::Real>         t_lo;
-    extern amrex::Vector<amrex::Real>         t_hi;
+    // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
+    extern amrex::Vector<amrex::Real>  p_lo;
+    extern amrex::Vector<amrex::Real>  p_hi;
 
-    // Each no-slip wall may be moving with a specified tangential 
+    extern amrex::Vector<amrex::Real>  t_lo;
+    extern amrex::Vector<amrex::Real>  t_hi;
+
+    // Each no-slip wall may be moving with a specified tangential
     // velocity along the tangential directions
     // In 2D:
     // wallspeed_lo/hi_x - yvel
@@ -140,9 +146,9 @@ namespace common {
   extern int                        n_steps_save_stats;
   extern bool                       analyze_conserved;
   extern bool                       center_snapshots;
-*/     
+*/
 
-    // These are mostly used for reaction-diffusion: 
+    // These are mostly used for reaction-diffusion:
     extern int                        histogram_unit;
     extern amrex::Vector<amrex::Real> density_weights;
     extern amrex::Vector<int>         shift_cc_to_boundary;
@@ -154,4 +160,3 @@ namespace common {
     extern amrex::Vector<amrex::Real> mass;
     extern amrex::Vector<amrex::Real> nfrac;
 }
-

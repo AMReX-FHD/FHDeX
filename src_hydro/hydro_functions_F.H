@@ -134,6 +134,16 @@ void mac_bcoef_face(const int* lev, const int* lo, const int* hi,
 ///////////////////////////
 
 
+///////////////////////////
+// in hydro_bounds_mod.F90
+
+void set_pressure_bc(const int * lo,     const int * hi,
+                     const int * dom_lo, const int * dom_hi,
+                     amrex::Real * data, const int * d_lo, const int * d_hi, const int * d_ncomp,
+                     int ngc);
+
+///////////////////////////
+
 #ifdef __cplusplus
 }
 #endif

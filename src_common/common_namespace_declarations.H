@@ -1,5 +1,6 @@
 amrex::IntVect                common::nodal_flag;
 amrex::Vector<amrex::IntVect> common::nodal_flag_dir;
+amrex::Vector<amrex::IntVect> common::nodal_flag_edge;
 amrex::IntVect                common::nodal_flag_x;
 amrex::IntVect                common::nodal_flag_y;
 amrex::IntVect                common::nodal_flag_z;
@@ -68,6 +69,9 @@ amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Vector<int>         common::bc_lo;
 amrex::Vector<int>         common::bc_hi;
+
+amrex::Vector<amrex::Real> common::p_lo;
+amrex::Vector<amrex::Real> common::p_hi;
 
 amrex::Vector<amrex::Real> common::t_lo;
 amrex::Vector<amrex::Real> common::t_hi;

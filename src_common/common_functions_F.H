@@ -16,8 +16,9 @@ extern "C"
 
     // copy contents of common_params_module to C++ common namespace
     void initialize_common_namespace(amrex::Real* prob_lo, amrex::Real* prob_hi, int* n_cells,
-                                     int* max_grid_size, amrex::Real* cell_depth,
-                                     int* ngc, int* nvars, int* nprimvars, int* membrane_cell, int* cross_cell, amrex::Real* transmission,
+                                     int* max_grid_size, amrex::Real* cell_depth, int* ngc,
+                                     int* nvars, int* nprimvars,
+                                     int* membrane_cell, int* cross_cell, amrex::Real* transmission,
                                      amrex::Real* fixed_dt,
                                      amrex::Real* cfl, int* max_step, int* plot_int,
                                      const char* plot_base_name,
@@ -26,7 +27,8 @@ extern "C"
                                      const char* chk_base_name, const int chk_base_name_len,
                                      int* prob_type, int* restart, int* print_int,
                                      int* project_eos_int, amrex::Real* grav, int* nspecies,
-                                     amrex::Real* molmass,amrex::Real* diameter, int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
+                                     amrex::Real* molmass,amrex::Real* diameter,
+                                     int* dof,amrex::Real* hcv,amrex::Real* hcp, amrex::Real* rhobar,
                                      amrex::Real* rho0, amrex::Real* variance_coef_mom,
                                      amrex::Real* variance_coef_mass, amrex::Real* k_B,
                                      amrex::Real* Runiv, amrex::Real* T_init,
@@ -43,12 +45,15 @@ extern "C"
                                      amrex::Real* initial_variance_mom,
                                      amrex::Real* initial_variance_mass,
                                      int* bc_lo, int* bc_hi,
+                                     amrex::Real * p_lo, amrex::Real * p_hi,
                                      amrex::Real* t_lo, amrex::Real* t_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
                                      int* struct_fact_int, int* n_steps_skip,
                                      int* histogram_unit, amrex::Real* density_weights,
                                      int* shift_cc_to_boundary,
-                                     int* particle_placement, int* particle_count, amrex::Real* particle_neff, amrex::Real* particle_n0, amrex::Real* mass, amrex::Real* nfrac);
+                                     int* particle_placement, int* particle_count,
+                                     amrex::Real* particle_neff, amrex::Real* particle_n0,
+                                     amrex::Real* mass, amrex::Real* nfrac);
 ///////////////////////////
 
 ///////////////////////////

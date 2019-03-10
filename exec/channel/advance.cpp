@@ -49,7 +49,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
     // RHS pressure in GMRES
-    MultiFab gmres_rhs_p(ba, dmap, 1, 0);
+    MultiFab gmres_rhs_p(ba, dmap, 1, 1);
     gmres_rhs_p.setVal(0.);
 
     // RHS velocities in GMRES
@@ -254,12 +254,21 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  MultiFab::Add(gmres_rhs_u[1], advFluxdiv[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], advFluxdiv[2], 0, 0, 1, 0););
 
-    // AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
-    //              gmres_rhs_u[1].FillBoundary(geom.periodicity());,
-    //              gmres_rhs_u[2].FillBoundary(geom.periodicity()););
+    std::array< MultiFab, AMREX_SPACEDIM > pg;
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+        pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+
+    pres.setVal(0.);  // initial guess
+    SetPressureBC(pres, geom);
+
+    ComputeGrad(pres, pg, 0, 0, 1, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
+        pg[i].FillBoundary(geom.periodicity());
         gmres_rhs_u[i].FillBoundary(geom.periodicity());
+
+        MultiFab::Subtract(gmres_rhs_u[i], pg[i], 0, 0, 1, 1);
+
         MultiFABPhysBCDomainVel(gmres_rhs_u[i], i, geom);
         MultiFABPhysBCMacVel(gmres_rhs_u[i], i, geom);
     }
@@ -268,8 +277,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
                  MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 1);,
                  MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 1););
-    pres.setVal(0.);  // initial guess
-
 
     // call GMRES to compute predictor
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
@@ -312,9 +319,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     AMREX_D_TERM(MultiFab::Copy(gmres_rhs_u[0], umac[0], 0, 0, 1, 1);,
                  MultiFab::Copy(gmres_rhs_u[1], umac[1], 0, 0, 1, 1);,
                  MultiFab::Copy(gmres_rhs_u[2], umac[2], 0, 0, 1, 1););
+
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         gmres_rhs_u[d].mult(dtinv, 1);
     }
+
     AMREX_D_TERM(MultiFab::Add(gmres_rhs_u[0], mfluxdiv_correct[0], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[1], mfluxdiv_correct[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], mfluxdiv_correct[2], 0, 0, 1, 0););
@@ -328,15 +337,23 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  MultiFab::Add(gmres_rhs_u[1], advFluxdivPred[1], 0, 0, 1, 0);,
                  MultiFab::Add(gmres_rhs_u[2], advFluxdivPred[2], 0, 0, 1, 0););
 
-    AMREX_D_TERM(gmres_rhs_u[0].FillBoundary(geom.periodicity());,
-                 gmres_rhs_u[1].FillBoundary(geom.periodicity());,
-                 gmres_rhs_u[2].FillBoundary(geom.periodicity()););
+
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        gmres_rhs_u[i].FillBoundary(geom.periodicity());
+
+        MultiFab::Subtract(gmres_rhs_u[i], pg[i], 0, 0, 1, 1);
+
+        MultiFABPhysBCDomainVel(gmres_rhs_u[i], i, geom);
+        MultiFABPhysBCMacVel(gmres_rhs_u[i], i, geom);
+    }
 
     // initial guess for new solution
     AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
                  MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
                  MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+
     pres.setVal(0.);  // initial guess
+    SetPressureBC(pres, geom);
 
     // call GMRES here
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,

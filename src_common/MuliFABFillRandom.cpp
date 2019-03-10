@@ -7,7 +7,8 @@
 using namespace common;
 using namespace amrex;
 
-void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom)
+void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance,
+                        const Geometry& geom)
 {
 
     BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
@@ -30,13 +31,14 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 
     mf.FillBoundary(geom.periodicity());
 
-    //TODO: is this the correct BC?
+    //TODO: is this the correct BC? And fix corner case
     MultiFABPhysBC(mf, geom);
 
 //----------------------------------------
 }
 
-void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom)
+void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance,
+                            const Geometry& geom)
 {
 
     BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
@@ -44,7 +46,8 @@ void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& va
     double myTopNumber, myBottomNumber;
 
     int rightFriend = (ParallelDescriptor::MyProc()+1)%ParallelDescriptor::NProcs();
-    int leftFriend = (ParallelDescriptor::MyProc()+ParallelDescriptor::NProcs()-1)%ParallelDescriptor::NProcs();
+    int leftFriend = (ParallelDescriptor::MyProc()
+                      + ParallelDescriptor::NProcs()-1)%ParallelDescriptor::NProcs();
 
     if(ParallelDescriptor::MyProc()%2 == 0)
     {

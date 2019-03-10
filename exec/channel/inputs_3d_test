@@ -8,15 +8,15 @@
   ! if prob_type = 1, vortex
   ! if prob_type = 2, KH - sine
   ! if prob_type = 3, KH - smooth
-  prob_type = 3
-  
+  prob_type = 0
+
   ! number of cells in domain
   n_cells(1:3) = 16 16 16
   ! max number of cells in a box
-  max_grid_size(1:3) =  8  8  8 
+  max_grid_size(1:3) =  8  8  8
 
   ! Time-step control
-  fixed_dt = 1e-3
+  fixed_dt = 1e-2
 
   ! Controls for number of steps between actions
   ! max_step = 200000
@@ -31,17 +31,17 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
 
-  ! visc_coef = 1.
-  visc_coef = 1e-3
+  visc_coef = 1.
+  ! visc_coef = 1e-3
 
   visc_type = 2
 
   ! Stochastic parameters
-  variance_coef_mom = 1.	
+  variance_coef_mom = 1.
   initial_variance_mom = 0.
 
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
-  T_init(1) = 295.00	! [units: K]	
+  T_init(1) = 295.00	! [units: K]
 
   ! struct_fact_int = 100
   ! n_steps_skip = 50000
@@ -52,17 +52,20 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic
-  bc_lo(1:3) = -1 2 -1
-  bc_hi(1:3) = -1 2 -1
+  bc_lo(1:3) = 2 -2 -1
+  bc_hi(1:3) = 2 -2 -1
+
+  p_lo(1:3)  = 0 -1  0
+  p_hi(1:3)  = 0  1  0
 
 /
 
 &gmres
 
-  mg_verbose = 1                  ! multigrid verbosity
+  mg_verbose = 0                  ! multigrid verbosity
 
   ! Staggered multigrid solver parameters
-  stag_mg_verbosity = 1           ! verbosity
+  stag_mg_verbosity = 0           ! verbosity
   stag_mg_max_vcycles = 1         ! max number of v-cycles
   stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
   stag_mg_bottom_solver = 0       ! bottom solver type
