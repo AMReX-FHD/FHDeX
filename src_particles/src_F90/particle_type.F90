@@ -26,6 +26,9 @@ module cell_sorted_particle_module
 
      real(amrex_particle_real) :: origin(3)
      real(amrex_particle_real) :: abspos(3)
+     real(amrex_particle_real) :: travel_time
+     real(amrex_particle_real) :: diff_av
+     real(amrex_particle_real) :: step_count
 
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        

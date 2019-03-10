@@ -88,6 +88,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.rdata(RealData::ay) = 0;
                 p.rdata(RealData::az) = 0;
 
+                p.rdata(RealData::travelTime) = 0;
+                p.rdata(RealData::diffAv) = 0;
+                p.rdata(RealData::stepCount) = 0;
+
                 totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
                 p.rdata(RealData::mass) = particleInfo.m; //mass
@@ -175,6 +179,10 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.rdata(RealData::ax) = 0;
                 p.rdata(RealData::ay) = 0;
                 p.rdata(RealData::az) = 0;
+
+                p.rdata(RealData::travelTime) = 0;
+                p.rdata(RealData::diffAv) = 0;
+                p.rdata(RealData::stepCount) = 0;
 
                 totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
