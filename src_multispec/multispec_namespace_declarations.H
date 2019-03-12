@@ -13,8 +13,8 @@ int                        multispec::plot_stag;
 int                        multispec::is_nonisothermal;
 int                        multispec::is_ideal_mixture;
 int                        multispec::use_lapack;
-amrex::Vector< amrex::Vector< amrex::Real > > multispec::c_init;
-amrex::Vector< amrex::Vector< amrex::Vector< amrex::Real > > > multispec::c_bc;
+amrex::Vector<amrex::Real> multispec::c_init;
+amrex::Vector<amrex::Real> multispec::c_bc;
   
 amrex::Real                multispec::alpha1;
 amrex::Real                multispec::beta;

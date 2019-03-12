@@ -28,6 +28,9 @@ struct RealData
         ax,
         ay,
         az,
+        travelTime,
+        diffAv,
+        stepCount,
         ncomps
     };
 };

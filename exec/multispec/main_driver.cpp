@@ -53,10 +53,13 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
+    read_multispec_namelist(inputs_file.c_str(),inputs_file.size()+1);
     read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
+    exit(0);
+    InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
     // is the problem periodic?
@@ -109,14 +112,6 @@ void main_driver(const char* argv)
     int phiSeed = 5;
     int generalSeed = 6;
 
-    // const int proc = ParallelDescriptor::MyProc();
-    // fhdSeed += proc;
-    // particleSeed += proc;
-    // selectorSeed += proc;
-    // thetaSeed += proc;
-    // phiSeed += proc;
-    // generalSeed += proc;
-
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
     /////////////////////////////////////////
@@ -134,12 +129,10 @@ void main_driver(const char* argv)
     // alpha_fc arrays
     Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    AMREX_D_TERM(alpha_fc[0].setVal(dtinv);,
-                 alpha_fc[1].setVal(dtinv);,
-                 alpha_fc[2].setVal(dtinv););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      alpha_fc[d].setVal(dtinv);
+    }
 
     // beta cell centred
     MultiFab beta(ba, dmap, 1, 1);
@@ -226,38 +219,20 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     // mflux divergence, staggered in x,y,z
-    
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
+
     // Define mfluxdiv predictor multifabs
-    mfluxdiv_predict[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    mfluxdiv_predict[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-    mfluxdiv_predict[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
-    
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      mfluxdiv_predict[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
       mfluxdiv_predict[d].setVal(0.0);
     }
 
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
     // Define mfluxdiv corrector multifabs
-    mfluxdiv_correct[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);
-    mfluxdiv_correct[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);
-#if (AMREX_SPACEDIM == 3)
-    mfluxdiv_correct[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);
-#endif
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
       mfluxdiv_correct[d].setVal(0.0);
     }
-
-    // mass flux divergence
-    
-    MultiFab mass_fluxdiv_predict(ba,dmap,nspecies,1);
-    mass_fluxdiv_predict.setVal(0.0);
-    
-    MultiFab mass_fluxdiv_correct(ba,dmap,nspecies,1);
-    mass_fluxdiv_correct.setVal(0.0);
     
     ///////////////////////////////////////////
 
@@ -283,14 +258,16 @@ void main_driver(const char* argv)
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      umac[d].setVal(0.0);
+    }
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      umacNew[d].setVal(0.0);
+    }
 
     ///////////////////////////////////////////
     // structure factor:
@@ -332,19 +309,29 @@ void main_driver(const char* argv)
 
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
+
+	init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
+			  BL_TO_FORTRAN_FAB(rho[mfi]),
+			  BL_TO_FORTRAN_ANYD(umac[0][mfi]),
+			  BL_TO_FORTRAN_ANYD(umac[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+			  BL_TO_FORTRAN_ANYD(umac[2][mfi]),
+#endif
+			  dx, geom.ProbLo(), geom.ProbHi(),
+			  ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
         
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm, 
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm, 
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm, 
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+        // AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
+        //                             BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+        //              dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
+        //                             BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+        //              dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
+        //                             BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
+        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
+        //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
     	// initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
@@ -363,9 +350,9 @@ void main_driver(const char* argv)
     MacProj(umac,rhotot,geom,true);
 
     // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 0);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
+    for (int d; d<AMREX_SPACEDIM; d++) {
+      MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
+    }
 
     int step = 0;
     Real time = 0.;
@@ -373,24 +360,8 @@ void main_driver(const char* argv)
     // write out initial state
     if (plot_int > 0) 
       {
-	WritePlotFile(step,time,geom,umac,tracer,pres);
+	WritePlotFile(step,time,geom,umac,rho,tracer,pres);
       }
-    
-    //////////////////////////
-    //// FFT test
-    if (struct_fact_int > 0) {
-      // // std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-      // // mf_cc[0].define(ba, dmap, 1, 0);
-      // // mf_cc[1].define(ba, dmap, 1, 0);
-      // // mf_cc[2].define(ba, dmap, 1, 0);
-      // // for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-      // //   const Box& bx = mfi.validbox();
-      // //   init_s_vel(BL_TO_FORTRAN_BOX(bx),
-      // // 		   BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-      // // 		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-      // // }
-    }
-    //////////////////////////
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -414,7 +385,7 @@ void main_driver(const char* argv)
 	advance(umac,umacNew,pres,tracer,rho,rhotot,
 		mfluxdiv_predict,mfluxdiv_correct,
 		alpha_fc,beta,gamma,beta_ed,geom,dt);
-	
+
 	//////////////////////////////////////////////////
 	
 	///////////////////////////////////////////
@@ -437,7 +408,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,tracer,pres);
+    	  WritePlotFile(step,time,geom,umac,rho,tracer,pres);
         }
     }
     

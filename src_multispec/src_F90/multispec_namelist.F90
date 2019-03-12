@@ -24,7 +24,7 @@ module multispec_namelist_module
   integer,            save :: is_ideal_mixture
   integer,            save :: use_lapack
   double precision,   save :: c_init(2,MAX_SPECIES)
-  double precision,   save :: c_bc(3,2,MAX_SPECIES)
+  double precision,   save :: c_bc(AMREX_SPACEDIM,2,MAX_SPECIES)
   
   ! manufactured solution parameters populated in init
   double precision,   save :: alpha1
@@ -102,12 +102,12 @@ contains
     use_lapack         = 0
     chi_iterations     = 10
     temp_type          = 0
-    c_init             = 1.0d0
-    c_bc               = 0.d0
-    Dbar               = 1.0d0
-    Dtherm             = 0.0d0
-    H_offdiag          = 0.0d0
-    H_diag             = 0.0d0
+    c_init(:,:)        = 1.0d0
+    c_bc(:,:,:)        = 0.d0
+    Dbar(:)            = 1.0d0
+    Dtherm(:)          = 0.0d0
+    H_offdiag(:)       = 0.0d0
+    H_diag(:)          = 0.0d0
     plot_stag          = 0
     midpoint_stoch_mass_flux_type = 1
     avg_type           = 1
@@ -147,7 +147,7 @@ contains
     integer,                intent(inout) :: is_ideal_mixture_in
     integer,                intent(inout) :: use_lapack_in
     double precision,       intent(inout) :: c_init_in(2,MAX_SPECIES)
-    double precision,       intent(inout) :: c_bc_in(3,2,MAX_SPECIES)
+    double precision,       intent(inout) :: c_bc_in(AMREX_SPACEDIM,2,MAX_SPECIES)
 
     double precision,       intent(inout) :: alpha1_in
     double precision,       intent(inout) :: beta_in

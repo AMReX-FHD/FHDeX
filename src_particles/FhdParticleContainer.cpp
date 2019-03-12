@@ -64,10 +64,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 //#endif
 
-                p.pos(0) = 0.5*prob_hi[0];
-                p.pos(1) = 0.5*prob_hi[1];
+                p.pos(0) = get_uniform_func()*prob_hi[0];
+                p.pos(1) = get_uniform_func()*prob_hi[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = 0.5*prob_hi[2];
+                p.pos(2) = get_uniform_func()*prob_hi[2];
 #endif
 
                 p.rdata(RealData::ox) = p.pos(0);
@@ -75,6 +75,8 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 #if (BL_SPACEDIM == 3)
                 p.rdata(RealData::oz) = p.pos(2);
 #endif
+
+                //Print() << "Pos: "<< p.rdata(RealData::ox) << ", " << p.rdata(RealData::oy) << ", " << p.rdata(RealData::oz) << "\n";
 
                 //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
@@ -87,6 +89,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.rdata(RealData::ax) = 0;
                 p.rdata(RealData::ay) = 0;
                 p.rdata(RealData::az) = 0;
+
+                p.rdata(RealData::travelTime) = 0;
+                p.rdata(RealData::diffAv) = 0;
+                p.rdata(RealData::stepCount) = 0;
 
                 totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 
@@ -175,6 +181,10 @@ void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
                 p.rdata(RealData::ax) = 0;
                 p.rdata(RealData::ay) = 0;
                 p.rdata(RealData::az) = 0;
+
+                p.rdata(RealData::travelTime) = 0;
+                p.rdata(RealData::diffAv) = 0;
+                p.rdata(RealData::stepCount) = 0;
 
                 totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
 

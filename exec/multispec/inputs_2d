@@ -10,7 +10,7 @@
   ! if prob_type = 1, vortex
   ! if prob_type = 2, KH - sine
   ! if prob_type = 3, KH - smooth
-  prob_type = 3
+  prob_type = 1
   
   ! number of cells in domain
   n_cells(1:2) = 256 256
@@ -37,6 +37,8 @@
   visc_coef = 1e-3		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
 
   visc_type = 2
+
+  smoothing_width = 1e-2
 
   ! Stochastic parameters
   variance_coef_mom = 1.
