@@ -268,7 +268,7 @@ void main_driver(const char * argv) {
     // Define velocities and pressure
 
     // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
+    MultiFab pres(ba, dmap, 1, 1);
     pres.setVal(0.);  // initial guess
 
     // staggered velocities

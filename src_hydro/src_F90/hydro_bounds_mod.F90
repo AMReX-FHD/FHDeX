@@ -22,7 +22,7 @@ contains
     integer, value,   intent(in   ) :: ngc
     real(amrex_real), intent(inout) :: data(d_lo(1):d_hi(1), &
          &                                  d_lo(2):d_hi(2), &
-         &                                  d_lo(3):d_hi(2), d_ncomp)
+         &                                  d_lo(3):d_hi(3), d_ncomp)
 
     ! ** loop indices
     integer :: i,j,k
