@@ -21,12 +21,20 @@ void InitializeMultispecNamespace();
 void ComputeMassFluxdiv(amrex::MultiFab& rho,
 			amrex::MultiFab& rhotot,
 			amrex::MultiFab& diff_mass_fluxdiv,
-			amrex::MultiFab& stoch_mass_fluxdiv,
 		        std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-		        std::array< amrex::MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
 			const amrex::Real& dt,
 			const amrex::Real& stage_time,
 			const amrex::Geometry& geom);
+
+// void ComputeMassFluxdiv(amrex::MultiFab& rho,
+// 			amrex::MultiFab& rhotot,
+// 			amrex::MultiFab& diff_mass_fluxdiv,
+// 			amrex::MultiFab& stoch_mass_fluxdiv,
+// 		        std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+// 		        std::array< amrex::MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+// 			const amrex::Real& dt,
+// 			const amrex::Real& stage_time,
+// 			const amrex::Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 

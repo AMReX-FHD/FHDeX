@@ -30,7 +30,7 @@ extern "C"
     const int* is_nonisothermal,
     const int* is_ideal_mixture,
     const int* use_lapack,
-    const amrex_real*c_init,
+    const amrex_real* c_init,
     const amrex_real* c_bc,
     const amrex_real* alpha1,
     const amrex_real* beta,

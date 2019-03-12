@@ -14,6 +14,7 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+		   const MultiFab& rho,
 		   const MultiFab& tracer,
 		   const MultiFab& pres)
 {
@@ -25,12 +26,14 @@ void WritePlotFile(int step,
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
+    int nspecies = rho.nComp();
+
     // plot all the velocity variables (averaged)
     // plot all the velocity variables (shifted)
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM+3;
+    int nPlot = 2*AMREX_SPACEDIM + nspecies + 3;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -51,6 +54,12 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
+    for (int i=0; i<nspecies; ++i) {
+        std::string x = "rho";
+        x += (48+i);
+        varNames[cnt++] = x;
+    }
+
     varNames[cnt++] = "tracer";
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
@@ -67,6 +76,12 @@ void WritePlotFile(int step,
     // shift staggered velocities to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         ShiftFaceToCC(umac[i],0,plotfile,cnt,1);
+        cnt++;
+    }
+
+    // copy species concentration density into plotfile
+    for (int i=0; i<nspecies; ++i) {
+        MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
         cnt++;
     }
 

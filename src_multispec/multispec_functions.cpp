@@ -13,16 +13,22 @@ void InitializeMultispecNamespace() {
     H_offdiag.resize(max_element);
     H_diag.resize(MAX_SPECIES);
 
-    c_init.resize(AMREX_SPACEDIM);
-    c_bc.resize(AMREX_SPACEDIM);
+    c_init.resize(2*MAX_SPECIES);
 
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-      c_init[i].resize(2);
-      c_bc[i].resize(2);
-      for (int j=0; j<2; ++j) {
-	c_bc[i][j].resize(3);
-      }
-    }
+    c_bc.resize(AMREX_SPACEDIM*2*MAX_SPECIES);
+    
+    // c_init.resize(2);
+    // for (int i=0; i<2; ++i) {
+    //   c_init[i].resize(MAX_SPECIES);
+    // }
+
+    // c_bc.resize(AMREX_SPACEDIM);
+    // for (int i=0; i<AMREX_SPACEDIM; ++i) {
+    //   c_bc[i].resize(2);
+    //   for (int j=0; j<2; ++j) {
+    // 	c_bc[i][j].resize(MAX_SPECIES);
+    //   }
+    // }
 
     initialize_multispec_namespace( &inverse_type, &temp_type, 
 				    &chi_iterations, &start_time, 
@@ -32,8 +38,8 @@ void InitializeMultispecNamespace() {
 				    &print_error_norms, &plot_stag, 
 				    &is_nonisothermal, &is_ideal_mixture,
 				    &use_lapack, 
-				    (c_init.dataPtr()->data()), 
-				    (c_init.dataPtr()->dataPtr()), 
+				    c_init.dataPtr(), 
+				    c_bc.dataPtr(),
 				    &alpha1, &beta, &delta, &sigma, 
 				    &midpoint_stoch_mass_flux_type, 
 				    &avg_type, &mixture_type);
