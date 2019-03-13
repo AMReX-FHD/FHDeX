@@ -128,6 +128,7 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 
   // Compute variance using computed differential volume
   Real variance = variance_coef_mom*sqrt(variance_coef_mom*2.0*k_B/(dVol*dt));
+  //Real variance = variance_coef_mom*sqrt(variance_coef_mom*2.0*k_B/(dVol));
 
   // Scale mflux_weighted by variance
   mflux_cc_weighted.mult(variance, 1);

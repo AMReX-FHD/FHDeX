@@ -17,8 +17,8 @@ namespace multispec {
     extern int                        is_nonisothermal;
     extern int                        is_ideal_mixture;
     extern int                        use_lapack;
-    extern amrex::Vector< amrex::Vector<amrex::Real> > c_init;
-    extern amrex::Vector< amrex::Vector< amrex::Vector<amrex::Real> > > c_bc;
+    extern amrex::Vector<amrex::Real> c_init;
+    extern amrex::Vector<amrex::Real> c_bc;
   
     extern amrex::Real                alpha1;
     extern amrex::Real                beta;

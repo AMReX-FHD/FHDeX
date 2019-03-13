@@ -1207,7 +1207,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), diffest
+  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst
 
   double precision  :: cc(0:7)
   double precision  :: rr(0:7)
@@ -1242,7 +1242,12 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   enddo
 
-  !print *, "Starting"        
+  !print *, "Starting"
+
+
+  diffav = 0
+  distav = 0
+  diffinst = 0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -1327,9 +1332,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               end do
 
-              !part%pos = part%pos + dt*part%vel
-
               part%abspos = part%abspos + dt*part%vel
+
+              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
               part%travel_time = part%travel_time + dt
 
@@ -1337,11 +1342,17 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
 
-              part%diff_av = (part%diff_av*part%step_count + diffest)/(part%step_count + 1)
+              diffinst = diffinst + diffest
+
+              if(part%step_count .ge. 50) then
+                part%diff_av = (part%diff_av*(part%step_count-50) + diffest)/((part%step_count-50) + 1)
+
+                diffav = diffav + part%diff_av
+              endif
 
               part%step_count = part%step_count + 1
 
-              print*, "Diff est: ", diffest , ", av: ", part%diff_av
+              !print*, "Diff est: ", diffest , ", av: ", part%diff_av
 
               !print *, "AbsPos: ", part%abspos
               !print *, "RelPos: ", part%pos
@@ -1389,6 +1400,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
         end do
      end do
   end do
+
+  print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
   
 end subroutine move_ions_fhd
 
