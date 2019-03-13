@@ -15,11 +15,11 @@ contains
 
 # if (AMREX_SPACEDIM == 2)
 
-  subroutine fab_physbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-       &                dom_lo, dom_hi,              &
-       &                data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-       &                ngc, dim_fill_ghost)         &
-       &                bind(C, name="fab_physbc")
+  pure subroutine fab_physbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+       &                     dom_lo, dom_hi,              &
+       &                     data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+       &                     ngc, dim_fill_ghost)         &
+       &                     bind(C, name="fab_physbc")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -104,11 +104,11 @@ contains
 
 #elif (AMREX_SPACEDIM == 3)
 
-  subroutine fab_physbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-       &                dom_lo, dom_hi,              &
-       &                data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-       &                ngc, dim_fill_ghost)         &
-       &                bind(C, name="fab_physbc")
+  pure subroutine fab_physbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+       &                     dom_lo, dom_hi,              &
+       &                     data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+       &                     ngc, dim_fill_ghost)         &
+       &                     bind(C, name="fab_physbc")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -235,16 +235,17 @@ contains
     end if
 
   end subroutine fab_physbc
+
 #endif
 
 
 #if (AMREX_SPACEDIM == 2)
 
-  subroutine fab_physbc_domainvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
-       &                          dom_lo, dom_hi,           &
-       &                          vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                          ngc, dim_fill_ghost)      &
-       &                          bind(C, name="fab_physbc_domainvel")
+  pure subroutine fab_physbc_domainvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
+       &                               dom_lo, dom_hi,           &
+       &                               vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
+       &                               ngc, dim_fill_ghost)      &
+       &                               bind(C, name="fab_physbc_domainvel")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(2)
@@ -361,11 +362,11 @@ contains
 
 #elif (AMREX_SPACEDIM == 3)
 
-  subroutine fab_physbc_domainvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
-       &                          dom_lo, dom_hi,           &
-       &                          vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                          ngc, dim_fill_ghost)      &
-       &                          bind(C, name="fab_physbc_domainvel")
+  pure subroutine fab_physbc_domainvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
+       &                               dom_lo, dom_hi,           &
+       &                               vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
+       &                               ngc, dim_fill_ghost)      &
+       &                               bind(C, name="fab_physbc_domainvel")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(3)
@@ -550,16 +551,17 @@ contains
     end if
 
   end subroutine fab_physbc_domainvel
+
 #endif
 
 
 #if (AMREX_SPACEDIM == 2)
 
-  subroutine fab_physbc_macvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
-       &                       dom_lo, dom_hi,           &
-       &                       vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                       ngc, dim_fill_ghost)      &
-       &                       bind(C, name="fab_physbc_macvel")
+  pure subroutine fab_physbc_macvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
+       &                            dom_lo, dom_hi,           &
+       &                            vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
+       &                            ngc, dim_fill_ghost)      &
+       &                            bind(C, name="fab_physbc_macvel")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(2)
@@ -642,11 +644,11 @@ contains
 
 #elif (AMREX_SPACEDIM == 3)
 
-  subroutine fab_physbc_macvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
-       &                       dom_lo, dom_hi,           &
-       &                       vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                       ngc, dim_fill_ghost)      &
-       &                       bind(C, name="fab_physbc_macvel")
+  pure subroutine fab_physbc_macvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
+       &                            dom_lo, dom_hi,           &
+       &                            vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
+       &                            ngc, dim_fill_ghost)      &
+       &                            bind(C, name="fab_physbc_macvel")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(3)

@@ -102,7 +102,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Copy(beta_ed_wtd[0], beta_ed[0], 0, 0, 1, 1);
     beta_ed_wtd[0].mult(0.5, 1);
 #elif (AMREX_SPACEDIM == 3)
-    // beta_ed_wtd[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
     for(int d=0; d<AMREX_SPACEDIM; d++) {
         beta_ed_wtd[d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 1);
 
