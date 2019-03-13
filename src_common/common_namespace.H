@@ -28,6 +28,10 @@ namespace common {
     extern int                        cross_cell;    //cell to compute spatial correlation
     extern amrex::Real                transmission;
 
+    extern amrex::Real                perm;
+    extern amrex::Real                qval;
+    extern int                        pkernel_fluid;
+    extern int                        pkernel_es;
 
     // Time-step control
     extern amrex::Real                fixed_dt;

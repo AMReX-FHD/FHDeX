@@ -50,19 +50,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+//    int fhdSeed = 0;
+//    int particleSeed = 0;
+//    int selectorSeed = 0;
+//    int thetaSeed = 0;
+//    int phiSeed = 0;
+//    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -158,7 +158,7 @@ void main_driver(const char* argv)
         ionParticle[i].m = mass[i];
         ionParticle[i].d = diameter[i];
 
-        ionParticle[i].q = 1.6e-19;
+        ionParticle[i].q = qval;
 
         if(particle_count[i] >= 0)
         {
@@ -507,9 +507,9 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    //particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 1 /*1: interpolate only. 2: spread only. 3: both*/ );
-   // particles.Redistribute();
-   // particles.ReBin();
+    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.Redistribute();
+    particles.ReBin();
 
     //Time stepping loop
 

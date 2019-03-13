@@ -21,6 +21,11 @@ int                        common::membrane_cell;
 int                        common::cross_cell;
 amrex::Real                common::transmission;
 
+int                        common::pkernel_fluid;
+int                        common::pkernel_es;
+amrex::Real                common::qval;
+amrex::Real                common::perm;
+
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
 int                        common::max_step;

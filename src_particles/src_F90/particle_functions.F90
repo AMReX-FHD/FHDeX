@@ -808,8 +808,13 @@ end subroutine move_particles_fhd
 
 subroutine peskin_3pt(r,w)
 
+  !This isn't three point! Fill in correct values later
+
   double precision, intent(in   ) :: r
   double precision, intent(inout) :: w
+
+  double precision rr
+  rr = r*r
 
   if(r .le. -2) then
 
@@ -817,19 +822,19 @@ subroutine peskin_3pt(r,w)
 
   elseif(r .le. -1) then
 
-    w = 0.125*(5 + 2*r - sqrt(-7 - 12*r - 4*r*r))
+    w = 0.125*(5 + 2*r - sqrt(-7 - 12*r - 4*rr))
 
   elseif(r .le. 0) then
 
-    w = 0.125*(3 + 2*r + sqrt(1 - 4*r - 4*r*r))
+    w = 0.125*(3 + 2*r + sqrt(1 - 4*r - 4*rr))
 
   elseif(r .le. 1) then
 
-    w = 0.125*(3 - 2*r + sqrt(1 + 4*r - 4*r*r))
+    w = 0.125*(3 - 2*r + sqrt(1 + 4*r - 4*rr))
 
   elseif(r .le. 2) then
 
-    w = 0.125*(5 - 2*r - sqrt(-7 + 12*r - 4*r*r))
+    w = 0.125*(5 - 2*r - sqrt(-7 + 12*r - 4*rr))
 
   else
 
@@ -840,6 +845,43 @@ subroutine peskin_3pt(r,w)
 
 end subroutine peskin_3pt
 
+
+subroutine peskin_4pt(r,w)
+
+  double precision, intent(in   ) :: r
+  double precision, intent(inout) :: w
+
+  double precision rr 
+  rr = r*r
+
+  if(r .le. -2) then
+
+    w = 0
+
+  elseif(r .le. -1) then
+
+    w = 0.125*(5 + 2*r - sqrt(-7 - 12*r - 4*rr))
+
+  elseif(r .le. 0) then
+
+    w = 0.125*(3 + 2*r + sqrt(1 - 4*r - 4*rr))
+
+  elseif(r .le. 1) then
+
+    w = 0.125*(3 - 2*r + sqrt(1 + 4*r - 4*rr))
+
+  elseif(r .le. 2) then
+
+    w = 0.125*(5 - 2*r - sqrt(-7 + 12*r - 4*rr))
+
+  else
+
+    w = 0
+
+  endif
+
+
+end subroutine peskin_4pt
 
 
 subroutine get_weights(dxf, dxfinv, weights, indicies, &
@@ -912,9 +954,9 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
         yy = part%pos(2) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),2)
         zz = part%pos(3) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),3)
 
-        call peskin_3pt(xx*dxfinv(1),w1)
-        call peskin_3pt(yy*dxfinv(2),w2)
-        call peskin_3pt(zz*dxfinv(3),w3)
+        call peskin_4pt(xx*dxfinv(1),w1)
+        call peskin_4pt(yy*dxfinv(2),w2)
+        call peskin_4pt(zz*dxfinv(3),w3)
 
         weights(i,j,k,1) = w1*w2*w3
 
@@ -930,9 +972,9 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
         yy = part%pos(2) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),2)
         zz = part%pos(3) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),3)
 
-        call peskin_3pt(xx*dxfinv(1),w1)
-        call peskin_3pt(yy*dxfinv(2),w2)
-        call peskin_3pt(zz*dxfinv(3),w3)
+        call peskin_4pt(xx*dxfinv(1),w1)
+        call peskin_4pt(yy*dxfinv(2),w2)
+        call peskin_4pt(zz*dxfinv(3),w3)
 
         weights(i,j,k,2) = w1*w2*w3
 
@@ -947,9 +989,9 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
         yy = part%pos(2) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,2)
         zz = part%pos(3) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,3)
 
-        call peskin_3pt(xx*dxfinv(1),w1)
-        call peskin_3pt(yy*dxfinv(2),w2)
-        call peskin_3pt(zz*dxfinv(3),w3)
+        call peskin_4pt(xx*dxfinv(1),w1)
+        call peskin_4pt(yy*dxfinv(2),w2)
+        call peskin_4pt(zz*dxfinv(3),w3)
 
         weights(i,j,k,3) = w1*w2*w3
 
@@ -1077,8 +1119,6 @@ subroutine spread_op(weights, indicies, &
     enddo
   enddo
 
-  !print*, "Spreadvel fluid: ", (part%vel(1)-uloc)*(1d-2)*part%radius*3.142*6
-  !print*, "Spreadvel electro: ", 20e9*part%q
 
 end subroutine spread_op
 
@@ -1138,7 +1178,10 @@ subroutine inter_op(weights, indicies, &
     enddo
   enddo
 
-  !print*, "Intervel: ", part%vel
+  part%vel(1) = part%vel(1)
+
+
+  print*, "Intervel: ", part%vel
 
 end subroutine inter_op
 
@@ -1401,7 +1444,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
-  print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
+  !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
   
 end subroutine move_ions_fhd
 
