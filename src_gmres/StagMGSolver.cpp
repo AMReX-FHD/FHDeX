@@ -293,15 +293,10 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                                  beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
-                        // fill periodic ghost cells
-                        phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
-
-                    }
-
                     // fill boundary cells
                     for (int d=0; d<AMREX_SPACEDIM; d++) {
+                        // fill periodic ghost cells
+                        phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                         // TODO: are these the correct BC?
                         MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
@@ -417,14 +412,10 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                 StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                              beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
+                for (int d=0; d<AMREX_SPACEDIM; d++) {
                     // fill periodic ghost cells
                     phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-                }
-
-                for (int d=0; d<AMREX_SPACEDIM; d++) {
                     // TODO: are these the correct BC?
                     MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
                     MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
@@ -537,14 +528,9 @@ void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
                     StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                                  beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
-                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
+                    for (int d=0; d<AMREX_SPACEDIM; d++) {
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
-
-                    }
-
-                    for (int d=0; d<AMREX_SPACEDIM; d++) {
 
                         // TODO: are these the correct BC?
                         MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
