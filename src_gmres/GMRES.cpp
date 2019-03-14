@@ -104,7 +104,6 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     }
 
     // preconditioned norm_b: norm_pre_b
-
     ApplyPrecon(b_u,b_p,tmp_u,tmp_p,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom);
     StagL2Norm(tmp_u,0,norm_u);
     CCL2Norm(tmp_p,0,norm_p);

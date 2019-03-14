@@ -12,6 +12,36 @@ using namespace amrex;
 using namespace gmres;
 using namespace common;
 
+void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                  const MultiFab & beta_cc,
+                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                  const MultiFab & gamma_cc,
+                  std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
+                  const Real & theta_alpha,
+                  const Geometry & geom)
+{
+    // If no implicit force coefficients are provided, create a static array of
+    // MultiFabs which is initialized to 0.
+    static bool alloc_fcoef = true;
+    static std::array<MultiFab, AMREX_SPACEDIM> fcoef;
+
+    // This only needs to be initialized once...
+    if (alloc_fcoef) {
+
+        const BoxArray & ba            = beta_cc.boxArray();
+        const DistributionMapping & dm = beta_cc.DistributionMap();
+
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            fcoef[d].define(convert(ba, nodal_flag_dir[d]), dm, 1, phi_fc[0].nGrow());
+            fcoef[d].setVal(0.);
+        }
+        alloc_fcoef = false;
+    }
+
+    StagMGSolver(alpha_fc, beta_cc, beta_ed, gamma_cc, fcoef, phi_fc, rhs_fc, theta_alpha, geom);
+}
+
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
 // if abs(visc_type) = 1, L = div beta grad
 // if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
@@ -22,14 +52,17 @@ using namespace common;
 // alpha_fc, phi_fc, and rhs_fc are face-centered
 // beta_ed is nodal (2d) or edge-centered (3d)
 // phi_fc must come in initialized to some value, preferably a reasonable guess
-void StagMGSolver(const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-                  const MultiFab& beta_cc,
-                  const std::array< MultiFab, NUM_EDGE >& beta_ed,
-                  const MultiFab& gamma_cc,
-                  std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
-                  const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
-                  const Real& theta_alpha,
-                  const Geometry& geom)
+// fcoef_implicit, implicit force coefficients (optional). If present:
+//                 L = L(visc_type, above) + fcoef
+void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                  const MultiFab & beta_cc,
+                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                  const MultiFab & gamma_cc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & fcoef_implicit,
+                  std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
+                  const Real & theta_alpha,
+                  const Geometry & geom)
 {
 
     BL_PROFILE_VAR("StagMGSolver()",StagMGSolver);
