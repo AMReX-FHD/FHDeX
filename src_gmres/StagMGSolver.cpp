@@ -145,33 +145,24 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         }
 
         // build multifabs used in multigrid coarsening
-         beta_cc_mg[n].define(ba,dmap,1,1);
-        gamma_cc_mg[n].define(ba,dmap,1,1);
+         beta_cc_mg[n].define(ba, dmap, 1, 1);
+        gamma_cc_mg[n].define(ba, dmap, 1, 1);
 
-        AMREX_D_TERM(alpha_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                     alpha_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                     alpha_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
-        AMREX_D_TERM(  rhs_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                       rhs_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                       rhs_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-        AMREX_D_TERM(  phi_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                       phi_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                       phi_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-        AMREX_D_TERM( Lphi_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                      Lphi_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                      Lphi_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-        AMREX_D_TERM(resid_fc_mg[n][0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                     resid_fc_mg[n][1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                     resid_fc_mg[n][2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            alpha_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+              rhs_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+              phi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+             Lphi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+            resid_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        }
 
         // build beta_ed_mg
         if (AMREX_SPACEDIM == 2) {
-            beta_ed_mg[n][0].define(convert(ba,nodal_flag), dmap, 1, 0);
+            beta_ed_mg[n][0].define(convert(ba, nodal_flag), dmap, 1, 0);
         }
         else if (AMREX_SPACEDIM == 3) {
-            beta_ed_mg[n][0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-            beta_ed_mg[n][1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-            beta_ed_mg[n][2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+            for (int d=0; d<AMREX_SPACEDIM; d++)
+                beta_ed_mg[n][d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 0);
         }
     } // end loop over multigrid levels
 
