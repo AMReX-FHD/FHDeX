@@ -188,18 +188,37 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         gamma_cc_mg[n].setVal(0.);
 
         // cc_restriction on beta_cc_mg and gamma_cc_mg
-        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1],geom_mg[n]);
+        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1],geom_mg[n]); // CCRestriction calls FillBoundary
         CCRestriction(gamma_cc_mg[n],gamma_cc_mg[n-1],geom_mg[n]);
 
         // stag_restriction on alpha_fc_mg
         StagRestriction(alpha_fc_mg[n],alpha_fc_mg[n-1],1);
 
+        // StagRestriction, NodalRestriction, and EdgeRestriction do not call
+        // FillBoundary => Do them here for now
+
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            alpha_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
+            // TODO: are these the correct BC?
+            MultiFABPhysBC(alpha_fc_mg[n][d], geom_mg[n]);
+        }
+
 #if (AMREX_SPACEDIM == 2)
         // nodal_restriction on beta_ed_mg
         NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
+
+        beta_ed_mg[n][0].FillBoundary(geom_mg[n].periodicity());
+        // TODO: are these the correct BC?
+        MultiFABPhysBC(beta_ed_mg[n][0], geom_mg[n]);
 #elif (AMREX_SPACEDIM == 3)
         // edge_restriction on beta_ed_mg
         EdgeRestriction(beta_ed_mg[n],beta_ed_mg[n-1]);
+
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            beta_ed_mg[n][d].FillBoundary(geom_mg[n].periodicity());
+            // TODO: are these the correct BC?
+            MultiFABPhysBC(beta_ed_mg[n][d], d, geom_mg[n]);
+        }
 #endif
     }
 
@@ -219,11 +238,9 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         // TODO: are these the correct BC?
         MultiFABPhysBCDomainVel(phi_fc_mg[0][d], d, geom_mg[0]);
         MultiFABPhysBCMacVel(phi_fc_mg[0][d], d, geom_mg[0]);
-    }
 
-    // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Copy(rhs_fc_mg[0][d],rhs_fc[d],0,0,1,0);
+        // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
+        MultiFab::Copy(rhs_fc_mg[0][d], rhs_fc[d], 0, 0, 1, 0);
     }
 
     // compute norm of initial residual
@@ -382,12 +399,11 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 rhs_fc_mg[n+1][d].FillBoundary(geom_mg[n+1].periodicity());
-            }
 
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
                 // TODO: are these the correct BC?
-                MultiFABPhysBCDomainVel(rhs_fc_mg[n+1][d], d, geom_mg[n+1]);
-                //MultiFABPhysBCMacVel(rhs_fc_mg[n+1][d], d);
+                MultiFABPhysBC(rhs_fc_mg[n+1][d], d, geom_mg[n+1]);
+                // MultiFABPhysBCDomainVel(rhs_fc_mg[n+1][d], d, geom_mg[n+1]);
+                // MultiFABPhysBCMacVel(rhs_fc_mg[n+1][d], d, geom_mg[n+1]);
             }
 
         }  // end loop over nlevs_mg (bottom of V-cycle)
@@ -777,7 +793,7 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
     }
 
     phi_c.FillBoundary(geom_c.periodicity());
-
+    MultiFABPhysBC(phi_c, geom_c);
 }
 
 void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
@@ -923,8 +939,5 @@ void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
 #endif
                        BL_TO_FORTRAN_3D(gamma_cc[mfi]),
                        dx, &color);
-
-
-
     }
 }
