@@ -26,6 +26,8 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
+#include <AMReX_MLPoisson.H>
+
 using namespace gmres;
 using namespace common;
 //using namespace amrex;
@@ -77,7 +79,7 @@ void main_driver(const char* argv)
 
     //---------------------------------------
 
-        //Terms prepended with a 'C' are related to the particle grid. Those without are for the hydro grid.
+        //Terms prepended with a 'C' are related to the particle grid. Those with P are for the electostatic grid. Those without are for the hydro grid.
         //The particle grid created as a corsening or refinement of the hydro grid.
 
     //---------------------------------------
@@ -85,13 +87,16 @@ void main_driver(const char* argv)
     // make BoxArray and Geometry
     BoxArray ba;
     BoxArray bc;
+    BoxArray bp;
     Geometry geom;
     Geometry geomC;
+    Geometry geomP;
     
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
     Box domainC = domain;
+    Box domainP = domain;
 
     // Initialize the boxarray "ba" from the single box "bx"
     ba.define(domain);
@@ -104,14 +109,19 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
-    int sizeRatio = 1;
+    int sizeRatioC = 1;
+    int sizeRatioP = 1;
 
     bc = ba;
-    bc.coarsen(sizeRatio);
-    domainC.coarsen(sizeRatio);
+    bp = ba;
+    bc.coarsen(sizeRatioC);
+    bp.coarsen(sizeRatioP);
+    domainC.coarsen(sizeRatioC);
+    domainP.coarsen(sizeRatioP);
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
+    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic.data());
 
 
     // how boxes are distrubuted among MPI processes
@@ -119,6 +129,7 @@ void main_driver(const char* argv)
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
+    const Real* dxp = geomP.CellSize();
 
     MultiFab cellVols(bc, dmap, 1, 0);
 
@@ -271,7 +282,17 @@ void main_driver(const char* argv)
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
 
-    int ng = 3;
+
+    int ng = 1;
+
+    if(pkernel_fluid == 4)
+    {
+        ng = 3;
+    }else if(pkernel_fluid == 6)
+    {
+
+        ng = 4;
+    }
 
     MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
@@ -502,6 +523,37 @@ void main_driver(const char* argv)
 
     //setup initial DSMC collision parameters
     //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
+
+
+    //----------------------    
+    // Electrostatic setup
+    //----------------------
+
+    int ngp = 1;
+
+    if(pkernel_es == 4)
+    {
+        ngp = 3;
+
+    }else if(pkernel_es == 6)
+    {
+
+        ngp = 4;
+    }
+    
+
+    //Cell centred es potential
+    MultiFab potential(ba, dmap, 1, ngp);
+    potential.setVal(visc_coef);
+
+    //Staggered electric field
+    std::array< MultiFab, AMREX_SPACEDIM > efield;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
+    }
+
+
+    MLPoisson EsSolver;
 
 
     // write out initial state
