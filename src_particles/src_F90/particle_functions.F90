@@ -1,7 +1,7 @@
 subroutine force_function(part1,part2) &
     bind(c,name="force_function")
 
-  ! need to pass the box dimensions so we can calulculate the real distance 
+  ! need to pass the box dimensions so we can calulculate the real distance
 
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
@@ -15,11 +15,16 @@ subroutine force_function(part1,part2) &
   real :: dx, dy, dz, dr, dr2
 
 
+  !!!!!!!!!!!!!!!!!!!or real :: dx(3)
+
+
   !here calculate forces as a function of distance
 
   dx = part1%pos(1)-part2%pos(1)
   dy = part1%pos(2)-part2%pos(2)
   dz = part1%pos(3)-part2%pos(3)
+
+  !!!!!!!!!!!!!!!!!!!!!!!or dx = part1%pos - part2%pos etc - fortran has built in vector ops
 
   !above need to correct for box size---no particles farther than L/2
 
