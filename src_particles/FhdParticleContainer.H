@@ -117,6 +117,8 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
 
+    void collectCharge(const Real dt, const Real* dxPotential, const Real* ploPotential, MultiFab& potential, MultiFab& potentialTemp);
+
 
     void ReBin();
 

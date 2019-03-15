@@ -441,6 +441,54 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 }
 
 
+void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential, const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp)
+{
+    
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+    charge.setVal(0.0);
+    chargeTemp.setVal(0.0);
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+        
+        //Print() << "FHD\n"; 
+//        collect_charge(particles.data(), &np,
+//                         ARLIM_3D(tile_box.loVect()),
+//                         ARLIM_3D(tile_box.hiVect()),
+//                         m_vector_ptrs[grid_id].dataPtr(),
+//                         m_vector_size[grid_id].dataPtr(),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploPotenial), ZFILL(dxPotential),
+//                         BL_TO_FORTRAN_3D(RealCenterCoords[pti]),
+//                         BL_TO_FORTRAN_3D(chargeTemp[pti]));
+
+    }
+
+    chargeTemp.SumBoundary(Geom(lev).periodicity());
+
+    MultiFab::Add(charge,chargeTemp,0,0,charge.nComp(),charge.nGrow());
+
+    charge.FillBoundary(Geom(lev).periodicity());
+}
+
+
 
 void FhdParticleContainer::InitCollisionCells(
                               MultiFab& collisionPairs,

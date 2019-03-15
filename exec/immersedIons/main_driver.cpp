@@ -26,7 +26,7 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
-#include <AMReX_MLPoisson.H>
+#include "electrostatic.H"
 
 using namespace gmres;
 using namespace common;
@@ -469,13 +469,14 @@ void main_driver(const char* argv)
         sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
     }
 
-    // staggered real coordinates
+
+    // staggered real coordinates - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
     AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, ng);,
                  RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, ng);,
                  RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, ng););
 
-    // staggered source terms
+    // staggered source terms - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > source;
     AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
                  source[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
@@ -540,21 +541,29 @@ void main_driver(const char* argv)
 
         ngp = 4;
     }
-    
 
+    // cell centered real coordinates - es grid
+    MultiFab RealCenteredCoords;
+    RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
+    
     //Cell centred es potential
     MultiFab potential(ba, dmap, 1, ngp);
-    potential.setVal(visc_coef);
+    MultiFab potentialTemp(ba, dmap, 1, ngp);
+    potential.setVal(0);
+    potentialTemp.setVal(0);
 
-    //Staggered electric field
+    MultiFab charge(ba, dmap, 1, ngp);
+    MultiFab chargeTemp(ba, dmap, 1, ngp);
+    charge.setVal(0);
+    chargeTemp.setVal(0);
+
+    //Staggered electric field - probably wont use this?
     std::array< MultiFab, AMREX_SPACEDIM > efield;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
 
-
     MLPoisson EsSolver;
-
 
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
