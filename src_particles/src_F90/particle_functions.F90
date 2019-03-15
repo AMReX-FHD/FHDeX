@@ -1,7 +1,7 @@
 subroutine force_function(part1,part2) &
     bind(c,name="force_function")
 
-  !probably also need to pass the box dimensions so we can calulculate the real distance 
+  ! need to pass the box dimensions so we can calulculate the real distance 
 
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
@@ -11,8 +11,8 @@ subroutine force_function(part1,part2) &
   type(particle_t), intent(inout) :: part1 !is this defined correctly?
   type(particle_t), intent(inout) :: part2
 
-  integer :: i,j,k
-  real :: dx, dy, dz, dr
+  integer :: i,j,k,images
+  real :: dx, dy, dz, dr, dr2
 
 
   !here calculate forces as a function of distance
@@ -21,12 +21,28 @@ subroutine force_function(part1,part2) &
   dy = part1%pos(2)-part2%pos(2)
   dz = part1%pos(3)-part2%pos(3)
 
-  !above need to correct for box size
+  !above need to correct for box size---no particles farther than L/2
 
+  dr2 = dx*dx+dy*dy+dz*dz
   dr = sqrt(dx*dx+dy*dy+dz*dz)
 
-  !electrostatic
+  !electrostatic -- need to determine how many images we should be adding
+  !also need to add cgs constants
+  images = 1 !change this to an input
+  do while (i <= images)
+  
+    !change dx, dy, dz, dr2 for each image     
 
+     part1%force(1) = part1%force(1) + dx*part1%q*part2%q/dr2
+     part2%force(1) = part2%force(1) - dx*part1%q*part2%q/dr2
+   
+     part1%force(2) = part1%force(2) + dy*part1%q*part2%q/dr2
+     part2%force(2) = part2%force(2) - dy*part1%q*part2%q/dr2
+   
+     part1%force(3) = part1%force(3) + dz*part1%q*part2%q/dr2
+     part2%force(3) = part2%force(3) - dz*part1%q*part2%q/dr2
+
+  end do
   !repulsive    
 
 end subroutine force_function
