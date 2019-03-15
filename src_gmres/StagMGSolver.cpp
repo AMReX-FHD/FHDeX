@@ -36,6 +36,35 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             fcoef[d].define(convert(ba, nodal_flag_dir[d]), dm, 1, phi_fc[0].nGrow());
             fcoef[d].setVal(0.);
         }
+
+        // for (MFIter mfi(fcoef[0]); mfi.isValid(); ++mfi) {
+        //     const Box & validbox = mfi.validbox();
+
+        //     if (validbox.contains(IntVect{12, 11, 4})) {
+        //         FArrayBox & fab = fcoef[0][mfi];
+        //         fab(IntVect{12, 11, 4}) = -1.;
+        //     }
+        // }
+
+        // for (MFIter mfi(fcoef[1]); mfi.isValid(); ++mfi) {
+        //     const Box & validbox = mfi.validbox();
+
+        //     if (validbox.contains(IntVect{12, 11, 4})) {
+        //         FArrayBox & fab = fcoef[1][mfi];
+        //         fab(IntVect{12, 11, 4}) = -1.;
+        //     }
+        // }
+
+        // for (MFIter mfi(fcoef[2]); mfi.isValid(); ++mfi) {
+        //     const Box & validbox = mfi.validbox();
+
+        //     if (validbox.contains(IntVect{12, 11, 4})) {
+        //         FArrayBox & fab = fcoef[2][mfi];
+        //         fab(IntVect{12, 11, 4}) = -1.;
+        //     }
+        // }
+
+
         alloc_fcoef = false;
     }
 
@@ -107,7 +136,10 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >   phi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > >  Lphi_fc_mg(nlevs_mg);
     Vector<std::array< MultiFab, AMREX_SPACEDIM > > resid_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge-based in 3D
+    Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge in 3D
+    Vector<std::array< MultiFab, AMREX_SPACEDIM > >    fcoef_mg(nlevs_mg);
+    Vector<std::array< MultiFab, AMREX_SPACEDIM > >    force_mg(nlevs_mg);
+
     //////////////////////////////////
 
     // initial and current residuals
@@ -154,6 +186,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
               phi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
              Lphi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
             resid_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+               fcoef_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+               force_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
         }
 
         // build beta_ed_mg
@@ -167,40 +201,52 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
     } // end loop over multigrid levels
 
     // copy level 1 coefficients into mg array of coefficients
-    MultiFab::Copy(beta_cc_mg[0],beta_cc,0,0,1,1);
-    MultiFab::Copy(gamma_cc_mg[0],gamma_cc,0,0,1,1);
+    MultiFab::Copy(beta_cc_mg[0],  beta_cc,  0, 0, 1, 1);
+    MultiFab::Copy(gamma_cc_mg[0], gamma_cc, 0, 0, 1, 1);
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Copy(alpha_fc_mg[0][d],alpha_fc[d],0,0,1,0);
+        MultiFab::Copy(alpha_fc_mg[0][d], alpha_fc[d], 0, 0, 1, 0);
         // multiply alpha_fc_mg by theta_alpha
         alpha_fc_mg[0][d].mult(theta_alpha,0,1,0);
+
+        MultiFab::Copy(fcoef_mg[0][d], fcoef_implicit[d], 0, 0, 1, 0);
+        force_mg[0][d].setVal(0.);
     }
-    MultiFab::Copy(beta_ed_mg[0][0],beta_ed[0],0,0,1,0);
+
+    MultiFab::Copy(    beta_ed_mg[0][0], beta_ed[0], 0, 0, 1, 0);
     if (AMREX_SPACEDIM == 3) {
-        MultiFab::Copy(beta_ed_mg[0][1],beta_ed[1],0,0,1,0);
-        MultiFab::Copy(beta_ed_mg[0][2],beta_ed[2],0,0,1,0);
+        MultiFab::Copy(beta_ed_mg[0][1], beta_ed[1], 0, 0, 1, 0);
+        MultiFab::Copy(beta_ed_mg[0][2], beta_ed[2], 0, 0, 1, 0);
     }
 
     // coarsen coefficients
     for (n=1; n<nlevs_mg; ++n) {
         // need ghost cells set to zero to prevent intermediate NaN states
         // that cause some compilers to fail
-        beta_cc_mg[n].setVal(0.);
+         beta_cc_mg[n].setVal(0.);
         gamma_cc_mg[n].setVal(0.);
 
         // cc_restriction on beta_cc_mg and gamma_cc_mg
-        CCRestriction( beta_cc_mg[n], beta_cc_mg[n-1],geom_mg[n]); // CCRestriction calls FillBoundary
-        CCRestriction(gamma_cc_mg[n],gamma_cc_mg[n-1],geom_mg[n]);
+        // NOTE: CCRestriction calls FillBoundary
+
+        CCRestriction( beta_cc_mg[n],  beta_cc_mg[n-1], geom_mg[n]);
+        CCRestriction(gamma_cc_mg[n], gamma_cc_mg[n-1], geom_mg[n]);
 
         // stag_restriction on alpha_fc_mg
-        StagRestriction(alpha_fc_mg[n],alpha_fc_mg[n-1],1);
+        StagRestriction(alpha_fc_mg[n], alpha_fc_mg[n-1], 1);
+        StagRestriction(   fcoef_mg[n], fcoef_mg[n-1],    1);
 
-        // StagRestriction, NodalRestriction, and EdgeRestriction do not call
-        // FillBoundary => Do them here for now
+        // NOTE: StagRestriction, NodalRestriction, and EdgeRestriction do not
+        // call FillBoundary => Do them here for now
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             alpha_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
             // TODO: are these the correct BC?
             MultiFABPhysBC(alpha_fc_mg[n][d], geom_mg[n]);
+
+            fcoef_mg[n][d].FillBoundary(geom_mg[n].periodicity());
+            // TODO: are these the correct BC?
+            MultiFABPhysBC(fcoef_mg[n][d], geom_mg[n]);
         }
 
 #if (AMREX_SPACEDIM == 2)
@@ -244,10 +290,20 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
     }
 
     // compute norm of initial residual
-    // first compute Lphi
+    // first compute viscous part of Lphi
     StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
                 phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],dx_mg[0].data(),1.);
 
+    // then compute the force part of Lphi and add (NOTE: rhs_fc already has
+    // explicit part from GMRES.cpp)
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        // force_mg[0][d].setVal(0.);
+        MultiFab::Copy(force_mg[0][d],     fcoef_mg[0][d],  0, 0, 1, 0);
+        MultiFab::Multiply(force_mg[0][d], phi_fc_mg[0][d], 0, 0, 1, 0);
+        MultiFab::Add(Lphi_fc_mg[0][d],    force_mg[0][d],  0, 0, 1, 0);
+    }
+
+    // now subtract the rest of the RHS from Lphi.
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // compute Lphi - rhs
         MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,1);
@@ -308,6 +364,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+                // then compute the force part of Lphi and add (NOTE: rhs_fc
+                // already has explicit part from GMRES.cpp)
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    // force_mg[0][d].setVal(0.);
+                    MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                    MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                    MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                }
+
+                // now subtract the rest of the RHS from Lphi.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
@@ -330,12 +396,22 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.,color);
 
+                    // then compute the force part of Lphi and add (NOTE: rhs_fc
+                    // already has explicit part from GMRES.cpp)
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        // force_mg[0][d].setVal(0.);
+                        MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                        MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                        MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                    }
+
+                    // TODO: include implicit forcing coefficients? (modify alpha?)
                     // update phi = phi + omega*D^{-1}*(rhs-Lphi)
                     StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                                  beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
                     // fill boundary cells
-                    for (int d=0; d<AMREX_SPACEDIM; d++) {
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
@@ -343,7 +419,6 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                         MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
                         MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
                     }
-
 
                 } // end loop over colors
 
@@ -354,6 +429,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+                    // then compute the force part of Lphi and add (NOTE: rhs_fc
+                    // already has explicit part from GMRES.cpp)
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        // force_mg[0][d].setVal(0.);
+                        MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                        MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                        MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                    }
+
+                    // now subtract the rest of the RHS from Lphi.
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         // compute Lphi - rhs, and report residual
                         MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
@@ -372,11 +457,22 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                         phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+            // then compute the force part of Lphi and add (NOTE: rhs_fc already
+            // has explicit part from GMRES.cpp)
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // force_mg[0][d].setVal(0.);
+                MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+            }
+
+            // now subtract the rest of the RHS from Lphi.
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                 // compute Lphi - rhs, and then multiply by -1
                 MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                 Lphi_fc_mg[n][d].mult(-1.,0,1,0);
+
                 if (stag_mg_verbosity >= 3) {
                     resid_temp = Lphi_fc_mg[n][d].norm0();
                     Print() << "Residual for comp " << d << " after all smooths at level "
@@ -386,9 +482,6 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 // fill periodic ghost cells
                 Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-            }
-
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
                 // TODO: are these the correct BC?
                 MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
                 MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
@@ -425,6 +518,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                         phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+            // then compute the force part of Lphi and add (NOTE: rhs_fc already
+            // has explicit part from GMRES.cpp)
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // force_mg[0][d].setVal(0.);
+                MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+            }
+
+            // now subtract the rest of the RHS from Lphi.
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 // compute Lphi - rhs, and report residual
 
@@ -448,6 +551,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.,color);
 
+                // then compute the force part of Lphi and add (NOTE: rhs_fc already
+                // has explicit part from GMRES.cpp)
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // force_mg[0][d].setVal(0.);
+                    MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                    MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                    MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                }
+
+                // TODO: include implicit forcing coefficients? (modify alpha?)
                 // update phi = phi + omega*D^{-1}*(rhs-Lphi)
                 StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                              beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
@@ -470,6 +583,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+                // then compute the force part of Lphi and add (NOTE: rhs_fc already
+                // has explicit part from GMRES.cpp)
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // force_mg[0][d].setVal(0.);
+                    MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                    MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                    MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                }
+
+                // now subtract the rest of the RHS from Lphi.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
@@ -488,6 +611,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                     phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+        // then compute the force part of Lphi and add (NOTE: rhs_fc already has
+        // explicit part from GMRES.cpp)
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // force_mg[0][d].setVal(0.);
+            MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+            MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+            MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+        }
+
+        // now subtract the rest of the RHS from Lphi.
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
             // compute Lphi - rhs, and then multiply by -1
@@ -502,14 +635,17 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             // fill periodic ghost cells
             Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-        }
-
-        for (int d=0; d<AMREX_SPACEDIM; d++) {
-
             // TODO: are these the correct BC?
             MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
             MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
         }
+
+        // for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        //     // TODO: are these the correct BC?
+        //     MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
+        //     MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
+        // }
 
         if (stag_mg_verbosity >= 3) {
             Print() << "End bottom solve" << std::endl;
@@ -526,14 +662,17 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 // fill periodic ghost cells
                 phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-            }
-
-            for (int d=0; d<AMREX_SPACEDIM; d++) {
-
                 // TODO: are these the correct BC?
                 MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
                 MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
             }
+
+            // for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+            //     // TODO: are these the correct BC?
+            //     MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
+            //     MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
+            // }
 
             // print out residual
             if (stag_mg_verbosity >= 3) {
@@ -542,6 +681,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+                // then compute the force part of Lphi and add (NOTE: rhs_fc
+                // already has explicit part from GMRES.cpp)
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // force_mg[0][d].setVal(0.);
+                    MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                    MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                    MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                }
+
+                // now subtract the rest of the RHS from Lphi.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
@@ -564,6 +713,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.,color);
 
+                    // then compute the force part of Lphi and add (NOTE: rhs_fc
+                    // already has explicit part from GMRES.cpp)
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        // force_mg[0][d].setVal(0.);
+                        MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                        MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                        MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                    }
+
+                    // TODO: include implicit forcing coefficients? (modify alpha?)
                     // update phi = phi + omega*D^{-1}*(rhs-Lphi)
                     StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                                  beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
@@ -586,6 +745,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+                    // then compute the force part of Lphi and add (NOTE: rhs_fc
+                    // already has explicit part from GMRES.cpp)
+                    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                        // force_mg[0][d].setVal(0.);
+                        MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                        MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                        MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                    }
+
+                    // now subtract the rest of the RHS from Lphi.
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
                         // compute Lphi - rhs, and report residual
                         MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
@@ -603,6 +772,16 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
+                // then compute the force part of Lphi and add (NOTE: rhs_fc
+                // already has explicit part from GMRES.cpp)
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // force_mg[0][d].setVal(0.);
+                    MultiFab::Copy(force_mg[n][d],     fcoef_mg[n][d],  0, 0, 1, 0);
+                    MultiFab::Multiply(force_mg[n][d], phi_fc_mg[n][d], 0, 0, 1, 0);
+                    MultiFab::Add(Lphi_fc_mg[n][d],    force_mg[n][d],  0, 0, 1, 0);
+                }
+
+                // now subtract the rest of the RHS from Lphi.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
@@ -623,6 +802,15 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         // compute Lphi
         StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
                     phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],dx_mg[0].data(),1.);
+
+        // then compute the force part of Lphi and add (NOTE: rhs_fc already has
+        // explicit part from GMRES.cpp)
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // force_mg[0][d].setVal(0.);
+            MultiFab::Copy(force_mg[0][d],     fcoef_mg[0][d],  0, 0, 1, 0);
+            MultiFab::Multiply(force_mg[0][d], phi_fc_mg[0][d], 0, 0, 1, 0);
+            MultiFab::Add(Lphi_fc_mg[0][d],    force_mg[0][d],  0, 0, 1, 0);
+        }
 
         // compute Lphi - rhs
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
