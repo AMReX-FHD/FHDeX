@@ -11,115 +11,117 @@ const int NUM_EDGE = 1;
 const int NUM_EDGE = 3;
 #endif
 
+using namespace amrex;
+
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();
 
 // In ApplyMatrix.cpp
-void ApplyMatrix(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
-                 amrex::MultiFab& b_p,
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
-                 amrex::MultiFab& x_p,
-                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
-                 const amrex::MultiFab& beta,
-                 const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
-                 const amrex::MultiFab& gamma,
-                 const amrex::Real& theta_alpha,
-                 const amrex::Geometry& geom);
+void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
+                 MultiFab & b_p,
+                 std::array<MultiFab, AMREX_SPACEDIM> & x_u,
+                 MultiFab & x_p,
+                 const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                 const MultiFab & beta,
+                 const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                 const MultiFab & gamma,
+                 const Real & theta_alpha,
+                 const Geometry & geom);
 
 // In ApplyPrecon.cpp
-void ApplyPrecon(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
-                 const amrex::MultiFab& b_p,
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
-                 amrex::MultiFab& x_p,
-                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
-                 const amrex::MultiFab& beta,
-                 const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
-                 const amrex::MultiFab& gamma,
-                 const amrex::Real& theta_alpha,
-                 const amrex::Geometry& geom);
+void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
+                 const MultiFab & b_p,
+                 std::array<MultiFab, AMREX_SPACEDIM> & x_u,
+                 MultiFab & x_p,
+                 const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                 const MultiFab & beta,
+                 const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                 const MultiFab & gamma,
+                 const Real & theta_alpha,
+                 const Geometry & geom);
 
 // In GMRES.cpp
-void GMRES(std::array<amrex::MultiFab, AMREX_SPACEDIM>& b_u,
-           const amrex::MultiFab& b_p,
-           std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
-           amrex::MultiFab& x_p,
-           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
-           amrex::MultiFab& beta,
-           std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
-           amrex::MultiFab& gamma,
-           amrex::Real theta_alpha,
-           const amrex::Geometry& geom,
-           amrex::Real& norm_pre_rhs);
+void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
+           const MultiFab & b_p,
+           std::array<MultiFab, AMREX_SPACEDIM> & x_u,
+           MultiFab & x_p,
+           const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+           MultiFab & beta,
+           std::array<MultiFab, NUM_EDGE> & beta_ed,
+           MultiFab & gamma,
+           Real theta_alpha,
+           const Geometry & geom,
+           Real & norm_pre_rhs);
 
-void UpdateSol(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
-               amrex::MultiFab& x_p,
-               std::array<amrex::MultiFab, AMREX_SPACEDIM>& V_u,
-               amrex::MultiFab& V_p,
-               amrex::Vector<amrex::Real>& y,
+void UpdateSol(std::array<MultiFab, AMREX_SPACEDIM> & x_u,
+               MultiFab & x_p,
+               std::array<MultiFab, AMREX_SPACEDIM> & V_u,
+               MultiFab & V_p,
+               Vector<Real> & y,
                int i);
 
 void LeastSquares(int i,
-                  amrex::Vector<amrex::Vector<amrex::Real>>& H,
-                  amrex::Vector<amrex::Real>& cs,
-                  amrex::Vector<amrex::Real>& sn,
-                  amrex::Vector<amrex::Real>& s);
+                  Vector<Vector<Real>> & H,
+                  Vector<Real> & cs,
+                  Vector<Real> & sn,
+                  Vector<Real> & s);
 
-void RotMat(amrex::Real a, amrex::Real b,
-            amrex::Real& cs, amrex::Real& sn);
+void RotMat(Real a,    Real b,
+            Real & cs, Real & sn);
 
 void SolveUTriangular(int k,
-                      amrex::Vector<amrex::Vector<amrex::Real>>& H,
-                      amrex::Vector<amrex::Real>& s,
-                      amrex::Vector<amrex::Real>& y);
+                      Vector<Vector<Real>> & H,
+                      Vector<Real> & s,
+                      Vector<Real> & y);
 
 // In MacProj.cpp
-void MacProj(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
-             amrex::MultiFab& mac_rhs,
-             amrex::MultiFab& phi,
-             const amrex::Geometry& geom,
+void MacProj(const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
+             MultiFab & mac_rhs,
+             MultiFab & phi,
+             const Geometry & geom,
              bool full_solve=false);
 
-void SubtractWeightedGradP(std::array<amrex::MultiFab, AMREX_SPACEDIM>& x_u,
-                           const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alphainv_fc,
-                           amrex::MultiFab& phi,
-                           const amrex::Geometry& geom);
+void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM> & x_u,
+                           const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
+                           MultiFab & phi,
+                           const Geometry & geom);
 
-void CCApplyOp(amrex::MultiFab& phi,
-               amrex::MultiFab& Lphi,
-               const amrex::MultiFab& alpha,
-               const std::array<amrex::MultiFab, AMREX_SPACEDIM>& beta_fc,
-               const amrex::Geometry& geom);
+void CCApplyOp(MultiFab & phi,
+               MultiFab & Lphi,
+               const MultiFab & alpha,
+               const std::array<MultiFab, AMREX_SPACEDIM> & beta_fc,
+               const Geometry & geom);
 
 // In NormInnerProduct.cpp
-void SumStag(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
-	     const int& comp,
-	     amrex::Vector<amrex::Real>& sum,
-	     const bool& divide_by_ncells = false);
+void SumStag(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+	     const int & comp,
+	     Vector<Real> & sum,
+	     const bool & divide_by_ncells=false);
 
-void SumCC(const amrex::MultiFab& m1,
-	   const int& comp,
-	   amrex::Real& sum,
-	   const bool& divide_by_ncells = false);
+void SumCC(const MultiFab & m1,
+	   const int & comp,
+	   Real & sum,
+	   const bool & divide_by_ncells=false);
 
-void StagInnerProd(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
-                   const int& comp1,
-                   const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m2,
-                   const int& comp2,
-                   amrex::Vector<amrex::Real>& prod_val);
+void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+                   const int & comp1,
+                   const std::array<MultiFab, AMREX_SPACEDIM> & m2,
+                   const int & comp2,
+                   Vector<Real> & prod_val);
 
-void CCInnerProd(const amrex::MultiFab& m1,
-		 const int& comp1,
-		 const amrex::MultiFab& m2,
-		 const int& comp2,
-		 amrex::Real& prod_val);
+void CCInnerProd(const MultiFab & m1,
+		 const int & comp1,
+		 const MultiFab & m2,
+		 const int & comp2,
+		 Real & prod_val);
 
-void StagL2Norm(const std::array<amrex::MultiFab, AMREX_SPACEDIM>& m1,
-		const int& comp,
-		amrex::Real& norm_l2);
+void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+		const int & comp,
+		Real & norm_l2);
 
-void CCL2Norm(const amrex::MultiFab& m1,
-	      const int& comp,
-	      amrex::Real& norm_l2);
+void CCL2Norm(const MultiFab & m1,
+	      const int & comp,
+	      Real & norm_l2);
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Jacobi relaxation
 // if abs(visc_type) = 1, L = div beta grad
@@ -131,53 +133,65 @@ void CCL2Norm(const amrex::MultiFab& m1,
 // alpha_fc, phi_fc, and rhs_fc are face-centered
 // beta_ed is nodal (2d) or edge-centered (3d)
 // phi_fc must come in initialized to some value, preferably a reasonable guess
-void StagMGSolver(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
-                  const amrex::MultiFab& beta_cc,
-                  const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
-                  const amrex::MultiFab& gamma_cc,
-                  std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
-                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phiorig_fc,
-                  const amrex::Real& theta,
-                  const amrex::Geometry& geom);
+void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                  const MultiFab & beta_cc,
+                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                  const MultiFab & gamma_cc,
+                  std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & phiorig_fc,
+                  const Real & theta,
+                  const Geometry & geom);
+
+// Staggered multi-grid solver with implicit forcing coefficient
+// (fcoef_implicit) on faces
+void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                  const MultiFab & beta_cc,
+                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                  const MultiFab & gamma_cc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & fcoef_implicit,
+                  std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & phiorig_fc,
+                  const Real & theta,
+                  const Geometry & geom);
 
 // compute the number of multigrid levels assuming minwidth is the length of the
 // smallest dimension of the smallest grid at the coarsest multigrid level
-int ComputeNlevsMG(const amrex::BoxArray& ba);
+int ComputeNlevsMG(const BoxArray & ba);
 
-void CCRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f,
-                   const amrex::Geometry& geom_c);
+void CCRestriction(MultiFab & phi_c, const MultiFab & phi_f,
+                   const Geometry & geom_c);
 
-void StagRestriction(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c,
-                     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f,
+void StagRestriction(std::array<MultiFab, AMREX_SPACEDIM> & phi_c,
+                     const std::array<MultiFab, AMREX_SPACEDIM > & phi_f,
                      int simple_stencil=0);
 
-void NodalRestriction(amrex::MultiFab& phi_c, const amrex::MultiFab& phi_f);
+void NodalRestriction(MultiFab & phi_c, const MultiFab & phi_f);
 
-void EdgeRestriction(std::array< amrex::MultiFab, NUM_EDGE >& phi_c,
-                      const std::array< amrex::MultiFab, NUM_EDGE >& phi_f);
+void EdgeRestriction(std::array<MultiFab, NUM_EDGE> & phi_c,
+                      const std::array<MultiFab, NUM_EDGE> & phi_f);
 
-void StagProlongation(const std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_c,
-                      std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_f);
+void StagProlongation(const std::array<MultiFab, AMREX_SPACEDIM> & phi_c,
+                      std::array<MultiFab, AMREX_SPACEDIM> & phi_f);
 
-void StagMGUpdate(std::array< amrex::MultiFab, AMREX_SPACEDIM >& phi_fc,
-                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& rhs_fc,
-                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& Lphi_fc,
-                  const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
-                  const amrex::MultiFab& beta_cc,
-                  const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
-                  const amrex::MultiFab& gamma_cc,
-                  const amrex::Real* dx,
-                  const int& color = 0);
+void StagMGUpdate(std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & Lphi_fc,
+                  const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                  const MultiFab & beta_cc,
+                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                  const MultiFab & gamma_cc,
+                  const Real * dx,
+                  const int & color=0);
 
 // In StagApplyOp.cpp
-void StagApplyOp(const amrex::MultiFab& beta_cc,
-                 const amrex::MultiFab& gamma_cc,
-                 const std::array<amrex::MultiFab, NUM_EDGE>& beta_ed,
-                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacIn,
-                 std::array<amrex::MultiFab, AMREX_SPACEDIM>& umacOut,
-                 const std::array<amrex::MultiFab, AMREX_SPACEDIM>& alpha_fc,
-                 const amrex::Real* dx,
-                 const amrex::Real& theta_alpha,
-                 const int& color=0);
+void StagApplyOp(const MultiFab & beta_cc,
+                 const MultiFab & gamma_cc,
+                 const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                 const std::array<MultiFab, AMREX_SPACEDIM> & umacIn,
+                 std::array<MultiFab, AMREX_SPACEDIM> & umacOut,
+                 const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                 const Real * dx,
+                 const Real & theta_alpha,
+                 const int & color=0);
 
 #endif

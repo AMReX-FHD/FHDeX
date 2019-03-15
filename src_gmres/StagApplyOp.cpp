@@ -26,26 +26,22 @@ void StagApplyOp(const MultiFab& beta_cc, const MultiFab& gamma_cc,
 
     BL_PROFILE_VAR("StagApplyOp()",StagApplyOp);
 
-    const BoxArray& ba = beta_cc.boxArray();
-    const DistributionMapping& dmap = beta_cc.DistributionMap();
+    const BoxArray & ba              = beta_cc.boxArray();
+    const DistributionMapping & dmap = beta_cc.DistributionMap();
 
     // alpha_fc_temp arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_temp;
-    AMREX_D_TERM(alpha_fc_temp[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 alpha_fc_temp[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 alpha_fc_temp[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-    AMREX_D_TERM(MultiFab::Copy(alpha_fc_temp[0],alpha_fc[0],0,0,1,0);,
-		 MultiFab::Copy(alpha_fc_temp[1],alpha_fc[1],0,0,1,0);,
-		 MultiFab::Copy(alpha_fc_temp[2],alpha_fc[2],0,0,1,0););
-    AMREX_D_TERM(alpha_fc_temp[0].mult(theta_alpha,1);,
-		 alpha_fc_temp[1].mult(theta_alpha,1);,
-		 alpha_fc_temp[2].mult(theta_alpha,1););
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        alpha_fc_temp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        MultiFab::Copy(alpha_fc_temp[d], alpha_fc[d], 0, 0, 1, 0);
+        alpha_fc_temp[d].mult(theta_alpha, 1);
+    }
 
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(beta_cc); mfi.isValid(); ++mfi) {
 
-        const Box& validBox = mfi.validbox();
+        const Box & validBox = mfi.validbox();
 
         stag_apply_op(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
                       BL_TO_FORTRAN_ANYD(beta_cc[mfi]),
@@ -73,5 +69,29 @@ void StagApplyOp(const MultiFab& beta_cc, const MultiFab& gamma_cc,
                       dx, &color);
 
     }
-
 }
+
+// TODO: don't need this as there's MultiFab::Multiply
+//
+//
+// // Computes implicit forces from forcing-coefficient MultiFab
+//
+// void StagApplyForce(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+//                     const std::array<MultiFab, AMREX_SPACEDIM>& fcoef,
+//                     std::array<MultiFab, AMREX_SPACEDIM>& f_implicit) {
+//
+//     for (MFIter mfi(umac[0]); mfi.isValid(); ++mfi) {
+//
+//         const Box & validbox = mfi.validbox();
+//
+//     }
+//     for (MFIter mfi(umac[1]); mfi.isValid(); ++mfi) {
+//
+//     }
+//
+// #if (AMREX_SPACEDIM == 3)
+//     for (MFIter mfi(umac[2]); mfi.isValid(); ++mfi) {
+//
+//     }
+// #endif
+// }

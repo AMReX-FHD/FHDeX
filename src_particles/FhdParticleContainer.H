@@ -42,6 +42,7 @@ struct IntData
         i,
         j,
         k,
+        species,
         ncomps
     };
 };

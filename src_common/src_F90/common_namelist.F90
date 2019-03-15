@@ -21,6 +21,11 @@ module common_namelist_module
   integer,            save :: cross_cell
   double precision,   save :: transmission
 
+  integer,            save :: pkernel_fluid
+  integer,            save :: pkernel_es
+  double precision,   save :: qval
+  double precision,   save :: perm
+
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
   integer,            save :: max_step
@@ -103,6 +108,11 @@ module common_namelist_module
   namelist /common/ membrane_cell  !location of membrane
   namelist /common/ cross_cell     !cell to compute spatial correlation
   namelist /common/ transmission
+
+  namelist /common/ perm                !es permativity
+  namelist /common/ qval                !charge on an ion
+  namelist /common/ pkernel_fluid       !peskin kernel for fluid
+  namelist /common/ pkernel_es          !peskin kernel for es
 
   namelist /common/ mass
   namelist /common/ nfrac
@@ -305,6 +315,10 @@ contains
     membrane_cell = -1
     cross_cell = 0
 
+    pkernel_fluid = 4    
+    pkernel_es = 4
+        
+
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
@@ -317,6 +331,7 @@ contains
                                          max_grid_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, transmission_in, &
+                                         perm_in, qval_in, pkernel_fluid_in, pkernel_es_in,&
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
@@ -370,6 +385,11 @@ contains
     integer,                intent(inout) :: membrane_cell_in
     integer,                intent(inout) :: cross_cell_in
     double precision,       intent(inout) :: transmission_in
+
+    double precision,       intent(inout) :: perm_in
+    double precision,       intent(inout) :: qval_in
+    integer,                intent(inout) :: pkernel_fluid_in
+    integer,                intent(inout) :: pkernel_es_in
 
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
@@ -441,6 +461,12 @@ contains
     membrane_cell_in = membrane_cell
     cross_cell_in = cross_cell
     transmission_in = transmission
+
+    perm_in = perm
+    qval_in = qval
+    pkernel_fluid_in = pkernel_fluid
+    pkernel_es_in = pkernel_es
+
     fixed_dt_in = fixed_dt
     cfl_in = cfl
     max_step_in = max_step

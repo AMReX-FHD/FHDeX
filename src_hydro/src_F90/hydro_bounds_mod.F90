@@ -13,11 +13,11 @@ contains
 
 #if (AMREX_SPACEDIM == 2)
 
-  subroutine set_pressure_bc(lo,         hi,            & ! dim(lo) == dim(hi) == 3
-       &                     dom_lo,     dom_hi,        &
-       &                     data, d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-       &                     ngc)                       &
-       &                     bind(C, name="set_pressure_bc")
+  pure subroutine set_pressure_bc(lo,         hi,            & ! dim(lo) == dim(hi) == 3
+       &                          dom_lo,     dom_hi,        &
+       &                          data, d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+       &                          ngc)                       &
+       &                          bind(C, name="set_pressure_bc")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -96,11 +96,11 @@ contains
 
 #elif (AMREX_SPACEDIM == 3)
 
-  subroutine set_pressure_bc(lo,         hi,            & ! dim(lo) == dim(hi) == 3
-       &                     dom_lo,     dom_hi,        &
-       &                     data, d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-       &                     ngc)                       &
-       &                     bind(C, name="set_pressure_bc")
+  pure subroutine set_pressure_bc(lo,         hi,            & ! dim(lo) == dim(hi) == 3
+       &                          dom_lo,     dom_hi,        &
+       &                          data, d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+       &                          ngc)                       &
+       &                          bind(C, name="set_pressure_bc")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp

@@ -81,6 +81,7 @@ void InitializeCommonNamespace() {
                                 max_grid_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
+                                &perm, &qval, &pkernel_fluid, &pkernel_es,
                                 &fixed_dt, &cfl, &max_step,
                                 &plot_int, plot_base_name.c_str(), plot_base_name.size()+1,
                                 &chk_int, chk_base_name.c_str(), chk_base_name.size()+1,

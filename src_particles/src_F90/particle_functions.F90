@@ -891,8 +891,13 @@ end subroutine move_particles_fhd
 
 subroutine peskin_3pt(r,w)
 
+  !This isn't three point! Fill in correct values later
+
   double precision, intent(in   ) :: r
   double precision, intent(inout) :: w
+
+  double precision rr
+  rr = r*r
 
   if(r .le. -2) then
 
@@ -900,19 +905,19 @@ subroutine peskin_3pt(r,w)
 
   elseif(r .le. -1) then
 
-    w = 0.125*(5 + 2*r - sqrt(-7 - 12*r - 4*r*r))
+    w = 0.125*(5 + 2*r - sqrt(-7 - 12*r - 4*rr))
 
   elseif(r .le. 0) then
 
-    w = 0.125*(3 + 2*r + sqrt(1 - 4*r - 4*r*r))
+    w = 0.125*(3 + 2*r + sqrt(1 - 4*r - 4*rr))
 
   elseif(r .le. 1) then
 
-    w = 0.125*(3 - 2*r + sqrt(1 + 4*r - 4*r*r))
+    w = 0.125*(3 - 2*r + sqrt(1 + 4*r - 4*rr))
 
   elseif(r .le. 2) then
 
-    w = 0.125*(5 - 2*r - sqrt(-7 + 12*r - 4*r*r))
+    w = 0.125*(5 - 2*r - sqrt(-7 + 12*r - 4*rr))
 
   else
 
@@ -923,6 +928,144 @@ subroutine peskin_3pt(r,w)
 
 end subroutine peskin_3pt
 
+
+subroutine peskin_4pt(r,w)
+
+  double precision, intent(in   ) :: r
+  double precision, intent(inout) :: w
+
+  double precision rr 
+  rr = r*r
+
+  if(r .le. -2) then
+
+    w = 0
+
+  elseif(r .le. -1) then
+
+    w = 0.125*(5 + 2*r - sqrt(-7 - 12*r - 4*rr))
+
+  elseif(r .le. 0) then
+
+    w = 0.125*(3 + 2*r + sqrt(1 - 4*r - 4*rr))
+
+  elseif(r .le. 1) then
+
+    w = 0.125*(3 - 2*r + sqrt(1 + 4*r - 4*rr))
+
+  elseif(r .le. 2) then
+
+    w = 0.125*(5 - 2*r - sqrt(-7 + 12*r - 4*rr))
+
+  else
+
+    w = 0
+
+  endif
+
+
+end subroutine peskin_4pt
+
+subroutine bspline_6pt(r,w)
+
+  !Doesn't work?
+
+  double precision, intent(in   ) :: r
+  double precision, intent(inout) :: w
+
+  double precision r1, r2, r3, r4, r5
+ 
+  r1 = abs(r)
+  r2 = r1*r1
+  r3 = r2*r1
+  r4 = r3*r1
+  r5 = r4*r1
+
+  if(r1 .le. 1) then
+
+    w = 0.55 - 0.5*r2 + 0.25*r4 - (1d0/12d0)*r5
+
+  elseif(r1 .le. 2) then
+
+    w = 0.425 + 0.625*r - 1.75*r2 + 1.25*r3 - 0.375*r4 + (1d0/24d0)*r5
+
+  elseif(r1 .le. 3) then
+
+    w = 2.025 - 3.375*r + 2.25*r2 - 0.75*r3 + 0.125*r4 - (1d0/120d0)*r5;
+
+  else
+
+    w = 0
+
+  endif
+
+
+end subroutine bspline_6pt
+
+subroutine peskin_6pt(r,w)
+
+  double precision, intent(in   ) :: r
+  double precision, intent(inout) :: w
+
+  double precision alpha, beta, gamm, K, R1, R2, R3, discr
+  integer sgn
+ 
+  K = 59d0/60 - sqrt(29d0)/20
+
+  R1 = r - ceiling(r) + 1
+  R2 = R1*R1
+  R3 = R2*R1
+  alpha = 28
+  beta  = 9d0/4 - 1.5 * (K + R2) + (22./3-7*K)*R1 - 7./3*R3;
+  gamm = 0.25 * ( 0.5*(161./36 - 59./6*K + 5*K*K)*R2 + 1./3*(-109./24 + 5*K)*R2*R2 + 5./18*R3*R3  );
+  discr = beta*beta - 4 * alpha * gamm;
+
+  if((3/2 - K) .gt. 0) then
+
+    sgn = 1
+
+  else
+
+    sgn = -1
+
+  endif
+
+  if(r .le. -3) then
+
+    w = 0
+
+  elseif(r .le. -2) then
+
+    w = 1./(2*alpha) * ( -beta + sgn * sqrt(discr) );
+
+  elseif(r .le. -1) then
+
+    w = -3./(2*alpha) * ( -beta + sgn * sqrt(discr) ) - 1./16 + 1./8*( K+(r+2)*(r+2) ) + 1./12*(3*K-1)*(r+2) + 1./12*(r+2)*(r+2)*(r+2); 
+
+  elseif(r .le. 0) then
+
+    w = 2./(2*alpha) * ( -beta + sgn * sqrt(discr) ) + 1./4 + 1./6*(4-3*K)*(r+1) - 1./6*(r+1)*(r+1)*(r+1);
+
+  elseif(r .le. 1) then
+
+    w = 2./(2*alpha) * ( -beta + sgn * sqrt(discr) ) + 5./8 - 1./4 * ( K+r*r );
+
+  elseif(r .le. 2) then
+
+    w = -3./(2*alpha) * ( -beta + sgn * sqrt(discr) ) + 1./4 - 1./6*(4-3*K)*(r-1) + 1./6*(r-1)*(r-1)*(r-1);
+
+  elseif(r .le. 3) then
+
+    w = 1./(2*alpha) * ( -beta + sgn * sqrt(discr) ) - 1./16 + 1./8*(K+(r-2)*(r-2)) - 1./12*(3*K-1)*(r-2) - 1./12*(r-2)*(r-2)*(r-2); 	
+
+  else
+
+    w = 0
+
+  endif
+
+
+end subroutine peskin_6pt
 
 
 subroutine get_weights(dxf, dxfinv, weights, indicies, &
@@ -935,6 +1078,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module
 
   implicit none
 
@@ -995,9 +1139,15 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
         yy = part%pos(2) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),2)
         zz = part%pos(3) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),3)
 
-        call peskin_3pt(xx*dxfinv(1),w1)
-        call peskin_3pt(yy*dxfinv(2),w2)
-        call peskin_3pt(zz*dxfinv(3),w3)
+        if(pkernel_fluid .eq. 4) then
+          call peskin_4pt(xx*dxfinv(1),w1)
+          call peskin_4pt(yy*dxfinv(2),w2)
+          call peskin_4pt(zz*dxfinv(3),w3)
+        elseif(pkernel_fluid .eq. 6) then
+          call peskin_6pt(xx*dxfinv(1),w1)
+          call peskin_6pt(yy*dxfinv(2),w2)
+          call peskin_6pt(zz*dxfinv(3),w3)
+        endif 
 
         weights(i,j,k,1) = w1*w2*w3
 
@@ -1013,9 +1163,15 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
         yy = part%pos(2) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),2)
         zz = part%pos(3) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),3)
 
-        call peskin_3pt(xx*dxfinv(1),w1)
-        call peskin_3pt(yy*dxfinv(2),w2)
-        call peskin_3pt(zz*dxfinv(3),w3)
+        if(pkernel_fluid .eq. 4) then
+          call peskin_4pt(xx*dxfinv(1),w1)
+          call peskin_4pt(yy*dxfinv(2),w2)
+          call peskin_4pt(zz*dxfinv(3),w3)
+        elseif(pkernel_fluid .eq. 6) then
+          call peskin_6pt(xx*dxfinv(1),w1)
+          call peskin_6pt(yy*dxfinv(2),w2)
+          call peskin_6pt(zz*dxfinv(3),w3)
+        endif 
 
         weights(i,j,k,2) = w1*w2*w3
 
@@ -1030,9 +1186,15 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
         yy = part%pos(2) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,2)
         zz = part%pos(3) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,3)
 
-        call peskin_3pt(xx*dxfinv(1),w1)
-        call peskin_3pt(yy*dxfinv(2),w2)
-        call peskin_3pt(zz*dxfinv(3),w3)
+        if(pkernel_fluid .eq. 4) then
+          call peskin_4pt(xx*dxfinv(1),w1)
+          call peskin_4pt(yy*dxfinv(2),w2)
+          call peskin_4pt(zz*dxfinv(3),w3)
+        elseif(pkernel_fluid .eq. 6) then
+          call peskin_6pt(xx*dxfinv(1),w1)
+          call peskin_6pt(yy*dxfinv(2),w2)
+          call peskin_6pt(zz*dxfinv(3),w3)
+        endif 
 
         weights(i,j,k,3) = w1*w2*w3
 
@@ -1047,7 +1209,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   enddo
 
 
- ! print*, "Total: ", wcheck
+  print*, "Total: ", wcheck
 
 !              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
 !              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
@@ -1160,8 +1322,6 @@ subroutine spread_op(weights, indicies, &
     enddo
   enddo
 
-  !print*, "Spreadvel fluid: ", (part%vel(1)-uloc)*(1d-2)*part%radius*3.142*6
-  !print*, "Spreadvel electro: ", 20e9*part%q
 
 end subroutine spread_op
 
@@ -1221,7 +1381,10 @@ subroutine inter_op(weights, indicies, &
     enddo
   enddo
 
-  !print*, "Intervel: ", part%vel
+  part%vel(1) = part%vel(1)
+
+
+  print*, "Intervel: ", part%vel
 
 end subroutine inter_op
 
@@ -1247,7 +1410,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid
   use rng_functions_module
   use surfaces_module
   
@@ -1292,15 +1455,18 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst
 
-  double precision  :: cc(0:7)
-  double precision  :: rr(0:7)
+  double precision, allocatable :: weights(:,:,:,:)
+  integer, allocatable :: indicies(:,:,:,:,:)
 
-  double precision :: weights(-1:2,-1:2,-1:2,3)
-  integer :: indicies(-1:2,-1:2,-1:2,3,3)
+  if(pkernel_fluid .eq. 4) then
+    ks = 2
+  else
+    ks = 3
+  endif
+  
+  allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
+  allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
 
-  ks = 2
-
-   
   domsize = phi - plo
 
   adj = 0.999999
@@ -1484,7 +1650,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
-  print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
+  !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
+
+  deallocate(weights)
+  deallocate(indicies)
   
 end subroutine move_ions_fhd
 
