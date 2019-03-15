@@ -1,15 +1,33 @@
-subroutine force_function(pos1,pos2) &
+subroutine force_function(part1,part2) &
     bind(c,name="force_function")
- 
+
+  !probably also need to pass the box dimensions so we can calulculate the real distance 
+
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
 
   implicit none
-  real(amrex_real),intent(in) :: pos1
-  real(amrex_real),intent(in) :: pos2
+  type(particle_t), intent(inout) :: part1 !is this defined correctly?
+  type(particle_t), intent(inout) :: part2
 
-    !here calculate force as a function of distance
+  integer :: i,j,k
+  real :: dx, dy, dz, dr
+
+
+  !here calculate forces as a function of distance
+
+  dx = part1%pos(1)-part2%pos(1)
+  dy = part1%pos(2)-part2%pos(2)
+  dz = part1%pos(3)-part2%pos(3)
+
+  !above need to correct for box size
+
+  dr = sqrt(dx*dx+dy*dy+dz*dz)
+
+  !electrostatic
+
+  !repulsive    
 
 end subroutine force_function
 
@@ -31,12 +49,10 @@ subroutine calculate_force(particles, np, lo, hi, &
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3) 
   
-  integer :: i, j, k, p, n, cell_np, new_np, intsurf, intside, push, intcount
-  integer :: cell(3)
-  integer(c_int), pointer :: cell_parts(:)
+  integer :: i, j, k, p, n
   type(particle_t), pointer :: part
   type(particle_t), pointer :: part2 !added this
-  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, domsize(3), posalt(3), prex, postx
+  real(amrex_real) inv_dx(3), domsize(3)
 
   inv_dx = 1.d0/dx
   
