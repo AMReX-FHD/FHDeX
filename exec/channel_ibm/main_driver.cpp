@@ -98,11 +98,9 @@ void main_driver(const char * argv) {
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_lo[i] <= -1 && bc_hi[i] <= -1) {
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+        if (bc_lo[i] <= -1 && bc_hi[i] <= -1)
             is_periodic[i] = 1;
-        }
-    }
 
     //___________________________________________________________________________
     // Make BoxArray, DistributionMapping, and Geometry

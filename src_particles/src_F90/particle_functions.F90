@@ -1,3 +1,117 @@
+subroutine force_function(part1,part2) &
+    bind(c,name="force_function")
+
+  ! need to pass the box dimensions so we can calulculate the real distance 
+
+  use amrex_fort_module, only: amrex_real
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+
+  implicit none
+  type(particle_t), intent(inout) :: part1 !is this defined correctly?
+  type(particle_t), intent(inout) :: part2
+
+  integer :: i,j,k,images
+  real :: dx, dy, dz, dr, dr2
+
+
+  !here calculate forces as a function of distance
+
+  dx = part1%pos(1)-part2%pos(1)
+  dy = part1%pos(2)-part2%pos(2)
+  dz = part1%pos(3)-part2%pos(3)
+
+  !above need to correct for box size---no particles farther than L/2
+
+  dr2 = dx*dx+dy*dy+dz*dz
+  dr = sqrt(dx*dx+dy*dy+dz*dz)
+
+  !electrostatic -- need to determine how many images we should be adding
+  !also need to add cgs constants
+  images = 1 !change this to an input
+  do while (i <= images)
+  
+    !change dx, dy, dz, dr2 for each image     
+
+     part1%force(1) = part1%force(1) + dx*part1%q*part2%q/dr2
+     part2%force(1) = part2%force(1) - dx*part1%q*part2%q/dr2
+   
+     part1%force(2) = part1%force(2) + dy*part1%q*part2%q/dr2
+     part2%force(2) = part2%force(2) - dy*part1%q*part2%q/dr2
+   
+     part1%force(3) = part1%force(3) + dz*part1%q*part2%q/dr2
+     part2%force(3) = part2%force(3) - dz*part1%q*part2%q/dr2
+
+  end do
+  !repulsive    
+
+end subroutine force_function
+
+subroutine calculate_force(particles, np, lo, hi, &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx) &
+     bind(c,name="calculate_force")
+  
+  use amrex_fort_module, only: amrex_real
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+  
+  implicit none
+  !this is everything we pass in
+  type(particle_t), intent(inout), target :: particles(np)
+  integer(c_int), intent(in) :: np 
+  integer(c_int), intent(in) :: lo(3), hi(3)
+  integer(c_int), intent(in) :: clo(3), chi(3) 
+  type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  real(amrex_real), intent(in) :: plo(3), phi(3), dx(3) 
+  
+  integer :: i, j, k, p, n
+  type(particle_t), pointer :: part
+  type(particle_t), pointer :: part2 !added this
+  real(amrex_real) inv_dx(3), domsize(3)
+
+  inv_dx = 1.d0/dx
+  
+  domsize = phi - plo ! what is this?
+  
+
+  !zero all the forces
+  p = 1
+  do while (p <= np)
+
+     part => particles(p) !this defines one particle--we can access all the data by doing part%something
+
+     part%force(1)=0
+     part%force(2)=0
+     part%force(3)=0
+
+  end do
+
+  !calculate N^2 interactions
+  p = 1
+
+  do while (p < np)
+
+    part => particles(p) !this defines one particle--we can access all the data by doing part%something
+
+    n = p + 1
+
+    do while (n <= np) 
+
+       part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
+
+       call force_function(part,part2)
+
+       n = n + 1
+
+    end do
+
+    p = p + 1
+
+  end do 
+  
+end subroutine calculate_force
+
 subroutine move_particles_dsmc(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns) &
      bind(c,name="move_particles_dsmc")
@@ -74,13 +188,14 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
                 prex = part%vel(1)
 
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+         !below is surface specific stuff
+         !       call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
-                if(intsurf .eq. 6) then
+          !      if(intsurf .eq. 6) then
 
-                  intcount = intcount + 1
+           !       intcount = intcount + 1
 
-                endif
+            !    endif
                 
                  
                 !print *, "Parrticle ", p, " intersect ", inttime, intsurf 
@@ -88,12 +203,12 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                 !print *, "Prepos ", part%pos, " prevel ", part%vel
 
                 !call sleep(1)
-
-                posalt(1) = inttime*part%vel(1)*adjalt
-                posalt(2) = inttime*part%vel(2)*adjalt
-#if (BL_SPACEDIM == 3)
-                posalt(3) = inttime*part%vel(3)*adjalt
-#endif
+                 !inttime is the timestep for making a move here
+    !            posalt(1) = inttime*part%vel(1)*adjalt
+    !            posalt(2) = inttime*part%vel(2)*adjalt
+!#if (BL_SPACEDIM == 3)
+!                posalt(3) = inttime*part%vel(3)*adjalt
+!#endif
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
                 part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
@@ -634,7 +749,7 @@ subroutine move_particles_fhd(particles, np, lo, hi, &
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
            cell_np = cell_part_cnt(i,j,k)
-           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
+           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np]) 
 
            new_np = cell_np
            p = 1

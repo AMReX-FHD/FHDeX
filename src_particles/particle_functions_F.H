@@ -9,6 +9,20 @@ extern "C"
 
 // in particle_fucntions.F90
 
+		void force_function(void* pos1,
+											  void* pos2);
+
+		void calculate_force(void* particles,
+                        const int *np,
+                        const int *lo,
+                        const int *hi,
+                        int** c_vectors,
+                        int* sizes,
+                        const int* clo,
+                        const int* chi,
+                        const amrex_real* plo,
+                        const amrex_real* phi,
+                        const amrex_real* dx);
 
     void move_particles_dsmc(void* particles,
                         const int *np,
