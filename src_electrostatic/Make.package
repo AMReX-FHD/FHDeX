@@ -1,0 +1,4 @@
+CEXE_sources += electrostatic.cpp
+
+CEXE_headers += electrostatic.H
+

@@ -1,7 +1,7 @@
 subroutine force_function(part1,part2) &
     bind(c,name="force_function")
 
-  ! need to pass the box dimensions so we can calulculate the real distance 
+  ! need to pass the box dimensions so we can calulculate the real distance
 
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
@@ -15,11 +15,16 @@ subroutine force_function(part1,part2) &
   real :: dx, dy, dz, dr, dr2
 
 
+  !!!!!!!!!!!!!!!!!!!or real :: dx(3)
+
+
   !here calculate forces as a function of distance
 
   dx = part1%pos(1)-part2%pos(1)
   dy = part1%pos(2)-part2%pos(2)
   dz = part1%pos(3)-part2%pos(3)
+
+  !!!!!!!!!!!!!!!!!!!!!!!or dx = part1%pos - part2%pos etc - fortran has built in vector ops
 
   !above need to correct for box size---no particles farther than L/2
 
@@ -1688,4 +1693,221 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   deallocate(indicies)
   
 end subroutine move_ions_fhd
+
+subroutine collect_charge(particles, np, lo, hi, &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, ploes, dxes, &
+                                     cellcenters, cellcenterslo, cellcentershi, &
+                                     charge, chargelo, chargehi)bind(c,name="collect_charge")
+
+  use amrex_fort_module, only: amrex_real
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+  use common_namelist_module, only: visc_type, k_B, pkernel_es
+  use rng_functions_module
+  use surfaces_module
+  
+  implicit none
+
+  integer,          intent(in   )         :: np, lo(3), hi(3), clo(3), chi(3)
+  integer,          intent(in   )         :: chargelo(3), chargehi(3)
+  integer,          intent(in   )         :: cellcenterslo(3), cellcentershi(3)
+
+  type(particle_t), intent(inout), target :: particles(np)
+
+  double precision, intent(in   )         :: dx(3), dxes(3), dt, plo(3), phi(3), ploes(3)
+
+  double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1),cellcenterslo(2):cellcentershi(2),cellcenterslo(3):cellcentershi(3),1:AMREX_SPACEDIM)
+  double precision, intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
+
+  type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks
+  integer :: ni(3), fi(3)
+  integer(c_int), pointer :: cell_parts(:)
+  type(particle_t), pointer :: part
+  type(surface_t), pointer :: surf
+  real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst
+
+  double precision, allocatable :: weights(:,:,:,:)
+  integer, allocatable :: indicies(:,:,:,:,:)
+
+  if(pkernel_es .eq. 4) then
+    ks = 2
+  else
+    ks = 3
+  endif
+  
+  allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
+  allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
+
+  domsize = phi - plo
+
+  dxinv = 1.d0/dx
+
+  dxesinv = 1.d0/dxes
+
+
+  diffav = 0
+  distav = 0
+  diffinst = 0
+
+  do k = lo(3), hi(3)
+     do j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+           cell_np = cell_part_cnt(i,j,k)
+           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
+
+           new_np = cell_np
+           p = 1
+
+           do while (p <= new_np)
+
+              runtime = dt
+              part => particles(cell_parts(p))
+
+
+              !dxf is the size of the fluid cell
+
+
+
+!              call get_weights(dxf, dxfinv, weights, indicies, &
+!                              coordsx, coordsxlo, coordsxhi, &
+!                              coordsy, coordsylo, coordsyhi, &
+!#if (BL_SPACEDIM == 3)
+!                              coordsz, coordszlo, coordszhi, &
+!#endif
+!                              part, ks, lo, hi, plof)
+!              if(sw .ne. 2) then
+!        
+!               !print*, "INTERPOLATE"
+!      
+!               call inter_op(weights, indicies, &
+!                                velx, velxlo, velxhi, &
+!                                vely, velylo, velyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                velz, velzlo, velzhi, &
+!#endif
+!                                part, ks, dxf)
+
+!              endif
+
+                !print*, "MOVE"
+              !print*, "OldPos: ", part%pos
+              !print*, "MoveVel: ", part%vel
+
+!              runtime = dt
+
+!              do while (runtime .gt. 0)
+
+!                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+
+!                posalt(1) = inttime*part%vel(1)*adjalt
+!                posalt(2) = inttime*part%vel(2)*adjalt
+!#if (BL_SPACEDIM == 3)
+!                posalt(3) = inttime*part%vel(3)*adjalt
+!#endif
+
+!                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+!                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+!                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+!#if (BL_SPACEDIM == 3)
+!                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+!#endif
+!                runtime = runtime - inttime
+
+!                if(intsurf .gt. 0) then
+
+!                  surf => surfaces(intsurf)
+
+!                  call apply_bc(surf, part, intside, domsize, push)
+
+!                    if(push .eq. 1) then
+!                      
+!                      part%pos(1) = part%pos(1) + posalt(1)
+!                      part%pos(2) = part%pos(2) + posalt(2)
+!#if (BL_SPACEDIM == 3)
+!                      part%pos(3) = part%pos(3) + posalt(3)
+!#endif
+!                    endif
+!                    
+!                endif
+
+!              end do
+
+!              part%abspos = part%abspos + dt*part%vel
+
+!              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
+
+!              part%travel_time = part%travel_time + dt
+
+!              norm = part%abspos - part%origin
+
+!              diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
+
+!              diffinst = diffinst + diffest
+
+!              if(part%step_count .ge. 50) then
+!                part%diff_av = (part%diff_av*(part%step_count-50) + diffest)/((part%step_count-50) + 1)
+
+!                diffav = diffav + part%diff_av
+!              endif
+
+!              part%step_count = part%step_count + 1
+
+              !print*, "Diff est: ", diffest , ", av: ", part%diff_av
+
+              !print *, "AbsPos: ", part%abspos
+              !print *, "RelPos: ", part%pos
+
+              !print*, "NewPos: ", part%pos
+
+              !if(sw .ne. 1) then
+
+              !  print*, "SPREAD"
+!                call spread_op(weights, indicies, &
+!                                sourcex, sourcexlo, sourcexhi, &
+!                                sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                                velx, velxlo, velxhi, &
+!                                vely, velylo, velyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                velz, velzlo, velzhi, &
+!#endif
+!                                part, ks, dxf)
+
+!              endif
+
+              ! if it has changed cells, remove from vector.
+              ! otherwise continue
+              ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
+              ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
+#if (BL_SPACEDIM == 3)
+              ni(3) = floor((part%pos(3) - plo(3))*dxinv(3))
+#else
+              ni(3) = 0
+#endif
+
+              if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
+                 part%sorted = 0
+                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
+              else
+                 p = p + 1
+              end if
+           end do
+
+           cell_part_cnt(i,j,k) = new_np
+    
+        end do
+     end do
+  end do
+
+  !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
+
+  deallocate(weights)
+  deallocate(indicies)
+  
+end subroutine collect_charge
 

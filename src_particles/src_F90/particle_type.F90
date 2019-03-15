@@ -17,7 +17,7 @@ module cell_sorted_particle_module
 
 
      real(amrex_particle_real) :: vel(3)     
-     real(amrex_particle_real) :: force(3) !KK added this--does it matter where I put it?     
+     real(amrex_particle_real) :: force(3) !KK added this--does it matter where I put it?     DL Yes! I will leave comment in Slack.
      real(amrex_particle_real) :: mass
      real(amrex_particle_real) :: R
      real(amrex_particle_real) :: radius
