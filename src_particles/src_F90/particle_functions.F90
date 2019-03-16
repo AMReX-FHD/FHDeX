@@ -38,14 +38,14 @@ subroutine force_function(part1,part2) &
   
     !change dx, dy, dz, dr2 for each image     
 
-     part1%force(1) = part1%force(1) + dx*part1%q*part2%q/dr2
-     part2%force(1) = part2%force(1) - dx*part1%q*part2%q/dr2
+     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
+     part2%force(1) = part2%force(1) - (dx/abs(dx))*part1%q*part2%q/dr2
    
-     part1%force(2) = part1%force(2) + dy*part1%q*part2%q/dr2
-     part2%force(2) = part2%force(2) - dy*part1%q*part2%q/dr2
+     part1%force(2) = part1%force(2) + (dy/abs(dy))*part1%q*part2%q/dr2
+     part2%force(2) = part2%force(2) - (dy/abs(dy))*part1%q*part2%q/dr2
    
-     part1%force(3) = part1%force(3) + dz*part1%q*part2%q/dr2
-     part2%force(3) = part2%force(3) - dz*part1%q*part2%q/dr2
+     part1%force(3) = part1%force(3) + (dz/abs(dz))*part1%q*part2%q/dr2
+     part2%force(3) = part2%force(3) - (dz/abs(dz))*part1%q*part2%q/dr2
 
   end do
   !repulsive    
