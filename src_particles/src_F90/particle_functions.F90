@@ -1767,10 +1767,6 @@ subroutine collect_charge(particles, np, lo, hi, &
               part => particles(cell_parts(p))
 
 
-              !dxf is the size of the fluid cell
-
-
-
 !              call get_weights(dxf, dxfinv, weights, indicies, &
 !                              coordsx, coordsxlo, coordsxhi, &
 !                              coordsy, coordsylo, coordsyhi, &

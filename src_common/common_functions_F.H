@@ -154,7 +154,15 @@ extern "C"
                     amrex_real* zface, const int* zfacelo, const int* zfacehi,
 #endif
                     const amrex_real* dx);
+
+
+    void find_center_coords(const amrex_real* real_lo, const amrex_real* real_hi,
+                    amrex_real* centers, const int* lo, const int* hi,
+                    const amrex_real* dx);
 ///////////////////////////
+
+
+
 
 ///////////////////////////
 // in find_nodal_values.F90

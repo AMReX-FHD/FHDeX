@@ -545,6 +545,8 @@ void main_driver(const char* argv)
     // cell centered real coordinates - es grid
     MultiFab RealCenteredCoords;
     RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
+
+    FindCenterCoords(RealCenteredCoords, geomP);
     
     //Cell centred es potential
     MultiFab potential(ba, dmap, 1, ngp);

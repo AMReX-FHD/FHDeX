@@ -48,6 +48,8 @@ void PrintMF(const MultiFab& MF);
 
 void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geometry geom);
 
+void FindCenterCoords(MultiFab& RealCenterCoords, Geometry geom);
+
 void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& ccFab);
 
 ///////////////////////////
