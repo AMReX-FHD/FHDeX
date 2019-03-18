@@ -1,54 +1,91 @@
-subroutine force_function(part1,part2) &
-    bind(c,name="force_function")
-
-  ! need to pass the box dimensions so we can calulculate the real distance
+subroutine repulsive_force(part1,part2,dx, dr) &
+    bind(c,name="repulsive_force")
 
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
-  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+  use cell_sorted_particle_module, only: particle_t
 
   implicit none
   type(particle_t), intent(inout) :: part1 !is this defined correctly?
   type(particle_t), intent(inout) :: part2
+  real(amrex_real), intent(in) :: dx, dr
+
+end subroutine
+
+subroutine force_function(part1,part2,domsize) &
+    bind(c,name="force_function")
+
+  use amrex_fort_module, only: amrex_real
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t
+
+  implicit none
+  type(particle_t), intent(inout) :: part1 !is this defined correctly?
+  type(particle_t), intent(inout) :: part2
+  real(amrex_real), intent(in) :: domsize(3)
 
   integer :: i,j,k,images
-  real :: dx, dy, dz, dr, dr2
-
-
-  !!!!!!!!!!!!!!!!!!!or real :: dx(3)
+  real(amrex_real) :: dx(3), dr, dr2, permittivity, cutoff
 
 
   !here calculate forces as a function of distance
 
-  dx = part1%pos(1)-part2%pos(1)
-  dy = part1%pos(2)-part2%pos(2)
-  dz = part1%pos(3)-part2%pos(3)
+  dx = part1%pos-part2%pos
 
-  !!!!!!!!!!!!!!!!!!!!!!!or dx = part1%pos - part2%pos etc - fortran has built in vector ops
+  !can we do smarter vector maniputions below? also--probably better ways to do this other than logic with ghost cells
 
-  !above need to correct for box size---no particles farther than L/2
+  do while (i <= 3)
 
-  dr2 = dx*dx+dy*dy+dz*dz
-  dr = sqrt(dx*dx+dy*dy+dz*dz)
+      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+          dx(i) = dx(i) - domsize(i)
+
+      end if
+
+      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+          dx(i) = dx(i) + domsize(i)
+
+      end if
+
+   end do
+
+  permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
+
+  dr2 = dot_product(dx,dx)
+  dr = sqrt(dr2)
+
+  cutoff = 1
+
+  !repulsive interaction
+  if (dr .lt. cutoff) then
+ 
+    call repulsive_force(part1,part2,dx,dr) 
+
+  end if
 
   !electrostatic -- need to determine how many images we should be adding
-  !also need to add cgs constants
-  images = 1 !change this to an input
+  images = 5 !change this to an input
   do while (i <= images)
   
-    !change dx, dy, dz, dr2 for each image     
+    !change dx, dy, dz, dr2 for each image
+     dx = dx + i*domsize     
 
-     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
-     part2%force(1) = part2%force(1) - (dx/abs(dx))*part1%q*part2%q/dr2
+     part1%force = part1%force + permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+     part2%force = part2%force - permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+
+     !make sure the above is doing the same thing as below!
+!     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
+!     part2%force(1) = part2%force(1) - (dx/abs(dx))*part1%q*part2%q/dr2
    
-     part1%force(2) = part1%force(2) + (dy/abs(dy))*part1%q*part2%q/dr2
-     part2%force(2) = part2%force(2) - (dy/abs(dy))*part1%q*part2%q/dr2
-   
-     part1%force(3) = part1%force(3) + (dz/abs(dz))*part1%q*part2%q/dr2
-     part2%force(3) = part2%force(3) - (dz/abs(dz))*part1%q*part2%q/dr2
+!     part1%force(2) = part1%force(2) + (dy/abs(dy))*part1%q*part2%q/dr2
+!     part2%force(2) = part2%force(2) - (dy/abs(dy))*part1%q*part2%q/dr2
+!   
+!     part1%force(3) = part1%force(3) + (dz/abs(dz))*part1%q*part2%q/dr2
+!     part2%force(3) = part2%force(3) - (dz/abs(dz))*part1%q*part2%q/dr2
 
   end do
-  !repulsive    
+    
 
 end subroutine force_function
 
@@ -77,18 +114,15 @@ subroutine calculate_force(particles, np, lo, hi, &
 
   inv_dx = 1.d0/dx
   
-  domsize = phi - plo ! what is this?
+  domsize = phi - plo
   
-
   !zero all the forces
   p = 1
   do while (p <= np)
 
      part => particles(p) !this defines one particle--we can access all the data by doing part%something
 
-     part%force(1)=0
-     part%force(2)=0
-     part%force(3)=0
+     part%force=0
 
   end do
 
@@ -105,7 +139,7 @@ subroutine calculate_force(particles, np, lo, hi, &
 
        part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
 
-       call force_function(part,part2)
+       call force_function(part,part2,domsize)
 
        n = n + 1
 
