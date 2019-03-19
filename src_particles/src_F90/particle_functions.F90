@@ -276,7 +276,7 @@ subroutine calculate_force(particles, np, lo, hi, &
 
        part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
 
-       call force_function(part,part2,domsize)
+       call force_function2(part,part2,domsize)
 
        n = n + 1
 
@@ -1884,6 +1884,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               runtime = dt
 
               part%vel = part%vel + dt*part%force/part%mass
+
+              print *, "vel correction: ", dt*part%force/part%mass, " pos correction: ", dt*dt*part%force/part%mass
 
               do while (runtime .gt. 0)
 
