@@ -299,10 +299,12 @@ contains
 
 
             print *, instant(i,j,k,2)
+
+          if(members .gt. 0) then
         
-          instant(i,j,k,3) = instant(i,j,k,3)*membersinv
-          instant(i,j,k,4) = instant(i,j,k,4)*membersinv
-          instant(i,j,k,5) = instant(i,j,k,5)*membersinv
+             instant(i,j,k,3) = instant(i,j,k,3)*membersinv
+                  instant(i,j,k,4) = instant(i,j,k,4)*membersinv
+                  instant(i,j,k,5) = instant(i,j,k,5)*membersinv
 
 
           instant(i,j,k,7) = instant(i,j,k,7)*neff/cellvols(i,j,k)

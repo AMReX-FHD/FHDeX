@@ -54,6 +54,8 @@ subroutine force_function(part1,part2,domsize) &
 
       end if
 
+      i = i + 1
+
    end do
 
   permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
@@ -66,7 +68,7 @@ subroutine force_function(part1,part2,domsize) &
   !repulsive interaction
   if (dr .lt. cutoff) then
  
-    call repulsive_force(part1,part2,dx,dr,dr2) 
+    call repulsive_force(part1,part2,dx,dr2) 
 
   end if
 
@@ -76,9 +78,12 @@ subroutine force_function(part1,part2,domsize) &
   
     !change dx, dy, dz, dr2 for each image
      dx = dx + i*domsize     
+     dr2 = dot_product(dx,dx)
 
      part1%force = part1%force + permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
      part2%force = part2%force - permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+
+     i = i + 1
 
      !make sure the above is doing the same thing as below!
 !     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
@@ -129,6 +134,8 @@ subroutine calculate_force(particles, np, lo, hi, &
      part => particles(p) !this defines one particle--we can access all the data by doing part%something
 
      part%force=0
+
+     p = p + 1
 
   end do
 
@@ -1478,19 +1485,19 @@ subroutine spread_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv
+        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv+part%force(1)*weights(i,j,k,1)*volinv
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
         kk = indicies(i,j,k,2,3)
 
-        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv
+        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv+part%force(2)*weights(i,j,k,2)*volinv
 
         ii = indicies(i,j,k,3,1)
         jj = indicies(i,j,k,3,2)
         kk = indicies(i,j,k,3,3)
 
-        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv
+        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv+part%force(3)*weights(i,j,k,3)*volinv
 
       enddo
     enddo
@@ -1704,6 +1711,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   diffinst = 0
   veltest = 0
 
+  
+  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx)
+
+
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
@@ -1810,6 +1821,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !print *, "RelPos: ", part%pos
 
               !print*, "NewPos: ", part%pos
+
 
               if(sw .ne. 1) then
 
