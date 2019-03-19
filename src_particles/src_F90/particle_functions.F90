@@ -100,6 +100,133 @@ subroutine force_function(part1,part2,domsize) &
 
 end subroutine force_function
 
+subroutine force_function2(part1,part2,domsize) &
+    bind(c,name="force_function2")
+
+  use amrex_fort_module, only: amrex_real
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module, only: diameter
+
+  implicit none
+  type(particle_t), intent(inout) :: part1 !is this defined correctly?
+  type(particle_t), intent(inout) :: part2
+  real(amrex_real), intent(in) :: domsize(3)
+
+  integer :: i,j,k,images, bound, ii, jj, kk
+  real(amrex_real) :: dx(3), dx0(3), dr, dr2, permittivity, cutoff
+
+
+  !here calculate forces as a function of distance
+
+
+  !can we do smarter vector maniputions below? also--probably better ways to do this other than logic with ghost cells
+
+!  do while (i <= 3)
+
+!      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+!          dx(i) = dx(i) - domsize(i)
+
+!      end if
+
+!      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+!          dx(i) = dx(i) + domsize(i)
+
+!      end if
+
+!      i = i + 1
+
+!   end do
+
+  permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
+
+
+  dx0 = part2%pos-part1%pos
+
+  dr2 = dot_product(dx0,dx0)
+  dr = sqrt(dr2)
+
+  cutoff = 4*part1%radius
+
+  !repulsive interaction
+  if (dr .lt. cutoff) then
+ 
+    call repulsive_force(part1,part2,dx,dr2) 
+
+  end if
+
+  !electrostatic -- need to determine how many images we should be adding
+  images = 1 !change this to an input
+
+  !do while (i <= images)
+
+  do ii = -images, images
+    do jj = -images, images 
+      do kk = -images, images 
+  
+      !change dx, dy, dz, dr2 for each image
+       dx(1) = dx(1) + ii*domsize(1)
+       dx(2) = dx(2) + jj*domsize(2)
+       dx(3) = dx(3) + kk*domsize(3)
+
+       dr2 = dot_product(dx,dx)
+
+       part1%force = part1%force + permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+       !part2%force = part2%force - permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+
+       !i = i + 1
+
+       !make sure the above is doing the same thing as below!
+  !     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
+  !     part2%force(1) = part2%force(1) - (dx/abs(dx))*part1%q*part2%q/dr2
+     
+  !     part1%force(2) = part1%force(2) + (dy/abs(dy))*part1%q*part2%q/dr2
+  !     part2%force(2) = part2%force(2) - (dy/abs(dy))*part1%q*part2%q/dr2
+  !   
+  !     part1%force(3) = part1%force(3) + (dz/abs(dz))*part1%q*part2%q/dr2
+  !     part2%force(3) = part2%force(3) - (dz/abs(dz))*part1%q*part2%q/dr2
+
+      end do
+    end do
+  end do
+
+  dx0 = part2%pos-part1%pos
+
+  do ii = -images, images
+    do jj = -images, images 
+      do kk = -images, images 
+  
+      !change dx, dy, dz, dr2 for each image
+       dx(1) = dx(1) + ii*domsize(1)
+       dx(2) = dx(2) + jj*domsize(2)
+       dx(3) = dx(3) + kk*domsize(3)
+
+       dr2 = dot_product(dx,dx)
+
+       part1%force = part1%force + permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+       !part2%force = part2%force - permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+
+       !i = i + 1
+
+       !make sure the above is doing the same thing as below!
+  !     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
+  !     part2%force(1) = part2%force(1) - (dx/abs(dx))*part1%q*part2%q/dr2
+     
+  !     part1%force(2) = part1%force(2) + (dy/abs(dy))*part1%q*part2%q/dr2
+  !     part2%force(2) = part2%force(2) - (dy/amakes(dy))*part1%q*part2%q/dr2
+  !   
+  !     part1%force(3) = part1%force(3) + (dz/abs(dz))*part1%q*part2%q/dr2
+  !     part2%force(3) = part2%force(3) - (dz/abs(dz))*part1%q*part2%q/dr2
+
+      end do
+    end do
+  end do
+    
+
+end subroutine force_function2
+
 subroutine calculate_force(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx) &
      bind(c,name="calculate_force")
@@ -1755,6 +1882,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !print*, "MoveVel: ", part%vel
 
               runtime = dt
+
+
 
               do while (runtime .gt. 0)
 
