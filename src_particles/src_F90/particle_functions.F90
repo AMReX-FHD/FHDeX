@@ -151,32 +151,32 @@ subroutine force_function2(part1,part2,domsize) &
   cutoff = 4*part1%radius
 
 
-  dx = dx0
-  do while (i <= 3) !get the nearest image for the repulsive interaction
- 
-      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
-
-          dx(i) = dx(i) - domsize(i)
-
-      end if
-
-      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
-
-          dx(i) = dx(i) + domsize(i)
-
-      end if
-
-      i = i + 1
-
-   end do
-  dr2 = dot_product(dx,dx)
-  dr = sqrt(dr2)
-  !repulsive interaction
-  if (dr .lt. cutoff) then
-
-    call repulsive_force(part1,part2,dx,dr2) 
-
-  end if
+!  dx = dx0
+!  do while (i <= 3) !get the nearest image for the repulsive interaction
+! 
+!      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+!
+!          dx(i) = dx(i) - domsize(i)
+!
+!      end if
+!
+!      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+!
+!          dx(i) = dx(i) + domsize(i)
+!
+!      end if
+!
+!      i = i + 1
+!
+!   end do
+!  dr2 = dot_product(dx,dx)
+!  dr = sqrt(dr2)
+!  !repulsive interaction
+!  if (dr .lt. cutoff) then
+!
+!    call repulsive_force(part1,part2,dx,dr2) 
+!
+!  end if
 
   !electrostatic -- need to determine how many images we should be adding
   images = 1 !change this to an input
