@@ -150,9 +150,30 @@ subroutine force_function2(part1,part2,domsize) &
 
   cutoff = 4*part1%radius
 
+
+  dx = dx0
+  do while (i <= 3) !get the nearest image for the repulsive interaction
+ 
+      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+          dx(i) = dx(i) - domsize(i)
+
+      end if
+
+      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+          dx(i) = dx(i) + domsize(i)
+
+      end if
+
+      i = i + 1
+
+   end do
+  dr2 = dot_product(dx,dx)
+  dr = sqrt(dr2)
   !repulsive interaction
   if (dr .lt. cutoff) then
- 
+
     call repulsive_force(part1,part2,dx,dr2) 
 
   end if
@@ -167,26 +188,14 @@ subroutine force_function2(part1,part2,domsize) &
       do kk = -images, images 
   
       !change dx, dy, dz, dr2 for each image
-       dx(1) = dx(1) + ii*domsize(1)
-       dx(2) = dx(2) + jj*domsize(2)
-       dx(3) = dx(3) + kk*domsize(3)
+       dx(1) = dx0(1) + ii*domsize(1)
+       dx(2) = dx0(2) + jj*domsize(2)
+       dx(3) = dx0(3) + kk*domsize(3)
 
        dr2 = dot_product(dx,dx)
 
        part1%force = part1%force + permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
-       !part2%force = part2%force - permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
 
-       !i = i + 1
-
-       !make sure the above is doing the same thing as below!
-  !     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
-  !     part2%force(1) = part2%force(1) - (dx/abs(dx))*part1%q*part2%q/dr2
-     
-  !     part1%force(2) = part1%force(2) + (dy/abs(dy))*part1%q*part2%q/dr2
-  !     part2%force(2) = part2%force(2) - (dy/abs(dy))*part1%q*part2%q/dr2
-  !   
-  !     part1%force(3) = part1%force(3) + (dz/abs(dz))*part1%q*part2%q/dr2
-  !     part2%force(3) = part2%force(3) - (dz/abs(dz))*part1%q*part2%q/dr2
 
       end do
     end do
@@ -199,26 +208,14 @@ subroutine force_function2(part1,part2,domsize) &
       do kk = -images, images 
   
       !change dx, dy, dz, dr2 for each image
-       dx(1) = dx(1) + ii*domsize(1)
-       dx(2) = dx(2) + jj*domsize(2)
-       dx(3) = dx(3) + kk*domsize(3)
+       dx(1) = dx0(1) + ii*domsize(1)
+       dx(2) = dx0(2) + jj*domsize(2)
+       dx(3) = dx0(3) + kk*domsize(3)
 
        dr2 = dot_product(dx,dx)
 
-       part1%force = part1%force + permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
-       !part2%force = part2%force - permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
+       part2%force = part2%force - permittivity*(dx/abs(dx))*part1%q*part2%q/dr2
 
-       !i = i + 1
-
-       !make sure the above is doing the same thing as below!
-  !     part1%force(1) = part1%force(1) + (dx/abs(dx))*part1%q*part2%q/dr2
-  !     part2%force(1) = part2%force(1) - (dx/abs(dx))*part1%q*part2%q/dr2
-     
-  !     part1%force(2) = part1%force(2) + (dy/abs(dy))*part1%q*part2%q/dr2
-  !     part2%force(2) = part2%force(2) - (dy/amakes(dy))*part1%q*part2%q/dr2
-  !   
-  !     part1%force(3) = part1%force(3) + (dz/abs(dz))*part1%q*part2%q/dr2
-  !     part2%force(3) = part2%force(3) - (dz/abs(dz))*part1%q*part2%q/dr2
 
       end do
     end do
