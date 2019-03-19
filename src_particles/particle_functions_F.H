@@ -9,8 +9,14 @@ extern "C"
 
 // in particle_fucntions.F90
 
-		void force_function(void* pos1,
-											  void* pos2);
+		void repulsive_force(void* part1,
+												 void* part2,
+												const amrex_real* dx,
+											  const amrex_real* dr);
+
+		void force_function(void* part1,
+											  void* part2,
+                        const amrex_real* domsize);
 
 		void calculate_force(void* particles,
                         const int *np,
