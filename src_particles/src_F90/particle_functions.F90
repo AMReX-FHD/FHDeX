@@ -1884,7 +1884,7 @@ subroutine collect_charge(particles, np, lo, hi, &
   double precision, intent(in   )         :: dx(3), dxes(3), dt, plo(3), phi(3), ploes(3)
 
   double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1),cellcenterslo(2):cellcentershi(2),cellcenterslo(3):cellcentershi(3),1:AMREX_SPACEDIM)
-  double precision, intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
+  double precision, intent(inout) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
 
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))

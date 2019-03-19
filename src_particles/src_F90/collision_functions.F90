@@ -296,6 +296,9 @@ contains
           enddo
 
           instant(i,j,k,2) = instant(i,j,k,2)*neff/cellvols(i,j,k)
+
+
+            print *, instant(i,j,k,2)
         
           instant(i,j,k,3) = instant(i,j,k,3)*membersinv
           instant(i,j,k,4) = instant(i,j,k,4)*membersinv
@@ -368,8 +371,6 @@ contains
     cvinv = 2.0/(3.0*particles(1)%R)
     cv = 1.0/cvinv
 
-    totalmass = 0     
-
     do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
         do i = mlo(1), mhi(1)
@@ -402,11 +403,6 @@ contains
           means(i,j,k,1) = (means(i,j,k,1)*stepsminusone + means(i,j,k,1))*stepsinv !members
 
           means(i,j,k,11) = particles(1)%R*cvinv*(means(i,j,k,10) -0.5*densitymeaninv*(means(i,j,k,7)*means(i,j,k,7) + means(i,j,k,8)*means(i,j,k,8) + means(i,j,k,9)*means(i,j,k,9))  ) !pressure - wrong for multispec
-
-          membraneflux(i,j,k) = sqrt(means(i,j,k,6))*means(i,j,k,2)
-
-          totalmass = totalmass + instant(i,j,k,2)
-
 
         enddo
       enddo

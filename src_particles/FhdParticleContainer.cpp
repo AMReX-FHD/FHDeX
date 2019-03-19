@@ -827,7 +827,7 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleMeans[pti]),
                          BL_TO_FORTRAN_3D(particleVars[pti]),
 
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps
                         );
     }
 

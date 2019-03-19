@@ -637,14 +637,14 @@ void main_driver(const char* argv)
 
         //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
 
-//        if(step == n_steps_skip)
-//        {
-//            particleMeans.setVal(0.0);
-//            particleVars.setVal(0);
-//            statsCount = 1;
-//        }
+        if(step == n_steps_skip)
+        {
+            particleMeans.setVal(0.0);
+            particleVars.setVal(0);
+            statsCount = 1;
+        }
        
-//        particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, ionParticle[0], dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         statsCount++;
 

@@ -20,7 +20,7 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 50
+  max_step = 10
   plot_int = 1
 
 
@@ -69,7 +69,7 @@
   ! struct_fact_int = 100
   ! n_steps_skip = 50000
   struct_fact_int = 1
-  n_steps_skip = 0
+  n_steps_skip = 1
 
   ! Boundary conditions
   ! ----------------------
