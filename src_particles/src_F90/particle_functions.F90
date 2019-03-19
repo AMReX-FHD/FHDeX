@@ -1734,7 +1734,7 @@ subroutine inter_op(weights, indicies, &
   part%vel(1) = part%vel(1)
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
 
   part%multi = part%vel(1)
 

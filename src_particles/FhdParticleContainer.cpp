@@ -449,7 +449,8 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 
 void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential, 
                                          const MultiFab& RealCenterCoords,
-                                         const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp)
+                                         const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp,
+                                         MultiFab& mass, MultiFab& massTemp)
 {
     
 
@@ -464,6 +465,9 @@ void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential,
 
     charge.setVal(0.0);
     chargeTemp.setVal(0.0);
+
+    mass.setVal(0.0);
+    massTemp.setVal(0.0);
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -490,8 +494,10 @@ void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential,
     }
 
     chargeTemp.SumBoundary(Geom(lev).periodicity());
+    massTemp.SumBoundary(Geom(lev).periodicity());
 
     MultiFab::Add(charge,chargeTemp,0,0,charge.nComp(),charge.nGrow());
+    MultiFab::Add(mass,massTemp,0,0,charge.nComp(),charge.nGrow());
 
     charge.FillBoundary(Geom(lev).periodicity());
 }

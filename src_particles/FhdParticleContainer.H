@@ -119,7 +119,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
 
-    void collectCharge(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Real* ploPotential, MultiFab& potential, MultiFab& potentialTemp);
+    void collectCharge(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Real* ploPotential, MultiFab& potential, MultiFab& potentialTemp,MultiFab& mass, MultiFab& massTemp);
 
 
     void ReBin();
