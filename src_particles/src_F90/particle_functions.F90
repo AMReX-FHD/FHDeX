@@ -1609,19 +1609,22 @@ subroutine spread_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv+part%force(1)*weights(i,j,k,1)*volinv
+        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv+part%force(1)*weights(i,j,k,1)*volinv
+        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
         kk = indicies(i,j,k,2,3)
 
-        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv+part%force(2)*weights(i,j,k,2)*volinv
+        !sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv+part%force(2)*weights(i,j,k,2)*volinv
+        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv
 
         ii = indicies(i,j,k,3,1)
         jj = indicies(i,j,k,3,2)
         kk = indicies(i,j,k,3,3)
 
-        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv+part%force(3)*weights(i,j,k,3)*volinv
+        !sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv+part%force(3)*weights(i,j,k,3)*volinv
+        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv
 
       enddo
     enddo
@@ -1731,7 +1734,7 @@ subroutine inter_op(weights, indicies, &
   part%vel(1) = part%vel(1)
 
 
-  !print*, "Intervel: ", part%vel
+  print*, "Intervel: ", part%vel
 
   part%multi = part%vel(1)
 
@@ -1880,7 +1883,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               runtime = dt
 
-
+              part%vel = part%vel + dt*part%force/part%mass
 
               do while (runtime .gt. 0)
 

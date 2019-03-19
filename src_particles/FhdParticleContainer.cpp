@@ -29,6 +29,8 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 
     double totalEnergy = 0;
 
+    int qcount = 0;
+
     double cosTheta, sinTheta, cosPhi, sinPhi;    
 
     //double initTemp = 0;
@@ -77,6 +79,8 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 #endif
 
                 p.rdata(RealData::q) = qval;
+
+                
 
                 //Print() << "Pos: "<< p.rdata(RealData::ox) << ", " << p.rdata(RealData::oy) << ", " << p.rdata(RealData::oz) << "\n";
 

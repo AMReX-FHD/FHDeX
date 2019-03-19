@@ -622,7 +622,7 @@ void main_driver(const char* argv)
         }
 
 
-        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
+        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 1 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
 
         //particles.collectCharge(dt, dxp, RealCenteredCoords, geomP.ProbLo(), massFrac, massFracTemp);
 
