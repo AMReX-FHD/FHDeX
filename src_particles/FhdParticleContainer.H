@@ -34,6 +34,7 @@ struct RealData
         travelTime,
         diffAv,
         stepCount,
+        multi,
         ncomps
     };
 };
@@ -91,9 +92,7 @@ public:
     void EvaluateStats(
                               MultiFab& particleInstant,
                               MultiFab& particleMeans,
-                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
-                              MultiFab& particleMembraneFlux,
-
+                              MultiFab& particleVars,
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
     void WriteParticlesAscii(int n);
@@ -120,7 +119,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
 
-    void collectCharge(const Real dt, const Real* dxPotential, const Real* ploPotential, MultiFab& potential, MultiFab& potentialTemp);
+    void collectCharge(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Real* ploPotential, MultiFab& potential, MultiFab& potentialTemp);
 
 
     void ReBin();

@@ -1246,7 +1246,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   enddo
 
 
-  print*, "Total: ", wcheck
+ ! print*, "Total: ", wcheck
 
 !              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
 !              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
@@ -1258,6 +1258,103 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
 
 
 end subroutine get_weights
+
+subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
+                              coords, coordslo, coordshi, &
+                              part, ks, lo, hi, plof, store)
+
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module
+
+  implicit none
+
+  double precision, intent(in   ) :: dx(3), dxinv(3), plof(3)
+  integer,          intent(in   ) :: ks, coordslo(3), coordshi(3), lo(3), hi(3), store
+  type(particle_t), intent(in   ) :: part
+  double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
+  integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
+
+  double precision, intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
+
+  integer :: fi(3), fn(3),i, j, k
+  double precision :: xx,yy,zz, w1, w2, w3, fr(3), fd(3), wcheck
+
+  !find scalar cell
+
+  fr(1) = (part%pos(1) - plof(1))*dxinv(1)
+  fr(2) = (part%pos(2) - plof(2))*dxinv(2)
+  fr(3) = (part%pos(3) - plof(3))*dxinv(3)
+
+  fi(1) = floor(fr(1))
+  fi(2) = floor(fr(2))
+  fi(3) = floor(fr(3))
+
+  fd = fr - fi
+
+  if(fd(1) .lt. 0.5) then
+    fn(1) = -1
+  else
+    fn(1) = 0
+  endif
+
+  if(fd(2) .lt. 0.5) then
+    fn(2) = -1
+  else
+    fn(2) = 0
+  endif  
+
+  if(fd(3) .lt. 0.5) then
+    fn(3) = -1
+  else
+    fn(3) = 0
+  endif    
+
+  wcheck = 0
+
+  do k = -(ks-1), ks
+    do j = -(ks-1), ks
+      do i = -(ks-1), ks
+
+        xx = part%pos(1) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),store)
+        yy = part%pos(2) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),store)
+        zz = part%pos(3) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),store)
+
+        if(pkernel_fluid .eq. 4) then
+          call peskin_4pt(xx*dxinv(1),w1)
+          call peskin_4pt(yy*dxinv(2),w2)
+          call peskin_4pt(zz*dxinv(3),w3)
+        elseif(pkernel_fluid .eq. 6) then
+          call peskin_6pt(xx*dxinv(1),w1)
+          call peskin_6pt(yy*dxinv(2),w2)
+          call peskin_6pt(zz*dxinv(3),w3)
+        endif 
+
+        weights(i,j,k,1) = w1*w2*w3
+
+        indicies(i,j,k,1,1) = fi(1)+i+fn(1)
+        indicies(i,j,k,1,2) = fi(2)+j+fn(2)
+        indicies(i,j,k,1,3) = fi(3)+k+fn(3)
+
+        wcheck = wcheck + weights(i,j,k,store)
+
+      enddo
+    enddo
+  enddo
+
+
+  print*, "Total: ", wcheck
+
+!              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
+!              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
+!              ixf(2) = (part%pos(2) - coordsy(fi(1),fi(2),fi(3),2))*dxfInv(2)
+!#if (BL_SPACEDIM == 3)
+!              ixf(3) = (part%pos(3) - coordsz(fi(1),fi(2),fi(3),3))*dxfInv(3)
+!#endif
+
+
+
+end subroutine get_weights_scalar_cc
 
 subroutine spread_op(weights, indicies, &
                               sourceu, sourceulo, sourceuhi, &
@@ -1362,6 +1459,48 @@ subroutine spread_op(weights, indicies, &
 
 end subroutine spread_op
 
+subroutine spread_op_scalar_cc(weights, indicies, &
+                              source, sourcelo, sourcehi, &
+                              part, ks, dx, mq, store)
+
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only: particle_t
+
+  implicit none
+
+  integer,          intent(in   ) :: ks, sourcelo(3), sourcehi(3), store
+  double precision, intent(in   ) :: dx(3), mq
+  type(particle_t), intent(in   ) :: part
+  double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
+  integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
+
+  double precision, intent(inout) :: source(sourcelo(1):sourcehi(1),sourcelo(2):sourcehi(2),sourcelo(3):sourcehi(3))
+
+  integer :: i, j, k, ii, jj, kk
+  double precision :: volinv
+
+  volinv = 1/(dx(1)*dx(2)*dx(3))
+
+
+  !print*, "Fluid vel: ", uloc, wloc, vloc
+
+  do k = -(ks-1), ks
+    do j = -(ks-1), ks
+      do i = -(ks-1), ks
+
+        ii = indicies(i,j,k,1,1)
+        jj = indicies(i,j,k,1,2)
+        kk = indicies(i,j,k,1,3)
+
+        source(ii,jj,kk) = mq*weights(i,j,k,store)
+
+      enddo
+    enddo
+  enddo
+
+
+end subroutine spread_op_scalar_cc
+
 subroutine inter_op(weights, indicies, &
                               velu, velulo, veluhi, &
                               velv, velvlo, velvhi, &
@@ -1421,7 +1560,9 @@ subroutine inter_op(weights, indicies, &
   part%vel(1) = part%vel(1)
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
+
+  part%multi = part%vel(1)
 
 end subroutine inter_op
 
@@ -1490,7 +1631,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst
+  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst, veltest
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -1514,19 +1655,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   dxfinv = 1.d0/dxf
   onemdxf = 1.d0 - dxf
   
-  do p = 1, ns
-
-    surf => surfaces(p)  
-
-    surf%fxleft = 0
-    surf%fyleft = 0
-    surf%fzleft = 0
-
-    surf%fxright = 0
-    surf%fyright = 0
-    surf%fzright = 0
-
-  enddo
 
   !print *, "Starting"
 
@@ -1534,6 +1662,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   diffav = 0
   distav = 0
   diffinst = 0
+  veltest = 0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -1548,11 +1677,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               runtime = dt
               part => particles(cell_parts(p))
-
-
-              !dxf is the size of the fluid cell
-
-
 
               call get_weights(dxf, dxfinv, weights, indicies, &
                               coordsx, coordsxlo, coordsxhi, &
@@ -1638,6 +1762,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               part%step_count = part%step_count + 1
 
+              veltest = veltest + part%multi
+
               !print*, "Diff est: ", diffest , ", av: ", part%diff_av
 
               !print *, "AbsPos: ", part%abspos
@@ -1688,6 +1814,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   end do
 
   !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
+  !print *, "veltest: ", veltest/np
 
   deallocate(weights)
   deallocate(indicies)
@@ -1722,12 +1849,12 @@ subroutine collect_charge(particles, np, lo, hi, &
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, store
   integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst
+  real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst, qm
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -1752,6 +1879,9 @@ subroutine collect_charge(particles, np, lo, hi, &
   distav = 0
   diffinst = 0
 
+  store = 1
+  qm = 1
+
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
@@ -1763,21 +1893,17 @@ subroutine collect_charge(particles, np, lo, hi, &
 
            do while (p <= new_np)
 
-              runtime = dt
+!              runtime = dt
               part => particles(cell_parts(p))
 
 
-!              call get_weights(dxf, dxfinv, weights, indicies, &
-!                              coordsx, coordsxlo, coordsxhi, &
-!                              coordsy, coordsylo, coordsyhi, &
-!#if (BL_SPACEDIM == 3)
-!                              coordsz, coordszlo, coordszhi, &
-!#endif
-!                              part, ks, lo, hi, plof)
-!              if(sw .ne. 2) then
-!        
-!               !print*, "INTERPOLATE"
-!      
+              call get_weights_scalar_cc(dxes, dxesinv, weights, indicies, &
+                              cellcenters, cellcenterslo, cellcentershi, &
+                              part, ks, lo, hi, ploes,store)
+              !if(sw .ne. 2) then
+        
+               !print*, "INTERPOLATE"
+      
 !               call inter_op(weights, indicies, &
 !                                velx, velxlo, velxhi, &
 !                                vely, velylo, velyhi, &
@@ -1786,7 +1912,7 @@ subroutine collect_charge(particles, np, lo, hi, &
 !#endif
 !                                part, ks, dxf)
 
-!              endif
+              !endif
 
                 !print*, "MOVE"
               !print*, "OldPos: ", part%pos
@@ -1858,43 +1984,36 @@ subroutine collect_charge(particles, np, lo, hi, &
 
               !print*, "NewPos: ", part%pos
 
-              !if(sw .ne. 1) then
-
               !  print*, "SPREAD"
-!                call spread_op(weights, indicies, &
-!                                sourcex, sourcexlo, sourcexhi, &
-!                                sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                                velx, velxlo, velxhi, &
-!                                vely, velylo, velyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                velz, velzlo, velzhi, &
-!#endif
-!                                part, ks, dxf)
+                call spread_op_scalar_cc(weights, indicies, &
+                                charge, chargelo, chargehi, &
+                                part, ks, dxes, qm, store)
 
-!              endif
+
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
-              ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
-              ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
-#if (BL_SPACEDIM == 3)
-              ni(3) = floor((part%pos(3) - plo(3))*dxinv(3))
-#else
-              ni(3) = 0
-#endif
+!              ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
+!              ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
+!#if (BL_SPACEDIM == 3)
+!              ni(3) = floor((part%pos(3) - plo(3))*dxinv(3))
+!#else
+!              ni(3) = 0
+!#endif
 
-              if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
-                 part%sorted = 0
-                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
-              else
-                 p = p + 1
-              end if
-           end do
+!              if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
+!                 part%sorted = 0
+!                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
+!              else
+!                 p = p + 1
+!              end if
+!           end do
 
-           cell_part_cnt(i,j,k) = new_np
+!           cell_part_cnt(i,j,k) = new_np
+
+            p = p + 1
+
+          enddo
     
         end do
      end do

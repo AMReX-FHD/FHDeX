@@ -207,7 +207,7 @@ contains
 
   end subroutine collide_cells
 
-  subroutine evaluate_fields(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, instant, ilo, ihi, cellvols, cvlo, cvhi, neff, np, del1, del2, tm, te) bind(c,name='evaluate_fields')
+  subroutine evaluate_fields(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, instant, ilo, ihi, cellvols, cvlo, cvhi, neff, np) bind(c,name='evaluate_fields')
 
 
     use amrex_fort_module, only: amrex_real
@@ -218,7 +218,6 @@ contains
 
     integer,          intent(in      ) :: clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), lo(3), hi(3), np
     double precision, intent(in      ) :: neff
-    double precision, intent(inout   ) :: del1, del2, tm, te
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
@@ -288,9 +287,6 @@ contains
 
             instant(i,j,k,10) = instant(i,j,k,10) + nrg
 
-            tm = tm + part%vel(1)*part%mass
-            te = te + nrg
-
             totalparticles = totalparticles + 1;
 
             totalpx = totalpx +  part%vel(1)
@@ -334,20 +330,6 @@ contains
       enddo
     enddo
 
-    !print *, "total px: ", totalpx/totalparticles, ", total py: ", totalpx/totalparticles, ", total pz: ", totalpx/totalparticles, ", total particles: ", totalparticles
-
-!    ti = 19
-!    tj = 0
-!    tk = 0
-
-!    if((ti .ge. mlo(1)) .and. (ti .le. mhi(1))) then
-!    
-!      del1 = px(ti,tj,tk)
-!    else
-!  
-!      del1 = 0
-!    endif
-
   end subroutine evaluate_fields
 
   subroutine evaluate_means(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
@@ -355,25 +337,21 @@ contains
                              instant, ilo, ihi, &
                              means, mlo, mhi, & 
                              vars, vlo, vhi, & 
-                             membraneflux, mflo, mfhi, &
 
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, totalmass) bind(c,name='evaluate_means')
+                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps) bind(c,name='evaluate_means')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
 
     implicit none
 
-    integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), mlo(3), mhi(3), vlo(3), vhi(3), mflo(3), mfhi(3)
+    integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), mlo(3), mhi(3), vlo(3), vhi(3)
     double precision, intent(in      ) :: neff, delt, n0, T0
-
-    double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3)), totalmass
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
     double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),12)
     double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),21)
-    double precision, intent(inout   ) :: membraneflux(mflo(1):mfhi(1),mflo(2):mfhi(2),mflo(3):mfhi(3))
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -433,48 +411,6 @@ contains
         enddo
       enddo
     enddo
-
-       ti = cross_cell
-  !    tj = 0
-  !    tk = 0
-
-      do kc=0,n_cells(3)-1
-        do jc=1,n_cells(2)
-          
-          delholder1( (n_cells(2))*(kc) + jc) = 0
-          delholder2( (n_cells(2))*(kc) + jc) = 0
-          delholder3( (n_cells(2))*(kc) + jc) = 0
-          delholder4( (n_cells(2))*(kc) + jc) = 0
-          delholder5( (n_cells(2))*(kc) + jc) = 0
-          delholder6( (n_cells(2))*(kc) + jc) = 0
-
-        enddo
-      enddo     
-
-      if((ti .ge. mlo(1)) .and. (ti .le. mhi(1))) then
-
-        do k = lo(3), hi(3)
-         
-          do j = lo(2), hi(2)
-
-            delholder1((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,10)-means(ti,j,k,10)
-            delholder2((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,10)-means(ti,j,k,10)
-            delholder3((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,7)-means(ti,j,k,7)
-            delholder4((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,6)-means(ti,j,k,6)
-            delholder5((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,6)-means(ti,j,k,6)
-            delholder6((n_cells(2))*(k) + (j+1)) = instant(ti,j,k,3)-means(ti,j,k,3)
-
-           ! print *, (n_cells(2))*(k) + (j+1), delholder6((n_cells(2))*(k) + (j+1))
-           ! print *, "1", delholder6(1)
- 
-          enddo
-        enddo
-      endif
-
-      !print *, "check", delholder6(1)
-
-
-
         
   end subroutine evaluate_means
 
@@ -484,7 +420,7 @@ contains
                              means, mlo, mhi, & 
                              vars, vlo, vhi, & 
 
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6) bind(c,name='evaluate_corrs')
+                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps) bind(c,name='evaluate_corrs')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -493,8 +429,6 @@ contains
 
     integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), mlo(3), mhi(3), vlo(3), vhi(3)
     double precision, intent(in      ) :: neff, delt, n0, T0
-
-    double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3))
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
@@ -571,12 +505,12 @@ contains
 
          !deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
-          vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
-          vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
-          vars(i,j,k,18) = (vars(i,j,k,18)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
-          vars(i,j,k,19) = (vars(i,j,k,19)*stepsminusone + deltemp*delholder4((n_cells(2))*(k) + (j+1)))*stepsinv
-          vars(i,j,k,20) = (vars(i,j,k,20)*stepsminusone + delrho*delholder5((n_cells(2))*(k) + (j+1)))*stepsinv
-          vars(i,j,k,21) = (vars(i,j,k,21)*stepsminusone + delrho*delholder6((n_cells(2))*(k) + (j+1)))*stepsinv
+!          vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
+!          vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
+!          vars(i,j,k,18) = (vars(i,j,k,18)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
+!          vars(i,j,k,19) = (vars(i,j,k,19)*stepsminusone + deltemp*delholder4((n_cells(2))*(k) + (j+1)))*stepsinv
+!          vars(i,j,k,20) = (vars(i,j,k,20)*stepsminusone + delrho*delholder5((n_cells(2))*(k) + (j+1)))*stepsinv
+!          vars(i,j,k,21) = (vars(i,j,k,21)*stepsminusone + delrho*delholder6((n_cells(2))*(k) + (j+1)))*stepsinv
 
           !print *, delrho
         enddo

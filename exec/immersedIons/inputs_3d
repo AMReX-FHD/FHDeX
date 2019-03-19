@@ -20,7 +20,7 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 1
+  max_step = 50
   plot_int = 1
 
 
@@ -41,7 +41,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 10
+  particle_count = 50
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -51,7 +51,7 @@
   !--------------
   nspecies = 1
   mass = 4e-23
-  diameter =  5.508e-8
+  diameter =  6.567e-8
   !nfrac =  1
   qval = 1.6e-19
 
@@ -63,7 +63,7 @@
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
-  variance_coef_mom = 0.
+  variance_coef_mom = 1.
   initial_variance_mom = 0      
 
   ! struct_fact_int = 100

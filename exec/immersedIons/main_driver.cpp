@@ -52,19 +52,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-//    int fhdSeed = 0;
-//    int particleSeed = 0;
-//    int selectorSeed = 0;
-//    int thetaSeed = 0;
-//    int phiSeed = 0;
-//    int generalSeed = 0;
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -559,6 +559,11 @@ void main_driver(const char* argv)
     charge.setVal(0);
     chargeTemp.setVal(0);
 
+    MultiFab massFrac(ba, dmap, 1, 1);
+    MultiFab massFracTemp(ba, dmap, 1, 1);
+    massFrac.setVal(0);
+    massFracTemp.setVal(0);
+
     //Staggered electric field - probably wont use this?
     std::array< MultiFab, AMREX_SPACEDIM > efield;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -566,6 +571,7 @@ void main_driver(const char* argv)
     }
 
     MLPoisson EsSolver;
+
 
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
@@ -616,7 +622,7 @@ void main_driver(const char* argv)
         }
 
 
-        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 1 /*1: interpolate only. 2: spread only. 3: both*/ );
+        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both*/ );
 
         particles.Redistribute();
 
@@ -638,7 +644,7 @@ void main_driver(const char* argv)
 //            statsCount = 1;
 //        }
        
-        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, ionParticle[0], dt,statsCount);
+//        particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, ionParticle[0], dt,statsCount);
 
         statsCount++;
 

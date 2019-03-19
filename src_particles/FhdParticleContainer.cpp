@@ -76,13 +76,15 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.rdata(RealData::oz) = p.pos(2);
 #endif
 
+                p.rdata(RealData::q) = qval;
+
                 //Print() << "Pos: "<< p.rdata(RealData::ox) << ", " << p.rdata(RealData::oy) << ", " << p.rdata(RealData::oz) << "\n";
 
                 //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
 
-                p.rdata(RealData::vx) = 1;
+                p.rdata(RealData::vx) = 0;
                 p.rdata(RealData::vy) = 0;
                 p.rdata(RealData::vz) = 0;
 
@@ -441,7 +443,9 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 }
 
 
-void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential, const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp)
+void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential, 
+                                         const MultiFab& RealCenterCoords,
+                                         const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp)
 {
     
 
@@ -468,16 +472,16 @@ void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential,
         const int np = particles.numParticles();
         
         //Print() << "FHD\n"; 
-//        collect_charge(particles.data(), &np,
-//                         ARLIM_3D(tile_box.loVect()),
-//                         ARLIM_3D(tile_box.hiVect()),
-//                         m_vector_ptrs[grid_id].dataPtr(),
-//                         m_vector_size[grid_id].dataPtr(),
-//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploPotenial), ZFILL(dxPotential),
-//                         BL_TO_FORTRAN_3D(RealCenterCoords[pti]),
-//                         BL_TO_FORTRAN_3D(chargeTemp[pti]));
+        collect_charge(particles.data(), &np,
+                         ARLIM_3D(tile_box.loVect()),
+                         ARLIM_3D(tile_box.hiVect()),
+                         m_vector_ptrs[grid_id].dataPtr(),
+                         m_vector_size[grid_id].dataPtr(),
+                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploPotential), ZFILL(dxPotential),
+                         BL_TO_FORTRAN_3D(RealCenterCoords[pti]),
+                         BL_TO_FORTRAN_3D(chargeTemp[pti]));
 
     }
 
@@ -585,13 +589,152 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
     }
 }
 
+//void FhdParticleContainer::EvaluateStatsMem(
+//                              MultiFab& particleInstant,
+//                              MultiFab& particleMeans,
+//                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
+
+//                              MultiFab& particleMembraneFlux,
+
+//                              MultiFab& cellVols, species particleInfo, const Real delt, int steps)
+//{
+//    const int lev = 0;
+//    const double Neff = particleInfo.Neff;
+//    const double n0 = particleInfo.n0;
+//    const double T0 = particleInfo.T;
+
+//    double del1 = 0;
+//    double del2 = 0;
+//    double del3 = 0;
+//    double del4 = 0;
+//    double del5 = 0;
+//    double del6 = 0;
+
+//    double tp = 0;
+//    double te = 0;
+//    double tm = 0;
+
+//    double totalMass;    
+
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& parts = particle_tile.GetArrayOfStructs();
+//        const int Np = parts.numParticles();
+
+//        tp = tp + Np;
+
+//        evaluate_fields(parts.data(),
+//                         ARLIM_3D(tile_box.loVect()),
+//                         ARLIM_3D(tile_box.hiVect()),
+//                         m_vector_ptrs[grid_id].dataPtr(),
+//                         m_vector_size[grid_id].dataPtr(),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
+//                         BL_TO_FORTRAN_3D(particleInstant[pti]),
+//                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, &del1, &del2, &tm, &te
+//                        );
+
+//    }
+
+
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& parts = particle_tile.GetArrayOfStructs();
+//        const int Np = parts.numParticles();
+
+//        evaluate_means(parts.data(),
+//                         ARLIM_3D(tile_box.loVect()),
+//                         ARLIM_3D(tile_box.hiVect()),
+//                         m_vector_ptrs[grid_id].dataPtr(),
+//                         m_vector_size[grid_id].dataPtr(),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+
+//                         BL_TO_FORTRAN_3D(particleInstant[pti]),
+//                         BL_TO_FORTRAN_3D(particleMeans[pti]),
+//                         BL_TO_FORTRAN_3D(particleVars[pti]),
+
+//                         BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
+
+//                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, &totalMass
+//                        );
+//    }
+
+//    //Print() << "c++: " << delHolder6[0] << "\n";
+
+//    //this is a bit of a hack? Reduce real sum should work with vectors
+//    for(int i=0;i<(n_cells[1]*n_cells[2]);i++)
+//    {
+//        //Fix to directly address array elements
+
+//        del1 = delHolder1[i];
+//        del2 = delHolder2[i];
+//        del3 = delHolder3[i];
+//        del4 = delHolder4[i];
+//        del5 = delHolder5[i];
+//        del6 = delHolder6[i];
+
+//        ParallelDescriptor::ReduceRealSum(del1);
+//        ParallelDescriptor::ReduceRealSum(del2);
+//        ParallelDescriptor::ReduceRealSum(del3);
+//        ParallelDescriptor::ReduceRealSum(del4);
+//        ParallelDescriptor::ReduceRealSum(del5);
+//        ParallelDescriptor::ReduceRealSum(del6);
+
+//        delHolder1[i] = del1;
+//        delHolder2[i] = del2;
+//        delHolder3[i] = del3;
+//        delHolder4[i] = del4;
+//        delHolder5[i] = del5;
+//        delHolder6[i] = del6;
+//    }
+
+//    ParallelDescriptor::ReduceRealSum(totalMass);
+
+//    //Print() << "Total mass: " << totalMass << "\n";
+
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& parts = particle_tile.GetArrayOfStructs();
+//        const int Np = parts.numParticles();
+
+//        evaluate_corrs(parts.data(),
+//                         ARLIM_3D(tile_box.loVect()),
+//                         ARLIM_3D(tile_box.hiVect()),
+//                         m_vector_ptrs[grid_id].dataPtr(),
+//                         m_vector_size[grid_id].dataPtr(),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+
+//                         BL_TO_FORTRAN_3D(particleInstant[pti]),
+//                         BL_TO_FORTRAN_3D(particleMeans[pti]),
+//                         BL_TO_FORTRAN_3D(particleVars[pti]),
+
+//                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6
+//                        );
+//    }
+
+//}
+
 void FhdParticleContainer::EvaluateStats(
                               MultiFab& particleInstant,
                               MultiFab& particleMeans,
-                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
-
-                              MultiFab& particleMembraneFlux,
-
+                              MultiFab& particleVars,
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps)
 {
     const int lev = 0;
@@ -599,12 +742,6 @@ void FhdParticleContainer::EvaluateStats(
     const double n0 = particleInfo.n0;
     const double T0 = particleInfo.T;
 
-    double del1 = 0;
-    double del2 = 0;
-    double del3 = 0;
-    double del4 = 0;
-    double del5 = 0;
-    double del6 = 0;
 
     double tp = 0;
     double te = 0;
@@ -632,7 +769,7 @@ void FhdParticleContainer::EvaluateStats(
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),   
                          BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np, &del1, &del2, &tm, &te
+                         BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np
                         );
 
     }
@@ -660,42 +797,11 @@ void FhdParticleContainer::EvaluateStats(
                          BL_TO_FORTRAN_3D(particleMeans[pti]),
                          BL_TO_FORTRAN_3D(particleVars[pti]),
 
-                         BL_TO_FORTRAN_3D(particleMembraneFlux[pti]),
-
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, &totalMass
-                        );
+                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps);
     }
 
     //Print() << "c++: " << delHolder6[0] << "\n";
 
-    //this is a bit of a hack? Reduce real sum should work with vectors
-    for(int i=0;i<(n_cells[1]*n_cells[2]);i++)
-    {
-        //Fix to directly address array elements
-
-        del1 = delHolder1[i];
-        del2 = delHolder2[i];
-        del3 = delHolder3[i];
-        del4 = delHolder4[i];
-        del5 = delHolder5[i];
-        del6 = delHolder6[i];
-
-        ParallelDescriptor::ReduceRealSum(del1);
-        ParallelDescriptor::ReduceRealSum(del2);
-        ParallelDescriptor::ReduceRealSum(del3);
-        ParallelDescriptor::ReduceRealSum(del4);
-        ParallelDescriptor::ReduceRealSum(del5);
-        ParallelDescriptor::ReduceRealSum(del6);
-
-        delHolder1[i] = del1;
-        delHolder2[i] = del2;
-        delHolder3[i] = del3;
-        delHolder4[i] = del4;
-        delHolder5[i] = del5;
-        delHolder6[i] = del6;
-    }
-
-    ParallelDescriptor::ReduceRealSum(totalMass);
 
     //Print() << "Total mass: " << totalMass << "\n";
 

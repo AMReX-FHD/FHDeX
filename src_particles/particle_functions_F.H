@@ -107,6 +107,24 @@ extern "C"
                         const void* surfaces,
                         const int* ns, int* sw);
 
+   void collect_charge(void* particles,
+                        const int *np,
+                        const int *lo,
+                        const int *hi,
+                        int** c_vectors,
+                        int* sizes,
+                        const int* clo,
+                        const int* chi,
+                        const amrex_real* plo,
+                        const amrex_real* phi,
+                        const amrex_real* dx,
+                        const amrex_real* dt,
+                        const amrex_real* ploes,
+                        const amrex_real* dxes,
+                        const amrex_real* cellcenters, const int* cellcenterslo, const int* cellcentershi,
+
+                         const amrex_real* charge, const int* chargelo, const int* chargehi);
+
 
     void init_particles(void* particles, const int* np, const amrex::Real* dx,
                         const amrex::Real* real_lo, const amrex::Real* real_hi,
@@ -132,7 +150,7 @@ extern "C"
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
                         const int* np, const amrex_real* neff, const amrex_real* cp, const amrex_real* d, const amrex_real* delt);
 
-   void evaluate_fields(void* particles,
+   void evaluate_fields_mem(void* particles,
                         const int* lo, const int* hi,
                         int** c_vectors, int* sizes, const int* clo, const int* chi,
                         amrex_real* instant, const int* ilo, const int* ihi,
@@ -148,7 +166,7 @@ extern "C"
 
 
 
-   void evaluate_means(void* particles,
+   void evaluate_means_mem(void* particles,
                         const int* lo, const int* hi,
                         int** c_vectors, int* sizes, const int* clo, const int* chi,
                         amrex_real* instant, const int* ilo, const int* ihi,
@@ -160,7 +178,7 @@ extern "C"
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
                         const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps, amrex::Real* delHolder1, amrex::Real* delHolder2, amrex::Real* delHolder3, amrex::Real* delHolder4, amrex::Real* delHolder5, amrex::Real* delHolder6, amrex::Real* totalmass);
 
-   void evaluate_corrs(void* particles,
+   void evaluate_corrs_mem(void* particles,
                         const int* lo, const int* hi,
                         int** c_vectors, int* sizes, const int* clo, const int* chi,
                         amrex_real* instant, const int* ilo, const int* ihi,
@@ -169,6 +187,37 @@ extern "C"
 
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
                         const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps, amrex::Real* delHolder1, amrex::Real* delHolder2, amrex::Real* delHolder3, amrex::Real* delHolder4, amrex::Real* delHolder5, amrex::Real* delHolder6);
+
+
+   void evaluate_fields(void* particles,
+                        const int* lo, const int* hi,
+                        int** c_vectors, int* sizes, const int* clo, const int* chi,
+                        amrex_real* instant, const int* ilo, const int* ihi,
+                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
+                        const amrex_real* neff, const int* np);
+
+
+
+   void evaluate_means(void* particles,
+                        const int* lo, const int* hi,
+                        int** c_vectors, int* sizes, const int* clo, const int* chi,
+                        amrex_real* instant, const int* ilo, const int* ihi,
+                        amrex_real* means, const int* mlo, const int* mhi,
+                        amrex_real* vars, const int* vlo, const int* vhi,
+
+                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
+                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps);
+
+   void evaluate_corrs(void* particles,
+                        const int* lo, const int* hi,
+                        int** c_vectors, int* sizes, const int* clo, const int* chi,
+                        amrex_real* instant, const int* ilo, const int* ihi,
+                        amrex_real* means, const int* mlo, const int* mhi,
+                        amrex_real* vars, const int* vlo, const int* vhi,
+
+                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
+                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps);
+
 
 
 #ifdef __cplusplus
