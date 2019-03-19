@@ -1,4 +1,4 @@
-subroutine repulsive_force(part1,part2,dx, dr) &
+subroutine repulsive_force(part1,part2,dx, dr2) &
     bind(c,name="repulsive_force")
 
   use amrex_fort_module, only: amrex_real
@@ -6,9 +6,14 @@ subroutine repulsive_force(part1,part2,dx, dr) &
   use cell_sorted_particle_module, only: particle_t
 
   implicit none
-  type(particle_t), intent(inout) :: part1 !is this defined correctly?
+  type(particle_t), intent(inout) :: part1 
   type(particle_t), intent(inout) :: part2
-  real(amrex_real), intent(in) :: dx, dr
+  real(amrex_real), intent(in) :: dx, dr2
+
+  !here using a (1/r)^4 potential interation--make sure sign is correct
+  
+  part1%force = part1%force + dx*part1%q*part2%q/(dr2*dr2*dr2)
+  part2%force = part2%force - dx*part1%q*part2%q/(dr2*dr2*dr2)
 
 end subroutine
 
@@ -18,6 +23,7 @@ subroutine force_function(part1,part2,domsize) &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module, only: diameter
 
   implicit none
   type(particle_t), intent(inout) :: part1 !is this defined correctly?
@@ -55,12 +61,12 @@ subroutine force_function(part1,part2,domsize) &
   dr2 = dot_product(dx,dx)
   dr = sqrt(dr2)
 
-  cutoff = 1
+  cutoff = 4*part1%radius
 
   !repulsive interaction
   if (dr .lt. cutoff) then
  
-    call repulsive_force(part1,part2,dx,dr) 
+    call repulsive_force(part1,part2,dx,dr,dr2) 
 
   end if
 
