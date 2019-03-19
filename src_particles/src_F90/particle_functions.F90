@@ -1607,7 +1607,7 @@ subroutine inter_op(weights, indicies, &
   part%vel(1) = part%vel(1)
 
 
-  !print*, "Intervel: ", part%vel
+  print*, "Intervel: ", part%vel
 
   part%multi = part%vel(1)
 
@@ -1736,7 +1736,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                               coordsz, coordszlo, coordszhi, &
 #endif
                               part, ks, lo, hi, plof)
-              if(sw .ne. 2) then
+              if((sw .ne. 2) .and. (sw .ne. 4)) then
         
                !print*, "INTERPOLATE"
       
@@ -1823,7 +1823,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !print*, "NewPos: ", part%pos
 
 
-              if(sw .ne. 1) then
+              if((sw .ne. 1)  .and. (sw .ne. 4)) then
 
               !  print*, "SPREAD"
                 call spread_op(weights, indicies, &

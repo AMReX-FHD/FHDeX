@@ -298,11 +298,11 @@ contains
           instant(i,j,k,2) = instant(i,j,k,2)*neff/cellvols(i,j,k)
 
 
-            print *, instant(i,j,k,2)
+          !  print *, instant(i,j,k,2)
 
-          if(members .gt. 0) then
+          !if(members .gt. 0) then
         
-             instant(i,j,k,3) = instant(i,j,k,3)*membersinv
+                  instant(i,j,k,3) = instant(i,j,k,3)*membersinv
                   instant(i,j,k,4) = instant(i,j,k,4)*membersinv
                   instant(i,j,k,5) = instant(i,j,k,5)*membersinv
 

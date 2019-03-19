@@ -92,6 +92,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.rdata(RealData::ay) = 0;
                 p.rdata(RealData::az) = 0;
 
+                p.rdata(RealData::fx) = 0;
+                p.rdata(RealData::fy) = 0;
+                p.rdata(RealData::fz) = 0;
+
                 p.rdata(RealData::travelTime) = 0;
                 p.rdata(RealData::diffAv) = 0;
                 p.rdata(RealData::stepCount) = 0;
