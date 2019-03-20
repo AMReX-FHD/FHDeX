@@ -564,6 +564,11 @@ void main_driver(const char* argv)
     massFrac.setVal(0);
     massFracTemp.setVal(0);
 
+    MultiFab trans(ba, dmap, 1, ngp);
+    MultiFab transTemp(ba, dmap, 1, ngp);
+    trans.setVal(0);
+    transTemp.setVal(0);
+
     //Staggered electric field - probably wont use this?
     std::array< MultiFab, AMREX_SPACEDIM > efield;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -622,10 +627,9 @@ void main_driver(const char* argv)
         }
 
 
-        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 1 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
+        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
 
-        //particles.collectCharge(dt, dxp, RealCenteredCoords, geomP.ProbLo(), massFrac, massFracTemp);
-
+       
         particles.Redistribute();
 
         particles.ReBin();
@@ -645,6 +649,8 @@ void main_driver(const char* argv)
             particleVars.setVal(0);
             statsCount = 1;
         }
+
+        //particles.collectFields(dt, dxp, RealCenteredCoords, geomP.ProbLo(), charge, chargeTemp, massFrac, massFracTemp);
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 

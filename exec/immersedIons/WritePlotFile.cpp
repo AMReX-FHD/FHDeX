@@ -114,7 +114,13 @@ void WritePlotFile(int step,
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
-
     particles.Checkpoint(pplotfilename, "particle0");
+
+
+    std::string asciiName = Concatenate("asciiMeans",step,9);
+    std::string asciiPName = Concatenate("asciiParticles",step,9);
+    outputMFAscii(particleMeans, asciiName);
+    particles.WriteParticlesAscii(asciiPName);
+
 
 }

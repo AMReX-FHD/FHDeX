@@ -297,14 +297,10 @@ contains
 
           instant(i,j,k,2) = instant(i,j,k,2)*neff/cellvols(i,j,k)
 
-
-          !  print *, instant(i,j,k,2)
-
-          !if(members .gt. 0) then
-        
-                  instant(i,j,k,3) = instant(i,j,k,3)*membersinv
-                  instant(i,j,k,4) = instant(i,j,k,4)*membersinv
-                  instant(i,j,k,5) = instant(i,j,k,5)*membersinv
+   
+          instant(i,j,k,3) = instant(i,j,k,3)*membersinv
+          instant(i,j,k,4) = instant(i,j,k,4)*membersinv
+          instant(i,j,k,5) = instant(i,j,k,5)*membersinv
 
 
           instant(i,j,k,7) = instant(i,j,k,7)*neff/cellvols(i,j,k)
@@ -328,6 +324,7 @@ contains
           enddo
 
           instant(i,j,k,6) = instant(i,j,k,6)*membersinv*0.33333333333333333
+
 
           instant(i,j,k,11) = instant(i,j,k,2)*rmean*instant(i,j,k,5)
 
@@ -379,11 +376,19 @@ contains
 
           !Means      
 
+          means(i,j,k,1) = (means(i,j,k,1)*stepsminusone + instant(i,j,k,1))*stepsinv !member density
           means(i,j,k,2) = (means(i,j,k,2)*stepsminusone + instant(i,j,k,2))*stepsinv !mass density
 
-          !densitymean(i,j,k) = 1.79233
+!          if(means(i,j,k,1) .ne. 0) then
+!            print *, i, j, k, means(i,j,k,1)
+!          endif
 
-          densitymeaninv = 1.0/means(i,j,k,2)
+          !densitymean(i,j,k) = 1.79233
+          if(means(i,j,k,2) .gt. 0) then
+            densitymeaninv = 1.0/means(i,j,k,2)
+          else
+            densitymeaninv = 0
+          endif
 
           means(i,j,k,7) = (means(i,j,k,7)*stepsminusone + instant(i,j,k,7))*stepsinv !momentum density
           means(i,j,k,8) = (means(i,j,k,8)*stepsminusone + instant(i,j,k,8))*stepsinv
@@ -458,7 +463,11 @@ contains
           !Vars
           qmean = cv*means(i,j,k,6)-0.5*(means(i,j,k,3)**2 + means(i,j,k,4)**2 + means(i,j,k,5)**2)
 
-          densitymeaninv = 1.0/means(i,j,k,2)
+          if(means(i,j,k,2) .gt. 0) then
+            densitymeaninv = 1.0/means(i,j,k,2)
+          else
+            densitymeaninv = 0
+          endif
 
           delrho = instant(i,j,k,2) - means(i,j,k,2)
 

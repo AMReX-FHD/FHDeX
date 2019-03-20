@@ -82,5 +82,11 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom);
 void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom);
 void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom);
 
+///////////////////////////
+// in outputAscii.cpp
+
+
+void outputMFAscii(const MultiFab& output, std::string filename);
+
 
 #endif

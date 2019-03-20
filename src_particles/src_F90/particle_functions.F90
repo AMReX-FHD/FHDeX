@@ -1734,7 +1734,7 @@ subroutine inter_op(weights, indicies, &
   part%vel(1) = part%vel(1)
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
 
   part%multi = part%vel(1)
 
@@ -1839,7 +1839,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   veltest = 0
 
   
-  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx)
+  !call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx)
 
 
   do k = lo(3), hi(3)
@@ -1883,9 +1883,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               runtime = dt
 
-              part%vel = part%vel + dt*part%force/part%mass
+              !part%vel = part%vel + dt*part%force/part%mass
 
-              print *, "vel correction: ", dt*part%force/part%mass, " pos correction: ", dt*dt*part%force/part%mass
+              !print *, "vel correction: ", dt*part%force/part%mass, " pos correction: ", dt*dt*part%force/part%mass
 
               do while (runtime .gt. 0)
 

@@ -451,7 +451,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 }
 
 
-void FhdParticleContainer::collectCharge(const Real dt, const Real* dxPotential, 
+void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential, 
                                          const MultiFab& RealCenterCoords,
                                          const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp,
                                          MultiFab& mass, MultiFab& massTemp)
@@ -985,10 +985,9 @@ FhdParticleContainer::correctCellVectors(int old_index, int new_index,
 }
 
 
-void FhdParticleContainer::WriteParticlesAscii(int n)
+void FhdParticleContainer::WriteParticlesAscii(std::string asciiName)
 {
-    const std::string& pltfile = amrex::Concatenate("particles", n, 5);
-    WriteAsciiFile(pltfile);
+    WriteAsciiFile(asciiName);
 }
 
 

@@ -95,7 +95,7 @@ public:
                               MultiFab& particleVars,
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
-    void WriteParticlesAscii(int n);
+    void WriteParticlesAscii(std::string asciiName);
 
 #ifdef DSMC
     void MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount);
@@ -119,7 +119,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
 
-    void collectCharge(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Real* ploPotential, MultiFab& potential, MultiFab& potentialTemp,MultiFab& mass, MultiFab& massTemp);
+    void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
 
 
     void ReBin();
