@@ -13,13 +13,13 @@ contains
 #if (AMREX_SPACEDIM == 2)
 
   subroutine matvec_mul(tlo, thi, &
-                        xp, xlo, xhi, &
-                        ap, alo, ahi, nc) bind(C,name="matvec_mul")
+                        xp, xlo, xhi, nc, &
+                        ap, alo, ahi, nc2) bind(C,name="matvec_mul")
 
-    integer,          intent(in   ) :: tlo(2),thi(2), nc
+    integer,          intent(in   ) :: tlo(2),thi(2), nc, nc2
     integer,          intent(in   ) :: xlo(2),xhi(2), alo(2),ahi(2)
     double precision, intent(inout) :: xp(xlo(1):xhi(1),xlo(2):xhi(2),nc) ! last dimension for nc
-    double precision, intent(in   ) :: ap(alo(1):ahi(1),alo(2):ahi(2),nc)
+    double precision, intent(in   ) :: ap(alo(1):ahi(1),alo(2):ahi(2),nc2)
 
     ! local
     integer :: i,j
@@ -39,7 +39,7 @@ contains
         double precision, dimension(nc,nc), intent(in)    :: ap_ij
         
         xp_ij = matmul(ap_ij, xp_ij)
- 
+        
     end subroutine matvec_mul_comp 
 
   end subroutine matvec_mul

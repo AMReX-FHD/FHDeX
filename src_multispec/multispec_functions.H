@@ -112,8 +112,7 @@ void ComputeRhoWChi(const amrex::MultiFab& rho,
 // in MatvecMul.cpp
 
 void MatvecMul(amrex::MultiFab& x,
-	  const amrex::MultiFab& A,
-	  const int& nc);
+	       const amrex::MultiFab& A);
 
 /////////////////////////////////////////////////////////////////////////////////
 
