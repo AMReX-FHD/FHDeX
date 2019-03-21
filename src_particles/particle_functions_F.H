@@ -14,7 +14,7 @@ extern "C"
 												const amrex_real* dx,
 											  const amrex_real* dr);
 
-		void force_function(void* part1,
+		void force_function2(void* part1,
 											  void* part2,
                         const amrex_real* domsize);
 
