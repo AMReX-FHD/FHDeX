@@ -114,9 +114,9 @@ void main_driver(const char* argv)
 
     bc = ba;
     bp = ba;
-    bc.coarsen(sizeRatioC);
+    bc.refine(sizeRatioC);
     bp.coarsen(sizeRatioP);
-    domainC.coarsen(sizeRatioC);
+    domainC.refine(sizeRatioC);
     domainP.coarsen(sizeRatioP);
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
@@ -126,6 +126,9 @@ void main_driver(const char* argv)
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
+
+    Print() << geom << "\n";
+    Print() << domain << "\n";
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
@@ -285,16 +288,21 @@ void main_driver(const char* argv)
 
     int ng = 1;
 
-    if(pkernel_fluid == 4)
+    if(pkernel_fluid == 3)
     {
         ng = 3;
+
+    }if(pkernel_fluid == 4)
+    {
+        ng = 3;
+
     }else if(pkernel_fluid == 6)
     {
 
         ng = 4;
     }
 
-    MultiFab rho(ba, dmap, 1, 1);
+    MultiFab rho(ba, dmap, 1, ng);
     rho.setVal(1.);
 
     // alpha_fc arrays
@@ -305,7 +313,7 @@ void main_driver(const char* argv)
     }
 
     // beta cell centred
-    MultiFab beta(ba, dmap, 1, 1);
+    MultiFab beta(ba, dmap, 1, ng);
     beta.setVal(visc_coef);
 
     // beta on nodes in 2d
@@ -342,19 +350,19 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE >  eta_ed;
     std::array< MultiFab, NUM_EDGE > temp_ed;
     // eta and temperature; cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
-    temp_cc.define(ba, dmap, 1, 1);
+    eta_cc.define(ba, dmap, 1, ng);
+    temp_cc.define(ba, dmap, 1, ng);
     // eta and temperature; nodal
 #if (AMREX_SPACEDIM == 2)
-    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
+    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
 #elif (AMREX_SPACEDIM == 3)
-    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
+    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
+    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
+    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
+    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
+    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
 #endif
 
     // Initalize eta & temperature multifabs
@@ -389,7 +397,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
+    MultiFab pres(ba,dmap,1,ng);
     pres.setVal(0.);  // initial guess
 
     // staggered velocities
@@ -581,9 +589,9 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    //particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
-    //particles.Redistribute();
-    //particles.ReBin();
+//    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+//    particles.Redistribute();
+//    particles.ReBin();
 
     //Time stepping loop
 

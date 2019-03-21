@@ -60,17 +60,23 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+#endif
+
+//                p.pos(0) = get_uniform_func()*prob_hi[0];
+//                p.pos(1) = get_uniform_func()*prob_hi[1];
 //#if (BL_SPACEDIM == 3)
-//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+//                p.pos(2) = get_uniform_func()*prob_hi[2];
 //#endif
 
-                p.pos(0) = get_uniform_func()*prob_hi[0];
-                p.pos(1) = get_uniform_func()*prob_hi[1];
-#if (BL_SPACEDIM == 3)
-                p.pos(2) = get_uniform_func()*prob_hi[2];
-#endif
+//                p.pos(0) = 0 + 0.3*dx[0];
+//                p.pos(1) = 0 + 8.9*dx[1];
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = 0 + 8.9*dx[2];
+//#endif
 
                 p.rdata(RealData::ox) = p.pos(0);
                 p.rdata(RealData::oy) = p.pos(1);

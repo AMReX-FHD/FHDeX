@@ -4,11 +4,15 @@
 
 void outputMFAscii(const MultiFab& output, std::string filename)
 {
-    std::ofstream ofs(filename, std::ofstream::out);
+
+    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + filename;
+
+    std::ofstream ofs(plotfilename, std::ofstream::out);
     
     for (MFIter mfi(output); mfi.isValid(); ++mfi) 
     {
-        amrex::Print(ofs)<<(output[mfi])<<std::endl;                       
+        //std::Print(ofs)<<(output[mfi])<<std::endl;
+          ofs<<(output[mfi])<<std::endl;                                              
     }
 
 }
