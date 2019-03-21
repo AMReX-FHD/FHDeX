@@ -27,20 +27,20 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   BL_PROFILE_VAR("ComputeMassFluxdiv()",ComputeMassFluxdiv);
 
   BoxArray ba = rho.boxArray();
-  DistributionMapping dmap = rho.DistributionMap();
+  DistributionMapping dmapp = rho.DistributionMap();
   int nspecies = rho.nComp();
   int nspecies2 = nspecies*nspecies;
 
   const Real* dx = geom.CellSize();
   
-  MultiFab rhoWchi(         ba, dmap, nspecies2, 1);  // rho*W*chi*Gamma
-  MultiFab molarconc(       ba, dmap, nspecies, 1);  // molar concentration
-  MultiFab molmtot(         ba, dmap, 1, 1);  // total molar mass
-  MultiFab Hessian(         ba, dmap, nspecies2, 1);  // Hessian-matrix
-  MultiFab Gamma(           ba, dmap, nspecies2, 1);  // Gamma-matrix
-  MultiFab D_bar(           ba, dmap, nspecies2, 1);  // D_bar-matrix
-  MultiFab D_therm(         ba, dmap, nspecies2, 1);  // DT-matrix
-  MultiFab sqrtLonsager_fc( ba, dmap, nspecies2, 1);  // cholesky factored Lonsager on faces
+  MultiFab rhoWchi(         ba, dmapp, nspecies2, 1);  // rho*W*chi*Gamma
+  MultiFab molarconc(       ba, dmapp, nspecies, 1);   // molar concentration
+  MultiFab molmtot(         ba, dmapp, 1, 1);          // total molar mass
+  MultiFab Hessian(         ba, dmapp, nspecies2, 1);  // Hessian-matrix
+  MultiFab Gamma(           ba, dmapp, nspecies2, 1);  // Gamma-matrix
+  MultiFab D_bar(           ba, dmapp, nspecies2, 1);  // D_bar-matrix
+  MultiFab D_therm(         ba, dmapp, nspecies2, 1);  // DT-matrix
+  MultiFab sqrtLonsager_fc( ba, dmapp, nspecies2, 1);  // cholesky factored Lonsager on faces
    
   rhoWchi.setVal(0.);
   molarconc.setVal(0.);
@@ -64,13 +64,13 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   
   // compute Gamma from Hessian
   ComputeGamma(molarconc,Hessian,Gamma);
-   
+  
   // compute rho*W*chi and zeta/Temp
   ComputeRhoWChi(rho,rhotot,molarconc,rhoWchi,D_bar);
 
   // compute diffusive mass fluxes, "-F = rho*W*chi*Gamma*grad(x) - ..."
   DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
-
+  
   // compute external forcing for manufactured solution and add to diff_mass_fluxdiv
   // we should move this to occur before the call to compute_mass_fluxdiv and into
   // the advance_timestep routines

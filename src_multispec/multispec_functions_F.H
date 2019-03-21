@@ -57,8 +57,8 @@ extern "C"
 // in matvec_mul.F90
 
   void matvec_mul(const int* tlo, const int* thi,
-		  const amrex_real* xp, const int* xlo, const int* xhi,
-                  const amrex_real* ap, const int* alo, const int* ahi, const int* nc);
+		  const amrex_real* xp, const int* xlo, const int* xhi, const int* nc,
+                  const amrex_real* ap, const int* alo, const int* ahi, const int* nc2);
 
 ///////////////////////////
 
