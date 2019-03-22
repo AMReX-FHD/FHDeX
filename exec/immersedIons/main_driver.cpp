@@ -109,7 +109,7 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
-    int sizeRatioC = 1;
+    int sizeRatioC = 4;
     int sizeRatioP = 1;
 
     bc = ba;
@@ -589,9 +589,9 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-//    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
-//    particles.Redistribute();
-//    particles.ReBin();
+    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.Redistribute();
+    particles.ReBin();
 
     //Time stepping loop
 
