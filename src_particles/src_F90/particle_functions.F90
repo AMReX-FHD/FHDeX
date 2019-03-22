@@ -1539,19 +1539,15 @@ subroutine spread_op(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                               sourcew, sourcewlo, sourcewhi, &
 #endif
-                              velu, velulo, veluhi, &
-                              velv, velvlo, velvhi, &
-#if (BL_SPACEDIM == 3)
-                              velw, velwlo, velwhi, &
-#endif
                               part, ks, dxf)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module, only: visc_coef
 
   implicit none
 
-  integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3), velulo(3), velvlo(3), velwlo(3), veluhi(3), velvhi(3), velwhi(3)
+  integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
   double precision, intent(in   ) :: dxf(3)
   type(particle_t), intent(in   ) :: part
   double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
@@ -1563,20 +1559,11 @@ subroutine spread_op(weights, indicies, &
   double precision, intent(inout) :: sourcew(sourcewlo(1):sourcewhi(1),sourcewlo(2):sourcewhi(2),sourcewlo(3):sourcewhi(3))
 #endif
 
-  double precision, intent(in   ) :: velu(velulo(1):veluhi(1),velulo(2):veluhi(2),velulo(3):veluhi(3))
-  double precision, intent(in   ) :: velv(velvlo(1):velvhi(1),velvlo(2):velvhi(2),velvlo(3):velvhi(3))
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(in   ) :: velw(velwlo(1):velwhi(1),velwlo(2):velwhi(2),velwlo(3):velwhi(3))
-#endif
-
   integer :: i, j, k, ii, jj, kk
-  double precision :: uloc, vloc, wloc, volinv
+  double precision :: volinv
 
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-  uloc = 0
-  vloc = 0
-  wloc = 0
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
@@ -1586,51 +1573,22 @@ subroutine spread_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        uloc = uloc + velu(ii,jj,kk)*weights(i,j,k,1)
-
-
-        ii = indicies(i,j,k,2,1)
-        jj = indicies(i,j,k,2,2)
-        kk = indicies(i,j,k,2,3)
-
-        vloc = vloc + velv(ii,jj,kk)*weights(i,j,k,2)
-
-        ii = indicies(i,j,k,3,1)
-        jj = indicies(i,j,k,3,2)
-        kk = indicies(i,j,k,3,3)
-
-        wloc = wloc + velw(ii,jj,kk)*weights(i,j,k,3)
-
-      enddo
-    enddo
-  enddo
-
-  !print*, "Fluid vel: ", uloc, wloc, vloc
-
-  do k = -(ks-1), ks
-    do j = -(ks-1), ks
-      do i = -(ks-1), ks
-
-        ii = indicies(i,j,k,1,1)
-        jj = indicies(i,j,k,1,2)
-        kk = indicies(i,j,k,1,3)
-
-        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv+part%force(1)*weights(i,j,k,1)*volinv
-        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(1d-2)*weights(i,j,k,1)*part%drag_factor*volinv
+        sourceu(ii,jj,kk) = part%force(1)*weights(i,j,k,1)*volinv
+        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
         kk = indicies(i,j,k,2,3)
 
-        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv+part%force(2)*weights(i,j,k,2)*volinv
-        !sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(1d-2)*weights(i,j,k,2)*part%drag_factor*volinv
+        sourcev(ii,jj,kk) = part%force(2)*weights(i,j,k,2)*volinv
+        !sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(visc_coef)*weights(i,j,k,2)*part%drag_factor*volinv
 
         ii = indicies(i,j,k,3,1)
         jj = indicies(i,j,k,3,2)
         kk = indicies(i,j,k,3,3)
 
-        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv+part%force(3)*weights(i,j,k,3)*volinv
-        !sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(1d-2)*weights(i,j,k,3)*part%drag_factor*volinv
+        sourcew(ii,jj,kk) = part%force(3)*weights(i,j,k,3)*volinv
+        !sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(visc_coef)*weights(i,j,k,3)*part%drag_factor*volinv
 
       enddo
     enddo
@@ -1691,6 +1649,7 @@ subroutine inter_op(weights, indicies, &
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module, only: visc_coef
 
   implicit none
 
@@ -1741,11 +1700,95 @@ subroutine inter_op(weights, indicies, &
   enddo
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
+  !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
 
 end subroutine inter_op
+
+
+subroutine rfd(weights, indicies, &
+                              sourceu, sourceulo, sourceuhi, &
+                              sourcev, sourcevlo, sourcevhi, &
+#if (BL_SPACEDIM == 3)
+                              sourcew, sourcewlo, sourcewhi, &
+#endif
+                              part, ks, dxf)
+
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module, only: visc_coef
+  use rng_functions_module
+
+  implicit none
+
+  integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
+  double precision, intent(in   ) :: dxf(3)
+  type(particle_t), intent(inout) :: part
+  double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
+  integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
+
+  double precision, intent(inout) :: sourceu(sourceulo(1):sourceuhi(1),sourceulo(2):sourceuhi(2),sourceulo(3):sourceuhi(3))
+  double precision, intent(inout) :: sourcev(sourcevlo(1):sourcevhi(1),sourcevlo(2):sourcevhi(2),sourcevlo(3):sourcevhi(3))
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(inout) :: sourcew(sourcewlo(1):sourcewhi(1),sourcewlo(2):sourcewhi(2),sourcewlo(3):sourcewhi(3))
+#endif
+
+  integer :: i, j, k, ii, jj, kk
+  double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta
+
+  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
+
+  delta = 1d-6
+
+  !print*, "Fluid vel: ", uloc, wloc, vloc
+
+  call get_particle_normal(normalrand(1))
+  call get_particle_normal(normalrand(2))
+  call get_particle_normal(normalrand(3))
+
+  part%pos = part%pos + delta*normalrand/2
+
+  call spread_op(weights, indicies, &
+                  sourceu, sourceulo, sourceuhi, &
+                  sourcev, sourcevlo, sourcevhi, &
+#if (BL_SPACEDIM == 3)
+                  sourcew, sourcewlo, sourcewhi, &
+#endif
+                  part, ks, dxf)
+
+  do k = -(ks-1), ks
+    do j = -(ks-1), ks
+      do i = -(ks-1), ks
+
+        ii = indicies(i,j,k,1,1)
+        jj = indicies(i,j,k,1,2)
+        kk = indicies(i,j,k,1,3)
+
+        sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv+part%force(1)*weights(i,j,k,1)*volinv
+        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv
+
+        ii = indicies(i,j,k,2,1)
+        jj = indicies(i,j,k,2,2)
+        kk = indicies(i,j,k,2,3)
+
+        sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(visc_coef)*weights(i,j,k,2)*part%drag_factor*volinv+part%force(2)*weights(i,j,k,2)*volinv
+        !sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(visc_coef)*weights(i,j,k,2)*part%drag_factor*volinv
+
+        ii = indicies(i,j,k,3,1)
+        jj = indicies(i,j,k,3,2)
+        kk = indicies(i,j,k,3,3)
+
+        sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(visc_coef)*weights(i,j,k,3)*part%drag_factor*volinv+part%force(3)*weights(i,j,k,3)*volinv
+        !sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(visc_coef)*weights(i,j,k,3)*part%drag_factor*volinv
+
+      enddo
+    enddo
+  enddo
+
+
+end subroutine rfd
 
 subroutine move_ions_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
@@ -1863,7 +1906,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               runtime = dt
               part => particles(cell_parts(p))
 
-              part%vel(1) = 1
+              !part%vel(1) = 1
 
               call get_weights(dxf, dxfinv, weights, indicies, &
                               coordsx, coordsxlo, coordsxhi, &
@@ -1899,6 +1942,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !part%vel = part%vel + dt*part%force/part%mass
 
               !print *, "vel correction: ", dt*part%force/part%mass, " pos correction: ", dt*dt*part%force/part%mass
+
+              part%force(1) = 1;
 
               do while (runtime .gt. 0)
 
@@ -1975,11 +2020,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                                 sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
                                 sourcez, sourcezlo, sourcezhi, &
-#endif
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
 #endif
                                 part, ks, dxf)
 
@@ -2243,11 +2283,6 @@ subroutine move_ions_fhd_katie(particles, np, lo, hi, &
                                 sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
                                 sourcez, sourcezlo, sourcezhi, &
-#endif
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
 #endif
                                 part, ks, dxf)
 
