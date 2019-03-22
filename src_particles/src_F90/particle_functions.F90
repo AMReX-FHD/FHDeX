@@ -10,7 +10,8 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: dx, dr2
 
-  !here using a (1/r)^4 potential interation--make sure sign is correct
+  !here using a (1/r)^4 potential interation with a prefactor that is the same as the ions charges for right now
+   ! we just want it to be approximately the same order of magnitude when they're close
   
   part1%force = part1%force + dx*part1%q*part2%q/(dr2*dr2*dr2)
   part2%force = part2%force - dx*part1%q*part2%q/(dr2*dr2*dr2)
@@ -39,7 +40,7 @@ subroutine force_function2(part1,part2,domsize) &
 
   permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
 
-
+  !i think this is correctly defined for the signs we use below
   dx0 = part1%pos-part2%pos
 
   dr2 = dot_product(dx0,dx0)
@@ -76,9 +77,7 @@ subroutine force_function2(part1,part2,domsize) &
 !  end if
 
   !electrostatic -- need to determine how many images we should be adding
-  images = 1 !change this to an input
-
-  !do while (i <= images)
+  images = 2 !change this to an input
 
   do ii = -images, images
     do jj = -images, images 
@@ -93,7 +92,6 @@ subroutine force_function2(part1,part2,domsize) &
 
        part1%force = part1%force + permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
        part2%force = part2%force - permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
-
 
       end do
     end do
