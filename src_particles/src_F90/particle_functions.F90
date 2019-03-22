@@ -1617,7 +1617,7 @@ subroutine rfd(weights, indicies, &
 
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-  delta = 1d-6
+  delta = 1d-3*dxf(1)
 
   !print*, "Fluid vel: ", uloc, wloc, vloc
 
@@ -1625,13 +1625,13 @@ subroutine rfd(weights, indicies, &
   call get_particle_normal(normalrand(2))
   call get_particle_normal(normalrand(3))
 
-  norm = sqrt(normalrand(1)**2+normalrand(2)**2+normalrand(3)**2)
+  !norm = sqrt(normalrand(1)**2+normalrand(2)**2+normalrand(3)**2)
 
   part%pos = part%pos + delta*normalrand/2
 
-  part%force(1) = k_B*T_init(1)*normalrand(1)**2/(norm*delta)
-  part%force(2) = k_B*T_init(1)*normalrand(2)**2/(norm*delta)
-  part%force(3) = k_B*T_init(1)*normalrand(3)**2/(norm*delta)
+  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
+  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
+  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
 
   call spread_op(weights, indicies, &
                   sourceu, sourceulo, sourceuhi, &
@@ -1643,9 +1643,9 @@ subroutine rfd(weights, indicies, &
 
   part%pos = part%pos - delta*normalrand
 
-  part%force(1) = -k_B*T_init(1)*normalrand(1)**2/(norm*delta)
-  part%force(2) = -k_B*T_init(1)*normalrand(2)**2/(norm*delta)
-  part%force(3) = -k_B*T_init(1)*normalrand(3)**2/(norm*delta)
+  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
+  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
+  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
 
   call spread_op(weights, indicies, &
                   sourceu, sourceulo, sourceuhi, &
@@ -1912,13 +1912,16 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               end do
 
-              call inter_op(weights, indicies, &
-                              velx, velxlo, velxhi, &
-                              vely, velylo, velyhi, &
+              if((sw .ne. 2) .and. (sw .ne. 4)) then
+
+                call inter_op(weights, indicies, &
+                                velx, velxlo, velxhi, &
+                                vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
-                              velz, velzlo, velzhi, &
+                                velz, velzlo, velzhi, &
 #endif
-                              part, ks, dxf)
+                                part, ks, dxf)
+              endif
 
               part%pos = posold
 

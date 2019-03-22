@@ -589,9 +589,9 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
-    particles.Redistribute();
-    particles.ReBin();
+//    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+//    particles.Redistribute();
+//    particles.ReBin();
 
     //Time stepping loop
 
@@ -609,18 +609,18 @@ void main_driver(const char* argv)
         //HYDRO
         //--------------------------------------
 
-	    // Fill stochastic terms
-	    if(variance_coef_mom != 0.0) {
+        // Fill stochastic terms
+        if(variance_coef_mom != 0.0) {
 
-	      // compute the random numbers needed for the stochastic momentum forcing
-	      sMflux.fillMStochastic();
+          // compute the random numbers needed for the stochastic momentum forcing
+          sMflux.fillMStochastic();
 
 
-	      // compute stochastic momentum force
-	      sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	    }
+          // compute stochastic momentum force
+          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+        }
 
-	    // Advance umac
+    // Advance umac
         //Print() << "STOKES SOLVE\n";
 	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
