@@ -109,7 +109,7 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
-    int sizeRatioC = 1;
+    int sizeRatioC = 4;
     int sizeRatioP = 1;
 
     bc = ba;
@@ -609,18 +609,18 @@ void main_driver(const char* argv)
         //HYDRO
         //--------------------------------------
 
-	    // Fill stochastic terms
-	    if(variance_coef_mom != 0.0) {
+        // Fill stochastic terms
+        if(variance_coef_mom != 0.0) {
 
-	      // compute the random numbers needed for the stochastic momentum forcing
-	      sMflux.fillMStochastic();
+          // compute the random numbers needed for the stochastic momentum forcing
+          sMflux.fillMStochastic();
 
 
-	      // compute stochastic momentum force
-	      sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	    }
+          // compute stochastic momentum force
+          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+        }
 
-	    // Advance umac
+    // Advance umac
         //Print() << "STOKES SOLVE\n";
 	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 

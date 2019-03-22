@@ -86,15 +86,13 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 
                 p.rdata(RealData::q) = qval;
 
-                
-
                 //Print() << "Pos: "<< p.rdata(RealData::ox) << ", " << p.rdata(RealData::oy) << ", " << p.rdata(RealData::oz) << "\n";
 
                 //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
 
-                p.rdata(RealData::vx) = 0;
+                p.rdata(RealData::vx) = 1;
                 p.rdata(RealData::vy) = 0;
                 p.rdata(RealData::vz) = 0;
 
