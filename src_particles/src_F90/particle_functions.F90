@@ -4,16 +4,24 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module, only: k_B,diameter,T_init
 
   implicit none
   type(particle_t), intent(inout) :: part1 
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: dx, dr2
 
-  !here using a (1/r)^4 potential interation--make sure sign is correct
+  real(amrex_real) :: ff, eepsilon
+
+  !WCA potential
+  !can tune eepsilon but for now it's just one  
   
-  part1%force = part1%force + dx*part1%q*part2%q/(dr2*dr2*dr2)
-  part2%force = part2%force - dx*part1%q*part2%q/(dr2*dr2*dr2)
+  eepsilon = 1
+
+  ff = eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(diameter(1)**12/(dr2*dr2*dr2)-0.5*diameter(1)**6)
+
+  part1%force = part1%force + dx*ff
+  part2%force = part2%force - dx*ff
 
 end subroutine
 
@@ -39,65 +47,64 @@ subroutine force_function2(part1,part2,domsize) &
 
   permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
 
-
+  !i think this is correctly defined for the signs we use below
   dx0 = part1%pos-part2%pos
 
   dr2 = dot_product(dx0,dx0)
   dr = sqrt(dr2)
 
-  cutoff = 4*part1%radius
+  !WCA cutoff
+  !note: need to fix this for multi-species
+  cutoff = 2**(1./6.)*diameter(1)
 
 
-!  dx = dx0
-!  do while (i <= 3) !get the nearest image for the repulsive interaction
-! 
-!      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
-!
-!          dx(i) = dx(i) - domsize(i)
-!
-!      end if
-!
-!      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
-!
-!          dx(i) = dx(i) + domsize(i)
-!
-!      end if
-!
-!      i = i + 1
-!
-!   end do
-!  dr2 = dot_product(dx,dx)
-!  dr = sqrt(dr2)
-!  !repulsive interaction
-!  if (dr .lt. cutoff) then
-!
-!    call repulsive_force(part1,part2,dx,dr2) 
-!
-!  end if
+  dx = dx0
+  do while (i <= 3) !get the nearest image for the repulsive interaction
+ 
+      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+          dx(i) = dx(i) - domsize(i)
+
+      end if
+
+      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+
+          dx(i) = dx(i) + domsize(i)
+
+      end if
+
+      i = i + 1
+
+   end do
+  dr2 = dot_product(dx,dx)
+  dr = sqrt(dr2)
+  !repulsive interaction
+  if (dr .lt. cutoff) then
+
+    call repulsive_force(part1,part2,dx,dr2) 
+
+  end if
 
   !electrostatic -- need to determine how many images we should be adding
-  images = 1 !change this to an input
-
-  !do while (i <= images)
-
-  do ii = -images, images
-    do jj = -images, images 
-      do kk = -images, images 
-  
-      !change dx, dy, dz, dr2 for each image
-       dx(1) = dx0(1) + ii*domsize(1)
-       dx(2) = dx0(2) + jj*domsize(2)
-       dx(3) = dx0(3) + kk*domsize(3)
-
-       dr2 = dot_product(dx,dx)
-
-       part1%force = part1%force + permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
-       part2%force = part2%force - permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
-
-
-      end do
-    end do
-  end do
+!  images = 1 !change this to an input
+!
+!  do ii = -images, images
+!    do jj = -images, images 
+!      do kk = -images, images 
+!  
+!      !change dx, dy, dz, dr2 for each image
+!       dx(1) = dx0(1) + ii*domsize(1)
+!       dx(2) = dx0(2) + jj*domsize(2)
+!       dx(3) = dx0(3) + kk*domsize(3)
+!
+!       dr2 = dot_product(dx,dx)
+!
+!       part1%force = part1%force + permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
+!       part2%force = part2%force - permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
+!
+!      end do
+!    end do
+!  end do
 
 end subroutine force_function2
 
