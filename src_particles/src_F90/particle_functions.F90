@@ -1307,7 +1307,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   enddo
 
 
- print*, "Total: ", wcheck, " fd: ", fd
+ !print*, "Total: ", wcheck, " fd: ", fd
  ! print*, "Rel pos: ", fd
  ! print*, "Abs pos: ", part%pos*dxfinv
 
@@ -1462,7 +1462,7 @@ subroutine spread_op(weights, indicies, &
         sourceu(ii,jj,kk) = part%force(1)*weights(i,j,k,1)*volinv
         !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv
 
-        print*, "S: ", sourceu(ii,jj,kk), "I: ", i, j, k, "F: ", part%force
+        !print*, "S: ", sourceu(ii,jj,kk), "I: ", i, j, k, "F: ", part%force
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
@@ -1568,7 +1568,7 @@ subroutine inter_op(weights, indicies, &
 
         part%vel(1) = part%vel(1) + weights(i,j,k,1)*velu(ii,jj,kk)
 
-        print*, "V: ", velu(ii,jj,kk), "I: ", i, j, k, "W: ", weights(i,j,k,1)
+        !print*, "V: ", velu(ii,jj,kk), "I: ", i, j, k, "W: ", weights(i,j,k,1)
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
@@ -1590,7 +1590,7 @@ subroutine inter_op(weights, indicies, &
   enddo
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
