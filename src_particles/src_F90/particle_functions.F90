@@ -18,7 +18,7 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   
   eepsilon = 1
 
-  ff = k_B*T_init(1)*eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(diameter(1)**12/(dr2*dr2*dr2)-0.5*diameter(1)**6)
+  ff = eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(diameter(1)**12/(dr2*dr2*dr2)-0.5*diameter(1)**6)
 
   part1%force = part1%force + dx*ff
   part2%force = part2%force - dx*ff
