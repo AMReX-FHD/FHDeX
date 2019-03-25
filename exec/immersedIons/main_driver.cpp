@@ -294,12 +294,12 @@ void main_driver(const char* argv)
 
     }if(pkernel_fluid == 4)
     {
-        ng = 3;
+        ng = 4;
 
     }else if(pkernel_fluid == 6)
     {
 
-        ng = 4;
+        ng = 5;
     }
 
     MultiFab rho(ba, dmap, 1, ng);
@@ -589,9 +589,9 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-//    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
-//    particles.Redistribute();
-//    particles.ReBin();
+    //particles.MoveIons(dt, dx, geom, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    //particles.Redistribute();
+    //particles.ReBin();
 
     //Time stepping loop
 

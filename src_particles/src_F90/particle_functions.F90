@@ -1238,6 +1238,8 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
 
         wcheck(1) = wcheck(1) + weights(i,j,k,1)
 
+        !print*, "xw: ", w1, "I: ", indicies(i,j,k,1,1), indicies(i,j,k,1,2), "D: ", xx*dxfinv(1), yy*dxfinv(2)
+
         !print*, weights(i,j,k,1)
 
         xx = part%pos(1) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),1)
@@ -1298,7 +1300,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   enddo
 
 
- ! print*, "Total: ", wcheck, " fd: ", fd
+ print*, "Total: ", wcheck, " fd: ", fd
  ! print*, "Rel pos: ", fd
  ! print*, "Abs pos: ", part%pos*dxfinv
 
@@ -1382,7 +1384,7 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
           call peskin_6pt(xx*dxinv(1),w1)
           call peskin_6pt(yy*dxinv(2),w2)
           call peskin_6pt(zz*dxinv(3),w3)
-        endif 
+        endif
 
         weights(i,j,k,1) = w1*w2*w3
 
@@ -1452,6 +1454,8 @@ subroutine spread_op(weights, indicies, &
 
         sourceu(ii,jj,kk) = part%force(1)*weights(i,j,k,1)*volinv
         !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv
+
+        print*, "S: ", sourceu(ii,jj,kk), "I: ", i, j, k, "F: ", part%force
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
@@ -1557,6 +1561,8 @@ subroutine inter_op(weights, indicies, &
 
         part%vel(1) = part%vel(1) + weights(i,j,k,1)*velu(ii,jj,kk)
 
+        print*, "V: ", velu(ii,jj,kk), "I: ", i, j, k, "W: ", weights(i,j,k,1)
+
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
         kk = indicies(i,j,k,2,3)
@@ -1577,7 +1583,7 @@ subroutine inter_op(weights, indicies, &
   enddo
 
 
-  !print*, "Intervel: ", part%vel
+  print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
@@ -1617,7 +1623,7 @@ subroutine rfd(weights, indicies, &
 
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-  delta = 1d-3*dxf(1)
+  delta = 1d-5*dxf(1)
 
   !print*, "Fluid vel: ", uloc, wloc, vloc
 
