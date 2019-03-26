@@ -9,19 +9,23 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   implicit none
   type(particle_t), intent(inout) :: part1 
   type(particle_t), intent(inout) :: part2
-  real(amrex_real), intent(in) :: dx, dr2
+  real(amrex_real), intent(in) :: dx(3), dr2
 
   real(amrex_real) :: ff, eepsilon
 
   !WCA potential
   !can tune eepsilon but for now it's just one  
   
-  eepsilon = 1
+  eepsilon = 1e-12
 
   ff = eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(diameter(1)**12/(dr2*dr2*dr2)-0.5*diameter(1)**6)
 
+  print *, "dx: ", dx
+
   part1%force = part1%force + dx*ff
   part2%force = part2%force - dx*ff
+
+  print *, "Repulsive force: ", part1%force
 
 end subroutine
 
@@ -57,6 +61,8 @@ subroutine force_function2(part1,part2,domsize) &
   !note: need to fix this for multi-species
   cutoff = 2**(1./6.)*diameter(1)
 
+  print *, "Cutoff: ", cutoff
+
 
   dx = dx0
   do while (i <= 3) !get the nearest image for the repulsive interaction
@@ -81,30 +87,39 @@ subroutine force_function2(part1,part2,domsize) &
   !repulsive interaction
   if (dr .lt. cutoff) then
 
+    print *, "Repulsing!"
     call repulsive_force(part1,part2,dx,dr2) 
 
   end if
 
   !electrostatic -- need to determine how many images we should be adding
-!  images = 1 !change this to an input
-!
-!  do ii = -images, images
-!    do jj = -images, images 
-!      do kk = -images, images 
-!  
-!      !change dx, dy, dz, dr2 for each image
-!       dx(1) = dx0(1) + ii*domsize(1)
-!       dx(2) = dx0(2) + jj*domsize(2)
-!       dx(3) = dx0(3) + kk*domsize(3)
-!
-!       dr2 = dot_product(dx,dx)
-!
-!       part1%force = part1%force + permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
-!       part2%force = part2%force - permittivity*(dx/sqrt(dr))*part1%q*part2%q/dr2
-!
-!      end do
-!    end do
-!  end do
+  images = 1 !change this to an input
+
+  do ii = -images, images
+    do jj = -images, images 
+      do kk = -images, images 
+  
+      !change dx, dy, dz, dr2 for each image
+       dx(1) = dx0(1) + ii*domsize(1)
+       dx(2) = dx0(2) + jj*domsize(2)
+       dx(3) = dx0(3) + kk*domsize(3)
+
+
+       dr2 = dot_product(dx,dx)
+
+       print *, "sep: ", sqrt(dr2)
+
+       part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
+       part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
+
+       print *, "electro force1: ", part1%force
+       print *, "electro force2: ", part2%force
+
+       !print *, part1%force, dr2
+
+      end do
+    end do
+  end do
 
 end subroutine force_function2
 
@@ -159,6 +174,9 @@ subroutine calculate_force(particles, np, lo, hi, &
     do while (n <= np) 
 
        part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
+
+        print *, "Calling force on ", n, p
+        print *, "Positions ", part%pos, part2%pos
 
        call force_function2(part,part2,domsize)
 
@@ -1451,6 +1469,8 @@ subroutine spread_op(weights, indicies, &
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
 
+  print *, "Spreading ", part%force
+
   do k = -(ks-1), ks
     do j = -(ks-1), ks
       do i = -(ks-1), ks
@@ -1590,7 +1610,7 @@ subroutine inter_op(weights, indicies, &
   enddo
 
 
-  !print*, "Intervel: ", part%vel
+  print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
@@ -1727,9 +1747,9 @@ subroutine drag(weights, indicies, &
 #endif
                     part, ks, dxf)
 
-  part%force(1) = (uloc-part%vel(1))*(visc_coef)*part%drag_factor
-  part%force(2) = (vloc-part%vel(2))*(visc_coef)*part%drag_factor
-  part%force(3) = (wloc-part%vel(3))*(visc_coef)*part%drag_factor
+  part%force(1) = part%force(1) + (uloc-part%vel(1))*(visc_coef)*part%drag_factor
+  part%force(2) = part%force(2) + (vloc-part%vel(2))*(visc_coef)*part%drag_factor
+  part%force(3) = part%force(3) + (wloc-part%vel(3))*(visc_coef)*part%drag_factor
 
 !  call spread_op(weights, indicies, &
 !                  sourceu, sourceulo, sourceuhi, &
@@ -1844,7 +1864,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   veltest = 0
 
   
-  !call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx)
+  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx)
 
 
   do k = lo(3), hi(3)
@@ -1884,9 +1904,20 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               endif
 
+              if(part%q .gt. 0) then
+    
+                print *, "particle 1 pos: ", phi/2 - part%pos, ", vel: ", part%vel
+
+              else
+
+                print *, "particle 2 pos: ", phi/2 - part%pos, ", vel: ", part%vel
+
+              endif
+
               posold = part%pos
 
-              runtime = dt/2
+              !runtime = dt/2
+               runtime = dt
 
               do while (runtime .gt. 0)
 
@@ -1905,6 +1936,17 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                 part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
                 runtime = runtime - inttime
+
+
+                if(part%q .gt. 0) then
+      
+                  print *, "particle 1 newpos: ", phi/2 - part%pos, ", vel: ", part%vel
+
+                else
+
+                  print *, "particle 2 newpos: ", phi/2 - part%pos, ", vel: ", part%vel
+
+                endif
 
                 if(intsurf .gt. 0) then
 
@@ -1925,79 +1967,79 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               end do
 
-              if((sw .ne. 2) .and. (sw .ne. 4)) then
+!              if((sw .ne. 2) .and. (sw .ne. 4)) then
 
-                call inter_op(weights, indicies, &
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
-#endif
-                                part, ks, dxf)
-              endif
+!                call inter_op(weights, indicies, &
+!                                velx, velxlo, velxhi, &
+!                                vely, velylo, velyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                velz, velzlo, velzhi, &
+!#endif
+!                                part, ks, dxf)
+!              endif
 
-              part%pos = posold
+!              part%pos = posold
 
-              runtime = dt
+!              runtime = dt
 
-              do while (runtime .gt. 0)
+!              do while (runtime .gt. 0)
 
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+!                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
-                posalt(1) = inttime*part%vel(1)*adjalt
-                posalt(2) = inttime*part%vel(2)*adjalt
-#if (BL_SPACEDIM == 3)
-                posalt(3) = inttime*part%vel(3)*adjalt
-#endif
+!                posalt(1) = inttime*part%vel(1)*adjalt
+!                posalt(2) = inttime*part%vel(2)*adjalt
+!#if (BL_SPACEDIM == 3)
+!                posalt(3) = inttime*part%vel(3)*adjalt
+!#endif
 
-                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
-#if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
-#endif
-                runtime = runtime - inttime
+!                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+!                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+!                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+!#if (BL_SPACEDIM == 3)
+!                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+!#endif
+!                runtime = runtime - inttime
 
-                if(intsurf .gt. 0) then
+!                if(intsurf .gt. 0) then
 
-                  surf => surfaces(intsurf)
+!                  surf => surfaces(intsurf)
 
-                  call apply_bc(surf, part, intside, domsize, push)
+!                  call apply_bc(surf, part, intside, domsize, push)
 
-                    if(push .eq. 1) then
-                      
-                      part%pos(1) = part%pos(1) + posalt(1)
-                      part%pos(2) = part%pos(2) + posalt(2)
-#if (BL_SPACEDIM == 3)
-                      part%pos(3) = part%pos(3) + posalt(3)
-#endif
-                    endif
-                    
-                endif
+!                    if(push .eq. 1) then
+!                      
+!                      part%pos(1) = part%pos(1) + posalt(1)
+!                      part%pos(2) = part%pos(2) + posalt(2)
+!#if (BL_SPACEDIM == 3)
+!                      part%pos(3) = part%pos(3) + posalt(3)
+!#endif
+!                    endif
+!                    
+!                endif
 
-              end do              
+!              end do              
 
-              part%abspos = part%abspos + dt*part%vel
+!              part%abspos = part%abspos + dt*part%vel
 
-              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
+!              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
-              part%travel_time = part%travel_time + dt
+!              part%travel_time = part%travel_time + dt
 
-              norm = part%abspos - part%origin
+!              norm = part%abspos - part%origin
 
-              diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
+!              diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
 
-              diffinst = diffinst + diffest
+!              diffinst = diffinst + diffest
 
-              if(part%step_count .ge. 50) then
-                part%diff_av = (part%diff_av*(part%step_count-50) + diffest)/((part%step_count-50) + 1)
+!              if(part%step_count .ge. 50) then
+!                part%diff_av = (part%diff_av*(part%step_count-50) + diffest)/((part%step_count-50) + 1)
 
-                diffav = diffav + part%diff_av
-              endif
+!                diffav = diffav + part%diff_av
+!              endif
 
-              part%step_count = part%step_count + 1
+!              part%step_count = part%step_count + 1
 
-              veltest = veltest + part%multi
+!              veltest = veltest + part%multi
 
               !print*, "Diff est: ", diffest , ", av: ", part%diff_av
 
@@ -2006,20 +2048,18 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               !print*, "NewPos: ", part%pos
 
-              part%force = 0
-
-              call drag(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
-#endif
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
-#endif
-                                part, ks, dxf)
+!              call drag(weights, indicies, &
+!                                sourcex, sourcexlo, sourcexhi, &
+!                                sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                                velx, velxlo, velxhi, &
+!                                vely, velylo, velyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                velz, velzlo, velzhi, &
+!#endif
+!                                part, ks, dxf)
 
 
               if((sw .ne. 1)  .and. (sw .ne. 4)) then
@@ -2037,13 +2077,13 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               part%force = 0
 
-              call rfd(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
-#endif
-                                part, ks, dxf)
+!              call rfd(weights, indicies, &
+!                                sourcex, sourcexlo, sourcexhi, &
+!                                sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                                part, ks, dxf)
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue

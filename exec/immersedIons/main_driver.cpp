@@ -109,7 +109,7 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
-    int sizeRatioC = 4;
+    int sizeRatioC = 1;
     int sizeRatioP = 1;
 
     bc = ba;
