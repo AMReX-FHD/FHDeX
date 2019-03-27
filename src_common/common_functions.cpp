@@ -42,8 +42,6 @@ void InitializeCommonNamespace() {
     prob_hi.resize(AMREX_SPACEDIM);
     n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
-    plot_base_name.resize(128);
-    chk_base_name.resize(128);
     grav.resize(AMREX_SPACEDIM);
     molmass.resize(MAX_SPECIES);
     diameter.resize(MAX_SPECIES);
