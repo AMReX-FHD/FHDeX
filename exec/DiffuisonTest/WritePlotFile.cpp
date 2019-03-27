@@ -13,7 +13,7 @@ void WritePlotFile(int step,
                    const amrex::Geometry geom,
                    const std::array< MultiFab, AMREX_SPACEDIM >& umac)
 {
-    const std::string plotfilename = Concatenate("plt",step,7);
+    const std::string plotfilename = Concatenate(plot_base_name,step,7);
 
     BoxArray ba = umac[0].boxArray();
     DistributionMapping dmap = umac[0].DistributionMap();
