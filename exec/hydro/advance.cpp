@@ -206,7 +206,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
     
-    gmres_rhs_u[d].mult(dtinv, 1);
+    gmres_rhs_u[d].mult(dtinv, 0);
 
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
@@ -256,7 +256,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
   
-    gmres_rhs_u[d].mult(dtinv, 1);
+    gmres_rhs_u[d].mult(dtinv);
   
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d],  0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], Lumac[d],             0, 0, 1, 0);
