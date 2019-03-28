@@ -93,7 +93,7 @@ subroutine force_function2(part1,part2,domsize) &
   end if
 
   !electrostatic -- need to determine how many images we should be adding
-  images = 1 !change this to an input
+  images = 4 !change this to an input
 
   do ii = -images, images
     do jj = -images, images 
@@ -107,13 +107,13 @@ subroutine force_function2(part1,part2,domsize) &
 
        dr2 = dot_product(dx,dx)
 
-       print *, "sep: ", sqrt(dr2)
+       !print *, "sep: ", sqrt(dr2)
 
        part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
        part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
 
-       print *, "electro force1: ", part1%force
-       print *, "electro force2: ", part2%force
+       !print *, "electro force1: ", part1%force
+       !print *, "electro force2: ", part2%force
 
        !print *, part1%force, dr2
 
@@ -1553,7 +1553,7 @@ subroutine inter_op(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                               velw, velwlo, velwhi, &
 #endif
-                              part, ks, dxf)
+                              part, ks, dxf, boundflag, midpoint)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
@@ -1561,7 +1561,8 @@ subroutine inter_op(weights, indicies, &
 
   implicit none
 
-  integer,          intent(in   ) :: ks, velulo(3), velvlo(3), velwlo(3), veluhi(3), velvhi(3), velwhi(3)
+  integer,          intent(in   ) :: ks, velulo(3), velvlo(3), velwlo(3), veluhi(3), velvhi(3), velwhi(3), midpoint
+  integer,          intent(inout) :: boundflag
   double precision, intent(in   ) :: dxf(3)
   type(particle_t), intent(inout) :: part
   double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
@@ -1574,7 +1575,12 @@ subroutine inter_op(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk
+  double precision :: oldvel(3)
 
+
+  boundflag = 0
+
+  if(midpoint .eq. 0) then
 
   part%vel = 0
 
@@ -1588,6 +1594,7 @@ subroutine inter_op(weights, indicies, &
 
         part%vel(1) = part%vel(1) + weights(i,j,k,1)*velu(ii,jj,kk)
 
+       
         !print*, "V: ", velu(ii,jj,kk), "I: ", i, j, k, "W: ", weights(i,j,k,1)
 
         ii = indicies(i,j,k,2,1)
@@ -1608,6 +1615,58 @@ subroutine inter_op(weights, indicies, &
       enddo
     enddo
   enddo
+
+  else
+
+  oldvel = part%vel
+
+  do k = -(ks-1), ks
+    do j = -(ks-1), ks
+      do i = -(ks-1), ks
+
+        ii = indicies(i,j,k,1,1)
+        jj = indicies(i,j,k,1,2)
+        kk = indicies(i,j,k,1,3)
+
+        if((ii .gt. veluhi(1)) .or. (ii .lt. velulo(1)) .or. (jj .gt. veluhi(2)) .or. (jj .lt. velulo(2)) .or. (kk .gt. veluhi(3)) .or. (kk .lt. velulo(3))) then
+          boundflag = 1
+        else
+          part%vel(1) = part%vel(1) + weights(i,j,k,1)*velu(ii,jj,kk)
+        endif
+       
+        !print*, "V: ", velu(ii,jj,kk), "I: ", i, j, k, "W: ", weights(i,j,k,1)
+
+        ii = indicies(i,j,k,2,1)
+        jj = indicies(i,j,k,2,2)
+        kk = indicies(i,j,k,2,3)
+
+        if((ii .gt. velvhi(1)) .or. (ii .lt. velvlo(1)) .or. (jj .gt. velvhi(2)) .or. (jj .lt. velvlo(2)) .or. (kk .gt. velvhi(3)) .or. (kk .lt. velvlo(3))) then
+          boundflag = 1
+        else
+          part%vel(2) = part%vel(2) + weights(i,j,k,2)*velv(ii,jj,kk)
+        endif
+
+        ii = indicies(i,j,k,3,1)
+        jj = indicies(i,j,k,3,2)
+        kk = indicies(i,j,k,3,3)
+
+        if((ii .gt. velwhi(1)) .or. (ii .lt. velwlo(1)) .or. (jj .gt. velwhi(2)) .or. (jj .lt. velwlo(2)) .or. (kk .gt. velwhi(3)) .or. (kk .lt. velwlo(3))) then
+          boundflag = 1
+        else
+          part%vel(3) = part%vel(3) + weights(i,j,k,3)*velw(ii,jj,kk)
+        endif
+        !print *, ii, jj, kk, ": ", velu(ii,jj,kk), velv(ii,jj,kk), velw(ii,jj,kk)
+        !print *, "weights: ", weights(i,j,k,:)
+
+      enddo
+    enddo
+  enddo
+
+  if(boundflag .eq. 1) then
+    part%vel = oldvel
+  endif
+
+  endif
 
 
   print*, "Intervel: ", part%vel
@@ -1650,15 +1709,13 @@ subroutine rfd(weights, indicies, &
 
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-  delta = 1d-5*dxf(1)
+  delta = 1d-2*dxf(1)
 
   !print*, "Fluid vel: ", uloc, wloc, vloc
 
   call get_particle_normal(normalrand(1))
   call get_particle_normal(normalrand(2))
   call get_particle_normal(normalrand(3))
-
-  !norm = sqrt(normalrand(1)**2+normalrand(2)**2+normalrand(3)**2)
 
   part%pos = part%pos + delta*normalrand/2
 
@@ -1688,6 +1745,7 @@ subroutine rfd(weights, indicies, &
 #endif
                   part, ks, dxf)
 
+  delta = 0
   part%pos = part%pos + delta*normalrand/2
 
 
@@ -1731,7 +1789,7 @@ subroutine drag(weights, indicies, &
   double precision, intent(in   ) :: velw(velwlo(1):velwhi(1),velwlo(2):velwhi(2),velwlo(3):velwhi(3))
 #endif
 
-  integer :: i, j, k, ii, jj, kk
+  integer :: i, j, k, ii, jj, kk, boundflag, midpoint
   double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm
 
 
@@ -1739,13 +1797,15 @@ subroutine drag(weights, indicies, &
   vloc = part%vel(2)
   wloc = part%vel(3)
 
+  midpoint = 0
+
    call inter_op(weights, indicies, &
                     velu, velulo, veluhi, &
                     velv, velvlo, velvhi, &
 #if (BL_SPACEDIM == 3)
                     velw, velwlo, velwhi, &
 #endif
-                    part, ks, dxf)
+                    part, ks, dxf, boundflag, midpoint)
 
   part%force(1) = part%force(1) + (uloc-part%vel(1))*(visc_coef)*part%drag_factor
   part%force(2) = part%force(2) + (vloc-part%vel(2))*(visc_coef)*part%drag_factor
@@ -1824,12 +1884,12 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, boundflag, midpoint
   integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
+  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
                    diffest, diffav, distav, diffinst, veltest, posold(3)
 
   double precision, allocatable :: weights(:,:,:,:)
@@ -1846,7 +1906,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   domsize = phi - plo
 
-  adj = 0.999999
+  adj = 0.99999
   adjalt = 2d0*(1d0 - adj)
 
   dxinv = 1.d0/dx
@@ -1881,7 +1941,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               runtime = dt
               part => particles(cell_parts(p))
 
-              !part%vel(1) = 1
+              !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
 
               call get_weights(dxf, dxfinv, weights, indicies, &
                               coordsx, coordsxlo, coordsxhi, &
@@ -1891,8 +1951,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                               part, ks, lo, hi, plof)
               if((sw .ne. 2) .and. (sw .ne. 4)) then
-        
-               !print*, "INTERPOLATE"
+
+              !use weights and indicies to interpolate velocity fields onto particle
+
+              midpoint = 0
       
                call inter_op(weights, indicies, &
                                 velx, velxlo, velxhi, &
@@ -1900,26 +1962,19 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                 velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf)
+                                part, ks, dxf, boundflag, midpoint)
 
               endif
 
-              if(part%q .gt. 0) then
-    
-                print *, "particle 1 pos: ", phi/2 - part%pos, ", vel: ", part%vel
-
-              else
-
-                print *, "particle 2 pos: ", phi/2 - part%pos, ", vel: ", part%vel
-
-              endif
+              !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
               posold = part%pos
 
-              !runtime = dt/2
-               runtime = dt
+              runtime = dt*0.5
 
               do while (runtime .gt. 0)
+
+                !check 
 
                 call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
@@ -1936,17 +1991,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                 part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
                 runtime = runtime - inttime
-
-
-                if(part%q .gt. 0) then
-      
-                  print *, "particle 1 newpos: ", phi/2 - part%pos, ", vel: ", part%vel
-
-                else
-
-                  print *, "particle 2 newpos: ", phi/2 - part%pos, ", vel: ", part%vel
-
-                endif
 
                 if(intsurf .gt. 0) then
 
@@ -1967,57 +2011,59 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               end do
 
-!              if((sw .ne. 2) .and. (sw .ne. 4)) then
+              if((sw .ne. 2) .and. (sw .ne. 4)) then
 
-!                call inter_op(weights, indicies, &
-!                                velx, velxlo, velxhi, &
-!                                vely, velylo, velyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                velz, velzlo, velzhi, &
-!#endif
-!                                part, ks, dxf)
-!              endif
+                call inter_op(weights, indicies, &
+                                velx, velxlo, velxhi, &
+                                vely, velylo, velyhi, &
+#if (BL_SPACEDIM == 3)
+                                velz, velzlo, velzhi, &
+#endif
+                                part, ks, dxf, boundflag, midpoint)
+              endif
 
-!              part%pos = posold
+              part%pos = posold
 
-!              runtime = dt
+              runtime = dt
 
-!              do while (runtime .gt. 0)
+              do while (runtime .gt. 0)
 
-!                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
-!                posalt(1) = inttime*part%vel(1)*adjalt
-!                posalt(2) = inttime*part%vel(2)*adjalt
-!#if (BL_SPACEDIM == 3)
-!                posalt(3) = inttime*part%vel(3)*adjalt
-!#endif
+                posalt(1) = inttime*part%vel(1)*adjalt
+                posalt(2) = inttime*part%vel(2)*adjalt
+#if (BL_SPACEDIM == 3)
+                posalt(3) = inttime*part%vel(3)*adjalt
+#endif
 
-!                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-!                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-!                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
-!#if (BL_SPACEDIM == 3)
-!                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
-!#endif
-!                runtime = runtime - inttime
+                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+#if (BL_SPACEDIM == 3)
+                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+#endif
+                runtime = runtime - inttime
 
-!                if(intsurf .gt. 0) then
+                if(intsurf .gt. 0) then
 
-!                  surf => surfaces(intsurf)
+                  surf => surfaces(intsurf)
 
-!                  call apply_bc(surf, part, intside, domsize, push)
+                  call apply_bc(surf, part, intside, domsize, push)
 
-!                    if(push .eq. 1) then
-!                      
-!                      part%pos(1) = part%pos(1) + posalt(1)
-!                      part%pos(2) = part%pos(2) + posalt(2)
-!#if (BL_SPACEDIM == 3)
-!                      part%pos(3) = part%pos(3) + posalt(3)
-!#endif
-!                    endif
-!                    
-!                endif
+                    if(push .eq. 1) then
+                      
+                      part%pos(1) = part%pos(1) + posalt(1)
+                      part%pos(2) = part%pos(2) + posalt(2)
+#if (BL_SPACEDIM == 3)
+                      part%pos(3) = part%pos(3) + posalt(3)
+#endif
+                    endif
+                    
+                endif
 
-!              end do              
+              end do              
+
+!!!!!!!!!! Mean square displacement measurer.
 
 !              part%abspos = part%abspos + dt*part%vel
 
@@ -2048,18 +2094,18 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               !print*, "NewPos: ", part%pos
 
-!              call drag(weights, indicies, &
-!                                sourcex, sourcexlo, sourcexhi, &
-!                                sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                                velx, velxlo, velxhi, &
-!                                vely, velylo, velyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                velz, velzlo, velzhi, &
-!#endif
-!                                part, ks, dxf)
+              call drag(weights, indicies, &
+                                sourcex, sourcexlo, sourcexhi, &
+                                sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                sourcez, sourcezlo, sourcezhi, &
+#endif
+                                velx, velxlo, velxhi, &
+                                vely, velylo, velyhi, &
+#if (BL_SPACEDIM == 3)
+                                velz, velzlo, velzhi, &
+#endif
+                                part, ks, dxf)
 
 
               if((sw .ne. 1)  .and. (sw .ne. 4)) then
@@ -2177,7 +2223,7 @@ subroutine move_ions_fhd_katie(particles, np, lo, hi, &
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, boundflag, midpoint
   integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
@@ -2252,7 +2298,7 @@ subroutine move_ions_fhd_katie(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                 velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf)
+                                part, ks, dxf, boundflag, midpoint)
 
               endif
 

@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 12.8e-7 12.8e-7 12.8e-7      ! physical hi coordinate
+  prob_hi(1:3) = 16e-7 16e-7 16e-7      ! physical hi coordinate
   
   ! if prob_type = 1, vortex
   ! if prob_type = 2, KH - sine
@@ -10,18 +10,18 @@
   prob_type = 0
   
   ! number of cells in domain
-  n_cells(1:3) = 32 32 32
+  n_cells(1:3) = 40 40 40
   ! max number of cells in a box
-  max_grid_size(1:3) = 32 32 32 
+  max_grid_size(1:3) = 40 40 40 
 
   ! Time-step control
-  fixed_dt = 1e-13
+  fixed_dt = 1e-12
 
   ! Controls for number of steps between actions
   ! max_step = 100000
   ! plot_int = 10000
-  max_step = 500000
-  plot_int = 50
+  max_step = 20000
+  plot_int = 1
 
 
   ! Fluid info
@@ -57,13 +57,13 @@
 
   !Peskin kernel (Currently 4 & 6 implemented)
   !--------
-  pkernel_fluid = 3
+  pkernel_fluid = 6
   pkernel_es = 4
 
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
-  variance_coef_mom = 0
+  variance_coef_mom = 1
   initial_variance_mom = 0      
 
   ! struct_fact_int = 100
@@ -99,11 +99,11 @@
   stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
   stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
   stag_mg_smoother = 1            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
-  stag_mg_rel_tol = 1.d-8         ! relative tolerance stopping criteria
+  stag_mg_rel_tol = 1.d-6         ! relative tolerance stopping criteria
 
 
   ! GMRES solver parameters
-  gmres_rel_tol = 1.e-8                ! relative tolerance stopping criteria
+  gmres_rel_tol = 1.e-6                ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
   gmres_verbose =  0                    ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20                  ! max number of outer iterations

@@ -520,7 +520,7 @@ void main_driver(const char* argv)
 
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    FhdParticleContainer particles(geomC, dmap, bc);
+    FhdParticleContainer particles(geomC, dmap, bc,1);
 
     //Find coordinates of cell faces. May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
@@ -658,7 +658,7 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-        //particles.collectFields(dt, dxp, RealCenteredCoords, geomP.ProbLo(), charge, chargeTemp, massFrac, massFracTemp);
+        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 

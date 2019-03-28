@@ -15,8 +15,9 @@ using namespace common;
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                               const DistributionMapping & dmap,
-                              const BoxArray            & ba)
-    : ParticleContainer<RealData::ncomps, IntData::ncomps> (geom, dmap, ba)
+                              const BoxArray            & ba,
+                              int ncells)
+    : NeighborParticleContainer<RealData::ncomps, IntData::ncomps> (geom, dmap, ba, ncells)
 {}
 
 void FhdParticleContainer::InitParticles(species particleInfo)
@@ -75,10 +76,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 //#endif
 
-                p.pos(0) = 0.1*diameter[0] + 2*diameter[0]*(1.5+0.5*(0.5-get_uniform_func()))*ii;
-                p.pos(1) = 0.1*diameter[0] + 2*diameter[0]*(1.5+0.5*(0.5-get_uniform_func()))*jj;
+                p.pos(0) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*ii;
+                p.pos(1) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*jj;
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = 0.1*diameter[0] + 2*diameter[0]*(1.5+0.5*(0.5-get_uniform_func()))*kk;
+                p.pos(2) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*kk;
 #endif
                 
                 p.rdata(RealData::q) = qval;
@@ -478,8 +479,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Ge
 
 
 void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential, 
-                                         const MultiFab& RealCenterCoords,
-                                         const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp,
+                                         const MultiFab& RealCenterCoords, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp,
                                          MultiFab& mass, MultiFab& massTemp)
 {
     
@@ -517,19 +517,19 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
                          m_vector_size[grid_id].dataPtr(),
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploPotential), ZFILL(dxPotential),
+                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomP.ProbLo()), ZFILL(dxPotential),
                          BL_TO_FORTRAN_3D(RealCenterCoords[pti]),
                          BL_TO_FORTRAN_3D(chargeTemp[pti]));
 
     }
 
-    chargeTemp.SumBoundary(Geom(lev).periodicity());
-    massTemp.SumBoundary(Geom(lev).periodicity());
+    chargeTemp.SumBoundary(geomP.periodicity());
+    massTemp.SumBoundary(geomP.periodicity());
 
     MultiFab::Add(charge,chargeTemp,0,0,charge.nComp(),charge.nGrow());
     MultiFab::Add(mass,massTemp,0,0,charge.nComp(),charge.nGrow());
 
-    charge.FillBoundary(Geom(lev).periodicity());
+    charge.FillBoundary(geomP.periodicity());
 }
 
 

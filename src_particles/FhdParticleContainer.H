@@ -2,6 +2,7 @@
 #define _FhdParticleContainer_H_
 
 #include <AMReX_Particles.H>
+#include "AMReX_NeighborParticles.H"
 
 #include "gmres_functions.H"
 #include "common_functions.H"
@@ -56,7 +57,7 @@ struct IntData
 
 
 class FhdParticleContainer
-    : public amrex::ParticleContainer<RealData::ncomps, IntData::ncomps>
+    : public amrex::NeighborParticleContainer<RealData::ncomps, IntData::ncomps>
 {
 public:
 
@@ -64,7 +65,8 @@ public:
 
     FhdParticleContainer(const Geometry            & geom, 
                                   const DistributionMapping & dmap,
-                                  const BoxArray            & ba);
+                                  const BoxArray            & ba,
+                                  int ncells);
 
     void InitParticles(species particleInfo);
     void InitParticlesBrownian(species particleInfo);
@@ -122,7 +124,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
 
-    void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Real* ploPotential, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
+    void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomF, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
 
 
     void ReBin();
