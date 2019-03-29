@@ -26,6 +26,8 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
+#include "electrostatic.H"
+
 //#include "electrostatic.H"
 
 using namespace gmres;
@@ -586,9 +588,9 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    //particles.MoveIons(dt, dx, geom, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
-    //particles.Redistribute();
-    //particles.ReBin();
+    particles.MoveIons(dt, dx, geom, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.Redistribute();
+    particles.ReBin();
 
     //Time stepping loop
 
@@ -631,6 +633,9 @@ void main_driver(const char* argv)
             WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
+        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+        poissonSolve(potential, charge, geomP);
+
 
         particles.MoveIons(dt, dx, geom, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
 
@@ -638,6 +643,7 @@ void main_driver(const char* argv)
         particles.Redistribute();
 
         particles.ReBin();
+
 
        //Particles
         //--------------------------------------
@@ -654,8 +660,6 @@ void main_driver(const char* argv)
             particleVars.setVal(0);
             statsCount = 1;
         }
-
-        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 

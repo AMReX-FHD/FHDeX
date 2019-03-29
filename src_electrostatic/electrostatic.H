@@ -6,8 +6,11 @@
 #include <AMReX_Vector.H>
 #include <AMReX_MLPoisson.H>
 
+
 using namespace amrex;
 
-void poissonSolve(MultiFab& solution, const MultiFab& rhs);
+void poissonSolve(MultiFab& solution, const MultiFab& rhs, const Geometry geom);
+
+void calculateField(MultiFab& potential, const Geometry geom);
 
 #endif
