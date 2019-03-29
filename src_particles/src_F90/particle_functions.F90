@@ -681,8 +681,8 @@ subroutine distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, so
 
 end subroutine distribute_momentum
 
-!below we'll evolve for particles with no fluid---pure brownian dynamics
-subroutine move_particles(particles, np, lo, hi, &
+!below we'll evolve for particles with no fluid
+subroutine move_particles_dry(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
                                      velx, velxlo, velxhi, &
                                      vely, velylo, velyhi, &
@@ -703,7 +703,7 @@ subroutine move_particles(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                      sourcez, sourcezlo, sourcezhi, &
 #endif
-                                     surfaces, ns)bind(c,name="move_particles")
+                                     surfaces, ns)bind(c,name="move_particles_dry")
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
@@ -786,6 +786,7 @@ subroutine move_particles(particles, np, lo, hi, &
   enddo
 
   !print *, "Starting"        
+  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -823,52 +824,12 @@ subroutine move_particles(particles, np, lo, hi, &
               bfac(2) = std*normalrand(2)
               bfac(3) = std*normalrand(3)
 
-              !print *, "brownian: ", bfac, " propusive: ", part%dir*part%propulsion*runtime
-
-                !print *, "Position 1: ", part%pos, " Vel 1: ", part%vel, "localvel: ", localbeta
-
-              part%vel(1) = part%accel_factor*localbeta*(part%vel(1)-localvel(1))*runtime + bfac(1) + part%vel(1)
-              part%vel(2) = part%accel_factor*localbeta*(part%vel(2)-localvel(2))*runtime + bfac(2) + part%vel(2)
-#if (BL_SPACEDIM == 3)
-              part%vel(3) = part%accel_factor*localbeta*(part%vel(3)-localvel(3))*runtime + bfac(3) + part%vel(3)
-#endif
-              !call redirect(part)
-  
-              !part%vel = part%dir*part%propulsion*runtime + part%vel
-
-              deltap(1) = part%mass*(part%vel(1) - deltap(1))
-              deltap(2) = part%mass*(part%vel(2) - deltap(2))
-#if (BL_SPACEDIM == 3)
-              deltap(3) = part%mass*(part%vel(3) - deltap(3))
-#endif
-
-#if (BL_SPACEDIM == 3)
-              call distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, sourcey, sourceylo, sourceyhi, sourcez, sourcezlo, sourcezhi)
-#endif
-#if (BL_SPACEDIM == 2)
-              call distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, sourcey, sourceylo, sourceyhi)
-#endif
-
               do while (runtime .gt. 0)
 
-                !if(part%id .eq. 5) then
-                !  print *, "Starting vel: ", part%vel, " Starting pos: ", part%pos/phi
-                !endif
-
-
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-
-                posalt(1) = inttime*part%vel(1)*adjalt
-                posalt(2) = inttime*part%vel(2)*adjalt
+                part%pos(1) = part%pos(1) + runtime*part%drag_factor*part%force(1)+bfac(1)
+                part%pos(2) = part%pos(2) + runtime*part%drag_factor*part%force(2)+bfac(2)
 #if (BL_SPACEDIM == 3)
-                posalt(3) = inttime*part%vel(3)*adjalt
-#endif
-
-                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
-#if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+                part%pos(3) = part%pos(3) + runtime*part%drag_factor*part%force(3)+bfac(3)
 #endif
 
                 runtime = runtime - inttime
@@ -901,7 +862,7 @@ subroutine move_particles(particles, np, lo, hi, &
 
   !print *, "Ending"        
   
-end subroutine move_particles
+end subroutine move_particles_dry
 
 subroutine move_particles_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
