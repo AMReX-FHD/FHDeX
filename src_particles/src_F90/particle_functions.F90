@@ -824,17 +824,54 @@ subroutine move_particles_dry(particles, np, lo, hi, &
               bfac(2) = std*normalrand(2)
               bfac(3) = std*normalrand(3)
 
+              !currently this is without mid-time stepping
+
               do while (runtime .gt. 0)
 
-                part%pos(1) = part%pos(1) + runtime*part%drag_factor*part%force(1)+bfac(1)
-                part%pos(2) = part%pos(2) + runtime*part%drag_factor*part%force(2)+bfac(2)
+                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+
+                posalt(1) = inttime*part%vel(1)*adjalt
+                posalt(2) = inttime*part%vel(2)*adjalt
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + runtime*part%drag_factor*part%force(3)+bfac(3)
+                posalt(3) = inttime*part%vel(3)*adjalt
+#endif
+
+                part%vel(1) = (runtime*part%drag_factor*part%force(1)+bfac(1))/runtime
+                part%vel(2) = (runtime*part%drag_factor*part%force(2)+bfac(2))/runtime
+                part%vel(3) = (runtime*part%drag_factor*part%force(3)+bfac(3))/runtime
+
+!                part%pos(1) = part%pos(1) + runtime*part%drag_factor*part%force(1)+bfac(1)
+!                part%pos(2) = part%pos(2) + runtime*part%drag_factor*part%force(2)+bfac(2)
+!#if (BL_SPACEDIM == 3)
+!                part%pos(3) = part%pos(3) + runtime*part%drag_factor*part%force(3)+bfac(3)
+!#endif
+!                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+#if (BL_SPACEDIM == 3)
+                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
 
                 runtime = runtime - inttime
 
-              enddo
+                if(intsurf .gt. 0) then
+
+                  surf => surfaces(intsurf)
+
+                  call apply_bc(surf, part, intside, domsize, push)
+
+                    if(push .eq. 1) then
+                      
+                      part%pos(1) = part%pos(1) + posalt(1)
+                      part%pos(2) = part%pos(2) + posalt(2)
+#if (BL_SPACEDIM == 3)
+                      part%pos(3) = part%pos(3) + posalt(3)
+#endif
+                    endif
+                    
+                endif
+
+              end do
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
