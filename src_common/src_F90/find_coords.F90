@@ -121,8 +121,8 @@ subroutine find_center_coords(real_lo, real_hi, centers, lo, hi, dx) bind(C, nam
     do j = lo(2), hi(2)
       do i = lo(1), hi(1) !iterate into ghost cells
          centers(i,j,k,1) = (i+0.5)*dx(1)+real_lo(1)
-         centers(i,j,k,1) = (j+0.5)*dx(2)+real_lo(2)
-         centers(i,j,k,1) = (k+0.5)*dx(3)+real_lo(3)
+         centers(i,j,k,2) = (j+0.5)*dx(2)+real_lo(2)
+         centers(i,j,k,3) = (k+0.5)*dx(3)+real_lo(3)
     	end do
     end do
   end do

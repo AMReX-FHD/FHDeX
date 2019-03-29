@@ -1,18 +1,30 @@
 #include "electrostatic.H"
 
+using namespace amrex;
 
-//void collectCharge(MultiFab& prim, const MultiFab& cons)
-//{
+void poissonSolve(MultiFab& solution, const MultiFab& rhs )
+{
 
-//    // Loop over boxes
-//    for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
-//    {
-//        const Box& bx = mfi.validbox();
 
-//        cons_to_prim(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-//                       cons[mfi].dataPtr(),  
-//                       prim[mfi].dataPtr());
+//    MLPoisson linop({geom}, {grids}, {dmap});
 
-//    }
+//    linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Periodic,
+//                                    LinOpBCType::Periodic,
+//                                    LinOpBCType::Periodic)},
+//                      {AMREX_D_DECL(LinOpBCType::Periodic,
+//                                    LinOpBCType::Periodic,
+//                                    LinOpBCType::Periodic)});
 
-//}
+//    linop.setLevelBC(0, nullptr);
+
+//    linop.setSigma(0, sigma);
+
+//    MLMG mlmg(linop);
+//    mlmg.setMaxIter(max_iter);
+//    mlmg.setMaxFmgIter(max_fmg_iter);
+//    mlmg.setVerbose(verbose);
+//    mlmg.setBottomVerbose(bottom_verbose);
+
+//    mlmg.solve({&solution}, {&rhs}, reltol, 0.0);
+
+}

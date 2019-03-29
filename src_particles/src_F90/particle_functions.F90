@@ -1615,21 +1615,27 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
     do j = -(ks-1), ks
       do i = -(ks-1), ks
 
-        xx = part%pos(1) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),store)
-        yy = part%pos(2) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),store)
-        zz = part%pos(3) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),store)
+        xx = part%pos(1) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),1)
+        yy = part%pos(2) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),2)
+        zz = part%pos(3) - coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),3)
 
-        if(pkernel_fluid .eq. 4) then
+!        print *, "Relpos: ", xx*dxinv(1), yy*dxinv(2), zz*dxinv(3), xx, yy, zz
+!        print *, "Pos: ", part%pos
+!        print *, "Cell: ", fi
+!        print *, "coords: ", fi(1)+i+fn(1), fi(2)+j+fn(2), fi(3)+k+fn(3)
+!        print *, "Realcoords: ", coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),1), coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),2), coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),3)
+
+        if(pkernel_es .eq. 4) then
           call peskin_4pt(xx*dxinv(1),w1)
           call peskin_4pt(yy*dxinv(2),w2)
           call peskin_4pt(zz*dxinv(3),w3)
-        elseif(pkernel_fluid .eq. 6) then
+        elseif(pkernel_es .eq. 6) then
           call peskin_6pt(xx*dxinv(1),w1)
           call peskin_6pt(yy*dxinv(2),w2)
           call peskin_6pt(zz*dxinv(3),w3)
         endif
 
-        weights(i,j,k,1) = w1*w2*w3
+        weights(i,j,k,store) = w1*w2*w3
 
         indicies(i,j,k,1,1) = fi(1)+i+fn(1)
         indicies(i,j,k,1,2) = fi(2)+j+fn(2)
@@ -1741,12 +1747,17 @@ subroutine spread_op_scalar_cc(weights, indicies, &
   double precision, intent(inout) :: source(sourcelo(1):sourcehi(1),sourcelo(2):sourcehi(2),sourcelo(3):sourcehi(3))
 
   integer :: i, j, k, ii, jj, kk
-  double precision :: volinv
+  double precision :: volinv, qm
 
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
+  if(mq .eq. 0) then
+    qm = part%q
 
-  !print*, "Fluid vel: ", uloc, wloc, vloc
+ ! print *, "Spreading ", part%q
+  else
+    qm = part%mass
+  endif       
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
@@ -1756,7 +1767,9 @@ subroutine spread_op_scalar_cc(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        source(ii,jj,kk) = mq*weights(i,j,k,store)
+        !print *, to 
+
+        source(ii,jj,kk) = qm*weights(i,j,k,store)*volinv
 
       enddo
     enddo
@@ -2703,7 +2716,7 @@ subroutine collect_charge(particles, np, lo, hi, &
   diffinst = 0
 
   store = 1
-  qm = 1
+  qm = 0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -2719,10 +2732,9 @@ subroutine collect_charge(particles, np, lo, hi, &
 !              runtime = dt
               part => particles(cell_parts(p))
 
-
               call get_weights_scalar_cc(dxes, dxesinv, weights, indicies, &
                               cellcenters, cellcenterslo, cellcentershi, &
-                              part, ks, lo, hi, ploes,store)
+                              part, ks, lo, hi, ploes, store)
               !if(sw .ne. 2) then
         
                !print*, "INTERPOLATE"

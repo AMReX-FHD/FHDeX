@@ -95,3 +95,13 @@ amrex::Real                common::particle_neff;
 amrex::Vector<amrex::Real> common::particle_n0;
 amrex::Vector<amrex::Real> common::mass;
 amrex::Vector<amrex::Real> common::nfrac;
+
+amrex::Vector<amrex::Real> common::eepsilon;
+amrex::Vector<amrex::Real> common::sigma;
+
+int                        common::poisson_verbose;
+int                        common::poisson_bottom_verbose;
+int                        common::poisson_max_iter;
+
+amrex::Real                common::poisson_rel_tol;
+amrex::Real                common::permitivitty;

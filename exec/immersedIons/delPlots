@@ -1,5 +1,6 @@
 rm -r plt*
 rm -r parplt*
 rm -r cplt*
+rm -r eplt*
 rm -r stag*
 rm *ascii*

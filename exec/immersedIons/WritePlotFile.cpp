@@ -7,29 +7,47 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const amrex::Geometry cgeom,
+                   const amrex::Geometry egeom,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
-                   FhdParticleContainer& particles) 
+                   FhdParticleContainer& particles,
+                   const MultiFab& charge,
+                   const MultiFab& potential) 
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);
+    std::string eplotfilename = Concatenate("eplt",step,9);
     std::string pplotfilename = Concatenate("parplt",step,9);
 
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
 
+    BoxArray eba = charge.boxArray();
+    DistributionMapping edmap = charge.DistributionMap();
+
  
 //    int cnPlot = 40;
     int cnPlot = 41;
 
+    int enPlot = 2;
+
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
+    MultiFab eplotfile(eba, edmap, enPlot, 0);
+
     Vector<std::string> cvarNames(cnPlot);
+    Vector<std::string> evarNames(enPlot);
+
+    amrex::MultiFab::Copy(eplotfile,charge,0,0,1,0);
+    amrex::MultiFab::Copy(eplotfile,potential,0,1,1,0);
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
     amrex::MultiFab::Copy(cplotfile,particleVars,0,23,18,0);
+
+    evarNames[0] = "chargeInstant";
+    evarNames[1] = "potentialInstant";
 
     cvarNames[0] = "membersInstant";
     cvarNames[1] = "densityInstant";
@@ -113,6 +131,9 @@ void WritePlotFile(int step,
     cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
+
+
+    WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
 
     particles.Checkpoint(pplotfilename, "particle0");
 
