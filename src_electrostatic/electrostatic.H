@@ -9,7 +9,7 @@
 
 using namespace amrex;
 
-void poissonSolve(MultiFab& solution, const MultiFab& rhs, const Geometry geom);
+void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, AMREX_SPACEDIM >& efield, const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom);
 
 void calculateField(MultiFab& potential, const Geometry geom);
 

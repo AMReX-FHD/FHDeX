@@ -1,15 +1,16 @@
 #include "electrostatic.H"
 #include "common_namespace.H"
+#include "common_functions.H"
 #include <AMReX_MLMG.H>
 
 using namespace amrex;
 using namespace common;
 
-void poissonSolve(MultiFab& solution, const MultiFab& rhs, const Geometry geom)
+void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, AMREX_SPACEDIM >& efield, const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
 {
 
-    const BoxArray& ba = solution.boxArray();
-    const DistributionMapping& dmap = solution.DistributionMap();
+    const BoxArray& ba = potential.boxArray();
+    const DistributionMapping& dmap = potential.DistributionMap();
 
 
     MLPoisson linop({geom}, {ba}, {dmap});
@@ -29,14 +30,17 @@ void poissonSolve(MultiFab& solution, const MultiFab& rhs, const Geometry geom)
     mlmg.setVerbose(poisson_verbose);
     mlmg.setBottomVerbose(poisson_bottom_verbose);
 
-    mlmg.solve({&solution}, {&rhs}, poisson_rel_tol, 0.0);
+    mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
+
+    potential.FillBoundary(geom.periodicity());
+
+    ComputeGrad(potential, efield, 0, 0, 1, geom);
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
+        efield[d].FillBoundary(geom.periodicity());
+    }
 
 }
 
-void calculateField(MultiFab& potential, const Geometry geom)
-{
 
-    const BoxArray& ba = potential.boxArray();
-    const DistributionMapping& dmap = potential.DistributionMap();
-
-}
