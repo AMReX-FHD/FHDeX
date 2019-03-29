@@ -579,10 +579,13 @@ void main_driver(const char* argv)
     trans.setVal(0);
     transTemp.setVal(0);
 
-    //Staggered electric field - probably wont use this?
+    //Staggered electric fields
     std::array< MultiFab, AMREX_SPACEDIM > efield;
+    std::array< MultiFab, AMREX_SPACEDIM > external;
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
+        external[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
 
     // write out initial state
@@ -623,6 +626,10 @@ void main_driver(const char* argv)
         //Print() << "STOKES SOLVE\n";
 	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
+        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+
+        esSolve(potential, charge, efield, external, geomP);
+
         if (plot_int > 0 && step%plot_int == 0)
         {
            
@@ -632,10 +639,6 @@ void main_driver(const char* argv)
             //Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(step,time,geom,umac,pres);
         }
-
-        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
-        poissonSolve(potential, charge, geomP);
-
 
         particles.MoveIons(dt, dx, geom, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
 
