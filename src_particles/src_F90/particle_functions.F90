@@ -171,8 +171,8 @@ subroutine calculate_force(particles, np, lo, hi, &
 
        part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
 
-        print *, "Calling force on ", n, p
-        print *, "Positions ", part%pos, part2%pos
+       ! print *, "Calling force on ", n, p
+      !  print *, "Positions ", part%pos, part2%pos
 
        call force_function2(part,part2,domsize)
 
@@ -1735,6 +1735,7 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module, only: permitivitty
 
   implicit none
 
@@ -1752,7 +1753,7 @@ subroutine spread_op_scalar_cc(weights, indicies, &
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
   if(mq .eq. 0) then
-    qm = part%q
+    qm = part%q/permitivitty
 
  ! print *, "Spreading ", part%q
   else
@@ -1788,7 +1789,6 @@ subroutine inter_op(weights, indicies, &
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: visc_coef
 
   implicit none
 
@@ -2721,130 +2721,27 @@ subroutine collect_charge(particles, np, lo, hi, &
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
+
            cell_np = cell_part_cnt(i,j,k)
+
            call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
            new_np = cell_np
            p = 1
-
            do while (p <= new_np)
 
 !              runtime = dt
               part => particles(cell_parts(p))
 
+
               call get_weights_scalar_cc(dxes, dxesinv, weights, indicies, &
                               cellcenters, cellcenterslo, cellcentershi, &
                               part, ks, lo, hi, ploes, store)
-              !if(sw .ne. 2) then
-        
-               !print*, "INTERPOLATE"
-      
-!               call inter_op(weights, indicies, &
-!                                velx, velxlo, velxhi, &
-!                                vely, velylo, velyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                velz, velzlo, velzhi, &
-!#endif
-!                                part, ks, dxf)
 
-              !endif
 
-                !print*, "MOVE"
-              !print*, "OldPos: ", part%pos
-              !print*, "MoveVel: ", part%vel
-
-!              runtime = dt
-
-!              do while (runtime .gt. 0)
-
-!                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-
-!                posalt(1) = inttime*part%vel(1)*adjalt
-!                posalt(2) = inttime*part%vel(2)*adjalt
-!#if (BL_SPACEDIM == 3)
-!                posalt(3) = inttime*part%vel(3)*adjalt
-!#endif
-
-!                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-!                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-!                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
-!#if (BL_SPACEDIM == 3)
-!                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
-!#endif
-!                runtime = runtime - inttime
-
-!                if(intsurf .gt. 0) then
-
-!                  surf => surfaces(intsurf)
-
-!                  call apply_bc(surf, part, intside, domsize, push)
-
-!                    if(push .eq. 1) then
-!                      
-!                      part%pos(1) = part%pos(1) + posalt(1)
-!                      part%pos(2) = part%pos(2) + posalt(2)
-!#if (BL_SPACEDIM == 3)
-!                      part%pos(3) = part%pos(3) + posalt(3)
-!#endif
-!                    endif
-!                    
-!                endif
-
-!              end do
-
-!              part%abspos = part%abspos + dt*part%vel
-
-!              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
-
-!              part%travel_time = part%travel_time + dt
-
-!              norm = part%abspos - part%origin
-
-!              diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
-
-!              diffinst = diffinst + diffest
-
-!              if(part%step_count .ge. 50) then
-!                part%diff_av = (part%diff_av*(part%step_count-50) + diffest)/((part%step_count-50) + 1)
-
-!                diffav = diffav + part%diff_av
-!              endif
-
-!              part%step_count = part%step_count + 1
-
-              !print*, "Diff est: ", diffest , ", av: ", part%diff_av
-
-              !print *, "AbsPos: ", part%abspos
-              !print *, "RelPos: ", part%pos
-
-              !print*, "NewPos: ", part%pos
-
-              !  print*, "SPREAD"
-                call spread_op_scalar_cc(weights, indicies, &
+              call spread_op_scalar_cc(weights, indicies, &
                                 charge, chargelo, chargehi, &
                                 part, ks, dxes, qm, store)
-
-
-
-              ! if it has changed cells, remove from vector.
-              ! otherwise continue
-!              ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
-!              ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
-!#if (BL_SPACEDIM == 3)
-!              ni(3) = floor((part%pos(3) - plo(3))*dxinv(3))
-!#else
-!              ni(3) = 0
-!#endif
-
-!              if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
-!                 part%sorted = 0
-!                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
-!              else
-!                 p = p + 1
-!              end if
-!           end do
-
-!           cell_part_cnt(i,j,k) = new_np
 
             p = p + 1
 
