@@ -13,7 +13,8 @@ void WritePlotFile(int step,
                    const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
-                   const MultiFab& potential) 
+                   const MultiFab& potential,
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);
@@ -30,7 +31,7 @@ void WritePlotFile(int step,
 //    int cnPlot = 40;
     int cnPlot = 41;
 
-    int enPlot = 2;
+    int enPlot = 2+AMREX_SPACEDIM;
 
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
@@ -42,12 +43,23 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(eplotfile,charge,0,0,1,0);
     amrex::MultiFab::Copy(eplotfile,potential,0,1,1,0);
 
+    // average staggered velocities to cell-centers and copy into plotfile
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        AverageFaceToCC(efield[i],0,eplotfile,2+i,1);
+    }
+
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
     amrex::MultiFab::Copy(cplotfile,particleVars,0,23,18,0);
 
     evarNames[0] = "chargeInstant";
     evarNames[1] = "potentialInstant";
+    evarNames[2] = "ExInstant";
+    evarNames[3] = "EyInstant";
+
+#if (AMREX_SPACEDIM==3)
+    evarNames[4] = "EzInstant";
+#endif
 
     cvarNames[0] = "membersInstant";
     cvarNames[1] = "densityInstant";

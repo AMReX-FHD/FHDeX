@@ -18,7 +18,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
-                   const MultiFab& potential);
+                   const MultiFab& potential,const std::array< MultiFab, AMREX_SPACEDIM >& efield);
 
 
 ///////////////////////////

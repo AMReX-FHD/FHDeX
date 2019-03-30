@@ -591,7 +591,7 @@ void main_driver(const char* argv)
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    particles.MoveIons(dt, dx, geom, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
     particles.Redistribute();
     particles.ReBin();
 
@@ -634,13 +634,13 @@ void main_driver(const char* argv)
         {
            
             //This write particle data and associated fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge,potential);
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efield);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
-        particles.MoveIons(dt, dx, geom, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
+        particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
 
        
         particles.Redistribute();

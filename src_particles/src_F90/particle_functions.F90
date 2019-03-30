@@ -110,7 +110,7 @@ subroutine force_function2(part1,part2,domsize) &
        part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
        part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
 
-       !print *, "electro force1: ", part1%force
+       print *, "electro force1: ", part1%force
        !print *, "electro force2: ", part2%force
 
        !print *, part1%force, dr2
@@ -2016,12 +2016,78 @@ subroutine drag(weights, indicies, &
 
 end subroutine drag
 
+subroutine emf(weights, indicies, &
+                              sourceu, sourceulo, sourceuhi, &
+                              sourcev, sourcevlo, sourcevhi, &
+#if (BL_SPACEDIM == 3)
+                              sourcew, sourcewlo, sourcewhi, &
+#endif
+                              fieldu, fieldulo, fielduhi, &
+                              fieldv, fieldvlo, fieldvhi, &
+#if (BL_SPACEDIM == 3)
+                              fieldw, fieldwlo, fieldwhi, &
+#endif
+                              part, ks, dxp)
+
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only: particle_t
+  use common_namelist_module
+  use rng_functions_module
+
+  implicit none
+
+  integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3), fieldulo(3), fieldvlo(3), fieldwlo(3), fielduhi(3), fieldvhi(3), fieldwhi(3)
+  double precision, intent(in   ) :: dxp(3)
+  type(particle_t), intent(inout) :: part
+  double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
+  integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
+
+  double precision, intent(inout) :: sourceu(sourceulo(1):sourceuhi(1),sourceulo(2):sourceuhi(2),sourceulo(3):sourceuhi(3))
+  double precision, intent(inout) :: sourcev(sourcevlo(1):sourcevhi(1),sourcevlo(2):sourcevhi(2),sourcevlo(3):sourcevhi(3))
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(inout) :: sourcew(sourcewlo(1):sourcewhi(1),sourcewlo(2):sourcewhi(2),sourcewlo(3):sourcewhi(3))
+#endif
+  double precision, intent(in   ) :: fieldu(fieldulo(1):fielduhi(1),fieldulo(2):fielduhi(2),fieldulo(3):fielduhi(3))
+  double precision, intent(in   ) :: fieldv(fieldvlo(1):fieldvhi(1),fieldvlo(2):fieldvhi(2),fieldvlo(3):fieldvhi(3))
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(in   ) :: fieldw(fieldwlo(1):fieldwhi(1),fieldwlo(2):fieldwhi(2),fieldwlo(3):fieldwhi(3))
+#endif
+
+  integer :: i, j, k, ii, jj, kk, boundflag, midpoint
+  double precision :: uloc(3), volinv, normalrand(3), delta, norm
+
+
+  uloc = part%vel
+
+  midpoint = 0
+
+  !reusing the velocity interpolator here, so force is being temporarily stored in particle velocity - clean this up later.
+
+   call inter_op(weights, indicies, &
+                    fieldu, fieldulo, fielduhi, &
+                    fieldv, fieldvlo, fieldvhi, &
+#if (BL_SPACEDIM == 3)
+                    fieldw, fieldwlo, fieldwhi, &
+#endif
+                    part, ks, dxp, boundflag, midpoint)
+
+  part%force = part%force + part%vel*part%q
+
+  part%vel = uloc
+
+end subroutine emf
+
 subroutine move_ions_fhd(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, dxe, &
                                      velx, velxlo, velxhi, &
                                      vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
                                      velz, velzlo, velzhi, &
+#endif
+                                     efx, efxlo, efxhi, &
+                                     efy, efylo, efyhi, &
+#if (BL_SPACEDIM == 3)
+                                     efz, efzlo, efzhi, &
 #endif
                                      coordsx, coordsxlo, coordsxhi, &
                                      coordsy, coordsylo, coordsyhi, &
@@ -2044,21 +2110,27 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   
   implicit none
 
-  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), sw
+  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw
   integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
   integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
 #if (AMREX_SPACEDIM == 3)
-  integer,          intent(in   )         :: velzlo(3), velzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
+  integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
 #endif
   type(particle_t), intent(inout), target :: particles(np)
   type(surface_t),  intent(in),    target :: surfaces(ns)
 
-  double precision, intent(in   )         :: dx(3), dxf(3), dt, plo(3), phi(3), plof(3)
+  double precision, intent(in   )         :: dx(3), dxf(3), dxe(3), dt, plo(3), phi(3), plof(3)
 
   double precision, intent(in   ) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
   double precision, intent(in   ) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
 #if (AMREX_SPACEDIM == 3)
   double precision, intent(in   ) :: velz(velzlo(1):velzhi(1),velzlo(2):velzhi(2),velzlo(3):velzhi(3))
+#endif
+
+  double precision, intent(in   ) :: efx(efxlo(1):efxhi(1),efxlo(2):efxhi(2),efxlo(3):efxhi(3))
+  double precision, intent(in   ) :: efy(efylo(1):efyhi(1),efylo(2):efyhi(2),efylo(3):efyhi(3))
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(in   ) :: efz(efzlo(1):efzhi(1),efzlo(2):efzhi(2),efzlo(3):efzhi(3))
 #endif
 
   double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
@@ -2081,7 +2153,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
+  real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
                    diffest, diffav, distav, diffinst, veltest, posold(3)
 
   double precision, allocatable :: weights(:,:,:,:)
@@ -2103,6 +2175,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   dxinv = 1.d0/dx
 
+  dxeinv = 1.d0/dxe
+
   dxfinv = 1.d0/dxf
   onemdxf = 1.d0 - dxf
   
@@ -2116,7 +2190,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   veltest = 0
 
   
-  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+  !call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
 
 
   do k = lo(3), hi(3)
@@ -2286,18 +2360,33 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               !print*, "NewPos: ", part%pos
 
-              call drag(weights, indicies, &
+
+
+!              call drag(weights, indicies, &
+!                                sourcex, sourcexlo, sourcexhi, &
+!                                sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                                velx, velxlo, velxhi, &
+!                                vely, velylo, velyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                velz, velzlo, velzhi, &
+!#endif
+!                                part, ks, dxf)
+
+              call emf(weights, indicies, &
                                 sourcex, sourcexlo, sourcexhi, &
                                 sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
                                 sourcez, sourcezlo, sourcezhi, &
 #endif
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
+                                efx, efxlo, efxhi, &
+                                efy, efylo, efyhi, &
 #if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
+                                efz, efzlo, efzhi, &
 #endif
-                                part, ks, dxf)
+                                part, ks, dxe)
 
 
               if((sw .ne. 1)  .and. (sw .ne. 4)) then

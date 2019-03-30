@@ -58,9 +58,9 @@ void FhdParticleContainer::InitParticles(species particleInfo)
           int ll = 0;
 
 
-          for(int ii=0;ii<3;ii++)
+          for(int ii=0;ii<1;ii++)
           {      
-          for(int jj=0;jj<3;jj++)
+          for(int jj=0;jj<1;jj++)
           {      
           for(int kk=0;kk<2;kk++)
           {      
@@ -148,99 +148,6 @@ void FhdParticleContainer::InitParticles(species particleInfo)
     Print() << "Initial energy: " << totalEnergy << "\n";
 
 }
-
-
-void FhdParticleContainer::InitParticlesBrownian(species particleInfo)
-{
-    
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const Real* dx = geom.CellSize();
-    const Real* plo = geom.ProbLo();
-
-    double totalEnergy = 0;
-
-    double cosTheta, sinTheta, cosPhi, sinPhi;    
-
-    //double initTemp = 0;
-    //double pc = 0;
-
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        const Box& tile_box  = mfi.tilebox();
-        const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-
-        //Assuming tile=box for now, i.e. no tiling.
-        IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();       
-
-
-        //Print() << "Big end: " << bigEnd << " small end: " << smallEnd << "\n";
-
-        //for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        //{
-            for (int i_part=0; i_part<particleInfo.ppb;i_part++) {
-                
-                ParticleType p;
-                p.id()  = ParticleType::NextID();
-                p.cpu() = ParallelDescriptor::MyProc();
-                p.idata(IntData::sorted) = 0;
-                
-//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-//#endif
-
-                p.pos(0) = 0.5*prob_hi[0];
-                p.pos(1) = 0.5*prob_hi[1];
-#if (BL_SPACEDIM == 3)
-                p.pos(2) = 0.5*prob_hi[2];
-#endif
-
-                p.rdata(RealData::ox) = p.pos(0);
-                p.rdata(RealData::oy) = p.pos(1);
-#if (BL_SPACEDIM == 3)
-                p.rdata(RealData::oz) = p.pos(2);
-#endif
-
-                //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-
-                p.rdata(RealData::vx) = 0;
-                p.rdata(RealData::vy) = 0;
-                p.rdata(RealData::vz) = 0;
-
-                p.rdata(RealData::ax) = 0;
-                p.rdata(RealData::ay) = 0;
-                p.rdata(RealData::az) = 0;
-
-                p.rdata(RealData::travelTime) = 0;
-                p.rdata(RealData::diffAv) = 0;
-                p.rdata(RealData::stepCount) = 0;
-
-                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
-
-                p.rdata(RealData::mass) = particleInfo.m; //mass
-                p.rdata(RealData::R) = particleInfo.R; //R
-                p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
-                p.rdata(RealData::q) = particleInfo.q; //charge
-                p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                p.rdata(RealData::dragFactor) = -6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                
-                particle_tile.push_back(p);
-            }
-        //}
-    }
-
-    Print() << "Initial energy: " << totalEnergy << "\n";
-
-}
-
 
 
 #ifndef DSMC
@@ -380,7 +287,7 @@ BL_PROFILE_VAR_STOP(particle_move);
 
 }
 
-void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
@@ -428,11 +335,16 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Ge
                          m_vector_size[grid_id].dataPtr(),
                          ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                          ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid),
+                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
                          BL_TO_FORTRAN_3D(umac[0][pti]),
                          BL_TO_FORTRAN_3D(umac[1][pti]),
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(umac[2][pti]),
+#endif
+                         BL_TO_FORTRAN_3D(efield[0][pti]),
+                         BL_TO_FORTRAN_3D(efield[1][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(efield[2][pti]),
 #endif
                          BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
                          BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),

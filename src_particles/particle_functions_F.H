@@ -130,10 +130,16 @@ extern "C"
                         const amrex_real* dt,
                         const amrex_real* plof,
                         const amrex_real* dxf,
+                        const amrex_real* dxe,
                          const amrex_real* velx, const int* velxlo, const int* velxhi,
                          const amrex_real* vely, const int* velylo, const int* velyhi,
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* velz, const int* velzlo, const int* velzhi,
+#endif
+                         const amrex_real* efx, const int* efxlo, const int* efxhi,
+                         const amrex_real* efy, const int* efylo, const int* efyhi,
+#if (AMREX_SPACEDIM == 3)
+                         const amrex_real* efz, const int* efzlo, const int* efzhi,
 #endif
                          const amrex_real* coordsx, const int* coordsxlo, const int* coordsxhi,
                          const amrex_real* coordsy, const int* coordsylo, const int* coordsyhi,
