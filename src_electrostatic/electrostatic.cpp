@@ -12,9 +12,10 @@ void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, 
     const BoxArray& ba = potential.boxArray();
     const DistributionMapping& dmap = potential.DistributionMap();
 
-
+    //create solver opject
     MLPoisson linop({geom}, {ba}, {dmap});
 
+    //set BCs
     linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Periodic,
                                     LinOpBCType::Periodic,
                                     LinOpBCType::Periodic)},
@@ -24,18 +25,25 @@ void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, 
 
     linop.setLevelBC(0, nullptr);
 
+    //Multi Level Multi Grid
     MLMG mlmg(linop);
-    mlmg.setMaxIter(poisson_max_iter);
 
+    //Solver parameters
+    mlmg.setMaxIter(poisson_max_iter);
     mlmg.setVerbose(poisson_verbose);
     mlmg.setBottomVerbose(poisson_bottom_verbose);
 
+    //Do solve
     mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
 
+    
     potential.FillBoundary(geom.periodicity());
 
+    //Find e field, gradient from cell centers to faces
     ComputeGrad(potential, efield, 0, 0, 1, geom);
 
+
+    //Add external field on top, then fill boundaries
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
         efield[d].FillBoundary(geom.periodicity());

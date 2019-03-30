@@ -29,10 +29,17 @@ contains
 #if (BL_SPACEDIM == 3)
     proj = part%pos + part%vel*delt
 
-    box1lo = plo
-    box1hi = (/ surfaces(7)%x0 , phi(2) , phi(3) /)
+!    this case is for a surface bisecting the domain
+!    box1lo = plo
+!    box1hi = (/ surfaces(7)%x0 , phi(2) , phi(3) /)
 
-    box2lo = (/ surfaces(7)%x0 , plo(2) , plo(3) /)
+!    box2lo = (/ surfaces(7)%x0 , plo(2) , plo(3) /)
+!    box2hi = phi
+
+    box1lo = plo
+    box1hi = phi
+
+    box2lo = plo
     box2hi = phi
 #endif
 

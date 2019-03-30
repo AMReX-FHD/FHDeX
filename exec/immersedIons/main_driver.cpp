@@ -87,6 +87,9 @@ void main_driver(const char* argv)
     //---------------------------------------
 
     // make BoxArray and Geometry
+
+    // A - fluid, C - particle, P/E - electrostatic
+
     BoxArray ba;
     BoxArray bc;
     BoxArray bp;
@@ -164,6 +167,10 @@ void main_driver(const char* argv)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 #endif
 
+
+    //Species type defined in species.H
+    //array of length nspecies
+
     species ionParticle[nspecies];
 
     double realParticles = 0;
@@ -214,6 +221,8 @@ void main_driver(const char* argv)
         ionParticle[i].T = 273;
     }
 
+
+        //MFs for storing particle statistics
 
     //Members
     //Density
@@ -286,6 +295,8 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
+
+    //set number of ghost cells to fit whole peskin kernel
 
 
     int ng = 1;
@@ -510,7 +521,7 @@ void main_driver(const char* argv)
 
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 7;
+    int surfaceCount = 6;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -524,7 +535,7 @@ void main_driver(const char* argv)
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc,1);
 
-    //Find coordinates of cell faces. May be used for interpolating fields to particle locations
+    //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
@@ -559,25 +570,28 @@ void main_driver(const char* argv)
     FindCenterCoords(RealCenteredCoords, geomP);
     
     //Cell centred es potential
-    MultiFab potential(ba, dmap, 1, ngp);
-    MultiFab potentialTemp(ba, dmap, 1, ngp);
+    MultiFab potential(bp, dmap, 1, ngp);
+    MultiFab potentialTemp(bp, dmap, 1, ngp);
     potential.setVal(0);
     potentialTemp.setVal(0);
 
-    MultiFab charge(ba, dmap, 1, ngp);
-    MultiFab chargeTemp(ba, dmap, 1, ngp);
+    //charage density for RHS of Poisson Eq.
+    MultiFab charge(bp, dmap, 1, ngp);
+    MultiFab chargeTemp(bp, dmap, 1, ngp);
     charge.setVal(0);
     chargeTemp.setVal(0);
 
-    MultiFab massFrac(ba, dmap, 1, 1);
-    MultiFab massFracTemp(ba, dmap, 1, 1);
+    //mass density on ES grid - not necessary
+    MultiFab massFrac(bp, dmap, 1, 1);
+    MultiFab massFracTemp(bp, dmap, 1, 1);
     massFrac.setVal(0);
     massFracTemp.setVal(0);
 
-    MultiFab trans(ba, dmap, 1, ngp);
-    MultiFab transTemp(ba, dmap, 1, ngp);
-    trans.setVal(0);
-    transTemp.setVal(0);
+//    //?????
+//    MultiFab trans(bp, dmap, 1, ngp);
+//    MultiFab transTemp(bp, dmap, 1, ngp);
+//    trans.setVal(0);
+//    transTemp.setVal(0);
 
     //Staggered electric fields
     std::array< MultiFab, AMREX_SPACEDIM > efield;
@@ -588,10 +602,21 @@ void main_driver(const char* argv)
         external[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
 
+    AMREX_D_TERM(efield[0].setVal(0);,
+                 efield[1].setVal(0);,
+                 efield[2].setVal(0););
+
+    //Apply external field here.
+    AMREX_D_TERM(external[0].setVal(0);,
+                 external[1].setVal(0);,
+                 external[2].setVal(0););
+
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
+    //Do an initial move to initialize various things
     particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+   
     particles.Redistribute();
     particles.ReBin();
 
@@ -622,12 +647,14 @@ void main_driver(const char* argv)
           sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
         }
 
-    // Advance umac
-        //Print() << "STOKES SOLVE\n";
-	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    // Advance umac, source is where we add particle stresses
 
+	     advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+        //Spreads charge density from ions onto multifab 'charge'.
         particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
 
+        //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
         esSolve(potential, charge, efield, external, geomP);
 
         if (plot_int > 0 && step%plot_int == 0)
@@ -640,23 +667,15 @@ void main_driver(const char* argv)
             WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
+        //Calls main ion moving loop.
         particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
 
-       
+        //These functions reorganise particles between cells and processes
         particles.Redistribute();
-
         particles.ReBin();
 
 
-       //Particles
-        //--------------------------------------
-
-
-        //Probably don't need to pass ProbLo(), check later.
-
-
-        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
-
+        //Start collecting statistics after step n_steps_skip
         if(step == n_steps_skip)
         {
             particleMeans.setVal(0.0);

@@ -27,6 +27,7 @@ void FhdParticleContainer::InitParticles(species particleInfo)
     const Geometry& geom = Geom(lev);
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
+    const Real* phi = geom.ProbHi();
 
     double totalEnergy = 0;
 
@@ -76,10 +77,16 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 //#endif
 
-                p.pos(0) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*ii;
-                p.pos(1) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*jj;
+//                p.pos(0) = 1.1*diameter[0] + 3*diameter[0]*(1.5+(0.5-get_uniform_func()))*ii;
+//                p.pos(1) = 3*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*jj;
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*kk;
+//#endif
+
+                p.pos(0) = (4.5)*dx[0] + kk*phi[0]*0.25;
+                p.pos(1) = 6.5*dx[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*kk;
+                p.pos(2) = 6.5*dx[2];
 #endif
                 
                 p.rdata(RealData::q) = qval;
@@ -421,7 +428,6 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
         
-        //Print() << "FHD\n"; 
         collect_charge(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
@@ -436,10 +442,10 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
     }
 
     chargeTemp.SumBoundary(geomP.periodicity());
-    massTemp.SumBoundary(geomP.periodicity());
+    //massTemp.SumBoundary(geomP.periodicity());
 
     MultiFab::Add(charge,chargeTemp,0,0,charge.nComp(),charge.nGrow());
-    MultiFab::Add(mass,massTemp,0,0,charge.nComp(),charge.nGrow());
+    //MultiFab::Add(mass,massTemp,0,0,mass.nComp(),mass.nGrow());
 
     charge.FillBoundary(geomP.periodicity());
 }

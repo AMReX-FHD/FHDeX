@@ -110,7 +110,7 @@ subroutine force_function2(part1,part2,domsize) &
        part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
        part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
 
-       print *, "electro force1: ", part1%force
+       !print *, "electro force1: ", part1%force
        !print *, "electro force2: ", part2%force
 
        !print *, part1%force, dr2
@@ -2226,9 +2226,21 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   diffinst = 0
   veltest = 0
 
-  
-  !call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
 
+  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+
+   p = 1
+  !Added force zeroing to be safe        
+  do while (p <= np)
+
+     part => particles(p)
+
+      print *, "Coulomb force: ", part%force
+     part%force=0
+
+      p = p + 1
+
+  end do
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -2399,18 +2411,18 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 
 
-!              call drag(weights, indicies, &
-!                                sourcex, sourcexlo, sourcexhi, &
-!                                sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                                velx, velxlo, velxhi, &
-!                                vely, velylo, velyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                velz, velzlo, velzhi, &
-!#endif
-!                                part, ks, dxf)
+              call drag(weights, indicies, &
+                                sourcex, sourcexlo, sourcexhi, &
+                                sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                sourcez, sourcezlo, sourcezhi, &
+#endif
+                                velx, velxlo, velxhi, &
+                                vely, velylo, velyhi, &
+#if (BL_SPACEDIM == 3)
+                                velz, velzlo, velzhi, &
+#endif
+                                part, ks, dxf)
 
               call emf(weights, indicies, &
                                 sourcex, sourcexlo, sourcexhi, &
@@ -2520,10 +2532,11 @@ subroutine collect_charge(particles, np, lo, hi, &
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
 
+
   if(pkernel_es .eq. 4) then
-    ks = 2
-  else
     ks = 3
+  else
+    ks = 4
   endif
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
