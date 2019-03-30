@@ -2328,6 +2328,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               if((sw .ne. 2) .and. (sw .ne. 4)) then
 
+              midpoint = 1
+
                 call inter_op(weights, indicies, &
                                 velx, velxlo, velxhi, &
                                 vely, velylo, velyhi, &

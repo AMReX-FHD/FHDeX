@@ -20,7 +20,7 @@
   ! Controls for number of steps between actions
   ! max_step = 100000
   ! plot_int = 10000
-  max_step = 2
+  max_step = 1
   plot_int = 1
 
 

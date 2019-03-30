@@ -649,7 +649,7 @@ void main_driver(const char* argv)
 
     // Advance umac, source is where we add particle stresses
 
-	     advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+	     //advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
         //Spreads charge density from ions onto multifab 'charge'.
         particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
