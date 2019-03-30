@@ -110,6 +110,19 @@ subroutine force_function2(part1,part2,domsize) &
        part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
        part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
 
+       if((ii .ne. 0) .or. (jj .ne. 0) .or. (kk .ne. 0)) then
+
+         dx(1) = ii*domsize(1)
+         dx(2) = jj*domsize(2)
+         dx(3) = kk*domsize(3)
+
+         dr2 = dot_product(dx,dx)
+
+         part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part1%q/dr2
+         part2%force = part2%force + permittivity*(dx/sqrt(dr2))*part2%q*part2%q/dr2
+
+       endif
+
        !print *, "electro force1: ", part1%force
        !print *, "electro force2: ", part2%force
 
@@ -2108,6 +2121,7 @@ subroutine emf(weights, indicies, &
 #endif
                     part, ks, dxp, boundflag, midpoint)
 
+  print *, "Poisson force: ", part%vel*part%q
   part%force = part%force + part%vel*part%q
 
   part%vel = uloc
