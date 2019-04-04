@@ -156,6 +156,87 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 
 }
 
+void FhdParticleContainer::MoveParticlesDry(const Real dt, const Real* dxFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const surface* surfaceList, const int surfaceCount)
+{
+    
+    UpdateCellVectors();
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+BL_PROFILE_VAR_NS("particle_move", particle_move);
+
+BL_PROFILE_VAR_START(particle_move);
+
+    //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (change this later).
+//    FindNodalValues(umac[0], umacNodal[0], betaCC);
+//    FindNodalValues(umac[1], umacNodal[1], betaCC);
+
+//#if (AMREX_SPACEDIM == 3)
+  //  FindNodalValues(umac[2], umacNodal[2], betaCC);
+
+    //While beta is constant we will pass a prefilled betaNodal
+    //FindNodalValues(betaCC, betaNodal, betaCC);
+//#endif
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+        Print() << "parts: " << np << std::endl;
+        Print() << "move particles DRY\n"; 
+        move_particles_dry(particles.data(), &np,
+                         ARLIM_3D(tile_box.loVect()),
+                         ARLIM_3D(tile_box.hiVect()),
+                         m_vector_ptrs[grid_id].dataPtr(),
+                         m_vector_size[grid_id].dataPtr(),
+                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt,
+                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+#endif
+                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
+#if (AMREX_SPACEDIM == 3)
+                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
+#endif
+                         , surfaceList, &surfaceCount
+                         );
+
+
+        // resize particle vectors after call to move_particles
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        {
+            const auto new_size = m_vector_size[grid_id](iv);
+            auto& pvec = m_cell_vectors[grid_id](iv);
+            pvec.resize(new_size);
+        }
+    }
+
+BL_PROFILE_VAR_STOP(particle_move);
+
+}
+
+        
 
 #ifndef DSMC
 void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,

@@ -102,6 +102,12 @@ public:
 
     void WriteParticlesAscii(std::string asciiName);
 
+    void MoveParticlesDry(const Real dt, const Real* dxFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac, 
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const surface* surfaceList, const int surfaceCount);
+
 #ifdef DSMC
     void MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount);
 #else

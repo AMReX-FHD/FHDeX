@@ -696,21 +696,12 @@ end subroutine distribute_momentum
 
 !below we'll evolve for particles with no fluid
 subroutine move_particles_dry(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, &
-                                     velx, velxlo, velxhi, &
-                                     vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                     velz, velzlo, velzhi, &
-#endif
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, &
                                      coordsx, coordsxlo, coordsxhi, &
                                      coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
                                      coordsz, coordszlo, coordszhi, &
 #endif
-                                     beta, betalo, betahi, &
-
-                                     rho, rholo, rhohi, &
-
                                      sourcex, sourcexlo, sourcexhi, &
                                      sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
@@ -726,33 +717,22 @@ subroutine move_particles_dry(particles, np, lo, hi, &
   
   implicit none
 
-  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3)
-  integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3), rholo(3), rhohi(3)
+  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3)
+  integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
   integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
-  integer,          intent(in   )         :: betalo(3), betahi(3)
 #if (AMREX_SPACEDIM == 3)
-  integer,          intent(in   )         :: velzlo(3), velzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
+  integer,          intent(in   )         :: sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
 #endif
   type(particle_t), intent(inout), target :: particles(np)
   type(surface_t),  intent(in),    target :: surfaces(ns)
 
-  double precision, intent(in   )         :: dx(3), dxf(3), dt, plo(3), phi(3), plof(3)
-
-  double precision, intent(in   ) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
-  double precision, intent(in   ) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(in   ) :: velz(velzlo(1):velzhi(1),velzlo(2):velzhi(2),velzlo(3):velzhi(3))
-#endif
+  double precision, intent(in   )         :: dx(3), dt, plo(3), phi(3)
 
   double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
   double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
 #if (AMREX_SPACEDIM == 3)
   double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
 #endif
-
-  double precision, intent(in   ) :: beta(betalo(1):betahi(1),betalo(2):betahi(2),betalo(3):betahi(3))
-
-  double precision, intent(in   ) :: rho(rholo(1):rhohi(1),rholo(2):rhohi(2),rholo(3):rhohi(3))
 
   double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
   double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
@@ -779,10 +759,10 @@ subroutine move_particles_dry(particles, np, lo, hi, &
   adj = 0.999999
   adjalt = 2d0*(1d0 - adj)
 
-  dxinv = 1.d0/dx
+!  dxinv = 1.d0/dx
 
-  dxfinv = 1.d0/dxf
-  onemdxf = 1.d0 - dxf
+!  dxfinv = 1.d0/dxf
+!  onemdxf = 1.d0 - dxf
   
   do p = 1, ns
 
@@ -831,7 +811,10 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 
 !this velocity update introduces a timetep error when a boundary intersection occurs. Need to use some kind of iteration to get a consistent intersection time and velocity update.
 
-              std = sqrt(-part%drag_factor*localbeta*k_B*2d0*runtime*293d0)/part%mass
+       !!       std = sqrt(-part%drag_factor*localbeta*k_B*2d0*runtime*293d0)/part%mass
+              std = sqrt(part%drag_factor*k_B*2d0*runtime*293d0)
+
+              print *, "std ", std, " part ", part%drag_factor*k_B*2d0*runtime*293d0
 
               bfac(1) = std*normalrand(1)
               bfac(2) = std*normalrand(2)
@@ -849,9 +832,9 @@ subroutine move_particles_dry(particles, np, lo, hi, &
                 posalt(3) = inttime*part%vel(3)*adjalt
 #endif
 
-                part%vel(1) = (runtime*part%drag_factor*part%force(1)+bfac(1))/runtime
-                part%vel(2) = (runtime*part%drag_factor*part%force(2)+bfac(2))/runtime
-                part%vel(3) = (runtime*part%drag_factor*part%force(3)+bfac(3))/runtime
+                part%vel(1) = (runtime*part%drag_factor*part%force(1)+bfac(1))/inttime
+                part%vel(2) = (runtime*part%drag_factor*part%force(2)+bfac(2))/inttime
+                part%vel(3) = (runtime*part%drag_factor*part%force(3)+bfac(3))/inttime
 
 !                part%pos(1) = part%pos(1) + runtime*part%drag_factor*part%force(1)+bfac(1)
 !                part%pos(2) = part%pos(2) + runtime*part%drag_factor*part%force(2)+bfac(2)
@@ -859,11 +842,16 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 !                part%pos(3) = part%pos(3) + runtime*part%drag_factor*part%force(3)+bfac(3)
 !#endif
 !                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+                 
+                print *, "particle ", cell_parts(p) ,"x ", part%pos(1), "y ", part%pos(2), "z " ,part%pos(3)
+                print *, "particle ", cell_parts(p) ,"x vel ", part%vel(1), "y vel ", part%vel(2), "z vel " ,part%vel(3)
+
                 part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
                 part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
 #if (BL_SPACEDIM == 3)
                 part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
+                print *, "particle ", cell_parts(p) ,"x ", part%pos(1), "y ", part%pos(2), "z " ,part%pos(3)
 
                 runtime = runtime - inttime
 
