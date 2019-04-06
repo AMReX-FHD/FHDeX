@@ -51,6 +51,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // RHS pressure in GMRES
     MultiFab gmres_rhs_p(ba, dmap, 1, 1);
     gmres_rhs_p.setVal(0.);
+    // Initial RHS pressure in GMRES
+    MultiFab gmres_rhs_p_0(ba, dmap, 1, 1);
+    gmres_rhs_p_0.setVal(0.);
+
 
     // RHS velocities in GMRES
     std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
@@ -459,7 +463,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         // crank-nicolson terms
         // TODO: ask Andy if we should use umacNew here?
-        StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+        StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
+                    alpha_fc_0, dx, theta_alpha);
 
         // pres.setVal(0.);  // initial guess
         // SetPressureBC(pres, geom);
@@ -504,8 +509,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             MultiFab::Copy(force_est[d], r_f[d], 0, 0, 1, 0);
             force_est[d].mult(dtinv, 0);
-
-            p_f[d].setVal(0.);
 
             // MultiFab::Add(r_f[d], force_est[d],  0, 0, 1, 0);
         }
