@@ -295,8 +295,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
 
-
-
     // PREDICTOR STEP (heun's method: part 1)
     // compute advective term
 
@@ -314,7 +312,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
 
     // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0,
+                dx, theta_alpha);
 
     // pressure boundary conditions
     pres.setVal(0.);
@@ -337,7 +336,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<20; i++) {
 
-        gmres_rhs_p.setVal(0.);
+        //gmres_rhs_p.setVal(0.);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             Lumac[d].FillBoundary(geom.periodicity());
@@ -376,13 +375,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             MultiFab::Copy(force_est[d], r_f[d], 0, 0, 1, 0);
             force_est[d].mult(dtinv, 0);
-
-            // MultiFab::Add(r_f[d], force_est[d],  0, 0, 1, 0);
         }
 
         // Inverse Motility Matrix
-        ApplyMatrix(tmp_f_0, p_f, r_f, gmres_rhs_p,
-                    alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+        ApplyMatrix(tmp_f_0, p_f, r_f, gmres_rhs_p_0,
+                    alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
 
         MultiFab::Add(gmres_rhs_p, p_f, 0, 0, 1, 0);
 
@@ -396,42 +393,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
 
-        // // for (int d=0; d<AMREX_SPACEDIM; ++d)
-        // //     MultiFab::Add(force_0[d], force_est[d], 0, 0, 1, 0);
-
-        // Print() << "predictor step: " << i
-        //         << " force = " << force_0[0].norm0()
-        //         << ", "        << force_0[1].norm0()
-        //         << ", "        << force_0[2].norm0()
-        //         << " ";
-        // Print() << "r_f = "    << r_f[0].norm0()
-        //         << ", "        << r_f[1].norm0()
-        //         << ", "        << r_f[2].norm0()
-        //         << " "
-        //         << "Lu = "     << Lumac[0].norm0()
-        //         << ", "        << Lumac[1].norm0()
-        //         << ", "        << Lumac[2].norm0()
-        //         << " "
-        //         << "adv_p = "  << advFluxdiv[0].norm0()
-        //         << ", "        << advFluxdiv[1].norm0()
-        //         << ", "        << advFluxdiv[2].norm0()
-        //         << std::endl;
-
-        // Real norm_r, norm_fest, norm_fmask;
-        // StagL2Norm(r_f, 0, norm_r);
-        // StagL2Norm(force_est, 0, norm_fest);
-        // StagL2Norm(tmp_f_mask, 0, norm_fmask);
-        // Print() << "predictor norm_resid = "   << norm_r
-        //         << " norm f_est = "  << norm_fest
-        //         << " norm f_mask = " << norm_fmask << std::endl;
-
-        // // if (norm_r < 1e-10) {
-
-        // //     // for (int d=0; d<AMREX_SPACEDIM; ++d)
-        // //     //     MultiFab::Add(force[d], force_rhs[d], 0, 0, 1, 0);
-
-        //     break;
-        // }
+        // for (int d=0; d<AMREX_SPACEDIM; ++d)
+        //     MultiFab::Add(force_0[d], force_est[d], 0, 0, 1, 0);
 
 
         // Compute predictor advective term
@@ -469,8 +432,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // pres.setVal(0.);  // initial guess
         // SetPressureBC(pres, geom);
 
-
-        // for (int i=0; i<20; i++) {
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
@@ -517,8 +478,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         VisMF::Write(p_1, "p_f_0");
 
         // Inverse Motility Matrix
-        ApplyMatrix(tmp_f_1, p_f, r_f, gmres_rhs_p,
-                    alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+        ApplyMatrix(tmp_f_1, p_f, r_f, gmres_rhs_p_0,
+                    alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
 
         VisMF::Write(p_f, "p_f_1");
 

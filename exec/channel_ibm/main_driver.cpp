@@ -488,8 +488,8 @@ void main_driver(const char * argv) {
                 MultiFab::Copy(umac_0[d], umac[d], 0, 0, 1, 0);
                 MultiFab::Copy(umac_1[d], umac[d], 0, 0, 1, 0);
 
-                mfluxdiv_predict[d].setVal(0e0, test_regions[d], 0, 1);
-                mfluxdiv_correct[d].setVal(0e0, test_regions[d], 0, 1);
+                // mfluxdiv_predict[d].setVal(0e0, test_regions[d], 0, 1);
+                // mfluxdiv_correct[d].setVal(0e0, test_regions[d], 0, 1);
             }
 
             //___________________________________________________________________
