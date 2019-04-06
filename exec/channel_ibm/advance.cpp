@@ -429,10 +429,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
                     alpha_fc_0, dx, theta_alpha);
 
-        // pres.setVal(0.);  // initial guess
-        // SetPressureBC(pres, geom);
-
-
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
 
@@ -474,14 +470,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // MultiFab::Add(r_f[d], force_est[d],  0, 0, 1, 0);
         }
 
-        VisMF::Write(r_f[1], "r_f_1");
-        VisMF::Write(p_1, "p_f_0");
-
         // Inverse Motility Matrix
         ApplyMatrix(tmp_f_1, p_f, r_f, gmres_rhs_p_0,
                     alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
-
-        VisMF::Write(p_f, "p_f_1");
 
         MultiFab::Add(gmres_rhs_p, p_f, 0, 0, 1, 0);
 
@@ -509,18 +500,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         Print() << "r_f = "    << r_f[0].sum()
                 << ", "        << r_f[1].sum()
                 << ", "        << r_f[2].sum()
-                << " "
-                << "adv_c = "  << advFluxdivPred[0].norm0()
-                << ", "        << advFluxdivPred[1].norm0()
-                << ", "        << advFluxdivPred[2].norm0()
-                << std::endl;
-        Print() << "mf_p = "   << mfluxdiv_predict[0].norm0()
-                << ", "        << mfluxdiv_predict[1].norm0()
-                << ", "        << mfluxdiv_predict[2].norm0()
-                << " "
-                << "mf_c = "   << mfluxdiv_correct[0].norm0()
-                << ", "        << mfluxdiv_correct[1].norm0()
-                << ", "        << mfluxdiv_correct[2].norm0()
                 << std::endl;
 
         Real norm_r, norm_fest, norm_fmask;
@@ -530,7 +509,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         Print() << "corrector norm_resid = "   << norm_r
                 << " norm f_est = "  << norm_fest
                 << " norm f_mask = " << norm_fmask << std::endl;
-
     }
 
     for (int i=0; i<AMREX_SPACEDIM; i++)
