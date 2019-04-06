@@ -12,10 +12,14 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const amrex::Geometry cgeom,
+                   const amrex::Geometry egeom,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
-                   FhdParticleContainer& particles) ;
+                   FhdParticleContainer& particles,
+                   const MultiFab& charge,
+                   const MultiFab& potential,const std::array< MultiFab, AMREX_SPACEDIM >& efield);
+
 
 ///////////////////////////
 

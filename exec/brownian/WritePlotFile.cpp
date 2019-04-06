@@ -7,29 +7,59 @@ void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    const amrex::Geometry cgeom,
+                   const amrex::Geometry egeom,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
-                   FhdParticleContainer& particles) 
+                   FhdParticleContainer& particles,
+                   const MultiFab& charge,
+                   const MultiFab& potential,
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);
+    std::string eplotfilename = Concatenate("eplt",step,9);
     std::string pplotfilename = Concatenate("parplt",step,9);
 
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
 
+    BoxArray eba = charge.boxArray();
+    DistributionMapping edmap = charge.DistributionMap();
+
  
 //    int cnPlot = 40;
     int cnPlot = 41;
 
+    int enPlot = 2+AMREX_SPACEDIM;
+
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
+    MultiFab eplotfile(eba, edmap, enPlot, 0);
+
     Vector<std::string> cvarNames(cnPlot);
+    Vector<std::string> evarNames(enPlot);
+
+    amrex::MultiFab::Copy(eplotfile,charge,0,0,1,0);
+    amrex::MultiFab::Copy(eplotfile,potential,0,1,1,0);
+
+    // average staggered velocities to cell-centers and copy into plotfile
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        AverageFaceToCC(efield[i],0,eplotfile,2+i,1);
+    }
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
     amrex::MultiFab::Copy(cplotfile,particleVars,0,23,18,0);
+
+    evarNames[0] = "chargeInstant";
+    evarNames[1] = "potentialInstant";
+    evarNames[2] = "ExInstant";
+    evarNames[3] = "EyInstant";
+
+#if (AMREX_SPACEDIM==3)
+    evarNames[4] = "EzInstant";
+#endif
 
     cvarNames[0] = "membersInstant";
     cvarNames[1] = "densityInstant";
@@ -115,6 +145,15 @@ void WritePlotFile(int step,
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
 
+    WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
+
     particles.Checkpoint(pplotfilename, "particle0");
+
+
+    std::string asciiName = Concatenate("asciiMeans",step,9);
+    std::string asciiPName = Concatenate("asciiParticles",step,9);
+    outputMFAscii(particleMeans, asciiName);
+    particles.WriteParticlesAscii(asciiPName);
+
 
 }

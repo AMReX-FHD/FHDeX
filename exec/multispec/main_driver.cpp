@@ -58,7 +58,6 @@ void main_driver(const char* argv)
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    exit(0);
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
@@ -436,5 +435,7 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    // exit(0);
 
 }

@@ -163,4 +163,16 @@ namespace common {
     extern amrex::Vector<amrex::Real> particle_n0;
     extern amrex::Vector<amrex::Real> mass;
     extern amrex::Vector<amrex::Real> nfrac;
+
+    extern amrex::Real                permitivitty;
+    extern amrex::Vector<amrex::Real> eepsilon;
+    extern amrex::Vector<amrex::Real> sigma;
+
+    extern int                        poisson_verbose;
+    extern int                        poisson_bottom_verbose;
+    extern int                        poisson_max_iter;
+    extern amrex::Real                poisson_rel_tol;
+
+        
+
 }

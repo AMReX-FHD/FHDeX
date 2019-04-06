@@ -2,6 +2,7 @@
 #define _FhdParticleContainer_H_
 
 #include <AMReX_Particles.H>
+#include "AMReX_NeighborParticles.H"
 
 #include "gmres_functions.H"
 #include "common_functions.H"
@@ -16,6 +17,12 @@ struct RealData
         vx = 0,
         vy,
         vz,
+        fx,
+        fy,
+        fz,
+        ux,
+        uy,
+        uz,
         mass,
         R,
         radius,
@@ -31,6 +38,7 @@ struct RealData
         travelTime,
         diffAv,
         stepCount,
+        multi,
         ncomps
     };
 };
@@ -49,7 +57,7 @@ struct IntData
 
 
 class FhdParticleContainer
-    : public amrex::ParticleContainer<RealData::ncomps, IntData::ncomps>
+    : public amrex::NeighborParticleContainer<RealData::ncomps, IntData::ncomps>
 {
 public:
 
@@ -57,7 +65,8 @@ public:
 
     FhdParticleContainer(const Geometry            & geom, 
                                   const DistributionMapping & dmap,
-                                  const BoxArray            & ba);
+                                  const BoxArray            & ba,
+                                  int ncells);
 
     void InitParticles(species particleInfo);
     void InitParticlesBrownian(species particleInfo);
@@ -88,12 +97,16 @@ public:
     void EvaluateStats(
                               MultiFab& particleInstant,
                               MultiFab& particleMeans,
-                              MultiFab& particleVars, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6,
-                              MultiFab& particleMembraneFlux,
-
+                              MultiFab& particleVars,
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
-    void WriteParticlesAscii(int n);
+    void WriteParticlesAscii(std::string asciiName);
+
+    void MoveParticlesDry(const Real dt, const Real* dxFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac, 
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const surface* surfaceList, const int surfaceCount);
 
 #ifdef DSMC
     void MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount);
@@ -111,11 +124,13 @@ public:
 
 #endif
 
-    void MoveIons(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+    void MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
+
+    void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomF, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
 
 
     void ReBin();

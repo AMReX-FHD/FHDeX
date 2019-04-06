@@ -21,52 +21,43 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                   const Real & theta_alpha,
                   const Geometry & geom)
 {
-    // If no implicit force coefficients are provided, create a static array of
-    // MultiFabs which is initialized to 0.
-    static bool alloc_fcoef = true;
-    static std::array<MultiFab, AMREX_SPACEDIM> fcoef;
+    // If no implicit force coefficients are provided, build one here
+    std::array<MultiFab, AMREX_SPACEDIM> fcoef;
 
-    // This only needs to be initialized once...
-    if (alloc_fcoef) {
+    const BoxArray & ba            = beta_cc.boxArray();
+    const DistributionMapping & dm = beta_cc.DistributionMap();
 
-        const BoxArray & ba            = beta_cc.boxArray();
-        const DistributionMapping & dm = beta_cc.DistributionMap();
-
-        for (int d=0; d<AMREX_SPACEDIM; d++) {
-            fcoef[d].define(convert(ba, nodal_flag_dir[d]), dm, 1, phi_fc[0].nGrow());
-            fcoef[d].setVal(0.);
-        }
-
-        // for (MFIter mfi(fcoef[0]); mfi.isValid(); ++mfi) {
-        //     const Box & validbox = mfi.validbox();
-
-        //     if (validbox.contains(IntVect{12, 11, 4})) {
-        //         FArrayBox & fab = fcoef[0][mfi];
-        //         fab(IntVect{12, 11, 4}) = -1.;
-        //     }
-        // }
-
-        // for (MFIter mfi(fcoef[1]); mfi.isValid(); ++mfi) {
-        //     const Box & validbox = mfi.validbox();
-
-        //     if (validbox.contains(IntVect{12, 11, 4})) {
-        //         FArrayBox & fab = fcoef[1][mfi];
-        //         fab(IntVect{12, 11, 4}) = -1.;
-        //     }
-        // }
-
-        // for (MFIter mfi(fcoef[2]); mfi.isValid(); ++mfi) {
-        //     const Box & validbox = mfi.validbox();
-
-        //     if (validbox.contains(IntVect{12, 11, 4})) {
-        //         FArrayBox & fab = fcoef[2][mfi];
-        //         fab(IntVect{12, 11, 4}) = -1.;
-        //     }
-        // }
-
-
-        alloc_fcoef = false;
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        fcoef[d].define(convert(ba, nodal_flag_dir[d]), dm, 1, phi_fc[0].nGrow());
+        fcoef[d].setVal(0.);
     }
+
+    // for (MFIter mfi(fcoef[0]); mfi.isValid(); ++mfi) {
+    //     const Box & validbox = mfi.validbox();
+
+    //     if (validbox.contains(IntVect{12, 11, 4})) {
+    //         FArrayBox & fab = fcoef[0][mfi];
+    //         fab(IntVect{12, 11, 4}) = -1.;
+    //     }
+    // }
+
+    // for (MFIter mfi(fcoef[1]); mfi.isValid(); ++mfi) {
+    //     const Box & validbox = mfi.validbox();
+
+    //     if (validbox.contains(IntVect{12, 11, 4})) {
+    //         FArrayBox & fab = fcoef[1][mfi];
+    //         fab(IntVect{12, 11, 4}) = -1.;
+    //     }
+    // }
+
+    // for (MFIter mfi(fcoef[2]); mfi.isValid(); ++mfi) {
+    //     const Box & validbox = mfi.validbox();
+
+    //     if (validbox.contains(IntVect{12, 11, 4})) {
+    //         FArrayBox & fab = fcoef[2][mfi];
+    //         fab(IntVect{12, 11, 4}) = -1.;
+    //     }
+    // }
 
     StagMGSolver(alpha_fc, beta_cc, beta_ed, gamma_cc, fcoef, phi_fc, rhs_fc, theta_alpha, geom);
 }

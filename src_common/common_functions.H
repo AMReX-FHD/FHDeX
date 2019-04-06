@@ -48,6 +48,8 @@ void PrintMF(const MultiFab& MF);
 
 void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geometry geom);
 
+void FindCenterCoords(MultiFab& RealCenterCoords, Geometry geom);
+
 void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& ccFab);
 
 ///////////////////////////
@@ -79,6 +81,12 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, con
 void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom);
 void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom);
 void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom);
+
+///////////////////////////
+// in outputAscii.cpp
+
+
+void outputMFAscii(const MultiFab& output, std::string filename);
 
 
 #endif

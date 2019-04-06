@@ -27,3 +27,20 @@ void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geom
     }
 
 }
+
+void FindCenterCoords(MultiFab& RealCenterCoords, Geometry geom)
+{
+
+
+    const RealBox& realDomain = geom.ProbDomain();
+
+    const Real* dx = geom.CellSize();
+
+    for (MFIter mfi(RealCenterCoords); mfi.isValid(); ++mfi) 
+    {
+
+        find_center_coords(ZFILL(realDomain.lo()), ZFILL(realDomain.hi()), BL_TO_FORTRAN_3D(RealCenterCoords[mfi]), ZFILL(dx));
+
+    }
+
+}

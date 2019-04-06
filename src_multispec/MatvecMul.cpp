@@ -12,8 +12,7 @@ using namespace common;
 using namespace amrex;
 
 void MatvecMul(MultiFab& x,
-	       const MultiFab& A,
-	       const int& nc)
+	       const MultiFab& A)
 {
 
     BL_PROFILE_VAR("MatvecMul()",MatvecMul);
@@ -25,7 +24,7 @@ void MatvecMul(MultiFab& x,
         const Box& validBox = mfi.validbox();
 
         matvec_mul(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		   BL_TO_FORTRAN_ANYD(x[mfi]),
+		   BL_TO_FORTRAN_FAB(x[mfi]),
 		   BL_TO_FORTRAN_FAB(A[mfi]));
     }
 

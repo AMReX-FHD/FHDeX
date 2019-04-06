@@ -15,3 +15,4 @@ CEXE_sources += FindCoords.cpp
 CEXE_sources += FindNodalValues.cpp
 CEXE_sources += MuliFABFillRandom.cpp
 CEXE_sources += MultiFABPhysBC.cpp
+CEXE_sources += outputAscii.cpp

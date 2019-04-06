@@ -93,6 +93,15 @@ module common_namelist_module
   double precision,   save :: particle_n0(MAX_SPECIES)
   double precision,   save :: particle_neff
 
+  double precision,   save :: permitivitty
+  double precision,   save :: eepsilon(MAX_SPECIES)
+  double precision,   save :: sigma(MAX_SPECIES)
+  double precision,   save :: poisson_rel_tol
+
+  integer,            save :: poisson_max_iter
+  integer,            save :: poisson_verbose
+  integer,            save :: poisson_bottom_verbose
+
 
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
@@ -242,6 +251,14 @@ module common_namelist_module
   namelist /common/ density_weights
   namelist /common/ shift_cc_to_boundary
 
+  namelist /common/ permitivitty
+  namelist /common/ eepsilon
+  namelist /common/ sigma
+  namelist /common/ poisson_verbose
+  namelist /common/ poisson_bottom_verbose
+  namelist /common/ poisson_max_iter
+  namelist /common/ poisson_rel_tol
+
 contains
 
   ! read in fortran namelist into common_params_module
@@ -358,7 +375,7 @@ contains
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in) &
+                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -450,6 +467,15 @@ contains
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
 
+    double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES)
+    double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
+    double precision,       intent(inout) :: permitivitty_in
+    double precision,       intent(inout) :: poisson_rel_tol_in
+
+    integer,                intent(inout) :: poisson_max_iter_in
+    integer,                intent(inout) :: poisson_verbose_in
+    integer,                intent(inout) :: poisson_bottom_verbose_in
+
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
     n_cells_in = n_cells
@@ -531,6 +557,14 @@ contains
     particle_neff_in = particle_neff
     particle_count_in = particle_count
     particle_placement_in = particle_placement
+
+    poisson_verbose_in = poisson_verbose
+    poisson_bottom_verbose_in = poisson_bottom_verbose
+    poisson_max_iter_in = poisson_max_iter
+    poisson_rel_tol_in = poisson_rel_tol
+    permitivitty_in = permitivitty
+    eepsilon_in = eepsilon
+    sigma_in = sigma
 
   end subroutine initialize_common_namespace
 

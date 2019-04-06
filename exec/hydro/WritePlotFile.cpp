@@ -20,7 +20,7 @@ void WritePlotFile(int step,
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
     
-    const std::string plotfilename = Concatenate("plt",step,7);
+    std::string plotfilename = Concatenate(plot_base_name,step,7);
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();

@@ -42,8 +42,6 @@ void InitializeCommonNamespace() {
     prob_hi.resize(AMREX_SPACEDIM);
     n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
-    plot_base_name.resize(128);
-    chk_base_name.resize(128);
     grav.resize(AMREX_SPACEDIM);
     molmass.resize(MAX_SPECIES);
     diameter.resize(MAX_SPECIES);
@@ -77,14 +75,20 @@ void InitializeCommonNamespace() {
     particle_count.resize(MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
 
+    eepsilon.resize(MAX_SPECIES);
+    sigma.resize(MAX_SPECIES);
+
+    char temp_plot_base_name[128];
+    char temp_chk_base_name[128];
+
     initialize_common_namespace(prob_lo.dataPtr(), prob_hi.dataPtr(), n_cells.dataPtr(),
                                 max_grid_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
                                 &perm, &qval, &pkernel_fluid, &pkernel_es,
                                 &fixed_dt, &cfl, &max_step,
-                                &plot_int, plot_base_name.c_str(), plot_base_name.size()+1,
-                                &chk_int, chk_base_name.c_str(), chk_base_name.size()+1,
+                                &plot_int, temp_plot_base_name, 128,
+                                &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &print_int, &project_eos_int,
                                 grav.dataPtr(), &nspecies, molmass.dataPtr(), diameter.dataPtr(),
                                 dof.dataPtr(), hcv.dataPtr(), hcp.dataPtr(),
@@ -106,6 +110,9 @@ void InitializeCommonNamespace() {
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(), &particle_neff,
-                                particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr());
+                                particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(), &permitivitty, eepsilon.dataPtr(), sigma.dataPtr(), &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter, &poisson_rel_tol);
 
+    plot_base_name = temp_plot_base_name;
+    chk_base_name = temp_chk_base_name;
+    
 }

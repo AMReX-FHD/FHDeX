@@ -75,6 +75,10 @@ include ../../src_surfaces/Make.package
 VPATH_LOCATIONS   += ../../src_surfaces
 INCLUDE_LOCATIONS += ../../src_surfaces
 
+include ../../src_electrostatic/Make.package
+VPATH_LOCATIONS   += ../../src_electrostatic
+INCLUDE_LOCATIONS += ../../src_electrostatic
+
 include ./Make_precheck.package
 include ./Make_surface.package
 

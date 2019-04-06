@@ -71,6 +71,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   std::array< MultiFab, AMREX_SPACEDIM > advFluxdivPred;
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    advFluxdivPred[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+    advFluxdivPred[d].setVal(0.0);
+  }
 
   // staggered momentum
   std::array< MultiFab, AMREX_SPACEDIM > uMom;
@@ -78,18 +82,26 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     uMom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
     uMom[d].setVal(0.0);
   }
+
+  // face-centered rho total
+  std::array< MultiFab, AMREX_SPACEDIM > rhotot_face;
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    rhotot_face[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+    rhotot_face[d].setVal(0.0);
+  }
   
   MultiFab tracerPred(ba,dmap,1,1);
   MultiFab advFluxdivS(ba,dmap,1,1);
 
   MultiFab rhoPred(ba,dmap,nspecies,1);
+  rhoPred.setVal(0.0);
   MultiFab adv_mass_fluxdiv(ba,dmap,nspecies,1);
 
   MultiFab diff_mass_fluxdiv(ba,dmap,nspecies,1);
   
   std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    diff_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+    diff_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 1);
     diff_mass_flux[d].setVal(0.0);
   }
 
@@ -209,15 +221,17 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // ComputeMassFluxdiv(rho,rhotot,diff_mass_fluxdiv,
   // 		     stoch_mass_fluxdiv,diff_mass_flux,
   // 		     stoch_mass_flux,dt,0.0,geom);
-
+  
   for(int i=0; i<nspecies; i++) {
     MkAdvSFluxdiv(umac,rho,adv_mass_fluxdiv,dx,geom,i,0);
   }
 
-  diff_mass_fluxdiv.mult(dt);
+  MultiFab::Copy(rhoPred, rho, 0, 0, nspecies, 1);
+
+  diff_mass_fluxdiv.mult(-dt);
   MultiFab::Add(rhoPred,diff_mass_fluxdiv,0,0,nspecies,0);
 
-  adv_mass_fluxdiv.mult(-dt);
+  adv_mass_fluxdiv.mult(dt);
   MultiFab::Add(rhoPred,adv_mass_fluxdiv, 0,0,nspecies,0);
 
   //////////////////////////////////////////////////
@@ -228,13 +242,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // PREDICTOR STEP (heun's method: part 1)
   // compute advective term
+  AverageCCToFace(rhotot, 0, rhotot_face, 0, 1);
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 0);
-  }
-
-  // let rho = 1
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-    uMom[d].mult(1.0, 1);
+    MultiFab::Multiply(uMom[d], rhotot_face[d], 0, 0, 1, 0);
     uMom[d].FillBoundary(geom.periodicity());
   }
 
@@ -286,16 +297,22 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MkAdvSFluxdiv(umacNew,rhoPred,adv_mass_fluxdiv,dx,geom,i,0);
   }
 
-  diff_mass_fluxdiv.mult(dt);
+  diff_mass_fluxdiv.mult(-dt);
   MultiFab::Add(rho,diff_mass_fluxdiv,0,0,nspecies,0);
 
-  adv_mass_fluxdiv.mult(-dt);
+  adv_mass_fluxdiv.mult(dt);
   MultiFab::Add(rho,adv_mass_fluxdiv, 0,0,nspecies,0);
 
   MultiFab::Add(rho,rhoPred,0,0,nspecies,0);
 
   rho.mult(0.5);
 
+  // // Hack: Write out mfabs
+  // std::string plotfilename;
+  // plotfilename = "rho_test";
+  // VisMF::Write(rhotot,plotfilename);
+  // exit(0);
+  
   //////////////////////////////////////////////////
 
   //////////////////////////////////////////////////
@@ -303,14 +320,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   //////////////////////////////////////////////////
 
   // Compute predictor advective term
+  AverageCCToFace(rhotot, 0, rhotot_face, 0, 1);
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     umacNew[d].FillBoundary(geom.periodicity());
-
     MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
-
-    // let rho = 1
-    uMom[d].mult(1.0, 1);
-
+    MultiFab::Multiply(uMom[d], rhotot_face[d], 0, 0, 1, 0);
     uMom[d].FillBoundary(geom.periodicity());
   }
 
@@ -355,8 +369,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
   }
-
-  amrex::Print() << "Hack: end of advance \n";
 
   //////////////////////////////////////////////////
 

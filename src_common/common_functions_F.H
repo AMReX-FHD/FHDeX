@@ -54,7 +54,7 @@ extern "C"
                                      int* shift_cc_to_boundary,
                                      int* particle_placement, int* particle_count,
                                      amrex::Real* particle_neff, amrex::Real* particle_n0,
-                                     amrex::Real* mass, amrex::Real* nfrac);
+                                     amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permitivitty, amrex::Real* eepsilon, amrex::Real* sigma, int* poisson_verbose, int* poisson_bottom_verbose, int* poisson_max_iter, amrex::Real* poisson_rel_tol);
 ///////////////////////////
 
 ///////////////////////////
@@ -154,7 +154,15 @@ extern "C"
                     amrex_real* zface, const int* zfacelo, const int* zfacehi,
 #endif
                     const amrex_real* dx);
+
+
+    void find_center_coords(const amrex_real* real_lo, const amrex_real* real_hi,
+                    amrex_real* centers, const int* lo, const int* hi,
+                    const amrex_real* dx);
 ///////////////////////////
+
+
+
 
 ///////////////////////////
 // in find_nodal_values.F90

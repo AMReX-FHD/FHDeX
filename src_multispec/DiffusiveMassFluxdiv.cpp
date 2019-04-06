@@ -28,7 +28,7 @@ void DiffusiveMassFluxdiv(const MultiFab& rho,
     // compute the face-centered flux (each direction: cells+1 faces while 
     // cells contain interior+2 ghost cells) 
     DiffusiveMassFlux(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_flux,geom);
-
+    
     // compute divergence of determinstic flux 
     ComputeDiv(diff_mass_fluxdiv,diff_mass_flux,0,0,nspecies,geom,0);  // increment = 0
 
@@ -77,11 +77,15 @@ void DiffusiveMassFlux(const MultiFab& rho,
 
     // MatvecMul needs to add A*x result to x
     for(i=0;i<AMREX_SPACEDIM;i++) {
-      MatvecMul(diff_mass_flux[i], Gamma_face[i], nspecies);
+      // Gamma_face[i].setVal(0.0);
+      
+      MatvecMul(diff_mass_flux[i], Gamma_face[i]);
     }
 
     for(i=0;i<AMREX_SPACEDIM;i++) {
-      MatvecMul(diff_mass_flux[i], rhoWchi_face[i], nspecies);
+      // rhoWchi_face[i].setVal(0.0);
+      
+      MatvecMul(diff_mass_flux[i], rhoWchi_face[i]);
     }
 
     //correct fluxes to ensure mass conservation to roundoff

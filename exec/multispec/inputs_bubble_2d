@@ -18,11 +18,11 @@
   max_grid_size(1:2) = 64 64
 
   ! Time-step control
-  fixed_dt = 0.5e-2
+  fixed_dt = 2e-4
 
   ! Controls for number of steps between actions
-  max_step = 5
-  plot_int = 1
+  max_step = 200
+  plot_int = 10
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -37,7 +37,7 @@
   visc_type = 2
   
   ! Stochastic parameters
-  variance_coef_mom = 1.
+  variance_coef_mom = 0.
   initial_variance_mom = 0.
 
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]

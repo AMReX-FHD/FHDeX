@@ -26,6 +26,10 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
+#include "electrostatic.H"
+
+//#include "electrostatic.H"
+
 using namespace gmres;
 using namespace common;
 //using namespace amrex;
@@ -50,19 +54,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-//    int fhdSeed = 0;
-//    int particleSeed = 0;
-//    int selectorSeed = 0;
-//    int thetaSeed = 0;
-//    int phiSeed = 0;
-//    int generalSeed = 0;
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -77,21 +81,27 @@ void main_driver(const char* argv)
 
     //---------------------------------------
 
-        //Terms prepended with a 'C' are related to the particle grid. Those without are for the hydro grid.
+        //Terms prepended with a 'C' are related to the particle grid. Those with P are for the electostatic grid. Those without are for the hydro grid.
         //The particle grid created as a corsening or refinement of the hydro grid.
 
     //---------------------------------------
 
     // make BoxArray and Geometry
+
+    // A - fluid, C - particle, P/E - electrostatic
+
     BoxArray ba;
     BoxArray bc;
+    BoxArray bp;
     Geometry geom;
     Geometry geomC;
+    Geometry geomP;
     
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
     Box domainC = domain;
+    Box domainP = domain;
 
     // Initialize the boxarray "ba" from the single box "bx"
     ba.define(domain);
@@ -104,21 +114,30 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
-    int sizeRatio = 1;
+    int sizeRatioC = 1;
+    int sizeRatioP = 1;
 
     bc = ba;
-    bc.coarsen(sizeRatio);
-    domainC.coarsen(sizeRatio);
+    bp = ba;
+    bc.refine(sizeRatioC);
+    bp.coarsen(sizeRatioP);
+    domainC.refine(sizeRatioC);
+    domainP.coarsen(sizeRatioP);
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
+    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic.data());
 
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
+    Print() << geom << "\n";
+    Print() << domain << "\n";
+
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
+    const Real* dxp = geomP.CellSize();
 
     MultiFab cellVols(bc, dmap, 1, 0);
 
@@ -148,6 +167,10 @@ void main_driver(const char* argv)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 #endif
 
+
+    //Species type defined in species.H
+    //array of length nspecies
+
     species ionParticle[nspecies];
 
     double realParticles = 0;
@@ -158,7 +181,7 @@ void main_driver(const char* argv)
         ionParticle[i].m = mass[i];
         ionParticle[i].d = diameter[i];
 
-        ionParticle[i].q = 1.6e-19;
+        ionParticle[i].q = qval;
 
         if(particle_count[i] >= 0)
         {
@@ -198,6 +221,8 @@ void main_driver(const char* argv)
         ionParticle[i].T = 273;
     }
 
+
+        //MFs for storing particle statistics
 
     //Members
     //Density
@@ -271,9 +296,26 @@ void main_driver(const char* argv)
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
 
-    int ng = 3;
+    //set number of ghost cells to fit whole peskin kernel
 
-    MultiFab rho(ba, dmap, 1, 1);
+
+    int ng = 1;
+
+    if(pkernel_fluid == 3)
+    {
+        ng = 3;
+
+    }if(pkernel_fluid == 4)
+    {
+        ng = 4;
+
+    }else if(pkernel_fluid == 6)
+    {
+
+        ng = 5;
+    }
+
+    MultiFab rho(ba, dmap, 1, ng);
     rho.setVal(1.);
 
     // alpha_fc arrays
@@ -284,7 +326,7 @@ void main_driver(const char* argv)
     }
 
     // beta cell centred
-    MultiFab beta(ba, dmap, 1, 1);
+    MultiFab beta(ba, dmap, 1, ng);
     beta.setVal(visc_coef);
 
     // beta on nodes in 2d
@@ -321,19 +363,19 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE >  eta_ed;
     std::array< MultiFab, NUM_EDGE > temp_ed;
     // eta and temperature; cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
-    temp_cc.define(ba, dmap, 1, 1);
+    eta_cc.define(ba, dmap, 1, ng);
+    temp_cc.define(ba, dmap, 1, ng);
     // eta and temperature; nodal
 #if (AMREX_SPACEDIM == 2)
-    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
+    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
 #elif (AMREX_SPACEDIM == 3)
-    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
+    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
+    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
+    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
+    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
+    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
 #endif
 
     // Initalize eta & temperature multifabs
@@ -348,6 +390,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // random fluxes:
     ///////////////////////////////////////////
+
 
     // mflux divergence, staggered in x,y,z
 
@@ -367,7 +410,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
+    MultiFab pres(ba,dmap,1,ng);
     pres.setVal(0.);  // initial guess
 
     // staggered velocities
@@ -447,13 +490,14 @@ void main_driver(const char* argv)
         sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
     }
 
-    // staggered real coordinates
+
+    // staggered real coordinates - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
     AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, ng);,
                  RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, ng);,
                  RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, ng););
 
-    // staggered source terms
+    // staggered source terms - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > source;
     AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
                  source[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
@@ -477,7 +521,7 @@ void main_driver(const char* argv)
 
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 7;
+    int surfaceCount = 6;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
@@ -489,13 +533,13 @@ void main_driver(const char* argv)
 
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    FhdParticleContainer particles(geomC, dmap, bc);
+    FhdParticleContainer particles(geomC, dmap, bc,1);
 
-    //Find coordinates of cell faces. May be used for interpolating fields to particle locations
+    //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
-    particles.InitParticlesBrownian(ionParticle[0]);
+    particles.InitParticles(ionParticle[0]);
 
     //particles.InitializeFields(particleInstant, cellVols, ionParticle[0]);
 
@@ -503,72 +547,148 @@ void main_driver(const char* argv)
     //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
 
 
+    //----------------------    
+    // Electrostatic setup
+    //----------------------
+
+    int ngp = 1;
+
+    if(pkernel_es == 4)
+    {
+        ngp = 3;
+
+    }else if(pkernel_es == 6)
+    {
+
+        ngp = 4;
+    }
+
+    // cell centered real coordinates - es grid
+    MultiFab RealCenteredCoords;
+    RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
+
+    FindCenterCoords(RealCenteredCoords, geomP);
+    
+    //Cell centred es potential
+    MultiFab potential(bp, dmap, 1, ngp);
+    MultiFab potentialTemp(bp, dmap, 1, ngp);
+    potential.setVal(0);
+    potentialTemp.setVal(0);
+
+    //charage density for RHS of Poisson Eq.
+    MultiFab charge(bp, dmap, 1, ngp);
+    MultiFab chargeTemp(bp, dmap, 1, ngp);
+    charge.setVal(0);
+    chargeTemp.setVal(0);
+
+    //mass density on ES grid - not necessary
+    MultiFab massFrac(bp, dmap, 1, 1);
+    MultiFab massFracTemp(bp, dmap, 1, 1);
+    massFrac.setVal(0);
+    massFracTemp.setVal(0);
+
+//    //?????
+//    MultiFab trans(bp, dmap, 1, ngp);
+//    MultiFab transTemp(bp, dmap, 1, ngp);
+//    trans.setVal(0);
+//    transTemp.setVal(0);
+
+    //Staggered electric fields
+    std::array< MultiFab, AMREX_SPACEDIM > efield;
+    std::array< MultiFab, AMREX_SPACEDIM > external;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
+        external[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
+    }
+
+    AMREX_D_TERM(efield[0].setVal(0);,
+                 efield[1].setVal(0);,
+                 efield[2].setVal(0););
+
+    //Apply external field here.
+    AMREX_D_TERM(external[0].setVal(0);,
+                 external[1].setVal(0);,
+                 external[2].setVal(0););
+
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
-    particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    //Do an initial move to initialize various things
+//KKout    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+   
+    Print() << "HERE: " << "\n" ;
+
     particles.Redistribute();
     particles.ReBin();
 
+
     //Time stepping loop
+
+//    dt = dt*10e4;
+
     for(step=1;step<=max_step;++step)
     {
 
 
-
+//        if(step==8)
+//        {
+//            dt = dt*10e-4;
+//        }
 
         //HYDRO
         //--------------------------------------
 
-	    // Fill stochastic terms
-	    if(variance_coef_mom != 0.0) {
+        // Fill stochastic terms
+        if(variance_coef_mom != 0.0) {
 
-	      // compute the random numbers needed for the stochastic momentum forcing
-	      sMflux.fillMStochastic();
+          // compute the random numbers needed for the stochastic momentum forcing
+          sMflux.fillMStochastic();
 
 
-	      // compute stochastic momentum force
-	      sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	    }
+          // compute stochastic momentum force
+          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+        }
 
-	    // Advance umac
-        //Print() << "STOKES SOLVE\n";
-	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    // Advance umac, source is where we add particle stresses
+
+	     //advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
+        //Spreads charge density from ions onto multifab 'charge'.
+//KTout        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+
+        //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
+//KTout        esSolve(potential, charge, efield, external, geomP);
 
         if (plot_int > 0 && step%plot_int == 0)
         {
            
             //This write particle data and associated fields
-            WritePlotFile(step,time,geom,geomC, particleInstant, particleMeans, particleVars, particles);
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efield);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres);
+//KTout            WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
+        //Calls main ion moving loop.
+//KTout       particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
+        particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
-        particles.MoveIons(dt, dx, geom.ProbLo(), umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both*/ );
-
+        //These functions reorganise particles between cells and processes
         particles.Redistribute();
-
         particles.ReBin();
 
-       //Particles
-        //--------------------------------------
 
-
-        //Probably don't need to pass ProbLo(), check later.
-
-
-        //particles.CollideParticles(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
-
-//        if(step == n_steps_skip)
-//        {
-//            particleMeans.setVal(0.0);
-//            particleVars.setVal(0);
-//            statsCount = 1;
-//        }
+        //Start collecting statistics after step n_steps_skip
+        if(step == n_steps_skip)
+        {
+            particleMeans.setVal(0.0);
+            particleVars.setVal(0);
+            statsCount = 1;
+        }
        
-        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, particleMembraneFlux, cellVols, ionParticle[0], dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         statsCount++;
 
