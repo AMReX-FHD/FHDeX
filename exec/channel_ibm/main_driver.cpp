@@ -389,7 +389,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-	WritePlotFile(step, time, geom, umac, tracer, pres);
+        WritePlotFile(step, time, geom, umac, tracer, pres);
     }
 
 
@@ -415,6 +415,33 @@ void main_driver(const char * argv) {
     //     }
     // }
 
+    std::array<MultiFab, AMREX_SPACEDIM> fcoef;
+    defineFC(fcoef, ba, dmap, 1);
+    setVal(fcoef, 0.);
+
+    int tr_min = 14;
+    int tr_max = 18;
+    IntVect test_region_min{AMREX_D_DECL(tr_min, tr_min, tr_min)};
+
+    std::array<Box, AMREX_SPACEDIM> test_regions;
+
+    test_regions[0] = Box(test_region_min,
+                          IntVect{AMREX_D_DECL(tr_max+1, tr_max, tr_max)});
+
+    test_regions[1] = Box(test_region_min,
+                          IntVect{AMREX_D_DECL(tr_max, tr_max+1, tr_max)});
+
+#if (AMREX_SPACEDIM == 3)
+    test_regions[2] = Box(test_region_min,
+                          IntVect{AMREX_D_DECL(tr_max, tr_max, tr_max+1)});
+#endif
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        fcoef[d].setVal(1e0, test_regions[d], 0, 1);
+        fcoef[d].FillBoundary(geom.periodicity());
+    }
+
+
     for(step = 1; step <= max_step; ++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
@@ -430,11 +457,97 @@ void main_driver(const char * argv) {
             sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
             sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
 
+            std::array<MultiFab, AMREX_SPACEDIM> umac_0;
+            std::array<MultiFab, AMREX_SPACEDIM> umac_1;
+            defineFC(umac_0, ba, dmap, 1);
+            setVal(umac_0, 0.);
+            defineFC(umac_1, ba, dmap, 1);
+            setVal(umac_1, 0.);
+
+            std::array<MultiFab, AMREX_SPACEDIM> force;
+            defineFC(force, ba, dmap, 1);
+            setVal(force, 0.);
+
+            std::array<MultiFab, AMREX_SPACEDIM> tmp_f;
+            defineFC(tmp_f, ba, dmap, 1);
+            setVal(tmp_f, 0.);
+
+            std::array<MultiFab, AMREX_SPACEDIM> r_f;
+            defineFC(r_f, ba, dmap, 1);
+            setVal(r_f, 0.);
+
+            MultiFab p_f(ba, dmap, 1, 1);
+            p_f.setVal(0.);
+
+            MultiFab gmres_rhs_p(ba, dmap, 1, 1);
+            gmres_rhs_p.setVal(0.);
+
+            // for (int i=0; i<10; ++i) {
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(umac_0[d], umac[d], 0, 0, 1, 0);
+                MultiFab::Copy(umac_1[d], umac[d], 0, 0, 1, 0);
+
+                mfluxdiv_predict[d].setVal(0e0, test_regions[d], 0, 1);
+                mfluxdiv_correct[d].setVal(0e0, test_regions[d], 0, 1);
+            }
+
             //___________________________________________________________________
             // Advance umac
-            advance(umac, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
+            // advance(umac_0, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
+            //         alpha_fc, beta, gamma, beta_ed, geom,dt);
+
+            // for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            //     MultiFab::Copy    (r_f[d], fcoef[d],   0, 0, 1, 0);
+            //     MultiFab::Multiply(r_f[d], umacNew[d], 0, 0, 1, 0);
+
+            //     r_f[d].mult(-1., 0);
+
+            //     // MultiFab::Copy(force[d], r_f[d], 0, 0, 1, 0);
+            //     // force[d].mult(-dtinv, 0);
+
+            //     // MultiFab::Add(mfluxdiv_predict[d], force[d], 0, 0, 1, 0);
+            //     // MultiFab::Add(mfluxdiv_correct[d], force[d], 0, 0, 1, 0);
+
+            //     // mfluxdiv_predict[d].FillBoundary(geom.periodicity());
+            //     // mfluxdiv_correct[d].FillBoundary(geom.periodicity());
+            // }
+
+            // // Inverse Motility Matrix
+            // ApplyMatrix(tmp_f, p_f, r_f, gmres_rhs_p,
+            //             alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+
+            // for (int d=0; d<AMREX_SPACEDIM; ++d){
+            //     MultiFab::Multiply(tmp_f[d], fcoef[d], 0, 0, 1, 0);
+            //     MultiFab::Add(force[d], tmp_f[d], 0, 0, 1, 0);
+
+            //     mfluxdiv_predict[d].setVal(0e0, test_regions[d], 0, 1);
+            //     mfluxdiv_correct[d].setVal(0e0, test_regions[d], 0, 1);
+
+            //     MultiFab::Add(mfluxdiv_predict[d], force[d], 0, 0, 1, 0);
+            //     MultiFab::Add(mfluxdiv_correct[d], force[d], 0, 0, 1, 0);
+
+            //     mfluxdiv_predict[d].FillBoundary(geom.periodicity());
+            //     mfluxdiv_correct[d].FillBoundary(geom.periodicity());
+            // }
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(umac_1[d], umac_0[d], 0, 0, 1, 0);
+            }
+
+            advance(umac_1, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
                     alpha_fc, beta, gamma, beta_ed, geom,dt);
 
+            Real norm_r, norm_f;
+            StagL2Norm(r_f, 0, norm_r);
+            StagL2Norm(force, 0, norm_f);
+            Print() << "norm_resid = "   << norm_r
+                    << " norm f_est = "  << norm_f << std::endl;
+            // }
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                MultiFab::Copy(umac[d], umac_1[d], 0, 0, 1, 0);
+            }
 	}
 
 

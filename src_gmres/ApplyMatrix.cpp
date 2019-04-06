@@ -49,6 +49,7 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     }
 
     // fill ghost cells for x_u and x_p
+    // TODO: this should not be done here
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         x_u[i].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(x_u[i], i, geom);
