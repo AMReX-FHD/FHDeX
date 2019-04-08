@@ -55,6 +55,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab gmres_rhs_p_0(ba, dmap, 1, 1);
     gmres_rhs_p_0.setVal(0.);
 
+    MultiFab gmres_rhs_p_p(ba, dmap, 1, 1);
+    gmres_rhs_p_p.setVal(0.);
+
+    MultiFab gmres_rhs_p_c(ba, dmap, 1, 1);
+    gmres_rhs_p_c.setVal(0.);
 
     // RHS velocities in GMRES
     std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
@@ -214,6 +219,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array<MultiFab, AMREX_SPACEDIM> tmp_f_mask;
     std::array<MultiFab, AMREX_SPACEDIM> force_est;
     std::array<MultiFab, AMREX_SPACEDIM> force_rhs;
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_gpf;
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
 
@@ -258,10 +264,16 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         force_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         force_rhs[d].setVal(0.);
+
+        tmp_gpf[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_gpf[d].setVal(0.);
     }
 
     MultiFab p_f(ba, dmap, 1, 1);
     p_f.setVal(0.);
+
+    MultiFab tmp_pf(ba, dmap, 1, 1);
+    tmp_pf.setVal(0.);
 
     MultiFab p_0(ba, dmap, 1, 1);
     p_0.setVal(0.);
@@ -269,6 +281,14 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab p_1(ba, dmap, 1, 1);
     p_1.setVal(0.);
 
+    std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
+    AMREX_D_TERM(alphainv_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
+                 alphainv_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
+                 alphainv_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].setVal(1.);
+        // alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+    }
 
 
 
@@ -336,7 +356,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<20; i++) {
 
-        //gmres_rhs_p.setVal(0.);
+        // gmres_rhs_p.setVal(0.);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             Lumac[d].FillBoundary(geom.periodicity());
@@ -360,7 +380,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         // call GMRES to compute predictor
-        GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_0,
+        GMRES(gmres_rhs_u, gmres_rhs_p_p, umacNew, p_0,
               alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
               geom, norm_pre_rhs);
 
@@ -377,11 +397,35 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
             force_est[d].mult(dtinv, 0);
         }
 
-        // Inverse Motility Matrix
-        ApplyMatrix(tmp_f_0, p_f, r_f, gmres_rhs_p_0,
-                    alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
+        MultiFab p_guess(ba, dmap, 1, 1);
+        p_guess.setVal(0.);
 
-        MultiFab::Add(gmres_rhs_p, p_f, 0, 0, 1, 0);
+        for (int j=0; j<20; ++j) {
+
+            // Inverse Motility Matrix
+            ApplyMatrix(tmp_f_0, p_f, r_f, p_guess, /*gmres_rhs_p_0,*/
+                        alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
+
+            // ComputeDiv(p_f, tmp_f_0, 0, 0, 1, geom, 0);
+            // p_f.mult(-dt, 0);
+            // p_f.FillBoundary(geom.periodicity());
+            // MultiFab::Copy(gmres_rhs_p_p, p_f, 0, 0, 1, 0);
+
+            p_f.mult(-1., 0);
+            MultiFABPhysBC(p_f, geom);
+            MacProj(alphainv_fc, p_f, tmp_pf, geom, 1);
+            tmp_pf.FillBoundary(geom.periodicity());
+            MultiFABPhysBC(tmp_pf, geom);
+            // SubtractWeightedGradP(tmp_f_0, alphainv_fc, tmp_pf, geom);
+            SubtractWeightedGradP(r_f, alphainv_fc, tmp_pf, geom);
+
+            MultiFab::Add(p_guess, tmp_pf, 0, 0, 1, 1);
+            // Print() << "iterating p_guess = " << p_guess.norm0();
+            // Print() <<              " p_f = " << p_f.norm0();
+            // Print() <<                " f = " << tmp_f_0[0].norm0() << std::endl;
+        }
+
+        // MultiFab::Copy(gmres_rhs_p_p, p_f, 0, 0, 1, 0);
 
         std::array<Real, AMREX_SPACEDIM> tmp_f_resid;
         for (int d=0; d<AMREX_SPACEDIM; ++d){
@@ -429,10 +473,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
                     alpha_fc_0, dx, theta_alpha);
 
-        // pres.setVal(0.);  // initial guess
-        // SetPressureBC(pres, geom);
-
-
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
 
@@ -454,7 +494,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         // call GMRES here
-        GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
+        GMRES(gmres_rhs_u, gmres_rhs_p_c, umacNew, p_1,
               alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
               geom, norm_pre_rhs);
 
@@ -474,16 +514,34 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // MultiFab::Add(r_f[d], force_est[d],  0, 0, 1, 0);
         }
 
-        VisMF::Write(r_f[1], "r_f_1");
-        VisMF::Write(p_1, "p_f_0");
+        p_guess.setVal(0.);
 
-        // Inverse Motility Matrix
-        ApplyMatrix(tmp_f_1, p_f, r_f, gmres_rhs_p_0,
-                    alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
+        for (int j=0; j<20; ++j) {
 
-        VisMF::Write(p_f, "p_f_1");
+            // Inverse Motility Matrix
+            ApplyMatrix(tmp_f_1, p_f, r_f, p_guess, /*gmres_rhs_p_0,*/
+                        alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
 
-        MultiFab::Add(gmres_rhs_p, p_f, 0, 0, 1, 0);
+            // ComputeDiv(p_f, tmp_f_0, 0, 0, 1, geom, 0);
+            // p_f.mult(-dt, 0);
+            // p_f.FillBoundary(geom.periodicity());
+            // MultiFab::Copy(gmres_rhs_p_c, p_f, 0, 0, 1, 0);
+
+            p_f.mult(-1., 0);
+            MultiFABPhysBC(p_f, geom);
+            MacProj(alphainv_fc, p_f, tmp_pf, geom, 1);
+            tmp_pf.FillBoundary(geom.periodicity());
+            MultiFABPhysBC(tmp_pf, geom);
+            // SubtractWeightedGradP(tmp_f_0, alphainv_fc, tmp_pf, geom);
+            SubtractWeightedGradP(r_f, alphainv_fc, tmp_pf, geom);
+
+            MultiFab::Add(p_guess, tmp_pf, 0, 0, 1, 1);
+            // Print() << "iterating p_guess = " << p_guess.norm0();
+            // Print() <<              " p_f = " << p_f.norm0();
+            // Print() <<                " f = " << tmp_f_1[0].norm0() << std::endl;
+        }
+
+        // MultiFab::Copy(gmres_rhs_p_c, p_f, 0, 0, 1, 0);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d){
             MultiFab::Copy(tmp_f_mask[d], tmp_f_1[d],   0, 0, 1, 1);
@@ -509,18 +567,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         Print() << "r_f = "    << r_f[0].sum()
                 << ", "        << r_f[1].sum()
                 << ", "        << r_f[2].sum()
-                << " "
-                << "adv_c = "  << advFluxdivPred[0].norm0()
-                << ", "        << advFluxdivPred[1].norm0()
-                << ", "        << advFluxdivPred[2].norm0()
-                << std::endl;
-        Print() << "mf_p = "   << mfluxdiv_predict[0].norm0()
-                << ", "        << mfluxdiv_predict[1].norm0()
-                << ", "        << mfluxdiv_predict[2].norm0()
-                << " "
-                << "mf_c = "   << mfluxdiv_correct[0].norm0()
-                << ", "        << mfluxdiv_correct[1].norm0()
-                << ", "        << mfluxdiv_correct[2].norm0()
                 << std::endl;
 
         Real norm_r, norm_fest, norm_fmask;
@@ -530,7 +576,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         Print() << "corrector norm_resid = "   << norm_r
                 << " norm f_est = "  << norm_fest
                 << " norm f_mask = " << norm_fmask << std::endl;
-
     }
 
     for (int i=0; i<AMREX_SPACEDIM; i++)
