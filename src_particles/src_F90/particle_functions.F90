@@ -226,10 +226,10 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     index = 1
     do i = 1, np
 
-!      zero out the particle acceleration
-       particles(i)%acc(1) = 0.d0
-       particles(i)%acc(2) = 0.d0
-       particles(i)%acc(3) = 0.d0
+!!      zero out the particle acceleration
+!       particles(i)%acc(1) = 0.d0
+!       particles(i)%acc(2) = 0.d0
+!       particles(i)%acc(3) = 0.d0
 
        nneighbors = nl(index)
        index = index + 1
@@ -245,9 +245,9 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           r = sqrt(r2)
 
           coef = (1.d0 - cutoff / r) / r2 / mass
-          particles(i)%acc(1) = particles(i)%acc(1) + coef * dx
-          particles(i)%acc(2) = particles(i)%acc(2) + coef * dy
-          particles(i)%acc(3) = particles(i)%acc(3) + coef * dz
+!          particles(i)%acc(1) = particles(i)%acc(1) + coef * dx
+!          particles(i)%acc(2) = particles(i)%acc(2) + coef * dy
+!          particles(i)%acc(3) = particles(i)%acc(3) + coef * dz
 
        end do
 
