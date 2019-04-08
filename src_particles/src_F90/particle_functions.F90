@@ -200,54 +200,63 @@ subroutine calculate_force(particles, np, lo, hi, &
 end subroutine calculate_force
 
 subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
-                                     nn, nl, size, cutoff, min_r) &
+                                     nn, nl, size, min_r) &
        bind(c,name='amrex_compute_forces_nl')
 
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use short_range_particle_module, only : particle_t
+    use common_namelist_module, only: diameter
         
     integer,          intent(in   ) :: np, nn, size
-    real(amrex_real), intent(in   ) :: cutoff, min_r
+    real(amrex_real), intent(in   ) :: min_r
     type(particle_t), intent(inout) :: rparticles(np)
     type(particle_t), intent(inout) :: neighbors(nn)
     integer,          intent(in   ) :: nl(size)
 
-    real(amrex_real) dx, dy, dz, r2, r, coef, mass
-    integer i, j, index, nneighbors
+    real(amrex_real) :: dx(3), r2, r, coef, mass, cutoff
+    integer :: i, j, index, nneighbors
 
     type(particle_t)                    :: particles(np+nn)
         
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
+ 
+    !WCA cutoff
+    !note: need to fix this for multi-species
+    cutoff = 2**(1./6.)*diameter(1)
 
-    mass   = 1.d-2
+    print *, "Cutoff: ", cutoff
     
     index = 1
     do i = 1, np
 
-!!      zero out the particle acceleration
-!       particles(i)%acc(1) = 0.d0
-!       particles(i)%acc(2) = 0.d0
-!       particles(i)%acc(3) = 0.d0
+!!      zero out the particle force !!!CHECK that this doesn't conflict with how particles are added through Poisson solver
+       particles(i)%force(1) = 0.d0
+       particles(i)%force(2) = 0.d0
+       particles(i)%force(3) = 0.d0
 
        nneighbors = nl(index)
        index = index + 1
 
        do j = index, index + nneighbors - 1
 
-          dx = particles(i)%pos(1) - particles(nl(j))%pos(1)
-          dy = particles(i)%pos(2) - particles(nl(j))%pos(2)
-          dz = particles(i)%pos(3) - particles(nl(j))%pos(3)
+          dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
+          dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
+          dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
-          r2 = dx * dx + dy * dy + dz * dz
+          r2 = dx(1) * dx(1) + dx(2) * dx(2) + dx(3) * dx(3)
           r2 = max(r2, min_r*min_r) 
           r = sqrt(r2)
 
-          coef = (1.d0 - cutoff / r) / r2 / mass
-!          particles(i)%acc(1) = particles(i)%acc(1) + coef * dx
-!          particles(i)%acc(2) = particles(i)%acc(2) + coef * dy
-!          particles(i)%acc(3) = particles(i)%acc(3) + coef * dz
+         !repulsive interaction
+         if (r .lt. cutoff) then ! NOTE! Should be able to set neighbor cell list with cutoff distance in mind
+
+            print *, "Repulsing!"
+            call repulsive_force(particles(i),particles(j),dx,r2) 
+
+         end if
+
 
        end do
 

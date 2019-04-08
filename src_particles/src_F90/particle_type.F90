@@ -10,6 +10,7 @@ module short_range_particle_module
     type, bind(C)  :: particle_t
        real(amrex_particle_real) :: pos(3)     !< Position
        real(amrex_particle_real) :: vel(3)     !< Particle velocity
+       real(amrex_particle_real) :: force(3)   !< force experienced by the particle
        real(amrex_particle_real) :: localvel(3)
        real(amrex_particle_real) :: mass
        real(amrex_particle_real) :: R
@@ -35,6 +36,7 @@ module short_range_particle_module
     
     type, bind(C)  :: neighbor_t
        real(amrex_particle_real) :: pos(3)     !< Position
+       real(amrex_particle_real) :: force(3)
        real(amrex_particle_real) :: vel(3)     !< Particle velocity
        real(amrex_particle_real) :: localvel(3)
        real(amrex_particle_real) :: mass
