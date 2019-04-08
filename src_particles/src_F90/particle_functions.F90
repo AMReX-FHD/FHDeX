@@ -199,6 +199,67 @@ subroutine calculate_force(particles, np, lo, hi, &
   
 end subroutine calculate_force
 
+subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
+                                     nn, nl, size, cutoff, min_r) &
+       bind(c,name='amrex_compute_forces_nl')
+
+    use iso_c_binding
+    use amrex_fort_module,           only : amrex_real
+    use short_range_particle_module, only : particle_t
+        
+    integer,          intent(in   ) :: np, nn, size
+    real(amrex_real), intent(in   ) :: cutoff, min_r
+    type(particle_t), intent(inout) :: rparticles(np)
+    type(particle_t), intent(inout) :: neighbors(nn)
+    integer,          intent(in   ) :: nl(size)
+
+    real(amrex_real) dx, dy, dz, r2, r, coef, mass
+    integer i, j, index, nneighbors
+
+    type(particle_t)                    :: particles(np+nn)
+        
+    particles(    1:np) = rparticles
+    particles(np+1:   ) = neighbors
+
+    mass   = 1.d-2
+    
+    index = 1
+    do i = 1, np
+
+!      zero out the particle acceleration
+       particles(i)%acc(1) = 0.d0
+       particles(i)%acc(2) = 0.d0
+       particles(i)%acc(3) = 0.d0
+
+       nneighbors = nl(index)
+       index = index + 1
+
+       do j = index, index + nneighbors - 1
+
+          dx = particles(i)%pos(1) - particles(nl(j))%pos(1)
+          dy = particles(i)%pos(2) - particles(nl(j))%pos(2)
+          dz = particles(i)%pos(3) - particles(nl(j))%pos(3)
+
+          r2 = dx * dx + dy * dy + dz * dz
+          r2 = max(r2, min_r*min_r) 
+          r = sqrt(r2)
+
+          coef = (1.d0 - cutoff / r) / r2 / mass
+          particles(i)%acc(1) = particles(i)%acc(1) + coef * dx
+          particles(i)%acc(2) = particles(i)%acc(2) + coef * dy
+          particles(i)%acc(3) = particles(i)%acc(3) + coef * dz
+
+       end do
+
+       index = index + nneighbors
+
+    end do
+
+    rparticles(:) = particles(1:np)
+    neighbors(:)  = particles(np+1:)
+
+end subroutine amrex_compute_forces_nl
+
 subroutine move_particles_dsmc(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns) &
      bind(c,name="move_particles_dsmc")

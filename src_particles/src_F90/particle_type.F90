@@ -1,3 +1,30 @@
+module short_range_particle_module
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use iso_c_binding ,    only: c_int, c_float, c_double
+    
+    implicit none
+    private
+    
+    public  particle_t, neighbor_t
+    
+    type, bind(C)  :: particle_t
+       real(amrex_particle_real) :: pos(3)     !< Position
+       real(amrex_particle_real) :: vel(3)     !< Particle velocity
+       real(amrex_particle_real) :: acc(3)     !< Particle acceleration
+       integer(c_int)            :: id         !< Particle id
+       integer(c_int)            :: cpu        !< Particle cpu
+    end type particle_t
+    
+    type, bind(C)  :: neighbor_t
+       real(amrex_particle_real) :: pos(3)     !< Position
+       real(amrex_particle_real) :: vel(3)     !< Particle velocity
+       real(amrex_particle_real) :: acc(3)     !< Particle acceleration
+       integer(c_int)            :: id         !< Particle id
+       integer(c_int)            :: cpu        !< Particle cpu
+    end type neighbor_t
+    
+end module short_range_particle_module
+
 module cell_sorted_particle_module
   use amrex_fort_module, only: amrex_real, amrex_particle_real
   use iso_c_binding ,    only: c_int
