@@ -200,7 +200,7 @@ subroutine calculate_force(particles, np, lo, hi, &
 end subroutine calculate_force
 
 subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
-                                     nn, nl, size, min_r) &
+                                     nn, nl, size, cutoff, min_r) &
        bind(c,name='amrex_compute_forces_nl')
 
     use iso_c_binding
@@ -209,12 +209,12 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     use common_namelist_module, only: diameter
         
     integer,          intent(in   ) :: np, nn, size
-    real(amrex_real), intent(in   ) :: min_r
+    real(amrex_real), intent(in   ) :: cutoff, min_r
     type(particle_t), intent(inout) :: rparticles(np)
     type(particle_t), intent(inout) :: neighbors(nn)
     integer,          intent(in   ) :: nl(size)
 
-    real(amrex_real) :: dx(3), r2, r, coef, mass, cutoff
+    real(amrex_real) :: dx(3), r2, r, coef, mass
     integer :: i, j, index, nneighbors
 
     type(particle_t)                    :: particles(np+nn)
@@ -224,7 +224,9 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
  
     !WCA cutoff
     !note: need to fix this for multi-species
-    cutoff = 2**(1./6.)*diameter(1)
+ !   cutoff = 2**(1./6.)*diameter(1)
+
+  !  min_r = 1.e-4 !!NOTE! This was in the tutorial section---make sure that it applies here
 
     print *, "Cutoff: ", cutoff
     

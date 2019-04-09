@@ -10,12 +10,12 @@ extern "C"
 // in particle_fucntions.F90
 
 		void repulsive_force(void* part1,
-												 void* part2,
-												const amrex_real* dx,
-											  const amrex_real* dr);
+			void* part2,
+			const amrex_real* dx,
+			const amrex_real* dr);
 
 		void force_function2(void* part1,
-											  void* part2,
+			void* part2,
                         const amrex_real* domsize);
 
 		void calculate_force(void* particles,
@@ -33,7 +33,7 @@ extern "C"
                 void amrex_compute_forces_nl(void* particles, const int* np,
                         const void* ghosts,    const int* nn,
                         const int* neighbor_list, const int* size,
-                        const amrex::Real* min_r);
+			const amrex::Real* cutoff, const amrex::Real* min_r);
 
 
   	        void move_particles_dry(void* particles,

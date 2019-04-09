@@ -82,6 +82,8 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int* hiVect, const int ppc);
 
+    void computeForcesNL();
+
     void InitCollisionCells(              MultiFab& collisionPairs,
                                           MultiFab& collisionFactor, 
                                           MultiFab& cellVols, const species particleInfo, const Real delt);
@@ -160,6 +162,20 @@ protected:
 private:
 
     void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
+
+    struct {
+        bool operator()(const ParticleType& p1, const ParticleType& p2) const
+        {
+            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0))   ,
+                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                <= cutoff*cutoff;
+            }
+    } CheckPair;
+    
+//    static constexpr Real cutoff = 2**(1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
+    static constexpr Real cutoff = pow(2,1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
+    static constexpr Real min_r  = 1.e-4;
 
 };
     

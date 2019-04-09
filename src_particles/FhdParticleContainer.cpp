@@ -12,6 +12,8 @@
 using namespace amrex;
 using namespace common;
 
+constexpr Real FhdParticleContainer::min_r;
+constexpr Real FhdParticleContainer::cutoff;
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                               const DistributionMapping & dmap,
@@ -154,6 +156,30 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 
     Print() << "Initial energy: " << totalEnergy << "\n";
 
+}
+
+void FhdParticleContainer::computeForcesNL() {
+
+    BL_PROFILE("FhdParticleContainer::computeForcesNL");
+
+    const int lev = 0;
+
+    buildNeighborList(lev, CheckPair);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS& particles = pti.GetArrayOfStructs();
+        int Np = particles.size();
+        int Nn = neighbors[index].size() / pdata_size;
+        int size = neighbor_list[index].size();
+        amrex_compute_forces_nl(particles.data(), &Np, 
+                                neighbors[index].dataPtr(), &Nn,
+                                neighbor_list[index].dataPtr(), &size,
+				&cutoff, &min_r); 
+    }
 }
 
 void FhdParticleContainer::MoveParticlesDry(const Real dt, const Real* dxFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
