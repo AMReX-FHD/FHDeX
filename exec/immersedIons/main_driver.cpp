@@ -665,7 +665,7 @@ void main_driver(const char* argv)
 
         //question---when we use Poisson solve, are we adding the forces directly to the force function?
 
-        particles.fillNeighbors(lev);
+        particles.fillNeighbors();
 
         //compute the forces 
         particles.computeForcesNL();
