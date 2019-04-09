@@ -851,7 +851,8 @@ subroutine move_particles_dry(particles, np, lo, hi, &
   enddo
 
   !print *, "Starting"        
-  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+!  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+! note that we are doing the above in the main driver function
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
