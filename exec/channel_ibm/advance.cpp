@@ -533,8 +533,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // Add raw force to fluid => includes pressure correction terms from
             // immersed boundary => this might not be the right thing to do...
             MultiFab::Add(force_1[d], tmp_f_1[d],    0, 0, 1, 0);
-            SubtractWeightedGradP(force_1, ones_fc, p_guess, geom);
         }
+
+        p_guess.mult(1., 0);
+        SubtractWeightedGradP(force_1, alpha_fc, p_guess, geom);
+        Print() << "p_f = " << p_guess.sum() << std::endl;
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             MultiFab::Add(force_1[d], force_est[d], 0, 0, 1, 0);
@@ -544,9 +547,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 << ", "        << force_1[1].norm0()
                 << ", "        << force_1[2].norm0()
                 << " ";
-        Print() << "r_f = "    << r_f[0].sum()
-                << ", "        << r_f[1].sum()
-                << ", "        << r_f[2].sum()
+        Print() << "r_f = "    << tmp_r_f[0].sum()
+                << ", "        << tmp_r_f[1].sum()
+                << ", "        << tmp_r_f[2].sum()
                 << std::endl;
 
         Real norm_r, norm_fest, norm_fmask;
