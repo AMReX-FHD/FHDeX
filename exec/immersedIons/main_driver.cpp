@@ -531,9 +531,9 @@ void main_driver(const char* argv)
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
 
-
+    int num_neighbor_cells = 1;
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    FhdParticleContainer particles(geomC, dmap, bc,1);
+    FhdParticleContainer particles(geomC, dmap, bc,num_neighbor_cells);
 
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
@@ -615,14 +615,20 @@ void main_driver(const char* argv)
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
     //Do an initial move to initialize various things
-    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+//KKout    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
    
+    Print() << "HERE: " << "\n" ;
+
     particles.Redistribute();
     particles.ReBin();
+
 
     //Time stepping loop
 
 //    dt = dt*10e4;
+
+    const int lev = 0;
 
     for(step=1;step<=max_step;++step)
     {
@@ -649,13 +655,20 @@ void main_driver(const char* argv)
 
     // Advance umac, source is where we add particle stresses
 
-	     //advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+//KTout	     //advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
         //Spreads charge density from ions onto multifab 'charge'.
-        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+//KTout        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
 
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
-        esSolve(potential, charge, efield, external, geomP);
+//KTout        esSolve(potential, charge, efield, external, geomP);
+
+        //question---when we use Poisson solve, are we adding the forces directly to the force function?
+
+        particles.fillNeighbors();
+
+        //compute the forces 
+        particles.computeForcesNL();
 
         if (plot_int > 0 && step%plot_int == 0)
         {
@@ -664,11 +677,12 @@ void main_driver(const char* argv)
             WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efield);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres);
+//KTout            WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
         //Calls main ion moving loop.
-        particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
+//KTout       particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
+        particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
         //These functions reorganise particles between cells and processes
         particles.Redistribute();

@@ -184,15 +184,7 @@ void main_driver(const char* argv)
                  MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 0););
 
     // definitions for Crank-Nicolson:
-
-    // right hand side of poisson eqn
-    std::array< MultiFab, AMREX_SPACEDIM > rhs;
-    AMREX_D_TERM(rhs[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-		 rhs[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-		 rhs[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    MultiFab betaCC_hlf(ba, dmap, 1, 1);
-    MultiFab gammaCC_hlf(ba, dmap, 1, 1);
+// right hand side of poisson eqn std::array< MultiFab, AMREX_SPACEDIM > rhs; AMREX_D_TERM(rhs[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);, rhs[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);, rhs[2].define(convert(ba,nodal_flag_z), dmap, 1, 1);); MultiFab betaCC_hlf(ba, dmap, 1, 1); MultiFab gammaCC_hlf(ba, dmap, 1, 1);
     std::array< MultiFab, NUM_EDGE > betaEdge_hlf;
 #if (AMREX_SPACEDIM == 2)
     betaEdge_hlf[0].define(convert(ba,nodal_flag), dmap, 1, 1);
