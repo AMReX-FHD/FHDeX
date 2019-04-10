@@ -16,7 +16,6 @@ void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) 
         fill_ghost[i] = 1;
 
     MultiFABPhysBC(data, fill_ghost, geom);
-
 }
 
 

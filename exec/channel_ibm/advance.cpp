@@ -51,15 +51,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // RHS pressure in GMRES
     MultiFab gmres_rhs_p(ba, dmap, 1, 1);
     gmres_rhs_p.setVal(0.);
-    // Initial RHS pressure in GMRES
-    MultiFab gmres_rhs_p_0(ba, dmap, 1, 1);
-    gmres_rhs_p_0.setVal(0.);
-
-    MultiFab gmres_rhs_p_p(ba, dmap, 1, 1);
-    gmres_rhs_p_p.setVal(0.);
-
-    MultiFab gmres_rhs_p_c(ba, dmap, 1, 1);
-    gmres_rhs_p_c.setVal(0.);
 
     // RHS velocities in GMRES
     std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
@@ -210,16 +201,14 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array<MultiFab, AMREX_SPACEDIM> alpha_fc_1;
     std::array<MultiFab, AMREX_SPACEDIM> alpha_f;
     std::array<MultiFab, AMREX_SPACEDIM> fcoef;
-    std::array<MultiFab, AMREX_SPACEDIM> force;
     std::array<MultiFab, AMREX_SPACEDIM> force_0;
     std::array<MultiFab, AMREX_SPACEDIM> force_1;
     std::array<MultiFab, AMREX_SPACEDIM> tmp_f_0;
     std::array<MultiFab, AMREX_SPACEDIM> tmp_f_1;
     std::array<MultiFab, AMREX_SPACEDIM> r_f;
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_r_f;
     std::array<MultiFab, AMREX_SPACEDIM> tmp_f_mask;
     std::array<MultiFab, AMREX_SPACEDIM> force_est;
-    std::array<MultiFab, AMREX_SPACEDIM> force_rhs;
-    std::array<MultiFab, AMREX_SPACEDIM> tmp_gpf;
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
 
@@ -233,13 +222,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         alpha_fc_1[d].setVal(0.);
 
         alpha_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        alpha_f[d].setVal(dtinv);
+        alpha_f[d].setVal(1e6);
 
         fcoef[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         fcoef[d].setVal(0.);
-
-        force[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        force[d].setVal(0.);
 
         force_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         force_0[d].setVal(0.);
@@ -259,14 +245,11 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         r_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         r_f[d].setVal(0.);
 
+        tmp_r_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_r_f[d].setVal(0.);
+
         force_est[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         force_est[d].setVal(0.);
-
-        force_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        force_rhs[d].setVal(0.);
-
-        tmp_gpf[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        tmp_gpf[d].setVal(0.);
     }
 
     MultiFab p_f(ba, dmap, 1, 1);
@@ -281,13 +264,13 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab p_1(ba, dmap, 1, 1);
     p_1.setVal(0.);
 
-    std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
-    AMREX_D_TERM(alphainv_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                 alphainv_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                 alphainv_fc[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
+    MultiFab p_guess(ba, dmap, 1, 1);
+    p_guess.setVal(0.);
+
+    std::array< MultiFab, AMREX_SPACEDIM > ones_fc;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        alphainv_fc[d].setVal(1.);
-        // alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+        ones_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        ones_fc[d].setVal(1.);
     }
 
 
@@ -315,8 +298,14 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
 
-    // PREDICTOR STEP (heun's method: part 1)
-    // compute advective term
+    /****************************************************************************
+     *                                                                          *
+     * PREDICTOR STEP (heun's method: part 1) for fluid                         *
+     *                                                                          *
+     ***************************************************************************/
+
+    //___________________________________________________________________________
+    // Compute advective term
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 1);
@@ -334,6 +323,14 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // crank-nicolson terms
     StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0,
                 dx, theta_alpha);
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        Lumac[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBC(Lumac[d], d, geom);
+        advFluxdiv[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBC(advFluxdiv[d], d, geom);
+    }
+
 
     // pressure boundary conditions
     pres.setVal(0.);
@@ -354,13 +351,15 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Copy(p_0, pres, 0, 0, 1, 1);
     MultiFab::Copy(p_1, pres, 0, 0, 1, 1);
 
-    for (int i=0; i<20; i++) {
+    //___________________________________________________________________________
+    // Solve IBM constraint force by iterating
+    // NOTE: 100 max attempts at getting the residual down, TODO: pass this as a
+    // parameter (or tie to MAX ITER)
+    for (int i=0; i<100; i++) {
 
-        // gmres_rhs_p.setVal(0.);
-
+        //_______________________________________________________________________
+        // Set up the RHS for the predictor
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            Lumac[d].FillBoundary(geom.periodicity());
-
             MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
             gmres_rhs_u[d].mult(dtinv, 1);
 
@@ -379,9 +378,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
             MultiFab::Copy(umacNew[d], umac_0[d], 0, 0, 1, 1);
         }
 
+        //_______________________________________________________________________
         // call GMRES to compute predictor
-        GMRES(gmres_rhs_u, gmres_rhs_p_p, umacNew, p_0,
-              alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+        GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_0,
+              alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
               geom, norm_pre_rhs);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -394,51 +394,42 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
             r_f[d].mult(-1., 0);
 
             MultiFab::Copy(force_est[d], r_f[d], 0, 0, 1, 0);
-            force_est[d].mult(dtinv, 0);
+            force_est[d].mult(1e6, 0);
         }
 
-        MultiFab p_guess(ba, dmap, 1, 1);
         p_guess.setVal(0.);
 
-        for (int j=0; j<20; ++j) {
+        for (int j=0; j<10; ++j) {
 
             // Inverse Motility Matrix
-            ApplyMatrix(tmp_f_0, p_f, r_f, p_guess, /*gmres_rhs_p_0,*/
+            ApplyMatrix(tmp_f_0, p_f, r_f, p_guess,
                         alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
 
-            // ComputeDiv(p_f, tmp_f_0, 0, 0, 1, geom, 0);
-            // p_f.mult(-dt, 0);
-            // p_f.FillBoundary(geom.periodicity());
-            // MultiFab::Copy(gmres_rhs_p_p, p_f, 0, 0, 1, 0);
-
+            // Remove non-divergence free parts of the residual
             p_f.mult(-1., 0);
             MultiFABPhysBC(p_f, geom);
-            MacProj(alphainv_fc, p_f, tmp_pf, geom, 1);
+            MacProj(ones_fc, p_f, tmp_pf, geom, 1);
             tmp_pf.FillBoundary(geom.periodicity());
             MultiFABPhysBC(tmp_pf, geom);
-            // SubtractWeightedGradP(tmp_f_0, alphainv_fc, tmp_pf, geom);
-            SubtractWeightedGradP(r_f, alphainv_fc, tmp_pf, geom);
+            SubtractWeightedGradP(r_f, ones_fc, tmp_pf, geom);
 
             MultiFab::Add(p_guess, tmp_pf, 0, 0, 1, 1);
-            // Print() << "iterating p_guess = " << p_guess.norm0();
-            // Print() <<              " p_f = " << p_f.norm0();
-            // Print() <<                " f = " << tmp_f_0[0].norm0() << std::endl;
         }
 
-        // MultiFab::Copy(gmres_rhs_p_p, p_f, 0, 0, 1, 0);
-
         std::array<Real, AMREX_SPACEDIM> tmp_f_resid;
-        for (int d=0; d<AMREX_SPACEDIM; ++d){
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Copy(tmp_f_mask[d], tmp_f_0[d],   0, 0, 1, 1);
             MultiFab::Multiply(tmp_f_mask[d], fcoef[d], 0, 0, 1, 1);
 
-            // MultiFab::Add(force_0[d], tmp_f_mask[d],    0, 0, 1, 0);
-            MultiFab::Add(force_0[d], tmp_f_0[d],    0, 0, 1, 0);
+            MultiFab::Add(force_0[d], tmp_f_mask[d],    0, 0, 1, 0);
+            // Add raw force to fluid => includes pressure correction terms from
+            // immersed boundary => this might not be the right thing to do...
+            // MultiFab::Add(force_0[d], tmp_f_0[d],    0, 0, 1, 0);
         }
 
 
-        // for (int d=0; d<AMREX_SPACEDIM; ++d)
-        //     MultiFab::Add(force_0[d], force_est[d], 0, 0, 1, 0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            MultiFab::Add(force_0[d], force_est[d], 0, 0, 1, 0);
 
 
         // Compute predictor advective term
@@ -494,8 +485,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
         // call GMRES here
-        GMRES(gmres_rhs_u, gmres_rhs_p_c, umacNew, p_1,
-              alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+        GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
+              alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
               geom, norm_pre_rhs);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -509,55 +500,44 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
             r_f[d].mult(-1., 0);
 
             MultiFab::Copy(force_est[d], r_f[d], 0, 0, 1, 0);
-            force_est[d].mult(dtinv, 0);
-
-            // MultiFab::Add(r_f[d], force_est[d],  0, 0, 1, 0);
+            force_est[d].mult(1e6, 0);
         }
 
         p_guess.setVal(0.);
 
-        for (int j=0; j<20; ++j) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            MultiFab::Copy(tmp_r_f[d], r_f[d], 0, 0, 1, 0);
+
+        for (int j=0; j<10; ++j) {
 
             // Inverse Motility Matrix
-            ApplyMatrix(tmp_f_1, p_f, r_f, p_guess, /*gmres_rhs_p_0,*/
+            ApplyMatrix(tmp_f_1, p_f, r_f, p_guess,
                         alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha, geom);
 
-            // ComputeDiv(p_f, tmp_f_0, 0, 0, 1, geom, 0);
-            // p_f.mult(-dt, 0);
-            // p_f.FillBoundary(geom.periodicity());
-            // MultiFab::Copy(gmres_rhs_p_c, p_f, 0, 0, 1, 0);
-
+            // Remove non-divergence free parts of the residual
             p_f.mult(-1., 0);
             MultiFABPhysBC(p_f, geom);
-            MacProj(alphainv_fc, p_f, tmp_pf, geom, 1);
+            MacProj(ones_fc, p_f, tmp_pf, geom, 1);
             tmp_pf.FillBoundary(geom.periodicity());
             MultiFABPhysBC(tmp_pf, geom);
-            // SubtractWeightedGradP(tmp_f_0, alphainv_fc, tmp_pf, geom);
-            SubtractWeightedGradP(r_f, alphainv_fc, tmp_pf, geom);
+            SubtractWeightedGradP(r_f, ones_fc, tmp_pf, geom);
 
             MultiFab::Add(p_guess, tmp_pf, 0, 0, 1, 1);
-            // Print() << "iterating p_guess = " << p_guess.norm0();
-            // Print() <<              " p_f = " << p_f.norm0();
-            // Print() <<                " f = " << tmp_f_1[0].norm0() << std::endl;
         }
-
-        // MultiFab::Copy(gmres_rhs_p_c, p_f, 0, 0, 1, 0);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d){
             MultiFab::Copy(tmp_f_mask[d], tmp_f_1[d],   0, 0, 1, 1);
             MultiFab::Multiply(tmp_f_mask[d], fcoef[d], 0, 0, 1, 1);
 
             // MultiFab::Add(force_1[d], tmp_f_mask[d],    0, 0, 1, 0);
+            // Add raw force to fluid => includes pressure correction terms from
+            // immersed boundary => this might not be the right thing to do...
             MultiFab::Add(force_1[d], tmp_f_1[d],    0, 0, 1, 0);
-
-            // force_0[d].mult(0.5, 0);
-            // force_1[d].mult(0.5, 0);
-            // MultiFab::Add(force[d], force_0[d], 0, 0, 1, 0);
-            // MultiFab::Add(force[d], force_1[d], 0, 0, 1, 0);
+            SubtractWeightedGradP(force_1, ones_fc, p_guess, geom);
         }
 
-        // for (int d=0; d<AMREX_SPACEDIM; ++d)
-        //     MultiFab::Add(force_1[d], force_est[d], 0, 0, 1, 0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            MultiFab::Add(force_1[d], force_est[d], 0, 0, 1, 0);
 
         Print() << "corrector step: " << i
                 << " force = " << force_1[0].norm0()
@@ -570,16 +550,22 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 << std::endl;
 
         Real norm_r, norm_fest, norm_fmask;
-        StagL2Norm(r_f, 0, norm_r);
+        StagL2Norm(tmp_r_f, 0, norm_r);
         StagL2Norm(force_est, 0, norm_fest);
         StagL2Norm(tmp_f_mask, 0, norm_fmask);
         Print() << "corrector norm_resid = "   << norm_r
                 << " norm f_est = "  << norm_fest
                 << " norm f_mask = " << norm_fmask << std::endl;
+
+
+        if (norm_r < 1e-12) break;
     }
 
-    for (int i=0; i<AMREX_SPACEDIM; i++)
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
         MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);
+        MultiFab::Copy(pres,    p_1,        0, 0, 1, 0);
+        // MultiFab::Add (pres,    p_guess,    0, 0, 1, 0);
+    }
 
     //////////////////////////////////////////////////
 

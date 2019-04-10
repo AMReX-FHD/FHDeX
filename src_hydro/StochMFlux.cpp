@@ -211,7 +211,7 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
 
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       mfluxdiv[d].FillBoundary(geom.periodicity());
-      //TODO: is this the right BC?
+      // TODO: is this the right BC?
       MultiFABPhysBC(mfluxdiv[d], d, geom);
       // MultiFABPhysBCDomainVel(mfluxdiv[d], d);
       // MultiFABPhysBCMacVel(mfluxdiv[d], d);
