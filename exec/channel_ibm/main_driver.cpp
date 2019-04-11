@@ -380,9 +380,8 @@ void main_driver(const char * argv) {
     MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
 
     int step = 0;
     Real time = 0.;
@@ -393,6 +392,14 @@ void main_driver(const char * argv) {
     if (plot_int > 0) {
         WritePlotFile(step, time, geom, umac, tracer, pres);
     }
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Build container for immersed particles                                   *
+     *                                                                          *
+     ***************************************************************************/
+
 
 
 

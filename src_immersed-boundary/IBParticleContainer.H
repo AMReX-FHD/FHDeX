@@ -67,10 +67,12 @@ public:
 
 
 class IBParticleContainer final
-    : public amrex::NeighborParticleContainer<IBP_realData::count, IBP_intData::count> {
+: public amrex::NeighborParticleContainer<IBP_realData::count, IBP_intData::count> {
+
 public:
-    using NeighborParticleContainer<IBP_realData::count,
-        IBP_intData::count>::NeighborParticleContainer;
+
+    using NeighborParticleContainer<IBP_realData::count, IBP_intData::count>
+        ::NeighborParticleContainer;
 
     // Used by PICMultiDeposition when iterating over particles (TODO: Audit)
     //using MyConstParIter = ParConstIter<IBP_realData::count, IBP_intData::count, 0, 0>;
@@ -85,6 +87,8 @@ public:
     int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size(); };
 
     IBParticleContainer(amrex::AmrCore * amr_core, int n_nbhd);
+    IBParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
+                        const BoxArray & ba, int n_nbhd);
 
     // TODO: Audit
     virtual ~IBParticleContainer() {};
@@ -122,6 +126,7 @@ public:
 
 private:
 
+    
     ///
     /// We add a particle to the neighbor list if it's center is within 3 particle radii
     ///
@@ -140,10 +145,12 @@ private:
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
+    void InitInternals();
+
     static void ReadStaticParameters();
 
 
-    // Used by the MFIX fluid solver
+    // TODO: this might bto be used anymore:
     amrex::AmrCore * m_amr_core;
     int nghost;
 };

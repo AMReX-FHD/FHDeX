@@ -17,33 +17,25 @@ bool IBParticleContainer::use_neighbor_list  {true};
 bool IBParticleContainer::sort_neighbor_list {false};
 
 
+IBParticleContainer::IBParticleContainer(const Geometry & geom,
+                                         const DistributionMapping & dmap,
+                                         const BoxArray & ba, 
+                                         int n_nbhd)
+    : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
+            geom, dmap, ba, n_nbhd
+        )
+{
+    InitInternals();
+}
+
+
 IBParticleContainer::IBParticleContainer(AmrCore * amr_core, int n_nbhd)
     : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
-        amr_core->GetParGDB(), n_nbhd
+            amr_core->GetParGDB(), n_nbhd
         ),
-      m_amr_core(amr_core)
+    m_amr_core(amr_core)
 {
-    ReadStaticParameters();
-
-    this->SetVerbose(0);
-
-    // Turn off certain components for ghost particle communication
-    // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
-    //      => 3 corresponds to the start of IBP_realData
-    setRealCommComp(4, false);   // IBP_realData.volume
-    setRealCommComp(5, false);   // IBP_realData.mass
-    setRealCommComp(6, false);   // IBP_realData.density
-    setRealCommComp(7, false);   // IBP_realData.oneOverI
-    setRealCommComp(14, false);  // IBP_realData.dragx
-    setRealCommComp(15, false);  // IBP_realData.dragy
-    setRealCommComp(16, false);  // IBP_realData.dragz
-
-    // Field numbers: {0, 1} => {ID, CPU}
-    //      => 2 corresponds to the start of IBP_intData
-    // We _do_ want the the neighbour particles to have ID and cpu init data.
-    //setIntCommComp(0, false);  // IBP_intData.phase
-    //setIntCommComp(1, false);  // IBP_intData.state
-    setIntCommComp(3, false);    // IBP_intData.phase
+    InitInternals();
 }
 
 
@@ -160,6 +152,31 @@ void IBParticleContainer::InitList(int lev,
     // correct tile.
     Redistribute();
 
+}
+
+
+void IBParticleContainer::InitInternals() {
+    ReadStaticParameters();
+
+    this->SetVerbose(0);
+
+    // Turn off certain components for ghost particle communication
+    // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
+    //      => 3 corresponds to the start of IBP_realData
+    setRealCommComp(4, false);   // IBP_realData.volume
+    setRealCommComp(5, false);   // IBP_realData.mass
+    setRealCommComp(6, false);   // IBP_realData.density
+    setRealCommComp(7, false);   // IBP_realData.oneOverI
+    setRealCommComp(14, false);  // IBP_realData.dragx
+    setRealCommComp(15, false);  // IBP_realData.dragy
+    setRealCommComp(16, false);  // IBP_realData.dragz
+
+    // Field numbers: {0, 1} => {ID, CPU}
+    //      => 2 corresponds to the start of IBP_intData
+    // We _do_ want the the neighbour particles to have ID and cpu init data.
+    //setIntCommComp(0, false);  // IBP_intData.phase
+    //setIntCommComp(1, false);  // IBP_intData.state
+    setIntCommComp(3, false);    // IBP_intData.phase
 }
 
 
