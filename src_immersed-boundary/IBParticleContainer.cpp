@@ -296,10 +296,8 @@ void IBParticleContainer::PrintParticleData(int lev) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
-        // Neighbours are stored as raw data (see below), hence the number of
-        // grown particles is given by the size of the raw data array over the
-        // number of raw data per particle.
-        int ng = neighbors[lev][index].size() / pdata_size;
+        // Neighbours are stored as raw data (see below)
+        int ng = neighbors[lev][index].size();
 
         //long np = NumberOfParticles(pti);
         auto & particle_data = GetParticles(lev)[index];

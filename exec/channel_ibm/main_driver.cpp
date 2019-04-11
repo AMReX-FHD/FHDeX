@@ -22,7 +22,9 @@
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
+#include <AMReX_ParmParse.H>
 #include "IBParticleContainer.H"
+#include "IBCore.H"
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -400,25 +402,38 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
-    IBParticleContainer ib_pc(geom, dmap, ba, 20); // TODO: 20 is a magic number for now
+    IBParticleContainer ib_pc(geom, dmap, ba, 10); // TODO: 10 is a magic number for now
     // ib_pc.AllocData();
 
     // Initializing colloid position
-    Vector<RealVect> ib_pos(2);
+    Vector<RealVect> ib_pos(1);
     ib_pos[0] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.5)};
-    ib_pos[1] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.45)};
-    Vector<Real>     ib_r(2);
+    //ib_pos[1] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.45)};
+    Vector<Real>     ib_r(1);
     ib_r[0]   = 0.2; // Might be a bit big?
-    ib_r[1]   = 0.2; // Might be a bit big?
-    Vector<Real>     ib_rho(2);
+    //ib_r[1]   = 0.2; // Might be a bit big?
+    Vector<Real>     ib_rho(1);
     ib_rho[0] = 1.0; // Same as fluid
-    ib_rho[1] = 1.0; // Same as fluid
+    //ib_rho[1] = 1.0; // Same as fluid
 
     ib_pc.InitList(0, ib_pos, ib_r, ib_rho);
 
 
     // Test interface
-    ib_pc.PrintParticleData(0);
+    //ib_pc.PrintParticleData(0);
+
+    //__________________________________________________________________________
+    // Build IB core
+
+    // NOTE: IBCore (based on AmrCore) needs a parm parse database to contain
+    // certain fields => add them here
+    {
+        ParmParse pp("amr");
+        pp.add("max_level", 0);
+    }
+
+    IBCore ib_core;
+    ib_core.set_IBParticleContainer(& ib_pc);
 
     exit(0);
 
