@@ -400,7 +400,27 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
+    IBParticleContainer ib_pc(geom, dmap, ba, 20); // TODO: 20 is a magic number for now
+    // ib_pc.AllocData();
 
+    // Initializing colloid position
+    Vector<RealVect> ib_pos(2);
+    ib_pos[0] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.5)};
+    ib_pos[1] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.45)};
+    Vector<Real>     ib_r(2);
+    ib_r[0]   = 0.2; // Might be a bit big?
+    ib_r[1]   = 0.2; // Might be a bit big?
+    Vector<Real>     ib_rho(2);
+    ib_rho[0] = 1.0; // Same as fluid
+    ib_rho[1] = 1.0; // Same as fluid
+
+    ib_pc.InitList(0, ib_pos, ib_r, ib_rho);
+
+
+    // Test interface
+    ib_pc.PrintParticleData(0);
+
+    exit(0);
 
 
     /****************************************************************************

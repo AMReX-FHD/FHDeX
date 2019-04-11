@@ -103,7 +103,10 @@ public:
                   const Vector<Real> & r,
                   const Vector<Real> & rho);
 
+
+    // TODO: do we still need this?
     void AllocData();
+    // TODO: do we still need this?
     void AllocateArrays(int lev, int nghost);
 
 

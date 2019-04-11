@@ -59,7 +59,7 @@ void IBParticleContainer::InitList(int lev,
 
     // This uses the particle tile size. Note that the default is to tile so if
     // we remove the true and don't explicitly add false it will still tile.
-    for (MFIter mfi = MakeMFIter(lev,true); mfi.isValid(); ++mfi) {
+    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
 
         // This is particles per grid so we reset to 0
         int pcount = 0;
@@ -187,7 +187,7 @@ void IBParticleContainer::ReadStaticParameters() {
     {
         ParmParse pp("particles");
 
-        do_tiling = true;  // because the default in amrex is false
+        // do_tiling = true;  // because the default in amrex is false
 
         pp.query("do_tiling",  do_tiling);
 
@@ -204,6 +204,7 @@ void IBParticleContainer::ReadStaticParameters() {
 }
 
 
+// TODO: do we still need this?
 void IBParticleContainer::AllocData() {
     reserveData();
     resizeData();
@@ -216,6 +217,7 @@ void IBParticleContainer::AllocData() {
 }
 
 
+// TODO: do we still need this?
 void IBParticleContainer::AllocateArrays(int lev, int a_nghost) {
 
     // For future reference:
@@ -280,12 +282,17 @@ void IBParticleContainer::PrintParticleData(int lev) {
 
     amrex::AllPrintToFile("ib_particle_data") << "Particles on each box:" << std::endl;
 
+    //clearNeighbors();
+    //Redistribute();
     fillNeighbors();
+    // buildNeighborList(CheckPair, sort_neighbor_list);
+    // updateNeighbors();
+    
     long local_count = 0;
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
     // of ParticleIter
-    for(MFIter pti = this->MakeMFIter(lev); pti.isValid(); ++pti) {
+    for(MFIter pti = MakeMFIter(lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
