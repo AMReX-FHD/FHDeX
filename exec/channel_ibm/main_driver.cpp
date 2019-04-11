@@ -22,6 +22,8 @@
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
+#include "IBParticleContainer.H"
+
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>

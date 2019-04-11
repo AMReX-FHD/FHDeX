@@ -565,7 +565,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         }
 
 
-        //______________________________________________________________________
+        //_______________________________________________________________________
         // Updated slip velocity as error estimate
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
