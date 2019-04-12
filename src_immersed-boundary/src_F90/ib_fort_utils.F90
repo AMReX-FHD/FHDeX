@@ -155,7 +155,7 @@ contains
                             negative = .true.
                         end if
 
-                        if ( ( phi(ii, jj, kk) .gt. 0 ) .and. tag(ii, jj, kk, 1) .gt. 0 ) then
+                        if ( ( phi(ii, jj, kk) .ge. 0 ) .and. tag(ii, jj, kk, 1) .ge. 0 ) then
                             positive = .true.
                         end if
                     end do

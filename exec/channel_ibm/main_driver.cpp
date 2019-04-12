@@ -402,8 +402,9 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
-    IBParticleContainer ib_pc(geom, dmap, ba, 10); // TODO: 10 is a magic number for now
-    // ib_pc.AllocData();
+    // TODO: 8 is a magic number for now: it needs to be larger than the
+    // particle radius (in cells)
+    IBParticleContainer ib_pc(geom, dmap, ba, 10);
 
     // Initializing colloid position
     Vector<RealVect> ib_pos(1);

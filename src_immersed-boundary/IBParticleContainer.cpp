@@ -23,7 +23,8 @@ IBParticleContainer::IBParticleContainer(const Geometry & geom,
                                          int n_nbhd)
     : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
             geom, dmap, ba, n_nbhd
-        )
+        ),
+    nghost(n_nbhd)
 {
     InitInternals();
 }
@@ -33,7 +34,8 @@ IBParticleContainer::IBParticleContainer(AmrCore * amr_core, int n_nbhd)
     : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
-    m_amr_core(amr_core)
+    m_amr_core(amr_core),
+    nghost(n_nbhd)
 {
     InitInternals();
 }
@@ -59,7 +61,7 @@ void IBParticleContainer::InitList(int lev,
 
     // This uses the particle tile size. Note that the default is to tile so if
     // we remove the true and don't explicitly add false it will still tile.
-    for (MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi) {
+    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
 
         // This is particles per grid so we reset to 0
         int pcount = 0;
@@ -151,7 +153,6 @@ void IBParticleContainer::InitList(int lev,
     // grid, but otherwise we do need this to move particles from tile 0 to the
     // correct tile.
     Redistribute();
-
 }
 
 
@@ -183,16 +184,20 @@ void IBParticleContainer::InitInternals() {
 void IBParticleContainer::ReadStaticParameters() {
     static bool initialized = false;
 
-    if (!initialized)
-    {
+    if (!initialized) {
         ParmParse pp("particles");
 
-        do_tiling = true;  // because the default in amrex is false
-
+        // AMReX default is false => enable by default
+        do_tiling = true;
+        // Allow user to overwrite
         pp.query("do_tiling",  do_tiling);
 
+        // If tiling is enabled, make sure that the tile size is at least the
+        // number of ghost cells (otherwise strange things happen)
+        if (do_tiling)
+            tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
+        // User can overwrite
         Vector<int> ts(BL_SPACEDIM);
-
         if (pp.queryarr("tile_size", ts))
             tile_size = IntVect(ts);
 
@@ -288,7 +293,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
     // of ParticleIter
-    for(MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
+    for(MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
 

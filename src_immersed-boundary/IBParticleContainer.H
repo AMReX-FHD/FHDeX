@@ -150,7 +150,7 @@ private:
 
     void InitInternals();
 
-    static void ReadStaticParameters();
+    void ReadStaticParameters();
 
 
     // TODO: this might bto be used anymore:
