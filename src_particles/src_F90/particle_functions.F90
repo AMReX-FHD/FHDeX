@@ -831,7 +831,7 @@ subroutine move_particles_dry(particles, np, lo, hi, &
   adj = 0.999999
   adjalt = 2d0*(1d0 - adj)
 
-!  dxinv = 1.d0/dx
+  dxinv = 1.d0/dx
 
 !  dxfinv = 1.d0/dxf
 !  onemdxf = 1.d0 - dxf
@@ -949,6 +949,7 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
+
               ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
               ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
 #if (BL_SPACEDIM == 3)
