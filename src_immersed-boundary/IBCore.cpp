@@ -35,8 +35,8 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
     // Copy target BA and DM data into internal storage
     dmap[lev]  = a_dm;
-    grids[lev] = a_ba;
-    ba_nd      = amrex::convert(grids[lev], IntVect{1,1,1});
+    grids[lev] = amrex::convert(a_ba,       IntVect::TheCellVector());
+    ba_nd      = amrex::convert(grids[lev], IntVect::TheNodeVector());
 
 
 
