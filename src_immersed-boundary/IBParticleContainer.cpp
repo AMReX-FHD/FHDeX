@@ -59,7 +59,7 @@ void IBParticleContainer::InitList(int lev,
 
     // This uses the particle tile size. Note that the default is to tile so if
     // we remove the true and don't explicitly add false it will still tile.
-    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+    for (MFIter mfi = MakeMFIter(lev, false); mfi.isValid(); ++mfi) {
 
         // This is particles per grid so we reset to 0
         int pcount = 0;
@@ -187,7 +187,7 @@ void IBParticleContainer::ReadStaticParameters() {
     {
         ParmParse pp("particles");
 
-        // do_tiling = true;  // because the default in amrex is false
+        do_tiling = true;  // because the default in amrex is false
 
         pp.query("do_tiling",  do_tiling);
 
@@ -282,17 +282,13 @@ void IBParticleContainer::PrintParticleData(int lev) {
 
     amrex::AllPrintToFile("ib_particle_data") << "Particles on each box:" << std::endl;
 
-    //clearNeighbors();
-    //Redistribute();
     fillNeighbors();
-    // buildNeighborList(CheckPair, sort_neighbor_list);
-    // updateNeighbors();
     
     long local_count = 0;
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
     // of ParticleIter
-    for(MFIter pti = MakeMFIter(lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
+    for(MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
@@ -368,11 +364,6 @@ Vector<IBP_info> IBParticleContainer::get_IBParticle_info(int lev, PairIndex ind
         );
 
 
-    // Neighbours are stored as raw data (see below), hence the number of
-    // grown particles is given by the size of the raw data array over the
-    // number of raw data per particle.
-    int ng = neighbors[lev][index].size() / pdata_size;
-
     auto & particle_data = GetParticles(lev)[index];
     long np = particle_data.size();
 
@@ -414,6 +405,9 @@ Vector<IBP_info> IBParticleContainer::get_IBParticle_info(int lev, PairIndex ind
         // Add to list
         info.push_back(part_info);
     }
+
+
+    int ng = neighbors[lev][index].size();
 
     // Iterate over neighbour particles:
     // TODO: HAXOR!!! This should be fixed ASAP: if I understand this correctly,

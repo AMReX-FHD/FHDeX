@@ -101,7 +101,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(* ls, true); mfi.isValid(); ++mfi) {
+    for(MFIter mfi(* ls, false); mfi.isValid(); ++mfi) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
@@ -134,7 +134,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
+    for(MFIter mfi(* tag_interface, false); mfi.isValid(); ++ mfi) {
         //const Box & tile_box = mfi.tilebox();
 
         const FArrayBox & phi_tile = (* ls)[mfi];
