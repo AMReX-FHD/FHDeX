@@ -436,6 +436,35 @@ void main_driver(const char * argv) {
     IBCore ib_core;
     ib_core.set_IBParticleContainer(& ib_pc);
 
+    std::array<MultiFab, AMREX_SPACEDIM> f_ibm;
+    std::array<MultiFab, AMREX_SPACEDIM> vel_d;
+    std::array<MultiFab, AMREX_SPACEDIM> vel_g;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        vel_d[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        vel_g[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+    }
+
+    int lev_ib = 0;
+
+    ib_core.ImplicitDeposition(f_ibm[0], f_ibm[1], f_ibm[2],
+                               vel_d[0], vel_d[1], vel_d[2],
+                               vel_g[0], vel_g[1], vel_g[2],
+                               lev_ib, dt);
+
+    VisMF::Write(f_ibm[0], "ib_data/f_u");
+    VisMF::Write(f_ibm[1], "ib_data/f_v");
+    VisMF::Write(f_ibm[2], "ib_data/f_w");
+
+    VisMF::Write(vel_d[0], "ib_data/u_d");
+    VisMF::Write(vel_d[1], "ib_data/v_d");
+    VisMF::Write(vel_d[2], "ib_data/w_d");
+
+    VisMF::Write(vel_g[0], "ib_data/u_g");
+    VisMF::Write(vel_g[1], "ib_data/v_g");
+    VisMF::Write(vel_g[2], "ib_data/w_g");
+
     exit(0);
 
 
