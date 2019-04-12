@@ -430,6 +430,7 @@ void main_driver(const char * argv) {
     {
         ParmParse pp("amr");
         pp.add("max_level", 0);
+        pp.addarr("n_cell", n_cells);
     }
 
     IBCore ib_core;
