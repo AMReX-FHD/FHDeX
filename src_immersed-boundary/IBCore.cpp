@@ -34,12 +34,9 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
                                       const BoxArray & a_ba, const DistributionMapping & a_dm) {
 
     // Copy target BA and DM data into internal storage
-    //dm    = a_dm;
-    dmap[lev] = a_dm;
-    //ba_cc = a_ba;
+    dmap[lev]  = a_dm;
     grids[lev] = a_ba;
-    //ba_nd = amrex::convert(ba_cc, IntVect{1,1,1});
-    ba_nd = amrex::convert(grids[lev], IntVect{1,1,1});
+    ba_nd      = amrex::convert(grids[lev], IntVect{1,1,1});
 
 
 
@@ -60,7 +57,6 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     *       3. tag_interface (points near interface)                           *
     ****************************************************************************/
 
-    //ls->define(ba_nd, dm, 1, n_pad);
     ls->define(grids[lev], dmap[lev], 1, n_pad);
     ls->setVal(0);
 
@@ -68,18 +64,15 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     // IBParticle. The components are:  ID, CPU, INDEX
     //      unique particle indetifier --+---+     |
     //      index in local AoS --------------------+
-    //ls_id->define(ba_nd, dm, 3, n_pad);
     ls_id->define(ba_nd, dmap[lev], 3, n_pad);
     ls_id->setVal(-1);
 
 
     // Tag those cells that are exactly 1 from an interface (ls = 0)
-    //tag_interface->define(ba_cc, dm, 1, n_pad);
     tag_interface->define(grids[lev], dmap[lev], 1, n_pad);
     tag_interface->setVal(0);
 
 
-    //ls_vel->define(ba_nd, dm, 3, n_pad);
     ls_vel->define(ba_nd, dmap[lev], 3, n_pad);
     ls_vel->setVal(0);
 
@@ -101,7 +94,8 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(* ls, false); mfi.isValid(); ++mfi) {
+    for(MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
+        // NOTE: mfi's tile size must match the ParticleContainer tile size
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
@@ -122,6 +116,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
                           dx.dataPtr()                                              );
 
     }
+
     ls->FillBoundary(Geom(lev).periodicity());
     ls_id->FillBoundary(Geom(lev).periodicity());
     ls_vel->FillBoundary(Geom(lev).periodicity());
@@ -134,7 +129,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(* tag_interface, false); mfi.isValid(); ++ mfi) {
+    for(MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
         //const Box & tile_box = mfi.tilebox();
 
         const FArrayBox & phi_tile = (* ls)[mfi];
@@ -145,11 +140,10 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
                           phi_tile.dataPtr(),   phi_tile.loVect(),   phi_tile.hiVect(),
                           tag_tile.dataPtr(),   tag_tile.loVect(),   tag_tile.hiVect()     );
     }
+
     tag_interface->FillBoundary(Geom(lev).periodicity());
 
     save_levelset_data();
-
-
 }
 
 
