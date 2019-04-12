@@ -420,7 +420,7 @@ void main_driver(const char * argv) {
 
 
     // Test interface
-    //ib_pc.PrintParticleData(0);
+    ib_pc.PrintParticleData(0);
 
     //__________________________________________________________________________
     // Build IB core
@@ -436,6 +436,12 @@ void main_driver(const char * argv) {
     IBCore ib_core;
     ib_core.set_IBParticleContainer(& ib_pc);
 
+
+    int lev_ib = 0;
+    Real t0_ib = 0;
+
+    ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
+
     std::array<MultiFab, AMREX_SPACEDIM> f_ibm;
     std::array<MultiFab, AMREX_SPACEDIM> vel_d;
     std::array<MultiFab, AMREX_SPACEDIM> vel_g;
@@ -445,8 +451,6 @@ void main_driver(const char * argv) {
         vel_d[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         vel_g[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
     }
-
-    int lev_ib = 0;
 
     ib_core.ImplicitDeposition(f_ibm[0], f_ibm[1], f_ibm[2],
                                vel_d[0], vel_d[1], vel_d[2],
