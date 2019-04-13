@@ -1,6 +1,8 @@
 #include <AMReX.H>
 #include <AMReX_NeighborParticles.H>
 
+#include <AMReX_VisMF.H>
+
 
 #include <IBCore.H>
 #include <ib_functions_F.H>
@@ -158,22 +160,17 @@ void IBCore::RemakeLevel (int lev, Real time,
                           const BoxArray & a_ba, const DistributionMapping & a_dm) {
 
     Periodicity periodicity = Geom(lev).periodicity();
+    BoxArray ba_cc          = convert(a_ba, IntVect::TheCellVector());
 
-    //bool ba_changed = (ba_cc != a_ba);
-    bool ba_changed = (grids[lev] != a_ba);
-    //bool dm_changed = (dm    != a_dm);
+    bool ba_changed = (grids[lev] != ba_cc);
     bool dm_changed = (dmap[lev]  != a_dm);
 
     if (ba_changed || dm_changed) {
         update_loc = true;
 
-        //ba_cc = a_ba;
-        grids[lev] = a_ba;
-        //ba_nd = convert(a_ba, IntVect{1,1,1});
-        ba_nd = convert(grids[lev], IntVect{1,1,1});
+        grids[lev] = ba_cc;
+        ba_nd      = convert(grids[lev], IntVect::TheNodeVector());
 
-
-        //dm = a_dm;
         dmap[lev] = a_dm;
     }
 
@@ -181,24 +178,24 @@ void IBCore::RemakeLevel (int lev, Real time,
     // Only overwrite level if BA/DM have changed
     if (update_loc) {
 
-        std::unique_ptr<MultiFab> ls_new =
-            //MFUtil::duplicate<MultiFab>(ba_nd, dm, * ls, periodicity);
-            IBMFUtil::duplicate<MultiFab>(ba_nd, dmap[lev], * ls, periodicity);
+        std::unique_ptr<MultiFab> ls_new = IBMFUtil::duplicate<MultiFab>(
+                ba_nd, dmap[lev], * ls, periodicity
+            );
         ls = std::move(ls_new);
 
-        std::unique_ptr<iMultiFab> ls_id_new =
-            //MFUtil::duplicate<iMultiFab>(ba_nd, dm, * ls_id, periodicity);
-            IBMFUtil::duplicate<iMultiFab>(ba_nd, dmap[lev], * ls_id, periodicity);
+        std::unique_ptr<iMultiFab> ls_id_new = IBMFUtil::duplicate<iMultiFab>(
+                ba_nd, dmap[lev], * ls_id, periodicity
+            );
         ls_id = std::move(ls_id_new);
 
-        std::unique_ptr<iMultiFab> tag_interface_new =
-            //MFUtil::duplicate<iMultiFab>(ba_cc, dm, * tag_interface, periodicity);
-            IBMFUtil::duplicate<iMultiFab>(grids[lev], dmap[lev], * tag_interface, periodicity);
+        std::unique_ptr<iMultiFab> tag_interface_new = IBMFUtil::duplicate<iMultiFab>(
+                grids[lev], dmap[lev], * tag_interface, periodicity
+            );
         tag_interface = std::move(tag_interface_new);
 
-        std::unique_ptr<MultiFab> ls_vel_new =
-            //MFUtil::duplicate<MultiFab>(ba_nd, dm, * ls_vel, periodicity);
-            IBMFUtil::duplicate<MultiFab>(ba_nd, dmap[lev], * ls_vel, periodicity);
+        std::unique_ptr<MultiFab> ls_vel_new = IBMFUtil::duplicate<MultiFab>(
+                ba_nd, dmap[lev], * ls_vel, periodicity
+            );
         ls_vel = std::move(ls_vel_new);
     }
 
@@ -413,29 +410,31 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
     u_d.setVal(0.); v_d.setVal(0.); w_d.setVal(0.);
 
 
-    const Real      strttime    = ParallelDescriptor::second();
+    const Real strttime = ParallelDescriptor::second();
 
 
     /****************************************************************************
      * Create local copies => which have the same BA/DM as f and u              *
      ***************************************************************************/
 
+    //Ensure that the target BA is cell-centered:
+    BoxArray ba_cc_target = convert(u_s.boxArray(), IntVect::TheCellVector());
+
+
     std::unique_ptr<iMultiFab> et = std::unique_ptr<iMultiFab>(
-	new iMultiFab(u_s.boxArray(), u_s.DistributionMap(), 1, u_s.nGrow())
+            new iMultiFab(ba_cc_target, u_s.DistributionMap(), 1, u_s.nGrow())
         );
 
     et->setVal(0);
 
 
-    //Ensure that the target BA is cell-centered:
-    BoxArray ba_cc_target = convert(u_s.boxArray(), IntVect{0, 0, 0});
     RemakeLevel (lev, 0., ba_cc_target, u_s.DistributionMap());
 
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(v_d, true); mfi.isValid(); ++ mfi) {
+    for(MFIter mfi(u_s, true); mfi.isValid(); ++ mfi) {
         const Box & tile_box = mfi.tilebox();
 
         FArrayBox & u_d_tile = u_d[mfi];
@@ -464,6 +463,12 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
                                   BL_TO_FORTRAN_3D(iface_tile),
                                   BL_TO_FORTRAN_3D(vel_tile)            );
     }
+    
+    u_d.FillBoundary(Geom(lev).periodicity());
+    v_d.FillBoundary(Geom(lev).periodicity());
+    w_d.FillBoundary(Geom(lev).periodicity());
+
+    et->FillBoundary(Geom(lev).periodicity());
 
 
 #ifdef _OPENMP
@@ -479,12 +484,17 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
         const auto & et_tile = (* et)[mfi];
 
         fill_fgds_ib (tile_box.loVect(), tile_box.hiVect(),
-		      BL_TO_FORTRAN_3D(f_u_tile),
-		      BL_TO_FORTRAN_3D(f_v_tile),
-		      BL_TO_FORTRAN_3D(f_w_tile),
-		      BL_TO_FORTRAN_3D(et_tile)                );
+        		      BL_TO_FORTRAN_3D(f_u_tile),
+		              BL_TO_FORTRAN_3D(f_v_tile),
+		              BL_TO_FORTRAN_3D(f_w_tile),
+		              BL_TO_FORTRAN_3D(et_tile)             );
 
     }
+
+    f_u.FillBoundary(Geom(lev).periodicity());
+    f_v.FillBoundary(Geom(lev).periodicity());
+    f_w.FillBoundary(Geom(lev).periodicity());
+
 
     if (m_verbose > 1) {
         Real stoptime = ParallelDescriptor::second() - strttime;

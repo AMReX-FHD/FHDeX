@@ -391,7 +391,13 @@ contains
                 do i = lo(1), hi(1)
                     et(i, j, k) = 0
 
-                    eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
+                    ! eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
+                    ! Tag only interface cells
+                    if (tag(i, j, k) .eq. 1) then
+                        eff_tag = 1
+                    else
+                        eff_tag = 0
+                    end if
 
                     ! x-components
                     !eff_tag = effective_tag(i, j, k, 1, tag, taglo, taghi)
@@ -405,7 +411,7 @@ contains
                     ! y-components
                     !eff_tag = effective_tag(i, j, k, 2, tag, taglo, taghi)
                     if ( eff_tag .ge. 1 ) then
-                        v_d(i, j, k) =  vel(i, j, k, 2)
+                        v_d(i, j, k) = vel(i, j, k, 2)
                         et(i, j, k)  = 1
                     else
                         v_d(i, j, k) = 0. ! v_s(i, j, k)
@@ -414,10 +420,10 @@ contains
                     ! z-components
                     !eff_tag = effective_tag(i, j, k, 3, tag, taglo, taghi)
                     if ( eff_tag .ge. 1 ) then
-                        w_d(i, j, k) =  vel(i, j, k, 3)
+                        w_d(i, j, k) = vel(i, j, k, 3)
                         et(i, j, k)  = 1
                     else
-                        w_d(i, j, k) =  0. ! w_s(i, j, k)
+                        w_d(i, j, k) = 0. ! w_s(i, j, k)
                     end if
                 end do
             end do
@@ -458,7 +464,7 @@ contains
 
                     if ( eff_tag .eq. 1 ) then
                        u_d(i, j, k, :) = vel(i, j, k, :)
-                       et(i, j, k)  = 1
+                       et(i, j, k)     = 1
                     else
                        u_d(i, j, k, :) = u_s(i, j, k, :) ! Alternatively: 0
                     end if
