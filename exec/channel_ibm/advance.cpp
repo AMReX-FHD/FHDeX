@@ -12,6 +12,8 @@
 
 #include "gmres_namespace.H"
 
+#include "IBCore.H"
+
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -28,6 +30,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
              const MultiFab & beta, const MultiFab & gamma,
              const std::array<MultiFab, NUM_EDGE> & beta_ed,
+             const IBCore & ib_core,
              const Geometry geom, const Real & dt)
 {
 

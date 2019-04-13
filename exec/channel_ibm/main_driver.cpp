@@ -420,7 +420,7 @@ void main_driver(const char * argv) {
     ib_pc.InitList(0, ib_pos, ib_r, ib_rho);
 
 
-    // Test interface
+    // For debug purposes: Test interface
     ib_pc.PrintParticleData(0);
 
     //__________________________________________________________________________
@@ -453,24 +453,6 @@ void main_driver(const char * argv) {
         vel_g[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
     }
 
-    ib_core.ImplicitDeposition(f_ibm[0], f_ibm[1], f_ibm[2],
-                               vel_d[0], vel_d[1], vel_d[2],
-                               vel_g[0], vel_g[1], vel_g[2],
-                               lev_ib, dt);
-
-    VisMF::Write(f_ibm[0], "ib_data/f_u");
-    VisMF::Write(f_ibm[1], "ib_data/f_v");
-    VisMF::Write(f_ibm[2], "ib_data/f_w");
-
-    VisMF::Write(vel_d[0], "ib_data/u_d");
-    VisMF::Write(vel_d[1], "ib_data/v_d");
-    VisMF::Write(vel_d[2], "ib_data/w_d");
-
-    VisMF::Write(vel_g[0], "ib_data/u_g");
-    VisMF::Write(vel_g[1], "ib_data/v_g");
-    VisMF::Write(vel_g[2], "ib_data/w_g");
-
-    exit(0);
 
 
     /****************************************************************************
@@ -511,10 +493,29 @@ void main_driver(const char * argv) {
             sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
             sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
 
+            ib_core.ImplicitDeposition(f_ibm[0], f_ibm[1], f_ibm[2],
+                                       vel_d[0], vel_d[1], vel_d[2],
+                                       vel_g[0], vel_g[1], vel_g[2],
+                                       lev_ib, dt);
+
+            // For debug purposes: Write out the immersed-boundary data
+            VisMF::Write(f_ibm[0], "ib_data/f_u");
+            VisMF::Write(f_ibm[1], "ib_data/f_v");
+            VisMF::Write(f_ibm[2], "ib_data/f_w");
+
+            VisMF::Write(vel_d[0], "ib_data/u_d");
+            VisMF::Write(vel_d[1], "ib_data/v_d");
+            VisMF::Write(vel_d[2], "ib_data/w_d");
+
+            VisMF::Write(vel_g[0], "ib_data/u_g");
+            VisMF::Write(vel_g[1], "ib_data/v_g");
+            VisMF::Write(vel_g[2], "ib_data/w_g");
+
+
             //___________________________________________________________________
             // Advance umac
             advance(umac, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
-                    alpha_fc, beta, gamma, beta_ed, geom,dt);
+                    alpha_fc, beta, gamma, beta_ed, ib_core, geom, dt);
 	}
 
 
