@@ -88,8 +88,8 @@ extern "C"
 
 
     void set_particle_properties(
-        const int* pstate, amrex::Real* pradius, amrex::Real* pdensity,
-        amrex::Real* pvol, amrex::Real* pmass, amrex::Real* omoi, amrex::Real* omega
+            const int * pstate, const amrex_real * pradius, const amrex_real * pdensity,
+            amrex_real * pvol,  amrex_real * pmass, amrex_real * omoi, amrex_real * omega
         );
 
 

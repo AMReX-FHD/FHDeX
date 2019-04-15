@@ -1,5 +1,5 @@
-#ifndef _DiffusionTest_functions_H_
-#define _DiffusionTest_functions_H_
+#ifndef _main_driver_H_
+#define _main_driver_H_
 
 #include "common_functions.H"
 #include "gmres_functions.H"
