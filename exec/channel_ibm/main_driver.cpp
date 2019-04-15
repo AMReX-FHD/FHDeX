@@ -481,23 +481,23 @@ void main_driver(const char * argv) {
             // NOTE: StochMFlux::stochMforce fills ghost cells
             sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
             sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-
-
-            //___________________________________________________________________
-            // Fill Immersed-Boundary interface data
-
-            int lev_ib = 0;
-            Real t0_ib = 0;
-
-            ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
-
-
-            //___________________________________________________________________
-            // Advance umac
-            advance(umac, umacNew, pres, tracer, force_ibm, 
-                    mfluxdiv_predict, mfluxdiv_correct,
-                    alpha_fc, beta, gamma, beta_ed, ib_core, geom, dt);
         }
+
+
+        //_______________________________________________________________________
+        // Fill Immersed-Boundary interface data
+
+        int lev_ib = 0;
+        Real t0_ib = 0;
+
+        ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
+
+
+        //_______________________________________________________________________
+        // Advance umac
+        advance(umac, umacNew, pres, tracer, force_ibm, 
+                mfluxdiv_predict, mfluxdiv_correct,
+                alpha_fc, beta, gamma, beta_ed, ib_core, geom, dt);
 
 
         //_______________________________________________________________________
