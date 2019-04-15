@@ -22,7 +22,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
 # if (AMREX_SPACEDIM == 3)
 	         const std::array< MultiFab, 3 > & beta_ed,
 # endif
-             const IBCore & ib_core,
+             IBCore & ib_core,
 	         const Geometry geom, const Real & dt);
 
 ///////////////////////////

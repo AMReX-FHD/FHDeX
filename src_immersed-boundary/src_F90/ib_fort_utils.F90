@@ -368,39 +368,78 @@ contains
                                         vel, vello, velhi )&
                bind(C, name="interpolate_ib_staggered")
 
-        integer(c_int),   dimension(3), intent(in   ) :: lo, hi, &
-            udlo, udhi, vdlo, vdhi, wdlo, wdhi, uslo, ushi, vslo, vshi, wslo, wshi, etlo, ethi
-        real(amrex_real),               intent(  out) :: u_d(udlo(1):udhi(1), udlo(2):udhi(2), udlo(3):udhi(3))
-        real(amrex_real),               intent(  out) :: v_d(vdlo(1):vdhi(1), vdlo(2):vdhi(2), vdlo(3):vdhi(3))
-        real(amrex_real),               intent(  out) :: w_d(wdlo(1):wdhi(1), wdlo(2):wdhi(2), wdlo(3):wdhi(3))
-        real(amrex_real),               intent(in   ) :: u_s(uslo(1):ushi(1), uslo(2):ushi(2), uslo(3):ushi(3))
-        real(amrex_real),               intent(in   ) :: v_s(vslo(1):vshi(1), vslo(2):vshi(2), vslo(3):vshi(3))
-        real(amrex_real),               intent(in   ) :: w_s(wslo(1):wshi(1), wslo(2):wshi(2), wslo(3):wshi(3))
-        integer(c_int),                 intent(  out) :: et(etlo(1):ethi(1), etlo(2):ethi(2), etlo(3):ethi(3))
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
 
-        integer(c_int), dimension(3), intent(in   ) :: philo, phihi, taglo, taghi, vello, velhi
-        real(amrex_real), intent(in   ) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
-        integer(c_int),   intent(in   ) :: tag(taglo(1):taghi(1), taglo(2):taghi(2), taglo(3):taghi(3))
-        real(amrex_real), intent(in   ) :: vel(vello(1):velhi(1), vello(2):velhi(2), vello(3):velhi(3), 3)
+        ! ** OUT: (staggered) Immersed-boundary velocity components
+        integer(c_int), dimension(3), intent(in   ) :: udlo, udhi, vdlo, vdhi, wdlo, wdhi
+        real(amrex_real), intent(  out) :: u_d(udlo(1):udhi(1), &
+            &                                  udlo(2):udhi(2), &
+            &                                  udlo(3):udhi(3))
+        real(amrex_real), intent(  out) :: v_d(vdlo(1):vdhi(1), &
+            &                                  vdlo(2):vdhi(2), &
+            &                                  vdlo(3):vdhi(3))
+        real(amrex_real), intent(  out) :: w_d(wdlo(1):wdhi(1), &
+            &                                  wdlo(2):wdhi(2), &
+            &                                  wdlo(3):wdhi(3))
+
+        ! ** IN:  (staggered) RHS terms w/o IBM force terms
+        integer(c_int), dimension(3), intent(in   ) :: uslo, ushi, vslo, vshi, wslo, wshi
+        real(amrex_real), intent(in   ) :: u_s(uslo(1):ushi(1), &
+            &                                  uslo(2):ushi(2), &
+            &                                  uslo(3):ushi(3))
+        real(amrex_real), intent(in   ) :: v_s(vslo(1):vshi(1), &
+            &                                  vslo(2):vshi(2), &
+            &                                  vslo(3):vshi(3))
+        real(amrex_real), intent(in   ) :: w_s(wslo(1):wshi(1), &
+            &                                  wslo(2):wshi(2), &
+            &                                  wslo(3):wshi(3))
+
+        ! ** OUT: (cell-centered) effective tag
+        integer(c_int), dimension(3), intent(in   ) :: etlo, ethi
+        integer(c_int),   intent(  out) :: et(etlo(1):ethi(1), &
+            &                                 etlo(2):ethi(2), &
+            &                                 etlo(3):ethi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: philo, phihi
+        real(amrex_real), intent(in   ) :: phi(philo(1):phihi(1), &
+            &                                  philo(2):phihi(2), &
+            &                                  philo(3):phihi(3))
+
+        ! ** IN:  (cell-centered) tags
+        integer(c_int), dimension(3), intent(in   ) :: taglo, taghi
+        integer(c_int),   intent(in   ) :: tag(taglo(1):taghi(1), &
+            &                                  taglo(2):taghi(2), &
+            &                                  taglo(3):taghi(3))
+
+        ! ** IN:  (staggered) IBM (desiered) veloctity
+        integer(c_int), dimension(3), intent(in   ) :: vello, velhi
+        real(amrex_real), intent(in   ) :: vel(vello(1):velhi(1), &
+            &                                  vello(2):velhi(2), &
+            &                                  vello(3):velhi(3), 3)
 
 
+        !________________________________________________________________________
+        ! i, j, k => cell-centered indices
         integer :: i, j, k, eff_tag
 
+
+        !________________________________________________________________________
+        ! x-components
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
+                do i = lo(1), hi(1) + 1
                     et(i, j, k) = 0
 
                     ! eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
-                    ! Tag only interface cells
-                    if (tag(i, j, k) .eq. 1) then
+                    ! Tag interface and internal cells
+                    if (tag(i, j, k) .ge. 1) then
                         eff_tag = 1
                     else
                         eff_tag = 0
                     end if
 
-                    ! x-components
-                    !eff_tag = effective_tag(i, j, k, 1, tag, taglo, taghi)
                     if ( eff_tag .ge. 1 ) then
                         u_d(i, j, k) = vel(i, j, k, 1)
                         et(i, j, k)  = 1
@@ -408,8 +447,26 @@ contains
                         u_d(i, j, k) = 0. ! u_s(i, j, k)
                     end if
 
-                    ! y-components
-                    !eff_tag = effective_tag(i, j, k, 2, tag, taglo, taghi)
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! y-components
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2) + 1
+                do i = lo(1), hi(1)
+                    et(i, j, k) = 0
+
+                    ! eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
+                    ! Tag interface and internal cells
+                    if (tag(i, j, k) .ge. 1) then
+                        eff_tag = 1
+                    else
+                        eff_tag = 0
+                    end if
+
                     if ( eff_tag .ge. 1 ) then
                         v_d(i, j, k) = vel(i, j, k, 2)
                         et(i, j, k)  = 1
@@ -417,8 +474,26 @@ contains
                         v_d(i, j, k) = 0. ! v_s(i, j, k)
                     end if
 
-                    ! z-components
-                    !eff_tag = effective_tag(i, j, k, 3, tag, taglo, taghi)
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! z-components
+        do k = lo(3), hi(3) + 1
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                    et(i, j, k) = 0
+
+                    ! eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
+                    ! Tag interface and internal cells
+                    if (tag(i, j, k) .ge. 1) then
+                        eff_tag = 1
+                    else
+                        eff_tag = 0
+                    end if
+
                     if ( eff_tag .ge. 1 ) then
                         w_d(i, j, k) = vel(i, j, k, 3)
                         et(i, j, k)  = 1
@@ -428,6 +503,8 @@ contains
                 end do
             end do
         end do
+
+
 
     end subroutine interpolate_ib_staggered
 
@@ -484,25 +561,73 @@ contains
                             et,  etlo, ethi )&
                bind(C, name="fill_fgds_ib")
 
-        integer(c_int),   dimension(3), intent(in   ) :: lo, hi, fulo, fuhi, fvlo, fvhi, fwlo, fwhi, etlo, ethi
-        real(amrex_real),               intent(  out) :: f_u(fulo(1):fuhi(1), fulo(2):fuhi(2), fulo(3):fuhi(3))
-        real(amrex_real),               intent(  out) :: f_v(fvlo(1):fvhi(1), fvlo(2):fvhi(2), fvlo(3):fvhi(3))
-        real(amrex_real),               intent(  out) :: f_w(fwlo(1):fwhi(1), fwlo(2):fwhi(2), fwlo(3):fwhi(3))
-        integer(c_int),                 intent(  out) :: et(etlo(1):ethi(1), etlo(2):ethi(2), etlo(3):ethi(3))
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
 
 
-        integer          :: i, j, k
+        ! ** OUT: (staggered) Immersed-boundary spreading/interpolation weights
+        integer(c_int), dimension(3), intent(in   ) :: fulo, fuhi, fvlo, fvhi, fwlo, fwhi
+        real(amrex_real), intent(  out) :: f_u(fulo(1):fuhi(1), &
+            &                                  fulo(2):fuhi(2), &
+            &                                  fulo(3):fuhi(3))
+        real(amrex_real), intent(  out) :: f_v(fvlo(1):fvhi(1), &
+            &                                  fvlo(2):fvhi(2), &
+            &                                  fvlo(3):fvhi(3))
+        real(amrex_real), intent(  out) :: f_w(fwlo(1):fwhi(1), &
+            &                                  fwlo(2):fwhi(2), &
+            &                                  fwlo(3):fwhi(3))
 
+        ! ** IN:  (cell-centered) effective tag
+        integer(c_int), dimension(3), intent(in   ) :: etlo, ethi
+        integer(c_int), intent(in   ) :: et(etlo(1):ethi(1), &
+            &                               etlo(2):ethi(2), &
+            &                               etlo(3):ethi(3))
+
+
+        !________________________________________________________________________
+        ! i, j, k => cell-centered indices
+        integer :: i, j, k
+
+
+        !________________________________________________________________________
+        ! x-components
         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1) + 1
+                    if (  et(i, j, k)  .ge. 1 ) then
+                        f_u(i, j, k) = 1.
+                    else
+                        f_u(i, j, k) = 0.
+                    end if
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! y-components
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2) + 1
+                do i = lo(1), hi(1)
+                    if (  et(i, j, k)  .ge. 1 ) then
+                        f_v(i, j, k) = 1.
+                    else
+                        f_v(i, j, k) = 0.
+                    end if
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! z-components
+        do k = lo(3), hi(3) + 1
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
                     if (  et(i, j, k)  .ge. 1 ) then
-                        f_u(i, j, k) = 1.
-                        f_v(i, j, k) = 1.
                         f_w(i, j, k) = 1.
                     else
-                        f_u(i, j, k) = 0.
-                        f_v(i, j, k) = 0.
                         f_w(i, j, k) = 0.
                     end if
                 end do
@@ -526,39 +651,105 @@ contains
                                        dt              )&
                bind(C, name="fill_force_ib_staggered")
 
-        integer(c_int),   dimension(3), intent(in   ) :: lo, hi, &
-            fulo, fuhi, fvlo, fvhi, fwlo, fwhi, uglo, ughi, vglo, vghi, wglo, wghi, &
-            udlo, udhi, vdlo, vdhi, wdlo, wdhi, etlo, ethi
-        real(amrex_real),               intent(  out) :: f_u(fulo(1):fuhi(1), fulo(2):fuhi(2), fulo(3):fuhi(3))
-        real(amrex_real),               intent(  out) :: f_v(fvlo(1):fvhi(1), fvlo(2):fvhi(2), fvlo(3):fvhi(3))
-        real(amrex_real),               intent(  out) :: f_w(fwlo(1):fwhi(1), fwlo(2):fwhi(2), fwlo(3):fwhi(3))
-        real(amrex_real),               intent(in   ) :: u_g(uglo(1):ughi(1), uglo(2):ughi(2), uglo(3):ughi(3))
-        real(amrex_real),               intent(in   ) :: v_g(vglo(1):vghi(1), vglo(2):vghi(2), vglo(3):vghi(3))
-        real(amrex_real),               intent(in   ) :: w_g(wglo(1):wghi(1), wglo(2):wghi(2), wglo(3):wghi(3))
-        real(amrex_real),               intent(in   ) :: u_d(udlo(1):udhi(1), udlo(2):udhi(2), udlo(3):udhi(3))
-        real(amrex_real),               intent(in   ) :: v_d(vdlo(1):vdhi(1), vdlo(2):vdhi(2), vdlo(3):vdhi(3))
-        real(amrex_real),               intent(in   ) :: w_d(wdlo(1):wdhi(1), wdlo(2):wdhi(2), wdlo(3):wdhi(3))
-        integer(c_int),                 intent(in   ) :: et(etlo(1):ethi(1), etlo(2):ethi(2), etlo(3):ethi(3))
-        real(amrex_real),               intent(in   ) :: dt
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+
+        ! ** OUT: (staggered) explicit IBM forces
+        integer(c_int), dimension(3), intent(in   ) :: fulo, fuhi, fvlo, fvhi, fwlo, fwhi
+        real(amrex_real), intent(  out) :: f_u(fulo(1):fuhi(1), &
+            &                                  fulo(2):fuhi(2), &
+            &                                  fulo(3):fuhi(3))
+        real(amrex_real), intent(  out) :: f_v(fvlo(1):fvhi(1), &
+            &                                  fvlo(2):fvhi(2), &
+            &                                  fvlo(3):fvhi(3))
+        real(amrex_real), intent(  out) :: f_w(fwlo(1):fwhi(1), &
+            &                                  fwlo(2):fwhi(2), &
+            &                                  fwlo(3):fwhi(3))
+
+        ! ** IN:  (staggered) RHS terms w/o IBM forcer terms
+        integer(c_int), dimension(3), intent(in   ) :: uglo, ughi, vglo, vghi, wglo, wghi
+        real(amrex_real), intent(in   ) :: u_g(uglo(1):ughi(1), &
+            &                                  uglo(2):ughi(2), &
+            &                                  uglo(3):ughi(3))
+        real(amrex_real), intent(in   ) :: v_g(vglo(1):vghi(1), &
+            &                                  vglo(2):vghi(2), &
+            &                                  vglo(3):vghi(3))
+        real(amrex_real), intent(in   ) :: w_g(wglo(1):wghi(1), &
+            &                                  wglo(2):wghi(2), &
+            &                                  wglo(3):wghi(3))
+
+        ! ** IN:  (staggered) IBM (desired) velocity
+        integer(c_int), dimension(3), intent(in   ) :: udlo, udhi, vdlo, vdhi, wdlo, wdhi
+        real(amrex_real), intent(in   ) :: u_d(udlo(1):udhi(1), &
+            &                                  udlo(2):udhi(2), &
+            &                                  udlo(3):udhi(3))
+        real(amrex_real), intent(in   ) :: v_d(vdlo(1):vdhi(1), &
+            &                                  vdlo(2):vdhi(2), &
+            &                                  vdlo(3):vdhi(3))
+        real(amrex_real), intent(in   ) :: w_d(wdlo(1):wdhi(1), &
+            &                                  wdlo(2):wdhi(2), &
+            &                                  wdlo(3):wdhi(3))
+
+        ! ** IN:  (cell_centered) effective tags
+        integer(c_int), dimension(3), intent(in   ) :: etlo, ethi
+        integer(c_int),   intent(in   ) :: et(etlo(1):ethi(1), &
+            &                                 etlo(2):ethi(2), &
+            &                                 etlo(3):ethi(3))
+
+        ! ** IN: time-step
+        real(amrex_real), intent(in   ) :: dt
 
 
-        integer          :: i, j, k
+        !________________________________________________________________________
+        ! i, j, k => cell-centered indices
+        integer :: i, j, k
 
+
+        !________________________________________________________________________
+        ! x-components
         do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1) + 1
+                    if ( et(i, j, k) .ge. 1 ) then
+                        f_u(i, j, k) = (u_d(i, j, k) - u_g(i, j, k)) / dt
+                    else
+                        f_u(i, j, k) = 0.
+                    end if
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! y-components
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2) + 1
+                do i = lo(1), hi(1)
+                    if ( et(i, j, k) .ge. 1 ) then
+                        f_v(i, j, k) = (v_d(i, j, k) - v_g(i, j, k)) / dt
+                    else
+                        f_v(i, j, k) = 0.
+                    end if
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! z-components
+        do k = lo(3), hi(3) + 1
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
                     if ( et(i, j, k) .ge. 1 ) then
-                        f_u(i, j, k) = (u_d(i, j, k) - u_g(i, j, k)) / dt
-                        f_v(i, j, k) = (v_d(i, j, k) - v_g(i, j, k)) / dt
                         f_w(i, j, k) = (w_d(i, j, k) - w_g(i, j, k)) / dt
                     else
-                        f_u(i, j, k) = 0.
-                        f_v(i, j, k) = 0.
                         f_w(i, j, k) = 0.
                     end if
                 end do
             end do
         end do
+
 
     end subroutine fill_force_ib_staggered
 

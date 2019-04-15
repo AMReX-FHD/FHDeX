@@ -409,13 +409,10 @@ void main_driver(const char * argv) {
     // Initializing colloid position
     Vector<RealVect> ib_pos(1);
     ib_pos[0] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.5)};
-    //ib_pos[1] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.45)};
     Vector<Real>     ib_r(1);
-    ib_r[0]   = 0.2; // Might be a bit big?
-    //ib_r[1]   = 0.2; // Might be a bit big?
+    ib_r[0]   = 0.10; // Might be a bit big?
     Vector<Real>     ib_rho(1);
-    ib_rho[0] = 1.0; // Same as fluid
-    //ib_rho[1] = 1.0; // Same as fluid
+    ib_rho[0] = 1.00;// Same as fluid
 
     ib_pc.InitList(0, ib_pos, ib_r, ib_rho);
 
@@ -436,22 +433,6 @@ void main_driver(const char * argv) {
 
     IBCore ib_core;
     ib_core.set_IBParticleContainer(& ib_pc);
-
-
-    int lev_ib = 0;
-    Real t0_ib = 0;
-
-    ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
-
-    std::array<MultiFab, AMREX_SPACEDIM> f_ibm;
-    std::array<MultiFab, AMREX_SPACEDIM> vel_d;
-    std::array<MultiFab, AMREX_SPACEDIM> vel_g;
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        f_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        vel_d[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        vel_g[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-    }
 
 
 
@@ -493,23 +474,14 @@ void main_driver(const char * argv) {
             sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
             sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
 
-            ib_core.ImplicitDeposition(f_ibm[0], f_ibm[1], f_ibm[2],
-                                       vel_d[0], vel_d[1], vel_d[2],
-                                       vel_g[0], vel_g[1], vel_g[2],
-                                       lev_ib, dt);
 
-            // For debug purposes: Write out the immersed-boundary data
-            VisMF::Write(f_ibm[0], "ib_data/f_u");
-            VisMF::Write(f_ibm[1], "ib_data/f_v");
-            VisMF::Write(f_ibm[2], "ib_data/f_w");
+            //___________________________________________________________________
+            // Fill Immersed-Boundary interface data
 
-            VisMF::Write(vel_d[0], "ib_data/u_d");
-            VisMF::Write(vel_d[1], "ib_data/v_d");
-            VisMF::Write(vel_d[2], "ib_data/w_d");
+            int lev_ib = 0;
+            Real t0_ib = 0;
 
-            VisMF::Write(vel_g[0], "ib_data/u_g");
-            VisMF::Write(vel_g[1], "ib_data/v_g");
-            VisMF::Write(vel_g[2], "ib_data/w_g");
+            ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
 
 
             //___________________________________________________________________

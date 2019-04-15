@@ -417,7 +417,7 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
      * Create local copies => which have the same BA/DM as f and u              *
      ***************************************************************************/
 
-    //Ensure that the target BA is cell-centered:
+    // Ensure that the target BA is cell-centered:
     BoxArray ba_cc_target = convert(u_s.boxArray(), IntVect::TheCellVector());
 
 
@@ -428,13 +428,18 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
     et->setVal(0);
 
 
+    // Perhaps this should not be necessary? If we use IBCore properly, then
+    // regridding like this is not necessary.
     RemakeLevel (lev, 0., ba_cc_target, u_s.DistributionMap());
 
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(u_s, true); mfi.isValid(); ++ mfi) {
+    for(MFIter mfi(* et, true); mfi.isValid(); ++ mfi) {
+        // Iterate over cell-centered MultiFab (et) as reference for
+        // face-centered data
+
         const Box & tile_box = mfi.tilebox();
 
         FArrayBox & u_d_tile = u_d[mfi];
@@ -474,7 +479,10 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(f_u, true); mfi.isValid(); ++ mfi) {
+    for(MFIter mfi(* et, true); mfi.isValid(); ++ mfi) {
+        // Iterate over cell-centered MultiFab (et) as reference for
+        // face-centered data
+
         const Box & tile_box = mfi.tilebox();
 
         FArrayBox & f_u_tile = f_u[mfi];
