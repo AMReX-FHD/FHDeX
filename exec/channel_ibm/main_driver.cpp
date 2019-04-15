@@ -435,6 +435,14 @@ void main_driver(const char * argv) {
     ib_core.set_IBParticleContainer(& ib_pc);
 
 
+    std::array<MultiFab, AMREX_SPACEDIM> force_ibm;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        force_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        force_ibm[d].setVal(0.);
+    }
+
+
 
     /****************************************************************************
      *                                                                          *
@@ -459,10 +467,10 @@ void main_driver(const char * argv) {
 
 
     for(step = 1; step <= max_step; ++step) {
-
         Real step_strt_time = ParallelDescriptor::second();
 
-	if(variance_coef_mom != 0.0) {
+        
+        if(variance_coef_mom != 0.0) {
 
             //___________________________________________________________________
             // Fill stochastic terms
@@ -486,15 +494,16 @@ void main_driver(const char * argv) {
 
             //___________________________________________________________________
             // Advance umac
-            advance(umac, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
+            advance(umac, umacNew, pres, tracer, force_ibm, 
+                    mfluxdiv_predict, mfluxdiv_correct,
                     alpha_fc, beta, gamma, beta_ed, ib_core, geom, dt);
-	}
+        }
 
 
-	//_______________________________________________________________________
-	// Update structure factor
+        //_______________________________________________________________________
+        // Update structure factor
 
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
             }

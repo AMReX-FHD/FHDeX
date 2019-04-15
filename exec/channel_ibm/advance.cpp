@@ -26,6 +26,7 @@ using namespace gmres;
 void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
              std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
              MultiFab & pres, MultiFab & tracer,
+             std::array<MultiFab, AMREX_SPACEDIM> & force_ibm,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
@@ -289,10 +290,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         force_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        force_0[d].setVal(0.); // Initial value = 0 => only implicit forces
-
         force_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        force_1[d].setVal(0.); // Initial value = 0 => only implicit forces
     }
 
 
@@ -404,8 +402,10 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // Set up initial condtions for predictor (0) and corrector (1)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Copy(umac_0[d], umac[d], 0, 0, 1, 1);
-        MultiFab::Copy(umac_1[d], umac[d], 0, 0, 1, 1);
+        MultiFab::Copy(umac_0[d],       umac[d], 0, 0, 1, 1);
+        MultiFab::Copy(umac_1[d],       umac[d], 0, 0, 1, 1);
+        MultiFab::Copy(force_0[d], force_ibm[d], 0, 0, 1, 1);
+        MultiFab::Copy(force_1[d], force_ibm[d], 0, 0, 1, 1);
     }
 
     MultiFab::Copy(p_0, pres, 0, 0, 1, 1);
