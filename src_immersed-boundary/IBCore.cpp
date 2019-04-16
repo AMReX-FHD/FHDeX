@@ -59,7 +59,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     *       3. tag_interface (points near interface)                           *
     ****************************************************************************/
 
-    ls->define(grids[lev], dmap[lev], 1, n_pad);
+    ls->define(ba_nd, dmap[lev], 1, n_pad);
     ls->setVal(0);
 
     // The ls_id iMultiFab stores the identifier information of the _nearest_
@@ -99,12 +99,22 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     for(MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
         // NOTE: mfi's tile size must match the ParticleContainer tile size
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+
+        //_______________________________________________________________________
+        // Get immersed-boundary data from IBParticleContainer
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
         Vector<IBP_info> info = ib_pc->get_IBParticle_info(lev, index);
         int np = info.size();
         test_interface(info.dataPtr(), & np);
 
+        //_______________________________________________________________________
+        // Prepare to construct local immersed-boundary data
+        n_ibm_loc = np;
+
+
+        //_______________________________________________________________________
+        // Fill the global level-set data
         const Box & tile_box = mfi.tilebox();
         auto & phi_tile      = (* ls)[mfi];
         auto & tag_tile      = (* ls_id)[mfi];
@@ -122,6 +132,30 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     ls->FillBoundary(Geom(lev).periodicity());
     ls_id->FillBoundary(Geom(lev).periodicity());
     ls_vel->FillBoundary(Geom(lev).periodicity());
+
+
+    /****************************************************************************
+     * Construct Local Immersed-Boundary Data                                   *
+     ***************************************************************************/
+
+    if (n_ibm_loc > 0) {
+        level_sets_loc.resize(n_ibm_loc);
+        iface_tags_loc.resize(n_ibm_loc);
+
+        //_______________________________________________________________________
+        // Allocate MultiFabs for local levelset data
+        for (int i=0; i<n_ibm_loc; ++i) {
+            // level_sets_loc[i].define(grids[lev], dmap[lev], 1, n_pad);
+            // ls->setVal(0);
+
+
+            // // Tag those cells that are exactly 1 from an interface (ls = 0)
+            // tag_interface->define(grids[lev], dmap[lev], 1, n_pad);
+            // tag_interface->setVal(0);
+        }
+
+
+    }
 
 
    /****************************************************************************

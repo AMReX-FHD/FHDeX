@@ -121,6 +121,9 @@ private:
 
     bool update_loc = true;
 
+    Vector< MultiFab> level_sets_loc;
+    Vector<iMultiFab> iface_tags_loc;
+
     // Signed distance function to to neares particle surface
     std::unique_ptr<MultiFab>  ls;
 
@@ -140,6 +143,7 @@ private:
      * IB Particle Information                                                  *
      ***************************************************************************/
 
+    int  n_ibm_loc;
     IBParticleContainer * ib_pc;
 
 };

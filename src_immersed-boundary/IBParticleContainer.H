@@ -59,15 +59,19 @@ struct IBP_intData {
 // class into a non-template class: any further specialization might need
 // different template parameters
 
-class IBParIter final
-    : public amrex::ParIter<IBP_realData::count, IBP_intData::count, 0, 0> {
+class IBParIter final 
+    : public amrex::ParIter<IBP_realData::count, IBP_intData::count, 0, 0>
+{
+
 public:
+
     using ParIter<IBP_realData::count, IBP_intData::count, 0, 0>::ParIter;
 };
 
 
 class IBParticleContainer final
-: public amrex::NeighborParticleContainer<IBP_realData::count, IBP_intData::count> {
+    : public amrex::NeighborParticleContainer<IBP_realData::count, IBP_intData::count>
+{
 
 public:
 
@@ -81,7 +85,7 @@ public:
     // data (for convenience and avoiding auto &).
     //using RealType      = typename ParticleType::RealType;
     //using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
-    using AoS           = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
+    using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
 
     // Get number of particles
     int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size(); };
@@ -102,6 +106,13 @@ public:
                   const Vector<RealVect> & pos,
                   const Vector<Real> & r,
                   const Vector<Real> & rho);
+
+
+    /****************************************************************************
+    * Physics                                                                   *
+    ****************************************************************************/
+
+    void MoveIBParticles();
 
 
     // TODO: do we still need this?
