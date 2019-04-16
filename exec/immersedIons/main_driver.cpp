@@ -90,6 +90,9 @@ void main_driver(const char* argv)
 
     // A - fluid, C - particle, P/E - electrostatic
 
+    // AJN what is the particle grid used for?  Is it leftover from DSCM collision model?
+    
+    // AJN - change these to ba_fluid, ba_particle, etc.    
     BoxArray ba;
     BoxArray bc;
     BoxArray bp;
@@ -114,9 +117,10 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
+    // AJN - needs to be fixed for complete decoupling.  could be coarsening or refining factor
     int sizeRatioC = 1;
     int sizeRatioP = 1;
-
+    
     bc = ba;
     bp = ba;
     bc.refine(sizeRatioC);
@@ -130,6 +134,7 @@ void main_driver(const char* argv)
 
 
     // how boxes are distrubuted among MPI processes
+    // AJN needs to be fi
     DistributionMapping dmap(ba);
 
     Print() << geom << "\n";
@@ -156,6 +161,7 @@ void main_driver(const char* argv)
 
     const int* lims = domainC.hiVect();
 
+    // AJN - get rid of collision stuff?
 #if (AMREX_SPACEDIM == 2)
     int totalCollisionCells = (lims[0]+1)*(lims[1]+1);
 #elif (AMREX_SPACEDIM == 3)
@@ -180,13 +186,14 @@ void main_driver(const char* argv)
         
         ionParticle[i].m = mass[i];
         ionParticle[i].d = diameter[i];
-        ionParticle[i].q = qval;
-        ionParticle[i].Neff = particle_neff;
+        ionParticle[i].q = qval;  // AJN - should be qval[i]
+        ionParticle[i].Neff = particle_neff; // AJN is this a DSMC only thing?
         ionParticle[i].propulsion = 0;
         ionParticle[i].gamma1 = 1.27;
         ionParticle[i].R = k_B/ionParticle[i].m;
         ionParticle[i].T = 273;
 
+        // AJN - why round up particles so there are the same number in each box?
         if(particle_count[i] >= 0) {
             // adjust number of particles up so there is the same number per box            
             ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
@@ -223,6 +230,8 @@ void main_driver(const char* argv)
 
     // MFs for storing particle statistics
 
+    // AJN what can be eliminated from here?
+    
     //Members
     //Density
     //velx
@@ -283,6 +292,8 @@ void main_driver(const char* argv)
     //set number of ghost cells to fit whole peskin kernel
     int ng = 1;
 
+    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
+    
     if(pkernel_fluid == 3) {
         ng = 3;
     }
@@ -293,6 +304,7 @@ void main_driver(const char* argv)
         ng = 5;
     }
 
+    // AJN this only needs 1? ghost cell    
     MultiFab rho(ba, dmap, 1, ng);
     rho.setVal(1.);
 
@@ -452,7 +464,8 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names);
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
-
+    
+    // AJN - don't need to initialize velocities in overdamped.  first gmres solve should get them as long as they start out with non-NaN values.
     int dm = 0;
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
@@ -481,6 +494,8 @@ void main_driver(const char* argv)
         umac[d].FillBoundary(geom.periodicity());
     }
 
+
+    // AJN - don't need this
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
         sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
@@ -516,6 +531,7 @@ void main_driver(const char* argv)
     //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
 
 
+    // AJN - we don't understand why you need this for ions
 #if (BL_SPACEDIM == 3)
     int surfaceCount = 6;
     surface surfaceList[surfaceCount];
@@ -547,6 +563,7 @@ void main_driver(const char* argv)
     // Electrostatic setup
     //----------------------
 
+    // AJN - should define 3 types of "ng" parameters.  fluid, repulsive force, peskin
     int ngp = 1;
 
     if(pkernel_es == 4)
@@ -564,6 +581,8 @@ void main_driver(const char* argv)
     RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
 
     FindCenterCoords(RealCenteredCoords, geomP);
+
+    // AJN - what are all the Temp's for?
     
     //Cell centred es potential
     MultiFab potential(bp, dmap, 1, ngp);
@@ -658,8 +677,6 @@ void main_driver(const char* argv)
 
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
 //KTout        esSolve(potential, charge, efield, external, geomP);
-
-        //question---when we use Poisson solve, are we adding the forces directly to the force function?
 
         particles.fillNeighbors();
 
