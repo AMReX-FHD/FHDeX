@@ -212,14 +212,14 @@ void main_driver(const char* argv)
     // Define mfluxdiv predictor multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_predict[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      mfluxdiv_predict[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
       mfluxdiv_predict[d].setVal(0.0);
     }
 
     // Define mfluxdiv corrector multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+      mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
       mfluxdiv_correct[d].setVal(0.0);
     }
 
