@@ -121,6 +121,7 @@ private:
 
     bool update_loc = true;
 
+    Vector<PairIndex> part_index_loc;
     Vector< MultiFab> level_sets_loc;
     Vector<iMultiFab> iface_tags_loc;
 

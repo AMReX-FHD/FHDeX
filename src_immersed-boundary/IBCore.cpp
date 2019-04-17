@@ -96,17 +96,19 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
         // NOTE: mfi's tile size must match the ParticleContainer tile size
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+
 
         //_______________________________________________________________________
         // Get immersed-boundary data from IBParticleContainer
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
-        Vector<IBP_info> info = ib_pc->get_IBParticle_info(lev, index);
+        Vector<IBP_info> info = ib_pc->IBParticleInfo(lev, index);
         int np = info.size();
         test_interface(info.dataPtr(), & np);
+
 
         //_______________________________________________________________________
         // Prepare to construct local immersed-boundary data
@@ -144,19 +146,19 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
         //_______________________________________________________________________
         // Allocate MultiFabs for local levelset data
+        // TODO: currently these have ib_pc->get_nghost() many ghost cells,
+        // this is way too much. Once Andrew implements back-commuincation for
+        // neighbor particles, we'll only need 1 ghost cell.
         for (int i=0; i<n_ibm_loc; ++i) {
-            // level_sets_loc[i].define(grids[lev], dmap[lev], 1, n_pad);
-            // ls->setVal(0);
+            level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
+            level_sets_loc[i].setVal(0);
 
 
-            // // Tag those cells that are exactly 1 from an interface (ls = 0)
-            // tag_interface->define(grids[lev], dmap[lev], 1, n_pad);
-            // tag_interface->setVal(0);
+            // Tag those cells that are exactly 1 from an interface (ls = 0)
+            iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
+            iface_tags_loc[i].setVal(0);
         }
-
-
     }
-
 
    /****************************************************************************
     * Tag IB particle Interfaces                                               *
@@ -165,7 +167,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for(MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
+    for (MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
         //const Box & tile_box = mfi.tilebox();
 
         const FArrayBox & phi_tile = (* ls)[mfi];

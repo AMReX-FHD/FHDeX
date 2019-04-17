@@ -4,7 +4,7 @@ subroutine set_particle_properties(pstate, pradius, pdensity, pvol, pmass, omoi,
     use amrex_fort_module, only: rt => amrex_real
     use iso_c_binding,     only: c_int
     use constant,          only: pi
-    use param,             only: zero
+    use param_mod,         only: zero
 
     implicit none
 

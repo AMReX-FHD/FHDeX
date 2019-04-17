@@ -2,6 +2,7 @@
 #include <AMReX_AmrParGDB.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_Particles.H>
+#include <AMReX_NeighborParticles.H>
 
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
@@ -17,6 +18,7 @@ bool IBParticleContainer::use_neighbor_list  {true};
 bool IBParticleContainer::sort_neighbor_list {false};
 
 
+
 IBParticleContainer::IBParticleContainer(const Geometry & geom,
                                          const DistributionMapping & dmap,
                                          const BoxArray & ba, 
@@ -30,6 +32,7 @@ IBParticleContainer::IBParticleContainer(const Geometry & geom,
 }
 
 
+
 IBParticleContainer::IBParticleContainer(AmrCore * amr_core, int n_nbhd)
     : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
             amr_core->GetParGDB(), n_nbhd
@@ -39,6 +42,7 @@ IBParticleContainer::IBParticleContainer(AmrCore * amr_core, int n_nbhd)
 {
     InitInternals();
 }
+
 
 
 void IBParticleContainer::InitList(int lev,
@@ -156,6 +160,7 @@ void IBParticleContainer::InitList(int lev,
 }
 
 
+
 void IBParticleContainer::InitInternals() {
     ReadStaticParameters();
 
@@ -179,6 +184,7 @@ void IBParticleContainer::InitInternals() {
     //setIntCommComp(1, false);  // IBP_intData.state
     setIntCommComp(3, false);    // IBP_intData.phase
 }
+
 
 
 void IBParticleContainer::ReadStaticParameters() {
@@ -209,6 +215,7 @@ void IBParticleContainer::ReadStaticParameters() {
 }
 
 
+
 // TODO: do we still need this?
 void IBParticleContainer::AllocData() {
     reserveData();
@@ -220,6 +227,7 @@ void IBParticleContainer::AllocData() {
 
     //int nlevs_max = m_amr_core->maxLevel() + 1;
 }
+
 
 
 // TODO: do we still need this?
@@ -236,6 +244,7 @@ void IBParticleContainer::AllocateArrays(int lev, int a_nghost) {
     const BoxArray & ba            = ParticleBoxArray(lev);
     const DistributionMapping & dm = ParticleDistributionMap(lev);
 }
+
 
 
 //
@@ -269,6 +278,7 @@ void IBParticleContainer::CopyFluidData(int lev, const mfix_level & mf_lev) {
     // mu_g[lev]->copy(*  mf_lev.mu_g[lev], 0, 0, 1,  mf_lev.mu_g[lev]->nGrow(),  mu_g[lev]->nGrow());
     // p0_g[lev]->copy(*  mf_lev.p0_g[lev], 0, 0, 1,  mf_lev.p0_g[lev]->nGrow(),  p0_g[lev]->nGrow());
 }
+
 
 
 void IBParticleContainer::PrintParticleData(int lev) {
@@ -355,17 +365,18 @@ void IBParticleContainer::PrintParticleData(int lev) {
 }
 
 
-Vector<IBP_info> IBParticleContainer::get_IBParticle_info(int lev, PairIndex index) {
-    Vector<IBP_info> info;
+
+void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
+                                              int lev, PairIndex index) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
     RealVect inv_dx = RealVect(
-                AMREX_D_DECL(
-                    Geom(lev).InvCellSize(0),
-                    Geom(lev).InvCellSize(1),
-                    Geom(lev).InvCellSize(2)
-                )
+            AMREX_D_DECL(
+                Geom(lev).InvCellSize(0),
+                Geom(lev).InvCellSize(1),
+                Geom(lev).InvCellSize(2)
+            )
         );
 
 
@@ -410,7 +421,34 @@ Vector<IBP_info> IBParticleContainer::get_IBParticle_info(int lev, PairIndex ind
         // Add to list
         info.push_back(part_info);
     }
+}
 
+
+Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex index) {
+
+    // Allocate Particle Info vector
+    Vector<IBP_info> info;
+
+    //___________________________________________________________________________
+    // Fill Particle Info vector with local (non-neighbour) data
+    LocalIBParticleInfo(info, lev, index);
+
+
+    return info;
+}
+
+
+
+void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
+                                                 int lev, PairIndex index) {
+
+    RealVect inv_dx = RealVect(
+            AMREX_D_DECL(
+                Geom(lev).InvCellSize(0),
+                Geom(lev).InvCellSize(1),
+                Geom(lev).InvCellSize(2)
+            )
+        );
 
     int ng = neighbors[lev][index].size();
 
@@ -459,5 +497,34 @@ Vector<IBP_info> IBParticleContainer::get_IBParticle_info(int lev, PairIndex ind
         // Add to list
         info.push_back(part_info);
     }
+}
+
+
+Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex index) {
+
+    // Allocate Particle Info vector
+    Vector<IBP_info> info;
+
+    //___________________________________________________________________________
+    // Fill Particle Info vector with neighbour data
+    NeighborIBParticleInfo(info, lev, index);
+
+
+    return info;
+}
+
+
+
+Vector<IBP_info> IBParticleContainer::IBParticleInfo(int lev, PairIndex index) {
+
+    // Allocate Particle Info vector
+    Vector<IBP_info> info;
+
+    //___________________________________________________________________________
+    // Fill Particle Info vector with local (non-neighbour) and neighbour data
+       LocalIBParticleInfo(info, lev, index);
+    NeighborIBParticleInfo(info, lev, index);
+
+
     return info;
 }

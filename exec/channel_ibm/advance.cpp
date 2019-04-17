@@ -223,6 +223,16 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         alpha_fc_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
 
 
+    // Gradient of p, where div(grad(p)) = div(r), where r is the slip velocity
+    // due to the unconstrained stokes problem.
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_ibm_f;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        tmp_ibm_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_ibm_f[d].setVal(0.);
+    }
+
+
 
     //___________________________________________________________________________
     // Build coefficients for IB spreading and interpolation operators
@@ -558,12 +568,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // initial guess
         p_ibm_1.setVal(0.);
-
-        std::array<MultiFab, AMREX_SPACEDIM> tmp_ibm_f;
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            tmp_ibm_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
             tmp_ibm_f[d].setVal(0.);
-        }
 
         // Inverse Motility Matrix
         ApplyMatrix(tmp_f_1, p_f, r_f, p_ibm_1,
@@ -589,8 +595,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // Inverse-motility part
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            MultiFab::Copy(tmp_f_mask[d], tmp_f_1[d],   0, 0, 1, 1);
-            MultiFab::Multiply(tmp_f_mask[d], f_ibm[d], 0, 0, 1, 1);
+            MultiFab::Copy(tmp_f_mask[d],     tmp_f_1[d], 0, 0, 1, 1);
+            MultiFab::Multiply(tmp_f_mask[d], f_ibm[d],   0, 0, 1, 1);
 
             // MultiFab::Add(force_1[d], tmp_f_mask[d],    0, 0, 1, 1);
             // Add raw force to fluid => includes pressure correction terms from
@@ -600,7 +606,6 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // Divergence part
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            // MultiFab::Add(r_f[d], tmp_ibm_f[d], 0, 0, 1, 1);
             MultiFab::Subtract(umacNew[d], tmp_ibm_f[d], 0, 0, 1, 1);
             MultiFab::Copy(umac_1[d], umacNew[d], 0, 0, 1, 1);
         }
@@ -632,11 +637,16 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         if (norm_r < 1e-12) break;
     }
 
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 1);
-        MultiFab::Copy(pres,    p_1,        0, 0, 1, 1);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        // Output velocity solution
+        MultiFab::Copy(umac[d],      umacNew[d],   0, 0, 1, 1);
+
+        // Output immersed-boundary forces
+        MultiFab::Copy(force_ibm[d], force_1[d],   0, 0, 1, 1);
+        // Include divergence part
+        MultiFab::Add (force_ibm[d], tmp_ibm_f[d], 0, 0, 1, 1);
+
+        // Output pressure solution
+        MultiFab::Copy(pres,         p_1,          0, 0, 1, 1);
     }
-
-    //////////////////////////////////////////////////
-
 }

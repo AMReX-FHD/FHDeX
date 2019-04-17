@@ -14,7 +14,7 @@
 
 
 using namespace amrex;
-using namespace std;
+// using namespace std;
 
 class mfix_level;
 
@@ -85,7 +85,7 @@ public:
     // data (for convenience and avoiding auto &).
     //using RealType      = typename ParticleType::RealType;
     //using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
-    using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
+    // using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
 
     // Get number of particles
     int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size(); };
@@ -128,13 +128,23 @@ public:
     //void RegridArrays(int lev, BoxArray& new_grids, DistributionMapping& new_dmap);
     void CopyFluidData(int lev, const mfix_level & mf_lev);
 
+    int get_nghost() const {return nghost;};
+
 
     /****************************************************************************
      * Output particle data                                                     *
      ***************************************************************************/
 
     void PrintParticleData(int lev);
-    Vector<IBP_info> get_IBParticle_info(int lev, PairIndex index);
+
+    void LocalIBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index);
+    Vector<IBP_info> LocalIBParticleInfo(int lev, PairIndex index);
+
+    void NeighborIBParticleInfo(Vector<IBP_info> & npart_info, int lev, PairIndex index);
+    Vector<IBP_info> NeighborIBParticleInfo(int lev, PairIndex index);
+
+    void IBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index);
+    Vector<IBP_info> IBParticleInfo(int lev, PairIndex index);
 
 
 
