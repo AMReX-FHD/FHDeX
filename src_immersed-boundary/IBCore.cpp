@@ -90,11 +90,18 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     // Fill neighbors as IB particles can overlap from nearby grids
     ib_pc->fillNeighbors();
 
-    // ParIter skips tiles without particles => Iterate over MultiFab instead
-    // of ParticleIter for the following:
 
+    //___________________________________________________________________________
+    // Prepare to construct local immersed-boundary data
+    n_ibm_loc = 0;
+    part_loc.clear();
+    part_index_loc.clear();
+
+
+    // ParIter skips tiles without particles => Iterate over MultiFab instead
+    // of ParticleIter for the following.
 #ifdef _OPENMP
-#pragma omp parallel
+#pragma omp parallel reduction(+:n_ibm_loc)
 #endif
     for (MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
         // NOTE: mfi's tile size must match the ParticleContainer tile size
@@ -106,15 +113,36 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
         Vector<IBP_info> info = ib_pc->IBParticleInfo(lev, index);
-        int np = info.size();
-        test_interface(info.dataPtr(), & np);
+        n_ibm_loc = info.size();
+        test_interface(info.dataPtr(), & n_ibm_loc);
 
 
         //_______________________________________________________________________
-        // Prepare to construct local immersed-boundary data
-        n_ibm_loc = np;
+        // Collect local (to memory) unique copies of particle data
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+        {
+            for (IBP_info pinfo : info) {
+                std::pair<int,int> pindex(pinfo.id, pinfo.cpu);
+                // check if particle's index (pindex) is already contained in
+                // the local list
+                if ( std::find(part_index_loc.begin(), part_index_loc.end(), pindex)
+                        == part_index_loc.end()) {
+                    part_index_loc.push_back(pindex);
+                    part_loc.push_back(pinfo);
+                }
+            }
+        }
+    }
+
+    if (n_ibm_loc > 0) n_ibm_loc = part_loc.size();
 
 
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+    for (MFIter mfi(* ls, true); mfi.isValid(); ++mfi) {
         //_______________________________________________________________________
         // Fill the global level-set data
         const Box & tile_box = mfi.tilebox();
@@ -123,12 +151,11 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         auto & vel_tile      = (* ls_vel)[mfi];
 
         fill_levelset_ib (tile_box.loVect(),  tile_box.hiVect(),
-                          info.dataPtr(),     & np,
+                          part_loc.dataPtr(), & n_ibm_loc,
                           phi_tile.dataPtr(), phi_tile.loVect(), phi_tile.hiVect(),
                           tag_tile.dataPtr(), tag_tile.loVect(), tag_tile.hiVect(),
                           vel_tile.dataPtr(), vel_tile.loVect(), vel_tile.hiVect(),
                           dx.dataPtr()                                              );
-
     }
 
     ls->FillBoundary(Geom(lev).periodicity());
@@ -152,7 +179,6 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         for (int i=0; i<n_ibm_loc; ++i) {
             level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
             level_sets_loc[i].setVal(0);
-
 
             // Tag those cells that are exactly 1 from an interface (ls = 0)
             iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
