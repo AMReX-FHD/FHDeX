@@ -20,9 +20,11 @@ IBCore::~IBCore () {
 }
 
 
+
 void IBCore::InitData () {
 
 }
+
 
 
 // TODO: Implement refinement. For now this does nothing.
@@ -30,6 +32,7 @@ void IBCore::ErrorEst (int lev, TagBoxArray & tags, Real time,
                        int ngrow) {
 
 }
+
 
 
 void IBCore::MakeNewLevelFromScratch (int lev, Real time,
@@ -41,7 +44,6 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     ba_nd      = amrex::convert(grids[lev], IntVect::TheNodeVector());
 
 
-
     // Define a new level-set as well as the identifier iMultiFab and the
     // interface tags
     ls            = std::unique_ptr<MultiFab> (new  MultiFab);
@@ -51,6 +53,8 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
     const int n_pad = 1; // Pad level-set by at least 1 ghost cell =>
                          // interpolation requires at least 1 neighbor node.
+
+
 
    /****************************************************************************
     * Allocate new MultiFabs:                                                  *
@@ -79,20 +83,19 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     ls_vel->setVal(0);
 
 
-   /****************************************************************************
-    * Fill Level Set and tags                                                  *
-    ****************************************************************************/
 
-    RealVect dx = RealVect(
-        AMREX_D_DECL( Geom(lev).CellSize(0), Geom(lev).CellSize(1), Geom(lev).CellSize(2) )
-        );
+    /****************************************************************************
+     * Fill neighbors: IB particles can overlap from nearby grids               *
+     ****************************************************************************/
 
-    // Fill neighbors as IB particles can overlap from nearby grids
     ib_pc->fillNeighbors();
 
 
-    //___________________________________________________________________________
-    // Prepare to construct local immersed-boundary data
+
+   /****************************************************************************
+    * Collect local Immersed-Boundary Particle Data                            *
+    ****************************************************************************/
+
     n_ibm_loc = 0;
     part_loc.clear();
     part_index_loc.clear();
@@ -105,7 +108,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 #endif
     for (MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
         // NOTE: mfi's tile size must match the ParticleContainer tile size
-        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index).
 
 
         //_______________________________________________________________________
@@ -118,15 +121,17 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
 
         //_______________________________________________________________________
-        // Collect local (to memory) unique copies of particle data
+        // Collect local (to memory) unique copies of particle data. Use the
+        // `critical` pragma to prevent race conditions.
 #ifdef _OPENMP
 #pragma omp critical
 #endif
         {
             for (IBP_info pinfo : info) {
                 std::pair<int,int> pindex(pinfo.id, pinfo.cpu);
-                // check if particle's index (pindex) is already contained in
-                // the local list
+
+                // Check if particle's index (pindex) is already contained in
+                // the local list. Neighbor particles can be duplicates.
                 if ( std::find(part_index_loc.begin(), part_index_loc.end(), pindex)
                         == part_index_loc.end()) {
                     part_index_loc.push_back(pindex);
@@ -136,7 +141,18 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         }
     }
 
+    // Make sure that the `n_ibm_loc` integer does not count duplicates
     if (n_ibm_loc > 0) n_ibm_loc = part_loc.size();
+
+
+
+   /****************************************************************************
+    * Fill Level Set and Tags                                                  *
+    ****************************************************************************/
+
+    RealVect dx = RealVect(
+        AMREX_D_DECL( Geom(lev).CellSize(0), Geom(lev).CellSize(1), Geom(lev).CellSize(2) )
+        );
 
 
 #ifdef _OPENMP
@@ -150,17 +166,18 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         auto & tag_tile      = (* ls_id)[mfi];
         auto & vel_tile      = (* ls_vel)[mfi];
 
-        fill_levelset_ib (tile_box.loVect(),  tile_box.hiVect(),
+        fill_levelset_ib (BL_TO_FORTRAN_BOX(tile_box),
                           part_loc.dataPtr(), & n_ibm_loc,
-                          phi_tile.dataPtr(), phi_tile.loVect(), phi_tile.hiVect(),
-                          tag_tile.dataPtr(), tag_tile.loVect(), tag_tile.hiVect(),
-                          vel_tile.dataPtr(), vel_tile.loVect(), vel_tile.hiVect(),
-                          dx.dataPtr()                                              );
+                          BL_TO_FORTRAN_3D(phi_tile),
+                          BL_TO_FORTRAN_3D(tag_tile),
+                          BL_TO_FORTRAN_3D(vel_tile),
+                          dx.dataPtr());
     }
 
     ls->FillBoundary(Geom(lev).periodicity());
     ls_id->FillBoundary(Geom(lev).periodicity());
     ls_vel->FillBoundary(Geom(lev).periodicity());
+
 
 
     /****************************************************************************
@@ -186,6 +203,8 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         }
     }
 
+
+
    /****************************************************************************
     * Tag IB particle Interfaces                                               *
     ****************************************************************************/
@@ -200,9 +219,9 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         const IArrayBox & tag_tile = (* ls_id)[mfi];
               IArrayBox & iface_tile = (* tag_interface)[mfi];
 
-        tag_interface_ib (iface_tile.dataPtr(), iface_tile.loVect(), iface_tile.hiVect(),
-                          phi_tile.dataPtr(),   phi_tile.loVect(),   phi_tile.hiVect(),
-                          tag_tile.dataPtr(),   tag_tile.loVect(),   tag_tile.hiVect()     );
+        tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
+                          BL_TO_FORTRAN_3D(phi_tile),
+                          BL_TO_FORTRAN_3D(tag_tile));
     }
 
     tag_interface->FillBoundary(Geom(lev).periodicity());
@@ -211,11 +230,13 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 }
 
 
+
 // TODO: Implement refinement. For now this does nothing.
 void IBCore::MakeNewLevelFromCoarse (int lev, Real time,
                                      const BoxArray & ba, const DistributionMapping & dm ) {
 
 }
+
 
 
 void IBCore::RemakeLevel (int lev, Real time,
@@ -263,6 +284,7 @@ void IBCore::RemakeLevel (int lev, Real time,
 
     update_loc = false;
 }
+
 
 
 // TODO: Implement refinement. For now this does nothing.
@@ -319,7 +341,7 @@ void IBCore::IBForceDeposition (       MultiFab & f_u,       MultiFab & f_v,    
         const IArrayBox & iface_tile = (* tag_interface)[mfi];
         const FArrayBox & vel_tile   = (* ls_vel)[mfi];
 
-        interpolate_ib_staggered (tile_box.loVect(), tile_box.hiVect(),
+        interpolate_ib_staggered (BL_TO_FORTRAN_BOX(tile_box),
                                   BL_TO_FORTRAN_3D(u_d_tile),
                                   BL_TO_FORTRAN_3D(v_d_tile),
                                   BL_TO_FORTRAN_3D(w_d_tile),
@@ -329,7 +351,7 @@ void IBCore::IBForceDeposition (       MultiFab & f_u,       MultiFab & f_v,    
                                   BL_TO_FORTRAN_3D(et_tile),
                                   BL_TO_FORTRAN_3D(ls_tile),
                                   BL_TO_FORTRAN_3D(iface_tile),
-                                  BL_TO_FORTRAN_3D(vel_tile)            );
+                                  BL_TO_FORTRAN_3D(vel_tile));
     }
 
 
@@ -354,7 +376,7 @@ void IBCore::IBForceDeposition (       MultiFab & f_u,       MultiFab & f_v,    
         const FArrayBox & w_d_tile = w_d[mfi];
 
 
-        fill_force_ib_staggered (tile_box.loVect(), tile_box.hiVect(),
+        fill_force_ib_staggered (BL_TO_FORTRAN_BOX(tile_box),
                                  BL_TO_FORTRAN_3D(f_u_tile),
                                  BL_TO_FORTRAN_3D(f_v_tile),
                                  BL_TO_FORTRAN_3D(f_w_tile),
@@ -365,8 +387,7 @@ void IBCore::IBForceDeposition (       MultiFab & f_u,       MultiFab & f_v,    
                                  BL_TO_FORTRAN_3D(v_d_tile),
                                  BL_TO_FORTRAN_3D(w_d_tile),
                                  BL_TO_FORTRAN_3D(et_tile),
-                                 & dt                                   );
-
+                                 & dt);
     }
 
     if (m_verbose > 1) {
@@ -419,13 +440,13 @@ void IBCore::IBForceDeposition ( MultiFab & force, MultiFab & vel_d, const Multi
         const IArrayBox & iface_tile = (* tag_interface)[mfi];
         const FArrayBox & vel_tile   = (* ls_vel)[mfi];
 
-        interpolate_ib_cc (tile_box.loVect(), tile_box.hiVect(),
+        interpolate_ib_cc (BL_TO_FORTRAN_BOX(tile_box),
                            BL_TO_FORTRAN_3D(vel_d_tile),
                            BL_TO_FORTRAN_3D(vel_s_tile),
                            BL_TO_FORTRAN_3D(et_tile),
                            BL_TO_FORTRAN_3D(ls_tile),
                            BL_TO_FORTRAN_3D(iface_tile),
-                           BL_TO_FORTRAN_3D(vel_tile)            );
+                           BL_TO_FORTRAN_3D(vel_tile));
     }
 
 
@@ -443,12 +464,12 @@ void IBCore::IBForceDeposition ( MultiFab & force, MultiFab & vel_d, const Multi
         const FArrayBox & vel_d_tile = vel_d[mfi];
 
 
-        fill_force_ib_cc (tile_box.loVect(), tile_box.hiVect(),
+        fill_force_ib_cc (BL_TO_FORTRAN_BOX(tile_box),
                           BL_TO_FORTRAN_3D(force_tile),
                           BL_TO_FORTRAN_3D(vel_s_tile),
                           BL_TO_FORTRAN_3D(vel_d_tile),
                           BL_TO_FORTRAN_3D(et_tile),
-                          & dt                                   );
+                          & dt);
 
     }
 
@@ -518,7 +539,7 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
         const IArrayBox & iface_tile = (* tag_interface)[mfi];
         const FArrayBox & vel_tile   = (* ls_vel)[mfi];
 
-        interpolate_ib_staggered (tile_box.loVect(), tile_box.hiVect(),
+        interpolate_ib_staggered (BL_TO_FORTRAN_BOX(tile_box),
                                   BL_TO_FORTRAN_3D(u_d_tile),
                                   BL_TO_FORTRAN_3D(v_d_tile),
                                   BL_TO_FORTRAN_3D(w_d_tile),
@@ -528,7 +549,7 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
                                   BL_TO_FORTRAN_3D(et_tile),
                                   BL_TO_FORTRAN_3D(ls_tile),
                                   BL_TO_FORTRAN_3D(iface_tile),
-                                  BL_TO_FORTRAN_3D(vel_tile)            );
+                                  BL_TO_FORTRAN_3D(vel_tile));
     }
     
     u_d.FillBoundary(Geom(lev).periodicity());
@@ -553,11 +574,11 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 
         const auto & et_tile = (* et)[mfi];
 
-        fill_fgds_ib (tile_box.loVect(), tile_box.hiVect(),
+        fill_fgds_ib (BL_TO_FORTRAN_BOX(tile_box),
         		      BL_TO_FORTRAN_3D(f_u_tile),
 		              BL_TO_FORTRAN_3D(f_v_tile),
 		              BL_TO_FORTRAN_3D(f_w_tile),
-		              BL_TO_FORTRAN_3D(et_tile)             );
+		              BL_TO_FORTRAN_3D(et_tile));
 
     }
 
