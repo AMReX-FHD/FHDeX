@@ -2027,6 +2027,8 @@ subroutine rfd(weights, indicies, &
   part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
   part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
 
+! AJN - update the weights?... or put a call to get_weights at the beginning of spread_op() so there are never any oopses?
+  
   call spread_op(weights, indicies, &
                   sourceu, sourceulo, sourceuhi, &
                   sourcev, sourcevlo, sourcevhi, &

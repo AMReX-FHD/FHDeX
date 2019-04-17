@@ -90,6 +90,9 @@ void main_driver(const char* argv)
 
     // A - fluid, C - particle, P/E - electrostatic
 
+    // AJN what is the particle grid used for?  Is it leftover from DSCM collision model?
+    
+    // AJN - change these to ba_fluid, ba_particle, etc.    
     BoxArray ba;
     BoxArray bc;
     BoxArray bp;
@@ -114,9 +117,10 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
+    // AJN - needs to be fixed for complete decoupling.  could be coarsening or refining factor
     int sizeRatioC = 1;
     int sizeRatioP = 1;
-
+    
     bc = ba;
     bp = ba;
     bc.refine(sizeRatioC);
@@ -130,6 +134,7 @@ void main_driver(const char* argv)
 
 
     // how boxes are distrubuted among MPI processes
+    // AJN needs to be fi
     DistributionMapping dmap(ba);
 
     Print() << geom << "\n";
@@ -139,14 +144,16 @@ void main_driver(const char* argv)
     const Real* dxc = geomC.CellSize();
     const Real* dxp = geomP.CellSize();
 
+    // AJN - does cellVols have to be a MultiFab (could it just a Real?)
     MultiFab cellVols(bc, dmap, 1, 0);
 
 #if (AMREX_SPACEDIM == 2)
-#elif (AMREX_SPACEDIM == 3)
     cellVols.setVal(dxc[0]*dxc[1]*cell_depth);
+#elif (AMREX_SPACEDIM == 3)
     cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
 #endif
 
+    // AJN - isn't this the same as real_box?
     const RealBox& realDomain = geom.ProbDomain();
 
     Real dt = fixed_dt;
@@ -154,6 +161,7 @@ void main_driver(const char* argv)
 
     const int* lims = domainC.hiVect();
 
+    // AJN - get rid of collision stuff?
 #if (AMREX_SPACEDIM == 2)
     int totalCollisionCells = (lims[0]+1)*(lims[1]+1);
 #elif (AMREX_SPACEDIM == 3)
@@ -162,11 +170,9 @@ void main_driver(const char* argv)
 
 #if (AMREX_SPACEDIM == 2)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*cell_depth;
-#endif
-#if (AMREX_SPACEDIM == 3)
+#elif (AMREX_SPACEDIM == 3)
     double domainVol = (prob_hi[0] - prob_lo[0])*(prob_hi[1] - prob_lo[1])*(prob_hi[2] - prob_lo[2]);
 #endif
-
 
     //Species type defined in species.H
     //array of length nspecies
@@ -176,32 +182,32 @@ void main_driver(const char* argv)
     double realParticles = 0;
     double simParticles = 0;
 
-    for(int i=0;i<nspecies;i++)
-    {       
+    for(int i=0;i<nspecies;i++) {
+        
         ionParticle[i].m = mass[i];
         ionParticle[i].d = diameter[i];
+        ionParticle[i].q = qval;  // AJN - should be qval[i]
+        ionParticle[i].Neff = particle_neff; // AJN is this a DSMC only thing?
+        ionParticle[i].propulsion = 0;
+        ionParticle[i].gamma1 = 1.27;
+        ionParticle[i].R = k_B/ionParticle[i].m;
+        ionParticle[i].T = 273;
 
-        ionParticle[i].q = qval;
-
-        if(particle_count[i] >= 0)
-        {
+        // AJN - why round up particles so there are the same number in each box?
+        if(particle_count[i] >= 0) {
+            // adjust number of particles up so there is the same number per box            
             ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
-
             ionParticle[i].total = ionParticle[i].ppb*ba.size();
-
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
             Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
-
-        }else
-        {
-            ionParticle[i].n0 = particle_n0[i];
-            ionParticle[i].total = (int)ceil(ionParticle[i].n0*domainVol/particle_neff);
-
+        }
+        else {
+            // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
+            ionParticle[i].total = (int)ceil(particle_n0[i]*domainVol/particle_neff);
+            // adjust number of particles up so there is the same number per box  
             ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
-
             ionParticle[i].total = ionParticle[i].ppb*ba.size();
-
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
             Print() << "Species " << i << " n0 adjusted to " << ionParticle[i].n0 << "\n";
@@ -211,19 +217,21 @@ void main_driver(const char* argv)
 
         realParticles = realParticles + ionParticle[i].total;
         simParticles = simParticles + ionParticle[i].total*particle_neff;
-
-        ionParticle[i].Neff = particle_neff;
-
-        ionParticle[i].propulsion = 0;
-
-        ionParticle[i].gamma1 = 1.27;
-        ionParticle[i].R = k_B/ionParticle[i].m;
-        ionParticle[i].T = 273;
     }
+    
+    Print() << "Total real particles: " << realParticles << "\n";
+    Print() << "Total sim particles: " << simParticles << "\n";
+
+    Print() << "Sim particles per box: " << simParticles/(double)ba.size() << "\n";
+
+    Print() << "Collision cells: " << totalCollisionCells << "\n";
+    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
 
-        //MFs for storing particle statistics
+    // MFs for storing particle statistics
 
+    // AJN what can be eliminated from here?
+    
     //Members
     //Density
     //velx
@@ -235,8 +243,6 @@ void main_driver(const char* argv)
     //jz
     //energyDensity
     //pressure
-
-
     MultiFab particleInstant(bc, dmap, 11, 0);
 
     //Members
@@ -250,8 +256,7 @@ void main_driver(const char* argv)
     //jz
     //energyDensity
     //pressure
-    //speed
-    
+    //speed    
     MultiFab particleMeans(bc, dmap, 12, 0);
 
     //Members
@@ -274,20 +279,8 @@ void main_driver(const char* argv)
     //SpatialCross3
     //SpatialCross4
     //SpatialCross5
-    //SpatialCross6
-
-    
+    //SpatialCross6    
     MultiFab particleVars(bc, dmap, 21, 0);
-    
-
-    Print() << "Total real particles: " << realParticles << "\n";
-    Print() << "Total sim particles: " << simParticles << "\n";
-
-    Print() << "Sim particles per box: " << simParticles/(double)ba.size() << "\n";
-
-    Print() << "Collision cells: " << totalCollisionCells << "\n";
-    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
-
     
     //-----------------------------
     //  Hydro setup
@@ -297,27 +290,32 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     //set number of ghost cells to fit whole peskin kernel
-
-
     int ng = 1;
 
-    if(pkernel_fluid == 3)
-    {
+    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
+    
+    if(pkernel_fluid == 3) {
         ng = 3;
-
-    }if(pkernel_fluid == 4)
-    {
+    }
+    else if(pkernel_fluid == 4) {
         ng = 4;
-
-    }else if(pkernel_fluid == 6)
-    {
-
+    }
+    else if(pkernel_fluid == 6) {
         ng = 5;
     }
 
+    // AJN this only needs 1? ghost cell    
     MultiFab rho(ba, dmap, 1, ng);
     rho.setVal(1.);
 
+    // AJN - the number of ghost cells needed for the GMRES solve for alpha, beta, etc., is a fixed number
+    // and not dependent on the Peskin kernels.
+    // alpha_fc -> 1 ghost cell
+    // beta -> 1
+    // beta_ed -> 1
+    // gamma -> 1
+    // I'm thinking only the velocities need the extra ghost cells.  Probably not density
+    
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -356,6 +354,12 @@ void main_driver(const char* argv)
     const Real eta_const = visc_coef;
     const Real temp_const = T_init[0];      // [units: K]
 
+    // AJN - I think the number of ghost cells needed here is
+    // eta_cc -> 1
+    // temp_cc -> 1
+    // eta_ed -> 0
+    // temp_ed -> 0
+    
     // eta & temperature cell centered
     MultiFab  eta_cc;
     MultiFab temp_cc;
@@ -391,6 +395,7 @@ void main_driver(const char* argv)
     // random fluxes:
     ///////////////////////////////////////////
 
+    // AJN - I think stochMfluxdiv needs 0 ghost cells
 
     // mflux divergence, staggered in x,y,z
 
@@ -409,6 +414,9 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
+    // AJN - pres needs 1 ghost cell
+    // but umac is the thing that needs extra ghost cells for Peskin kernels
+    
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,ng);
     pres.setVal(0.);  // initial guess
@@ -456,7 +464,8 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names);
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
-
+    
+    // AJN - don't need to initialize velocities in overdamped.  first gmres solve should get them as long as they start out with non-NaN values.
     int dm = 0;
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
@@ -485,6 +494,8 @@ void main_driver(const char* argv)
         umac[d].FillBoundary(geom.periodicity());
     }
 
+
+    // AJN - don't need this
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
         sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
@@ -520,6 +531,7 @@ void main_driver(const char* argv)
     //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
 
 
+    // AJN - we don't understand why you need this for ions
 #if (BL_SPACEDIM == 3)
     int surfaceCount = 6;
     surface surfaceList[surfaceCount];
@@ -551,6 +563,7 @@ void main_driver(const char* argv)
     // Electrostatic setup
     //----------------------
 
+    // AJN - should define 3 types of "ng" parameters.  fluid, repulsive force, peskin
     int ngp = 1;
 
     if(pkernel_es == 4)
@@ -568,6 +581,8 @@ void main_driver(const char* argv)
     RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
 
     FindCenterCoords(RealCenteredCoords, geomP);
+
+    // AJN - what are all the Temp's for?
     
     //Cell centred es potential
     MultiFab potential(bp, dmap, 1, ngp);
@@ -662,8 +677,6 @@ void main_driver(const char* argv)
 
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
 //KTout        esSolve(potential, charge, efield, external, geomP);
-
-        //question---when we use Poisson solve, are we adding the forces directly to the force function?
 
         particles.fillNeighbors();
 
