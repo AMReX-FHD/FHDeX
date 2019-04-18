@@ -22,13 +22,16 @@ using namespace amrex;
 
 
 struct IBP_info {
-    RealVect pos;
-    RealVect vel;
-    IntVect  index;
+    RealVect pos;     // Particle position
+    RealVect vel;     // Particle velocity
+    IntVect  index;   // Index (of pos) in the grid
 
-    Real radius;
-    int  id;
-    int  cpu;
+    Real radius;      // Particle radius
+    int  id;          // Particle ID (local initial MPI rank)
+    int  cpu;         // MPI rank (where the particle was created)
+
+    int  real;        // Is the particle real (not a neighbor)
+                      // NOTE: not a bool because of c/fortran-interface
 };
 
 

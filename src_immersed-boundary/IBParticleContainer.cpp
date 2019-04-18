@@ -417,6 +417,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
         part_info.radius = r;
         part_info.id     = part.id();
         part_info.cpu    = part.cpu();
+        part_info.real   = 1; // 1 => real (non-neighbor particle)
 
         // Add to list
         info.push_back(part_info);
@@ -493,6 +494,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
         part_info.radius = r;
         part_info.id     = part.id();
         part_info.cpu    = part.cpu();
+        part_info.real   = 0; // 0 => neighbor particle
 
         // Add to list
         info.push_back(part_info);
