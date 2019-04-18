@@ -184,16 +184,16 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
      * Construct Local Immersed-Boundary Data                                   *
      ***************************************************************************/
 
+    //___________________________________________________________________________
+    // Allocate MultiFabs for local levelset data
+    // TODO: currently these have ib_pc->get_nghost() many ghost cells, this is
+    // way too much. Once Andrew implements back-commuincation for neighbor
+    // particles, we'll only need 1 ghost cell.
     if (n_ibm_loc > 0) {
         level_sets_loc.resize(n_ibm_loc);
         iface_tags_loc.resize(n_ibm_loc);
 
-        //_______________________________________________________________________
-        // Allocate MultiFabs for local levelset data
-        // TODO: currently these have ib_pc->get_nghost() many ghost cells,
-        // this is way too much. Once Andrew implements back-commuincation for
-        // neighbor particles, we'll only need 1 ghost cell.
-        for (int i=0; i<n_ibm_loc; ++i) {
+       for (int i=0; i<n_ibm_loc; ++i) {
             level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
             level_sets_loc[i].setVal(0);
 
@@ -201,6 +201,15 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
             iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
             iface_tags_loc[i].setVal(0);
         }
+    }
+
+
+    //___________________________________________________________________________
+    // Fill each level-set and interface tag MultiFab
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(* ls, true); mfi.isValid(); ++mfi) {
     }
 
 
