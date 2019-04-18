@@ -2629,20 +2629,20 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   veltest = 0
 
 
-  !call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
 
    p = 1
   !Added force zeroing to be safe        
-!  do while (p <= np)
+  do while (p <= np)
 
-!     part => particles(p)
+     part => particles(p)
 
-!      print *, "Coulomb force: ", part%force
-!     part%force=0
+      print *, "Coulomb force: ", part%force
+     part%force=0
 
-!      p = p + 1
+      p = p + 1
 
-!  end do
+  end do
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
