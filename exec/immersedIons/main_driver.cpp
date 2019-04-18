@@ -660,17 +660,17 @@ void main_driver(const char* argv)
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-//        if(variance_coef_mom != 0.0) {
+        if(variance_coef_mom != 0.0) {
 
-//          // compute the random numbers needed for the stochastic momentum forcing
-//          sMflux.fillMStochastic();
+          // compute the random numbers needed for the stochastic momentum forcing
+          sMflux.fillMStochastic();
 
 
 //          // compute stochastic momentum force
-//          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-//        }
+          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+        }
 
-//   	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 
         if (plot_int > 0 && step%plot_int == 0)
@@ -684,10 +684,10 @@ void main_driver(const char* argv)
         }
 
         //Calls wet ion interpolation and movement.
-        //particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        //particles.Redistribute();
-        //particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+        particles.Redistribute();
+        particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
 
 //Dout  particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 

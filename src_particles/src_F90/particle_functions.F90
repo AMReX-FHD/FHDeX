@@ -2014,7 +2014,7 @@ subroutine rfd(weights, indicies, &
 
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-  delta = 1d-2*dxf(1)
+  delta = 1d-6*dxf(1)
 
   !print*, "Fluid vel: ", uloc, wloc, vloc
 
@@ -2543,7 +2543,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, t_init
   use rng_functions_module
   use surfaces_module
   
@@ -2593,7 +2593,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3)
+                   diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -2633,16 +2633,16 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
    p = 1
   !Added force zeroing to be safe        
-  do while (p <= np)
+!  do while (p <= np)
 
-     part => particles(p)
+!     part => particles(p)
 
-      print *, "Coulomb force: ", part%force
-     part%force=0
+!      print *, "Coulomb force: ", part%force
+!     part%force=0
 
-      p = p + 1
+!      p = p + 1
 
-  end do
+!  end do
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -2680,31 +2680,94 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 #endif
                                 part, ks, dxf)
 
-              call emf(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
-#endif
-                                efx, efxlo, efxhi, &
-                                efy, efylo, efyhi, &
-#if (BL_SPACEDIM == 3)
-                                efz, efzlo, efzhi, &
-#endif
-                                part, ks, dxe)
+!              call emf(weights, indicies, &
+!                                sourcex, sourcexlo, sourcexhi, &
+!                                sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                                efx, efxlo, efxhi, &
+!                                efy, efylo, efyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                efz, efzlo, efzhi, &
+!#endif
+!                                part, ks, dxe)
 
 
               !  print*, "SPREAD"
-              call spread_op(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
-#endif
-                                part, ks, dxf)
+!              call spread_op(weights, indicies, &
+!                                sourcex, sourcexlo, sourcexhi, &
+!                                sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                                part, ks, dxf)
 
 
               part%force = 0
+
+!------------RFD calc, temporarily moved out of function for testing
+
+  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
+
+  delta = 1d-6*dxf(1)
+
+  !print*, "Fluid vel: ", uloc, wloc, vloc
+
+  call get_particle_normal(normalrand(1))
+  call get_particle_normal(normalrand(2))
+  call get_particle_normal(normalrand(3))
+
+  part%pos = part%pos + delta*normalrand/2
+
+  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
+  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
+  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
+
+! AJN - update the weights?... or put a call to get_weights at the beginning of spread_op() so there are never any oopses?
+
+  call get_weights(dxf, dxfinv, weights, indicies, &
+                  coordsx, coordsxlo, coordsxhi, &
+                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                  coordsz, coordszlo, coordszhi, &
+#endif
+                  part, ks, lo, hi, plof)
+  
+  call spread_op(weights, indicies, &
+                  sourcex, sourcexlo, sourcexhi, &
+                  sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                  sourcez, sourcezlo, sourcezhi, &
+#endif
+                  part, ks, dxf)
+
+  part%pos = part%pos - delta*normalrand
+
+  call get_weights(dxf, dxfinv, weights, indicies, &
+                  coordsx, coordsxlo, coordsxhi, &
+                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                  coordsz, coordszlo, coordszhi, &
+#endif
+                  part, ks, lo, hi, plof)
+
+  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
+  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
+  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
+
+  call spread_op(weights, indicies, &
+                  sourcex, sourcexlo, sourcexhi, &
+                  sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                  sourcez, sourcezlo, sourcezhi, &
+#endif
+                  part, ks, dxf)
+
+  part%pos = part%pos + delta*normalrand/2
+
+!--------------End RFD calc
+
 
 !              call rfd(weights, indicies, &
 !                                sourcex, sourcexlo, sourcexhi, &
@@ -2714,7 +2777,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 !#endif
 !                                part, ks, dxf)
 
-           p = p + 1
+              p = p + 1
 
 
            end do
