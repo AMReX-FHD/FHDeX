@@ -254,6 +254,47 @@ contains
     end subroutine union_particle
 
 
+    subroutine fill_levelset_sphere(lo,        hi,             &
+                                    part_info,                 &
+                                    phi,       philo, phihi,   &
+                                    dx                       ) &
+               bind(C, name="fill_levelset_sphere")
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int),   dimension(3), intent(in   ) :: lo, hi
+
+        ! ** IN:  particle info
+        type(particle_info_t),          intent(in   ) :: part_info
+        ! ** IN:  spatial discretization
+        real(amrex_real), dimension(3), intent(in   ) :: dx
+
+        ! ** OUT: (nodal) level-set (signed distance from particle surface)
+        integer(c_int),   dimension(3), intent(in   ) :: philo, phihi
+        real(amrex_real), intent(  out) :: phi(philo(1):phihi(1), &
+            &                                  philo(2):phihi(2), &
+            &                                  philo(3):phihi(3))
+
+
+        !________________________________________________________________________
+        ! ** Internal variables:
+        ! i, j, k => cell-centered indices
+        ! pos     => (nodal) position of the cell (i, j, k)
+        integer                        :: i, j, k
+        real(amrex_real), dimension(3) :: pos
+
+
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                    pos = (/ i*dx(1), j*dx(2), k*dx(3) /)
+                    phi(i, j, k) = dist_sphere(pos, part_info%pos, part_info%radius)
+                end do
+            end do
+        end do
+
+    end subroutine fill_levelset_sphere
+
 
     pure function dist_sphere(x, pos, r)
 
