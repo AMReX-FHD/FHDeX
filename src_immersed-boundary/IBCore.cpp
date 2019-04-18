@@ -221,6 +221,8 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
             level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
             // Tag those cells that are exactly 1 from an interface (ls = 0)
             iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
+            // Tag those boxes which are being touched
+            level_set_valid[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
 
             // The default is important as not every box will be touched
             // (because there might be no corresponding particle/neighbor
