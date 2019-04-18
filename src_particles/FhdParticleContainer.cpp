@@ -419,6 +419,108 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 #pragma omp parallel
 #endif
 
+//    source[0].setVal(0.0);
+//    source[1].setVal(0.0);
+//#if (AMREX_SPACEDIM == 3)
+//    source[2].setVal(0.0);
+//#endif
+
+//    sourceTemp[0].setVal(0.0);
+//    sourceTemp[1].setVal(0.0);
+//#if (AMREX_SPACEDIM == 3)
+//    sourceTemp[2].setVal(0.0);
+//#endif
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+        
+        //Print() << "FHD\n"; 
+        move_ions_fhd(particles.data(), &np,
+                         ARLIM_3D(tile_box.loVect()),
+                         ARLIM_3D(tile_box.hiVect()),
+                         m_vector_ptrs[grid_id].dataPtr(),
+                         m_vector_size[grid_id].dataPtr(),
+                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+                         BL_TO_FORTRAN_3D(umac[0][pti]),
+                         BL_TO_FORTRAN_3D(umac[1][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(umac[2][pti]),
+#endif
+                         BL_TO_FORTRAN_3D(efield[0][pti]),
+                         BL_TO_FORTRAN_3D(efield[1][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(efield[2][pti]),
+#endif
+                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+#if (AMREX_SPACEDIM == 3)
+                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+#endif
+                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
+#if (AMREX_SPACEDIM == 3)
+                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
+#endif
+                         , surfaceList, &surfaceCount, &sw
+                         );
+
+
+        // resize particle vectors after call to move_particles
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        {
+            const auto new_size = m_vector_size[grid_id](iv);
+            auto& pvec = m_cell_vectors[grid_id](iv);
+            pvec.resize(new_size);
+        }
+    }
+
+//    sourceTemp[0].SumBoundary(geomF.periodicity());
+//    sourceTemp[1].SumBoundary(geomF.periodicity());
+//#if (AMREX_SPACEDIM == 3)
+//    sourceTemp[2].SumBoundary(geomF.periodicity());
+//#endif
+
+//    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+//    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+//#if (AMREX_SPACEDIM == 3)
+//    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+//#endif
+
+//    source[0].FillBoundary(geomF.periodicity());
+//    source[1].FillBoundary(geomF.periodicity());
+//#if (AMREX_SPACEDIM == 3)
+//    source[2].FillBoundary(geomF.periodicity());
+//#endif
+
+}
+
+void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const surface* surfaceList, const int surfaceCount, int sw)
+{
+    
+    UpdateCellVectors();
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
     source[0].setVal(0.0);
     source[1].setVal(0.0);
 #if (AMREX_SPACEDIM == 3)
@@ -442,7 +544,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         const int np = particles.numParticles();
         
         //Print() << "FHD\n"; 
-        move_ions_fhd(particles.data(), &np,
+        spread_ions_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),

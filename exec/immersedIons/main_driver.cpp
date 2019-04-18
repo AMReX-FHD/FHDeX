@@ -630,58 +630,48 @@ void main_driver(const char* argv)
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
     //Do an initial move to initialize various things
-//KKout    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
-    particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*this number currently does nothing, but we will use it later*/ );
+    //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
    
-    Print() << "HERE: " << "\n" ;
-
     particles.Redistribute();
     particles.ReBin();
 
-
     //Time stepping loop
-
-//    dt = dt*10e4;
 
     const int lev = 0;
 
     for(step=1;step<=max_step;++step)
     {
 
-
-//        if(step==8)
-//        {
-//            dt = dt*10e-4;
-//        }
-
         //HYDRO
         //--------------------------------------
 
-        // Fill stochastic terms
-        if(variance_coef_mom != 0.0) {
+        //particles.fillNeighbors();
 
-          // compute the random numbers needed for the stochastic momentum forcing
-          sMflux.fillMStochastic();
-
-
-          // compute stochastic momentum force
-          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-        }
-
-    // Advance umac, source is where we add particle stresses
-
-//KTout	     //advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+        //compute the neighbourlist forces 
+        //particles.computeForcesNL();
 
         //Spreads charge density from ions onto multifab 'charge'.
-//KTout        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
 
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
-//KTout        esSolve(potential, charge, efield, external, geomP);
+        esSolve(potential, charge, efield, external, geomP);
 
-        particles.fillNeighbors();
+        //compute other forces and spread to grid
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        //compute the forces 
-        particles.computeForcesNL();
+//        if(variance_coef_mom != 0.0) {
+
+//          // compute the random numbers needed for the stochastic momentum forcing
+//          sMflux.fillMStochastic();
+
+
+//          // compute stochastic momentum force
+//          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+//        }
+
+//   	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
 
         if (plot_int > 0 && step%plot_int == 0)
         {
@@ -693,13 +683,17 @@ void main_driver(const char* argv)
 //KTout            WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
-        //Calls main ion moving loop.
-//KTout       particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
-        particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+        //Calls wet ion interpolation and movement.
+        //particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+
+        //particles.Redistribute();
+        //particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+
+//Dout  particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
         //These functions reorganise particles between cells and processes
-        particles.Redistribute();
-        particles.ReBin();
+//Dout  particles.Redistribute();
+//Dout  particles.ReBin();
 
 
         //Start collecting statistics after step n_steps_skip
