@@ -180,6 +180,29 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
 
 
+   /****************************************************************************
+    * Tag IB particle Interfaces                                               *
+    ****************************************************************************/
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
+        const FArrayBox & phi_tile   = (* ls)[mfi];
+        // Using the ID tags to test if current box contains immersed boundaries
+        const IArrayBox & tag_tile   = (* ls_id)[mfi];
+              IArrayBox & iface_tile = (* tag_interface)[mfi];
+
+        tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
+                          BL_TO_FORTRAN_3D(phi_tile),
+                          BL_TO_FORTRAN_3D(tag_tile));
+    }
+
+    tag_interface->FillBoundary(Geom(lev).periodicity());
+
+
+
+
     /****************************************************************************
      * Construct Local Immersed-Boundary Data                                   *
      ***************************************************************************/
@@ -192,48 +215,65 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     if (n_ibm_loc > 0) {
         level_sets_loc.resize(n_ibm_loc);
         iface_tags_loc.resize(n_ibm_loc);
+        level_set_valid.resize(n_ibm_loc);
 
        for (int i=0; i<n_ibm_loc; ++i) {
             level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
-            level_sets_loc[i].setVal(0);
-
             // Tag those cells that are exactly 1 from an interface (ls = 0)
             iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
+
+            // The default is important as not every box will be touched
+            // (because there might be no corresponding particle/neighbor
+            // particle in this core domain). TODO: use local level-set
+            // approach
+            level_sets_loc[i].setVal(0.);
             iface_tags_loc[i].setVal(0);
+            level_set_valid[i].setVal(0);
         }
     }
 
 
     //___________________________________________________________________________
     // Fill each level-set and interface tag MultiFab
+    for (int i=0; i<n_ibm_loc; ++i) {
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(* ls, true); mfi.isValid(); ++mfi) {
-    }
+        for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++mfi) {
+            const Box & tile_box = mfi.tilebox();
+            auto & phi_tile      = level_sets_loc[i][mfi];
 
+            fill_levelset_sphere (BL_TO_FORTRAN_BOX(tile_box),
+                                  & part_loc[i],
+                                  BL_TO_FORTRAN_3D(phi_tile),
+                                  dx.dataPtr());
 
+            // `level_sets_loc` and `iface_tags_loc` are local to each MPI rank
+            // => we tag all boxes that get touched as "valid".
+            level_set_valid[i].setVal(1, tile_box, 1);
+        }
 
-   /****************************************************************************
-    * Tag IB particle Interfaces                                               *
-    ****************************************************************************/
+        level_sets_loc[i].FillBoundary(Geom(lev).periodicity());
+        level_set_valid[i].FillBoundary(Geom(lev).periodicity());
+
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
-        //const Box & tile_box = mfi.tilebox();
+        for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++ mfi) {
+            const FArrayBox & phi_tile   = level_sets_loc[i][mfi];
+            const IArrayBox & tag_tile   = level_set_valid[i][mfi];
+                  IArrayBox & iface_tile = iface_tags_loc[i][mfi];
 
-        const FArrayBox & phi_tile = (* ls)[mfi];
-        const IArrayBox & tag_tile = (* ls_id)[mfi];
-              IArrayBox & iface_tile = (* tag_interface)[mfi];
+            tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
+                              BL_TO_FORTRAN_3D(phi_tile),
+                              BL_TO_FORTRAN_3D(tag_tile));
+        }
 
-        tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
-                          BL_TO_FORTRAN_3D(phi_tile),
-                          BL_TO_FORTRAN_3D(tag_tile));
+        iface_tags_loc[i].FillBoundary(Geom(lev).periodicity());
+
     }
 
-    tag_interface->FillBoundary(Geom(lev).periodicity());
 
     save_levelset_data();
 }

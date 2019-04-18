@@ -126,6 +126,7 @@ private:
     Vector<std::pair<int,int>> part_index_loc;
     Vector< MultiFab>          level_sets_loc;
     Vector<iMultiFab>          iface_tags_loc;
+    Vector<iMultiFab>          level_set_valid;
 
     // Signed distance function to to neares particle surface
     std::unique_ptr<MultiFab>  ls;

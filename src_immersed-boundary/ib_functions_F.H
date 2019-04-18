@@ -24,6 +24,13 @@ extern "C"
             const amrex_real * dx
         );
 
+    void fill_levelset_sphere(
+            const int  * lo,            const int * hi,
+            const void * particle_info,
+            amrex_real * phi,           const int * philo, const int * phihi,
+            const amrex_real * dx
+        );
+
     void tag_interface_ib(
             int * iface,            const int * iflo,  const int * ifhi,
             const amrex_real * phi, const int * philo, const int * phihi,
