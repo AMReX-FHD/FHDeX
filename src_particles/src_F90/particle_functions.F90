@@ -59,7 +59,7 @@ subroutine force_function2(part1,part2,domsize) &
   !note: need to fix this for multi-species
   cutoff = 2**(1./6.)*diameter(1)
 
-  print *, "Cutoff: ", cutoff
+  !print *, "Cutoff: ", cutoff
 
 
   dx = dx0
@@ -228,7 +228,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 
   !  min_r = 1.e-4 !!NOTE! This was in the tutorial section---make sure that it applies here
 
-    print *, "Cutoff: ", cutoff
+    !print *, "Cutoff: ", cutoff
     
     index = 1
     do i = 1, np
@@ -1611,12 +1611,14 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
 
         wcheck(3) = wcheck(3) + weights(i,j,k,3)
 
+        !print *, i, j, k,  weights(i,j,k,:)
+
       enddo
     enddo
   enddo
 
 
- !print*, "Total: ", wcheck, " fd: ", fd
+ !print*, "Total: ", wcheck
  ! print*, "Rel pos: ", fd
  ! print*, "Abs pos: ", part%pos*dxfinv
 
@@ -1760,44 +1762,52 @@ subroutine spread_op(weights, indicies, &
   double precision, intent(inout) :: sourcew(sourcewlo(1):sourcewhi(1),sourcewlo(2):sourcewhi(2),sourcewlo(3):sourcewhi(3))
 #endif
 
-  integer :: i, j, k, ii, jj, kk
-  double precision :: volinv
+  integer :: i, j, k, ii1, jj1, kk1, ii2, jj2, kk2, ii3, jj3, kk3
+  double precision :: volinv, spreadcheck(3)
 
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
+  spreadcheck = 0
 
-
-  print *, "Spreading ", part%force
+  !print *, "Spreading ", part%force, ", volinv: ", volinv
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
       do i = -(ks-1), ks
 
-        ii = indicies(i,j,k,1,1)
-        jj = indicies(i,j,k,1,2)
-        kk = indicies(i,j,k,1,3)
+        ii1 = indicies(i,j,k,1,1)
+        jj1 = indicies(i,j,k,1,2)
+        kk1 = indicies(i,j,k,1,3)
 
-        sourceu(ii,jj,kk) = part%force(1)*weights(i,j,k,1)*volinv
+        sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
         !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv
 
-        !print*, "S: ", sourceu(ii,jj,kk), "I: ", i, j, k, "F: ", part%force
+        spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
+        !print*, "S: ", sourceu(ii1,jj1,kk1)
+        ii2 = indicies(i,j,k,2,1)
+        jj2 = indicies(i,j,k,2,2)
+        kk2 = indicies(i,j,k,2,3)
 
-        ii = indicies(i,j,k,2,1)
-        jj = indicies(i,j,k,2,2)
-        kk = indicies(i,j,k,2,3)
+        sourcev(ii2,jj2,kk2) = sourcev(ii2,jj2,kk2) + part%force(2)*weights(i,j,k,2)*volinv
 
-        sourcev(ii,jj,kk) = part%force(2)*weights(i,j,k,2)*volinv
+        spreadcheck(2) = spreadcheck(2) + sourcev(ii2,jj2,kk2)
         !sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(visc_coef)*weights(i,j,k,2)*part%drag_factor*volinv
 
-        ii = indicies(i,j,k,3,1)
-        jj = indicies(i,j,k,3,2)
-        kk = indicies(i,j,k,3,3)
+        ii3 = indicies(i,j,k,3,1)
+        jj3 = indicies(i,j,k,3,2)
+        kk3 = indicies(i,j,k,3,3)
 
-        sourcew(ii,jj,kk) = part%force(3)*weights(i,j,k,3)*volinv
+        sourcew(ii3,jj3,kk3) = sourcew(ii3,jj3,kk3) + part%force(3)*weights(i,j,k,3)*volinv
+
+        spreadcheck(3) = spreadcheck(3) + sourcew(ii3,jj3,kk3)
         !sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(visc_coef)*weights(i,j,k,3)*part%drag_factor*volinv
+
+        !print *, sourceu(ii1,jj1,kk1), sourcev(ii2,jj2,kk2), sourcew(ii3,jj3,kk3)
 
       enddo
     enddo
   enddo
+
+!print *, "Force total: ", spreadcheck/volinv, spreadcheck
 
 
 end subroutine spread_op
@@ -1974,7 +1984,7 @@ subroutine inter_op(weights, indicies, &
   endif
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
@@ -2306,21 +2316,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   veltest = 0
 
 
-  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
-
-   p = 1
-  !Added force zeroing to be safe        
-  do while (p <= np)
-
-     part => particles(p)
-
-      print *, "Coulomb force: ", part%force
-     part%force=0
-
-      p = p + 1
-
-  end do
-
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
@@ -2629,9 +2624,9 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   veltest = 0
 
 
-  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+  !call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
 
-   p = 1
+!   p = 1
   !Added force zeroing to be safe        
 !  do while (p <= np)
 
@@ -2658,43 +2653,44 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
               !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
 
-              call get_weights(dxf, dxfinv, weights, indicies, &
-                              coordsx, coordsxlo, coordsxhi, &
-                              coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                              coordsz, coordszlo, coordszhi, &
-#endif
-                              part, ks, lo, hi, plof)
+!              call get_weights(dxf, dxfinv, weights, indicies, &
+!                              coordsx, coordsxlo, coordsxhi, &
+!                              coordsy, coordsylo, coordsyhi, &
+!#if (BL_SPACEDIM == 3)
+!                              coordsz, coordszlo, coordszhi, &
+!#endif
+!                              part, ks, lo, hi, plof)
 
 
-              call drag(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
-#endif
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
-#endif
-                                part, ks, dxf)
 
-!              call emf(weights, indicies, &
+!              call drag(weights, indicies, &
 !                                sourcex, sourcexlo, sourcexhi, &
 !                                sourcey, sourceylo, sourceyhi, &
 !#if (BL_SPACEDIM == 3)
 !                                sourcez, sourcezlo, sourcezhi, &
 !#endif
-!                                efx, efxlo, efxhi, &
-!                                efy, efylo, efyhi, &
+!                                velx, velxlo, velxhi, &
+!                                vely, velylo, velyhi, &
 !#if (BL_SPACEDIM == 3)
-!                                efz, efzlo, efzhi, &
+!                                velz, velzlo, velzhi, &
 !#endif
-!                                part, ks, dxe)
+!                                part, ks, dxf)
+
+!!              call emf(weights, indicies, &
+!!                                sourcex, sourcexlo, sourcexhi, &
+!!                                sourcey, sourceylo, sourceyhi, &
+!!#if (BL_SPACEDIM == 3)
+!!                                sourcez, sourcezlo, sourcezhi, &
+!!#endif
+!!                                efx, efxlo, efxhi, &
+!!                                efy, efylo, efyhi, &
+!!#if (BL_SPACEDIM == 3)
+!!                                efz, efzlo, efzhi, &
+!!#endif
+!!                                part, ks, dxe)
 
 
-              !  print*, "SPREAD"
+!              !  print*, "SPREAD"
 !              call spread_op(weights, indicies, &
 !                                sourcex, sourcexlo, sourcexhi, &
 !                                sourcey, sourceylo, sourceyhi, &
@@ -2708,63 +2704,64 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
 !------------RFD calc, temporarily moved out of function for testing
 
-  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
+!  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-  delta = 1d-6*dxf(1)
+!  delta = 1d-6*dxf(1)
 
-  !print*, "Fluid vel: ", uloc, wloc, vloc
+!  !print*, "Fluid vel: ", uloc, wloc, vloc
 
-  call get_particle_normal(normalrand(1))
-  call get_particle_normal(normalrand(2))
-  call get_particle_normal(normalrand(3))
+!  call get_particle_normal(normalrand(1))
+!  call get_particle_normal(normalrand(2))
+!  call get_particle_normal(normalrand(3))
 
-  part%pos = part%pos + delta*normalrand/2
 
-  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
-  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
-  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
+!  part%pos = part%pos + delta*normalrand
 
-! AJN - update the weights?... or put a call to get_weights at the beginning of spread_op() so there are never any oopses?
 
-  call get_weights(dxf, dxfinv, weights, indicies, &
-                  coordsx, coordsxlo, coordsxhi, &
-                  coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                  coordsz, coordszlo, coordszhi, &
-#endif
-                  part, ks, lo, hi, plof)
-  
-  call spread_op(weights, indicies, &
-                  sourcex, sourcexlo, sourcexhi, &
-                  sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                  sourcez, sourcezlo, sourcezhi, &
-#endif
-                  part, ks, dxf)
+!  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
+!  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
+!  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
 
-  part%pos = part%pos - delta*normalrand
+!  call get_weights(dxf, dxfinv, weights, indicies, &
+!                  coordsx, coordsxlo, coordsxhi, &
+!                  coordsy, coordsylo, coordsyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  coordsz, coordszlo, coordszhi, &
+!#endif
+!                  part, ks, lo, hi, plof)
+!  
+!  call spread_op(weights, indicies, &
+!                  sourcex, sourcexlo, sourcexhi, &
+!                  sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                  part, ks, dxf)
 
-  call get_weights(dxf, dxfinv, weights, indicies, &
-                  coordsx, coordsxlo, coordsxhi, &
-                  coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                  coordsz, coordszlo, coordszhi, &
-#endif
-                  part, ks, lo, hi, plof)
+!  part%pos = part%pos - delta*normalrand
 
-  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
-  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
-  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
+!  call get_weights(dxf, dxfinv, weights, indicies, &
+!                  coordsx, coordsxlo, coordsxhi, &
+!                  coordsy, coordsylo, coordsyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  coordsz, coordszlo, coordszhi, &
+!#endif
+!                  part, ks, lo, hi, plof)
 
-  call spread_op(weights, indicies, &
-                  sourcex, sourcexlo, sourcexhi, &
-                  sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                  sourcez, sourcezlo, sourcezhi, &
-#endif
-                  part, ks, dxf)
+!  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
+!  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
+!  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
 
-  part%pos = part%pos + delta*normalrand/2
+!  call spread_op(weights, indicies, &
+!                  sourcex, sourcexlo, sourcexhi, &
+!                  sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                  part, ks, dxf)
+
+!  part%pos = part%pos + delta*normalrand/2
+
 
 !--------------End RFD calc
 
@@ -2786,6 +2783,20 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
+!print *, "SOURCE CHECK: "
+
+!  do k = sourcexlo(3), sourcexhi(3)
+!     do j = sourcexlo(2), sourcexhi(2)
+!        do i = sourcexlo(1), sourcexhi(1)
+
+!        if(sourcex(i,j,k) .ne. 0) then
+!          print *, sourcex(i,j,k)
+!        endif
+
+
+!  enddo
+!  enddo
+!  enddo
   !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
   !print *, "veltest: ", veltest/np
 

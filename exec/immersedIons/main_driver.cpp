@@ -643,6 +643,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
+        Print() << "Loop start\n";
         //HYDRO
         //--------------------------------------
 
@@ -652,10 +653,10 @@ void main_driver(const char* argv)
         //particles.computeForcesNL();
 
         //Spreads charge density from ions onto multifab 'charge'.
-        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+        //particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
 
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
-        esSolve(potential, charge, efield, external, geomP);
+        //esSolve(potential, charge, efield, external, geomP);
 
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
