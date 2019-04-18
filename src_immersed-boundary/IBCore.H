@@ -121,9 +121,11 @@ private:
 
     bool update_loc = true;
 
-    Vector<PairIndex> part_index_loc;
-    Vector< MultiFab> level_sets_loc;
-    Vector<iMultiFab> iface_tags_loc;
+    // Local (to memory) particle data
+    Vector<IBP_info>           part_loc;
+    Vector<std::pair<int,int>> part_index_loc;
+    Vector< MultiFab>          level_sets_loc;
+    Vector<iMultiFab>          iface_tags_loc;
 
     // Signed distance function to to neares particle surface
     std::unique_ptr<MultiFab>  ls;
