@@ -652,8 +652,12 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
                                 int lev, std::pair<int,int> part_index,
                                 std::array<Real, AMREX_SPACEDIM> & f_trans) const {
 
+    //___________________________________________________________________________
+    // Allocate temporary data
 
+    // (Grown) force MultiFab containing the interpolation coefficients
     std::array<MultiFab, AMREX_SPACEDIM> force_ibm;
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         force_ibm[d].define(
                 convert(grids[lev], nodal_flag_dir[d]), dmap[lev],
@@ -664,30 +668,44 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
     }
 
 
-    bool has_part = false;
-    int index_ibm = 0;
 
+    /****************************************************************************
+     *                                                                          *
+     * Find if this rank contains the particle respresented by `part_index`     *
+     *                                                                          *
+     ***************************************************************************/
+
+    bool has_part = false;
+    int index_ibm = -1; // position of particle in `part_index_loc` and so on...
+
+
+    //___________________________________________________________________________
+    // `has_part == true` iff part_index_loc contains `part_index`
     auto part_it = std::find(part_index_loc.begin(), part_index_loc.end(), part_index);
     if ( part_it < part_index_loc.end() ) {
-        has_part = true;
+        has_part  = true;
         index_ibm = std::distance(part_index_loc.begin(), part_it);
-
-        std::cout << index_ibm << std::endl;
     }
 
 
+
+    /****************************************************************************
+     *                                                                          *
+     * Compute the interpolation coefficients                                   *
+     *                                                                          *
+     ***************************************************************************/
+
     if ( has_part ) {
 
+        // Iterate over cell-centered MultiFab `dummy` as reference for
+        // face-centered data
         MultiFab dummy(grids[lev], dmap[lev], 1, 1);
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
         for(MFIter mfi(dummy , true); mfi.isValid(); ++ mfi) {
-            // Iterate over cell-centered MultiFab `dummy` as reference for
-            // face-centered data
-
-            const Box & tile_box = mfi.growntilebox();
+            const Box & tile_box = mfi.tilebox();
 
             FArrayBox & f_u_tile = force_ibm[0][mfi];
 #if (AMREX_SPACEDIM > 1)
@@ -713,22 +731,32 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
 
     }
 
+
+    //___________________________________________________________________________
+    // Some ranks won't be doing any work. Make sure that they don't touch
+    // `force_ibm` before work in the relevant region is done.
     ParallelDescriptor::Barrier();
 
-    // Using growntilebox => don't fill boundary:
-    // for (int d=0; d<AMREX_SPACEDIM; ++d)
-    //     force_ibm[d].FillBoundary(Geom(lev).periodicity());
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Multiply(force_ibm[d], force[d], 0, 0, 1, 0);
-
-        // Not multiplying in the ghost region => do fill boundary
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
         force_ibm[d].FillBoundary(Geom(lev).periodicity());
 
 
-        VisMF::Write(force_ibm[d], "force_ibm_" + std::to_string(d));
+
+    /****************************************************************************
+     *                                                                          *
+     * Compute the force acting on the particle                                 *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Multiply(force_ibm[d], force[d], 0, 0, 1, 0);
+        // Not multiplying in the ghost region => do fill boundary
+        force_ibm[d].FillBoundary(Geom(lev).periodicity());
 
         f_trans[d] = force_ibm[d].sum();
+
+        VisMF::Write(force_ibm[d], "force_ibm_" + std::to_string(d));
     }
 }
 

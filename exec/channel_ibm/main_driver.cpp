@@ -505,7 +505,7 @@ void main_driver(const char * argv) {
 
 
         std::array<Real, AMREX_SPACEDIM> f_trans;
-        ib_core.InterpolateForce(force_ibm, 0, std::pair<int,int>(1,0), f_trans);
+        ib_core.InterpolateForce(force_ibm, 0, std::pair<int,int>(1, 7), f_trans);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             Print() << f_trans[d] << std::endl;
