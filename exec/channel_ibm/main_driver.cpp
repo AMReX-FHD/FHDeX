@@ -389,12 +389,6 @@ void main_driver(const char * argv) {
     Real time = 0.;
 
 
-    //___________________________________________________________________________
-    // Write out initial state
-    if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres);
-    }
-
 
     /****************************************************************************
      *                                                                          *
@@ -449,6 +443,15 @@ void main_driver(const char * argv) {
      * Advance Time Steps                                                       *
      *                                                                          *
      ***************************************************************************/
+
+    //___________________________________________________________________________
+    // Write out initial state
+    if (plot_int > 0) {
+        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm);
+    }
+
+
+
 
     //___________________________________________________________________________
     // FFT test
@@ -520,7 +523,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,tracer,pres);
+    	  WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm);
         }
     }
 
