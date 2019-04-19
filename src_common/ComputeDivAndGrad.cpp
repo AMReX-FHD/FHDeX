@@ -3,9 +3,9 @@
 
 
 //Computes divergence at cell centres from velcocities at cell faces
-void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
+void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
                 int start_incomp, int start_outcomp, int ncomp,
-                const Geometry& geom, int increment)
+                const Geometry & geom, int increment)
 {
 
     BL_PROFILE_VAR("ComputeDiv()",ComputeDiv);
@@ -24,10 +24,12 @@ void ComputeDiv(MultiFab& div, std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
                         BL_TO_FORTRAN_N_ANYD(phi_fc[2][mfi],incomp),
 #endif
                         BL_TO_FORTRAN_N_ANYD(div[mfi],outcomp),
-                        geom.CellSize(), &increment);
+                        geom.CellSize(), & increment);
         }
     }
 }
+
+
 
 //Computes gradient at cell faces of cell centred scalar
 void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,

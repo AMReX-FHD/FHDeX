@@ -56,9 +56,9 @@ subroutine compute_div(lo, hi, phix, phixlo, phixhi, phiy, phiylo, phiyhi, phiz,
   integer         , intent(in   ) :: lo(3), hi(3)
   integer         , intent(in   ) :: phixlo(3), phixhi(3), phiylo(3), phiyhi(3), phizlo(3), phizhi(3)
   integer         , intent(in   ) :: divlo(3), divhi(3), increment
-  real(amrex_real), intent(inout) :: phix(phixlo(1):phixhi(1),phixlo(2):phixhi(2),phixlo(3):phixhi(3))
-  real(amrex_real), intent(inout) :: phiy(phiylo(1):phiyhi(1),phiylo(2):phiyhi(2),phiylo(3):phiyhi(3))
-  real(amrex_real), intent(inout) :: phiz(phizlo(1):phizhi(1),phizlo(2):phizhi(2),phizlo(3):phizhi(3))
+  real(amrex_real), intent(in   ) :: phix(phixlo(1):phixhi(1),phixlo(2):phixhi(2),phixlo(3):phixhi(3))
+  real(amrex_real), intent(in   ) :: phiy(phiylo(1):phiyhi(1),phiylo(2):phiyhi(2),phiylo(3):phiyhi(3))
+  real(amrex_real), intent(in   ) :: phiz(phizlo(1):phizhi(1),phizlo(2):phizhi(2),phizlo(3):phizhi(3))
   real(amrex_real), intent(inout) :: div(divlo(1):divhi(1),divlo(2):divhi(2),divlo(3):divhi(3))
   real(amrex_real), intent(in   ) :: dx(3) 
 
