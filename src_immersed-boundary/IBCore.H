@@ -9,8 +9,11 @@
 #include <IBParticleContainer.H>
 
 
-using namespace amrex;
+#include "common_namespace.H"
 
+
+using namespace amrex;
+using namespace common;
 
 
 class IBCore
@@ -78,6 +81,9 @@ public:
                              const MultiFab & u_s, const MultiFab & v_s, const MultiFab & w_s,
                              int lev, Real dt);
 
+    void InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
+                            int lev, std::pair<int,int> part_index,
+                            std::array<Real, AMREX_SPACEDIM> & f_trans) const;
 
     // Set local pointer to IBParticleContainer (used for updating the level-set)
     void set_IBParticleContainer (IBParticleContainer * a_ib_pc) {

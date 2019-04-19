@@ -645,8 +645,91 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 
         amrex::Print() << "MFIXParticleContainer::PICMultiDeposition time: " << stoptime << '\n';
     }
+}
 
 
+void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
+                                int lev, std::pair<int,int> part_index,
+                                std::array<Real, AMREX_SPACEDIM> & f_trans) const {
+
+
+    std::array<MultiFab, AMREX_SPACEDIM> force_ibm;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        force_ibm[d].define(
+                convert(grids[lev], nodal_flag_dir[d]), dmap[lev],
+                1, ib_pc->get_nghost()
+                ); // TODO: No need for so many ghost cells after Andrew's done
+        force_ibm[d].setVal(0.);
+        f_trans[d] = 0.;
+    }
+
+
+    bool has_part = false;
+    int index_ibm = 0;
+
+    auto part_it = std::find(part_index_loc.begin(), part_index_loc.end(), part_index);
+    if ( part_it < part_index_loc.end() ) {
+        has_part = true;
+        index_ibm = std::distance(part_index_loc.begin(), part_it);
+
+        std::cout << index_ibm << std::endl;
+    }
+
+
+    if ( has_part ) {
+
+        MultiFab dummy(grids[lev], dmap[lev], 1, 1);
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for(MFIter mfi(dummy , true); mfi.isValid(); ++ mfi) {
+            // Iterate over cell-centered MultiFab `dummy` as reference for
+            // face-centered data
+
+            const Box & tile_box = mfi.growntilebox();
+
+            FArrayBox & f_u_tile = force_ibm[0][mfi];
+#if (AMREX_SPACEDIM > 1)
+            FArrayBox & f_v_tile = force_ibm[1][mfi];
+#endif
+#if (AMREX_SPACEDIM > 2)
+            FArrayBox & f_w_tile = force_ibm[2][mfi];
+#endif
+
+            const auto & tag_tile = iface_tags_loc[index_ibm][mfi];
+
+            fill_fgds_ib (BL_TO_FORTRAN_BOX(tile_box),
+                          BL_TO_FORTRAN_ANYD(f_u_tile),
+#if (AMREX_SPACEDIM > 1)
+                          BL_TO_FORTRAN_ANYD(f_v_tile),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                          BL_TO_FORTRAN_ANYD(f_w_tile),
+#endif
+                          BL_TO_FORTRAN_ANYD(tag_tile));
+
+        }
+
+    }
+
+    ParallelDescriptor::Barrier();
+
+    // Using growntilebox => don't fill boundary:
+    // for (int d=0; d<AMREX_SPACEDIM; ++d)
+    //     force_ibm[d].FillBoundary(Geom(lev).periodicity());
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Multiply(force_ibm[d], force[d], 0, 0, 1, 0);
+
+        // Not multiplying in the ghost region => do fill boundary
+        force_ibm[d].FillBoundary(Geom(lev).periodicity());
+
+
+        VisMF::Write(force_ibm[d], "force_ibm_" + std::to_string(d));
+
+        f_trans[d] = force_ibm[d].sum();
+    }
 }
 
 
