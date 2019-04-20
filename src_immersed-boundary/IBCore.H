@@ -128,11 +128,10 @@ private:
     bool update_loc = true;
 
     // Local (to memory) particle data
-    Vector<IBP_info>           part_loc;
-    Vector<std::pair<int,int>> part_index_loc;
-    Vector< MultiFab>          level_sets_loc;
-    Vector<iMultiFab>          iface_tags_loc;
-    Vector<iMultiFab>          level_set_valid;
+    Vector<IBP_info>  part_loc;
+    Vector< MultiFab> level_sets_loc;
+    Vector<iMultiFab> iface_tags_loc;
+    Vector<iMultiFab> level_set_valid;
 
     // Dictionary linking `particle_index_loc` with each index above
     std::map<std::pair<int,int>, int> part_dict;
