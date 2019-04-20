@@ -134,6 +134,10 @@ private:
     Vector<iMultiFab>          iface_tags_loc;
     Vector<iMultiFab>          level_set_valid;
 
+    // Dictionary linking `particle_index_loc` with each index above
+    std::map<std::pair<int,int>, int> part_dict;
+
+
     // Signed distance function to to neares particle surface
     std::unique_ptr<MultiFab>  ls;
 

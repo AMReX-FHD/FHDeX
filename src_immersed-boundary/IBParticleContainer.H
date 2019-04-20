@@ -112,6 +112,8 @@ public:
     * Physics                                                                   *
     ****************************************************************************/
 
+    void InterpolateParticleForces(const std::array<MultiFab, AMREX_SPACEDIM> & force);
+
     void MoveIBParticles();
 
 

@@ -99,6 +99,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     n_ibm_loc = 0;
     part_loc.clear();
     part_index_loc.clear();
+    part_dict.clear();
 
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
@@ -132,8 +133,12 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
                 // Check if particle's index (pindex) is already contained in
                 // the local list. Neighbor particles can be duplicates.
-                if ( std::find(part_index_loc.begin(), part_index_loc.end(), pindex)
-                        == part_index_loc.end()) {
+                // if ( std::find(part_index_loc.begin(), part_index_loc.end(), pindex)
+                //         == part_index_loc.end()) {
+
+                auto search = part_dict.find(pindex);
+                if (search == part_dict.end()) {
+                    part_dict[pindex] = part_loc.size();
                     part_index_loc.push_back(pindex);
                     part_loc.push_back(pinfo);
                 }
@@ -152,7 +157,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
     RealVect dx = RealVect(
         AMREX_D_DECL( Geom(lev).CellSize(0), Geom(lev).CellSize(1), Geom(lev).CellSize(2) )
-        );
+    );
 
 
 #ifdef _OPENMP
@@ -659,9 +664,8 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
     std::array<MultiFab, AMREX_SPACEDIM> force_ibm;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        force_ibm[d].define(
-                convert(grids[lev], nodal_flag_dir[d]), dmap[lev],
-                1, ib_pc->get_nghost()
+        force_ibm[d].define(convert(grids[lev], nodal_flag_dir[d]), dmap[lev],
+                            1, ib_pc->get_nghost()
                 ); // TODO: No need for so many ghost cells after Andrew's done
         force_ibm[d].setVal(0.);
         f_trans[d] = 0.;
@@ -681,10 +685,16 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
 
     //___________________________________________________________________________
     // `has_part == true` iff part_index_loc contains `part_index`
-    auto part_it = std::find(part_index_loc.begin(), part_index_loc.end(), part_index);
-    if ( part_it < part_index_loc.end() ) {
+    // auto part_it = std::find(part_index_loc.begin(), part_index_loc.end(), part_index);
+    // if ( part_it < part_index_loc.end() ) {
+
+    auto part_it = part_dict.find(part_index);
+    if (part_it != part_dict.end()) {
         has_part  = true;
-        index_ibm = std::distance(part_index_loc.begin(), part_it);
+        // index_ibm = std::distance(part_index_loc.begin(), part_it);
+        // index_ibm = part_dict[part_index];
+        // Don't use std::map::operator[] because it is non-const
+        index_ibm = std::distance(part_dict.begin(), part_it);
     }
 
 
