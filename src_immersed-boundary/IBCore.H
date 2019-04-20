@@ -15,6 +15,8 @@
 using namespace amrex;
 using namespace common;
 
+class IBParticleContainer;
+
 
 class IBCore
     : public AmrCore {
@@ -82,7 +84,7 @@ public:
                              int lev, Real dt);
 
     void InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
-                            int lev, std::pair<int,int> part_index,
+                            int lev, const std::pair<int,int> & part_index,
                             std::array<Real, AMREX_SPACEDIM> & f_trans) const;
 
     // Set local pointer to IBParticleContainer (used for updating the level-set)

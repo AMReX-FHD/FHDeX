@@ -102,17 +102,16 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
-    // of ParticleIter for the following.
+    // of ParticleIter for the following. NOTE: mfi's tile size must match the
+    // ParticleContainer tile size
 #ifdef _OPENMP
 #pragma omp parallel reduction(+:n_ibm_loc)
 #endif
     for (MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
-        // NOTE: mfi's tile size must match the ParticleContainer tile size
-        // MuliFabs are indexed using a pair: (BoxArray index, tile index).
-
 
         //_______________________________________________________________________
         // Get immersed-boundary data from IBParticleContainer
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index).
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
         Vector<IBP_info> info = ib_pc->IBParticleInfo(lev, index);
@@ -649,7 +648,7 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 
 
 void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
-                                int lev, std::pair<int,int> part_index,
+                                int lev, const std::pair<int,int> & part_index,
                                 std::array<Real, AMREX_SPACEDIM> & f_trans) const {
 
     //___________________________________________________________________________

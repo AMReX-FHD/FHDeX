@@ -216,6 +216,110 @@ void IBParticleContainer::ReadStaticParameters() {
 
 
 
+void IBParticleContainer::InterpolateParticleForces(
+        const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
+        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces
+    ) {
+
+
+    fillNeighbors();
+
+    /****************************************************************************
+     *                                                                          *
+     * Collect the list of local (non-neighbor) particles                       *
+     *                                                                          *
+     ***************************************************************************/
+
+    //___________________________________________________________________________
+    // Count number of particles (to preallocate the `index_list` vector)
+    int n_ibm_loc = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel reduction(+:n_ibm_loc)
+#endif
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        // Count number of particles
+        auto & particle_data = GetParticles(lev)[index];
+        long np = particle_data.size();
+        long ng = neighbors[lev][index].size();
+        n_ibm_loc = np + ng;
+    }
+
+
+    Vector<ParticleIndex> index_list(n_ibm_loc);
+
+    //___________________________________________________________________________
+    // Add particles to list
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        auto & particle_data = GetParticles(lev)[index];
+        long np = particle_data.size();
+
+        // Iterate over local particle data
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for(int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            // Add to list if it's not already there (don't forget the
+            // critical, just in case std::vector::push_back is not atomic)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+                auto search = std::find(std::begin(index_list), std::end(index_list), pindex);
+                if (search == std::end(index_list)) {
+                    index_list.push_back(pindex);
+                }
+            }
+        }
+
+        long ng = neighbors[lev][index].size();
+
+        // Iterate over neighbor particle data
+        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+        for(int i = 0; i < ng; ++i) {
+            ParticleType & part = nbhd_data[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            // Add to list if it's not already there (don't forget the
+            // critical, just in case std::vector::push_back is not atomic)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+                auto search = std::find(std::begin(index_list), std::end(index_list), pindex);
+                if (search == std::end(index_list)) {
+                    index_list.push_back(pindex);
+                }
+            }
+        }
+    }
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Compute Hydrodynamic Forces                                              *
+     *                                                                          *
+     ***************************************************************************/
+
+    for (ParticleIndex pindex : index_list) {
+        std::array<Real, AMREX_SPACEDIM> f_trans;
+        ib_core.InterpolateForce(force, lev, pindex, f_trans);
+        particle_forces[pindex] = f_trans;
+    }
+}
+
+
+
 // TODO: do we still need this?
 void IBParticleContainer::AllocData() {
     reserveData();
