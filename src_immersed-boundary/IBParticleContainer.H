@@ -41,10 +41,10 @@ struct IBP_realData {
         omegax,
         omegay,
         omegaz,
-        dragx,
-        dragy,
-        dragz,
-        count   // Awesome little trick!
+        dragx,    // ..................................... TODO: Audit
+        dragy,    // ..................................... TODO: Audit
+        dragz,    // ..................................... TODO: Audit
+        count     // Awesome little trick!
     };
 };
 
@@ -122,7 +122,9 @@ public:
             std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces
         );
 
-    void MoveIBParticles();
+    void MoveIBParticles(int lev, Real dt,
+            std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces
+        );
 
 
     // TODO: do we still need this?

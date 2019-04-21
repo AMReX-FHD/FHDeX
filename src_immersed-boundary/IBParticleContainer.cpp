@@ -224,6 +224,7 @@ void IBParticleContainer::InterpolateParticleForces(
 
     fillNeighbors();
 
+
     /****************************************************************************
      *                                                                          *
      * Collect the list of local (non-neighbor) particles                       *
@@ -265,7 +266,7 @@ void IBParticleContainer::InterpolateParticleForces(
 
         // Iterate over local particle data
         AoS & particles = particle_data.GetArrayOfStructs();
-        for(int i = 0; i < np; ++i) {
+        for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
             ParticleIndex pindex(part.id(), part.cpu());
 
@@ -286,7 +287,7 @@ void IBParticleContainer::InterpolateParticleForces(
 
         // Iterate over neighbor particle data
         ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
-        for(int i = 0; i < ng; ++i) {
+        for (int i = 0; i < ng; ++i) {
             ParticleType & part = nbhd_data[i];
             ParticleIndex pindex(part.id(), part.cpu());
 
@@ -315,6 +316,38 @@ void IBParticleContainer::InterpolateParticleForces(
         std::array<Real, AMREX_SPACEDIM> f_trans;
         ib_core.InterpolateForce(force, lev, pindex, f_trans);
         particle_forces[pindex] = f_trans;
+    }
+}
+
+
+
+void IBParticleContainer::MoveIBParticles(int lev, Real dt,
+        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces) {
+
+
+    for (IBParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev)[index];
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            std::array<Real, AMREX_SPACEDIM> f = particle_forces[pindex];
+            Real mass = part.rdata(IBP_realData::mass);
+
+            part.rdata(IBP_realData::velx) += dt * f[0] / mass;
+            part.rdata(IBP_realData::vely) += dt * f[1] / mass;
+            part.rdata(IBP_realData::velz) += dt * f[2] / mass;
+
+
+            part.pos(0) += dt *  part.rdata(IBP_realData::velx);
+            part.pos(1) += dt *  part.rdata(IBP_realData::vely);
+            part.pos(2) += dt *  part.rdata(IBP_realData::velz);
+        }
     }
 }
 
