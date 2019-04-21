@@ -36,6 +36,9 @@ using namespace common;
 using namespace gmres;
 
 
+// (ID, init CPU) tuple: unique to each particle
+using ParticleIndex = std::pair<int, int>;
+
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
 //! nodal_flag_[x,y,z]). Each MultiFab has 1 component, and 1 ghost cell
@@ -504,11 +507,25 @@ void main_driver(const char * argv) {
                 alpha_fc, beta, gamma, beta_ed, ib_core, geom, dt);
 
 
-        std::array<Real, AMREX_SPACEDIM> f_trans;
-        ib_core.InterpolateForce(force_ibm, 0, std::pair<int,int>(1, 7), f_trans);
+        // Empty force data
+        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> f_trans;
+        f_trans.clear();
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            Print() << f_trans[d] << std::endl;
+        Print() << "Force data BEFORE Interpolation:" << std::endl;
+        for (const auto & f : f_trans) {
+            std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                std::cout << f.second[d] << std::endl;
+        }
+
+        ib_pc.InterpolateParticleForces(force_ibm, ib_core, 0, f_trans);
+
+        Print() << "Force data AFTER Interpolation:" << std::endl;
+        for (const auto & f : f_trans) {
+            std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                std::cout << f.second[d] << std::endl;
+        }
 
         //_______________________________________________________________________
         // Update structure factor

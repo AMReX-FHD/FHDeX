@@ -218,7 +218,7 @@ void IBParticleContainer::ReadStaticParameters() {
 
 void IBParticleContainer::InterpolateParticleForces(
         const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
-        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces
+        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
     ) {
 
 
@@ -313,6 +313,8 @@ void IBParticleContainer::InterpolateParticleForces(
      ***************************************************************************/
 
     for (ParticleIndex pindex : index_list) {
+
+        std::cout << "pindex = " << pindex.first << ", " << pindex.second << std::endl;
         std::array<Real, AMREX_SPACEDIM> f_trans;
         ib_core.InterpolateForce(force, lev, pindex, f_trans);
         particle_forces[pindex] = f_trans;
@@ -322,7 +324,7 @@ void IBParticleContainer::InterpolateParticleForces(
 
 
 void IBParticleContainer::MoveIBParticles(int lev, Real dt,
-        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces) {
+        const std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces) {
 
 
     for (IBParIter pti(*this, lev); pti.isValid(); ++pti) {
@@ -336,13 +338,14 @@ void IBParticleContainer::MoveIBParticles(int lev, Real dt,
             ParticleType & part = particles[i];
             ParticleIndex pindex(part.id(), part.cpu());
 
-            std::array<Real, AMREX_SPACEDIM> f = particle_forces[pindex];
+            // map::operator[] requires non-const particle_forces => use map::at()
+            std::array<Real, AMREX_SPACEDIM> f = particle_forces.at(pindex);
             Real mass = part.rdata(IBP_realData::mass);
 
+            // Standard Euler update. TODO: RK or Verlet?
             part.rdata(IBP_realData::velx) += dt * f[0] / mass;
             part.rdata(IBP_realData::vely) += dt * f[1] / mass;
             part.rdata(IBP_realData::velz) += dt * f[2] / mass;
-
 
             part.pos(0) += dt *  part.rdata(IBP_realData::velx);
             part.pos(1) += dt *  part.rdata(IBP_realData::vely);

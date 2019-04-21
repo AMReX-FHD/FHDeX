@@ -119,11 +119,11 @@ public:
 
     void InterpolateParticleForces(
             const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
-            std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces
+            std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
         );
 
     void MoveIBParticles(int lev, Real dt,
-            std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> particle_forces
+            const std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
         );
 
 
