@@ -231,26 +231,7 @@ void IBParticleContainer::InterpolateParticleForces(
      *                                                                          *
      ***************************************************************************/
 
-    //___________________________________________________________________________
-    // Count number of particles (to preallocate the `index_list` vector)
-    int n_ibm_loc = 0;
-
-#ifdef _OPENMP
-#pragma omp parallel reduction(+:n_ibm_loc)
-#endif
-    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-
-        // Count number of particles
-        auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
-        long ng = neighbors[lev][index].size();
-        n_ibm_loc = np + ng;
-    }
-
-
-    Vector<ParticleIndex> index_list(n_ibm_loc);
+    Vector<ParticleIndex> index_list;
 
     //___________________________________________________________________________
     // Add particles to list
@@ -313,8 +294,6 @@ void IBParticleContainer::InterpolateParticleForces(
      ***************************************************************************/
 
     for (ParticleIndex pindex : index_list) {
-
-        std::cout << "pindex = " << pindex.first << ", " << pindex.second << std::endl;
         std::array<Real, AMREX_SPACEDIM> f_trans;
         ib_core.InterpolateForce(force, lev, pindex, f_trans);
         particle_forces[pindex] = f_trans;
