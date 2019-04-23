@@ -216,6 +216,125 @@ void IBParticleContainer::ReadStaticParameters() {
 
 
 
+void IBParticleContainer::InterpolateParticleForces(
+        const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
+        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
+    ) {
+
+
+    fillNeighbors();
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Collect the list of local (non-neighbor) particles                       *
+     *                                                                          *
+     ***************************************************************************/
+
+    Vector<ParticleIndex> index_list;
+
+    //___________________________________________________________________________
+    // Add particles to list
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        auto & particle_data = GetParticles(lev)[index];
+        long np = particle_data.size();
+
+        // Iterate over local particle data
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            // Add to list if it's not already there (don't forget the
+            // critical, just in case std::vector::push_back is not atomic)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+                auto search = std::find(std::begin(index_list), std::end(index_list), pindex);
+                if (search == std::end(index_list)) {
+                    index_list.push_back(pindex);
+                }
+            }
+        }
+
+        long ng = neighbors[lev][index].size();
+
+        // Iterate over neighbor particle data
+        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+        for (int i = 0; i < ng; ++i) {
+            ParticleType & part = nbhd_data[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            // Add to list if it's not already there (don't forget the
+            // critical, just in case std::vector::push_back is not atomic)
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+                auto search = std::find(std::begin(index_list), std::end(index_list), pindex);
+                if (search == std::end(index_list)) {
+                    index_list.push_back(pindex);
+                }
+            }
+        }
+    }
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Compute Hydrodynamic Forces                                              *
+     *                                                                          *
+     ***************************************************************************/
+
+    for (ParticleIndex pindex : index_list) {
+        std::array<Real, AMREX_SPACEDIM> f_trans;
+        ib_core.InterpolateForce(force, lev, pindex, f_trans);
+        particle_forces[pindex] = f_trans;
+    }
+}
+
+
+
+void IBParticleContainer::MoveIBParticles(int lev, Real dt,
+        const std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces) {
+
+
+    for (IBParIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev)[index];
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            // map::operator[] requires non-const particle_forces => use map::at()
+            std::array<Real, AMREX_SPACEDIM> f = particle_forces.at(pindex);
+            Real mass = part.rdata(IBP_realData::mass);
+
+            // Standard Euler update. TODO: RK or Verlet?
+            part.rdata(IBP_realData::velx) += dt * f[0] / mass;
+            part.rdata(IBP_realData::vely) += dt * f[1] / mass;
+            part.rdata(IBP_realData::velz) += dt * f[2] / mass;
+
+            part.pos(0) += dt *  part.rdata(IBP_realData::velx);
+            part.pos(1) += dt *  part.rdata(IBP_realData::vely);
+            part.pos(2) += dt *  part.rdata(IBP_realData::velz);
+        }
+    }
+}
+
+
+
 // TODO: do we still need this?
 void IBParticleContainer::AllocData() {
     reserveData();
@@ -417,6 +536,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
         part_info.radius = r;
         part_info.id     = part.id();
         part_info.cpu    = part.cpu();
+        part_info.real   = 1; // 1 => real (non-neighbor particle)
 
         // Add to list
         info.push_back(part_info);
@@ -493,6 +613,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
         part_info.radius = r;
         part_info.id     = part.id();
         part_info.cpu    = part.cpu();
+        part_info.real   = 0; // 0 => neighbor particle
 
         // Add to list
         info.push_back(part_info);

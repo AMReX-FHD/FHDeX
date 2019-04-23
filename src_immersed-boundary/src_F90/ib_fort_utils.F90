@@ -7,12 +7,14 @@ module ib_fort_utils
     public particle_info_t, particle_t
 
     type, bind(C) :: particle_info_t
+        ! Same types an order as struct IBP_info in IBParticleInfo.H
         real(amrex_real)   :: pos(3)    !< Position
         real(amrex_real)   :: vel(3)    !< Velocity
         integer(c_int)     :: ind(3)    !< Index in grid
         real(amrex_real)   :: radius    !< Particle radius
         integer(c_int)     :: id        !< Unique index
         integer(c_int)     :: cpu       !< CPU at time of initialization
+        integer(c_int)     :: real      !< Particle is real (not a neighbor)
     end type particle_info_t
 
     ! Fortran analoque to the particle data structure. This _must_ have the same order as:
@@ -58,7 +60,8 @@ contains
             write(*,*) "   pos = ", p%pos
             write(*,*) "   vel = ", p%vel
             write(*,*) "   ind = ", p%ind
-            write(*,*) "   rad = ", p%radius, ", id = ", p%id, ", cpu = ", p%cpu
+            write(*,*) "   rad = ", p%radius, "id = ", p%id, "cpu = ", p%cpu
+            write(*,*) "  real = ", p%real
         end do
 
     end subroutine test_interface

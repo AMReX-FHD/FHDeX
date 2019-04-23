@@ -36,6 +36,9 @@ using namespace common;
 using namespace gmres;
 
 
+// (ID, init CPU) tuple: unique to each particle
+using ParticleIndex = std::pair<int, int>;
+
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
 //! nodal_flag_[x,y,z]). Each MultiFab has 1 component, and 1 ghost cell
@@ -389,12 +392,6 @@ void main_driver(const char * argv) {
     Real time = 0.;
 
 
-    //___________________________________________________________________________
-    // Write out initial state
-    if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres);
-    }
-
 
     /****************************************************************************
      *                                                                          *
@@ -451,6 +448,15 @@ void main_driver(const char * argv) {
      ***************************************************************************/
 
     //___________________________________________________________________________
+    // Write out initial state
+    if (plot_int > 0) {
+        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm);
+    }
+
+
+
+
+    //___________________________________________________________________________
     // FFT test
     // if (struct_fact_int > 0) {
     //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
@@ -501,6 +507,26 @@ void main_driver(const char * argv) {
                 alpha_fc, beta, gamma, beta_ed, ib_core, geom, dt);
 
 
+        // Empty force data
+        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> f_trans;
+        f_trans.clear();
+
+        Print() << "Force data BEFORE Interpolation:" << std::endl;
+        for (const auto & f : f_trans) {
+            std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                std::cout << f.second[d] << std::endl;
+        }
+
+        ib_pc.InterpolateParticleForces(force_ibm, ib_core, 0, f_trans);
+
+        Print() << "Force data AFTER Interpolation:" << std::endl;
+        for (const auto & f : f_trans) {
+            std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                std::cout << f.second[d] << std::endl;
+        }
+
         //_______________________________________________________________________
         // Update structure factor
 
@@ -520,7 +546,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,tracer,pres);
+    	  WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm);
         }
     }
 

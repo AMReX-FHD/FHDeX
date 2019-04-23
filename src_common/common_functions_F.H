@@ -107,22 +107,22 @@ extern "C"
 
 
     void compute_div(const int* lo, const int* hi,
-                    amrex_real* xdata, const int* xdlo, const int* xdhi,
-                    amrex_real* ydata, const int* ydlo, const int* ydhi,
+                     const amrex_real* xdata, const int* xdlo, const int* xdhi,
+                     const amrex_real* ydata, const int* ydlo, const int* ydhi,
 #if (AMREX_SPACEDIM == 3)
-                    amrex_real* zdata, const int* zdlo, const int* zdhi,
+                     const amrex_real* zdata, const int* zdlo, const int* zdhi,
 #endif
-                    amrex_real* div, const int* divlo, const int* divhi,
-                    const amrex_real* dx, int* increment);
+                     amrex_real* div, const int* divlo, const int* divhi,
+                     const amrex_real* dx, int* increment);
 
     void compute_grad(const int* lo, const int* hi,
-                    amrex_real* xdata, const int* xdlo, const int* xdhi,
-                    amrex_real* ydata, const int* ydlo, const int* ydhi,
+                     amrex_real* xdata, const int* xdlo, const int* xdhi,
+                     amrex_real* ydata, const int* ydlo, const int* ydhi,
 #if (AMREX_SPACEDIM == 3)
-                    amrex_real* zdata, const int* zdlo, const int* zdhi,
+                     amrex_real* zdata, const int* zdlo, const int* zdhi,
 #endif
-                    const amrex_real* div, const int* divlo, const int* divhi,
-                    const amrex_real* dx);
+                     const amrex_real* div, const int* divlo, const int* divhi,
+                     const amrex_real* dx);
 
 ///////////////////////////
 

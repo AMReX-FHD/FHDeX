@@ -9,8 +9,13 @@
 #include <IBParticleContainer.H>
 
 
-using namespace amrex;
+#include "common_namespace.H"
 
+
+using namespace amrex;
+using namespace common;
+
+class IBParticleContainer;
 
 
 class IBCore
@@ -78,6 +83,9 @@ public:
                              const MultiFab & u_s, const MultiFab & v_s, const MultiFab & w_s,
                              int lev, Real dt);
 
+    void InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
+                            int lev, const std::pair<int,int> & part_index,
+                            std::array<Real, AMREX_SPACEDIM> & f_trans) const;
 
     // Set local pointer to IBParticleContainer (used for updating the level-set)
     void set_IBParticleContainer (IBParticleContainer * a_ib_pc) {
@@ -122,10 +130,19 @@ private:
     bool update_loc = true;
 
     // Local (to memory) particle data
-    Vector<IBP_info>           part_loc;
-    Vector<std::pair<int,int>> part_index_loc;
-    Vector< MultiFab>          level_sets_loc;
-    Vector<iMultiFab>          iface_tags_loc;
+    Vector<IBP_info>  part_loc;
+    Vector<Box>       part_box;
+
+    Vector<FArrayBox> level_sets_loc;
+    Vector<IArrayBox> iface_tags_loc;
+    Vector<IArrayBox> level_set_valid;
+
+    // Dictionary linking `particle_index_loc` with each index above
+    std::map<std::pair<int,int>, int> part_dict;
+
+
+    std::array<MultiFab, AMREX_SPACEDIM> vel_buffer;
+
 
     // Signed distance function to to neares particle surface
     std::unique_ptr<MultiFab>  ls;
@@ -138,8 +155,6 @@ private:
 
     // Stores the IB node velocity corresponding to the closest point on IB
     std::unique_ptr<MultiFab>  ls_vel;
-
-
 
 
     /****************************************************************************

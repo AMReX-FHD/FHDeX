@@ -11,12 +11,14 @@
 #include <AMReX_NeighborParticles.H>
 #include <MFUtil.H>
 #include <IBParticleInfo.H>
+#include <IBCore.H>
 
 
 using namespace amrex;
 // using namespace std;
 
 class mfix_level;
+class IBCore;
 
 
 //TODO: Check members lables with "Audit"
@@ -39,10 +41,10 @@ struct IBP_realData {
         omegax,
         omegay,
         omegaz,
-        dragx,
-        dragy,
-        dragz,
-        count   // Awesome little trick!
+        dragx,    // ..................................... TODO: Audit
+        dragy,    // ..................................... TODO: Audit
+        dragz,    // ..................................... TODO: Audit
+        count     // Awesome little trick!
     };
 };
 
@@ -112,7 +114,17 @@ public:
     * Physics                                                                   *
     ****************************************************************************/
 
-    void MoveIBParticles();
+    // (ID, init CPU) tuple: unique to each particle
+    using ParticleIndex = std::pair<int, int>;
+
+    void InterpolateParticleForces(
+            const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
+            std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
+        );
+
+    void MoveIBParticles(int lev, Real dt,
+            const std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
+        );
 
 
     // TODO: do we still need this?
