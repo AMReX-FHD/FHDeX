@@ -131,12 +131,17 @@ private:
 
     // Local (to memory) particle data
     Vector<IBP_info>  part_loc;
-    Vector< MultiFab> level_sets_loc;
-    Vector<iMultiFab> iface_tags_loc;
-    Vector<iMultiFab> level_set_valid;
+    Vector<Box>       part_box;
+
+    Vector<FArrayBox> level_sets_loc;
+    Vector<IArrayBox> iface_tags_loc;
+    Vector<IArrayBox> level_set_valid;
 
     // Dictionary linking `particle_index_loc` with each index above
     std::map<std::pair<int,int>, int> part_dict;
+
+
+    std::array<MultiFab, AMREX_SPACEDIM> vel_buffer;
 
 
     // Signed distance function to to neares particle surface
@@ -150,8 +155,6 @@ private:
 
     // Stores the IB node velocity corresponding to the closest point on IB
     std::unique_ptr<MultiFab>  ls_vel;
-
-
 
 
     /****************************************************************************

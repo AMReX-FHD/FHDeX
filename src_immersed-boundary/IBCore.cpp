@@ -98,6 +98,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
     n_ibm_loc = 0;
     part_loc.clear();
+    part_box.clear();
     part_dict.clear();
 
 
@@ -135,6 +136,10 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
                 if (search == part_dict.end()) {
                     part_dict[pindex] = part_loc.size();
                     part_loc.push_back(pinfo);
+
+                    Box grown_box = convert(mfi.validbox(), IntVect::TheCellVector());
+                    grown_box.grow(ib_pc->get_nghost());
+                    part_box.push_back(grown_box);
                 }
             }
         }
@@ -201,27 +206,60 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
 
 
-
     /****************************************************************************
      * Construct Local Immersed-Boundary Data                                   *
      ***************************************************************************/
 
-    //___________________________________________________________________________
-    // Allocate MultiFabs for local levelset data
-    // TODO: currently these have ib_pc->get_nghost() many ghost cells, this is
-    // way too much. Once Andrew implements back-commuincation for neighbor
-    // particles, we'll only need 1 ghost cell.
+    // This goes here (and not in the construct), as BA and DM might have changed
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        vel_buffer[d].define(
+                convert(grids[lev], nodal_flag_dir[d]), dmap[lev], 1, ib_pc->get_nghost()
+            );
+
+
+    // //___________________________________________________________________________
+    // // Allocate MultiFabs for local levelset data
+    // // TODO: currently these have ib_pc->get_nghost() many ghost cells, this is
+    // // way too much. Once Andrew implements back-commuincation for neighbor
+    // // particles, we'll only need 1 ghost cell.
+    // if (n_ibm_loc > 0) {
+    //     level_sets_loc.resize(n_ibm_loc);
+    //     iface_tags_loc.resize(n_ibm_loc);
+    //     level_set_valid.resize(n_ibm_loc);
+
+    //    for (int i=0; i<n_ibm_loc; ++i) {
+    //         level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
+    //         // Tag those cells that are exactly 1 from an interface (ls = 0)
+    //         iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
+    //         // Tag those boxes which are being touched
+    //         level_set_valid[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
+
+    //         // The default is important as not every box will be touched
+    //         // (because there might be no corresponding particle/neighbor
+    //         // particle in this core domain). TODO: use local level-set
+    //         // approach
+    //         level_sets_loc[i].setVal(0.);
+    //         iface_tags_loc[i].setVal(0);
+    //         level_set_valid[i].setVal(0);
+    //     }
+    // }
+
+
     if (n_ibm_loc > 0) {
+
         level_sets_loc.resize(n_ibm_loc);
         iface_tags_loc.resize(n_ibm_loc);
         level_set_valid.resize(n_ibm_loc);
 
-       for (int i=0; i<n_ibm_loc; ++i) {
-            level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
+        for (int i=0; i<n_ibm_loc; ++i) {
+            Box pbox_cc = part_box[i];
+            Box pbox_nd = convert(pbox_cc, IntVect::TheNodeVector());
+
+            level_sets_loc[i].resize(pbox_nd);
             // Tag those cells that are exactly 1 from an interface (ls = 0)
-            iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
+            iface_tags_loc[i].resize(pbox_cc);
             // Tag those boxes which are being touched
-            level_set_valid[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
+            level_set_valid[i].resize(pbox_nd);
 
             // The default is important as not every box will be touched
             // (because there might be no corresponding particle/neighbor
@@ -234,45 +272,63 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     }
 
 
+
     //___________________________________________________________________________
     // Fill each level-set and interface tag MultiFab
     for (int i=0; i<n_ibm_loc; ++i) {
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++mfi) {
-            const Box & tile_box = mfi.tilebox();
-            auto & phi_tile      = level_sets_loc[i][mfi];
 
-            fill_levelset_sphere (BL_TO_FORTRAN_BOX(tile_box),
-                                  & part_loc[i],
-                                  BL_TO_FORTRAN_3D(phi_tile),
-                                  dx.dataPtr());
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//         for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++mfi) {
+//             const Box & tile_box = mfi.tilebox();
+//             auto & phi_tile      = level_sets_loc[i][mfi];
+// 
+//             fill_levelset_sphere (BL_TO_FORTRAN_BOX(tile_box),
+//                                   & part_loc[i],
+//                                   BL_TO_FORTRAN_3D(phi_tile),
+//                                   dx.dataPtr());
+// 
+//             // `level_sets_loc` and `iface_tags_loc` are local to each MPI rank
+//             // => we tag all boxes that get touched as "valid".
+//             level_set_valid[i].setVal(1, tile_box, 1);
+//         }
+// 
+//         level_sets_loc[i].FillBoundary(Geom(lev).periodicity());
+//         level_set_valid[i].FillBoundary(Geom(lev).periodicity());
 
-            // `level_sets_loc` and `iface_tags_loc` are local to each MPI rank
-            // => we tag all boxes that get touched as "valid".
-            level_set_valid[i].setVal(1, tile_box, 1);
-        }
 
-        level_sets_loc[i].FillBoundary(Geom(lev).periodicity());
-        level_set_valid[i].FillBoundary(Geom(lev).periodicity());
+        Box pbox_nd = convert(part_box[i], IntVect::TheNodeVector());
+
+        fill_levelset_sphere (BL_TO_FORTRAN_BOX(pbox_nd),
+                              & part_loc[i],
+                              BL_TO_FORTRAN_ANYD(level_sets_loc[i]),
+                              dx.dataPtr());
+
+        // `level_sets_loc` and `iface_tags_loc` are local to each MPI rank =>
+        // we tag all boxes that get touched as "valid".
+        level_set_valid[i].setVal(1);
 
 
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++ mfi) {
-            const FArrayBox & phi_tile   = level_sets_loc[i][mfi];
-            const IArrayBox & tag_tile   = level_set_valid[i][mfi];
-                  IArrayBox & iface_tile = iface_tags_loc[i][mfi];
+// #ifdef _OPENMP
+// #pragma omp parallel
+// #endif
+//         for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++ mfi) {
+//             const FArrayBox & phi_tile   = level_sets_loc[i][mfi];
+//             const IArrayBox & tag_tile   = level_set_valid[i][mfi];
+//                   IArrayBox & iface_tile = iface_tags_loc[i][mfi];
+// 
+//             tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
+//                               BL_TO_FORTRAN_3D(phi_tile),
+//                               BL_TO_FORTRAN_3D(tag_tile));
+//         }
+// 
+//         iface_tags_loc[i].FillBoundary(Geom(lev).periodicity());
 
-            tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
-                              BL_TO_FORTRAN_3D(phi_tile),
-                              BL_TO_FORTRAN_3D(tag_tile));
-        }
 
-        iface_tags_loc[i].FillBoundary(Geom(lev).periodicity());
-
+         tag_interface_ib (BL_TO_FORTRAN_ANYD(iface_tags_loc[i]),
+                           BL_TO_FORTRAN_ANYD(level_sets_loc[i]),
+                           BL_TO_FORTRAN_ANYD(level_set_valid[i]) );
     }
 
 
