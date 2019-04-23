@@ -4,7 +4,7 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: k_B,diameter,T_init
+  use common_namelist_module, only: k_B,diameter,T_init, permitivitty
 
   implicit none
   type(particle_t), intent(inout) :: part1 
@@ -33,104 +33,144 @@ subroutine force_function2(part1,part2,domsize) &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: diameter
+  use common_namelist_module, only: diameter, permitivitty
 
   implicit none
   type(particle_t), intent(inout) :: part1 !is this defined correctly?
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k,images, bound, ii, jj, kk
-  real(amrex_real) :: dx(3), dx0(3), dr, dr2, permittivity, cutoff
+  integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch
+  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff
 
 
   !here calculate forces as a function of distance
 
 
-  permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
+!  permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
 
-  !i think this is correctly defined for the signs we use below
+!  !i think this is correctly defined for the signs we use below
   dx0 = part1%pos-part2%pos
 
-  dr2 = dot_product(dx0,dx0)
-  dr = sqrt(dr2)
+  xswitch = 0
 
-  !WCA cutoff
-  !note: need to fix this for multi-species
-  cutoff = 2**(1./6.)*diameter(1)
+!  dr2 = dot_product(dx0,dx0)
+!  dr = sqrt(dr2)
 
-  !print *, "Cutoff: ", cutoff
+!  !WCA cutoff
+!  !note: need to fix this for multi-species
+!  cutoff = 2**(1./6.)*diameter(1)
+
+!  !print *, "Cutoff: ", cutoff
 
 
-  dx = dx0
-  do while (i <= 3) !get the nearest image for the repulsive interaction
- 
-      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+!  dx = dx0
+!  do while (i <= 3) !get the nearest image for the repulsive interaction
+! 
+!      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
 
-          dx(i) = dx(i) - domsize(i)
+!          dx(i) = dx(i) - domsize(i)
 
-      end if
+!      end if
 
-      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
+!      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
 
-          dx(i) = dx(i) + domsize(i)
+!          dx(i) = dx(i) + domsize(i)
 
-      end if
+!      end if
 
-      i = i + 1
+!      i = i + 1
 
-   end do
-  dr2 = dot_product(dx,dx)
-  dr = sqrt(dr2)
-  !repulsive interaction
-  if (dr .lt. cutoff) then
+!   end do
+!  dr2 = dot_product(dx,dx)
+!  dr = sqrt(dr2)
+!  !repulsive interaction
+!  if (dr .lt. cutoff) then
 
-    print *, "Repulsing!"
-    call repulsive_force(part1,part2,dx,dr2) 
+!    print *, "Repulsing!"
+!    call repulsive_force(part1,part2,dx,dr2) 
 
-  end if
+!  end if
 
   !electrostatic -- need to determine how many images we should be adding
-  images = 4 !change this to an input
+  images = 1 !change this to an input
+  ii=0
+  jj=0
+  kk=0
+
+  imagecounter = 0    
+
+!  print *, "Zero dist: ", dx0(1)
+!  print *, "domsize: ", domsize(1)
 
   do ii = -images, images
     do jj = -images, images 
-      do kk = -images, images 
+      do kk = -images, images
+
+!    do jj = -1, 1 
+!      do kk = -1, 1 
   
+
+      if(part1%pos(1) .lt. part2%pos(1)) then
+
+        if(ii .ne. images) then
+          dx(1) = dx0(1) - ii*domsize(1)
+          dx(2) = dx0(2) - jj*domsize(2)
+          dx(3) = dx0(3) - kk*domsize(3)
+
+          dr2 = dot_product(dx,dx)
+
+         ! print *, "ii: ", ii, jj,kk
+
+          part1%force = part1%force + permitivitty*(dx/sqrt(dr2))*part1%q*part2%q/dr2
+          !print *, "force: ", permitivitty*(dx/sqrt(dr2))*part1%q*part2%q/dr2
+          !print *, "dist: ", dx
+
+        endif
+      else
+        if(ii .ne. -images) then
+          dx(1) = dx0(1) - ii*domsize(1)
+          dx(2) = dx0(2) - jj*domsize(2)
+          dx(3) = dx0(3) - kk*domsize(3)
+
+
+          dr2 = dot_product(dx,dx)
+
+          !print *, "ii: ", ii, ", dist: ", dx(1)
+
+          part1%force = part1%force + permitivitty*(dx/sqrt(dr2))*part1%q*part2%q/dr2
+
+        endif
+      endif
+
       !change dx, dy, dz, dr2 for each image
-       dx(1) = dx0(1) + ii*domsize(1)
-       dx(2) = dx0(2) + jj*domsize(2)
-       dx(3) = dx0(3) + kk*domsize(3)
 
+       !part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
 
-       dr2 = dot_product(dx,dx)
+!       if((ii .ne. 0) .or. (jj .ne. 0) .or. (kk .ne. 0)) then
 
-       !print *, "sep: ", sqrt(dr2)
+!         dx(1) = ii*domsize(1)
+!         dx(2) = jj*domsize(2)
+!         dx(3) = kk*domsize(3)
 
-       part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
-       part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
+!         dr2 = dot_product(dx,dx)
 
-       if((ii .ne. 0) .or. (jj .ne. 0) .or. (kk .ne. 0)) then
+!         part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part1%q/dr2
+!         !part2%force = part2%force + permittivity*(dx/sqrt(dr2))*part2%q*part2%q/dr2
 
-         dx(1) = ii*domsize(1)
-         dx(2) = jj*domsize(2)
-         dx(3) = kk*domsize(3)
+!       endif
 
-         dr2 = dot_product(dx,dx)
-
-         part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part1%q/dr2
-         part2%force = part2%force + permittivity*(dx/sqrt(dr2))*part2%q*part2%q/dr2
-
-       endif
-
-       !print *, "electro force1: ", part1%force
+       !print *, "electro force1: ", part1%force, dx/sqrt(dr2)
        !print *, "electro force2: ", part2%force
 
        !print *, part1%force, dr2
+        imagecounter = imagecounter + 1
 
       end do
     end do
   end do
+
+print *, "Images: ", imagecounter
 
 end subroutine force_function2
 
@@ -172,29 +212,25 @@ subroutine calculate_force(particles, np, lo, hi, &
   end do
 
   !calculate N^2 interactions
-  p = 1
 
-  do while (p < np)
+  do p = 1, np
 
     part => particles(p) !this defines one particle--we can access all the data by doing part%something
 
-    n = p + 1
-
-    do while (n <= np) 
+    do n = 1, np
 
        part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
 
        ! print *, "Calling force on ", n, p
       !  print *, "Positions ", part%pos, part2%pos
 
-       call force_function2(part,part2,domsize)
+       if(n .ne. p) then
 
-       n = n + 1
+         call force_function2(part,part2,domsize)
+
+       endif
 
     end do
-
-    p = p + 1
-
   end do 
   
 end subroutine calculate_force
@@ -2007,6 +2043,8 @@ subroutine rfd(weights, indicies, &
 
   implicit none
 
+!------------This function is currently implemented (correctly) in the body of the loop. Functions needs to be fixed before we use it again.
+
   integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
   double precision, intent(in   ) :: dxf(3)
   type(particle_t), intent(inout) :: part
@@ -2624,20 +2662,20 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   veltest = 0
 
 
-  !call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
 
-!   p = 1
+   p = 1
   !Added force zeroing to be safe        
-!  do while (p <= np)
+  do while (p <= np)
 
-!     part => particles(p)
+     part => particles(p)
 
-!      print *, "Coulomb force: ", part%force
-!     part%force=0
+      print *, "Coulomb force: ", part%force
+     part%force=0
 
-!      p = p + 1
+      p = p + 1
 
-!  end do
+  end do
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -2653,13 +2691,13 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
               !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
 
-!              call get_weights(dxf, dxfinv, weights, indicies, &
-!                              coordsx, coordsxlo, coordsxhi, &
-!                              coordsy, coordsylo, coordsyhi, &
-!#if (BL_SPACEDIM == 3)
-!                              coordsz, coordszlo, coordszhi, &
-!#endif
-!                              part, ks, lo, hi, plof)
+              call get_weights(dxf, dxfinv, weights, indicies, &
+                              coordsx, coordsxlo, coordsxhi, &
+                              coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                              coordsz, coordszlo, coordszhi, &
+#endif
+                              part, ks, lo, hi, plof)
 
 
 
@@ -2676,18 +2714,18 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 !#endif
 !                                part, ks, dxf)
 
-!!              call emf(weights, indicies, &
-!!                                sourcex, sourcexlo, sourcexhi, &
-!!                                sourcey, sourceylo, sourceyhi, &
-!!#if (BL_SPACEDIM == 3)
-!!                                sourcez, sourcezlo, sourcezhi, &
-!!#endif
-!!                                efx, efxlo, efxhi, &
-!!                                efy, efylo, efyhi, &
-!!#if (BL_SPACEDIM == 3)
-!!                                efz, efzlo, efzhi, &
-!!#endif
-!!                                part, ks, dxe)
+              call emf(weights, indicies, &
+                                sourcex, sourcexlo, sourcexhi, &
+                                sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                sourcez, sourcezlo, sourcezhi, &
+#endif
+                                efx, efxlo, efxhi, &
+                                efy, efylo, efyhi, &
+#if (BL_SPACEDIM == 3)
+                                efz, efzlo, efzhi, &
+#endif
+                                part, ks, dxe)
 
 
 !              !  print*, "SPREAD"
@@ -2704,63 +2742,63 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
 !------------RFD calc, temporarily moved out of function for testing
 
-!  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
+  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-!  delta = 1d-6*dxf(1)
+  delta = 1d-7*dxf(1)
 
-!  !print*, "Fluid vel: ", uloc, wloc, vloc
+  !print*, "Fluid vel: ", uloc, wloc, vloc
 
-!  call get_particle_normal(normalrand(1))
-!  call get_particle_normal(normalrand(2))
-!  call get_particle_normal(normalrand(3))
-
-
-!  part%pos = part%pos + delta*normalrand
+  call get_particle_normal(normalrand(1))
+  call get_particle_normal(normalrand(2))
+  call get_particle_normal(normalrand(3))
 
 
-!  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
-!  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
-!  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
+  part%pos = part%pos + delta*normalrand
 
-!  call get_weights(dxf, dxfinv, weights, indicies, &
-!                  coordsx, coordsxlo, coordsxhi, &
-!                  coordsy, coordsylo, coordsyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  coordsz, coordszlo, coordszhi, &
-!#endif
-!                  part, ks, lo, hi, plof)
-!  
-!  call spread_op(weights, indicies, &
-!                  sourcex, sourcexlo, sourcexhi, &
-!                  sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                  part, ks, dxf)
 
-!  part%pos = part%pos - delta*normalrand
+  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
+  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
+  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
 
-!  call get_weights(dxf, dxfinv, weights, indicies, &
-!                  coordsx, coordsxlo, coordsxhi, &
-!                  coordsy, coordsylo, coordsyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  coordsz, coordszlo, coordszhi, &
-!#endif
-!                  part, ks, lo, hi, plof)
+  call get_weights(dxf, dxfinv, weights, indicies, &
+                  coordsx, coordsxlo, coordsxhi, &
+                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                  coordsz, coordszlo, coordszhi, &
+#endif
+                  part, ks, lo, hi, plof)
+  
+  call spread_op(weights, indicies, &
+                  sourcex, sourcexlo, sourcexhi, &
+                  sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                  sourcez, sourcezlo, sourcezhi, &
+#endif
+                  part, ks, dxf)
 
-!  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
-!  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
-!  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
+  part%pos = part%pos - delta*normalrand
 
-!  call spread_op(weights, indicies, &
-!                  sourcex, sourcexlo, sourcexhi, &
-!                  sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                  part, ks, dxf)
+  call get_weights(dxf, dxfinv, weights, indicies, &
+                  coordsx, coordsxlo, coordsxhi, &
+                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                  coordsz, coordszlo, coordszhi, &
+#endif
+                  part, ks, lo, hi, plof)
 
-!  part%pos = part%pos + delta*normalrand/2
+  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
+  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
+  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
+
+  call spread_op(weights, indicies, &
+                  sourcex, sourcexlo, sourcexhi, &
+                  sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                  sourcez, sourcezlo, sourcezhi, &
+#endif
+                  part, ks, dxf)
+
+  part%pos = part%pos + delta*normalrand/2
 
 
 !--------------End RFD calc
