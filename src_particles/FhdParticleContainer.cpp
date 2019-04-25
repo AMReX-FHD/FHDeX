@@ -86,10 +86,10 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //#endif
                 double mm = 0.2;
 
-//                p.pos(0) = (0.5 - mm + kk*2*mm+0.1)*phi[0];
-//                p.pos(1) = (0.3+kk/2)*phi[1];
+//                p.pos(0) = (0.3)*phi[0];
+//                p.pos(1) = (0.5 - mm + kk*2*mm)*phi[1];
 //#if (BL_SPACEDIM == 3)
-//                p.pos(2) = (0.6+kk/4)*phi[2];
+//                p.pos(2) = (0.7)*phi[2];
 //#endif
 
 //                p.pos(1) = 0.4*phi[1];
