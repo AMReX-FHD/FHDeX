@@ -158,7 +158,7 @@ contains
                             negative = .true.
                         end if
 
-                        if ( ( phi(ii, jj, kk) .ge. 0 ) .and. tag(ii, jj, kk, 1) .ge. 0 ) then
+                        if ( ( phi(ii, jj, kk) .ge. 0 ) .and. tag(ii, jj, kk, 1) .gt. 0 ) then
                             positive = .true.
                         end if
                     end do
@@ -465,20 +465,23 @@ contains
 
 
         !________________________________________________________________________
-        ! i, j, k => cell-centered indices
-        integer :: i, j, k, eff_tag
-
+        ! i,    j,    k    => face-centered indices
+        ! i_cc, j_cc, k_cc => cell-centered indices
+        integer :: i, j, k, i_cc, j_cc, k_cc
+        integer :: eff_tag
 
         !________________________________________________________________________
         ! x-components
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1) + 1
-                    et(i, j, k) = 0
+
+                    i_cc = min(i, hi(1))
+                    et(i_cc, j, k) = 0
 
                     ! eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
                     ! Tag interface and internal cells
-                    if (tag(i, j, k) .ge. 1) then
+                    if (tag(i_cc, j, k) .ge. 1) then
                         eff_tag = 1
                     else
                         eff_tag = 0
@@ -486,7 +489,7 @@ contains
 
                     if ( eff_tag .ge. 1 ) then
                         u_d(i, j, k) = vel(i, j, k, 1)
-                        et(i, j, k)  = 1
+                        et(i_cc, j, k)  = 1
                     else
                         u_d(i, j, k) = 0. ! u_s(i, j, k)
                     end if
@@ -501,11 +504,13 @@ contains
         do k = lo(3), hi(3)
             do j = lo(2), hi(2) + 1
                 do i = lo(1), hi(1)
-                    et(i, j, k) = 0
+
+                    j_cc = min(j, hi(2))
+                    et(i, j_cc, k) = 0
 
                     ! eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
                     ! Tag interface and internal cells
-                    if (tag(i, j, k) .ge. 1) then
+                    if (tag(i, j_cc, k) .ge. 1) then
                         eff_tag = 1
                     else
                         eff_tag = 0
@@ -513,7 +518,7 @@ contains
 
                     if ( eff_tag .ge. 1 ) then
                         v_d(i, j, k) = vel(i, j, k, 2)
-                        et(i, j, k)  = 1
+                        et(i, j_cc, k)  = 1
                     else
                         v_d(i, j, k) = 0. ! v_s(i, j, k)
                     end if
@@ -528,11 +533,12 @@ contains
         do k = lo(3), hi(3) + 1
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                    et(i, j, k) = 0
+                    k_cc = min(k, hi(3))
+                    et(i, j, k_cc) = 0
 
                     ! eff_tag = effective_tag(i, j, k, 0, tag, taglo, taghi)
                     ! Tag interface and internal cells
-                    if (tag(i, j, k) .ge. 1) then
+                    if (tag(i, j, k_cc) .ge. 1) then
                         eff_tag = 1
                     else
                         eff_tag = 0
@@ -540,7 +546,7 @@ contains
 
                     if ( eff_tag .ge. 1 ) then
                         w_d(i, j, k) = vel(i, j, k, 3)
-                        et(i, j, k)  = 1
+                        et(i, j, k_cc)  = 1
                     else
                         w_d(i, j, k) = 0. ! w_s(i, j, k)
                     end if
@@ -630,8 +636,9 @@ contains
 
 
         !________________________________________________________________________
-        ! i, j, k => cell-centered indices
-        integer :: i, j, k
+        ! i,    j,    k    => face-centered indices
+        ! i_cc, j_cc, k_cc => cell-centered indices
+        integer :: i, j, k, i_cc, j_cc, k_cc
 
 
         !________________________________________________________________________
@@ -639,7 +646,10 @@ contains
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1) + 1
-                    if (  et(i, j, k)  .ge. 1 ) then
+
+                    i_cc = min(i, hi(1))
+
+                    if (  et(i_cc, j, k)  .ge. 1 ) then
                         f_u(i, j, k) = 1.
                     else
                         f_u(i, j, k) = 0.
@@ -654,7 +664,10 @@ contains
         do k = lo(3), hi(3)
             do j = lo(2), hi(2) + 1
                 do i = lo(1), hi(1)
-                    if (  et(i, j, k)  .ge. 1 ) then
+
+                    j_cc = min(j, hi(2))
+
+                    if (  et(i, j_cc, k)  .ge. 1 ) then
                         f_v(i, j, k) = 1.
                     else
                         f_v(i, j, k) = 0.
@@ -669,7 +682,10 @@ contains
         do k = lo(3), hi(3) + 1
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                    if (  et(i, j, k)  .ge. 1 ) then
+
+                    k_cc = min(k, hi(3))
+
+                    if (  et(i, j, k_cc)  .ge. 1 ) then
                         f_w(i, j, k) = 1.
                     else
                         f_w(i, j, k) = 0.
@@ -746,8 +762,10 @@ contains
 
 
         !________________________________________________________________________
-        ! i, j, k => cell-centered indices
-        integer :: i, j, k
+        ! i,    j,    k    => face-centered indices
+        ! i_cc, j_cc, k_cc => cell-centered indices
+        integer :: i, j, k, i_cc, j_cc, k_cc
+
 
 
         !________________________________________________________________________
@@ -755,7 +773,10 @@ contains
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1) + 1
-                    if ( et(i, j, k) .ge. 1 ) then
+
+                    i_cc = min(i, hi(1))
+
+                    if ( et(i_cc, j, k) .ge. 1 ) then
                         f_u(i, j, k) = (u_d(i, j, k) - u_g(i, j, k)) / dt
                     else
                         f_u(i, j, k) = 0.
@@ -770,7 +791,10 @@ contains
         do k = lo(3), hi(3)
             do j = lo(2), hi(2) + 1
                 do i = lo(1), hi(1)
-                    if ( et(i, j, k) .ge. 1 ) then
+
+                    j_cc = min(j, hi(2))
+
+                    if ( et(i, j_cc, k) .ge. 1 ) then
                         f_v(i, j, k) = (v_d(i, j, k) - v_g(i, j, k)) / dt
                     else
                         f_v(i, j, k) = 0.
@@ -785,7 +809,10 @@ contains
         do k = lo(3), hi(3) + 1
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                    if ( et(i, j, k) .ge. 1 ) then
+
+                    k_cc = min(k, hi(3))
+
+                    if ( et(i, j, k_cc) .ge. 1 ) then
                         f_w(i, j, k) = (w_d(i, j, k) - w_g(i, j, k)) / dt
                     else
                         f_w(i, j, k) = 0.
