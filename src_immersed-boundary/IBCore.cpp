@@ -146,7 +146,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     }
 
     // Make sure that the `n_ibm_loc` integer does not count duplicates
-    if (n_ibm_loc > 0) n_ibm_loc = part_loc.size();
+    /*if (n_ibm_loc > 0)*/ n_ibm_loc = part_loc.size();
 
 
 
@@ -210,11 +210,11 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
      * Construct Local Immersed-Boundary Data                                   *
      ***************************************************************************/
 
-    // This goes here (and not in the construct), as BA and DM might have changed
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        vel_buffer[d].define(
-                convert(grids[lev], nodal_flag_dir[d]), dmap[lev], 1, ib_pc->get_nghost()
-            );
+    // // This goes here (and not in the construct), as BA and DM might have changed
+    // for (int d=0; d<AMREX_SPACEDIM; ++d)
+    //     vel_buffer[d].define(
+    //             convert(grids[lev], nodal_flag_dir[d]), dmap[lev], 1, ib_pc->get_nghost()
+    //         );
 
 
     // //___________________________________________________________________________
@@ -222,28 +222,6 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     // // TODO: currently these have ib_pc->get_nghost() many ghost cells, this is
     // // way too much. Once Andrew implements back-commuincation for neighbor
     // // particles, we'll only need 1 ghost cell.
-    // if (n_ibm_loc > 0) {
-    //     level_sets_loc.resize(n_ibm_loc);
-    //     iface_tags_loc.resize(n_ibm_loc);
-    //     level_set_valid.resize(n_ibm_loc);
-
-    //    for (int i=0; i<n_ibm_loc; ++i) {
-    //         level_sets_loc[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
-    //         // Tag those cells that are exactly 1 from an interface (ls = 0)
-    //         iface_tags_loc[i].define(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
-    //         // Tag those boxes which are being touched
-    //         level_set_valid[i].define(ba_nd, dmap[lev], 1, ib_pc->get_nghost());
-
-    //         // The default is important as not every box will be touched
-    //         // (because there might be no corresponding particle/neighbor
-    //         // particle in this core domain). TODO: use local level-set
-    //         // approach
-    //         level_sets_loc[i].setVal(0.);
-    //         iface_tags_loc[i].setVal(0);
-    //         level_set_valid[i].setVal(0);
-    //     }
-    // }
-
 
     if (n_ibm_loc > 0) {
 
@@ -277,27 +255,6 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     // Fill each level-set and interface tag MultiFab
     for (int i=0; i<n_ibm_loc; ++i) {
 
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//         for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++mfi) {
-//             const Box & tile_box = mfi.tilebox();
-//             auto & phi_tile      = level_sets_loc[i][mfi];
-// 
-//             fill_levelset_sphere (BL_TO_FORTRAN_BOX(tile_box),
-//                                   & part_loc[i],
-//                                   BL_TO_FORTRAN_3D(phi_tile),
-//                                   dx.dataPtr());
-// 
-//             // `level_sets_loc` and `iface_tags_loc` are local to each MPI rank
-//             // => we tag all boxes that get touched as "valid".
-//             level_set_valid[i].setVal(1, tile_box, 1);
-//         }
-// 
-//         level_sets_loc[i].FillBoundary(Geom(lev).periodicity());
-//         level_set_valid[i].FillBoundary(Geom(lev).periodicity());
-
-
         Box pbox_nd = convert(part_box[i], IntVect::TheNodeVector());
 
         fill_levelset_sphere (BL_TO_FORTRAN_BOX(pbox_nd),
@@ -309,26 +266,27 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         // we tag all boxes that get touched as "valid".
         level_set_valid[i].setVal(1);
 
-
-// #ifdef _OPENMP
-// #pragma omp parallel
-// #endif
-//         for (MFIter mfi(level_sets_loc[i], true); mfi.isValid(); ++ mfi) {
-//             const FArrayBox & phi_tile   = level_sets_loc[i][mfi];
-//             const IArrayBox & tag_tile   = level_set_valid[i][mfi];
-//                   IArrayBox & iface_tile = iface_tags_loc[i][mfi];
-// 
-//             tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
-//                               BL_TO_FORTRAN_3D(phi_tile),
-//                               BL_TO_FORTRAN_3D(tag_tile));
-//         }
-// 
-//         iface_tags_loc[i].FillBoundary(Geom(lev).periodicity());
+        tag_interface_ib (BL_TO_FORTRAN_ANYD(iface_tags_loc[i]),
+                          BL_TO_FORTRAN_ANYD(level_sets_loc[i]),
+                          BL_TO_FORTRAN_ANYD(level_set_valid[i]) );
 
 
-         tag_interface_ib (BL_TO_FORTRAN_ANYD(iface_tags_loc[i]),
-                           BL_TO_FORTRAN_ANYD(level_sets_loc[i]),
-                           BL_TO_FORTRAN_ANYD(level_set_valid[i]) );
+
+        std::ofstream ofs_ls ("ls_ibm_fab_" + std::to_string(part_loc[i].id)
+                + "," + std::to_string(part_loc[i].cpu));
+        level_sets_loc[i].writeOn(ofs_ls, 0, 1);
+
+        FArrayBox iface_dbl;
+        iface_dbl.resize(iface_tags_loc[i].box());
+
+        for (BoxIterator bit(iface_dbl.box()); bit.ok(); ++bit) {
+            iface_dbl(bit()) = iface_tags_loc[i](bit());
+        }
+
+        std::ofstream ofs_iface ("iface_ibm_fab_" + std::to_string(part_loc[i].id)
+                + "," + std::to_string(part_loc[i].cpu));
+        iface_dbl.writeOn(ofs_iface, 0, 1);
+
     }
 
 
@@ -703,25 +661,10 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 }
 
 
+
 void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
                                 int lev, const std::pair<int,int> & part_index,
                                 std::array<Real, AMREX_SPACEDIM> & f_trans) const {
-
-    //___________________________________________________________________________
-    // Allocate temporary data
-
-    // (Grown) force MultiFab containing the interpolation coefficients
-    std::array<MultiFab, AMREX_SPACEDIM> force_ibm;
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        force_ibm[d].define(convert(grids[lev], nodal_flag_dir[d]), dmap[lev],
-                            1, ib_pc->get_nghost()
-                ); // TODO: No need for so many ghost cells after Andrew's done
-        force_ibm[d].setVal(0.);
-        f_trans[d] = 0.;
-    }
-
-
 
     /****************************************************************************
      *                                                                          *
@@ -739,10 +682,10 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
     auto part_it = part_dict.find(part_index);
     if (part_it != part_dict.end()) {
         has_part  = true;
+
         // Don't use std::map::operator[] because it is non-const
         index_ibm = std::distance(part_dict.begin(), part_it);
     }
-
 
 
     /****************************************************************************
@@ -751,50 +694,52 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
      *                                                                          *
      ***************************************************************************/
 
-    if ( has_part ) {
+    //___________________________________________________________________________
+    // Allocate temporary data: (Grown) FABs containing interpolation coefficients
 
-        // Iterate over cell-centered MultiFab `dummy` as reference for
-        // face-centered data
-        MultiFab dummy(grids[lev], dmap[lev], 1, 1);
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for(MFIter mfi(dummy , true); mfi.isValid(); ++ mfi) {
-            const Box & tile_box = mfi.tilebox();
-
-            FArrayBox & f_u_tile = force_ibm[0][mfi];
+    FArrayBox f_u_tile;
 #if (AMREX_SPACEDIM > 1)
-            FArrayBox & f_v_tile = force_ibm[1][mfi];
+    FArrayBox f_v_tile;
 #endif
 #if (AMREX_SPACEDIM > 2)
-            FArrayBox & f_w_tile = force_ibm[2][mfi];
+    FArrayBox f_w_tile;
 #endif
-
-            const auto & tag_tile = iface_tags_loc[index_ibm][mfi];
-
-            fill_fgds_ib (BL_TO_FORTRAN_BOX(tile_box),
-                          BL_TO_FORTRAN_ANYD(f_u_tile),
-#if (AMREX_SPACEDIM > 1)
-                          BL_TO_FORTRAN_ANYD(f_v_tile),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                          BL_TO_FORTRAN_ANYD(f_w_tile),
-#endif
-                          BL_TO_FORTRAN_ANYD(tag_tile));
-
-        }
-
-    }
 
 
     //___________________________________________________________________________
-    // Some ranks won't be doing any work. Make sure that they don't touch
-    // `force_ibm` before work in the relevant region is done.
-    ParallelDescriptor::Barrier();
+    // Particles are in the system => fille interpolation coefficients
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        force_ibm[d].FillBoundary(Geom(lev).periodicity());
+    if ( has_part ) {
+
+        Box pbox_cc = part_box[index_ibm];
+
+            // FArrayBox & f_u_tile = force_buffer[0][mfi];
+        f_u_tile.resize(convert(pbox_cc, nodal_flag_dir[0]));
+        f_u_tile.setVal(0.);
+#if (AMREX_SPACEDIM > 1)
+            // FArrayBox & f_v_tile = force_buffer[1][mfi];
+        f_v_tile.resize(convert(pbox_cc, nodal_flag_dir[1]));
+        f_v_tile.setVal(0.);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            // FArrayBox & f_w_tile = force_buffer[2][mfi];
+        f_w_tile.resize(convert(pbox_cc, nodal_flag_dir[2]));
+        f_w_tile.setVal(0.);
+#endif
+
+        const IArrayBox & tag_tile = iface_tags_loc[index_ibm];
+
+        fill_fgds_ib (BL_TO_FORTRAN_BOX(pbox_cc),
+                      BL_TO_FORTRAN_ANYD(f_u_tile),
+#if (AMREX_SPACEDIM > 1)
+                      BL_TO_FORTRAN_ANYD(f_v_tile),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                      BL_TO_FORTRAN_ANYD(f_w_tile),
+#endif
+                      BL_TO_FORTRAN_ANYD(tag_tile));
+
+    }
 
 
 
@@ -804,15 +749,65 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
      *                                                                          *
      ***************************************************************************/
 
+    if (has_part) {
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Multiply(force_ibm[d], force[d], 0, 0, 1, 0);
-        // Not multiplying in the ghost region => do fill boundary
-        force_ibm[d].FillBoundary(Geom(lev).periodicity());
+        // Iterate over cell-centered MultiFab `dummy` as reference for
+        // face-centered data
+        MultiFab dummy(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
 
-        f_trans[d] = force_ibm[d].sum();
+        Box pbox_cc = part_box[index_ibm];
+        std::array<FArrayBox, AMREX_SPACEDIM> force_buffer;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Box pbox_face = convert(pbox_cc, nodal_flag_dir[d]);
+            
+            force_buffer[d].resize(pbox_face);
+            force_buffer[d].setVal(0.);
+        }
 
-        VisMF::Write(force_ibm[d], "force_ibm_" + std::to_string(d));
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+        for(MFIter mfi(dummy, true); mfi.isValid(); ++ mfi) {
+            const Box & tile_box = mfi.growntilebox();
+
+            Box work_region = tile_box & pbox_cc;
+            if (work_region.ok()) {
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    force_buffer[d].copy(
+                            force[d][mfi],
+                            work_region, 0,
+                            work_region, 0, 1);
+                }
+            }
+        }
+
+        // for (int d=0; d<AMREX_SPACEDIM; ++d) {
+             f_u_tile.mult(force_buffer[0], 0, 0);
+             f_v_tile.mult(force_buffer[1], 0, 0);
+             f_w_tile.mult(force_buffer[2], 0, 0);
+        // }
+    }
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        VisMF::Write(force[d], "force_" + std::to_string(d));
+
+
+    if (has_part) {
+        f_trans[0] = f_u_tile.sum(0);
+        f_trans[1] = f_v_tile.sum(0);
+        f_trans[2] = f_w_tile.sum(0);
+
+        std::ofstream ofs_u ("fu_ibm_fab_" + std::to_string(part_index.first)
+                + "," + std::to_string(part_index.second));
+        f_u_tile.writeOn(ofs_u, 0, 1);
+
+        std::ofstream ofs_v ("fv_ibm_fab_" + std::to_string(part_index.first)
+                + "," + std::to_string(part_index.second));
+        f_v_tile.writeOn(ofs_v, 0, 1);
+
+        std::ofstream ofs_w ("fw_ibm_fab_" + std::to_string(part_index.first)
+                + "," + std::to_string(part_index.second));
+        f_w_tile.writeOn(ofs_w, 0, 1);
     }
 }
 

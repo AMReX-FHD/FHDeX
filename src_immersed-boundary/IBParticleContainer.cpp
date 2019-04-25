@@ -289,13 +289,33 @@ void IBParticleContainer::InterpolateParticleForces(
 
     /****************************************************************************
      *                                                                          *
+     * Ensure that the force data `force_ibm` has enough ghost cells            *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    std::array<MultiFab, AMREX_SPACEDIM> force_buffer;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        force_buffer[d].define(
+                force[d].boxArray(), force[d].DistributionMap(),
+                1, get_nghost()
+            );
+
+        force_buffer[d].setVal(0.);
+        MultiFab::Copy(force_buffer[d], force[d], 0, 0, 1, 0);
+        force_buffer[d].FillBoundary(Geom(lev).periodicity());
+    }
+
+
+    /****************************************************************************
+     *                                                                          *
      * Compute Hydrodynamic Forces                                              *
      *                                                                          *
      ***************************************************************************/
 
     for (ParticleIndex pindex : index_list) {
         std::array<Real, AMREX_SPACEDIM> f_trans;
-        ib_core.InterpolateForce(force, lev, pindex, f_trans);
+        ib_core.InterpolateForce(force_buffer, lev, pindex, f_trans);
         particle_forces[pindex] = f_trans;
     }
 }
