@@ -181,7 +181,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* coordsz, const int* coordszlo, const int* coordszhi,
 #endif
-
+                         const amrex_real* cellcenters, const int* cellcenterslo, const int* cellcentershi,
                          const amrex_real* sourcex, const int* sourcexlo, const int* sourcexhi,
                          const amrex_real* sourcey, const int* sourceylo, const int* sourceyhi,
 #if (AMREX_SPACEDIM == 3)

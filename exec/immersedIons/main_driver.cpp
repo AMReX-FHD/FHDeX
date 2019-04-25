@@ -617,6 +617,17 @@ void main_driver(const char* argv)
         external[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
 
+    //Centred electric fields
+    std::array< MultiFab, AMREX_SPACEDIM > efieldCC;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        efieldCC[d].define(bp, dmap, 1, ngp);
+    }
+
+    efieldCC[0].setVal(0);
+    efieldCC[1].setVal(0);
+    efieldCC[2].setVal(0);
+
     AMREX_D_TERM(efield[0].setVal(0);,
                  efield[1].setVal(0);,
                  efield[2].setVal(0););
@@ -656,10 +667,10 @@ void main_driver(const char* argv)
         particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
 
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
-        esSolve(potential, charge, efield, external, geomP);
+        esSolve(potential, charge, efieldCC, external, geomP);
 
         //compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if(variance_coef_mom != 0.0) {
 
@@ -695,7 +706,7 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
        
-        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         statsCount++;
 
@@ -703,7 +714,7 @@ void main_driver(const char* argv)
         {
            
             //This write particle data and associated fields
-           // WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efield);
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
 //KTout            WritePlotFileHydro(step,time,geom,umac,pres);

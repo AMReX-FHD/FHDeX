@@ -93,7 +93,7 @@ subroutine force_function2(part1,part2,domsize) &
 !  end if
 
   !electrostatic -- need to determine how many images we should be adding
-  images = 1 !change this to an input
+  images = 16 !change this to an input
   ii=0
   jj=0
   kk=0
@@ -1702,6 +1702,8 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
   fd = fr - fi
 
+  print *, fd
+
   if(fd(1) .lt. 0.5) then
     fn(1) = -1
   else
@@ -1748,9 +1750,9 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
         weights(i,j,k,store) = w1*w2*w3
 
-        indicies(i,j,k,1,1) = fi(1)+i+fn(1)
-        indicies(i,j,k,1,2) = fi(2)+j+fn(2)
-        indicies(i,j,k,1,3) = fi(3)+k+fn(3)
+        indicies(i,j,k,store,1) = fi(1)+i+fn(1)
+        indicies(i,j,k,store,2) = fi(2)+j+fn(2)
+        indicies(i,j,k,store,3) = fi(3)+k+fn(3)
 
         wcheck = wcheck + weights(i,j,k,store)
 
@@ -1759,7 +1761,7 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
   enddo
 
 
-  !print*, "Total: ", wcheck
+  print*, "Total: ", wcheck
 
 !              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
 !              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
@@ -1867,14 +1869,17 @@ subroutine spread_op_scalar_cc(weights, indicies, &
   double precision, intent(inout) :: source(sourcelo(1):sourcehi(1),sourcelo(2):sourcehi(2),sourcelo(3):sourcehi(3))
 
   integer :: i, j, k, ii, jj, kk
-  double precision :: volinv, qm
+  double precision :: volinv, qm, pvol
 
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
-  if(mq .eq. 0) then
-    qm = part%q/permitivitty
+!  pvol = 6.0242
+  pvol = 6.16
 
- ! print *, "Spreading ", part%q
+  if(mq .eq. 0) then
+    qm = pvol*part%q/permitivitty
+
+  print *, "Spreading ", part%q
   else
     qm = part%mass
   endif       
@@ -1887,14 +1892,15 @@ subroutine spread_op_scalar_cc(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        !print *, to 
+        if((i .eq. 0 ) .and. (k .eq. 0)) then
+          print*, "Q: ", qm*weights(i,j,k,store)*volinv, "I: ", i, j, k, "W: ", weights(i,j,k,store)
+        endif
 
         source(ii,jj,kk) = qm*weights(i,j,k,store)*volinv
 
       enddo
     enddo
   enddo
-
 
 end subroutine spread_op_scalar_cc
 
@@ -1925,7 +1931,7 @@ subroutine inter_op(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk
-  double precision :: oldvel(3)
+  double precision :: oldvel(3), test
 
 
   boundflag = 0
@@ -1933,6 +1939,8 @@ subroutine inter_op(weights, indicies, &
   if(midpoint .eq. 0) then
 
   part%vel = 0
+
+  test = 0
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
@@ -1942,16 +1950,18 @@ subroutine inter_op(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        part%vel(1) = part%vel(1) + weights(i,j,k,1)*velu(ii,jj,kk)
-
-       
-        !print*, "V: ", velu(ii,jj,kk), "I: ", i, j, k, "W: ", weights(i,j,k,1)
+        part%vel(1) = part%vel(1) + weights(i,j,k,1)*velu(ii,jj,kk)     
 
         ii = indicies(i,j,k,2,1)
         jj = indicies(i,j,k,2,2)
         kk = indicies(i,j,k,2,3)
 
         part%vel(2) = part%vel(2) + weights(i,j,k,2)*velv(ii,jj,kk)
+
+        if((i .eq. 0 ) .and. (k .eq. 0)) then
+          test = test + weights(i,j,k,2)*velv(ii,jj,kk)
+          print*, "E: ", velv(ii,jj,kk), ", W: ", weights(i,j,k,2), ", cell: ", ii,jj,kk
+        endif
 
         ii = indicies(i,j,k,3,1)
         jj = indicies(i,j,k,3,2)
@@ -1965,6 +1975,8 @@ subroutine inter_op(weights, indicies, &
       enddo
     enddo
   enddo
+
+  print *, "Etot: ", test
 
   else
 
@@ -2566,7 +2578,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                      coordsz, coordszlo, coordszhi, &
 #endif
-
+                                     cellcenters, cellcenterslo, cellcentershi, &
                                      sourcex, sourcexlo, sourcexhi, &
                                      sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
@@ -2591,6 +2603,8 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   type(particle_t), intent(inout), target :: particles(np)
   type(surface_t),  intent(in),    target :: surfaces(ns)
 
+  integer,          intent(in   )         :: cellcenterslo(3), cellcentershi(3)
+
   double precision, intent(in   )         :: dx(3), dxf(3), dxe(3), dt, plo(3), phi(3), plof(3)
 
   double precision, intent(in   ) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
@@ -2611,6 +2625,8 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
 #endif
 
+double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1),cellcenterslo(2):cellcentershi(2),cellcenterslo(3):cellcentershi(3),1:AMREX_SPACEDIM)
+
   double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
   double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
 #if (AMREX_SPACEDIM == 3)
@@ -2620,7 +2636,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, boundflag, midpoint
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, boundflag, midpoint, store
   integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
@@ -2636,6 +2652,8 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   else
     ks = 3
   endif
+
+  ks = 3
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
   allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
@@ -2714,6 +2732,24 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 !#endif
 !                                part, ks, dxf)
 
+
+print *, "Start scalar weight"
+
+              store = 1
+              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
+                              cellcenters, cellcenterslo, cellcentershi, &
+                              part, ks, lo, hi, plof, store)
+
+              store = 2
+              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
+                              cellcenters, cellcenterslo, cellcentershi, &
+                              part, ks, lo, hi, plof, store)
+
+              store = 3
+              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
+                              cellcenters, cellcenterslo, cellcentershi, &
+                              part, ks, lo, hi, plof, store)
+
               call emf(weights, indicies, &
                                 sourcex, sourcexlo, sourcexhi, &
                                 sourcey, sourceylo, sourceyhi, &
@@ -2726,7 +2762,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                                 efz, efzlo, efzhi, &
 #endif
                                 part, ks, dxe)
-
+print *, "end emf"
 
 !              !  print*, "SPREAD"
 !              call spread_op(weights, indicies, &
@@ -2852,7 +2888,7 @@ subroutine collect_charge(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_es
+  use common_namelist_module, only: visc_type, k_B, pkernel_es, qval
   use rng_functions_module
   use surfaces_module
   
@@ -2877,7 +2913,7 @@ subroutine collect_charge(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, domsize(3), posalt(3), propvec(3), norm(3), diffest, diffav, distav, diffinst, qm
+  real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), totalcharge, diffav, distav, domsize(3), qm, diffinst, volinv
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -2897,6 +2933,8 @@ subroutine collect_charge(particles, np, lo, hi, &
   dxinv = 1.d0/dx
 
   dxesinv = 1.d0/dxes
+
+  volinv = 1d0/(dxes(1)*dxes(2)*dxes(3))
 
 
   diffav = 0
@@ -2939,7 +2977,19 @@ subroutine collect_charge(particles, np, lo, hi, &
      end do
   end do
 
-  !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
+  totalcharge = 0
+
+  do k = chargelo(3), chargehi(3)
+     do j = chargelo(2), chargehi(2)
+        do i = chargelo(1), chargehi(1)
+
+          totalcharge = totalcharge + charge(i,j,k)
+    
+        end do
+     end do
+  end do  
+
+  print *, "Total charge: ", totalcharge/volinv
 
   deallocate(weights)
   deallocate(indicies)

@@ -73,11 +73,11 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-//#endif
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+#endif
 
 //                p.pos(0) = 1.1*diameter[0] + 3*diameter[0]*(1.5+(0.5-get_uniform_func()))*ii;
 //                p.pos(1) = 3*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*jj;
@@ -86,22 +86,33 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //#endif
                 double mm = 0.2;
 
-                p.pos(0) = (0.5 - mm + kk*2*mm)*phi[0];
-                p.pos(1) = 0.5*phi[1];
-#if (BL_SPACEDIM == 3)
-                p.pos(2) = 0.5*phi[2];
-#endif
+//                p.pos(0) = (0.5 - mm + kk*2*mm+0.1)*phi[0];
+//                p.pos(1) = (0.3+kk/2)*phi[1];
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = (0.6+kk/4)*phi[2];
+//#endif
+
+//                p.pos(1) = 0.4*phi[1];
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = 0.6*phi[2];
+//#endif
+
+//                p.pos(0) = (32+kk*80)*dx[0];
+//                p.pos(1) = (16)*dx[1];
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = (16)*dx[2];
+//#endif
                 
                 p.rdata(RealData::q) = qval;
 
-//                ll++;
+                ll++;
 
                 if(ll%2 == 0)
                 {
                   p.rdata(RealData::q) = -p.rdata(RealData::q);
 
                 }
-                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
+                Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
 
 
 //                p.pos(0) = 0 + 2.5*dx[0];
@@ -117,7 +128,7 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 #endif
 
 
-               Print() << "Pos " << ll << ": " << p.rdata(RealData::ox) << ", " << p.rdata(RealData::oy) << ", " << p.rdata(RealData::oz) << "\n";
+               //Print() << "Pos " << ll << ": " << p.rdata(RealData::ox) << ", " << p.rdata(RealData::oy) << ", " << p.rdata(RealData::oz) << "\n";
 
                 //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
@@ -506,6 +517,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                           const MultiFab& cellCenters,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw)
@@ -568,6 +580,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
 #endif
+                         BL_TO_FORTRAN_3D(cellCenters[pti]),
                          BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
                          BL_TO_FORTRAN_3D(sourceTemp[1][pti])
 #if (AMREX_SPACEDIM == 3)

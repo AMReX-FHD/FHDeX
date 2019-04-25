@@ -53,3 +53,21 @@ void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi
         }
     }
 }
+
+//Computes gradient at cell centres from cell centred data - oututs to a three component mf.
+void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, const Geometry& geom)
+{
+    for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
+        const Box& bx = mfi.validbox();
+
+
+            compute_grad_cc(BL_TO_FORTRAN_BOX(bx),
+                         BL_TO_FORTRAN_3D(gphi[0][mfi]),
+                         BL_TO_FORTRAN_3D(gphi[1][mfi]),
+#if (AMREX_SPACEDIM==3)
+                         BL_TO_FORTRAN_3D(gphi[2][mfi]),
+#endif
+                         BL_TO_FORTRAN_3D(phi[mfi]),
+                         geom.CellSize());
+        }    
+}

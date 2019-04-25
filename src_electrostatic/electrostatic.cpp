@@ -39,13 +39,15 @@ void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, 
     
     potential.FillBoundary(geom.periodicity());
 
-    //Find e field, gradient from cell centers to faces
-    ComputeGrad(potential, efield, 0, 0, 1, geom);
+//    //Find e field, gradient from cell centers to faces
+//    ComputeGrad(potential, efield, 0, 0, 1, geom);
 
+     //Find e field, gradient from cell centers to faces
+      ComputeCentredGrad(potential, efield, geom);
 
     //Add external field on top, then fill boundaries
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
+        //MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
         efield[d].FillBoundary(geom.periodicity());
     }
 

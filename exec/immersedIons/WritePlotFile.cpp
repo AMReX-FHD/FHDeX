@@ -37,16 +37,26 @@ void WritePlotFile(int step,
 
     MultiFab eplotfile(eba, edmap, enPlot, 0);
 
+    MultiFab eplotout(eba, edmap, 1, 0);
+
     Vector<std::string> cvarNames(cnPlot);
     Vector<std::string> evarNames(enPlot);
 
     amrex::MultiFab::Copy(eplotfile,charge,0,0,1,0);
     amrex::MultiFab::Copy(eplotfile,potential,0,1,1,0);
 
-    // average staggered velocities to cell-centers and copy into plotfile
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        AverageFaceToCC(efield[i],0,eplotfile,2+i,1);
-    }
+   amrex::MultiFab::Copy(eplotfile,efield[0],0,2,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[1],0,3,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[2],0,4,1,0);
+
+   amrex::MultiFab::Copy(eplotout,efield[1],0,0,1,0);
+
+  // average staggered velocities to cell-centers and copy into plotfile
+//    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+//        AverageFaceToCC(efield[i],0,eplotfile,2+i,1);
+//    }
+
+//    AverageFaceToCC(efield[1],0,eplotout,0,1);
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
@@ -142,7 +152,7 @@ void WritePlotFile(int step,
     cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
     cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
 
-    WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
+    //WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
 
     WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
@@ -150,9 +160,16 @@ void WritePlotFile(int step,
     particles.Checkpoint(pplotfilename, "particle0");
 
 
-    std::string asciiName = Concatenate("asciiMeans",step,9);
+    std::string asciiName1 = Concatenate("asciiCharge",step,9);
+    std::string asciiName2 = Concatenate("asciiPotential",step,9);
+    std::string asciiName3 = Concatenate("asciiEy",step,9);
+
     std::string asciiPName = Concatenate("asciiParticles",step,9);
-    outputMFAscii(particleMeans, asciiName);
+
+    outputMFAscii(charge, asciiName1);
+    outputMFAscii(potential, asciiName2);
+    outputMFAscii(eplotout, asciiName3);
+
     particles.WriteParticlesAscii(asciiPName);
 
 
