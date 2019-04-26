@@ -227,11 +227,12 @@ void IBParticleContainer::InterpolateParticleForces(
 
     /****************************************************************************
      *                                                                          *
-     * Collect the list of local (non-neighbor) particles                       *
+     * Collect the list of particles which are also contained in the IBCore     *
      *                                                                          *
      ***************************************************************************/
 
     Vector<ParticleIndex> index_list;
+    std::map<ParticleIndex, int> ibm_index_map;
 
     //___________________________________________________________________________
     // Add particles to list
@@ -251,8 +252,12 @@ void IBParticleContainer::InterpolateParticleForces(
             ParticleType & part = particles[i];
             ParticleIndex pindex(part.id(), part.cpu());
 
+            int ibm_index = ib_core.get_IBMIndex(pindex);
+            if (ibm_index == -1) continue;
+
             // Add to list if it's not already there (don't forget the
-            // critical, just in case std::vector::push_back is not atomic)
+            // critical, just in case std::vector::push_back is not atomic).
+            // TODO: this implementation needs work to increase performance.
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -260,9 +265,11 @@ void IBParticleContainer::InterpolateParticleForces(
                 auto search = std::find(std::begin(index_list), std::end(index_list), pindex);
                 if (search == std::end(index_list)) {
                     index_list.push_back(pindex);
+                    ibm_index_map[pindex] = ibm_index;
                 }
             }
         }
+
 
         long ng = neighbors[lev][index].size();
 
@@ -272,8 +279,12 @@ void IBParticleContainer::InterpolateParticleForces(
             ParticleType & part = nbhd_data[i];
             ParticleIndex pindex(part.id(), part.cpu());
 
+            int ibm_index = ib_core.get_IBMIndex(pindex);
+            if (ibm_index == -1) continue;
+
             // Add to list if it's not already there (don't forget the
-            // critical, just in case std::vector::push_back is not atomic)
+            // critical, just in case std::vector::push_back is not atomic).
+            // TODO: this implementation needs work to increase performance.
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -281,6 +292,7 @@ void IBParticleContainer::InterpolateParticleForces(
                 auto search = std::find(std::begin(index_list), std::end(index_list), pindex);
                 if (search == std::end(index_list)) {
                     index_list.push_back(pindex);
+                    ibm_index_map[pindex] = ibm_index;
                 }
             }
         }
@@ -307,15 +319,68 @@ void IBParticleContainer::InterpolateParticleForces(
     }
 
 
+    // Iterate over cell-centered MultiFab `dummy` as reference for face-centered data
+    BoxArray force_grids_cc = convert(force[0].boxArray(), IntVect::TheCellVector());
+    MultiFab dummy(force_grids_cc, force[0].DistributionMap(), 1, get_nghost());
+
+
+    std::map<ParticleIndex, std::array<FArrayBox, AMREX_SPACEDIM>> pforce_buffer;
+    for (const ParticleIndex & pindex : index_list) {
+
+        int index_ibm = ibm_index_map[pindex];
+        Box pbox_cc   = ib_core.get_IBMBox(index_ibm);
+
+        std::array<FArrayBox, AMREX_SPACEDIM> pforce;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Box pbox_face = convert(pbox_cc, nodal_flag_dir[d]);
+
+            // FArrayBox has deleted its copy and copy-assignement
+            // constructors. We'll therefore use a particular feature of
+            // std::map::operator[] => if pindex isn't already in the map, the
+            // default FArrayBox constructor is invoked.
+            pforce_buffer[pindex][d].resize(pbox_face);
+            pforce_buffer[pindex][d].setVal(0.);
+        }
+    }
+
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for(MFIter mfi(dummy, true); mfi.isValid(); ++ mfi) {
+        const Box & tile_box = mfi.growntilebox();
+
+        for (const ParticleIndex & pindex : index_list) {
+            int index_ibm = ibm_index_map[pindex];
+
+            Box pbox_cc     = ib_core.get_IBMBox(index_ibm);
+            Box work_region = tile_box & pbox_cc;
+
+            if (work_region.ok()) {
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    Box wregion_fc = convert(work_region, nodal_flag_dir[d]);
+
+                    pforce_buffer[pindex][d].copy(
+                            force_buffer[d][mfi],
+                            wregion_fc, 0,
+                            wregion_fc, 0, 1);
+                }
+            }
+        }
+    }
+
+
+
+
     /****************************************************************************
      *                                                                          *
      * Compute Hydrodynamic Forces                                              *
      *                                                                          *
      ***************************************************************************/
 
-    for (ParticleIndex pindex : index_list) {
+    for (const ParticleIndex & pindex : index_list) {
         std::array<Real, AMREX_SPACEDIM> f_trans;
-        ib_core.InterpolateForce(force_buffer, lev, pindex, f_trans);
+        ib_core.InterpolateForce(pforce_buffer[pindex], lev, pindex, f_trans);
         particle_forces[pindex] = f_trans;
     }
 }
