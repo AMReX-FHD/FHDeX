@@ -41,7 +41,7 @@ subroutine force_function2(part1,part2,domsize) &
   real(amrex_real), intent(in) :: domsize(3)
 
   integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch
-  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff
+  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff, rtdr2, maxdist
 
 
   !here calculate forces as a function of distance
@@ -93,77 +93,38 @@ subroutine force_function2(part1,part2,domsize) &
 !  end if
 
   !electrostatic -- need to determine how many images we should be adding
-  images = 16 !change this to an input
+  images = 32 !change this to an input
   ii=0
   jj=0
   kk=0
 
-  imagecounter = 0    
 
-!  print *, "Zero dist: ", dx0(1)
-!  print *, "domsize: ", domsize(1)
+  maxdist = images*domsize(1)
+
+  if(images*domsize(2) .lt. maxdist) then
+    maxdist = images*domsize(2)
+  endif
+
+  if((images*domsize(3) .lt. images*domsize(2)) .or. (images*domsize(3) .lt. images*domsize(1))) then
+    maxdist = images*domsize(3)
+  endif
 
   do ii = -images, images
     do jj = -images, images 
       do kk = -images, images
 
-!    do jj = -1, 1 
-!      do kk = -1, 1 
-  
-
-      if(part1%pos(1) .lt. part2%pos(1)) then
-
-        if(ii .ne. images) then
           dx(1) = dx0(1) - ii*domsize(1)
           dx(2) = dx0(2) - jj*domsize(2)
           dx(3) = dx0(3) - kk*domsize(3)
 
           dr2 = dot_product(dx,dx)
 
-         ! print *, "ii: ", ii, jj,kk
+          rtdr2 = sqrt(dr2)
 
-          part1%force = part1%force + permitivitty*(dx/sqrt(dr2))*part1%q*part2%q/dr2
-          !print *, "force: ", permitivitty*(dx/sqrt(dr2))*part1%q*part2%q/dr2
-          !print *, "dist: ", dx
+          if(rtdr2 .lt. maxdist) then
+            part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+          endif
 
-        endif
-      else
-        if(ii .ne. -images) then
-          dx(1) = dx0(1) - ii*domsize(1)
-          dx(2) = dx0(2) - jj*domsize(2)
-          dx(3) = dx0(3) - kk*domsize(3)
-
-
-          dr2 = dot_product(dx,dx)
-
-          !print *, "ii: ", ii, ", dist: ", dx(1)
-
-          part1%force = part1%force + permitivitty*(dx/sqrt(dr2))*part1%q*part2%q/dr2
-
-        endif
-      endif
-
-      !change dx, dy, dz, dr2 for each image
-
-       !part2%force = part2%force - permittivity*(dx/sqrt(dr2))*part1%q*part2%q/dr2
-
-!       if((ii .ne. 0) .or. (jj .ne. 0) .or. (kk .ne. 0)) then
-
-!         dx(1) = ii*domsize(1)
-!         dx(2) = jj*domsize(2)
-!         dx(3) = kk*domsize(3)
-
-!         dr2 = dot_product(dx,dx)
-
-!         part1%force = part1%force + permittivity*(dx/sqrt(dr2))*part1%q*part1%q/dr2
-!         !part2%force = part2%force + permittivity*(dx/sqrt(dr2))*part2%q*part2%q/dr2
-
-!       endif
-
-       !print *, "electro force1: ", part1%force, dx/sqrt(dr2)
-       !print *, "electro force2: ", part2%force
-
-       !print *, part1%force, dr2
         imagecounter = imagecounter + 1
 
       end do
