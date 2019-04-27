@@ -664,10 +664,10 @@ void main_driver(const char* argv)
         //particles.computeForcesNL();
 
         //Spreads charge density from ions onto multifab 'charge'.
-        particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+        //particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
 
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
-        esSolve(potential, charge, efieldCC, external, geomP);
+        //esSolve(potential, charge, efieldCC, external, geomP);
 
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
@@ -682,16 +682,16 @@ void main_driver(const char* argv)
           sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
         }
 
-    	//advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    	advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 
         //Calls wet ion interpolation and movement.
-//        particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
-//
-//        particles.Redistribute();
-//        particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+        particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-//Dout  particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+        particles.Redistribute();
+        particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+
+        //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
         //These functions reorganise particles between cells and processes
 //Dout  particles.Redistribute();
@@ -717,7 +717,7 @@ void main_driver(const char* argv)
             WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-//KTout            WritePlotFileHydro(step,time,geom,umac,pres);
+            WritePlotFileHydro(step,time,geom,umac,pres);
         }
 
         if(step%1 == 0)

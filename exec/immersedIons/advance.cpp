@@ -33,6 +33,25 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   BL_PROFILE_VAR("advance()",advance);
 
+
+  /////////////BC Testing!//////
+
+    pres.FillBoundary(geom.periodicity());
+    MultiFABPhysBC(pres, geom);
+
+    pres.FillBoundary(geom.periodicity());
+    MultiFABPhysBC(pres, geom);
+
+
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
+        umac[i].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[i], i, geom);
+        MultiFABPhysBCMacVel(umac[i], i, geom);
+    }
+
+  ////////////      
+
+
   Real theta_alpha = 0.;
   Real norm_pre_rhs;
 
