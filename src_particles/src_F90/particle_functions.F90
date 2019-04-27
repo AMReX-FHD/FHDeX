@@ -98,6 +98,7 @@ subroutine force_function2(part1,part2,domsize) &
   jj=0
   kk=0
 
+  imagecounter = 0
 
   maxdist = images*domsize(1)
 
@@ -1937,7 +1938,7 @@ subroutine inter_op(weights, indicies, &
     enddo
   enddo
 
-  print *, "Etot: ", test
+  !print *, "Etot: ", test
 
   else
 
@@ -1993,7 +1994,7 @@ subroutine inter_op(weights, indicies, &
   endif
 
 
-  !print*, "Intervel: ", part%vel
+  print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
@@ -2641,20 +2642,20 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
   veltest = 0
 
 
-  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
+!  call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi)
 
-   p = 1
-  !Added force zeroing to be safe        
-  do while (p <= np)
+!   p = 1
+!  !Added force zeroing to be safe        
+!  do while (p <= np)
 
-     part => particles(p)
+!     part => particles(p)
 
-      print *, "Coulomb force: ", part%force
-     part%force=0
+!      print *, "Coulomb force: ", part%force
+!     part%force=0
 
-      p = p + 1
+!      p = p + 1
 
-  end do
+!  end do
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -2668,6 +2669,8 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
               part => particles(cell_parts(p))
 
+              part%vel(1) = 10
+
               !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
 
               call get_weights(dxf, dxfinv, weights, indicies, &
@@ -2680,122 +2683,122 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
 
 
-!              call drag(weights, indicies, &
-!                                sourcex, sourcexlo, sourcexhi, &
-!                                sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                                velx, velxlo, velxhi, &
-!                                vely, velylo, velyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                velz, velzlo, velzhi, &
-!#endif
-!                                part, ks, dxf)
-
-
-print *, "Start scalar weight"
-
-              store = 1
-              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
-                              cellcenters, cellcenterslo, cellcentershi, &
-                              part, ks, lo, hi, plof, store)
-
-              store = 2
-              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
-                              cellcenters, cellcenterslo, cellcentershi, &
-                              part, ks, lo, hi, plof, store)
-
-              store = 3
-              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
-                              cellcenters, cellcenterslo, cellcentershi, &
-                              part, ks, lo, hi, plof, store)
-
-              call emf(weights, indicies, &
+              call drag(weights, indicies, &
                                 sourcex, sourcexlo, sourcexhi, &
                                 sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
                                 sourcez, sourcezlo, sourcezhi, &
 #endif
-                                efx, efxlo, efxhi, &
-                                efy, efylo, efyhi, &
+                                velx, velxlo, velxhi, &
+                                vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
-                                efz, efzlo, efzhi, &
+                                velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxe)
-print *, "end emf"
+                                part, ks, dxf)
 
-!              !  print*, "SPREAD"
-!              call spread_op(weights, indicies, &
+
+!------------- look at more efficient way of doing this
+
+!              store = 1
+!              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
+!                              cellcenters, cellcenterslo, cellcentershi, &
+!                              part, ks, lo, hi, plof, store)
+
+!              store = 2
+!              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
+!                              cellcenters, cellcenterslo, cellcentershi, &
+!                              part, ks, lo, hi, plof, store)
+
+!              store = 3
+!              call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
+!                              cellcenters, cellcenterslo, cellcentershi, &
+!                              part, ks, lo, hi, plof, store)
+
+!              call emf(weights, indicies, &
 !                                sourcex, sourcexlo, sourcexhi, &
 !                                sourcey, sourceylo, sourceyhi, &
 !#if (BL_SPACEDIM == 3)
 !                                sourcez, sourcezlo, sourcezhi, &
 !#endif
-!                                part, ks, dxf)
+!                                efx, efxlo, efxhi, &
+!                                efy, efylo, efyhi, &
+!#if (BL_SPACEDIM == 3)
+!                                efz, efzlo, efzhi, &
+!#endif
+!                                part, ks, dxe)
+
+
+              !  print*, "SPREAD"
+              call spread_op(weights, indicies, &
+                                sourcex, sourcexlo, sourcexhi, &
+                                sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                sourcez, sourcezlo, sourcezhi, &
+#endif
+                                part, ks, dxf)
 
 
               part%force = 0
 
 !------------RFD calc, temporarily moved out of function for testing
 
-  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
+!  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
 
-  delta = 1d-7*dxf(1)
+!  delta = 1d-7*dxf(1)
 
-  !print*, "Fluid vel: ", uloc, wloc, vloc
+!  !print*, "Fluid vel: ", uloc, wloc, vloc
 
-  call get_particle_normal(normalrand(1))
-  call get_particle_normal(normalrand(2))
-  call get_particle_normal(normalrand(3))
-
-
-  part%pos = part%pos + delta*normalrand
+!  call get_particle_normal(normalrand(1))
+!  call get_particle_normal(normalrand(2))
+!  call get_particle_normal(normalrand(3))
 
 
-  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
-  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
-  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
+!  part%pos = part%pos + delta*normalrand
 
-  call get_weights(dxf, dxfinv, weights, indicies, &
-                  coordsx, coordsxlo, coordsxhi, &
-                  coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                  coordsz, coordszlo, coordszhi, &
-#endif
-                  part, ks, lo, hi, plof)
-  
-  call spread_op(weights, indicies, &
-                  sourcex, sourcexlo, sourcexhi, &
-                  sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                  sourcez, sourcezlo, sourcezhi, &
-#endif
-                  part, ks, dxf)
 
-  part%pos = part%pos - delta*normalrand
+!  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
+!  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
+!  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
 
-  call get_weights(dxf, dxfinv, weights, indicies, &
-                  coordsx, coordsxlo, coordsxhi, &
-                  coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                  coordsz, coordszlo, coordszhi, &
-#endif
-                  part, ks, lo, hi, plof)
+!  call get_weights(dxf, dxfinv, weights, indicies, &
+!                  coordsx, coordsxlo, coordsxhi, &
+!                  coordsy, coordsylo, coordsyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  coordsz, coordszlo, coordszhi, &
+!#endif
+!                  part, ks, lo, hi, plof)
+!  
+!  call spread_op(weights, indicies, &
+!                  sourcex, sourcexlo, sourcexhi, &
+!                  sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                  part, ks, dxf)
 
-  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
-  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
-  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
+!  part%pos = part%pos - delta*normalrand
 
-  call spread_op(weights, indicies, &
-                  sourcex, sourcexlo, sourcexhi, &
-                  sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                  sourcez, sourcezlo, sourcezhi, &
-#endif
-                  part, ks, dxf)
+!  call get_weights(dxf, dxfinv, weights, indicies, &
+!                  coordsx, coordsxlo, coordsxhi, &
+!                  coordsy, coordsylo, coordsyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  coordsz, coordszlo, coordszhi, &
+!#endif
+!                  part, ks, lo, hi, plof)
 
-  part%pos = part%pos + delta*normalrand/2
+!  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
+!  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
+!  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
+
+!  call spread_op(weights, indicies, &
+!                  sourcex, sourcexlo, sourcexhi, &
+!                  sourcey, sourceylo, sourceyhi, &
+!#if (BL_SPACEDIM == 3)
+!                  sourcez, sourcezlo, sourcezhi, &
+!#endif
+!                  part, ks, dxf)
+
+!  part%pos = part%pos + delta*normalrand/2
 
 
 !--------------End RFD calc

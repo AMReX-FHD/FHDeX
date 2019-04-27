@@ -65,7 +65,7 @@ void FhdParticleContainer::InitParticles(species particleInfo)
           {      
           for(int jj=0;jj<1;jj++)
           {      
-          for(int kk=0;kk<2;kk++)
+          for(int kk=0;kk<1;kk++)
           {      
 
                 ParticleType p;
@@ -73,11 +73,11 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-#if (BL_SPACEDIM == 3)
-                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-#endif
+//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+//#endif
 
 //                p.pos(0) = 1.1*diameter[0] + 3*diameter[0]*(1.5+(0.5-get_uniform_func()))*ii;
 //                p.pos(1) = 3*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*jj;
@@ -86,11 +86,12 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //#endif
                 double mm = 0.2;
 
-//                p.pos(0) = (0.3)*phi[0];
+                p.pos(0) = (0.5)*phi[0];
 //                p.pos(1) = (0.5 - mm + kk*2*mm)*phi[1];
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = (0.7)*phi[2];
-//#endif
+                p.pos(1) = 0.5*phi[1];
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = (0.05)*phi[2];
+#endif
 
 //                p.pos(1) = 0.4*phi[1];
 //#if (BL_SPACEDIM == 3)
