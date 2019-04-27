@@ -661,15 +661,23 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 void IBCore::InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
                                 int lev, const std::pair<int,int> & part_index,
                                 std::array<Real, AMREX_SPACEDIM> & f_trans) const {
-
     //___________________________________________________________________________
     // Find index of immersed-boundary respresented by `part_index`
 
     int index_ibm = get_IBMIndex(part_index);
-    // bool has_part = (index_ibm != -1);
 
+    // Do nothing if there is no corresponding particle index
     if (index_ibm == -1)
         return;
+
+    InterpolateForce(force, lev, index_ibm, part_index, f_trans);
+}
+
+
+
+void IBCore::InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
+                                int lev, int index_ibm, const std::pair<int,int> & part_index,
+                                std::array<Real, AMREX_SPACEDIM> & f_trans) const {
 
 
     /****************************************************************************

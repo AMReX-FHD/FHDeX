@@ -84,6 +84,10 @@ public:
                              int lev, Real dt);
 
     void InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
+                            int lev, int ibm_index, const std::pair<int,int> & part_index,
+                            std::array<Real, AMREX_SPACEDIM> & f_trans) const;
+
+    void InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
                             int lev, const std::pair<int,int> & part_index,
                             std::array<Real, AMREX_SPACEDIM> & f_trans) const;
 

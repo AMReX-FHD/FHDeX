@@ -380,7 +380,9 @@ void IBParticleContainer::InterpolateParticleForces(
 
     for (const ParticleIndex & pindex : index_list) {
         std::array<Real, AMREX_SPACEDIM> f_trans;
-        ib_core.InterpolateForce(pforce_buffer[pindex], lev, pindex, f_trans);
+        int index_ibm = ibm_index_map[pindex];
+
+        ib_core.InterpolateForce(pforce_buffer[pindex], lev, index_ibm, pindex, f_trans);
         particle_forces[pindex] = f_trans;
     }
 }
