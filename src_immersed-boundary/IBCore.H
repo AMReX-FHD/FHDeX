@@ -83,7 +83,7 @@ public:
                              const MultiFab & u_s, const MultiFab & v_s, const MultiFab & w_s,
                              int lev, Real dt);
 
-    void InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
+    void InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
                             int lev, const std::pair<int,int> & part_index,
                             std::array<Real, AMREX_SPACEDIM> & f_trans) const;
 
@@ -95,6 +95,19 @@ public:
 
     //Needs to be the same indexing system as IBParticleContainer
     using PairIndex = std::pair<int, int>;
+
+
+    int get_IBMIndex(const PairIndex & part_index) const;
+
+    const Box & get_IBMBox(int ibm_index) const {
+        return part_box[ibm_index];
+    }
+
+    // This is unsafe => don't use!
+    // const Box & get_IBMBox(const PairIndex & part_index) const {
+    //     int ibm_index = get_IBMIndex(part_index);
+    //     return part_box[ibm_index];
+    // }
 
 
 private:

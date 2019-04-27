@@ -662,30 +662,15 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 
 
 
-void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & force,
+void IBCore::InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
                                 int lev, const std::pair<int,int> & part_index,
                                 std::array<Real, AMREX_SPACEDIM> & f_trans) const {
 
-    /****************************************************************************
-     *                                                                          *
-     * Find if this rank contains the particle respresented by `part_index`     *
-     *                                                                          *
-     ***************************************************************************/
-
-    bool has_part = false;
-    int index_ibm = -1; // position of particle in `part_loc` and so on...
-
-
     //___________________________________________________________________________
-    // `has_part == true` iff part_dict contains `part_index`
+    // Find index of immersed-boundary respresented by `part_index`
 
-    auto part_it = part_dict.find(part_index);
-    if (part_it != part_dict.end()) {
-        has_part  = true;
-
-        // Don't use std::map::operator[] because it is non-const
-        index_ibm = std::distance(part_dict.begin(), part_it);
-    }
+    int index_ibm = get_IBMIndex(part_index);
+    bool has_part = (index_ibm != -1);
 
 
     /****************************************************************************
@@ -751,46 +736,25 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
 
     if (has_part) {
 
-        // Iterate over cell-centered MultiFab `dummy` as reference for
-        // face-centered data
-        MultiFab dummy(grids[lev], dmap[lev], 1, ib_pc->get_nghost());
-
-        Box pbox_cc = part_box[index_ibm];
-        std::array<FArrayBox, AMREX_SPACEDIM> force_buffer;
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            Box pbox_face = convert(pbox_cc, nodal_flag_dir[d]);
-            
-            force_buffer[d].resize(pbox_face);
-            force_buffer[d].setVal(0.);
-        }
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-        for(MFIter mfi(dummy, true); mfi.isValid(); ++ mfi) {
-            const Box & tile_box = mfi.growntilebox();
-
-            Box work_region = tile_box & pbox_cc;
-            if (work_region.ok()) {
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    force_buffer[d].copy(
-                            force[d][mfi],
-                            work_region, 0,
-                            work_region, 0, 1);
-                }
-            }
-        }
-
         // for (int d=0; d<AMREX_SPACEDIM; ++d) {
-             f_u_tile.mult(force_buffer[0], 0, 0);
-             f_v_tile.mult(force_buffer[1], 0, 0);
-             f_w_tile.mult(force_buffer[2], 0, 0);
+             f_u_tile.mult(force[0], 0, 0);
+             f_v_tile.mult(force[1], 0, 0);
+             f_w_tile.mult(force[2], 0, 0);
+
+        std::ofstream ofs_u ("fu_fab_" + std::to_string(part_index.first)
+                + "," + std::to_string(part_index.second));
+        force[0].writeOn(ofs_u, 0, 1);
+
+        std::ofstream ofs_v ("fv_fab_" + std::to_string(part_index.first)
+                + "," + std::to_string(part_index.second));
+        force[1].writeOn(ofs_v, 0, 1);
+
+        std::ofstream ofs_w ("fw_fab_" + std::to_string(part_index.first)
+                + "," + std::to_string(part_index.second));
+        force[2].writeOn(ofs_w, 0, 1);
+
         // }
     }
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        VisMF::Write(force[d], "force_" + std::to_string(d));
-
 
     if (has_part) {
         f_trans[0] = f_u_tile.sum(0);
@@ -809,6 +773,33 @@ void IBCore::InterpolateForce ( const std::array<MultiFab, AMREX_SPACEDIM> & for
                 + "," + std::to_string(part_index.second));
         f_w_tile.writeOn(ofs_w, 0, 1);
     }
+}
+
+
+
+int IBCore::get_IBMIndex(const PairIndex & part_index) const {
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Find index of immersed-boundary respresented by `part_index`. This index *
+     * corresponds to the indexing of the Vector<FArrayBox> and IArrayBoxes     *
+     *                                                                          *
+     ***************************************************************************/
+
+    int index_ibm = -1; // position of particle in `part_loc` and so on...
+
+
+    //___________________________________________________________________________
+    // `has_part == true` iff part_dict contains `part_index`
+
+    auto part_it = part_dict.find(part_index);
+    if (part_it != part_dict.end()) {
+        // Don't use std::map::operator[] because it is non-const
+        index_ibm = std::distance(part_dict.begin(), part_it);
+    }
+
+    return index_ibm;
 }
 
 
