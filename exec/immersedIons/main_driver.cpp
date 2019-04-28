@@ -552,13 +552,6 @@ void main_driver(const char* argv)
     //create particles
     particles.InitParticles(ionParticle);
 
-
-    //particles.InitializeFields(particleInstant, cellVols, ionParticle[0]);
-
-    //setup initial DSMC collision parameters
-    //particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, ionParticle[0], dt);
-
-
     //----------------------    
     // Electrostatic setup
     //----------------------
@@ -639,13 +632,6 @@ void main_driver(const char* argv)
 
     // write out initial state
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
-
-    //Do an initial move to initialize various things
-    //particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*this number currently does nothing, but we will use it later*/ );
-    //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
-   
-    particles.Redistribute();
-    particles.ReBin();
 
     //Time stepping loop
 

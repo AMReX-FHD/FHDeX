@@ -113,6 +113,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
     }
 
     UpdateCellVectors();
+    Redistribute();
+    ReBin();
 }
 
 void FhdParticleContainer::computeForcesNL() {
