@@ -77,6 +77,7 @@ void InitializeCommonNamespace() {
 
     eepsilon.resize(MAX_SPECIES);
     sigma.resize(MAX_SPECIES);
+    qval.resize(MAX_SPECIES);
 
     char temp_plot_base_name[128];
     char temp_chk_base_name[128];
@@ -85,7 +86,7 @@ void InitializeCommonNamespace() {
                                 max_grid_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
-                                &perm, &qval, &pkernel_fluid, &pkernel_es,
+                                &perm, qval.dataPtr(), &pkernel_fluid, &pkernel_es,
                                 &fixed_dt, &cfl, &max_step,
                                 &plot_int, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,

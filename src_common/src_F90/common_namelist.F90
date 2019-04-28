@@ -23,7 +23,7 @@ module common_namelist_module
 
   integer,            save :: pkernel_fluid
   integer,            save :: pkernel_es
-  double precision,   save :: qval
+  double precision,   save :: qval(MAX_SPECIES)
   double precision,   save :: perm
 
   double precision,   save :: fixed_dt
@@ -404,7 +404,7 @@ contains
     double precision,       intent(inout) :: transmission_in
 
     double precision,       intent(inout) :: perm_in
-    double precision,       intent(inout) :: qval_in
+    double precision,       intent(inout) :: qval_in(MAX_SPECIES)
     integer,                intent(inout) :: pkernel_fluid_in
     integer,                intent(inout) :: pkernel_es_in
 

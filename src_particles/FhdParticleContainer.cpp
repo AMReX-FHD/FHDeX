@@ -104,7 +104,7 @@ void FhdParticleContainer::InitParticles(species particleInfo)
 //                p.pos(2) = (16)*dx[2];
 //#endif
                 
-                p.rdata(RealData::q) = qval;
+                p.rdata(RealData::q) = particleInfo.q;
 
                 ll++;
 

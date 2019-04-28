@@ -186,7 +186,7 @@ void main_driver(const char* argv)
         
         ionParticle[i].m = mass[i];
         ionParticle[i].d = diameter[i];
-        ionParticle[i].q = qval;  // AJN - should be qval[i]
+        ionParticle[i].q = qval[i];  // AJN - should be qval[i]
         ionParticle[i].Neff = particle_neff; // AJN is this a DSMC only thing?
         ionParticle[i].propulsion = 0;
         ionParticle[i].gamma1 = 1.27;
