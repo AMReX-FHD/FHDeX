@@ -2493,7 +2493,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, t_init
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, t_init, rfd_tog, es_tog, drag_tog
   use rng_functions_module
   use surfaces_module
   
@@ -2679,18 +2679,21 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
               part%force = 0
 
-              call rfd(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
+              if(rfd_tog .eq. 1) then
+
+                call rfd(weights, indicies, &
+                                  sourcex, sourcexlo, sourcexhi, &
+                                  sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
+                                  sourcez, sourcezlo, sourcezhi, &
 #endif
-                                coordsx, coordsxlo, coordsxhi, &
-                                coordsy, coordsylo, coordsyhi, &
+                                  coordsx, coordsxlo, coordsxhi, &
+                                  coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
-                                coordsz, coordszlo, coordszhi, &
+                                  coordsz, coordszlo, coordszhi, &
 #endif
-                                part, ks, dxf, plof)
+                                  part, ks, dxf, plof)
+              endif
 
               p = p + 1
 
