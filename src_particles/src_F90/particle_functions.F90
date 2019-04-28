@@ -43,62 +43,12 @@ subroutine force_function2(part1,part2,domsize) &
   integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch
   real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff, rtdr2, maxdist
 
-
-  !here calculate forces as a function of distance
-
-
-!  permittivity = 1 !for now we are keeping this at one (think this is true for cgs units)
-
-!  !i think this is correctly defined for the signs we use below
   dx0 = part1%pos-part2%pos
 
-  xswitch = 0
-
-!  dr2 = dot_product(dx0,dx0)
-!  dr = sqrt(dr2)
-
-!  !WCA cutoff
-!  !note: need to fix this for multi-species
-!  cutoff = 2**(1./6.)*diameter(1)
-
-!  !print *, "Cutoff: ", cutoff
-
-
-!  dx = dx0
-!  do while (i <= 3) !get the nearest image for the repulsive interaction
-! 
-!      if(dx(i) .gt. domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
-
-!          dx(i) = dx(i) - domsize(i)
-
-!      end if
-
-!      if(dx(i) .lt. -1*domsize(i)*.5) then !correct for boxsize; no particles farther than L/2
-
-!          dx(i) = dx(i) + domsize(i)
-
-!      end if
-
-!      i = i + 1
-
-!   end do
-!  dr2 = dot_product(dx,dx)
-!  dr = sqrt(dr2)
-!  !repulsive interaction
-!  if (dr .lt. cutoff) then
-
-!    print *, "Repulsing!"
-!    call repulsive_force(part1,part2,dx,dr2) 
-
-!  end if
-
-  !electrostatic -- need to determine how many images we should be adding
   images = 32 !change this to an input
   ii=0
   jj=0
   kk=0
-
-  imagecounter = 0
 
   maxdist = images*domsize(1)
 
@@ -126,13 +76,9 @@ subroutine force_function2(part1,part2,domsize) &
             part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
           endif
 
-        imagecounter = imagecounter + 1
-
       end do
     end do
   end do
-
-print *, "Images: ", imagecounter
 
 end subroutine force_function2
 
@@ -182,9 +128,6 @@ subroutine calculate_force(particles, np, lo, hi, &
     do n = 1, np
 
        part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
-
-       ! print *, "Calling force on ", n, p
-      !  print *, "Positions ", part%pos, part2%pos
 
        if(n .ne. p) then
 
@@ -1893,7 +1836,7 @@ subroutine inter_op(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk
-  double precision :: oldvel(3), test
+  double precision :: oldvel(3)
 
 
   boundflag = 0
@@ -1901,8 +1844,6 @@ subroutine inter_op(weights, indicies, &
   if(midpoint .eq. 0) then
 
   part%vel = 0
-
-  test = 0
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
@@ -1920,25 +1861,15 @@ subroutine inter_op(weights, indicies, &
 
         part%vel(2) = part%vel(2) + weights(i,j,k,2)*velv(ii,jj,kk)
 
-        if((i .eq. 0 ) .and. (k .eq. 0)) then
-          test = test + weights(i,j,k,2)*velv(ii,jj,kk)
-          print*, "E: ", velv(ii,jj,kk), ", W: ", weights(i,j,k,2), ", cell: ", ii,jj,kk
-        endif
-
         ii = indicies(i,j,k,3,1)
         jj = indicies(i,j,k,3,2)
         kk = indicies(i,j,k,3,3)
 
         part%vel(3) = part%vel(3) + weights(i,j,k,3)*velw(ii,jj,kk)
 
-        !print *, ii, jj, kk, ": ", velu(ii,jj,kk), velv(ii,jj,kk), velw(ii,jj,kk)
-        !print *, "weights: ", weights(i,j,k,:)
-
       enddo
     enddo
   enddo
-
-  !print *, "Etot: ", test
 
   else
 
@@ -1994,7 +1925,7 @@ subroutine inter_op(weights, indicies, &
   endif
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
@@ -2632,10 +2563,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
   dxfinv = 1.d0/dxf
   onemdxf = 1.d0 - dxf
   
-
-  !print *, "Starting"
-
-
   diffav = 0
   distav = 0
   diffinst = 0

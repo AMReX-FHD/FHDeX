@@ -22,7 +22,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     : NeighborParticleContainer<RealData::ncomps, IntData::ncomps> (geom, dmap, ba, ncells)
 {}
 
-void FhdParticleContainer::InitParticles(species particleInfo)
+void FhdParticleContainer::InitParticles(species* particleInfo)
 {
     
     const int lev = 0;
@@ -30,8 +30,6 @@ void FhdParticleContainer::InitParticles(species particleInfo)
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
     const Real* phi = geom.ProbHi();
-
-    double totalEnergy = 0;
 
     int qcount = 0;
 
@@ -53,83 +51,34 @@ void FhdParticleContainer::InitParticles(species particleInfo)
         IntVect bigEnd = tile_box.bigEnd();       
 
 
-        //Print() << "Big end: " << bigEnd << " small end: " << smallEnd << "\n";
-
         //for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         //{
-//            for (int i_part=0; i_part<particleInfo.ppb;i_part++) {
-          int ll = 0;
 
-
-          for(int ii=0;ii<1;ii++)
-          {      
-          for(int jj=0;jj<1;jj++)
-          {      
-          for(int kk=0;kk<1;kk++)
-          {      
-
+            for(int i_spec=0; i_spec < nspecies; i_spec++)
+            {
+            for (int i_part=0; i_part<particleInfo[i_spec].ppb;i_part++)
+            {
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-//#endif
-
-//                p.pos(0) = 1.1*diameter[0] + 3*diameter[0]*(1.5+(0.5-get_uniform_func()))*ii;
-//                p.pos(1) = 3*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*jj;
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = 1.1*diameter[0] + 1.5*diameter[0]*(1.5+(0.5-get_uniform_func()))*kk;
-//#endif
-                double mm = 0.2;
-
-                p.pos(0) = (0.5)*phi[0];
-//                p.pos(1) = (0.5 - mm + kk*2*mm)*phi[1];
-                p.pos(1) = 0.5*phi[1];
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = (0.05)*phi[2];
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
-
-//                p.pos(1) = 0.4*phi[1];
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = 0.6*phi[2];
-//#endif
-
-//                p.pos(0) = (32+kk*80)*dx[0];
-//                p.pos(1) = (16)*dx[1];
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = (16)*dx[2];
-//#endif
                 
-                p.rdata(RealData::q) = particleInfo.q;
+                p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                ll++;
+                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
 
-                if(ll%2 == 0)
-                {
-                  p.rdata(RealData::q) = -p.rdata(RealData::q);
-
-                }
-                Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
-
-
-//                p.pos(0) = 0 + 2.5*dx[0];
-//                p.pos(1) = 0 + 8*dx[1];
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = 0 + 8*dx[2];
-//#endif
-
+                //original position stored for MSD calculations
                 p.rdata(RealData::ox) = p.pos(0);
                 p.rdata(RealData::oy) = p.pos(1);
 #if (BL_SPACEDIM == 3)
                 p.rdata(RealData::oz) = p.pos(2);
 #endif
-
-
-               //Print() << "Pos " << ll << ": " << p.rdata(RealData::ox) << ", " << p.rdata(RealData::oy) << ", " << p.rdata(RealData::oz) << "\n";
 
                 //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
@@ -151,24 +100,19 @@ void FhdParticleContainer::InitParticles(species particleInfo)
                 p.rdata(RealData::diffAv) = 0;
                 p.rdata(RealData::stepCount) = 0;
 
-                totalEnergy = totalEnergy + p.rdata(RealData::vx)*p.rdata(RealData::vx) + p.rdata(RealData::vy)*p.rdata(RealData::vy) + p.rdata(RealData::vz)*p.rdata(RealData::vz);
-
-                p.rdata(RealData::mass) = particleInfo.m; //mass
-                p.rdata(RealData::R) = particleInfo.R; //R
-                p.rdata(RealData::radius) = particleInfo.d/2.0; //radius
+                p.rdata(RealData::mass) = particleInfo[i_spec].m; //mass
+                p.rdata(RealData::R) = particleInfo[i_spec].R; //R
+                p.rdata(RealData::radius) = particleInfo[i_spec].d/2.0; //radius
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
                 p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
                 
                 particle_tile.push_back(p);
-
-          }
-          }
-          }
+            }
+            }
         //}
     }
 
-    Print() << "Initial energy: " << totalEnergy << "\n";
-
+    UpdateCellVectors();
 }
 
 void FhdParticleContainer::computeForcesNL() {
