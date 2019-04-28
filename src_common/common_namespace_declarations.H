@@ -105,3 +105,17 @@ int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
 amrex::Real                common::permitivitty;
+
+amrex::Real                common::particle_grid_refine;
+amrex::Real                common::es_grid_refine;
+int                        common::fluid_tog;
+int                        common::es_tog;
+int                        common::drag_tog;
+int                        common::move_tog;
+int                        common::rfd_tog;
+
+
+
+
+
+

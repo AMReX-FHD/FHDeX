@@ -173,6 +173,13 @@ namespace common {
     extern int                        poisson_max_iter;
     extern amrex::Real                poisson_rel_tol;
 
-        
+    extern amrex::Real                particle_grid_refine;
+    extern amrex::Real                es_grid_refine;
 
+    extern int                        fluid_tog;
+    extern int                        es_tog;
+    extern int                        drag_tog;
+    extern int                        move_tog;
+    extern int                        rfd_tog;
+    
 }

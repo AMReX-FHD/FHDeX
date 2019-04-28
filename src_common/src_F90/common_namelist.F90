@@ -102,6 +102,15 @@ module common_namelist_module
   integer,            save :: poisson_verbose
   integer,            save :: poisson_bottom_verbose
 
+  double precision,   save :: particle_grid_refine
+  double precision,   save :: es_grid_refine
+
+  integer,            save :: fluid_tog
+  integer,            save :: es_tog
+  integer,            save :: drag_tog
+  integer,            save :: move_tog
+  integer,            save :: rfd_tog
+
 
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
@@ -211,15 +220,6 @@ module common_namelist_module
   namelist /common/ initial_variance_mass
 
   ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic
-  ! -2 = periodic with pressure drop (p_lo and p_hi)
-  ! 100 = no-slip wall      (Dir condition for normal vel; Dir velocity condition for trans vel)
-  ! 101 = no-slip reservoir (Dir condition for normal vel; Dir velocity condition for trans vel)
-  ! 200 = slip wall         (Dir condition for normal vel; Dir traction condition for trans vel)
-  ! 201 = slip reservoir    (Dir condition for normal vel; Dir traction condition for trans vel)
-  ! For a complete list see ???
   namelist /common/ bc_lo
   namelist /common/ bc_hi
 
@@ -231,14 +231,7 @@ module common_namelist_module
   namelist /common/ t_hi
 
   ! Each no-slip wall may be moving with a specified tangential
-  ! velocity along the tangential directions
-  ! In 2D:
-  ! wallspeed_lo/hi_x - yvel
-  ! wallspeed_lo/hi_y - xvel
-  ! In 3D:
-  ! wallspeed_lo/hi_x - yvel,zvel
-  ! wallspeed_lo/hi_y - xvel,zvel
-  ! wallspeed_lo/hi_z - xvel,yvel
+
   namelist /common/ wallspeed_lo
   namelist /common/ wallspeed_hi
 
@@ -258,6 +251,14 @@ module common_namelist_module
   namelist /common/ poisson_bottom_verbose
   namelist /common/ poisson_max_iter
   namelist /common/ poisson_rel_tol
+
+  namelist /common/ particle_grid_refine
+  namelist /common/ es_grid_refine
+  namelist /common/ fluid_tog
+  namelist /common/ es_tog
+  namelist /common/ drag_tog
+  namelist /common/ move_tog
+  namelist /common/ rfd_tog
 
 contains
 
@@ -375,7 +376,8 @@ contains
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in) &
+                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
+                                         particle_grid_refine_in, es_grid_refine_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -476,6 +478,15 @@ contains
     integer,                intent(inout) :: poisson_verbose_in
     integer,                intent(inout) :: poisson_bottom_verbose_in
 
+    double precision,       intent(inout) :: particle_grid_refine_in
+    double precision,       intent(inout) :: es_grid_refine_in
+
+    integer,                intent(inout) :: fluid_tog_in
+    integer,                intent(inout) :: es_tog_in
+    integer,                intent(inout) :: drag_tog_in
+    integer,                intent(inout) :: move_tog_in
+    integer,                intent(inout) :: rfd_tog_in
+
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
     n_cells_in = n_cells
@@ -565,6 +576,15 @@ contains
     permitivitty_in = permitivitty
     eepsilon_in = eepsilon
     sigma_in = sigma
+
+    particle_grid_refine_in = particle_grid_refine
+    es_grid_refine_in = es_grid_refine
+
+    fluid_tog_in = fluid_tog
+    es_tog_in = es_tog
+    drag_tog_in = drag_tog
+    move_tog_in = move_tog
+    rfd_tog_in = rfd_tog
 
   end subroutine initialize_common_namespace
 
