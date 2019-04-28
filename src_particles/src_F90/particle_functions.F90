@@ -1406,7 +1406,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
 #if (BL_SPACEDIM == 3)
                               coordsw, coordswlo, coordswhi, &
 #endif
-                              part, ks, lo, hi, plof)
+                              part, ks, plof)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
@@ -1415,7 +1415,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   implicit none
 
   double precision, intent(in   ) :: dxf(3), dxfinv(3), plof(3)
-  integer,          intent(in   ) :: ks, coordsulo(3), coordsvlo(3), coordswlo(3), coordsuhi(3), coordsvhi(3), coordswhi(3), lo(3), hi(3) 
+  integer,          intent(in   ) :: ks, coordsulo(3), coordsvlo(3), coordswlo(3), coordsuhi(3), coordsvhi(3), coordswhi(3)
   type(particle_t), intent(in   ) :: part
   double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
   integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
@@ -1560,17 +1560,6 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
 
 
  !print*, "Total: ", wcheck
- ! print*, "Rel pos: ", fd
- ! print*, "Abs pos: ", part%pos*dxfinv
-
-!              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
-!              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
-!              ixf(2) = (part%pos(2) - coordsy(fi(1),fi(2),fi(3),2))*dxfInv(2)
-!#if (BL_SPACEDIM == 3)
-!              ixf(3) = (part%pos(3) - coordsz(fi(1),fi(2),fi(3),3))*dxfInv(3)
-!#endif
-
-
 
 end subroutine get_weights
 
@@ -1939,7 +1928,12 @@ subroutine rfd(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                               sourcew, sourcewlo, sourcewhi, &
 #endif
-                              part, ks, dxf)
+                              coordsx, coordsxlo, coordsxhi, &
+                              coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                              coordsz, coordszlo, coordszhi, &
+#endif
+                              part, ks, dxf, plof)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
@@ -1951,7 +1945,8 @@ subroutine rfd(weights, indicies, &
 !------------This function is currently implemented (correctly) in the body of the loop. Functions needs to be fixed before we use it again.
 
   integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
-  double precision, intent(in   ) :: dxf(3)
+  integer,          intent(in   ) :: coordsxlo(3), coordsylo(3), coordszlo(3), coordsxhi(3), coordsyhi(3), coordszhi(3)
+  double precision, intent(in   ) :: dxf(3), plof(3)
   type(particle_t), intent(inout) :: part
   double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
   integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
@@ -1961,13 +1956,19 @@ subroutine rfd(weights, indicies, &
 #if (AMREX_SPACEDIM == 3)
   double precision, intent(inout) :: sourcew(sourcewlo(1):sourcewhi(1),sourcewlo(2):sourcewhi(2),sourcewlo(3):sourcewhi(3))
 #endif
+  double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3))
+  double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3))
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3))
+#endif
 
   integer :: i, j, k, ii, jj, kk
-  double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm
+  double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm, dxfinv(3)
 
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
+  dxfinv = 1/dxf
 
-  delta = 1d-6*dxf(1)
+  delta = 1d-7*dxf(1)
 
   !print*, "Fluid vel: ", uloc, wloc, vloc
 
@@ -1975,13 +1976,19 @@ subroutine rfd(weights, indicies, &
   call get_particle_normal(normalrand(2))
   call get_particle_normal(normalrand(3))
 
-  part%pos = part%pos + delta*normalrand/2
+  part%pos = part%pos + delta*normalrand
 
   part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
   part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
   part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
 
-! AJN - update the weights?... or put a call to get_weights at the beginning of spread_op() so there are never any oopses?
+  call get_weights(dxf, dxfinv, weights, indicies, &
+                  coordsx, coordsxlo, coordsxhi, &
+                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                  coordsz, coordszlo, coordszhi, &
+#endif
+                  part, ks, plof)
   
   call spread_op(weights, indicies, &
                   sourceu, sourceulo, sourceuhi, &
@@ -1992,6 +1999,14 @@ subroutine rfd(weights, indicies, &
                   part, ks, dxf)
 
   part%pos = part%pos - delta*normalrand
+
+  call get_weights(dxf, dxfinv, weights, indicies, &
+                  coordsx, coordsxlo, coordsxhi, &
+                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                  coordsz, coordszlo, coordszhi, &
+#endif
+                  part, ks, plof)
 
   part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
   part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
@@ -2005,10 +2020,7 @@ subroutine rfd(weights, indicies, &
 #endif
                   part, ks, dxf)
 
-  delta = 0
   part%pos = part%pos + delta*normalrand/2
-
-
 
 end subroutine rfd
 
@@ -2281,7 +2293,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                               coordsz, coordszlo, coordszhi, &
 #endif
-                              part, ks, lo, hi, plof)
+                              part, ks, plof)
 
               !use weights and indicies to interpolate velocity fields onto particle
 
@@ -2606,7 +2618,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 #if (BL_SPACEDIM == 3)
                               coordsz, coordszlo, coordszhi, &
 #endif
-                              part, ks, lo, hi, plof)
+                              part, ks, plof)
 
 
 
@@ -2667,77 +2679,18 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
               part%force = 0
 
-!------------RFD calc, temporarily moved out of function for testing
-
-!  volinv = 1/(dxf(1)*dxf(2)*dxf(3))
-
-!  delta = 1d-7*dxf(1)
-
-!  !print*, "Fluid vel: ", uloc, wloc, vloc
-
-!  call get_particle_normal(normalrand(1))
-!  call get_particle_normal(normalrand(2))
-!  call get_particle_normal(normalrand(3))
-
-
-!  part%pos = part%pos + delta*normalrand
-
-
-!  part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
-!  part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
-!  part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
-
-!  call get_weights(dxf, dxfinv, weights, indicies, &
-!                  coordsx, coordsxlo, coordsxhi, &
-!                  coordsy, coordsylo, coordsyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  coordsz, coordszlo, coordszhi, &
-!#endif
-!                  part, ks, lo, hi, plof)
-!  
-!  call spread_op(weights, indicies, &
-!                  sourcex, sourcexlo, sourcexhi, &
-!                  sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                  part, ks, dxf)
-
-!  part%pos = part%pos - delta*normalrand
-
-!  call get_weights(dxf, dxfinv, weights, indicies, &
-!                  coordsx, coordsxlo, coordsxhi, &
-!                  coordsy, coordsylo, coordsyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  coordsz, coordszlo, coordszhi, &
-!#endif
-!                  part, ks, lo, hi, plof)
-
-!  part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
-!  part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
-!  part%force(3) = -k_B*T_init(1)*normalrand(3)/(delta)
-
-!  call spread_op(weights, indicies, &
-!                  sourcex, sourcexlo, sourcexhi, &
-!                  sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                  sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                  part, ks, dxf)
-
-!  part%pos = part%pos + delta*normalrand/2
-
-
-!--------------End RFD calc
-
-
-!              call rfd(weights, indicies, &
-!                                sourcex, sourcexlo, sourcexhi, &
-!                                sourcey, sourceylo, sourceyhi, &
-!#if (BL_SPACEDIM == 3)
-!                                sourcez, sourcezlo, sourcezhi, &
-!#endif
-!                                part, ks, dxf)
+              call rfd(weights, indicies, &
+                                sourcex, sourcexlo, sourcexhi, &
+                                sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                sourcez, sourcezlo, sourcezhi, &
+#endif
+                                coordsx, coordsxlo, coordsxhi, &
+                                coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                                coordsz, coordszlo, coordszhi, &
+#endif
+                                part, ks, dxf, plof)
 
               p = p + 1
 
