@@ -106,7 +106,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     // of ParticleIter for the following. NOTE: mfi's tile size must match the
     // ParticleContainer tile size
 #ifdef _OPENMP
-#pragma omp parallel reduction(+:n_ibm_loc)
+#pragma omp parallel
 #endif
     for (MFIter mfi(* ls, ib_pc->tile_size); mfi.isValid(); ++mfi) {
 
@@ -145,8 +145,9 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         }
     }
 
-    // Make sure that the `n_ibm_loc` integer does not count duplicates
-    /*if (n_ibm_loc > 0)*/ n_ibm_loc = part_loc.size();
+    // `n_ibm_loc` counts how many local immersed-boundary objects are managed
+    // by this IBCore instance, at this MPI rank
+    n_ibm_loc = part_loc.size();
 
 
 
@@ -210,18 +211,13 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
      * Construct Local Immersed-Boundary Data                                   *
      ***************************************************************************/
 
-    // // This goes here (and not in the construct), as BA and DM might have changed
-    // for (int d=0; d<AMREX_SPACEDIM; ++d)
-    //     vel_buffer[d].define(
-    //             convert(grids[lev], nodal_flag_dir[d]), dmap[lev], 1, ib_pc->get_nghost()
-    //         );
-
-
-    // //___________________________________________________________________________
-    // // Allocate MultiFabs for local levelset data
-    // // TODO: currently these have ib_pc->get_nghost() many ghost cells, this is
-    // // way too much. Once Andrew implements back-commuincation for neighbor
-    // // particles, we'll only need 1 ghost cell.
+    //___________________________________________________________________________
+    // Allocate FABs for local levelset and tag data
+    // TODO: currently these these are the level-set MultiFab's FABs with
+    // ib_pc->get_nghost() many ghost cells, this is way too much. Once Andrew
+    // implements back-commuincation for neighbor particles, we should make
+    // these "just" a minimal box surrounding the immersed boundary with 1
+    // ghost cell.
 
     if (n_ibm_loc > 0) {
 
@@ -272,7 +268,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
 
 
-        std::ofstream ofs_ls ("ls_ibm_fab_" + std::to_string(part_loc[i].id)
+        std::ofstream ofs_ls ("ib_data/ls_ibm_fab_" + std::to_string(part_loc[i].id)
                 + "," + std::to_string(part_loc[i].cpu));
         level_sets_loc[i].writeOn(ofs_ls, 0, 1);
 
@@ -283,7 +279,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
             iface_dbl(bit()) = iface_tags_loc[i](bit());
         }
 
-        std::ofstream ofs_iface ("iface_ibm_fab_" + std::to_string(part_loc[i].id)
+        std::ofstream ofs_iface ("ib_data/iface_ibm_fab_" + std::to_string(part_loc[i].id)
                 + "," + std::to_string(part_loc[i].cpu));
         iface_dbl.writeOn(ofs_iface, 0, 1);
 
@@ -665,12 +661,23 @@ void IBCore::ImplicitDeposition (      MultiFab & f_u,       MultiFab & f_v,    
 void IBCore::InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
                                 int lev, const std::pair<int,int> & part_index,
                                 std::array<Real, AMREX_SPACEDIM> & f_trans) const {
-
     //___________________________________________________________________________
     // Find index of immersed-boundary respresented by `part_index`
 
     int index_ibm = get_IBMIndex(part_index);
-    bool has_part = (index_ibm != -1);
+
+    // Do nothing if there is no corresponding particle index
+    if (index_ibm == -1)
+        return;
+
+    InterpolateForce(force, lev, index_ibm, part_index, f_trans);
+}
+
+
+
+void IBCore::InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & force,
+                                int lev, int index_ibm, const std::pair<int,int> & part_index,
+                                std::array<Real, AMREX_SPACEDIM> & f_trans) const {
 
 
     /****************************************************************************
@@ -679,52 +686,34 @@ void IBCore::InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & fo
      *                                                                          *
      ***************************************************************************/
 
+
+    Box pbox_cc = part_box[index_ibm];
+
     //___________________________________________________________________________
     // Allocate temporary data: (Grown) FABs containing interpolation coefficients
 
-    FArrayBox f_u_tile;
-#if (AMREX_SPACEDIM > 1)
-    FArrayBox f_v_tile;
-#endif
-#if (AMREX_SPACEDIM > 2)
-    FArrayBox f_w_tile;
-#endif
+    std::array<FArrayBox, AMREX_SPACEDIM> f_tile;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_tile[d].resize(convert(pbox_cc, nodal_flag_dir[d]));
+        f_tile[d].setVal(0.);
+    }
 
 
     //___________________________________________________________________________
     // Particles are in the system => fille interpolation coefficients
 
-    if ( has_part ) {
+    const IArrayBox & tag_tile = iface_tags_loc[index_ibm];
 
-        Box pbox_cc = part_box[index_ibm];
-
-            // FArrayBox & f_u_tile = force_buffer[0][mfi];
-        f_u_tile.resize(convert(pbox_cc, nodal_flag_dir[0]));
-        f_u_tile.setVal(0.);
+    fill_fgds_ib (BL_TO_FORTRAN_BOX(pbox_cc),
+                  BL_TO_FORTRAN_ANYD(f_tile[0]),
 #if (AMREX_SPACEDIM > 1)
-            // FArrayBox & f_v_tile = force_buffer[1][mfi];
-        f_v_tile.resize(convert(pbox_cc, nodal_flag_dir[1]));
-        f_v_tile.setVal(0.);
+                  BL_TO_FORTRAN_ANYD(f_tile[1]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-            // FArrayBox & f_w_tile = force_buffer[2][mfi];
-        f_w_tile.resize(convert(pbox_cc, nodal_flag_dir[2]));
-        f_w_tile.setVal(0.);
+                  BL_TO_FORTRAN_ANYD(f_tile[2]),
 #endif
-
-        const IArrayBox & tag_tile = iface_tags_loc[index_ibm];
-
-        fill_fgds_ib (BL_TO_FORTRAN_BOX(pbox_cc),
-                      BL_TO_FORTRAN_ANYD(f_u_tile),
-#if (AMREX_SPACEDIM > 1)
-                      BL_TO_FORTRAN_ANYD(f_v_tile),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                      BL_TO_FORTRAN_ANYD(f_w_tile),
-#endif
-                      BL_TO_FORTRAN_ANYD(tag_tile));
-
-    }
+                  BL_TO_FORTRAN_ANYD(tag_tile));
 
 
 
@@ -734,44 +723,22 @@ void IBCore::InterpolateForce ( const std::array<FArrayBox, AMREX_SPACEDIM> & fo
      *                                                                          *
      ***************************************************************************/
 
-    if (has_part) {
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_tile[d].mult(force[d], 0, 0);
+        f_trans[d] = f_tile[d].sum(0);
 
-        // for (int d=0; d<AMREX_SPACEDIM; ++d) {
-             f_u_tile.mult(force[0], 0, 0);
-             f_v_tile.mult(force[1], 0, 0);
-             f_w_tile.mult(force[2], 0, 0);
+        std::ofstream ofs_ibm (
+                "ib_data/f_" + std::to_string(d)
+                + "_fab_"    + std::to_string(part_index.first)
+                + ","        + std::to_string(part_index.second));
+        force[d].writeOn(ofs_ibm, 0, 1);
 
-        std::ofstream ofs_u ("fu_fab_" + std::to_string(part_index.first)
-                + "," + std::to_string(part_index.second));
-        force[0].writeOn(ofs_u, 0, 1);
+        std::ofstream ofs_tile (
+                "ib_data/f_"  + std::to_string(d)
+                + "_ibm_fab_" + std::to_string(part_index.first)
+                + ","         + std::to_string(part_index.second));
+        f_tile[d].writeOn(ofs_tile, 0, 1);
 
-        std::ofstream ofs_v ("fv_fab_" + std::to_string(part_index.first)
-                + "," + std::to_string(part_index.second));
-        force[1].writeOn(ofs_v, 0, 1);
-
-        std::ofstream ofs_w ("fw_fab_" + std::to_string(part_index.first)
-                + "," + std::to_string(part_index.second));
-        force[2].writeOn(ofs_w, 0, 1);
-
-        // }
-    }
-
-    if (has_part) {
-        f_trans[0] = f_u_tile.sum(0);
-        f_trans[1] = f_v_tile.sum(0);
-        f_trans[2] = f_w_tile.sum(0);
-
-        std::ofstream ofs_u ("fu_ibm_fab_" + std::to_string(part_index.first)
-                + "," + std::to_string(part_index.second));
-        f_u_tile.writeOn(ofs_u, 0, 1);
-
-        std::ofstream ofs_v ("fv_ibm_fab_" + std::to_string(part_index.first)
-                + "," + std::to_string(part_index.second));
-        f_v_tile.writeOn(ofs_v, 0, 1);
-
-        std::ofstream ofs_w ("fw_ibm_fab_" + std::to_string(part_index.first)
-                + "," + std::to_string(part_index.second));
-        f_w_tile.writeOn(ofs_w, 0, 1);
     }
 }
 

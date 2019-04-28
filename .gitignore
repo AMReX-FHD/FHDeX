@@ -1,4 +1,4 @@
-# Get rid of noise
+# Get Rid of Noise
 
 ## Local path config
 tools/Path.local
@@ -21,7 +21,18 @@ tags
 
 ## Python caches
 **/__pycache__
+.ipynb_checkpoints
+
+## IDE debris
+.vscode
+
+
+# Data Files
 
 ## Plot files
 exec/*/plt*
 exec/*/stag*
+
+## Debug data
+exec/*_ibm/ib_data/*
+exec/*_ibm/ib_particle_data.*
