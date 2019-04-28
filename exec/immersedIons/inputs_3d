@@ -9,7 +9,8 @@
   ! max number of cells in a box
   max_grid_size(1:3) = 64 64 64
 
-  ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 - refine, >1 - coarsen.
+  ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
+  !Leave these on 1 until properly tested
   particle_grid_refine = 1
   es_grid_refine = 1
 

@@ -117,16 +117,35 @@ void main_driver(const char* argv)
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
     //This must be an even number for now?
-    // AJN - needs to be fixed for complete decoupling.  could be coarsening or refining factor
-    int sizeRatioC = 1;
-    int sizeRatioP = 1;
-    
     bc = ba;
     bp = ba;
-    bc.refine(sizeRatioC);
-    bp.coarsen(sizeRatioP);
-    domainC.refine(sizeRatioC);
-    domainP.refine(sizeRatioP);
+
+    int sizeRatio;
+
+    if(particle_grid_refine < 1)
+    {
+        sizeRatio = (int)(1.0/particle_grid_refine);
+        bc.refine(sizeRatio);
+        domainC.refine(sizeRatio);
+    }else
+    {
+        sizeRatio = (int)(particle_grid_refine);
+        bc.coarsen(sizeRatio);
+        domainC.coarsen(sizeRatio);
+    }
+
+    if(es_grid_refine < 1)
+    {
+        sizeRatio = (int)(1.0/es_grid_refine);
+        bp.refine(sizeRatio);
+        domainP.refine(sizeRatio);
+    }else
+    {
+        sizeRatio = (int)(es_grid_refine);
+        bp.coarsen(sizeRatio);
+        domainP.coarsen(sizeRatio);
+    }
+
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
