@@ -308,22 +308,24 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     //set number of ghost cells to fit whole peskin kernel
-    int ng = 1;
+    int ang = 1;
+    int cng = 1;
+    int png = 1;
 
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
     
     if(pkernel_fluid == 3) {
-        ng = 3;
+        ang = 3;
     }
     else if(pkernel_fluid == 4) {
-        ng = 4;
+        ang = 4;
     }
     else if(pkernel_fluid == 6) {
-        ng = 5;
+        ang = 5;
     }
 
     // AJN this only needs 1? ghost cell    
-    MultiFab rho(ba, dmap, 1, ng);
+    MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
 
     // AJN - the number of ghost cells needed for the GMRES solve for alpha, beta, etc., is a fixed number
@@ -337,30 +339,30 @@ void main_driver(const char* argv)
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ng);
+        alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
         alpha_fc[d].setVal(dtinv);
     }
 
     // beta cell centred
-    MultiFab beta(ba, dmap, 1, ng);
+    MultiFab beta(ba, dmap, 1, 1);
     beta.setVal(visc_coef);
 
     // beta on nodes in 2d
     // beta on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed;
 #if (AMREX_SPACEDIM == 2)
-    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
+    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
 #elif (AMREX_SPACEDIM == 3)
-    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
-    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
-    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
+    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
 #endif
     for (int d=0; d<NUM_EDGE; ++d) {
         beta_ed[d].setVal(visc_coef);
     }
 
     // cell-centered gamma
-    MultiFab gamma(ba, dmap, 1, ng);
+    MultiFab gamma(ba, dmap, 1, 1);
     gamma.setVal(0.);
 
     ///////////////////////////////////////////
@@ -385,19 +387,19 @@ void main_driver(const char* argv)
     std::array< MultiFab, NUM_EDGE >  eta_ed;
     std::array< MultiFab, NUM_EDGE > temp_ed;
     // eta and temperature; cell-centered
-    eta_cc.define(ba, dmap, 1, ng);
-    temp_cc.define(ba, dmap, 1, ng);
+    eta_cc.define(ba, dmap, 1, 1);
+    temp_cc.define(ba, dmap, 1, 1);
     // eta and temperature; nodal
 #if (AMREX_SPACEDIM == 2)
-    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
-    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, ng);
+    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
 #elif (AMREX_SPACEDIM == 3)
-    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
-    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
-    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
-    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, ng);
-    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, ng);
-    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, ng);
+    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
+    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
+    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
 #endif
 
     // Initalize eta & temperature multifabs
@@ -413,14 +415,14 @@ void main_driver(const char* argv)
     // random fluxes:
     ///////////////////////////////////////////
 
-    // AJN - I think stochMfluxdiv needs 0 ghost cells
+    // AJN - I think stochMfluxdiv needs 0 ghost cells //DRL setting it to 1 until I've checked.
 
     // mflux divergence, staggered in x,y,z
 
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
     // Define mfluxdiv predictor multifabs
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ng);
+        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
         stochMfluxdiv[d].setVal(0.0);
     }
 
@@ -436,13 +438,13 @@ void main_driver(const char* argv)
     // but umac is the thing that needs extra ghost cells for Peskin kernels
     
     // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,ng);
+    MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ng);
+        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
 
 
@@ -522,21 +524,21 @@ void main_driver(const char* argv)
 
     // staggered real coordinates - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
-    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, ng);,
-                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, ng);,
-                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, ng););
+    AMREX_D_TERM(RealFaceCoords[0].define(convert(ba,nodal_flag_x), dmap, AMREX_SPACEDIM, ang);,
+                 RealFaceCoords[1].define(convert(ba,nodal_flag_y), dmap, AMREX_SPACEDIM, ang);,
+                 RealFaceCoords[2].define(convert(ba,nodal_flag_z), dmap, AMREX_SPACEDIM, ang););
 
     // staggered source terms - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > source;
-    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
-                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
-                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
+    AMREX_D_TERM(source[0].define(convert(ba,nodal_flag_x), dmap, 1, ang);,
+                 source[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
+                 source[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
 
     // staggered temporary holder for calculating source terms - This may not be necesssary, review later.
     std::array< MultiFab, AMREX_SPACEDIM > sourceTemp;
-    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, ng);,
-                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, ng);,
-                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ng););
+    AMREX_D_TERM(sourceTemp[0].define(convert(ba,nodal_flag_x), dmap, 1, ang);,
+                 sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
+                 sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         source[d].setVal(0.0);
@@ -577,8 +579,12 @@ void main_driver(const char* argv)
 
     // AJN - should define 3 types of "ng" parameters.  fluid, repulsive force, peskin
     int ngp = 1;
-
     if(pkernel_es == 4)
+    {
+        ngp = 3;
+
+    }
+    else if(pkernel_es == 4)
     {
         ngp = 3;
 
