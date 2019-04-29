@@ -6,6 +6,10 @@ tools/Path.local
 ## C/E tags
 TAGS
 tags
+GTAGS
+GSYMS
+GPATH
+GRTAGS
 
 ## Compiler debris
 **/tmp_build_dir
