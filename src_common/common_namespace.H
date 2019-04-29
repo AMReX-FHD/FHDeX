@@ -175,11 +175,13 @@ namespace common {
 
     extern amrex::Real                particle_grid_refine;
     extern amrex::Real                es_grid_refine;
+    extern amrex::Vector<amrex::Real> diff;
 
     extern int                        fluid_tog;
     extern int                        es_tog;
     extern int                        drag_tog;
     extern int                        move_tog;
     extern int                        rfd_tog;
+    extern int                        dry_move_tog;
     
 }

@@ -204,8 +204,12 @@ void main_driver(const char* argv)
     for(int i=0;i<nspecies;i++) {
         
         ionParticle[i].m = mass[i];
-        ionParticle[i].d = diameter[i];
         ionParticle[i].q = qval[i];
+
+//        if(diameter[i] > 0)
+//        {
+                ionParticle[i].d = diameter[i];
+
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
@@ -687,18 +691,20 @@ void main_driver(const char* argv)
     	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
         }
 
-        //Calls wet ion interpolation and movement.
-        particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        if(move_tog==1)
+        {
+            //Calls wet ion interpolation and movement.
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        particles.Redistribute();
-        particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+            particles.Redistribute();
+            particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
 
-        //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+            //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
-        //These functions reorganise particles between cells and processes
-//Dout  particles.Redistribute();
-//Dout  particles.ReBin();
-
+            //These functions reorganise particles between cells and processes
+    //Dout  particles.Redistribute();
+    //Dout  particles.ReBin();
+        }
 
         //Start collecting statistics after step n_steps_skip
         if(step == n_steps_skip)

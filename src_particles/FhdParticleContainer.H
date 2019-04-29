@@ -39,6 +39,9 @@ struct RealData
         diffAv,
         stepCount,
         multi,
+        dryDiff,
+        wetDiff,
+        totalDiff,
         ncomps
     };
 };
