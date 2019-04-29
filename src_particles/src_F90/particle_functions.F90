@@ -40,7 +40,7 @@ subroutine force_function2(part1,part2,domsize) &
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch
+  integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch, partno, n
   real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff, rtdr2, maxdist
 
   dx0 = part1%pos-part2%pos
@@ -70,10 +70,13 @@ subroutine force_function2(part1,part2,domsize) &
 
           dr2 = dot_product(dx,dx)
 
-          rtdr2 = sqrt(dr2)
+          if(dr2 .ne. 0 ) then !might find a more careful way of doing this
 
-          if(rtdr2 .lt. maxdist) then
-            part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+            rtdr2 = sqrt(dr2)
+
+            if(rtdr2 .lt. maxdist) then
+              part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+            endif
           endif
 
       end do
@@ -1247,8 +1250,6 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
   fd = fr - fi
 
-  print *, fd
-
   if(fd(1) .lt. 0.5) then
     fn(1) = -1
   else
@@ -1391,7 +1392,7 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: permitivitty
+  use common_namelist_module, only: permitivitty, pkernel_es
 
   implicit none
 
@@ -1408,7 +1409,13 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
-  pvol = 6.16
+  if(pkernel_es .eq. 3) then    !this is exactly 2pi for all kernels?
+    pvol = 6.28319
+  elseif(pkernel_es .eq. 4) then  
+    pvol = 6.28319
+  elseif(pkernel_es .eq. 6) then  
+    pvol = 6.28319
+  endif
 
   if(mq .eq. 0) then
     qm = pvol*part%q/permitivitty
@@ -1890,10 +1897,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   dxfinv = 1.d0/dxf
   onemdxf = 1.d0 - dxf
   
-
-  !print *, "Starting"
-
-
   diffav = 0
   distav = 0
   diffinst = 0
@@ -2219,17 +2222,19 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
   diffinst = 0
   veltest = 0
 
-  do k = lo(3), hi(3)
-     do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-           cell_np = cell_part_cnt(i,j,k)
-           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
+!  do k = lo(3), hi(3)
+!     do j = lo(2), hi(2)
+!        do i = lo(1), hi(1)
+!           cell_np = cell_part_cnt(i,j,k)
+!           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
            p = 1
 
-           do while (p <= cell_np)
+!           do while (p <= cell_np)
+           do while (p <= np)
 
-              part => particles(cell_parts(p))
+!              part => particles(cell_parts(p))
+              part => particles(p)
 
               !part%vel(1) = 1
 
@@ -2238,7 +2243,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
               if(es_tog .eq. 2) then
                   call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
               endif
-
 
               !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
               call get_weights(dxf, dxfinv, weights, indicies, &
@@ -2331,9 +2335,9 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
            end do
     
-        end do
-     end do
-  end do
+!        end do
+!     end do
+!  end do
 
   deallocate(weights)
   deallocate(indicies)
