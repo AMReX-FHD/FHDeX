@@ -315,13 +315,13 @@ void main_driver(const char* argv)
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
     
     if(pkernel_fluid == 3) {
-        ang = 3;
+        ang = 2;
     }
     else if(pkernel_fluid == 4) {
-        ang = 4;
+        ang = 3;
     }
     else if(pkernel_fluid == 6) {
-        ang = 5;
+        ang = 4;
     }
 
     // AJN this only needs 1? ghost cell    
@@ -579,12 +579,11 @@ void main_driver(const char* argv)
 
     // AJN - should define 3 types of "ng" parameters.  fluid, repulsive force, peskin
     int ngp = 1;
-    if(pkernel_es == 4)
+    if(pkernel_es == 3)
     {
-        ngp = 3;
+        ngp = 2;
 
-    }
-    else if(pkernel_es == 4)
+    }else if(pkernel_es == 4)
     {
         ngp = 3;
 

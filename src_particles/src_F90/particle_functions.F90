@@ -1048,7 +1048,6 @@ subroutine peskin_6pt(r,w)
 
   endif
 
-
 end subroutine peskin_6pt
 
 
@@ -1284,7 +1283,11 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 !        print *, "coords: ", fi(1)+i+fn(1), fi(2)+j+fn(2), fi(3)+k+fn(3)
 !        print *, "Realcoords: ", coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),1), coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),2), coords(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k+fn(3),3)
 
-        if(pkernel_es .eq. 4) then
+        if(pkernel_es .eq. 3) then
+          call peskin_3pt(xx*dxinv(1),w1)
+          call peskin_3pt(yy*dxinv(2),w2)
+          call peskin_3pt(zz*dxinv(3),w3)
+        elseif(pkernel_es .eq. 4) then
           call peskin_4pt(xx*dxinv(1),w1)
           call peskin_4pt(yy*dxinv(2),w2)
           call peskin_4pt(zz*dxinv(3),w3)
@@ -1307,16 +1310,7 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
   enddo
 
 
-  print*, "Total: ", wcheck
-
-!              !Interpolate fluid fields. ixf is the particle position in local cell coordinates. fi is the fluid cell
-!              ixf(1) = (part%pos(1) - coordsx(fi(1),fi(2),fi(3),1))*dxfInv(1)
-!              ixf(2) = (part%pos(2) - coordsy(fi(1),fi(2),fi(3),2))*dxfInv(2)
-!#if (BL_SPACEDIM == 3)
-!              ixf(3) = (part%pos(3) - coordsz(fi(1),fi(2),fi(3),3))*dxfInv(3)
-!#endif
-
-
+!  print*, "Total: ", wcheck
 
 end subroutine get_weights_scalar_cc
 
@@ -1419,13 +1413,11 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
-!  pvol = 6.0242
   pvol = 6.16
 
   if(mq .eq. 0) then
     qm = pvol*part%q/permitivitty
 
-  print *, "Spreading ", part%q
   else
     qm = part%mass
   endif       
@@ -1438,9 +1430,6 @@ subroutine spread_op_scalar_cc(weights, indicies, &
         jj = indicies(i,j,k,1,2)
         kk = indicies(i,j,k,1,3)
 
-        if((i .eq. 0 ) .and. (k .eq. 0)) then
-          print*, "Q: ", qm*weights(i,j,k,store)*volinv, "I: ", i, j, k, "W: ", weights(i,j,k,store)
-        endif
 
         source(ii,jj,kk) = qm*weights(i,j,k,store)*volinv
 
@@ -1594,8 +1583,6 @@ subroutine rfd(weights, indicies, &
 
   implicit none
 
-!------------This function is currently implemented (correctly) in the body of the loop. Functions needs to be fixed before we use it again.
-
   integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
   integer,          intent(in   ) :: coordsxlo(3), coordsylo(3), coordszlo(3), coordsxhi(3), coordsyhi(3), coordszhi(3)
   double precision, intent(in   ) :: dxf(3), plof(3)
@@ -1735,13 +1722,6 @@ subroutine drag(weights, indicies, &
   part%force(2) = part%force(2) + (vloc-part%vel(2))*(visc_coef)*part%drag_factor
   part%force(3) = part%force(3) + (wloc-part%vel(3))*(visc_coef)*part%drag_factor
 
-!  call spread_op(weights, indicies, &
-!                  sourceu, sourceulo, sourceuhi, &
-!                  sourcev, sourcevlo, sourcevhi, &
-!#if (BL_SPACEDIM == 3)
-!                  sourcew, sourcewlo, sourcewhi, &
-!#endif
-!                  part, ks, dxf)
   part%vel(1) = uloc
   part%vel(2) = vloc
   part%vel(3) = wloc
@@ -1803,7 +1783,7 @@ subroutine emf(weights, indicies, &
 #endif
                     part, ks, dxp, boundflag, midpoint)
 
-  print *, "Poisson force: ", part%vel*part%q
+  !print *, "Poisson force: ", part%vel*part%q
   part%force = part%force + part%vel*part%q
 
   part%vel = uloc
@@ -1892,9 +1872,11 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
 
-  if(pkernel_fluid .eq. 4) then
+  if(pkernel_fluid .eq. 3) then
     ks = 2
-  else
+  elseif(pkernel_fluid .eq. 4) then
+    ks = 3
+  elseif(pkernel_fluid .eq. 6) then
     ks = 3
   endif
   
@@ -2145,7 +2127,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, t_init, rfd_tog, es_tog, drag_tog
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, pkernel_es, t_init, rfd_tog, es_tog, drag_tog
   use rng_functions_module
   use surfaces_module
   
@@ -2204,13 +2186,23 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
 
-  if(pkernel_fluid .eq. 4) then
-    ks = 2
+  if(pkernel_fluid .gt. pkernel_es) then
+    if(pkernel_fluid .eq. 3) then
+      ks = 2
+    elseif(pkernel_fluid .eq. 4) then
+      ks = 3
+    elseif(pkernel_fluid .eq. 6) then
+      ks = 3
+    endif
   else
-    ks = 3
+    if(pkernel_es .eq. 3) then
+      ks = 2
+    elseif(pkernel_es .eq. 4) then
+      ks = 3
+    elseif(pkernel_es .eq. 6) then
+      ks = 3
+    endif
   endif
-
-  ks = 3
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
   allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
@@ -2305,7 +2297,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                                   efz, efzlo, efzhi, &
 #endif
                                   part, ks, dxe)
-                endif
+              endif
 !------------------
 
               !  print*, "SPREAD"
@@ -2344,23 +2336,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
         end do
      end do
   end do
-
-!print *, "SOURCE CHECK: "
-
-!  do k = sourcexlo(3), sourcexhi(3)
-!     do j = sourcexlo(2), sourcexhi(2)
-!        do i = sourcexlo(1), sourcexhi(1)
-
-!        if(sourcex(i,j,k) .ne. 0) then
-!          print *, sourcex(i,j,k)
-!        endif
-
-
-!  enddo
-!  enddo
-!  enddo
-  !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
-  !print *, "veltest: ", veltest/np
 
   deallocate(weights)
   deallocate(indicies)
@@ -2401,16 +2376,17 @@ subroutine collect_charge(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), totalcharge, diffav, distav, domsize(3), qm, diffinst, volinv
+  real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), diffav, distav, domsize(3), qm, diffinst, volinv
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
 
-
-  if(pkernel_es .eq. 4) then
+  if(pkernel_es .eq. 3) then
+    ks = 2
+  elseif(pkernel_es .eq. 4) then
     ks = 3
-  else
-    ks = 4
+  elseif(pkernel_es .eq. 6) then
+    ks = 3
   endif
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
@@ -2464,20 +2440,6 @@ subroutine collect_charge(particles, np, lo, hi, &
         end do
      end do
   end do
-
-  totalcharge = 0
-
-  do k = chargelo(3), chargehi(3)
-     do j = chargelo(2), chargehi(2)
-        do i = chargelo(1), chargehi(1)
-
-          totalcharge = totalcharge + charge(i,j,k)
-    
-        end do
-     end do
-  end do  
-
-  print *, "Total charge: ", totalcharge/volinv
 
   deallocate(weights)
   deallocate(indicies)
