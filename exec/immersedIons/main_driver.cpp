@@ -203,6 +203,19 @@ void main_driver(const char* argv)
     double dryRad, wetRad;
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
+    if(pkernel_fluid == 3)
+    {
+        wetRad = 0.9405*dxAv;                
+    }
+    else if(pkernel_fluid == 4)
+    {
+        wetRad = 1.3273*dxAv;
+    }
+    else if(pkernel_fluid == 6)
+    {
+        wetRad = 1.5705*dxAv;
+    }
+
     for(int i=0;i<nspecies;i++) {
         
         ionParticle[i].m = mass[i];
@@ -212,29 +225,24 @@ void main_driver(const char* argv)
         {
             ionParticle[i].d = diameter[i];
 
-            if(pkernel_fluid == 3)
-            {
-                wetRad = 0.9405*dxAv;                
-            }
-            else if(pkernel_fluid == 4)
-            {
-                wetRad = 1.3273*dxAv;
-            }
-            else if(pkernel_fluid == 6)
-            {
-                wetRad = 1.5705*dxAv;
-            }
-
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
 
             ionParticle[i].totalDiff = (k_B*T_init[0])/(6*3.14159265359*(diameter[i]/2.0)*visc_coef);
 
             ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //This is probably wrong. Need to test.
+
+        }else
+        {
+            ionParticle[i].totalDiff = diff[i];            
+
+            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
+
+            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
+
+            ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //Test this
         }
 
-
-
-        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: " << ionParticle[i].dryDiff << ", total: " << ionParticle[i].totalDiff << "\n";
+        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: " << ionParticle[i].dryDiff << ", total: " << ionParticle[i].totalDiff << ", hydro radius: " << ionParticle[i].d/2.0 << "\n";
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes

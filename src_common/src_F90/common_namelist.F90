@@ -586,6 +586,7 @@ contains
 
     particle_grid_refine_in = particle_grid_refine
     es_grid_refine_in = es_grid_refine
+    diff_in = diff
 
     fluid_tog_in = fluid_tog
     es_tog_in = es_tog

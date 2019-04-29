@@ -58,10 +58,13 @@
   !--------------
   nspecies = 2
   mass = 4e-23 4e-23
-  diameter = 5e-8 5e-8
+  diameter = -5e-8 -5e-8
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
   qval = 4.8e-10 -4.8e-10
-  diff = 4.3e-6 4.3e-6 !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
+
+  diff = 8.642990107e-06 8.642990107e-06
+
+ !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
 
   !Interaction parameters
   !------------
