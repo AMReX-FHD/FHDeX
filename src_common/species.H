@@ -19,6 +19,9 @@ typedef struct {
   double Neff;
   double cp;
   double propulsion;
+  double totalDiff;
+  double dryDiff;
+  double wetDiff;
 
 } species;
 
