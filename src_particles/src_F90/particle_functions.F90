@@ -1555,7 +1555,7 @@ subroutine inter_op(weights, indicies, &
   endif
 
 
-  !print*, "Intervel: ", part%vel
+  print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
@@ -2236,6 +2236,8 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
               part => particles(cell_parts(p))
 
+              !part%vel(1) = 1
+
               part%force = 0
 
               if(es_tog .eq. 2) then
@@ -2252,20 +2254,21 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 #endif
                               part, ks, plof)
 
+              if(drag_tog .eq. 1) then
 
-
-              call drag(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
+                call drag(weights, indicies, &
+                                  sourcex, sourcexlo, sourcexhi, &
+                                  sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
+                                  sourcez, sourcezlo, sourcezhi, &
 #endif
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
+                                  velx, velxlo, velxhi, &
+                                  vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
+                                  velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf)
+                                  part, ks, dxf)
+              endif
 
 
 !-------------es part, look at more efficient way of doing this
