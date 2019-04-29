@@ -25,9 +25,9 @@
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! Do Stokes solve
-  es_tog = 1 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
+  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 1 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
+  !rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 1 ! Total particle move
   dry_move_tog = 1 ! Dry particle move
  
@@ -48,17 +48,17 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 2 2
+  particle_count = 1 0
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 1 1
+  particle_n0 = 1 0
 
   !Kinetic species info
   !--------------
   nspecies = 2
   mass = 4e-23 4e-23
-  diameter = -10e-8 -10e-8
+  diameter = 10e-8 10e-8
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
   qval = 4.8e-10 -4.8e-10
   diff = 4.3e-6 4.3e-6 !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.

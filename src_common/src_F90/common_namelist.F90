@@ -262,6 +262,7 @@ module common_namelist_module
   namelist /common/ es_tog
   namelist /common/ drag_tog
   namelist /common/ move_tog
+  namelist /common/ rfd_tog
   namelist /common/ dry_move_tog
 
 contains
