@@ -632,7 +632,7 @@ void main_driver(const char* argv)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
-        external[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
+       
     }
 
     //Centred electric fields
@@ -640,28 +640,20 @@ void main_driver(const char* argv)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efieldCC[d].define(bp, dmap, 1, ngp);
+        external[d].define(bp, dmap, 1, ngp);
     }
 
-    efieldCC[0].setVal(0);
-    efieldCC[1].setVal(0);
-    efieldCC[2].setVal(0);
-
-    AMREX_D_TERM(efield[0].setVal(0);,
-                 efield[1].setVal(0);,
-                 efield[2].setVal(0););
+    AMREX_D_TERM(efieldCC[0].setVal(0);,
+                 efieldCC[1].setVal(0);,
+                 efieldCC[2].setVal(0););
 
     //Apply external field here.
     AMREX_D_TERM(external[0].setVal(0);,
                  external[1].setVal(0);,
                  external[2].setVal(0););
 
-    // write out initial state
-    //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
-
+ 
     //Time stepping loop
-
-    const int lev = 0;
-
     for(step=1;step<=max_step;++step)
     {
 
