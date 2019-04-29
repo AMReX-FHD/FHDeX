@@ -104,7 +104,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::R) = particleInfo[i_spec].R; //R
                 p.rdata(RealData::radius) = particleInfo[i_spec].d/2.0; //radius
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
+                //p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
+                p.rdata(RealData::dragFactor) = 6*3.14159265359*dx[0]*1.322; //drag factor
+
+                p.rdata(RealData::wetDiff) = particleInfo[i_spec].wetDiff;
                 
                 particle_tile.push_back(p);
             }

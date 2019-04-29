@@ -104,6 +104,9 @@ module cell_sorted_particle_module
      real(amrex_particle_real) :: diff_av
      real(amrex_particle_real) :: step_count
      real(amrex_particle_real) :: multi
+     real(amrex_particle_real) :: dry_diff
+     real(amrex_particle_real) :: wet_diff
+     real(amrex_particle_real) :: total_diff
 
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        

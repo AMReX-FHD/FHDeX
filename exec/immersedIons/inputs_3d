@@ -58,7 +58,7 @@
   !--------------
   nspecies = 2
   mass = 4e-23 4e-23
-  diameter = 10e-8 10e-8
+  diameter = 5e-8 5e-8
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
   qval = 4.8e-10 -4.8e-10
   diff = 4.3e-6 4.3e-6 !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
@@ -80,7 +80,7 @@
 
   !Peskin kernel (Currently 3, 4, & 6 implemented)
   !--------
-  pkernel_fluid = 4
+  pkernel_fluid = 6
   pkernel_es = 4
 
   ! Stochastic parameters
@@ -93,15 +93,15 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic
-  bc_lo(1:3) = -1 -1 2
-  bc_hi(1:3) = -1 -1 2
+  bc_lo(1:3) = -1 -1 -1
+  bc_hi(1:3) = -1 -1 -1
   
 /
 
 &gmres
 
   ! GMRES solver parameters
-  gmres_rel_tol = 1.e-7                ! relative tolerance stopping criteria
+  gmres_rel_tol = 1.e-9                ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
   gmres_verbose =  2                    ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20                  ! max number of outer iterations

@@ -1357,7 +1357,6 @@ subroutine spread_op(weights, indicies, &
         kk1 = indicies(i,j,k,1,3)
 
         sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
-        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv
 
         spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
         !print*, "S: ", sourceu(ii1,jj1,kk1)
@@ -1368,7 +1367,6 @@ subroutine spread_op(weights, indicies, &
         sourcev(ii2,jj2,kk2) = sourcev(ii2,jj2,kk2) + part%force(2)*weights(i,j,k,2)*volinv
 
         spreadcheck(2) = spreadcheck(2) + sourcev(ii2,jj2,kk2)
-        !sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(visc_coef)*weights(i,j,k,2)*part%drag_factor*volinv
 
         ii3 = indicies(i,j,k,3,1)
         jj3 = indicies(i,j,k,3,2)
@@ -1377,9 +1375,6 @@ subroutine spread_op(weights, indicies, &
         sourcew(ii3,jj3,kk3) = sourcew(ii3,jj3,kk3) + part%force(3)*weights(i,j,k,3)*volinv
 
         spreadcheck(3) = spreadcheck(3) + sourcew(ii3,jj3,kk3)
-        !sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(visc_coef)*weights(i,j,k,3)*part%drag_factor*volinv
-
-        !print *, sourceu(ii1,jj1,kk1), sourcev(ii2,jj2,kk2), sourcew(ii3,jj3,kk3)
 
       enddo
     enddo
@@ -1555,7 +1550,7 @@ subroutine inter_op(weights, indicies, &
   endif
 
 
-  print*, "Intervel: ", part%vel
+  !print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)
@@ -1718,9 +1713,9 @@ subroutine drag(weights, indicies, &
 #endif
                     part, ks, dxf, boundflag, midpoint)
 
-  part%force(1) = part%force(1) + (uloc-part%vel(1))*(visc_coef)*part%drag_factor
-  part%force(2) = part%force(2) + (vloc-part%vel(2))*(visc_coef)*part%drag_factor
-  part%force(3) = part%force(3) + (wloc-part%vel(3))*(visc_coef)*part%drag_factor
+  part%force(1) = part%force(1) + (uloc-part%vel(1))*k_B*T_init(1)/part%wet_diff
+  part%force(2) = part%force(2) + (vloc-part%vel(2))*k_B*T_init(1)/part%wet_diff
+  part%force(3) = part%force(3) + (wloc-part%vel(3))*k_B*T_init(1)/part%wet_diff
 
   part%vel(1) = uloc
   part%vel(2) = vloc
