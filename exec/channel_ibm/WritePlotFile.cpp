@@ -16,7 +16,8 @@ void WritePlotFile(int step,
                    const std::array< MultiFab, AMREX_SPACEDIM > & umac,
                    const MultiFab & tracer,
                    const MultiFab & pres,
-                   const std::array< MultiFab, AMREX_SPACEDIM> & force_ibm)
+                   const std::array< MultiFab, AMREX_SPACEDIM> & force_ibm,
+                   const IBParticleContainer & ib_pc)
 {
 
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -103,6 +104,10 @@ void WritePlotFile(int step,
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename, plotfile, varNames, geom, time, step);
+
+    // add particle data to plot file
+    ib_pc.WritePlotFile(plotfilename, "immersed_boundaries");
+
 
     // staggered velocity
     const std::string plotfilenamex = Concatenate("stagx", step, 7);
