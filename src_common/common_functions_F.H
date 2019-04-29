@@ -57,7 +57,7 @@ extern "C"
                                      amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permitivitty,
                                      amrex::Real* eepsilon, amrex::Real* sigma, int* poisson_verbose, int* poisson_bottom_verbose,
                                      int* poisson_max_iter, amrex::Real* poisson_rel_tol,
-                                     amrex::Real* particle_grid_refine, amrex::Real* es_grid_refine, int* fluid_tog, int* es_tog, int* drag_tog, int* move_tog, int* rfd_tog);
+                                     amrex::Real* particle_grid_refine, amrex::Real* es_grid_refine, amrex::Real* diff, int* fluid_tog, int* es_tog, int* drag_tog, int* move_tog, int* rfd_tog, int* dry_move_tog);
 ///////////////////////////
 
 ///////////////////////////

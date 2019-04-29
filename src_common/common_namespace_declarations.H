@@ -108,11 +108,14 @@ amrex::Real                common::permitivitty;
 
 amrex::Real                common::particle_grid_refine;
 amrex::Real                common::es_grid_refine;
+amrex::Vector<amrex::Real> common::diff;
+
 int                        common::fluid_tog;
 int                        common::es_tog;
 int                        common::drag_tog;
 int                        common::move_tog;
 int                        common::rfd_tog;
+int                        common::dry_move_tog;
 
 
 

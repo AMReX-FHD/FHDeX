@@ -104,12 +104,14 @@ module common_namelist_module
 
   double precision,   save :: particle_grid_refine
   double precision,   save :: es_grid_refine
+  double precision,   save :: diff(MAX_SPECIES)
 
   integer,            save :: fluid_tog
   integer,            save :: es_tog
   integer,            save :: drag_tog
   integer,            save :: move_tog
   integer,            save :: rfd_tog
+  integer,            save :: dry_move_tog
 
 
   ! Problem specification
@@ -254,11 +256,13 @@ module common_namelist_module
 
   namelist /common/ particle_grid_refine
   namelist /common/ es_grid_refine
+  namelist /common/ diff
+
   namelist /common/ fluid_tog
   namelist /common/ es_tog
   namelist /common/ drag_tog
   namelist /common/ move_tog
-  namelist /common/ rfd_tog
+  namelist /common/ dry_move_tog
 
 contains
 
@@ -377,7 +381,7 @@ contains
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in) &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -480,12 +484,14 @@ contains
 
     double precision,       intent(inout) :: particle_grid_refine_in
     double precision,       intent(inout) :: es_grid_refine_in
+    double precision,       intent(inout) :: diff_in(MAX_SPECIES)
 
     integer,                intent(inout) :: fluid_tog_in
     integer,                intent(inout) :: es_tog_in
     integer,                intent(inout) :: drag_tog_in
     integer,                intent(inout) :: move_tog_in
     integer,                intent(inout) :: rfd_tog_in
+    integer,                intent(inout) :: dry_move_tog_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -585,6 +591,7 @@ contains
     drag_tog_in = drag_tog
     move_tog_in = move_tog
     rfd_tog_in = rfd_tog
+    dry_move_tog_in = dry_move_tog
 
   end subroutine initialize_common_namespace
 

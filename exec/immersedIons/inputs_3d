@@ -28,7 +28,8 @@
   es_tog = 1 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 1 ! Apply drag force to fluid
   rfd_tog = 1 ! Apply RFD force to fluid
-  move_tog = 1 ! Move particles
+  move_tog = 1 ! Total particle move
+  dry_move_tog = 1 ! Dry particle move
  
 
   ! Fluid info
@@ -57,9 +58,10 @@
   !--------------
   nspecies = 2
   mass = 4e-23 4e-23
-  diameter =  6.66e-8 6.66e-8
+  diameter =  10e-8 10e-8
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
   qval = 4.8e-10 -4.8e-10
+  !diff = 4.3e-6 4.3e-6 !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
 
   !Interaction parameters
   !------------

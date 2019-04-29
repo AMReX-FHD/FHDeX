@@ -204,8 +204,12 @@ void main_driver(const char* argv)
     for(int i=0;i<nspecies;i++) {
         
         ionParticle[i].m = mass[i];
-        ionParticle[i].d = diameter[i];
         ionParticle[i].q = qval[i];
+
+//        if(diameter[i] > 0)
+//        {
+                ionParticle[i].d = diameter[i];
+
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
