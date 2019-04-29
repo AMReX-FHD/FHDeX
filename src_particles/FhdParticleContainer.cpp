@@ -298,34 +298,34 @@ BL_PROFILE_VAR_START(particle_move);
    
 #else
         //Print() << "FHD\n"; 
-        move_particles_fhd(particles.data(), &np,
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploFluid), ZFILL(dxFluid),
-                         BL_TO_FORTRAN_3D(umacNodal[0][pti]),
-                         BL_TO_FORTRAN_3D(umacNodal[1][pti]),
-#if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(umacNodal[2][pti]),
-#endif
-                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
-                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
-#if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
-#endif
-                         BL_TO_FORTRAN_3D(betaNodal[pti]),
-                         BL_TO_FORTRAN_3D(rhoNodal[pti]),
+//        move_particles_fhd(particles.data(), &np,
+//                         ARLIM_3D(tile_box.loVect()),
+//                         ARLIM_3D(tile_box.hiVect()),
+//                         m_vector_ptrs[grid_id].dataPtr(),
+//                         m_vector_size[grid_id].dataPtr(),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploFluid), ZFILL(dxFluid),
+//                         BL_TO_FORTRAN_3D(umacNodal[0][pti]),
+//                         BL_TO_FORTRAN_3D(umacNodal[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                         BL_TO_FORTRAN_3D(umacNodal[2][pti]),
+//#endif
+//                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+//                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+//#endif
+//                         BL_TO_FORTRAN_3D(betaNodal[pti]),
+//                         BL_TO_FORTRAN_3D(rhoNodal[pti]),
 
-                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
-                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
-#if (AMREX_SPACEDIM == 3)
-                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
-#endif
-                         , surfaceList, &surfaceCount
-                         );
+//                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+//                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
+//#if (AMREX_SPACEDIM == 3)
+//                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
+//#endif
+//                         , surfaceList, &surfaceCount
+//                         );
 #endif
 
 
