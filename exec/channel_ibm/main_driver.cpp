@@ -450,7 +450,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm);
+        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc);
     }
 
 
@@ -546,7 +546,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-    	  WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm);
+    	  WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc);
         }
     }
 
