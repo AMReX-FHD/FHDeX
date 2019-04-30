@@ -247,6 +247,8 @@ void main_driver(const char* argv)
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
 
+        ionParticle[i].sigma = sigma[i];
+        ionParticle[i].eepsilon = eepsilon[i];
 
         // AJN - why round up particles so there are the same number in each box?
         if(particle_count[i] >= 0) {
@@ -600,7 +602,7 @@ void main_driver(const char* argv)
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
 
-    int num_neighbor_cells = 1;
+    int num_neighbor_cells = 4;
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc,num_neighbor_cells);
 
@@ -693,13 +695,11 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
-        //HYDRO
-        //--------------------------------------
+        particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        //particles.fillNeighbors();
-
+        particles.fillNeighbors();
         //compute the neighbourlist forces 
-        //particles.computeForcesNL();
+        particles.computeForcesNL();
 
         if(es_tog==1)
         {

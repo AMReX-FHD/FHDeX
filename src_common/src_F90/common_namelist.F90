@@ -94,6 +94,8 @@ module common_namelist_module
   double precision,   save :: particle_neff
 
   double precision,   save :: permitivitty
+  double precision,   save :: cutoff
+  double precision,   save :: rmin
   double precision,   save :: eepsilon(MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES)
   double precision,   save :: poisson_rel_tol
@@ -247,6 +249,8 @@ module common_namelist_module
   namelist /common/ shift_cc_to_boundary
 
   namelist /common/ permitivitty
+  namelist /common/ cutoff
+  namelist /common/ rmin
   namelist /common/ eepsilon
   namelist /common/ sigma
   namelist /common/ poisson_verbose
@@ -381,7 +385,7 @@ contains
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
+                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, cutoff_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in) &
                                          bind(C, name="initialize_common_namespace")
 
@@ -477,6 +481,8 @@ contains
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
     double precision,       intent(inout) :: permitivitty_in
+    double precision,       intent(inout) :: cutoff_in
+    double precision,       intent(inout) :: rmin_in
     double precision,       intent(inout) :: poisson_rel_tol_in
 
     integer,                intent(inout) :: poisson_max_iter_in
@@ -581,6 +587,8 @@ contains
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
     permitivitty_in = permitivitty
+    cutoff_in = cutoff
+    rmin_in = rmin
     eepsilon_in = eepsilon
     sigma_in = sigma
 
