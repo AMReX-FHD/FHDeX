@@ -1,49 +1,17 @@
-module short_range_particle_module
-    use amrex_fort_module, only: amrex_real, amrex_particle_real
-    use iso_c_binding ,    only: c_int, c_float, c_double
-    
-    implicit none
-    private
-    
-!    public  particle_t, neighbor_t
-    public  particle_t
-    
-    type, bind(C)  :: particle_t
-       real(amrex_particle_real) :: pos(3)     !< Position
-       real(amrex_particle_real) :: vel(3)     !< Particle velocity
-       real(amrex_particle_real) :: force(3)   !< force experienced by the particle
-       real(amrex_particle_real) :: localvel(3)
-       real(amrex_particle_real) :: mass
-       real(amrex_particle_real) :: R
-       real(amrex_particle_real) :: radius
-       real(amrex_particle_real) :: q
-       real(amrex_particle_real) :: accel_factor
-       real(amrex_particle_real) :: drag_factor
-       real(amrex_particle_real) :: origin(3)
-       real(amrex_particle_real) :: abspos(3)
-       real(amrex_particle_real) :: travel_time
-       real(amrex_particle_real) :: diff_av
-       real(amrex_particle_real) :: step_count
-       real(amrex_particle_real) :: multi
-       real(amrex_particle_real) :: dry_diff
-       real(amrex_particle_real) :: wet_diff
-       real(amrex_particle_real) :: total_diff
-       real(amrex_particle_real) :: sigma
-       real(amrex_particle_real) :: eepsilon
-
-       integer(c_int)            :: id         !< Particle id
-       integer(c_int)            :: cpu        !< Particle cpu
-       integer(c_int)            :: i
-       integer(c_int)            :: j
-       integer(c_int)            :: k
-       integer(c_int)            :: species
-
-    end type particle_t
-    
-!    type, bind(C)  :: neighbor_t
+!module short_range_particle_module
+!    use amrex_fort_module, only: amrex_real, amrex_particle_real
+!    use iso_c_binding ,    only: c_int, c_float, c_double
+!    
+!    implicit none
+!    private
+!    
+!!    public  particle_t, neighbor_t
+!    public  particle_t
+!    
+!    type, bind(C)  :: particle_t
 !       real(amrex_particle_real) :: pos(3)     !< Position
-!       real(amrex_particle_real) :: force(3)
 !       real(amrex_particle_real) :: vel(3)     !< Particle velocity
+!       real(amrex_particle_real) :: force(3)   !< force experienced by the particle
 !       real(amrex_particle_real) :: localvel(3)
 !       real(amrex_particle_real) :: mass
 !       real(amrex_particle_real) :: R
@@ -60,6 +28,8 @@ module short_range_particle_module
 !       real(amrex_particle_real) :: dry_diff
 !       real(amrex_particle_real) :: wet_diff
 !       real(amrex_particle_real) :: total_diff
+!       real(amrex_particle_real) :: sigma
+!       real(amrex_particle_real) :: eepsilon
 
 !       integer(c_int)            :: id         !< Particle id
 !       integer(c_int)            :: cpu        !< Particle cpu
@@ -68,10 +38,40 @@ module short_range_particle_module
 !       integer(c_int)            :: k
 !       integer(c_int)            :: species
 
+!    end type particle_t
+!    
+!!    type, bind(C)  :: neighbor_t
+!!       real(amrex_particle_real) :: pos(3)     !< Position
+!!       real(amrex_particle_real) :: force(3)
+!!       real(amrex_particle_real) :: vel(3)     !< Particle velocity
+!!       real(amrex_particle_real) :: localvel(3)
+!!       real(amrex_particle_real) :: mass
+!!       real(amrex_particle_real) :: R
+!!       real(amrex_particle_real) :: radius
+!!       real(amrex_particle_real) :: q
+!!       real(amrex_particle_real) :: accel_factor
+!!       real(amrex_particle_real) :: drag_factor
+!!       real(amrex_particle_real) :: origin(3)
+!!       real(amrex_particle_real) :: abspos(3)
+!!       real(amrex_particle_real) :: travel_time
+!!       real(amrex_particle_real) :: diff_av
+!!       real(amrex_particle_real) :: step_count
+!!       real(amrex_particle_real) :: multi
+!!       real(amrex_particle_real) :: dry_diff
+!!       real(amrex_particle_real) :: wet_diff
+!!       real(amrex_particle_real) :: total_diff
 
-!    end type neighbor_t
-    
-end module short_range_particle_module
+!!       integer(c_int)            :: id         !< Particle id
+!!       integer(c_int)            :: cpu        !< Particle cpu
+!!       integer(c_int)            :: i
+!!       integer(c_int)            :: j
+!!       integer(c_int)            :: k
+!!       integer(c_int)            :: species
+
+
+!!    end type neighbor_t
+!    
+!end module short_range_particle_module
 
 module cell_sorted_particle_module
   use amrex_fort_module, only: amrex_real, amrex_particle_real

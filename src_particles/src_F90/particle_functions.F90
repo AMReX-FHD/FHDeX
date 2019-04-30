@@ -134,7 +134,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
-    use short_range_particle_module, only : particle_t
+    use cell_sorted_particle_module, only : particle_t
     use common_namelist_module, only: cutoff, rmin
         
     integer,          intent(in   ) :: np, nn, size
@@ -158,7 +158,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 
     !print *, "Cutoff: ", cutoff
 
-    print *, "checking neighbours."
+    !print *, "checking neighbours."
     
     index = 1
     do i = 1, np
@@ -171,7 +171,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
        nneighbors = nl(index)
        index = index + 1
 
-       print *, "particle ", i, " has ", nneighbors, " neighbours."
+       !print *, "particle ", i, " has ", nneighbors, " neighbours."
 
        do j = index, index + nneighbors - 1
 
