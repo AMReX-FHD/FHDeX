@@ -4,26 +4,24 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: k_B,diameter,T_init, permitivitty
+  use common_namelist_module, only: k_B,diameter,T_init, permitivitty, eepsilon
 
   implicit none
   type(particle_t), intent(inout) :: part1 
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: dx(3), dr2
 
-  real(amrex_real) :: ff, eepsilon
+  real(amrex_real) :: ff
 
-  !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
-  eepsilon = 1e-12
+  !This needs to be updated to handle multispecies.
+  ff = eepsilon(1)*48.*(1./(dr2*dr2*dr2*dr2))*(2.0*part1%radius**12/(dr2*dr2*dr2)-part1%radius**6)
 
-  ff = eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(diameter(1)**12/(dr2*dr2*dr2)-0.5*diameter(1)**6)
-
-  print *, "dx: ", dx
+  !print *, "dx: ", dx
 
   part1%force = part1%force + dx*ff
   part2%force = part2%force - dx*ff
 
-  print *, "Repulsive force: ", part1%force
+  !print *, "Repulsive force: ", part1%force
 
 end subroutine
 
@@ -165,9 +163,9 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     do i = 1, np
 
 !!      zero out the particle force !!!CHECK that this doesn't conflict with how particles are added through Poisson solver
-       particles(i)%force(1) = 0.d0
-       particles(i)%force(2) = 0.d0
-       particles(i)%force(3) = 0.d0
+!       particles(i)%force(1) = 0.d0
+!       particles(i)%force(2) = 0.d0
+!       particles(i)%force(3) = 0.d0
 
        nneighbors = nl(index)
        index = index + 1

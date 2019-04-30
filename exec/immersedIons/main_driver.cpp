@@ -696,10 +696,10 @@ void main_driver(const char* argv)
         //HYDRO
         //--------------------------------------
 
-        //particles.fillNeighbors();
+        particles.fillNeighbors();
 
         //compute the neighbourlist forces 
-        //particles.computeForcesNL();
+        particles.computeForcesNL();
 
         if(es_tog==1)
         {
