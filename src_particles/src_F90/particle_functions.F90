@@ -903,7 +903,7 @@ subroutine dry(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B
+  use common_namelist_module, only: visc_type, k_B, t_init
   use rng_functions_module
   use surfaces_module
   
@@ -951,6 +951,8 @@ subroutine dry(particles, np, lo, hi, &
 
               !make sure runtime is correct in predictor-corrector; also change temperature to be correct
               std = sqrt(part%drag_factor*k_B*2d0*runtime*293d0)
+
+              !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 
               print *, "std ", std, " part ", part%drag_factor*k_B*2d0*runtime*293d0
 
@@ -2085,9 +2087,11 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               part%pos = posold
 
               !KK should the below actually be 0.5*dt?
+              !DRL no, this is the full step taken after the midpoint velocity has been found. If you are refering to eqs 39 and 41 which JBB added to the notes, I think dt/2 is a typo. 
               runtime = dt
 
               !KK this is the corrector step? If so we add dry term here
+              !DRL yes, I agree.
               do while (runtime .gt. 0)
 
                 call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
@@ -2170,6 +2174,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                  part%sorted = 0
                  call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
                  !KK Is it clear why this doesn't affect mass conservation? where is the command to put the particle in a new cell
+                 !DRL particles.ReBin(), called in main loop, adds all particles with a 'sorted' value of 0 to their new cells.
               else
                  p = p + 1
               end if
