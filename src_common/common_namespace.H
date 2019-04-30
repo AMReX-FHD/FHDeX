@@ -165,6 +165,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> nfrac;
 
     extern amrex::Real                permitivitty;
+    extern amrex::Real                cutoff;
+    extern amrex::Real                rmin;
     extern amrex::Vector<amrex::Real> eepsilon;
     extern amrex::Vector<amrex::Real> sigma;
 
@@ -183,5 +185,7 @@ namespace common {
     extern int                        move_tog;
     extern int                        rfd_tog;
     extern int                        dry_move_tog;
+    extern int                        sr_tog;
+    extern int                        crange;
     
 }

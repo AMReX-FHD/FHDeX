@@ -511,26 +511,32 @@ void main_driver(const char * argv) {
         std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> f_trans;
         f_trans.clear();
 
-        Print() << "Force data BEFORE Interpolation:" << std::endl;
-        for (const auto & f : f_trans) {
-            std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
-            for (int d=0; d<AMREX_SPACEDIM; ++d)
-                std::cout << f.second[d] << std::endl;
-        }
+        // Print() << "Force data BEFORE Interpolation:" << std::endl;
+        // for (const auto & f : f_trans) {
+        //     std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
+        //     for (int d=0; d<AMREX_SPACEDIM; ++d)
+        //         std::cout << f.second[d] << std::endl;
+        // }
 
         ib_pc.InterpolateParticleForces(force_ibm, ib_core, 0, f_trans);
 
-        Print() << "Force data AFTER Interpolation:" << std::endl;
-        for (const auto & f : f_trans) {
-            std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
-            for (int d=0; d<AMREX_SPACEDIM; ++d)
-                std::cout << f.second[d] << std::endl;
-        }
+        // Print() << "Force data AFTER Interpolation:" << std::endl;
+        // for (const auto & f : f_trans) {
+        //     std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
+        //     for (int d=0; d<AMREX_SPACEDIM; ++d)
+        //         std::cout << f.second[d] << std::endl;
+        // }
+
+        ib_pc.MoveIBParticles(0, dt, f_trans);
+
 
         //_______________________________________________________________________
         // Update structure factor
 
-        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        if (step > n_steps_skip 
+                && struct_fact_int > 0
+                && (step-n_steps_skip-1)%struct_fact_int == 0
+            ) {
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
             }
@@ -545,8 +551,8 @@ void main_driver(const char * argv) {
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-          // write out umac & pres to a plotfile
-    	  WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc);
+            // write out umac, pres, f_ibm, and particle data to a plotfile
+            WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc);
         }
     }
 

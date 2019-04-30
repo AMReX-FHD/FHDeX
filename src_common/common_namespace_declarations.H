@@ -105,6 +105,8 @@ int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
 amrex::Real                common::permitivitty;
+amrex::Real                common::cutoff;
+amrex::Real                common::rmin;
 
 amrex::Real                common::particle_grid_refine;
 amrex::Real                common::es_grid_refine;
@@ -116,6 +118,9 @@ int                        common::drag_tog;
 int                        common::move_tog;
 int                        common::rfd_tog;
 int                        common::dry_move_tog;
+int                        common::sr_tog;
+
+int                        common::crange;
 
 
 
