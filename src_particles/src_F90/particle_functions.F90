@@ -40,7 +40,7 @@ subroutine force_function2(part1,part2,domsize) &
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch
+  integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch, partno, n
   real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff, rtdr2, maxdist
 
   dx0 = part1%pos-part2%pos
@@ -70,10 +70,13 @@ subroutine force_function2(part1,part2,domsize) &
 
           dr2 = dot_product(dx,dx)
 
-          rtdr2 = sqrt(dr2)
+          if(dr2 .ne. 0 ) then !might find a more careful way of doing this
 
-          if(rtdr2 .lt. maxdist) then
-            part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+            rtdr2 = sqrt(dr2)
+
+            if(rtdr2 .lt. maxdist) then
+              part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+            endif
           endif
 
       end do
@@ -883,6 +886,83 @@ subroutine move_particles_dry(particles, np, lo, hi, &
   
 end subroutine move_particles_dry
 
+!extra diffusion term when 
+subroutine dry(particles, np, lo, hi, &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, &
+                                     coordsx, coordsxlo, coordsxhi, &
+                                     coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                                     coordsz, coordszlo, coordszhi, &
+#endif
+                                     sourcex, sourcexlo, sourcexhi, &
+                                     sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                     sourcez, sourcezlo, sourcezhi, &
+#endif
+                                     surfaces, ns)bind(c,name="dry")
+  use amrex_fort_module, only: amrex_real
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+  use common_namelist_module, only: visc_type, k_B, t_init
+  use rng_functions_module
+  use surfaces_module
+  
+  implicit none
+
+  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3)
+  integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
+  integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
+#if (AMREX_SPACEDIM == 3)
+  integer,          intent(in   )         :: sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
+#endif
+  type(particle_t), intent(inout), target :: particles(np)
+  type(surface_t),  intent(in),    target :: surfaces(ns)
+
+  double precision, intent(in   )         :: dx(3), dt, plo(3), phi(3)
+
+  double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
+  double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
+#endif
+
+  double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
+  double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
+#if (AMREX_SPACEDIM == 3)
+  double precision, intent(inout) :: sourcez(sourcezlo(1):sourcezhi(1),sourcezlo(2):sourcezhi(2),sourcezlo(3):sourcezhi(3))
+#endif
+
+  type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+  
+  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount
+  integer :: ni(3), fi(3)
+  integer(c_int), pointer :: cell_parts(:)
+  type(particle_t), pointer :: part
+  type(surface_t), pointer :: surf
+  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3)
+
+
+                !Brownian forcing
+
+              call get_particle_normal(normalrand(1))
+              call get_particle_normal(normalrand(2))
+              call get_particle_normal(normalrand(3))
+
+              !make sure runtime is correct in predictor-corrector; also change temperature to be correct
+              std = sqrt(part%drag_factor*k_B*2d0*runtime*293d0)
+
+              !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
+
+              print *, "std ", std, " part ", part%drag_factor*k_B*2d0*runtime*293d0
+
+              bfac(1) = std*normalrand(1)
+              bfac(2) = std*normalrand(2)
+              bfac(3) = std*normalrand(3)
+
+  
+end subroutine dry
+
 subroutine peskin_3pt(r,w)
 
   !This isn't three point! Fill in correct values later
@@ -1247,8 +1327,6 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
   fd = fr - fi
 
-  print *, fd
-
   if(fd(1) .lt. 0.5) then
     fn(1) = -1
   else
@@ -1357,7 +1435,6 @@ subroutine spread_op(weights, indicies, &
         kk1 = indicies(i,j,k,1,3)
 
         sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
-        !sourceu(ii,jj,kk) = (part%vel(1)-uloc)*(visc_coef)*weights(i,j,k,1)*part%drag_factor*volinv
 
         spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
         !print*, "S: ", sourceu(ii1,jj1,kk1)
@@ -1368,7 +1445,6 @@ subroutine spread_op(weights, indicies, &
         sourcev(ii2,jj2,kk2) = sourcev(ii2,jj2,kk2) + part%force(2)*weights(i,j,k,2)*volinv
 
         spreadcheck(2) = spreadcheck(2) + sourcev(ii2,jj2,kk2)
-        !sourcev(ii,jj,kk) = (part%vel(2)-vloc)*(visc_coef)*weights(i,j,k,2)*part%drag_factor*volinv
 
         ii3 = indicies(i,j,k,3,1)
         jj3 = indicies(i,j,k,3,2)
@@ -1377,9 +1453,6 @@ subroutine spread_op(weights, indicies, &
         sourcew(ii3,jj3,kk3) = sourcew(ii3,jj3,kk3) + part%force(3)*weights(i,j,k,3)*volinv
 
         spreadcheck(3) = spreadcheck(3) + sourcew(ii3,jj3,kk3)
-        !sourcew(ii,jj,kk) = (part%vel(3)-wloc)*(visc_coef)*weights(i,j,k,3)*part%drag_factor*volinv
-
-        !print *, sourceu(ii1,jj1,kk1), sourcev(ii2,jj2,kk2), sourcew(ii3,jj3,kk3)
 
       enddo
     enddo
@@ -1396,7 +1469,7 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: permitivitty
+  use common_namelist_module, only: permitivitty, pkernel_es
 
   implicit none
 
@@ -1413,7 +1486,13 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
-  pvol = 6.16
+  if(pkernel_es .eq. 3) then    !this is exactly 2pi for all kernels?
+    pvol = 6.28319
+  elseif(pkernel_es .eq. 4) then  
+    pvol = 6.28319
+  elseif(pkernel_es .eq. 6) then  
+    pvol = 6.28319
+  endif
 
   if(mq .eq. 0) then
     qm = pvol*part%q/permitivitty
@@ -1445,7 +1524,7 @@ subroutine inter_op(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                               velw, velwlo, velwhi, &
 #endif
-                              part, ks, dxf, boundflag, midpoint)
+                              part, ks, dxf, boundflag, midpoint, rejected)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
@@ -1454,6 +1533,7 @@ subroutine inter_op(weights, indicies, &
 
   integer,          intent(in   ) :: ks, velulo(3), velvlo(3), velwlo(3), veluhi(3), velvhi(3), velwhi(3), midpoint
   integer,          intent(inout) :: boundflag
+  double precision, intent(inout) :: rejected
   double precision, intent(in   ) :: dxf(3)
   type(particle_t), intent(inout) :: part
   double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
@@ -1550,6 +1630,7 @@ subroutine inter_op(weights, indicies, &
 
   if(boundflag .eq. 1) then
     part%vel = oldvel
+    rejected = rejected + 1
   endif
 
   endif
@@ -1701,7 +1782,7 @@ subroutine drag(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk, boundflag, midpoint
-  double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm
+  double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm, rejected
 
 
   uloc = part%vel(1)
@@ -1716,11 +1797,11 @@ subroutine drag(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                     velw, velwlo, velwhi, &
 #endif
-                    part, ks, dxf, boundflag, midpoint)
+                    part, ks, dxf, boundflag, midpoint, rejected)
 
-  part%force(1) = part%force(1) + (uloc-part%vel(1))*(visc_coef)*part%drag_factor
-  part%force(2) = part%force(2) + (vloc-part%vel(2))*(visc_coef)*part%drag_factor
-  part%force(3) = part%force(3) + (wloc-part%vel(3))*(visc_coef)*part%drag_factor
+  part%force(1) = part%force(1) + (uloc-part%vel(1))*k_B*T_init(1)/part%wet_diff
+  part%force(2) = part%force(2) + (vloc-part%vel(2))*k_B*T_init(1)/part%wet_diff
+  part%force(3) = part%force(3) + (wloc-part%vel(3))*k_B*T_init(1)/part%wet_diff
 
   part%vel(1) = uloc
   part%vel(2) = vloc
@@ -1766,7 +1847,7 @@ subroutine emf(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk, boundflag, midpoint
-  double precision :: uloc(3), volinv, normalrand(3), delta, norm
+  double precision :: uloc(3), volinv, normalrand(3), delta, norm, rejected
 
 
   uloc = part%vel
@@ -1781,7 +1862,7 @@ subroutine emf(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                     fieldw, fieldwlo, fieldwhi, &
 #endif
-                    part, ks, dxp, boundflag, midpoint)
+                    part, ks, dxp, boundflag, midpoint, rejected)
 
   !print *, "Poisson force: ", part%vel*part%q
   part%force = part%force + part%vel*part%q
@@ -1867,7 +1948,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3)
+                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -1895,15 +1976,13 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   dxfinv = 1.d0/dxf
   onemdxf = 1.d0 - dxf
   
-
-  !print *, "Starting"
-
-
   diffav = 0
   distav = 0
   diffinst = 0
   veltest = 0
-
+  moves = 0
+  rejected = 0
+  
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -1939,7 +2018,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                 velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf, boundflag, midpoint)
+                                part, ks, dxf, boundflag, midpoint, rejected)
 
               !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
@@ -1987,6 +2066,15 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               end do
 
               midpoint = 1
+              moves = moves + 1
+
+              call get_weights(dxf, dxfinv, weights, indicies, &
+                              coordsx, coordsxlo, coordsxhi, &
+                              coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                              coordsz, coordszlo, coordszhi, &
+#endif
+                              part, ks, plof)
 
               call inter_op(weights, indicies, &
                                 velx, velxlo, velxhi, &
@@ -1994,12 +2082,16 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                 velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf, boundflag, midpoint)
+                                part, ks, dxf, boundflag, midpoint, rejected)
 
               part%pos = posold
 
+              !KK should the below actually be 0.5*dt?
+              !DRL no, this is the full step taken after the midpoint velocity has been found. If you are refering to eqs 39 and 41 which JBB added to the notes, I think dt/2 is a typo. 
               runtime = dt
 
+              !KK this is the corrector step? If so we add dry term here
+              !DRL yes, I agree.
               do while (runtime .gt. 0)
 
                 call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
@@ -2035,7 +2127,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                     
                 endif
 
-              end do              
+              end do           
 
 !!!!!!!!!! Mean square displacement measurer.
 
@@ -2081,6 +2173,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
                  part%sorted = 0
                  call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
+                 !KK Is it clear why this doesn't affect mass conservation? where is the command to put the particle in a new cell
+                 !DRL particles.ReBin(), called in main loop, adds all particles with a 'sorted' value of 0 to their new cells.
               else
                  p = p + 1
               end if
@@ -2092,6 +2186,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
+  print *, "Midpoint moves attempted: ", moves
+  print *, "Fraction of midpoint moves rejected: ", rejected/moves
   !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
   !print *, "veltest: ", veltest/np
 
@@ -2224,24 +2320,43 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
   diffinst = 0
   veltest = 0
 
-  do k = lo(3), hi(3)
-     do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-           cell_np = cell_part_cnt(i,j,k)
-           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
+!  do k = lo(3), hi(3)
+!     do j = lo(2), hi(2)
+!        do i = lo(1), hi(1)
+!           cell_np = cell_part_cnt(i,j,k)
+!           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
            p = 1
 
-           do while (p <= cell_np)
+!           do while (p <= cell_np)
+           do while (p <= np)
 
-              part => particles(cell_parts(p))
+!              part => particles(cell_parts(p))
+              part => particles(p)
+
+              part%force = 0
+
+              if(rfd_tog .eq. 1) then
+
+                call rfd(weights, indicies, &
+                                  sourcex, sourcexlo, sourcexhi, &
+                                  sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                  sourcez, sourcezlo, sourcezhi, &
+#endif
+                                  coordsx, coordsxlo, coordsxhi, &
+                                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                                  coordsz, coordszlo, coordszhi, &
+#endif
+                                  part, ks, dxf, plof)
+              endif
 
               part%force = 0
 
               if(es_tog .eq. 2) then
                   call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
               endif
-
 
               !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
               call get_weights(dxf, dxfinv, weights, indicies, &
@@ -2252,20 +2367,21 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 #endif
                               part, ks, plof)
 
+              if(drag_tog .eq. 1) then
 
-
-              call drag(weights, indicies, &
-                                sourcex, sourcexlo, sourcexhi, &
-                                sourcey, sourceylo, sourceyhi, &
+                call drag(weights, indicies, &
+                                  sourcex, sourcexlo, sourcexhi, &
+                                  sourcey, sourceylo, sourceyhi, &
 #if (BL_SPACEDIM == 3)
-                                sourcez, sourcezlo, sourcezhi, &
+                                  sourcez, sourcezlo, sourcezhi, &
 #endif
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
+                                  velx, velxlo, velxhi, &
+                                  vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
+                                  velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf)
+                                  part, ks, dxf)
+              endif
 
 
 !-------------es part, look at more efficient way of doing this
@@ -2309,33 +2425,14 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 #endif
                                 part, ks, dxf)
 
-
-              part%force = 0
-
-              if(rfd_tog .eq. 1) then
-
-                call rfd(weights, indicies, &
-                                  sourcex, sourcexlo, sourcexhi, &
-                                  sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                  sourcez, sourcezlo, sourcezhi, &
-#endif
-                                  coordsx, coordsxlo, coordsxhi, &
-                                  coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                                  coordsz, coordszlo, coordszhi, &
-#endif
-                                  part, ks, dxf, plof)
-              endif
-
               p = p + 1
 
 
            end do
     
-        end do
-     end do
-  end do
+!        end do
+!     end do
+!  end do
 
   deallocate(weights)
   deallocate(indicies)

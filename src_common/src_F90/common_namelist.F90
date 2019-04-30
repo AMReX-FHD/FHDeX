@@ -262,6 +262,7 @@ module common_namelist_module
   namelist /common/ es_tog
   namelist /common/ drag_tog
   namelist /common/ move_tog
+  namelist /common/ rfd_tog
   namelist /common/ dry_move_tog
 
 contains
@@ -585,6 +586,7 @@ contains
 
     particle_grid_refine_in = particle_grid_refine
     es_grid_refine_in = es_grid_refine
+    diff_in = diff
 
     fluid_tog_in = fluid_tog
     es_tog_in = es_tog
