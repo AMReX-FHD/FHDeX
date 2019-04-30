@@ -887,70 +887,29 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 end subroutine move_particles_dry
 
 !extra diffusion term when 
-subroutine dry(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, &
-                                     coordsx, coordsxlo, coordsxhi, &
-                                     coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                                     coordsz, coordszlo, coordszhi, &
-#endif
-                                     sourcex, sourcexlo, sourcexhi, &
-                                     sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                     sourcez, sourcezlo, sourcezhi, &
-#endif
-                                     surfaces, ns)bind(c,name="dry")
+subroutine dry(part,dt)
   use amrex_fort_module, only: amrex_real
-  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
-  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+  use cell_sorted_particle_module, only: particle_t
   use common_namelist_module, only: visc_type, k_B, t_init
   use rng_functions_module
-  use surfaces_module
   
   implicit none
 
-  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3)
-  integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
-  integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
-#if (AMREX_SPACEDIM == 3)
-  integer,          intent(in   )         :: sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
-#endif
-  type(particle_t), intent(inout), target :: particles(np)
-  type(surface_t),  intent(in),    target :: surfaces(ns)
-
-  double precision, intent(in   )         :: dx(3), dt, plo(3), phi(3)
-
-  double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
-  double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
-#endif
-
-  double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
-  double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(inout) :: sourcez(sourcezlo(1):sourcezhi(1),sourcezlo(2):sourcezhi(2),sourcezlo(3):sourcezhi(3))
-#endif
-
-  type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount
-  integer :: ni(3), fi(3)
-  integer(c_int), pointer :: cell_parts(:)
-  type(particle_t), pointer :: part
-  type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3)
+  double precision, intent(in   )         :: dt
+  type(particle_t), intent(inout) :: part 
+  real(amrex_real) runtime, normalrand(3),std,bfac(3)
 
 
                 !Brownian forcing
+
+              runtime = dt
 
               call get_particle_normal(normalrand(1))
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
 
-              !make sure runtime is correct in predictor-corrector; also change temperature to be correct
-              std = sqrt(part%drag_factor*k_B*2d0*runtime*293d0)
+              !make sure runtime is correct in predictor-corrector (see); also change temperature to be correct
+              std = sqrt(part%dry_diff*k_B*2d0*runtime*t_init(1))
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 
