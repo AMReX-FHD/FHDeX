@@ -106,7 +106,8 @@ void WritePlotFile(int step,
     WriteSingleLevelPlotfile(plotfilename, plotfile, varNames, geom, time, step);
 
     // add particle data to plot file
-    ib_pc.WritePlotFile(plotfilename, "immersed_boundaries");
+    ib_pc.WritePlotFile(plotfilename, "immersed_boundaries",
+                        IBP_realData::names(), IBP_intData::names());
 
 
     // staggered velocity
