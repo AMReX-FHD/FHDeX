@@ -1447,7 +1447,7 @@ subroutine inter_op(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                               velw, velwlo, velwhi, &
 #endif
-                              part, ks, dxf, boundflag, midpoint)
+                              part, ks, dxf, boundflag, midpoint, rejected)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
@@ -1456,6 +1456,7 @@ subroutine inter_op(weights, indicies, &
 
   integer,          intent(in   ) :: ks, velulo(3), velvlo(3), velwlo(3), veluhi(3), velvhi(3), velwhi(3), midpoint
   integer,          intent(inout) :: boundflag
+  double precision, intent(inout) :: rejected
   double precision, intent(in   ) :: dxf(3)
   type(particle_t), intent(inout) :: part
   double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
@@ -1552,6 +1553,7 @@ subroutine inter_op(weights, indicies, &
 
   if(boundflag .eq. 1) then
     part%vel = oldvel
+    rejected = rejected + 1
   endif
 
   endif
@@ -1703,7 +1705,7 @@ subroutine drag(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk, boundflag, midpoint
-  double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm
+  double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm, rejected
 
 
   uloc = part%vel(1)
@@ -1718,7 +1720,7 @@ subroutine drag(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                     velw, velwlo, velwhi, &
 #endif
-                    part, ks, dxf, boundflag, midpoint)
+                    part, ks, dxf, boundflag, midpoint, rejected)
 
   part%force(1) = part%force(1) + (uloc-part%vel(1))*k_B*T_init(1)/part%wet_diff
   part%force(2) = part%force(2) + (vloc-part%vel(2))*k_B*T_init(1)/part%wet_diff
@@ -1768,7 +1770,7 @@ subroutine emf(weights, indicies, &
 #endif
 
   integer :: i, j, k, ii, jj, kk, boundflag, midpoint
-  double precision :: uloc(3), volinv, normalrand(3), delta, norm
+  double precision :: uloc(3), volinv, normalrand(3), delta, norm, rejected
 
 
   uloc = part%vel
@@ -1783,7 +1785,7 @@ subroutine emf(weights, indicies, &
 #if (BL_SPACEDIM == 3)
                     fieldw, fieldwlo, fieldwhi, &
 #endif
-                    part, ks, dxp, boundflag, midpoint)
+                    part, ks, dxp, boundflag, midpoint, rejected)
 
   !print *, "Poisson force: ", part%vel*part%q
   part%force = part%force + part%vel*part%q
@@ -1869,7 +1871,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3)
+                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -1901,7 +1903,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   distav = 0
   diffinst = 0
   veltest = 0
-
+  moves = 0
+  rejected = 0
+  
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -1937,7 +1941,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                 velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf, boundflag, midpoint)
+                                part, ks, dxf, boundflag, midpoint, rejected)
 
               !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
@@ -1985,6 +1989,15 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               end do
 
               midpoint = 1
+              moves = moves + 1
+
+              call get_weights(dxf, dxfinv, weights, indicies, &
+                              coordsx, coordsxlo, coordsxhi, &
+                              coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                              coordsz, coordszlo, coordszhi, &
+#endif
+                              part, ks, plof)
 
               call inter_op(weights, indicies, &
                                 velx, velxlo, velxhi, &
@@ -1992,7 +2005,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                 velz, velzlo, velzhi, &
 #endif
-                                part, ks, dxf, boundflag, midpoint)
+                                part, ks, dxf, boundflag, midpoint, rejected)
 
               part%pos = posold
 
@@ -2033,7 +2046,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                     
                 endif
 
-              end do              
+              end do           
 
 !!!!!!!!!! Mean square displacement measurer.
 
@@ -2090,6 +2103,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
+  print *, "Midpoint moves attempted: ", moves
+  print *, "Fraction of midpoint moves rejected: ", rejected/moves
   !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
   !print *, "veltest: ", veltest/np
 
