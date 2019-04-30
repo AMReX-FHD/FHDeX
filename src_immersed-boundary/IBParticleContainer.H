@@ -46,6 +46,26 @@ struct IBP_realData {
         dragz,    // ..................................... TODO: Audit
         count     // Awesome little trick!
     };
+
+    static Vector<std::string> names() {
+        return Vector<std::string> {
+            "radius",
+            "volume",
+            "mass",
+            "density",
+            "oneOverI",
+            "velx",
+            "vely",
+            "velz",
+            "omegax",
+            "omegay",
+            "omegaz",
+            "dragx",
+            "dragy",
+            "dragz"
+        };
+    };
+
 };
 
 struct IBP_intData {
@@ -54,6 +74,13 @@ struct IBP_intData {
         phase = 0,  // ................................... TODO: Audit
         state,      // ................................... TODO: Audit
         count
+    };
+
+    static Vector<std::string> names() {
+        return Vector<std::string> {
+            "phase",
+            "state"
+        };
     };
 };
 
