@@ -693,8 +693,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
-        //HYDRO
-        //--------------------------------------
+        particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         particles.fillNeighbors();
 
