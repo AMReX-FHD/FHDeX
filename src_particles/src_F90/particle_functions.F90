@@ -2334,7 +2334,23 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 !              part => particles(cell_parts(p))
               part => particles(p)
 
-              !part%vel(1) = 1
+              part%force = 0
+
+              if(rfd_tog .eq. 1) then
+
+                call rfd(weights, indicies, &
+                                  sourcex, sourcexlo, sourcexhi, &
+                                  sourcey, sourceylo, sourceyhi, &
+#if (BL_SPACEDIM == 3)
+                                  sourcez, sourcezlo, sourcezhi, &
+#endif
+                                  coordsx, coordsxlo, coordsxhi, &
+                                  coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                                  coordsz, coordszlo, coordszhi, &
+#endif
+                                  part, ks, dxf, plof)
+              endif
 
               part%force = 0
 
@@ -2408,25 +2424,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                                 sourcez, sourcezlo, sourcezhi, &
 #endif
                                 part, ks, dxf)
-
-
-              part%force = 0
-
-              if(rfd_tog .eq. 1) then
-
-                call rfd(weights, indicies, &
-                                  sourcex, sourcexlo, sourcexhi, &
-                                  sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                  sourcez, sourcezlo, sourcezhi, &
-#endif
-                                  coordsx, coordsxlo, coordsxhi, &
-                                  coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                                  coordsz, coordszlo, coordszhi, &
-#endif
-                                  part, ks, dxf, plof)
-              endif
 
               p = p + 1
 
