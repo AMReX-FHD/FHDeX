@@ -485,6 +485,8 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
+    if(rfd_tog == 1)
+    {
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -537,6 +539,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
             auto& pvec = m_cell_vectors[grid_id](iv);
             pvec.resize(new_size);
         }
+    }
     }
 
     sourceTemp[0].SumBoundary(geomF.periodicity());

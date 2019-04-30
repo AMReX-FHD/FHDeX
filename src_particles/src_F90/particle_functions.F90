@@ -2538,8 +2538,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
       part%force = 0
 
-      if(rfd_tog .eq. 1) then
-
         call rfd(weights, indicies, &
                           sourcex, sourcexlo, sourcexhi, &
                           sourcey, sourceylo, sourceyhi, &
@@ -2552,7 +2550,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                           coordsz, coordszlo, coordszhi, &
 #endif
                           part, ks, dxf, plof)
-      endif
+
 
       p = p + 1
 
