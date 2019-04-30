@@ -72,7 +72,8 @@
   !------------
   permitivitty = 1
   cutoff = 20e-8    !cutoff range for close range potential
-  rmin = 0.2e-8     !I think this is minimum range to prevent blow up of force.
+  rmin = 0.2e-8     !Minimum range to prevent blow up of force.
+  cdepth = 2        !cell depth when building neighbour lists
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------

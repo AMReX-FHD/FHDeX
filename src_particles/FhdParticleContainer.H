@@ -42,6 +42,8 @@ struct RealData
         dryDiff,
         wetDiff,
         totalDiff,
+        sigma,
+        eepsilon,
         ncomps
     };
 };

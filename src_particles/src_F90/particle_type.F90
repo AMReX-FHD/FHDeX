@@ -28,6 +28,8 @@ module short_range_particle_module
        real(amrex_particle_real) :: dry_diff
        real(amrex_particle_real) :: wet_diff
        real(amrex_particle_real) :: total_diff
+       real(amrex_particle_real) :: sigma
+       real(amrex_particle_real) :: eepsilon
 
        integer(c_int)            :: id         !< Particle id
        integer(c_int)            :: cpu        !< Particle cpu
