@@ -22,6 +22,8 @@ typedef struct {
   double totalDiff;
   double dryDiff;
   double wetDiff;
+  double sigma;
+  double eepsilon;
 
 } species;
 

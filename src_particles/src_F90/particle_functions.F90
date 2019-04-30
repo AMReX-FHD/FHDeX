@@ -14,7 +14,7 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   real(amrex_real) :: ff
 
   !This needs to be updated to handle multispecies.
-  ff = eepsilon(1)*48.*(1./(dr2*dr2*dr2*dr2))*(2.0*part1%radius**12/(dr2*dr2*dr2)-part1%radius**6)
+  ff = part1%eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(2.0*part1%sigma**12/(dr2*dr2*dr2)-part1%sigma**6)
 
   !print *, "dx: ", dx
 

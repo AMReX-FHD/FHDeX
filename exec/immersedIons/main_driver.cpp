@@ -247,6 +247,8 @@ void main_driver(const char* argv)
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
 
+        ionParticle[i].sigma = sigma[i];
+        ionParticle[i].eepsilon = eepsilon[i];
 
         // AJN - why round up particles so there are the same number in each box?
         if(particle_count[i] >= 0) {

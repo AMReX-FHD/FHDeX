@@ -108,6 +108,9 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::wetDiff) = particleInfo[i_spec].wetDiff;
                 p.rdata(RealData::dryDiff) = particleInfo[i_spec].dryDiff;
                 p.rdata(RealData::totalDiff) = particleInfo[i_spec].totalDiff;
+
+                p.rdata(RealData::sigma) = particleInfo[i_spec].sigma;
+                p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
                 
                 particle_tile.push_back(p);
             }
