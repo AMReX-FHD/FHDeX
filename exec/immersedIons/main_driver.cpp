@@ -600,7 +600,7 @@ void main_driver(const char* argv)
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
 
-    int num_neighbor_cells = 1;
+    int num_neighbor_cells = 4;
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc,num_neighbor_cells);
 
@@ -696,7 +696,6 @@ void main_driver(const char* argv)
         particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         particles.fillNeighbors();
-
         //compute the neighbourlist forces 
         particles.computeForcesNL();
 

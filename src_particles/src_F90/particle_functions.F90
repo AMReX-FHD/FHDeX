@@ -129,16 +129,15 @@ subroutine calculate_force(particles, np, lo, hi, &
 end subroutine calculate_force
 
 subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
-                                     nn, nl, size, cutoff, min_r) &
+                                     nn, nl, size) &
        bind(c,name='amrex_compute_forces_nl')
 
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use short_range_particle_module, only : particle_t
-    use common_namelist_module, only: diameter
+    use common_namelist_module, only: cutoff, rmin
         
     integer,          intent(in   ) :: np, nn, size
-    real(amrex_real), intent(in   ) :: cutoff, min_r
     type(particle_t), intent(inout) :: rparticles(np)
     type(particle_t), intent(inout) :: neighbors(nn)
     integer,          intent(in   ) :: nl(size)
@@ -158,6 +157,8 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
   !  min_r = 1.e-4 !!NOTE! This was in the tutorial section---make sure that it applies here
 
     !print *, "Cutoff: ", cutoff
+
+    print *, "checking neighbours."
     
     index = 1
     do i = 1, np
@@ -170,6 +171,8 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
        nneighbors = nl(index)
        index = index + 1
 
+       print *, "particle ", i, " has ", nneighbors, " neighbours."
+
        do j = index, index + nneighbors - 1
 
           dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
@@ -177,7 +180,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
           r2 = dx(1) * dx(1) + dx(2) * dx(2) + dx(3) * dx(3)
-          r2 = max(r2, min_r*min_r) 
+          r2 = max(r2, rmin*rmin) 
           r = sqrt(r2)
 
          !repulsive interaction

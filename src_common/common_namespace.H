@@ -165,6 +165,8 @@ namespace common {
     extern amrex::Vector<amrex::Real> nfrac;
 
     extern amrex::Real                permitivitty;
+    extern amrex::Real                cutoff;
+    extern amrex::Real                rmin;
     extern amrex::Vector<amrex::Real> eepsilon;
     extern amrex::Vector<amrex::Real> sigma;
 

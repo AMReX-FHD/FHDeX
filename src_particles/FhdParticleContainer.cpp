@@ -12,8 +12,6 @@
 using namespace amrex;
 using namespace common;
 
-constexpr Real FhdParticleContainer::min_r;
-constexpr Real FhdParticleContainer::cutoff;
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                               const DistributionMapping & dmap,
@@ -141,8 +139,7 @@ void FhdParticleContainer::computeForcesNL() {
         int size = neighbor_list[lev][index].size();
         amrex_compute_forces_nl(particles.data(), &Np, 
                                 neighbors[lev][index].dataPtr(), &Nn,
-                                neighbor_list[lev][index].dataPtr(), &size,
-				&cutoff, &min_r); 
+                                neighbor_list[lev][index].dataPtr(), &size); 
     }
 }
 
