@@ -185,5 +185,7 @@ namespace common {
     extern int                        move_tog;
     extern int                        rfd_tog;
     extern int                        dry_move_tog;
+    extern int                        sr_tog;
+    extern int                        crange;
     
 }

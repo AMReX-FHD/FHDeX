@@ -28,8 +28,9 @@
   es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 0 ! Apply RFD force to fluid
-  move_tog = 1 ! Total particle move
+  move_tog = 0 ! Total particle move
   dry_move_tog = 0 ! Dry particle move
+  !sr_tog = 0 ! Short range forces
  
 
   ! Fluid info
@@ -73,7 +74,7 @@
   permitivitty = 1
   cutoff = 20e-8    !cutoff range for close range potential
   rmin = 0.2e-8     !Minimum range to prevent blow up of force.
-  !cdepth = 2        !cell depth when building neighbour lists
+  crange = 2        !cell depth when building neighbour lists
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------

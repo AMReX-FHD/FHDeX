@@ -163,10 +163,10 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     index = 1
     do i = 1, np
 
-!!      zero out the particle force !!!CHECK that this doesn't conflict with how particles are added through Poisson solver
-!       particles(i)%force(1) = 0.d0
-!       particles(i)%force(2) = 0.d0
-!       particles(i)%force(3) = 0.d0
+!!     This is the initial force zeroing for all force calcs.
+       particles(i)%force(1) = 0.d0
+       particles(i)%force(2) = 0.d0
+       particles(i)%force(3) = 0.d0
 
        nneighbors = nl(index)
        index = index + 1
@@ -2326,8 +2326,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
    do while (p <= np)
 
       part => particles(p)
-
-      part%force = 0
 
       if(es_tog .eq. 2) then
           call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
