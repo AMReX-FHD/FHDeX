@@ -9,6 +9,13 @@
 #include "species.H"
 #include "surfaces.H"
 
+#include "common_functions.H"
+#include "common_functions_F.H"
+#include "common_namespace.H"
+//#include "common_namespace_declarations.H"
+
+//using namespace common;
+
 namespace amrex {
 
 struct RealData
@@ -185,16 +192,18 @@ private:
     struct {
         bool operator()(const ParticleType& p1, const ParticleType& p2) const
         {
-            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0))   ,
-                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-                <= cutoff*cutoff;
+//            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0))   ,
+//                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+//                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+//                <= cutoff*cutoff;
+
+                return true;
             }
     } CheckPair;
     
-//    static constexpr Real cutoff = 2**(1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
-    static constexpr Real cutoff = pow(2,1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
-    static constexpr Real min_r  = 1.e-4;
+    //static constexpr Real cutoff = 2**(1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
+    static constexpr Real cutoff = pow(2,1./6.)*1.8e-5; //NOTE that we're changing cutoff here now!
+    static constexpr Real min_r  = 1.e-12;
 
 };
     

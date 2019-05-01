@@ -39,7 +39,7 @@ subroutine force_function2(part1,part2,domsize) &
   real(amrex_real), intent(in) :: domsize(3)
 
   integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch, partno, n
-  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff, rtdr2, maxdist
+  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist
 
   dx0 = part1%pos-part2%pos
 
@@ -135,7 +135,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cutoff, rmin
+    use common_namelist_module, only: cut_off, rmin
         
     integer,          intent(in   ) :: np, nn, size
     type(particle_t), intent(inout) :: rparticles(np)
@@ -150,13 +150,13 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
  
-    !WCA cutoff
+    !WCA cut_off
     !note: need to fix this for multi-species
- !   cutoff = 2**(1./6.)*diameter(1)
+ !   cut_off = 2**(1./6.)*diameter(1)
 
   !  min_r = 1.e-4 !!NOTE! This was in the tutorial section---make sure that it applies here
 
-    !print *, "Cutoff: ", cutoff
+    !print *, "cut_off: ", cut_off
 
     !print *, "checking neighbours."
     
@@ -184,7 +184,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           r = sqrt(r2)
 
          !repulsive interaction
-         if (r .lt. cutoff) then ! NOTE! Should be able to set neighbor cell list with cutoff distance in mind
+         if (r .lt. cut_off) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
             print *, "Repulsing!"
             call repulsive_force(particles(i),particles(j),dx,r2) 

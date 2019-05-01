@@ -113,7 +113,7 @@ void InitializeCommonNamespace() {
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(), &particle_neff,
-                                particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(), &permitivitty,&cutoff,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
+                                particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(), &permitivitty,&cut_off,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter, &poisson_rel_tol, &particle_grid_refine, &es_grid_refine, diff.dataPtr(),
                                 &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog, &dry_move_tog, &sr_tog, &crange);
 

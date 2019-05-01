@@ -1,4 +1,4 @@
-
+#include "INS_functions.H"
 
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -11,7 +11,7 @@
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
-#include "INS_functions.H"
+
 #include "rng_functions_F.H"
 
 #include "species.H"
@@ -348,7 +348,7 @@ void main_driver(const char* argv)
 
     //set number of ghost cells to fit whole peskin kernel
     int ang = 1;
-    int cng = 1;
+    int cng = 2;
     int png = 1;
 
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
@@ -604,7 +604,7 @@ void main_driver(const char* argv)
 
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    FhdParticleContainer particles(geomC, dmap, bc,crange);
+    FhdParticleContainer particles(geomC, dmap, bc, crange);
 
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
@@ -696,12 +696,15 @@ void main_driver(const char* argv)
     {
 
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
+        particles.clearNeighbors();
 
         particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
-
+        std::cout << ParallelDescriptor::MyProc() << ", here2\n";
         particles.fillNeighbors();
-        //compute the neighbourlist forces 
+        std::cout << ParallelDescriptor::MyProc() << ", here3\n";
         particles.computeForcesNL();
+        std::cout << ParallelDescriptor::MyProc() << ", here4\n";
+
 
         if(es_tog==1)
         {
@@ -732,7 +735,7 @@ void main_driver(const char* argv)
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             particles.Redistribute();
-            particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+          //  particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
 
             //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
@@ -769,8 +772,6 @@ void main_driver(const char* argv)
         }
         
         time = time + dt;
-
-
 
     }
 

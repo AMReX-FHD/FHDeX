@@ -105,7 +105,7 @@ int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
 amrex::Real                common::permitivitty;
-amrex::Real                common::cutoff;
+amrex::Real                common::cut_off;
 amrex::Real                common::rmin;
 
 amrex::Real                common::particle_grid_refine;
