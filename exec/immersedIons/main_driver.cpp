@@ -695,6 +695,8 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
+        //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
+
         particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         particles.fillNeighbors();

@@ -163,10 +163,10 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     index = 1
     do i = 1, np
 
-!!     This is the initial force zeroing for all force calcs.
-       particles(i)%force(1) = 0.d0
-       particles(i)%force(2) = 0.d0
-       particles(i)%force(3) = 0.d0
+!  Forces are currently zeroed at end of RFD calc.
+!       particles(i)%force(1) = 0.d0
+!       particles(i)%force(2) = 0.d0
+!       particles(i)%force(3) = 0.d0
 
        nneighbors = nl(index)
        index = index + 1
@@ -2496,7 +2496,8 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
       part => particles(p)
 
-      part%force = 0
+      if(rfd_tog .eq. 1) then
+        part%force = 0
 
         call rfd(weights, indicies, &
                           sourcex, sourcexlo, sourcexhi, &
@@ -2511,6 +2512,9 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 #endif
                           part, ks, dxf, plof)
 
+      endif
+
+      part%force = 0
 
       p = p + 1
 

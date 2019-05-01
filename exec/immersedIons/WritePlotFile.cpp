@@ -166,11 +166,11 @@ void WritePlotFile(int step,
 
     std::string asciiPName = Concatenate("asciiParticles",step,9);
 
-    outputMFAscii(charge, asciiName1);
-    outputMFAscii(potential, asciiName2);
-    outputMFAscii(eplotout, asciiName3);
+    //outputMFAscii(charge, asciiName1);
+    //outputMFAscii(potential, asciiName2);
+    //outputMFAscii(eplotout, asciiName3);
 
-    particles.WriteParticlesAscii(asciiPName);
+    //particles.WriteParticlesAscii(asciiPName);
 
 
 }
