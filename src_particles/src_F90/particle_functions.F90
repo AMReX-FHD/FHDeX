@@ -888,7 +888,7 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 end subroutine move_particles_dry
 
 !extra diffusion term when 
-subroutine dry(part,dt)
+subroutine dry(dt,part,dry_terms)
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
   use common_namelist_module, only: visc_type, k_B, t_init
@@ -898,7 +898,8 @@ subroutine dry(part,dt)
 
   double precision, intent(in   )         :: dt
   type(particle_t), intent(inout) :: part 
-  real(amrex_real) runtime, normalrand(3),std,bfac(3),dry_term(3)
+  double precision, intent(inout   ) :: dry_terms(3)
+  real(amrex_real) runtime, normalrand(3),std,bfac(3)
 
 
                 !Brownian forcing
@@ -919,9 +920,9 @@ subroutine dry(part,dt)
               bfac(3) = std*normalrand(3)
 
               !need to return
-              dry_term(1) = part%dry_diff*part%force(1)/k_B+std*bfac(1)
-              dry_term(2) = part%dry_diff*part%force(2)/k_B+std*bfac(2)
-              dry_term(3) = part%dry_diff*part%force(3)/k_B+std*bfac(3)
+              dry_terms(1) = part%dry_diff*part%force(1)/(k_B*t_init(1))+std*bfac(1)
+              dry_terms(2) = part%dry_diff*part%force(2)/(k_B*t_init(1))+std*bfac(2)
+              dry_terms(3) = part%dry_diff*part%force(3)/(k_B*t_init(1))+std*bfac(3)
 
   
 end subroutine dry
@@ -1910,7 +1911,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
+  real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3), &
                    diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves
 
   double precision, allocatable :: weights(:,:,:,:)
@@ -2049,7 +2050,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               part%pos = posold
 
-              !KK should the below actually be 0.5*dt?
               !DRL no, this is the full step taken after the midpoint velocity has been found. If you are refering to eqs 39 and 41 which JBB added to the notes, I think dt/2 is a typo. 
               runtime = dt
 
@@ -2066,10 +2066,13 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+              
+                call dry(dt,part,dry_terms)
+
+                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj + dry_terms(1)
+                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj + dry_terms(2)
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj + dry_terms(3)
 #endif
                 runtime = runtime - inttime
 
