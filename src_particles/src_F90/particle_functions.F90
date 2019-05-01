@@ -898,7 +898,7 @@ subroutine dry(part,dt)
 
   double precision, intent(in   )         :: dt
   type(particle_t), intent(inout) :: part 
-  real(amrex_real) runtime, normalrand(3),std,bfac(3)
+  real(amrex_real) runtime, normalrand(3),std,bfac(3),dry_term(3)
 
 
                 !Brownian forcing
@@ -914,11 +914,14 @@ subroutine dry(part,dt)
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 
-              print *, "std ", std, " part ", part%drag_factor*k_B*2d0*runtime*293d0
-
               bfac(1) = std*normalrand(1)
               bfac(2) = std*normalrand(2)
               bfac(3) = std*normalrand(3)
+
+              !need to return
+              dry_term(1) = part%dry_diff*part%force(1)/k_B+std*bfac(1)
+              dry_term(2) = part%dry_diff*part%force(2)/k_B+std*bfac(2)
+              dry_term(3) = part%dry_diff*part%force(3)/k_B+std*bfac(3)
 
   
 end subroutine dry
