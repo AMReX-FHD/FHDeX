@@ -337,15 +337,15 @@ void main_driver(const char * argv) {
 
         AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
+                                    geom.ProbLo(), geom.ProbHi(), & dm,
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
                      dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
+                                    geom.ProbLo(), geom.ProbHi(), & dm,
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
                      dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
                                     BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
+                                    geom.ProbLo(), geom.ProbHi(), & dm,
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
     	// initialize tracer
@@ -407,9 +407,9 @@ void main_driver(const char * argv) {
     Vector<RealVect> ib_pos(1);
     ib_pos[0] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.5)};
     Vector<Real>     ib_r(1);
-    ib_r[0]   = 0.10; // Might be a bit big?
+    ib_r[0]   = 0.10;
     Vector<Real>     ib_rho(1);
-    ib_rho[0] = 1.00;// Same as fluid
+    ib_rho[0] = 100.00;
 
     ib_pc.InitList(0, ib_pos, ib_r, ib_rho);
 
@@ -527,7 +527,7 @@ void main_driver(const char * argv) {
         //         std::cout << f.second[d] << std::endl;
         // }
 
-        ib_pc.MoveIBParticles(0, dt, f_trans);
+        // ib_pc.MoveIBParticles(0, dt, f_trans);
 
 
         //_______________________________________________________________________

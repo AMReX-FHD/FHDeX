@@ -342,6 +342,102 @@ contains
     end function interp_lagrange
 
 
+    pure function kernel_6p(r_in)
+
+        ! ** output type
+        real(amrex_real) :: kernel_6p
+
+        ! ** input types
+        real(amrex_real), intent(in   ) :: r_in
+
+        ! ** internal parameters
+        real(amrex_real), parameter :: K = 59./60. - sqrt(29.)/20.
+        real(amrex_real), parameter :: inv_alpha = 1./(2.*28.)
+        real(amrex_real), parameter :: tmp_sgn = 3./2.-K
+
+        real(amrex_real), parameter :: inv16 = 1./16.
+        real(amrex_real), parameter :: inv8  = 1./8.
+        real(amrex_real), parameter :: inv12 = 1./12.
+        real(amrex_real), parameter :: inv4  = 1./4.
+        real(amrex_real), parameter :: inv6  = 1./6.
+        real(amrex_real), parameter :: rat58 = 5./8.
+
+
+        real(amrex_real) :: sgn, r
+        sgn = sign(1.D0, tmp_sgn) ! TODO: check
+        r = r_in
+
+
+        if (r .lt. -3) then
+            kernel_6p = 0.
+        else if ((r .gt. -3) .and. (r .le. -2)) then
+            r = r + 3
+            kernel_6p = phi1(r)
+        else if ((r .gt. -2) .and. (r .le. -1)) then
+            r = r + 2
+            kernel_6p = -3*phi1(r) - inv16 + inv8*(K+r**2) + inv12*((3*K-1)*r+r**3)
+        else if ((r .gt. -1) .and. (r .le.  0)) then
+            r = r + 1
+            kernel_6p = 2*phi1(r) - inv4 + inv6*((4-3*K)*r-r**3)
+        else if ((r .gt.  0) .and. (r .le.  1)) then
+            kernel_6p = 2*phi1(r) + rat58 - inv4*(K+r**2)
+        else if ((r .gt.  1) .and. (r .le.  2)) then
+            r = r - 1 
+            kernel_6p = -3*phi1(r) + inv4 - inv6*((4-3*K)*r-r**3)
+        else if ((r .gt.  2) .and. (r .le.  3)) then
+            r = r - 2
+            kernel_6p = phi1(r) - inv16 + inv8*(K+r**2) - inv12*((3*K-1)*r-r**3)
+        else
+            kernel_6p = 0
+        end if
+
+        contains
+
+            pure function beta(r)
+
+                real(amrex_real) :: beta
+
+                real(amrex_real), intent(in   ) :: r
+
+                real(amrex_real), parameter :: a = 9./4.
+                real(amrex_real), parameter :: b = 3./2.
+                real(amrex_real), parameter :: c = 22./3.
+                real(amrex_real), parameter :: d = 7./3.
+
+                beta = a - b*(K+r**2)*r + (c-7*K)*r - d*r**3
+
+            end function beta
+
+
+            pure function gamma(r)
+
+                real(amrex_real) :: gamma
+
+                real(amrex_real), intent(in   ) :: r
+
+                real(amrex_real), parameter :: a = 11./32.
+                real(amrex_real), parameter :: b = 3./32.
+                real(amrex_real), parameter :: c = 1./72.
+                real(amrex_real), parameter :: d = 1./18.
+
+                gamma = - a*r**2 + b*(2*K+r**2)*r**2 &
+                    &   + c*((3*K-1)*r+r**3)**2 + d*((4-3*K)*r-r**3)**2
+            end function gamma
+
+            pure function phi1(r)
+
+                real(amrex_real) :: phi1
+
+                real(amrex_real), intent(in   ) :: r
+
+                phi1 = inv_alpha * ( -beta(r) + sgn * sqrt(beta(r)**2 - 112*gamma(r)) )
+
+            end function phi1
+
+
+    end function kernel_6p
+
+
 
     pure function effective_tag(i,   j,     k,    dir, &
                                 tag, taglo, taghi      )
