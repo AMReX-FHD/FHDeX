@@ -21,9 +21,9 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   part1%force = part1%force + dx*ff
   !part2%force = part2%force - dx*ff
 
-  print *, "xloc: ", part1%pos(1), " r: ", sqrt(dr2)
+  !print *, "xloc: ", part1%pos(1), " r: ", sqrt(dr2)
 
-  print *, "Repulsive force: ", part1%force
+  !print *, "Repulsive force: ", part1%force
 
 end subroutine
 
@@ -45,7 +45,7 @@ subroutine force_function2(part1,part2,domsize) &
 
   dx0 = part1%pos-part2%pos
 
-  images = 0 !change this to an input
+  images = 15 !change this to an input
   ii=0
   jj=0
   kk=0
@@ -59,8 +59,6 @@ subroutine force_function2(part1,part2,domsize) &
   if((images*domsize(3) .lt. images*domsize(2)) .or. (images*domsize(3) .lt. images*domsize(1))) then
     maxdist = images*domsize(3)
   endif
-
-  maxdist = domsize(1)
 
   do ii = -images, images
     do jj = -images, images 
@@ -79,7 +77,7 @@ subroutine force_function2(part1,part2,domsize) &
             if(rtdr2 .lt. maxdist) then
               part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
 
-              print *, "es: ", permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+              !print *, "es: ", permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
             endif
           endif
 
