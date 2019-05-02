@@ -25,7 +25,7 @@
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! Do Stokes solve
-  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
+  es_tog = 2 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 0 ! Apply RFD force to fluid
   move_tog = 0 ! Total particle move
@@ -65,13 +65,13 @@
   diff = 8.642990107e-06 8.642990107e-06
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  eepsilon = 1e-13 1e-13 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
+  eepsilon = 1e-12 1e-12 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
   sigma = 5e-8 5e-8   !A seperate diameter for close range repulsion?
 
   !Interaction parameters
   !------------
   permitivitty = 1
-  cut_off = 5.6e-8    !cutoff range for close range potential
+  cut_off = 3.3e-8    !cutoff range for close range potential
   rmin = 1.5e-8     !Minimum range to prevent blow up of force.
   crange = 1        !cell depth when building neighbour lists
 

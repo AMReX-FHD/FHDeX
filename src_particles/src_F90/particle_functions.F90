@@ -45,7 +45,7 @@ subroutine force_function2(part1,part2,domsize) &
 
   dx0 = part1%pos-part2%pos
 
-  images = 32 !change this to an input
+  images = 0 !change this to an input
   ii=0
   jj=0
   kk=0
@@ -59,6 +59,8 @@ subroutine force_function2(part1,part2,domsize) &
   if((images*domsize(3) .lt. images*domsize(2)) .or. (images*domsize(3) .lt. images*domsize(1))) then
     maxdist = images*domsize(3)
   endif
+
+  maxdist = domsize(1)
 
   do ii = -images, images
     do jj = -images, images 
@@ -76,6 +78,8 @@ subroutine force_function2(part1,part2,domsize) &
 
             if(rtdr2 .lt. maxdist) then
               part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+
+              print *, "es: ", permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
             endif
           endif
 
@@ -174,7 +178,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           r = sqrt(r2)
 
          !repulsive interaction
-         if (r .lt. (1.122*particles(i)%sigma)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
+         if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
             print *, "Repulsing, ", r
             call repulsive_force(particles(i),particles(j),dx,r2) 

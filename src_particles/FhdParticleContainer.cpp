@@ -73,7 +73,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 //#endif
 
-                p.pos(0) = 10*dx[0] + ll*particleInfo[i_spec].sigma;
+                p.pos(0) = 10*dx[0] + ll*particleInfo[i_spec].sigma/2.0;
                 p.pos(1) = 10*dx[1];
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = 10*dx[2];
