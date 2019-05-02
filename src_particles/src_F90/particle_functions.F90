@@ -910,7 +910,6 @@ subroutine dry(dt,part,dry_terms)
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
 
-              !make sure runtime is correct in predictor-corrector (see); also change temperature to be correct
               std = sqrt(part%dry_diff*k_B*2d0*runtime*t_init(1))
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
@@ -919,10 +918,10 @@ subroutine dry(dt,part,dry_terms)
               bfac(2) = std*normalrand(2)
               bfac(3) = std*normalrand(3)
 
-              !need to return
-              dry_terms(1) = part%dry_diff*part%force(1)/(k_B*t_init(1))+std*bfac(1)
-              dry_terms(2) = part%dry_diff*part%force(2)/(k_B*t_init(1))+std*bfac(2)
-              dry_terms(3) = part%dry_diff*part%force(3)/(k_B*t_init(1))+std*bfac(3)
+              !KK does this have all the forces in it already? need to check
+              dry_terms(1) = runtime*part%dry_diff*part%force(1)/(k_B*t_init(1))+std*bfac(1)
+              dry_terms(2) = runtime*part%dry_diff*part%force(2)/(k_B*t_init(1))+std*bfac(2)
+              dry_terms(3) = runtime*part%dry_diff*part%force(3)/(k_B*t_init(1))+std*bfac(3)
 
   
 end subroutine dry
@@ -1862,7 +1861,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog
   use rng_functions_module
   use surfaces_module
   
@@ -2066,15 +2065,29 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-              
-                call dry(dt,part,dry_terms)
 
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj + dry_terms(1)
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj + dry_terms(2)
+                if (dry_move_tog .eq. 0) then
+
+                    part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+                    part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj + dry_terms(3)
+                    part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
-                runtime = runtime - inttime
+                    runtime = runtime - inttime
+
+                endif 
+              
+                if (dry_move_tog .eq. 1) then
+                    call dry(dt,part,dry_terms)
+
+                    part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj + dry_terms(1)
+                    part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj + dry_terms(2)
+#if (BL_SPACEDIM == 3)
+                    part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj + dry_terms(3)
+#endif
+                    runtime = runtime - inttime
+
+                endif 
 
                 if(intsurf .gt. 0) then
 
