@@ -14,14 +14,16 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   real(amrex_real) :: ff
 
   !This needs to be updated to handle multispecies.
-  ff = part1%eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(2.0*part1%sigma**12/(dr2*dr2*dr2)-part1%sigma**6)
+  ff = part1%eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*((part1%sigma/2d0)**12/(dr2*dr2*dr2)-(part1%sigma/2d0)**6)
 
   !print *, "dx: ", dx
 
-  part1%force = part1%force + dx*ff
-  part2%force = part2%force - dx*ff
+  part1%force = part1%force - dx*ff
+  !part2%force = part2%force - dx*ff
 
-  !print *, "Repulsive force: ", part1%force
+  print *, "xloc: ", part1%pos(1), " r: ", sqrt(dr2)
+
+  print *, "Repulsive force: ", part1%force
 
 end subroutine
 
@@ -150,23 +152,11 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
  
-    !WCA cut_off
-    !note: need to fix this for multi-species
- !   cut_off = 2**(1./6.)*diameter(1)
-
-  !  min_r = 1.e-4 !!NOTE! This was in the tutorial section---make sure that it applies here
-
-    !print *, "cut_off: ", cut_off
-
-    !print *, "checking neighbours."
     
     index = 1
     do i = 1, np
 
-!  Forces are currently zeroed at end of RFD calc. !KK ---we'll need them after for the dry terms, right?
-!       particles(i)%force(1) = 0.d0
-!       particles(i)%force(2) = 0.d0
-!       particles(i)%force(3) = 0.d0
+      !We need to check this properly
 
        nneighbors = nl(index)
        index = index + 1
@@ -184,7 +174,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           r = sqrt(r2)
 
          !repulsive interaction
-         if (r .lt. cut_off) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
+         if (r .lt. (1.122*particles(i)%sigma)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
             print *, "Repulsing, ", r
             call repulsive_force(particles(i),particles(j),dx,r2) 

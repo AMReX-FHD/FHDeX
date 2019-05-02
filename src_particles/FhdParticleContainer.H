@@ -199,7 +199,7 @@ private:
             }
     } CheckPair;
     
-    //static constexpr Real cutoff = 2**(1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
+    //static constexpr Real cutoff = 1.122*sigma[0]; //NOTE that we're changing cutoff here now!
     //static constexpr Real cutoff = pow(2,1./6.)*1.8e-5; //NOTE that we're changing cutoff here now!
     //static constexpr Real min_r  = 1.e-12;
 

@@ -36,8 +36,9 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
     double cosTheta, sinTheta, cosPhi, sinPhi;    
 
-        int pcount = 0;
-
+    int pcount = 0;
+        
+    int ll =0;
     //double initTemp = 0;
     //double pc = 0;
 
@@ -66,15 +67,22 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+//#endif
+
+                p.pos(0) = 10*dx[0] + ll*particleInfo[i_spec].sigma;
+                p.pos(1) = 10*dx[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+                p.pos(2) = 10*dx[2];
 #endif
+                ll++;
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
+                Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
 
                 //original position stored for MSD calculations
                 p.rdata(RealData::ox) = p.pos(0);

@@ -18,19 +18,19 @@
   fixed_dt = 1e-11
 
   ! Controls for number of steps between actions
-  max_step = 1000
+  max_step = 1
   plot_int = 1
   struct_fact_int = 1
   n_steps_skip = 1
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! Do Stokes solve
-  es_tog = 1 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
-  drag_tog = 1 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
-  move_tog = 1 ! Total particle move
+  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
+  drag_tog = 0 ! Apply drag force to fluid
+  rfd_tog = 0 ! Apply RFD force to fluid
+  move_tog = 0 ! Total particle move
   dry_move_tog = 0 ! Dry particle move
-  sr_tog = 0 ! Short range forces
+  sr_tog = 1 ! Short range forces
  
 
   ! Fluid info
@@ -49,7 +49,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 50 50 
+  particle_count = 1 1 
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -71,14 +71,14 @@
   !Interaction parameters
   !------------
   permitivitty = 1
-  cut_off = 5e-8    !cutoff range for close range potential
+  cut_off = 5.6e-8    !cutoff range for close range potential
   rmin = 1.5e-8     !Minimum range to prevent blow up of force.
   crange = 1        !cell depth when building neighbour lists
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------
   poisson_rel_tol = 1.e-7                ! relative tolerance stopping criteria
-  poisson_verbose =  1                   ! multigrid verbosity
+  poisson_verbose =  0                   ! multigrid verbosity
   poisson_bottom_verbose =  0            ! base solver verbosity
   poisson_max_iter = 100                 
 
@@ -108,7 +108,7 @@
   ! GMRES solver parameters
   gmres_rel_tol = 1.e-6                ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
-  gmres_verbose =  1                    ! gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_verbose =  0                    ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20                  ! max number of outer iterations
   gmres_max_inner = 20                   ! max number of inner iterations, or restart number
   gmres_max_iter = 100                  ! max number of gmres iterations
