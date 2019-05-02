@@ -14,7 +14,7 @@
 #include "common_namespace.H"
 //#include "common_namespace_declarations.H"
 
-//using namespace common;
+using namespace common;
 
 namespace amrex {
 
@@ -192,18 +192,16 @@ private:
     struct {
         bool operator()(const ParticleType& p1, const ParticleType& p2) const
         {
-//            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0))   ,
-//                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-//                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-//                <= cutoff*cutoff;
-
-                return true;
+            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0))   ,
+                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                <= cut_off*cut_off;
             }
     } CheckPair;
     
     //static constexpr Real cutoff = 2**(1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
-    static constexpr Real cutoff = pow(2,1./6.)*1.8e-5; //NOTE that we're changing cutoff here now!
-    static constexpr Real min_r  = 1.e-12;
+    //static constexpr Real cutoff = pow(2,1./6.)*1.8e-5; //NOTE that we're changing cutoff here now!
+    //static constexpr Real min_r  = 1.e-12;
 
 };
     

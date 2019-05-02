@@ -186,7 +186,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
          !repulsive interaction
          if (r .lt. cut_off) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
-            print *, "Repulsing!"
+            print *, "Repulsing, ", r
             call repulsive_force(particles(i),particles(j),dx,r2) 
 
          end if
@@ -1911,7 +1911,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves
+                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves, maxspeed, speed
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -1945,7 +1945,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   veltest = 0
   moves = 0
   rejected = 0
-  
+
+   
+  maxspeed = 0
+  speed = 0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -1984,6 +1987,12 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                                 part, ks, dxf, boundflag, midpoint, rejected)
 
               !mid point time stepping - First step 1/2 a time step then interpolate velocity field
+
+              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
+
+              if(speed .gt. maxspeed) then
+                maxspeed = speed
+              endif
 
               posold = part%pos
 
@@ -2046,6 +2055,12 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                                 velz, velzlo, velzhi, &
 #endif
                                 part, ks, dxf, boundflag, midpoint, rejected)
+
+              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
+
+              if(speed .gt. maxspeed) then
+                maxspeed = speed
+              endif
 
               part%pos = posold
 
@@ -2167,6 +2182,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   print *, "Midpoint moves attempted: ", moves
   print *, "Fraction of midpoint moves rejected: ", rejected/moves
+  print *, "Maximum observed speed: ", sqrt(maxspeed)
   !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
   !print *, "veltest: ", veltest/np
 

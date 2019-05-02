@@ -698,14 +698,17 @@ void main_driver(const char* argv)
     {
 
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
-        particles.clearNeighbors();
 
         particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        particles.fillNeighbors();
+        if(sr_tog==1)
+        {
+                particles.clearNeighbors();
 
-        particles.computeForcesNL();
+                particles.fillNeighbors();
 
+                particles.computeForcesNL();
+        }
 
         if(es_tog==1)
         {
@@ -733,11 +736,14 @@ void main_driver(const char* argv)
         if(move_tog==1)
         {
             //Calls wet ion interpolation and movement.
+            Print() << "Start move.\n";
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             particles.Redistribute();
-          //  particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+            particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
 
+
+            Print() << "Finish move.\n";
             //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
             //These functions reorganise particles between cells and processes
