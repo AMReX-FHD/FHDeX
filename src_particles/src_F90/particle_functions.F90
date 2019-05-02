@@ -178,7 +178,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
          !repulsive interaction
          if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
-            print *, "Repulsing, ", r
+            print *, "Repulsing, ", i, r
             call repulsive_force(particles(i),particles(j),dx,r2) 
 
          end if
