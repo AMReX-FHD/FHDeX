@@ -163,7 +163,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     index = 1
     do i = 1, np
 
-!  Forces are currently zeroed at end of RFD calc.
+!  Forces are currently zeroed at end of RFD calc. !KK ---we'll need them after for the dry terms, right?
 !       particles(i)%force(1) = 0.d0
 !       particles(i)%force(2) = 0.d0
 !       particles(i)%force(3) = 0.d0
@@ -1827,6 +1827,7 @@ subroutine emf(weights, indicies, &
 #endif
                     part, ks, dxp, boundflag, midpoint, rejected)
 
+  !KK look here!
   !print *, "Poisson force: ", part%vel*part%q
   part%force = part%force + part%vel*part%q
 
