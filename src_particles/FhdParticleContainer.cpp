@@ -7,10 +7,13 @@
 #include "FhdParticleContainer.H"
 #include "particle_functions_F.H"
 #include "rng_functions_F.H"
-#include "common_namespace.H"
+//#include "common_namespace.H"
 
 using namespace amrex;
 using namespace common;
+
+constexpr Real FhdParticleContainer::min_r;
+constexpr Real FhdParticleContainer::cutoff;
 
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
@@ -33,6 +36,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
     double cosTheta, sinTheta, cosPhi, sinPhi;    
 
+        int pcount = 0;
+
     //double initTemp = 0;
     //double pc = 0;
 
@@ -49,8 +54,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
         IntVect bigEnd = tile_box.bigEnd();       
 
 
-        //for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        //{
+//        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+ //       {
 
             for(int i_spec=0; i_spec < nspecies; i_spec++)
             {
@@ -113,14 +118,20 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
                 
                 particle_tile.push_back(p);
+
+                pcount++;
             }
-            }
-        //}
+ //           }
+        }
     }
+
+//    std::cout << "pcount: " << pcount << "\n";
 
     UpdateCellVectors();
     Redistribute();
     ReBin();
+
+        Print() << "Particles1: " << TotalNumberOfParticles() << "\n";
 }
 
 void FhdParticleContainer::computeForcesNL() {
@@ -131,6 +142,7 @@ void FhdParticleContainer::computeForcesNL() {
 
     buildNeighborList(CheckPair);
 
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -140,6 +152,7 @@ void FhdParticleContainer::computeForcesNL() {
         int Np = particles.size();
         int Nn = neighbors[lev][index].size() / pdata_size;
         int size = neighbor_list[lev][index].size();
+
         amrex_compute_forces_nl(particles.data(), &Np, 
                                 neighbors[lev][index].dataPtr(), &Nn,
                                 neighbor_list[lev][index].dataPtr(), &size); 
@@ -485,8 +498,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    if(rfd_tog == 1)
-    {
+
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
@@ -499,7 +511,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
         const int np = particles.numParticles();
         
         //Print() << "FHD\n"; 
-        do_rfd(particles.data(), &np,
+        spread_ions_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),
@@ -540,7 +552,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
             pvec.resize(new_size);
         }
     }
-    }
+    
 
     sourceTemp[0].SumBoundary(geomF.periodicity());
     sourceTemp[1].SumBoundary(geomF.periodicity());
@@ -604,7 +616,7 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
         const int np = particles.numParticles();
         
         //Print() << "FHD\n"; 
-        spread_ions_fhd(particles.data(), &np,
+        do_rfd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
                          m_vector_ptrs[grid_id].dataPtr(),

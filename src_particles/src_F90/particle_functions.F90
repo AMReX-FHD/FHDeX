@@ -39,7 +39,7 @@ subroutine force_function2(part1,part2,domsize) &
   real(amrex_real), intent(in) :: domsize(3)
 
   integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch, partno, n
-  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cutoff, rtdr2, maxdist
+  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist
 
   dx0 = part1%pos-part2%pos
 
@@ -135,7 +135,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cutoff, rmin
+    use common_namelist_module, only: cut_off, rmin
         
     integer,          intent(in   ) :: np, nn, size
     type(particle_t), intent(inout) :: rparticles(np)
@@ -150,20 +150,20 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
  
-    !WCA cutoff
+    !WCA cut_off
     !note: need to fix this for multi-species
- !   cutoff = 2**(1./6.)*diameter(1)
+ !   cut_off = 2**(1./6.)*diameter(1)
 
   !  min_r = 1.e-4 !!NOTE! This was in the tutorial section---make sure that it applies here
 
-    !print *, "Cutoff: ", cutoff
+    !print *, "cut_off: ", cut_off
 
     !print *, "checking neighbours."
     
     index = 1
     do i = 1, np
 
-!!      zero out the particle force !!!CHECK that this doesn't conflict with how particles are added through Poisson solver
+!  Forces are currently zeroed at end of RFD calc. !KK ---we'll need them after for the dry terms, right?
 !       particles(i)%force(1) = 0.d0
 !       particles(i)%force(2) = 0.d0
 !       particles(i)%force(3) = 0.d0
@@ -184,7 +184,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           r = sqrt(r2)
 
          !repulsive interaction
-         if (r .lt. cutoff) then ! NOTE! Should be able to set neighbor cell list with cutoff distance in mind
+         if (r .lt. cut_off) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
             print *, "Repulsing!"
             call repulsive_force(particles(i),particles(j),dx,r2) 
@@ -888,78 +888,40 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 end subroutine move_particles_dry
 
 !extra diffusion term when 
-subroutine dry(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, &
-                                     coordsx, coordsxlo, coordsxhi, &
-                                     coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                                     coordsz, coordszlo, coordszhi, &
-#endif
-                                     sourcex, sourcexlo, sourcexhi, &
-                                     sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                     sourcez, sourcezlo, sourcezhi, &
-#endif
-                                     surfaces, ns)bind(c,name="dry")
+subroutine dry(dt,part,dry_terms)
   use amrex_fort_module, only: amrex_real
-  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
-  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
+  use cell_sorted_particle_module, only: particle_t
   use common_namelist_module, only: visc_type, k_B, t_init
   use rng_functions_module
-  use surfaces_module
   
   implicit none
 
-  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3)
-  integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
-  integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
-#if (AMREX_SPACEDIM == 3)
-  integer,          intent(in   )         :: sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
-#endif
-  type(particle_t), intent(inout), target :: particles(np)
-  type(surface_t),  intent(in),    target :: surfaces(ns)
-
-  double precision, intent(in   )         :: dx(3), dt, plo(3), phi(3)
-
-  double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
-  double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
-#endif
-
-  double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
-  double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(inout) :: sourcez(sourcezlo(1):sourcezhi(1),sourcezlo(2):sourcezhi(2),sourcezlo(3):sourcezhi(3))
-#endif
-
-  type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount
-  integer :: ni(3), fi(3)
-  integer(c_int), pointer :: cell_parts(:)
-  type(particle_t), pointer :: part
-  type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3)
+  double precision, intent(in   )         :: dt
+  type(particle_t), intent(inout) :: part 
+  double precision, intent(inout   ) :: dry_terms(3)
+  real(amrex_real) runtime, normalrand(3),std,bfac(3)
 
 
                 !Brownian forcing
+
+              runtime = dt
 
               call get_particle_normal(normalrand(1))
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
 
-              !make sure runtime is correct in predictor-corrector; also change temperature to be correct
-              std = sqrt(part%drag_factor*k_B*2d0*runtime*293d0)
+              std = sqrt(part%dry_diff*k_B*2d0*runtime*t_init(1))
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
-
-              print *, "std ", std, " part ", part%drag_factor*k_B*2d0*runtime*293d0
 
               bfac(1) = std*normalrand(1)
               bfac(2) = std*normalrand(2)
               bfac(3) = std*normalrand(3)
+
+              !KK does this have all the forces in it already? need to check
+              dry_terms(1) = runtime*part%dry_diff*part%force(1)/(k_B*t_init(1))+std*bfac(1)
+              dry_terms(2) = runtime*part%dry_diff*part%force(2)/(k_B*t_init(1))+std*bfac(2)
+              dry_terms(3) = runtime*part%dry_diff*part%force(3)/(k_B*t_init(1))+std*bfac(3)
 
   
 end subroutine dry
@@ -1865,6 +1827,7 @@ subroutine emf(weights, indicies, &
 #endif
                     part, ks, dxp, boundflag, midpoint, rejected)
 
+  !KK look here!
   !print *, "Poisson force: ", part%vel*part%q
   part%force = part%force + part%vel*part%q
 
@@ -1899,7 +1862,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog
   use rng_functions_module
   use surfaces_module
   
@@ -1948,7 +1911,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
+  real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3), &
                    diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves
 
   double precision, allocatable :: weights(:,:,:,:)
@@ -2087,7 +2050,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               part%pos = posold
 
-              !KK should the below actually be 0.5*dt?
               !DRL no, this is the full step taken after the midpoint velocity has been found. If you are refering to eqs 39 and 41 which JBB added to the notes, I think dt/2 is a typo. 
               runtime = dt
 
@@ -2104,12 +2066,29 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+
+                if (dry_move_tog .eq. 0) then
+
+                    part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+                    part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+                    part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
-                runtime = runtime - inttime
+                    runtime = runtime - inttime
+
+                endif 
+              
+                if (dry_move_tog .eq. 1) then
+                    call dry(dt,part,dry_terms)
+
+                    part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj + dry_terms(1)
+                    part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj + dry_terms(2)
+#if (BL_SPACEDIM == 3)
+                    part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj + dry_terms(3)
+#endif
+                    runtime = runtime - inttime
+
+                endif 
 
                 if(intsurf .gt. 0) then
 
@@ -2327,8 +2306,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
       part => particles(p)
 
-      part%force = 0
-
       if(es_tog .eq. 2) then
           call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
       endif
@@ -2539,7 +2516,8 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
       part => particles(p)
 
-      part%force = 0
+      if(rfd_tog .eq. 1) then
+        part%force = 0
 
         call rfd(weights, indicies, &
                           sourcex, sourcexlo, sourcexhi, &
@@ -2554,6 +2532,9 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 #endif
                           part, ks, dxf, plof)
 
+      endif
+
+      part%force = 0
 
       p = p + 1
 

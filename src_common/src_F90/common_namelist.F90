@@ -94,7 +94,7 @@ module common_namelist_module
   double precision,   save :: particle_neff
 
   double precision,   save :: permitivitty
-  double precision,   save :: cutoff
+  double precision,   save :: cut_off
   double precision,   save :: rmin
   double precision,   save :: eepsilon(MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES)
@@ -114,6 +114,8 @@ module common_namelist_module
   integer,            save :: move_tog
   integer,            save :: rfd_tog
   integer,            save :: dry_move_tog
+  integer,            save :: sr_tog
+  integer,            save :: crange
 
 
   ! Problem specification
@@ -249,7 +251,7 @@ module common_namelist_module
   namelist /common/ shift_cc_to_boundary
 
   namelist /common/ permitivitty
-  namelist /common/ cutoff
+  namelist /common/ cut_off
   namelist /common/ rmin
   namelist /common/ eepsilon
   namelist /common/ sigma
@@ -268,6 +270,8 @@ module common_namelist_module
   namelist /common/ move_tog
   namelist /common/ rfd_tog
   namelist /common/ dry_move_tog
+  namelist /common/ sr_tog
+  namelist /common/ crange
 
 contains
 
@@ -385,8 +389,8 @@ contains
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, cutoff_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in) &
+                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -481,7 +485,7 @@ contains
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
     double precision,       intent(inout) :: permitivitty_in
-    double precision,       intent(inout) :: cutoff_in
+    double precision,       intent(inout) :: cut_off_in
     double precision,       intent(inout) :: rmin_in
     double precision,       intent(inout) :: poisson_rel_tol_in
 
@@ -499,6 +503,8 @@ contains
     integer,                intent(inout) :: move_tog_in
     integer,                intent(inout) :: rfd_tog_in
     integer,                intent(inout) :: dry_move_tog_in
+    integer,                intent(inout) :: sr_tog_in
+    integer,                intent(inout) :: crange_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -587,7 +593,7 @@ contains
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
     permitivitty_in = permitivitty
-    cutoff_in = cutoff
+    cut_off_in = cut_off
     rmin_in = rmin
     eepsilon_in = eepsilon
     sigma_in = sigma
@@ -602,6 +608,8 @@ contains
     move_tog_in = move_tog
     rfd_tog_in = rfd_tog
     dry_move_tog_in = dry_move_tog
+    sr_tog_in = sr_tog
+    crange_in = crange
 
   end subroutine initialize_common_namespace
 
