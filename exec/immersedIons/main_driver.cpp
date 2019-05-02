@@ -610,6 +610,8 @@ void main_driver(const char* argv)
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
     //create particles
+
+        Print() << "Initializing!\n";
     particles.InitParticles(ionParticle);
 
     //----------------------    
@@ -699,11 +701,10 @@ void main_driver(const char* argv)
         particles.clearNeighbors();
 
         particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
-        std::cout << ParallelDescriptor::MyProc() << ", here2\n";
+
         particles.fillNeighbors();
-        std::cout << ParallelDescriptor::MyProc() << ", here3\n";
+
         particles.computeForcesNL();
-        std::cout << ParallelDescriptor::MyProc() << ", here4\n";
 
 
         if(es_tog==1)

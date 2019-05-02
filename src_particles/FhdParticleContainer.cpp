@@ -36,6 +36,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
     double cosTheta, sinTheta, cosPhi, sinPhi;    
 
+        int pcount = 0;
+
     //double initTemp = 0;
     //double pc = 0;
 
@@ -52,8 +54,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
         IntVect bigEnd = tile_box.bigEnd();       
 
 
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
+//        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+ //       {
 
             for(int i_spec=0; i_spec < nspecies; i_spec++)
             {
@@ -116,14 +118,20 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
                 
                 particle_tile.push_back(p);
+
+                pcount++;
             }
-            }
+ //           }
         }
     }
+
+//    std::cout << "pcount: " << pcount << "\n";
 
     UpdateCellVectors();
     Redistribute();
     ReBin();
+
+        Print() << "Particles1: " << TotalNumberOfParticles() << "\n";
 }
 
 void FhdParticleContainer::computeForcesNL() {
@@ -132,9 +140,8 @@ void FhdParticleContainer::computeForcesNL() {
 
     const int lev = 0;
 
-        std::cout << ParallelDescriptor::MyProc() << ", mid1\n";
     buildNeighborList(CheckPair);
-        std::cout << ParallelDescriptor::MyProc() << ", mid2\n";
+
 
 #ifdef _OPENMP
 #pragma omp parallel
