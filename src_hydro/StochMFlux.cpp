@@ -325,8 +325,8 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
   for (int i=0; i<AMREX_SPACEDIM; i++) {
       m_old[i].FillBoundary(geom.periodicity());
-      MultiFABPhysBCDomainVel(m_old[i], i, geom);
-      MultiFABPhysBCMacVel(m_old[i], i, geom);
+      MultiFABPhysBCDomainVel(m_old[i], i, geom,i);
+      MultiFABPhysBCMacVel(m_old[i], i, geom,i);
   }
 }
 

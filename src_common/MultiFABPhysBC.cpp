@@ -36,24 +36,24 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost, const Geome
 
 
 
-void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom) {
-    MultiFABPhysBCDomainVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom);
+void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int dim) {
+    MultiFABPhysBCDomainVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
 
 
-void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABPhysBCDomainVel(vel, fill_ghost, geom);
+    MultiFABPhysBCDomainVel(vel, fill_ghost, geom, dim);
 }
 
 
 
-void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
@@ -63,30 +63,30 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, con
         fab_physbc_domainvel(BL_TO_FORTRAN_BOX(bx),
                              BL_TO_FORTRAN_BOX(dom),
                              BL_TO_FORTRAN_FAB(vel[mfi]), vel.nGrow(),
-                             dim_fill_ghost.getVect());
+                             dim_fill_ghost.getVect(), &dim);
     }
 }
 
 
 
-void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom) {
-    MultiFABPhysBCMacVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom);
+void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim) {
+    MultiFABPhysBCMacVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
 
 
-void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABPhysBCMacVel(vel, fill_ghost, geom);
+    MultiFABPhysBCMacVel(vel, fill_ghost, geom, dim);
 }
 
 
 
-void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
@@ -96,29 +96,29 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const 
         fab_physbc_macvel(BL_TO_FORTRAN_BOX(bx),
                           BL_TO_FORTRAN_BOX(dom),
                           BL_TO_FORTRAN_FAB(vel[mfi]), vel.nGrow(),
-                          dim_fill_ghost.getVect());
+                          dim_fill_ghost.getVect(),&dim);
     }
 }
 
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, const amrex::Geometry & geom) {
-    MultiFABPhysBCDomainStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom);
+void MultiFABPhysBCDomainStress(MultiFab & stress, const amrex::Geometry & geom, int dim) {
+    MultiFABPhysBCDomainStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
 
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABPhysBCDomainStress(stress, fill_ghost, geom);
+    MultiFABPhysBCDomainStress(stress, fill_ghost, geom, dim);
 }
 
 
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
@@ -128,29 +128,29 @@ void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghos
         fab_physbc_domainstress(BL_TO_FORTRAN_BOX(bx),
                              BL_TO_FORTRAN_BOX(dom),
                              BL_TO_FORTRAN_FAB(stress[mfi]), stress.nGrow(),
-                             dim_fill_ghost.getVect());
+                             dim_fill_ghost.getVect(),&dim);
     }
 }
 
 
-void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom) {
-    MultiFABPhysBCMacStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom);
+void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim) {
+    MultiFABPhysBCMacStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
 
 
-void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABPhysBCMacStress(stress, fill_ghost, geom);
+    MultiFABPhysBCMacStress(stress, fill_ghost, geom, dim);
 }
 
 
 
-void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
@@ -160,6 +160,6 @@ void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, 
         fab_physbc_macstress(BL_TO_FORTRAN_BOX(bx),
                           BL_TO_FORTRAN_BOX(dom),
                           BL_TO_FORTRAN_FAB(stress[mfi]), stress.nGrow(),
-                          dim_fill_ghost.getVect());
+                          dim_fill_ghost.getVect(), &dim);
     }
 }

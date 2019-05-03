@@ -247,7 +247,7 @@ contains
   pure subroutine fab_physbc_domainvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
        &                               dom_lo, dom_hi,           &
        &                               vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                               ngc, dim_fill_ghost)      &
+       &                               ngc, dim_fill_ghost, dd)      &
        &                               bind(C, name="fab_physbc_domainvel")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
@@ -272,7 +272,7 @@ contains
 
     !____________________________________________________________________________
     ! Apply BC to X faces
-
+    if(dd .eq.  0) then
     if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
 
@@ -314,11 +314,12 @@ contains
 
        end if
     end if
+    endif
 
 
     !____________________________________________________________________________
     ! Apply BC to Y faces
-
+    if(dd .eq.  1) then
     if(lo(2) .eq. dom_lo(2)) then ! lower bound
        if(bc_lo(2) .eq. 2) then ! no slip thermal
 
@@ -360,6 +361,7 @@ contains
 
        end if
     end if
+    endif
 
   end subroutine fab_physbc_domainvel
 
@@ -368,10 +370,10 @@ contains
   pure subroutine fab_physbc_domainvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
        &                               dom_lo, dom_hi,           &
        &                               vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                               ngc, dim_fill_ghost)      &
+       &                               ngc, dim_fill_ghost, dd)      &
        &                               bind(C, name="fab_physbc_domainvel")
 
-    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3), dd
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(3)
     integer, value,   intent(in   ) :: ngc
     real(amrex_real), intent(inout) :: vel(v_lo(1):v_hi(1), &
@@ -395,9 +397,8 @@ contains
     !____________________________________________________________________________
     ! Apply BC to X faces
     
-
-    !if(lo(1) .eq. dom_lo(1)) then ! lower bound
-    if(hi(1) .eq. (dom_hi(1)+1)) then ! lower bound
+    if(dd .eq.  0) then
+    if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
 
           do k = lo(3), hi(3)
@@ -446,12 +447,13 @@ contains
 
        end if
     end if
+    endif
 
     !____________________________________________________________________________
     ! Apply BC to Y faces
 
-    !if(lo(2) .eq. dom_lo(2)) then ! lower bound
-    if(hi(2) .eq. (dom_hi(2)+1)) then ! lower bound
+    if(dd .eq.  1) then
+    if(lo(2) .eq. dom_lo(2)) then ! lower bound
        if(bc_lo(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3), hi(3)
@@ -500,13 +502,13 @@ contains
 
        end if
     end if
+    endif
 
 
     !____________________________________________________________________________
     ! Apply BC to Z faces
-
-    !if(lo(3) .eq. dom_lo(3)) then ! lower bound
-    if(hi(3) .eq. (dom_hi(3)+1)) then ! lower bound
+    if(dd .eq.  2) then
+    if(lo(3) .eq. dom_lo(3)) then ! lower bound
        if(bc_lo(3) .eq. 2) then ! no slip thermal
 
           do j = lo(2), hi(2)
@@ -555,6 +557,7 @@ contains
 
        end if
     end if
+    endif
 
   end subroutine fab_physbc_domainvel
 
@@ -566,7 +569,7 @@ contains
   pure subroutine fab_physbc_macvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
        &                            dom_lo, dom_hi,           &
        &                            vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                            ngc, dim_fill_ghost)      &
+       &                            ngc, dim_fill_ghost, dd)      &
        &                            bind(C, name="fab_physbc_macvel")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
@@ -585,7 +588,7 @@ contains
 
     !____________________________________________________________________________
     ! Apply BC to X faces
-
+    if(dd .ne.  0) then
     if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
 
@@ -613,11 +616,12 @@ contains
 
        end if
     end if
-
+    endif
 
     !____________________________________________________________________________
     ! Apply BC to Y faces
 
+    if(dd .ne.  1) then
     if(lo(2) .eq. dom_lo(2)) then ! lower bound
        if(bc_lo(2) .eq. 2) then ! no slip thermal
 
@@ -645,6 +649,7 @@ contains
 
        end if
     end if
+    endif
 
   end subroutine fab_physbc_macvel
 
@@ -653,10 +658,10 @@ contains
   pure subroutine fab_physbc_macvel(lo,     hi,               & ! dim(lo) == dim(hi) == 3
        &                            dom_lo, dom_hi,           &
        &                            vel, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                            ngc, dim_fill_ghost)      &
+       &                            ngc, dim_fill_ghost,dd)      &
        &                            bind(C, name="fab_physbc_macvel")
 
-    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3),dd
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(3)
     integer, value,   intent(in   ) :: ngc
     real(amrex_real), intent(inout) :: vel(v_lo(1):v_hi(1), &
@@ -674,8 +679,8 @@ contains
     !____________________________________________________________________________
     ! Apply BC to X faces
 
-    !if(lo(1) .eq. dom_lo(1)) then ! lower bound
-    if(hi(1) .eq. dom_hi(1)) then
+    if(dd .ne.  0) then
+    if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
@@ -706,13 +711,14 @@ contains
 
        end if
     end if
+    endif
 
 
     !____________________________________________________________________________
     ! Apply BC to Y faces
 
-    !if(lo(2) .eq. dom_lo(2)) then ! lower bound
-    if(hi(2) .eq. dom_hi(2)) then
+    if(dd .ne.  1) then
+    if(lo(2) .eq. dom_lo(2)) then ! lower bound
        if(bc_lo(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
@@ -743,13 +749,12 @@ contains
 
        end if
     end if
-
+    endif
 
     !____________________________________________________________________________
     ! Apply BC to Z faces
-
-    !if(lo(3) .eq. dom_lo(3)) then ! lower bound
-    if(hi(3) .eq. dom_hi(3)) then
+    if(dd .ne.  2) then
+    if(lo(3) .eq. dom_lo(3)) then ! lower bound
        if(bc_lo(3) .eq. 2) then ! no slip thermal
 
           do k = 1, ngc ! always fill the ghost cells at the bc face
@@ -780,6 +785,7 @@ contains
 
        end if
     end if
+    endif
 
   end subroutine fab_physbc_macvel
 
@@ -788,10 +794,10 @@ contains
   pure subroutine fab_physbc_domainstress(lo,     hi,               & ! dim(lo) == dim(hi) == 3
        &                               dom_lo, dom_hi,           &
        &                               stress, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                               ngc, dim_fill_ghost)      &
+       &                               ngc, dim_fill_ghost, dd)      &
        &                               bind(C, name="fab_physbc_domainstress")
 
-    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3),dd
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(3)
     integer, value,   intent(in   ) :: ngc
     real(amrex_real), intent(inout) :: stress(v_lo(1):v_hi(1), &
@@ -981,10 +987,10 @@ contains
   pure subroutine fab_physbc_macstress(lo,     hi,               & ! dim(lo) == dim(hi) == 3
        &                            dom_lo, dom_hi,           &
        &                            stress, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
-       &                            ngc, dim_fill_ghost)      &
+       &                            ngc, dim_fill_ghost, dd)      &
        &                            bind(C, name="fab_physbc_macstress")
 
-    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3), dd
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(3)
     integer, value,   intent(in   ) :: ngc
     real(amrex_real), intent(inout) :: stress(v_lo(1):v_hi(1), &

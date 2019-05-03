@@ -52,8 +52,8 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM>& b_u,
     // TODO: this should not be done here
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         x_u[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(x_u[i], i, geom);
-        MultiFABPhysBCMacVel(x_u[i], i, geom);
+        MultiFABPhysBCDomainVel(x_u[i], i, geom,i);
+        MultiFABPhysBCMacVel(x_u[i], i, geom,i);
     }
     x_p.FillBoundary(geom.periodicity());
     MultiFABPhysBC(x_p, geom);
