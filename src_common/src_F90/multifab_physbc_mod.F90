@@ -821,15 +821,14 @@ contains
     !____________________________________________________________________________
     ! Apply BC to X faces
     
-
-    !if(lo(1) .eq. dom_lo(1)) then ! lower bound
-    if(hi(1) .eq. (dom_hi(1)+1)) then ! lower bound
+    if(dd .eq.  0) then
+    if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
 
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
 
-                !stress(lo(1), j, k, :) = 0
+                stress(lo(1), j, k, :) = 0
 
              end do
           end do
@@ -839,7 +838,7 @@ contains
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
                    ! Normal face-centered indices are symmetric
-                   !stress(lo(1)-i, j, k, :) = -vel(lo(1)+i, j, k, :)
+                   stress(lo(1)+i, j, k, :) = stress(lo(1)+i, j, k, :) - stress(lo(1)-i, j, k, :)
 
                 end do
              end do
@@ -854,7 +853,7 @@ contains
           do k = lo(3), hi(3)
              do j = lo(2), hi(2)
 
-                !vel(hi(1), j, k, :) = 0
+                stress(hi(1), j, k, :) = 0
 
              end do
           end do
@@ -864,7 +863,7 @@ contains
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
                    ! Normal face-centered indices are symmetric
-                   !vel(hi(1)+i, j, k, :) = -vel(hi(1)-i, j, k, :)
+                   stress(hi(1)-i, j, k, :) = stress(hi(1)-i, j, k, :) - stress(hi(1)+i, j, k, :)
 
                 end do
              end do
@@ -872,18 +871,18 @@ contains
 
        end if
     end if
+    endif
 
     !____________________________________________________________________________
     ! Apply BC to Y faces
-
-    !if(lo(2) .eq. dom_lo(2)) then ! lower bound
-    if(hi(2) .eq. (dom_hi(2)+1)) then ! lower bound
+    if(dd .eq.  1) then
+    if(lo(2) .eq. dom_lo(2)) then ! lower bound
        if(bc_lo(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3), hi(3)
              do i = lo(1), hi(1)
 
-                !vel(i, lo(2), k, :) = 0
+                stress(i, lo(2), k, :) = 0
 
              end do
           end do
@@ -893,7 +892,7 @@ contains
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    ! Normal face-centered indices are symmetric
-                   !vel(i, lo(2)-j, k, :) = -vel(i, lo(2)+j, k, :)
+                   stress(i, lo(2)+j, k, :) = stress(i, lo(2)+j, k, :) - stress(i, lo(2)-j, k, :)
 
                 end do
              end do
@@ -908,7 +907,7 @@ contains
           do k = lo(3), hi(3)
              do i = lo(1), hi(1)
 
-                !vel(i, hi(2), k, :) = 0
+                stress(i, hi(2), k, :) = 0
 
              end do
           end do
@@ -918,7 +917,7 @@ contains
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    ! Normal face-centered indices are symmetric
-                   !vel(i, hi(2)+j, k, :) = -vel(i, hi(2)-j, k, :)
+                   stress(i, hi(2)-j, k, :) = stress(i, hi(2)-j, k, :) - stress(i, hi(2)+j, k, :)
 
                 end do
              end do
@@ -926,19 +925,19 @@ contains
 
        end if
     end if
+    endif
 
 
     !____________________________________________________________________________
     ! Apply BC to Z faces
-
-    !if(lo(3) .eq. dom_lo(3)) then ! lower bound
-    if(hi(3) .eq. (dom_hi(3)+1)) then ! lower bound
+    if(dd .eq.  2) then
+    if(lo(3) .eq. dom_lo(3)) then ! lower bound
        if(bc_lo(3) .eq. 2) then ! no slip thermal
 
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
 
-                !vel(i, j, lo(3), :) = 0
+                stress(i, j, lo(3), :) = 0
 
              end do
           end do
@@ -948,7 +947,7 @@ contains
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    ! Normal face-centered indices are symmetric
-                   !vel(i, j, lo(3)-k, :) = -vel(i, j, lo(3)+k, :)
+                   stress(i, j, lo(3)+k, :) = stress(i, j, lo(3)+k, :) - stress(i, j, lo(3)-k, :)
 
                 end do
              end do
@@ -963,7 +962,7 @@ contains
           do j = lo(2), hi(2)
              do i = lo(1), hi(1)
 
-                !vel(i, j, hi(3), :) = 0
+                stress(i, j, hi(3), :) = 0
 
              end do
           end do
@@ -973,7 +972,7 @@ contains
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    ! Normal face-centered indices are symmetric
-                   !vel(i, j, hi(3)+k, :) = -vel(i, j, hi(3)-k, :)
+                   stress(i, j, hi(3)-k, :) = stress(i, j, hi(3)-k, :) - stress(i, j, hi(3)+k, :)
 
                 end do
              end do
@@ -981,6 +980,7 @@ contains
 
        end if
     end if
+  endif
 
   end subroutine fab_physbc_domainstress
 
@@ -1008,15 +1008,15 @@ contains
     !____________________________________________________________________________
     ! Apply BC to X faces
 
-    !if(lo(1) .eq. dom_lo(1)) then ! lower bound
-    if(hi(1) .eq. dom_hi(1)) then
+    if(dd .ne.  0) then
+    if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
-                   !vel(lo(1)-i, j, k, :) = -vel(lo(1)-1+i, j, k, :)
+                   stress(lo(1)-1+i, j, k, :) = stress(lo(1)-1+i, j, k, :) - stress(lo(1)-i, j, k, :)
 
                 end do
              end do
@@ -1032,7 +1032,7 @@ contains
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
-                   !vel(hi(1)+i, j, k, :) = -vel(hi(1)+1-i, j, k, :)
+                   stress(hi(1)+1-i, j, k, :) = stress(hi(1)+1-i, j, k, :) - stress(hi(1)+i, j, k, :)
 
                 end do
              end do
@@ -1040,20 +1040,20 @@ contains
 
        end if
     end if
+    endif
 
 
     !____________________________________________________________________________
     ! Apply BC to Y faces
-
-    !if(lo(2) .eq. dom_lo(2)) then ! lower bound
-    if(hi(2) .eq. dom_hi(2)) then
+    if(dd .ne.  1) then
+    if(lo(2) .eq. dom_lo(2)) then ! lower bound
        if(bc_lo(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = 1, ngc ! always fill the ghost cells at the bc face
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                   !vel(i, lo(2)-j, k, :) = -vel(i, lo(2)-1+j, k, :)
+                   stress(i, lo(2)-1+j, k, :) = stress(i, lo(2)-1+j, k, :) - stress(i, lo(2)-j, k, :)
 
                 end do
              end do
@@ -1069,7 +1069,7 @@ contains
              do j = 1, ngc ! always fill the ghost cells at the bc face
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                   !vel(i, hi(2)+j, k, :) = -vel(i, hi(2)+1-j, k, :)
+                   stress(i, hi(2)+1-j, k, :) = stress(i, hi(2)+1-j, k, :) - stress(i, hi(2)+j, k, :)
 
                 end do
              end do
@@ -1077,20 +1077,19 @@ contains
 
        end if
     end if
-
+    endif
 
     !____________________________________________________________________________
     ! Apply BC to Z faces
-
-    !if(lo(3) .eq. dom_lo(3)) then ! lower bound
-    if(hi(3) .eq. dom_hi(3)) then
+    if(dd .ne.  2) then
+    if(lo(3) .eq. dom_lo(3)) then ! lower bound
        if(bc_lo(3) .eq. 2) then ! no slip thermal
 
           do k = 1, ngc ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                   !vel(i, j, lo(3)-k, :) = -vel(i, j, lo(3)-1+k, :)
+                   stress(i, j, lo(3)-1+k, :) = stress(i, j, lo(3)-1+k, :) - stress(i, j, lo(3)-k, :)
 
                 end do
              end do
@@ -1106,7 +1105,7 @@ contains
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                   !vel(i, j, hi(3)+k, :) = -vel(i, j, hi(3)+1-k, :)
+                   stress(i, j, hi(3)+1-k, :) = stress(i, j, hi(3)+1-k, :) - stress(i, j, hi(3)+k, :)
 
                 end do
              end do
@@ -1114,6 +1113,7 @@ contains
 
        end if
     end if
+    endif
 
   end subroutine fab_physbc_macstress
 
