@@ -47,7 +47,7 @@ void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, 
 
     //Add external field on top, then fill boundaries
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        //MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
+        MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
         efield[d].FillBoundary(geom.periodicity());
     }
 

@@ -1591,7 +1591,7 @@ subroutine inter_op(weights, indicies, &
   endif
 
 
-  !print*, "Intervel: ", part%vel
+  print*, "Intervel: ", part%vel
   !print*, "a_rel: ", (1.0/(6*3.142*part%vel(1)*visc_coef))/dxf(1)
 
   part%multi = part%vel(1)

@@ -220,6 +220,16 @@ extern "C"
                            amrex::Real * vel, const int * v_lo, const int * v_hi,
                            const int * v_ncopm, int ngc, const int * dim_fill_ghost);
 
+    void fab_physbc_domainstress(const int * lo,     const int * hi,
+                              const int * dom_lo, const int * dom_hi,
+                              amrex::Real * stress, const int * v_lo, const int * v_hi,
+                              const int * v_ncomp, int ngc, const int * dim_fill_ghost);
+
+    void fab_physbc_macstress(const int * lo,     const int * hi,
+                           const int * dom_lo, const int * dom_hi,
+                           amrex::Real * stress, const int * v_lo, const int * v_hi,
+                           const int * v_ncopm, int ngc, const int * dim_fill_ghost);
+
 
 ///////////////////////////
 

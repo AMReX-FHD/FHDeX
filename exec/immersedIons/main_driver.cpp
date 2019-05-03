@@ -151,7 +151,6 @@ void main_driver(const char* argv)
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic.data());
 
-
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
     DistributionMapping dmap(ba);
@@ -544,8 +543,8 @@ void main_driver(const char* argv)
 
     }
 
-    AMREX_D_TERM(umac[0].setVal(0);,
-                 umac[1].setVal(0);,
+    AMREX_D_TERM(umac[0].setVal(10);,
+                 umac[1].setVal(10);,
                  umac[2].setVal(0););
 
     // fill periodic ghost cells
@@ -688,7 +687,7 @@ void main_driver(const char* argv)
                  efieldCC[2].setVal(0););
 
     //Apply external field here.
-    AMREX_D_TERM(external[0].setVal(0);,
+    AMREX_D_TERM(external[0].setVal(20000);,
                  external[1].setVal(0);,
                  external[2].setVal(0););
 
@@ -728,10 +727,9 @@ void main_driver(const char* argv)
 //          // compute stochastic momentum force
           sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
         }
-        if(fluid_tog ==1)
-        {
-    	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-        }
+
+  	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
 
         if(move_tog==1)
         {
