@@ -170,7 +170,7 @@ void WritePlotFile(int step,
     //outputMFAscii(potential, asciiName2);
     //outputMFAscii(eplotout, asciiName3);
 
-    //particles.WriteParticlesAscii(asciiPName);
+    particles.WriteParticlesAscii(asciiPName);
 
 
 }

@@ -73,16 +73,16 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
 
-//                p.pos(1) = 0.5*dx[0] + ll*particleInfo[i_spec].sigma/2.0;
-//                p.pos(0) = 10*dx[1];
+//                p.pos(0) = 0.001*dx[0] + ll*(phi[0] - 0.002*dx[0]);
+//                p.pos(1) = 10*dx[1];
 //#if (BL_SPACEDIM == 3)
 //                p.pos(2) = 10*dx[2];
 //#endif
-                //ll++;
+                ll++;
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
+//                Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
 
                 //original position stored for MSD calculations
                 p.rdata(RealData::ox) = p.pos(0);

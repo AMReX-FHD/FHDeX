@@ -8,42 +8,48 @@ using namespace common;
 
 void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, AMREX_SPACEDIM >& efield, const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
 {
+    AMREX_D_TERM(efield[0].setVal(0);,
+                 efield[1].setVal(0);,
+                 efield[2].setVal(0););
 
-    const BoxArray& ba = potential.boxArray();
-    const DistributionMapping& dmap = potential.DistributionMap();
+    if(es_tog==1)
+    {
+            const BoxArray& ba = potential.boxArray();
+            const DistributionMapping& dmap = potential.DistributionMap();
 
-    //create solver opject
-    MLPoisson linop({geom}, {ba}, {dmap});
+            //create solver opject
+            MLPoisson linop({geom}, {ba}, {dmap});
 
-    //set BCs
-    linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Periodic,
-                                    LinOpBCType::Periodic,
-                                    LinOpBCType::Periodic)},
-                      {AMREX_D_DECL(LinOpBCType::Periodic,
-                                    LinOpBCType::Periodic,
-                                    LinOpBCType::Periodic)});
+            //set BCs
+            linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Periodic,
+                                            LinOpBCType::Periodic,
+                                            LinOpBCType::Periodic)},
+                              {AMREX_D_DECL(LinOpBCType::Periodic,
+                                            LinOpBCType::Periodic,
+                                            LinOpBCType::Periodic)});
 
-    linop.setLevelBC(0, nullptr);
+            linop.setLevelBC(0, nullptr);
 
-    //Multi Level Multi Grid
-    MLMG mlmg(linop);
+            //Multi Level Multi Grid
+            MLMG mlmg(linop);
 
-    //Solver parameters
-    mlmg.setMaxIter(poisson_max_iter);
-    mlmg.setVerbose(poisson_verbose);
-    mlmg.setBottomVerbose(poisson_bottom_verbose);
+            //Solver parameters
+            mlmg.setMaxIter(poisson_max_iter);
+            mlmg.setVerbose(poisson_verbose);
+            mlmg.setBottomVerbose(poisson_bottom_verbose);
 
-    //Do solve
-    mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
+            //Do solve
+            mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
 
-    
-    potential.FillBoundary(geom.periodicity());
+            
+            potential.FillBoundary(geom.periodicity());
 
-//    //Find e field, gradient from cell centers to faces
-//    ComputeGrad(potential, efield, 0, 0, 1, geom);
+        //    //Find e field, gradient from cell centers to faces
+        //    ComputeGrad(potential, efield, 0, 0, 1, geom);
 
-     //Find e field, gradient from cell centers to faces
-      ComputeCentredGrad(potential, efield, geom);
+             //Find e field, gradient from cell centers to faces
+             ComputeCentredGrad(potential, efield, geom);
+    }
 
     //Add external field on top, then fill boundaries
     for (int d=0; d<AMREX_SPACEDIM; ++d) {

@@ -1391,6 +1391,11 @@ subroutine spread_op(weights, indicies, &
 
         sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
 
+        if(jj1 .eq. 12 .and. kk1 .eq. 12) then
+
+          !print *, "Spreading ", sourceu(ii1,jj1,kk1),part%force(1)*weights(i,j,k,1)*volinv, ii1, jj1, kk1
+        endif
+
         spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
         !print*, "S: ", sourceu(ii1,jj1,kk1)
         ii2 = indicies(i,j,k,2,1)
@@ -1914,7 +1919,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   elseif(pkernel_fluid .eq. 4) then
     ks = 3
   elseif(pkernel_fluid .eq. 6) then
-    ks = 3
+    ks = 4
   endif
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
@@ -2114,7 +2119,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                     
                 endif
 
-              end do           
+              end do   
+
+
+              !print *, "xPos: ", part%pos(1)        
 
 !!!!!!!!!! Mean square displacement measurer.
 
@@ -2276,7 +2284,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
     elseif(pkernel_fluid .eq. 4) then
       ks = 3
     elseif(pkernel_fluid .eq. 6) then
-      ks = 3
+      ks = 4
     endif
   else
     if(pkernel_es .eq. 3) then
@@ -2284,7 +2292,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
     elseif(pkernel_es .eq. 4) then
       ks = 3
     elseif(pkernel_es .eq. 6) then
-      ks = 3
+      ks = 4
     endif
   endif
   
@@ -2345,7 +2353,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
 
 !-------------es part, look at more efficient way of doing this
-      if(es_tog .eq. 1) then
+
         store = 1
         call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
                         cellcenters, cellcenterslo, cellcentershi, &
@@ -2373,8 +2381,16 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                           efz, efzlo, efzhi, &
 #endif
                           part, ks, dxe)
-      endif
+
 !------------------
+
+      call get_weights(dxf, dxfinv, weights, indicies, &
+                      coordsx, coordsxlo, coordsxhi, &
+                      coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                      coordsz, coordszlo, coordszhi, &
+#endif
+                      part, ks, plof)
 
       !  print*, "SPREAD"
       call spread_op(weights, indicies, &
@@ -2598,7 +2614,7 @@ subroutine collect_charge(particles, np, lo, hi, &
   elseif(pkernel_es .eq. 4) then
     ks = 3
   elseif(pkernel_es .eq. 6) then
-    ks = 3
+    ks = 4
   endif
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))

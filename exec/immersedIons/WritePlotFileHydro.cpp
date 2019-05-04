@@ -88,4 +88,9 @@ void WritePlotFileHydro(int step,
     WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
 #endif
 
+    std::string asciiName1 = Concatenate("asciiVelx",step,9);
+
+
+    outputMFAscii(umac[0], asciiName1);
+
 }

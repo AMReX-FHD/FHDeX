@@ -23,7 +23,7 @@ using namespace gmres;
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       MultiFab& pres,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
+	       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
 	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	       MultiFab& beta,
                MultiFab& gamma,
@@ -43,6 +43,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac[i].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(umac[i], i, geom, i);
         MultiFABPhysBCMacVel(umac[i], i, geom, i);
+
+        MultiFABPhysBCDomainStress(sourceTerms[i], i, geom, i);
+        //MultiFABPhysBCMacStress(sourceTerms[i], i, geom, i);
     }
 
 
@@ -86,8 +89,13 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
       GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
 
       // fill periodic ghost cells   ----- Currently two fill boundaries in advance, figure this out later.
-      for (int d=0; d<AMREX_SPACEDIM; ++d) {
-          umac[d].FillBoundary(geom.periodicity());
-      }
+
+        for (int i=0; i<AMREX_SPACEDIM; i++) {
+            umac[i].FillBoundary(geom.periodicity());
+            MultiFABPhysBCDomainVel(umac[i], i, geom, i);
+            MultiFABPhysBCMacVel(umac[i], i, geom, i);
+
+        }
+
     }
 }

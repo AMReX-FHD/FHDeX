@@ -610,7 +610,6 @@ void main_driver(const char* argv)
 
     //create particles
 
-        Print() << "Initializing!\n";
     particles.InitParticles(ionParticle);
 
     //----------------------    
@@ -687,7 +686,7 @@ void main_driver(const char* argv)
                  efieldCC[2].setVal(0););
 
     //Apply external field here.
-    AMREX_D_TERM(external[0].setVal(20000);,
+    AMREX_D_TERM(external[0].setVal(-50000);,
                  external[1].setVal(0);,
                  external[2].setVal(0););
 
@@ -713,10 +712,10 @@ void main_driver(const char* argv)
         {
             //Spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
-
-            //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
-            esSolve(potential, charge, efieldCC, external, geomP);
         }
+        //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
+        esSolve(potential, charge, efieldCC, external, geomP);
+        
 
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);

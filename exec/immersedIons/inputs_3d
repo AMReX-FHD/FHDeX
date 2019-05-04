@@ -18,13 +18,13 @@
   fixed_dt = 1e-11
 
   ! Controls for number of steps between actions
-  max_step = 1
-  plot_int = 10
+  max_step = 600
+  plot_int = 100
   struct_fact_int = 1
   n_steps_skip = 1
 
   ! Toggles 0=off, 1=on
-  fluid_tog = 0 ! Do Stokes solve
+  fluid_tog = 1 ! Do Stokes solve
   es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 0 ! Apply RFD force to fluid
@@ -49,7 +49,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 1 1 
+  particle_count = 10 10 
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -85,19 +85,19 @@
 
   !Peskin kernel (Currently 3, 4, & 6 implemented)
   !--------
-  pkernel_fluid = 4
-  pkernel_es = 4
+  pkernel_fluid = 6
+  pkernel_es = 6
 
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
-  variance_coef_mom = 1
+  variance_coef_mom = 0
    
 
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:
-  ! -1 = periodic, 2 = no slip stationary
+  ! -1 = periodic, 2 = no slip stationary, neumann es
   bc_lo(1:3) = 2 -1 -1
   bc_hi(1:3) = 2 -1 -1
   

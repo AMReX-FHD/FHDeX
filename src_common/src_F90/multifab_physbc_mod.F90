@@ -791,7 +791,7 @@ contains
 
 #endif
 
-  pure subroutine fab_physbc_domainstress(lo,     hi,               & ! dim(lo) == dim(hi) == 3
+  subroutine fab_physbc_domainstress(lo,     hi,               & ! dim(lo) == dim(hi) == 3
        &                               dom_lo, dom_hi,           &
        &                               stress, v_lo, v_hi, v_ncomp, & ! dim(v_lo) == dim(v_hi) == 3
        &                               ngc, dim_fill_ghost, dd)      &
@@ -838,7 +838,8 @@ contains
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
                    ! Normal face-centered indices are symmetric
-                   stress(lo(1)+i, j, k, :) = stress(lo(1)+i, j, k, :) - stress(lo(1)-i, j, k, :)
+ 
+                  stress(lo(1)+i, j, k, :) = stress(lo(1)+i, j, k, :) - stress(lo(1)-i, j, k, :)
 
                 end do
              end do
@@ -862,9 +863,8 @@ contains
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
-                   ! Normal face-centered indices are symmetric
                    stress(hi(1)-i, j, k, :) = stress(hi(1)-i, j, k, :) - stress(hi(1)+i, j, k, :)
-
+ 
                 end do
              end do
           end do
