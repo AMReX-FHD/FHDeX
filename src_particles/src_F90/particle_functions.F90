@@ -1975,7 +1975,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !use weights and indicies to interpolate velocity fields onto particle
 
               midpoint = 0
-      
+
               call inter_op(weights, indicies, &
                                 velx, velxlo, velxhi, &
                                 vely, velylo, velyhi, &
@@ -2393,6 +2393,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                       part, ks, plof)
 
       !  print*, "SPREAD"
+
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &
                         sourcey, sourceylo, sourceyhi, &
