@@ -122,6 +122,11 @@ int                        common::sr_tog;
 
 int                        common::crange;
 
+int                        common::images;
+amrex::Vector<amrex::Real> common::eamp;
+amrex::Vector<amrex::Real> common::efreq;
+amrex::Vector<amrex::Real> common::ephase;
+
 
 
 

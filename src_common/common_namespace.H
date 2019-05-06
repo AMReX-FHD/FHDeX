@@ -187,5 +187,10 @@ namespace common {
     extern int                        dry_move_tog;
     extern int                        sr_tog;
     extern int                        crange;
+
+    extern int                        images;
+    extern amrex::Vector<amrex::Real> eamp;
+    extern amrex::Vector<amrex::Real> efreq;
+    extern amrex::Vector<amrex::Real> ephase;
     
 }

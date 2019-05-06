@@ -74,6 +74,11 @@
   !cut_off = 6.732e-8    !cutoff range for close range potential
   rmin = 2.4e-8     !Minimum range to prevent blow up of force.
   crange = 2        !cell depth when building neighbour lists
+  images = 10       !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
+
+  eamp = 0 0 0  !external electric field properties
+  efreq = 0 0 0
+  ephase = 0 0 0     
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------

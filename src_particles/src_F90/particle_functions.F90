@@ -33,19 +33,18 @@ subroutine force_function2(part1,part2,domsize) &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: diameter, permitivitty
+  use common_namelist_module, only: diameter, permitivitty, images
 
   implicit none
   type(particle_t), intent(inout) :: part1 !is this defined correctly?
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch, partno, n
+  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n
   real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist
 
   dx0 = part1%pos-part2%pos
 
-  images = 15 !change this to an input
   ii=0
   jj=0
   kk=0
