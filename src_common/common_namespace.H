@@ -192,5 +192,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> eamp;
     extern amrex::Vector<amrex::Real> efreq;
     extern amrex::Vector<amrex::Real> ephase;
+
+    extern int                        plot_ascii;
     
 }
