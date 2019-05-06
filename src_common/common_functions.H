@@ -84,7 +84,11 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim);
 void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim);
 void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
 
-//Functions to modify the stress near the boundaries due to peskin particles
+//Functions to modify the stress & efield near the boundaries due to/for peskin particles
+
+void MultiFABElectricBC(MultiFab & efield, const Geometry & geom);
+void MultiFABElectricBC(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
+void MultiFABElectricBC(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
 
 void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim);
 void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim);

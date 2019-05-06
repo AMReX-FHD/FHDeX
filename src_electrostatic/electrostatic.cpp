@@ -70,10 +70,11 @@ void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, 
              ComputeCentredGrad(potential, efield, geom);
     }
 
-    //Add external field on top, then fill boundaries
+    //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
         efield[d].FillBoundary(geom.periodicity());
+        MultiFABElectricBC(efield[d], d, geom);
     }
 
 }
