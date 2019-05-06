@@ -12,6 +12,25 @@ void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, 
                  efield[1].setVal(0);,
                  efield[2].setVal(0););
 
+    LinOpBCType lobc[3];
+    LinOpBCType hibc[3];
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_lo[i] == -1 && bc_hi[i] == -1) {
+            lobc[i] = LinOpBCType::Periodic;
+            hibc[i] = LinOpBCType::Periodic;
+        }
+        if(bc_lo[i] == 2)
+        {
+            lobc[i] = LinOpBCType::Neumann;
+        }
+        if(bc_hi[i] == 2)
+        {
+            hibc[i] = LinOpBCType::Neumann;
+        }
+    }
+
+
     if(es_tog==1)
     {
             const BoxArray& ba = potential.boxArray();
@@ -21,12 +40,12 @@ void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, 
             MLPoisson linop({geom}, {ba}, {dmap});
 
             //set BCs
-            linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Periodic,
-                                            LinOpBCType::Periodic,
-                                            LinOpBCType::Periodic)},
-                              {AMREX_D_DECL(LinOpBCType::Periodic,
-                                            LinOpBCType::Periodic,
-                                            LinOpBCType::Periodic)});
+            linop.setDomainBC({AMREX_D_DECL(lobc[0],
+                                            lobc[1],
+                                            lobc[2])},
+                              {AMREX_D_DECL(hibc[0],
+                                            hibc[1],
+                                            hibc[2])});
 
             linop.setLevelBC(0, nullptr);
 
