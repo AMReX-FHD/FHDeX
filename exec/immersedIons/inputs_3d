@@ -76,7 +76,7 @@
   crange = 2        !cell depth when building neighbour lists
   images = 10       !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 0 0 0  !external electric field properties
+  eamp = 50000 0 0  !external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
 
