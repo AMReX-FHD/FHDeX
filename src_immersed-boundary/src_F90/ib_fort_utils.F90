@@ -348,13 +348,13 @@ contains
         real(amrex_real) :: kernel_6p
 
         ! ** input types
-        real(amrex_real), intent(in   ) :: r_in
+        real(amrex_real), intent(in) :: r_in
 
         ! ** internal parameters
         real(amrex_real), parameter :: K = 59./60. - sqrt(29.)/20.
-        real(amrex_real), parameter :: inv_alpha = 1./(2.*28.)
-        real(amrex_real), parameter :: tmp_sgn = 3./2.-K
+        real(amrex_real), parameter :: sgn = sign(1.D0, 3./2.-K)
 
+        ! ** pre-computed ratios
         real(amrex_real), parameter :: inv16 = 1./16.
         real(amrex_real), parameter :: inv8  = 1./8.
         real(amrex_real), parameter :: inv12 = 1./12.
@@ -362,12 +362,15 @@ contains
         real(amrex_real), parameter :: inv6  = 1./6.
         real(amrex_real), parameter :: rat58 = 5./8.
 
+        ! ** internal variables
+        real(amrex_real) :: r
 
-        real(amrex_real) :: sgn, r
-        sgn = sign(1.D0, tmp_sgn) ! TODO: check
+
+        ! ** initialize r
         r = r_in
 
 
+        ! ** compute kernel function
         if (r .lt. -3) then
             kernel_6p = 0.
         else if ((r .gt. -3) .and. (r .le. -2)) then
@@ -391,14 +394,19 @@ contains
             kernel_6p = 0
         end if
 
+
+        ! ** sub-functions: beta, gamma, phi1
         contains
 
             pure function beta(r)
 
+                ! ** output type
                 real(amrex_real) :: beta
 
-                real(amrex_real), intent(in   ) :: r
+                ! ** input types
+                real(amrex_real), intent(in) :: r
 
+                ! ** pre-computed ratios
                 real(amrex_real), parameter :: a = 9./4.
                 real(amrex_real), parameter :: b = 3./2.
                 real(amrex_real), parameter :: c = 22./3.
@@ -411,10 +419,13 @@ contains
 
             pure function gamma(r)
 
+                ! ** output type
                 real(amrex_real) :: gamma
 
-                real(amrex_real), intent(in   ) :: r
+                ! ** input types
+                real(amrex_real), intent(in) :: r
 
+                ! ** pre-computed ratios
                 real(amrex_real), parameter :: a = 11./32.
                 real(amrex_real), parameter :: b = 3./32.
                 real(amrex_real), parameter :: c = 1./72.
@@ -426,9 +437,14 @@ contains
 
             pure function phi1(r)
 
+                ! ** output type
                 real(amrex_real) :: phi1
 
-                real(amrex_real), intent(in   ) :: r
+                ! ** input types
+                real(amrex_real), intent(in) :: r
+
+                ! ** pre-computed ratios
+                real(amrex_real), parameter :: inv_alpha = 1./(2.*28.)
 
                 phi1 = inv_alpha * ( -beta(r) + sgn * sqrt(beta(r)**2 - 112*gamma(r)) )
 
