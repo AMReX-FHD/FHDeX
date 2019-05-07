@@ -14,12 +14,14 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   real(amrex_real) :: ff
 
   !This needs to be updated to handle multispecies.
-  ff = part1%eepsilon*48.*(1./(dr2*dr2*dr2*dr2))*(2.0*part1%sigma**12/(dr2*dr2*dr2)-part1%sigma**6)
+  ff = part1%eepsilon*4*(1./(dr2*dr2*dr2*dr2))*(-12*(part1%sigma/2d0)**12/(dr2*dr2*dr2)+6*(part1%sigma/2d0)**6)
 
   !print *, "dx: ", dx
 
   part1%force = part1%force + dx*ff
-  part2%force = part2%force - dx*ff
+  !part2%force = part2%force - dx*ff
+
+  !print *, "xloc: ", part1%pos(1), " r: ", sqrt(dr2)
 
   !print *, "Repulsive force: ", part1%force
 
@@ -31,19 +33,18 @@ subroutine force_function2(part1,part2,domsize) &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: diameter, permitivitty
+  use common_namelist_module, only: diameter, permitivitty, images
 
   implicit none
   type(particle_t), intent(inout) :: part1 !is this defined correctly?
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k,images, bound, ii, jj, kk, imagecounter, xswitch, partno, n
+  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n
   real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist
 
   dx0 = part1%pos-part2%pos
 
-  images = 32 !change this to an input
   ii=0
   jj=0
   kk=0
@@ -74,6 +75,8 @@ subroutine force_function2(part1,part2,domsize) &
 
             if(rtdr2 .lt. maxdist) then
               part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+
+              !print *, "es: ", permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
             endif
           endif
 
@@ -150,23 +153,11 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
  
-    !WCA cut_off
-    !note: need to fix this for multi-species
- !   cut_off = 2**(1./6.)*diameter(1)
-
-  !  min_r = 1.e-4 !!NOTE! This was in the tutorial section---make sure that it applies here
-
-    !print *, "cut_off: ", cut_off
-
-    !print *, "checking neighbours."
     
     index = 1
     do i = 1, np
 
-!  Forces are currently zeroed at end of RFD calc. !KK ---we'll need them after for the dry terms, right?
-!       particles(i)%force(1) = 0.d0
-!       particles(i)%force(2) = 0.d0
-!       particles(i)%force(3) = 0.d0
+      !We need to check this properly
 
        nneighbors = nl(index)
        index = index + 1
@@ -184,9 +175,9 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           r = sqrt(r2)
 
          !repulsive interaction
-         if (r .lt. cut_off) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
+         if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
-            print *, "Repulsing!"
+            print *, "Repulsing, ", i, r
             call repulsive_force(particles(i),particles(j),dx,r2) 
 
          end if
@@ -1399,6 +1390,11 @@ subroutine spread_op(weights, indicies, &
 
         sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
 
+        if(jj1 .eq. 12 .and. kk1 .eq. 12) then
+
+          !print *, "Spreading ", sourceu(ii1,jj1,kk1),part%force(1)*weights(i,j,k,1)*volinv, ii1, jj1, kk1
+        endif
+
         spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
         !print*, "S: ", sourceu(ii1,jj1,kk1)
         ii2 = indicies(i,j,k,2,1)
@@ -1912,7 +1908,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves
+                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves, maxspeed, speed
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -1922,7 +1918,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   elseif(pkernel_fluid .eq. 4) then
     ks = 3
   elseif(pkernel_fluid .eq. 6) then
-    ks = 3
+    ks = 4
   endif
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
@@ -1946,7 +1942,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   veltest = 0
   moves = 0
   rejected = 0
-  
+
+   
+  maxspeed = 0
+  speed = 0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -1975,7 +1974,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !use weights and indicies to interpolate velocity fields onto particle
 
               midpoint = 0
-      
+
               call inter_op(weights, indicies, &
                                 velx, velxlo, velxhi, &
                                 vely, velylo, velyhi, &
@@ -1985,6 +1984,12 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                                 part, ks, dxf, boundflag, midpoint, rejected)
 
               !mid point time stepping - First step 1/2 a time step then interpolate velocity field
+
+              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
+
+              if(speed .gt. maxspeed) then
+                maxspeed = speed
+              endif
 
               posold = part%pos
 
@@ -2048,6 +2053,12 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                                 part, ks, dxf, boundflag, midpoint, rejected)
 
+              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
+
+              if(speed .gt. maxspeed) then
+                maxspeed = speed
+              endif
+
               part%pos = posold
 
               !DRL no, this is the full step taken after the midpoint velocity has been found. If you are refering to eqs 39 and 41 which JBB added to the notes, I think dt/2 is a typo. 
@@ -2107,7 +2118,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                     
                 endif
 
-              end do           
+              end do   
+
+
+              !print *, "xPos: ", part%pos(1)        
 
 !!!!!!!!!! Mean square displacement measurer.
 
@@ -2168,6 +2182,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   print *, "Midpoint moves attempted: ", moves
   print *, "Fraction of midpoint moves rejected: ", rejected/moves
+  print *, "Maximum observed speed: ", sqrt(maxspeed)
   !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
   !print *, "veltest: ", veltest/np
 
@@ -2268,7 +2283,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
     elseif(pkernel_fluid .eq. 4) then
       ks = 3
     elseif(pkernel_fluid .eq. 6) then
-      ks = 3
+      ks = 4
     endif
   else
     if(pkernel_es .eq. 3) then
@@ -2276,7 +2291,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
     elseif(pkernel_es .eq. 4) then
       ks = 3
     elseif(pkernel_es .eq. 6) then
-      ks = 3
+      ks = 4
     endif
   endif
   
@@ -2337,7 +2352,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
 
 !-------------es part, look at more efficient way of doing this
-      if(es_tog .eq. 1) then
+
         store = 1
         call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
                         cellcenters, cellcenterslo, cellcentershi, &
@@ -2365,10 +2380,19 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                           efz, efzlo, efzhi, &
 #endif
                           part, ks, dxe)
-      endif
+
 !------------------
 
+      call get_weights(dxf, dxfinv, weights, indicies, &
+                      coordsx, coordsxlo, coordsxhi, &
+                      coordsy, coordsylo, coordsyhi, &
+#if (BL_SPACEDIM == 3)
+                      coordsz, coordszlo, coordszhi, &
+#endif
+                      part, ks, plof)
+
       !  print*, "SPREAD"
+
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &
                         sourcey, sourceylo, sourceyhi, &
@@ -2590,7 +2614,7 @@ subroutine collect_charge(particles, np, lo, hi, &
   elseif(pkernel_es .eq. 4) then
     ks = 3
   elseif(pkernel_es .eq. 6) then
-    ks = 3
+    ks = 4
   endif
   
   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))

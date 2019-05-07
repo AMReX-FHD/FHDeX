@@ -37,19 +37,17 @@ void WritePlotFile(int step,
 
     MultiFab eplotfile(eba, edmap, enPlot, 0);
 
-    MultiFab eplotout(eba, edmap, 1, 0);
-
     Vector<std::string> cvarNames(cnPlot);
     Vector<std::string> evarNames(enPlot);
 
     amrex::MultiFab::Copy(eplotfile,charge,0,0,1,0);
     amrex::MultiFab::Copy(eplotfile,potential,0,1,1,0);
 
-   amrex::MultiFab::Copy(eplotfile,efield[0],0,2,1,0);
+    amrex::MultiFab::Copy(eplotfile,efield[0],0,2,1,0);
     amrex::MultiFab::Copy(eplotfile,efield[1],0,3,1,0);
     amrex::MultiFab::Copy(eplotfile,efield[2],0,4,1,0);
 
-   amrex::MultiFab::Copy(eplotout,efield[1],0,0,1,0);
+
 
   // average staggered velocities to cell-centers and copy into plotfile
 //    for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -159,18 +157,30 @@ void WritePlotFile(int step,
 
     particles.Checkpoint(pplotfilename, "particle0");
 
+    if(plot_ascii == 1)
+    {
+//        MultiFab explotout(eba, edmap, 1, 0);
+//        MultiFab eyplotout(eba, edmap, 1, 0);
+//        MultiFab ezplotout(eba, edmap, 1, 0);
 
-    std::string asciiName1 = Concatenate("asciiCharge",step,9);
-    std::string asciiName2 = Concatenate("asciiPotential",step,9);
-    std::string asciiName3 = Concatenate("asciiEy",step,9);
+//        amrex::MultiFab::Copy(explotout,efield[0],0,0,1,0);
+//        amrex::MultiFab::Copy(eyplotout,efield[1],0,0,1,0);
+//        amrex::MultiFab::Copy(ezplotout,efield[2],0,0,1,0);
 
-    std::string asciiPName = Concatenate("asciiParticles",step,9);
+        std::string asciiName1 = Concatenate("asciiCharge",step,9);
+        std::string asciiName2 = Concatenate("asciiPotential",step,9);
+        std::string asciiName3 = Concatenate("asciiEx",step,9);
+        std::string asciiName4 = Concatenate("asciiEy",step,9);
+        std::string asciiName5 = Concatenate("asciiEz",step,9);
 
-    //outputMFAscii(charge, asciiName1);
-    //outputMFAscii(potential, asciiName2);
-    //outputMFAscii(eplotout, asciiName3);
+        outputMFAscii(charge, asciiName1);
+        outputMFAscii(potential, asciiName2);
+        outputMFAscii(efield[0], asciiName3);
+        outputMFAscii(efield[1], asciiName4);
+        outputMFAscii(efield[2], asciiName5);
 
-    //particles.WriteParticlesAscii(asciiPName);
-
+        std::string asciiPName = Concatenate("asciiParticles",step,9);
+        particles.WriteParticlesAscii(asciiPName);
+    }
 
 }

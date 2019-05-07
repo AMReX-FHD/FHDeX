@@ -151,7 +151,6 @@ void main_driver(const char* argv)
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic.data());
 
-
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
     DistributionMapping dmap(ba);
@@ -544,8 +543,8 @@ void main_driver(const char* argv)
 
     }
 
-    AMREX_D_TERM(umac[0].setVal(0);,
-                 umac[1].setVal(0);,
+    AMREX_D_TERM(umac[0].setVal(10);,
+                 umac[1].setVal(10);,
                  umac[2].setVal(0););
 
     // fill periodic ghost cells
@@ -611,7 +610,6 @@ void main_driver(const char* argv)
 
     //create particles
 
-        Print() << "Initializing!\n";
     particles.InitParticles(ionParticle);
 
     //----------------------    
@@ -687,10 +685,7 @@ void main_driver(const char* argv)
                  efieldCC[1].setVal(0);,
                  efieldCC[2].setVal(0););
 
-    //Apply external field here.
-    AMREX_D_TERM(external[0].setVal(0);,
-                 external[1].setVal(0);,
-                 external[2].setVal(0););
+
 
  
     //Time stepping loop
@@ -698,23 +693,31 @@ void main_driver(const char* argv)
     {
 
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
-        particles.clearNeighbors();
+
+        //Apply external field here.
+        AMREX_D_TERM(external[0].setVal(eamp[0]*cos(efreq[0]*time + ephase[0]));,
+                     external[1].setVal(eamp[1]*cos(efreq[1]*time + ephase[1]));,
+                     external[2].setVal(eamp[2]*cos(efreq[2]*time + ephase[2])););
 
         particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        particles.fillNeighbors();
+        if(sr_tog==1)
+        {
+                particles.clearNeighbors();
 
-        particles.computeForcesNL();
+                particles.fillNeighbors();
 
+                particles.computeForcesNL();
+        }
 
         if(es_tog==1)
         {
             //Spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
-
-            //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
-            esSolve(potential, charge, efieldCC, external, geomP);
         }
+        //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
+        esSolve(potential, charge, efieldCC, external, geomP);
+        
 
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
@@ -725,19 +728,21 @@ void main_driver(const char* argv)
 //          // compute stochastic momentum force
           sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
         }
-        if(fluid_tog ==1)
-        {
-    	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-        }
+
+  	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
 
         if(move_tog==1)
         {
             //Calls wet ion interpolation and movement.
+            Print() << "Start move.\n";
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             particles.Redistribute();
-          //  particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
+            particles.ReBin();            //We may not need to redist & rebin after seperately for wet & dry moves - check this later
 
+
+            Print() << "Finish move.\n";
             //particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
 
             //These functions reorganise particles between cells and processes

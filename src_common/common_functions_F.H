@@ -58,7 +58,7 @@ extern "C"
                                      amrex::Real* eepsilon, amrex::Real* sigma, int* poisson_verbose, int* poisson_bottom_verbose,
                                      int* poisson_max_iter, amrex::Real* poisson_rel_tol,
                                      amrex::Real* particle_grid_refine, amrex::Real* es_grid_refine, amrex::Real* diff, int* fluid_tog, int* es_tog, int* drag_tog,
-                                     int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog, int* crange);
+                                     int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog, int* crange, int* images, amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase, int* plot_ascii);
 ///////////////////////////
 
 ///////////////////////////
@@ -210,15 +210,30 @@ extern "C"
                     amrex::Real * pressure, const int * p_lo, const int * p_hi,
                     const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
+    void fab_electricbc(const int * lo,     const int * hi,
+                    const int * dom_lo, const int * dom_hi,
+                    amrex::Real * efield, const int * p_lo, const int * p_hi,
+                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
+
     void fab_physbc_domainvel(const int * lo,     const int * hi,
                               const int * dom_lo, const int * dom_hi,
                               amrex::Real * vel, const int * v_lo, const int * v_hi,
-                              const int * v_ncomp, int ngc, const int * dim_fill_ghost);
+                              const int * v_ncomp, int ngc, const int * dim_fill_ghost, int* dim);
 
     void fab_physbc_macvel(const int * lo,     const int * hi,
                            const int * dom_lo, const int * dom_hi,
                            amrex::Real * vel, const int * v_lo, const int * v_hi,
-                           const int * v_ncopm, int ngc, const int * dim_fill_ghost);
+                           const int * v_ncopm, int ngc, const int * dim_fill_ghost, int* dim);
+
+    void fab_physbc_domainstress(const int * lo,     const int * hi,
+                              const int * dom_lo, const int * dom_hi,
+                              amrex::Real * stress, const int * v_lo, const int * v_hi,
+                              const int * v_ncomp, int ngc, const int * dim_fill_ghost, int* dim);
+
+    void fab_physbc_macstress(const int * lo,     const int * hi,
+                           const int * dom_lo, const int * dom_hi,
+                           amrex::Real * stress, const int * v_lo, const int * v_hi,
+                           const int * v_ncopm, int ngc, const int * dim_fill_ghost, int* dim);
 
 
 ///////////////////////////

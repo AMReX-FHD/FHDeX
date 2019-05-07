@@ -14,7 +14,7 @@
 #include "common_namespace.H"
 //#include "common_namespace_declarations.H"
 
-//using namespace common;
+using namespace common;
 
 namespace amrex {
 
@@ -195,15 +195,15 @@ private:
 //            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0))   ,
 //                                   + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
 //                                   + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-//                <= cutoff*cutoff;
+//                <= cut_off*cut_off;
 
-                return true;
+              return true;
             }
     } CheckPair;
     
-    //static constexpr Real cutoff = 2**(1./6.)*1.8e-7; //NOTE that we're changing cutoff here now!
-    static constexpr Real cutoff = pow(2,1./6.)*1.8e-5; //NOTE that we're changing cutoff here now!
-    static constexpr Real min_r  = 1.e-12;
+    //static constexpr Real cutoff = 1.122*sigma[0]; //NOTE that we're changing cutoff here now!
+    //static constexpr Real cutoff = pow(2,1./6.)*1.8e-5; //NOTE that we're changing cutoff here now!
+    //static constexpr Real min_r  = 1.e-12;
 
 };
     

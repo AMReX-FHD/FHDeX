@@ -273,8 +273,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
         // fill boundary cells
         // TODO: are these the correct BC?
-        MultiFABPhysBCDomainVel(phi_fc_mg[0][d], d, geom_mg[0]);
-        MultiFABPhysBCMacVel(phi_fc_mg[0][d], d, geom_mg[0]);
+        MultiFABPhysBCDomainVel(phi_fc_mg[0][d], d, geom_mg[0],d);
+        MultiFABPhysBCMacVel(phi_fc_mg[0][d], d, geom_mg[0],d);
 
         // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
         MultiFab::Copy(rhs_fc_mg[0][d], rhs_fc[d], 0, 0, 1, 0);
@@ -407,8 +407,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                         // TODO: are these the correct BC?
-                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
-                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
+                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
                     }
 
                 } // end loop over colors
@@ -474,8 +474,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                 // TODO: are these the correct BC?
-                MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
-                MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
+                MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
+                MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
             }
 
             // restrict/coarsen residual and put it in rhs_fc
@@ -561,8 +561,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                     // TODO: are these the correct BC?
-                    MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
-                    MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
+                    MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                    MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
                 }
 
             } // end loop over colors
@@ -627,8 +627,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
             // TODO: are these the correct BC?
-            MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
-            MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
+            MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
+            MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
         }
 
         // for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -654,8 +654,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                 // TODO: are these the correct BC?
-                MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
-                MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
+                MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
             }
 
             // for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -723,8 +723,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                         // TODO: are these the correct BC?
-                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
-                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
+                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
                     }
 
                 } // end loop over colors
@@ -917,8 +917,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
     for (int d=0; d<AMREX_SPACEDIM; d++) {
 
         // TODO: are these the correct BC?
-        MultiFABPhysBCDomainVel(phi_fc[d], d, geom);
-        MultiFABPhysBCMacVel(phi_fc[d], d, geom);
+        MultiFABPhysBCDomainVel(phi_fc[d], d, geom,d);
+        MultiFABPhysBCMacVel(phi_fc[d], d, geom,d);
     }
 
     // vcycle_counter += AMREX_SPACEDIM*stag_mg_max_vcycles;

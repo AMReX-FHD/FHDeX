@@ -12,8 +12,8 @@
 using namespace amrex;
 using namespace common;
 
-constexpr Real FhdParticleContainer::min_r;
-constexpr Real FhdParticleContainer::cutoff;
+//constexpr Real FhdParticleContainer::min_r;
+//constexpr Real FhdParticleContainer::cutoff;
 
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
@@ -36,8 +36,9 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
     double cosTheta, sinTheta, cosPhi, sinPhi;    
 
-        int pcount = 0;
-
+    int pcount = 0;
+        
+    int ll =0;
     //double initTemp = 0;
     //double pc = 0;
 
@@ -71,10 +72,17 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
+
+//                p.pos(0) = 0.001*dx[0] + ll*(phi[0] - 0.002*dx[0]);
+//                p.pos(1) = 10*dx[1];
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = 10*dx[2];
+//#endif
+ //               ll++;
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
+//                Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
 
                 //original position stored for MSD calculations
                 p.rdata(RealData::ox) = p.pos(0);
@@ -90,6 +98,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::vx) = 0;
                 p.rdata(RealData::vy) = 0;
                 p.rdata(RealData::vz) = 0;
+
+                p.rdata(RealData::ux) = 0;
+                p.rdata(RealData::uy) = 0;
+                p.rdata(RealData::uz) = 0;
 
                 p.rdata(RealData::ax) = 0;
                 p.rdata(RealData::ay) = 0;
@@ -150,7 +162,7 @@ void FhdParticleContainer::computeForcesNL() {
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
-        int Nn = neighbors[lev][index].size() / pdata_size;
+        int Nn = neighbors[lev][index].size();
         int size = neighbor_list[lev][index].size();
 
         amrex_compute_forces_nl(particles.data(), &Np, 
