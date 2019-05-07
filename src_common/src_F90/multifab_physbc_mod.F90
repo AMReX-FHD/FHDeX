@@ -470,7 +470,7 @@ contains
        &                               ngc, dim_fill_ghost, dd)      &
        &                               bind(C, name="fab_physbc_domainvel")
 
-    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3), dd
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(2)
     integer, value,   intent(in   ) :: ngc
     real(amrex_real), intent(inout) :: vel(v_lo(1):v_hi(1), &
@@ -792,7 +792,7 @@ contains
        &                            ngc, dim_fill_ghost, dd)      &
        &                            bind(C, name="fab_physbc_macvel")
 
-    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3)
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), v_lo(3), v_hi(3), dd
     integer,          intent(in   ) :: v_ncomp, dim_fill_ghost(2)
     integer, value,   intent(in   ) :: ngc
     real(amrex_real), intent(inout) :: vel(v_lo(1):v_hi(1), &
