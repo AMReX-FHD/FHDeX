@@ -344,17 +344,26 @@ contains
 
     pure function kernel_6p(r_in)
 
+        ! The 6-point kernel function, based on the paper: 
+        !
+        ! >*A Gaussian-like immersed-boundary kernel with three continuous derivatives and improved translational invariance*
+        ! >Yuanxun Bao, Jason Kaye, Charles S. Peskin, *Journal of Computational Physics* **316**, 139 (2016)
+        ! >https://dx.doi.org/10.1016/j.jcp.2016.04.024
+        !
+        ! Note also: https://github.com/stochasticHydroTools/IBMethod/blob/master/IBKernels/Kernels.c because the paper above has
+        ! mistakes (but the repo's OK)
+
         ! ** output type
         real(amrex_real) :: kernel_6p
 
         ! ** input types
-        real(amrex_real), intent(in   ) :: r_in
+        real(amrex_real), intent(in) :: r_in
 
         ! ** internal parameters
-        real(amrex_real), parameter :: K = 59./60. - sqrt(29.)/20.
-        real(amrex_real), parameter :: inv_alpha = 1./(2.*28.)
-        real(amrex_real), parameter :: tmp_sgn = 3./2.-K
+        real(amrex_real), parameter :: K = 59d0/60 - sqrt(29d0)/20
+        real(amrex_real), parameter :: sgn = sign(1.d0, 3d0/2-K)
 
+        ! ** pre-computed ratios
         real(amrex_real), parameter :: inv16 = 1./16.
         real(amrex_real), parameter :: inv8  = 1./8.
         real(amrex_real), parameter :: inv12 = 1./12.
@@ -362,63 +371,76 @@ contains
         real(amrex_real), parameter :: inv6  = 1./6.
         real(amrex_real), parameter :: rat58 = 5./8.
 
+        ! ** internal variables
+        real(amrex_real) :: r
 
-        real(amrex_real) :: sgn, r
-        sgn = sign(1.D0, tmp_sgn) ! TODO: check
+        ! ** initialize r
         r = r_in
 
 
-        if (r .lt. -3) then
+        ! ** compute kernel function
+        if (r .le. -3) then
             kernel_6p = 0.
-        else if ((r .gt. -3) .and. (r .le. -2)) then
+        else if (r .le. -2) then
             r = r + 3
             kernel_6p = phi1(r)
-        else if ((r .gt. -2) .and. (r .le. -1)) then
+        else if (r .le. -1) then
             r = r + 2
             kernel_6p = -3*phi1(r) - inv16 + inv8*(K+r**2) + inv12*((3*K-1)*r+r**3)
-        else if ((r .gt. -1) .and. (r .le.  0)) then
+        else if (r .le.  0) then
             r = r + 1
-            kernel_6p = 2*phi1(r) - inv4 + inv6*((4-3*K)*r-r**3)
-        else if ((r .gt.  0) .and. (r .le.  1)) then
+            kernel_6p = 2*phi1(r) + inv4 + inv6*((4-3*K)*r-r**3)
+        else if (r .le.  1) then
             kernel_6p = 2*phi1(r) + rat58 - inv4*(K+r**2)
-        else if ((r .gt.  1) .and. (r .le.  2)) then
+        else if (r .le.  2) then
             r = r - 1 
             kernel_6p = -3*phi1(r) + inv4 - inv6*((4-3*K)*r-r**3)
-        else if ((r .gt.  2) .and. (r .le.  3)) then
+        else if (r .le.  3) then
             r = r - 2
-            kernel_6p = phi1(r) - inv16 + inv8*(K+r**2) - inv12*((3*K-1)*r-r**3)
+            kernel_6p = phi1(r) - inv16 + inv8*(K+r**2) - inv12*((3*K-1)*r+r**3)
         else
             kernel_6p = 0
         end if
 
+
+        ! ** sub-functions: beta, gamma, phi1
         contains
 
             pure function beta(r)
 
+                ! ** output type
                 real(amrex_real) :: beta
 
-                real(amrex_real), intent(in   ) :: r
+                ! ** input types
+                real(amrex_real), intent(in) :: r
 
-                real(amrex_real), parameter :: a = 9./4.
-                real(amrex_real), parameter :: b = 3./2.
-                real(amrex_real), parameter :: c = 22./3.
-                real(amrex_real), parameter :: d = 7./3.
+                ! ** pre-computed ratios
+                real(amrex_real), parameter :: a = 9d0/4
+                real(amrex_real), parameter :: b = 3d0/2
+                real(amrex_real), parameter :: c = 22d0/3
+                real(amrex_real), parameter :: d = 7d0/3
 
-                beta = a - b*(K+r**2)*r + (c-7*K)*r - d*r**3
+                ! NOTE: mistake in the paper: b*(K+r**2)*r -> b*(K+r**2)
+                ! beta = a - b*(K+r**2)*r + (c-7*K)*r - d*r**3
+                beta = a - b*(K+r**2) + (c-7*K)*r - d*r**3
+
 
             end function beta
 
 
             pure function gamma(r)
 
+                ! ** output type
                 real(amrex_real) :: gamma
 
-                real(amrex_real), intent(in   ) :: r
+                ! ** input types
+                real(amrex_real), intent(in) :: r
 
-                real(amrex_real), parameter :: a = 11./32.
-                real(amrex_real), parameter :: b = 3./32.
-                real(amrex_real), parameter :: c = 1./72.
-                real(amrex_real), parameter :: d = 1./18.
+                ! ** pre-computed ratios
+                real(amrex_real), parameter :: a = 11d0/32
+                real(amrex_real), parameter :: b = 3d0/32
+                real(amrex_real), parameter :: c = 1d0/72
+                real(amrex_real), parameter :: d = 1d0/18
 
                 gamma = - a*r**2 + b*(2*K+r**2)*r**2 &
                     &   + c*((3*K-1)*r+r**3)**2 + d*((4-3*K)*r-r**3)**2
@@ -426,11 +448,19 @@ contains
 
             pure function phi1(r)
 
+                ! ** output type
                 real(amrex_real) :: phi1
 
-                real(amrex_real), intent(in   ) :: r
+                ! ** input types
+                real(amrex_real), intent(in) :: r
 
-                phi1 = inv_alpha * ( -beta(r) + sgn * sqrt(beta(r)**2 - 112*gamma(r)) )
+                ! ** parameters
+                real(amrex_real), parameter :: alpha = 28
+
+                ! ** pre-computed ratios
+                real(amrex_real), parameter :: inv_alpha = 1./(2.*alpha)
+
+                phi1 = inv_alpha * ( -beta(r) + sgn * sqrt(beta(r)**2 - 4*alpha*gamma(r)) )
 
             end function phi1
 
