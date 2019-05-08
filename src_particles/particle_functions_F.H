@@ -32,7 +32,7 @@ extern "C"
 
                 void amrex_compute_forces_nl(void* particles, const int* np,
                         const void* ghosts,    const int* nn,
-                        const int* neighbor_list, const int* size);
+                        const int* neighbor_list, const int* size, amrex_real* rcount);
 
 
   	        void move_particles_dry(void* particles,

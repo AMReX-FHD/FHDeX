@@ -143,12 +143,13 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
     Redistribute();
     ReBin();
 
-        Print() << "Particles1: " << TotalNumberOfParticles() << "\n";
 }
 
 void FhdParticleContainer::computeForcesNL() {
 
     BL_PROFILE("FhdParticleContainer::computeForcesNL");
+
+    double rcount = 0;
 
     const int lev = 0;
 
@@ -167,8 +168,12 @@ void FhdParticleContainer::computeForcesNL() {
 
         amrex_compute_forces_nl(particles.data(), &Np, 
                                 neighbors[lev][index].dataPtr(), &Nn,
-                                neighbor_list[lev][index].dataPtr(), &size); 
+                                neighbor_list[lev][index].dataPtr(), &size, &rcount); 
     }
+
+    ParallelDescriptor::ReduceRealSum(rcount);
+
+    Print() << rcount/2 << " close range interactions.\n";
 }
 
 void FhdParticleContainer::MoveParticlesDry(const Real dt, const Real* dxFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
