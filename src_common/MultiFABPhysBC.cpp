@@ -20,7 +20,8 @@ void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) 
 
 
 
-void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
+                    const Geometry & geom) {
 
     Box dom(geom.Domain());
 
@@ -51,7 +52,8 @@ void MultiFABElectricBC(MultiFab & data, int seq_fill_ghost, const Geometry & ge
 
 
 
-void MultiFABElectricBC(MultiFab & data, const IntVect & dim_fill_ghost, const Geometry & geom) {
+void MultiFABElectricBC(MultiFab & data, const IntVect & dim_fill_ghost,
+                        const Geometry & geom) {
 
     Box dom(geom.Domain());
 
@@ -59,9 +61,9 @@ void MultiFABElectricBC(MultiFab & data, const IntVect & dim_fill_ghost, const G
 
         const Box & bx = mfi.validbox();
         fab_electricbc(BL_TO_FORTRAN_BOX(bx),
-                   BL_TO_FORTRAN_BOX(dom),
-                   BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
-                   dim_fill_ghost.getVect());
+                       BL_TO_FORTRAN_BOX(dom),
+                       BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
+                       dim_fill_ghost.getVect());
     }
 }
 
@@ -73,7 +75,8 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int d
 
 
 
-void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost,
+                             const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
@@ -84,7 +87,8 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry 
 
 
 
-void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
+                             const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
@@ -106,7 +110,8 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim) {
 
 
 
-void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost,
+                          const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
@@ -117,7 +122,8 @@ void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & g
 
 
 
-void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost,
+        const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
@@ -132,13 +138,15 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const 
 }
 
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, const amrex::Geometry & geom, int dim) {
+void MultiFABPhysBCDomainStress(MultiFab & stress,
+                                const amrex::Geometry & geom, int dim) {
     MultiFABPhysBCDomainStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
 
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost,
+                                const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
@@ -149,7 +157,8 @@ void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost, const Geo
 
 
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost,
+                                const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
@@ -170,7 +179,8 @@ void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim) 
 
 
 
-void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost,
+                             const Geometry & geom, int dim) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
@@ -181,7 +191,8 @@ void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geomet
 
 
 
-void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim) {
+void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost,
+                             const Geometry & geom, int dim) {
 
     Box dom(geom.Domain());
 
