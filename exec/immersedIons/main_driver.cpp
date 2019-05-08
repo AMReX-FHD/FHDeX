@@ -767,6 +767,16 @@ void main_driver(const char* argv)
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         statsCount++;
+	//_______________________________________________________________________
+	// Update structure factor
+
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+            }
+//the below is giving some issues when we use multiple cores
+       //     structFact.FortStructure(struct_in_cc,geom);
+        }
 
         if (plot_int > 0 && step%plot_int == 0)
         {
@@ -785,6 +795,24 @@ void main_driver(const char* argv)
         
         time = time + dt;
 
+    }
+    ///////////////////////////////////////////
+    if (struct_fact_int > 0) {
+        Real dVol = dx[0]*dx[1];
+        int tot_n_cells = n_cells[0]*n_cells[1];
+        if (AMREX_SPACEDIM == 2) {
+            dVol *= cell_depth;
+        } else if (AMREX_SPACEDIM == 3) {
+            dVol *= dx[2];
+            tot_n_cells = n_cells[2]*tot_n_cells;
+        }
+
+        // let rho = 1
+        Real SFscale = dVol/(k_B*temp_const);
+        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+
+        structFact.Finalize(SFscale);
+        structFact.WritePlotFile(step,time,geom);
     }
 
     // Call the timer again and compute the maximum difference between the start time 
