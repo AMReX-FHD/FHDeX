@@ -15,7 +15,7 @@ program test_kernel_6p
     ! ** distance from kernel center
     real(amrex_real)            :: x
 
-    !** 8 because I want to go one cell out form the edge (6) in both directions
+    ! ** 8 because I want to go one cell out form the edge (6) in both directions
     real(amrex_real), parameter :: dx=8./(ihi-ilo)
 
 
