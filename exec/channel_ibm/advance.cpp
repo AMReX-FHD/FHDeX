@@ -162,8 +162,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom);
-        MultiFABPhysBCMacVel(umac[i], i, geom);
+        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
+        MultiFABPhysBCMacVel(umac[i], i, geom, i);
     }
 
 
@@ -380,8 +380,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom);
-        MultiFABPhysBCMacVel(uMom[d], d, geom);
+        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
     }
 
     // advective momentum flux terms
@@ -471,8 +471,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
      for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom);
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 1);
 
@@ -481,8 +481,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom);
-        MultiFABPhysBCMacVel(uMom[d], d, geom);
+        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
      }
 
     // advective momentum flux terms
