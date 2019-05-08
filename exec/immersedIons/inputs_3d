@@ -15,7 +15,7 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-11
+  fixed_dt = 1e-10
 
   ! Controls for number of steps between actions
   max_step = 300
@@ -26,12 +26,12 @@
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! Do Stokes solve
-  es_tog = 1 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
+  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
+  rfd_tog = 0 ! Apply RFD force to fluid
   move_tog = 1 ! Total particle move
   dry_move_tog = 0 ! Dry particle move
-  sr_tog = 1 ! Short range forces
+  sr_tog = 0 ! Short range forces
  
 
   ! Fluid info
@@ -50,7 +50,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 50 50 
+  particle_count = 1000 1000
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -60,10 +60,10 @@
   !--------------
   nspecies = 2
   mass = 4e-23 4e-23
-  diameter = 12e-8 12e-8 
+  diameter = -19e-8 -19e-8 
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
   qval = 4.8e-10 -4.8e-10
-  diff = 8.642990107e-06 8.642990107e-06
+  diff = 3.25585403e-06 3.25585403e-06
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
   eepsilon = 2e-16 2e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
@@ -77,7 +77,7 @@
   crange = 2        !cell depth when building neighbour lists
   images = 10       !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 50000 0 0  !external electric field properties
+  eamp = 0 0 0  !external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
 
@@ -91,8 +91,8 @@
 
   !Peskin kernel (Currently 3, 4, & 6 implemented)
   !--------
-  pkernel_fluid = 6
-  pkernel_es = 6
+  pkernel_fluid = 4
+  pkernel_es = 4
 
   ! Stochastic parameters
   k_B = 1.38064852e-16
@@ -104,8 +104,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no slip stationary, neumann es
-  bc_lo(1:3) = 2 -1 -1
-  bc_hi(1:3) = 2 -1 -1
+  bc_lo(1:3) = -1 -1 -1
+  bc_hi(1:3) = -1 -1 -1
   
 /
 

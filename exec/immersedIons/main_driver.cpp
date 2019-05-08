@@ -243,6 +243,12 @@ void main_driver(const char* argv)
 
         Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: " << ionParticle[i].dryDiff << ", total: " << ionParticle[i].totalDiff << ", hydro radius: " << ionParticle[i].d/2.0 << "\n";
 
+        if(ionParticle[i].dryDiff < 0)
+        {
+            Print() << "Negative dry diffusion in species " << i << "\n";
+            abort();
+        }
+
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
         ionParticle[i].R = k_B/ionParticle[i].m; //used a lot in kinetic stats cals, bu not otherwise necessary for electrolytes
 

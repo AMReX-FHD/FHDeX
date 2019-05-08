@@ -880,6 +880,7 @@ end subroutine move_particles_dry
 
 !extra diffusion term when 
 subroutine dry(dt,part,dry_terms)
+
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
   use common_namelist_module, only: visc_type, k_B, t_init
@@ -887,21 +888,19 @@ subroutine dry(dt,part,dry_terms)
   
   implicit none
 
-  double precision, intent(in   )         :: dt
   type(particle_t), intent(inout) :: part 
-  double precision, intent(inout   ) :: dry_terms(3)
+  double precision, intent(inout) :: dry_terms(3)
+  double precision, intent(in   ) :: dt
   real(amrex_real) runtime, normalrand(3),std,bfac(3)
 
 
                 !Brownian forcing
 
-              runtime = dt
-
               call get_particle_normal(normalrand(1))
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
 
-              std = sqrt(part%dry_diff*k_B*2d0*runtime*t_init(1))
+              std = sqrt(part%dry_diff*k_B*2d0*dt*t_init(1))
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 
@@ -910,11 +909,12 @@ subroutine dry(dt,part,dry_terms)
               bfac(3) = std*normalrand(3)
 
               !KK does this have all the forces in it already? need to check
-              dry_terms(1) = runtime*part%dry_diff*part%force(1)/(k_B*t_init(1))+std*bfac(1)
-              dry_terms(2) = runtime*part%dry_diff*part%force(2)/(k_B*t_init(1))+std*bfac(2)
-              dry_terms(3) = runtime*part%dry_diff*part%force(3)/(k_B*t_init(1))+std*bfac(3)
+              dry_terms(1) = part%dry_diff*part%force(1)/(k_B*t_init(1))+std*bfac(1)
+              dry_terms(2) = part%dry_diff*part%force(2)/(k_B*t_init(1))+std*bfac(2)
+              dry_terms(3) = part%dry_diff*part%force(3)/(k_B*t_init(1))+std*bfac(3)
 
-  
+              !print *, dry_terms
+
 end subroutine dry
 
 subroutine peskin_3pt(r,w)
@@ -2053,19 +2053,24 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                                 part, ks, dxf, boundflag, midpoint, rejected)
 
+              part%pos = posold
+              runtime = dt
+
+              if (dry_move_tog .eq. 1) then
+                call dry(dt,part,dry_terms)
+
+                part%vel = part%vel + dry_terms
+
+               ! print *, dry_terms
+
+              endif
+
               speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
 
               if(speed .gt. maxspeed) then
                 maxspeed = speed
               endif
 
-              part%pos = posold
-
-              !DRL no, this is the full step taken after the midpoint velocity has been found. If you are refering to eqs 39 and 41 which JBB added to the notes, I think dt/2 is a typo. 
-              runtime = dt
-
-              !KK this is the corrector step? If so we add dry term here
-              !DRL yes, I agree.
               do while (runtime .gt. 0)
 
                 call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
@@ -2078,28 +2083,14 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
 
-                if (dry_move_tog .eq. 0) then
-
-                    part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                    part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+                part%pos(1) = part%pos(1) + inttime*(part%vel(1) + dry_terms(1))*adj
+                part%pos(2) = part%pos(2) + inttime*(part%vel(2) + dry_terms(2))*adj
 #if (BL_SPACEDIM == 3)
-                    part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+                part%pos(3) = part%pos(3) + inttime*(part%vel(3) + dry_terms(3))*adj
 #endif
-                    runtime = runtime - inttime
+                runtime = runtime - inttime
 
-                endif 
-              
-                if (dry_move_tog .eq. 1) then
-                    call dry(dt,part,dry_terms)
-
-                    part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj + dry_terms(1)
-                    part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj + dry_terms(2)
-#if (BL_SPACEDIM == 3)
-                    part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj + dry_terms(3)
-#endif
-                    runtime = runtime - inttime
-
-                endif 
+                
 
                 if(intsurf .gt. 0) then
 
@@ -2125,34 +2116,19 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 !!!!!!!!!! Mean square displacement measurer.
 
-!              part%abspos = part%abspos + dt*part%vel
+              part%abspos = part%abspos + dt*part%vel
 
 !              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
-!              part%travel_time = part%travel_time + dt
+              part%travel_time = part%travel_time + dt
 
-!              norm = part%abspos - part%origin
+              norm = part%abspos
 
-!              diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
+              diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
 
-!              diffinst = diffinst + diffest
-
-!              if(part%step_count .ge. 50) then
-!                part%diff_av = (part%diff_av*(part%step_count-50) + diffest)/((part%step_count-50) + 1)
-
-!                diffav = diffav + part%diff_av
-!              endif
+              diffinst = diffinst + diffest
 
 !              part%step_count = part%step_count + 1
-
-!              veltest = veltest + part%multi
-
-              !print*, "Diff est: ", diffest , ", av: ", part%diff_av
-
-              !print *, "AbsPos: ", part%abspos
-              !print *, "RelPos: ", part%pos
-
-              !print*, "NewPos: ", part%pos
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
@@ -2183,7 +2159,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   print *, "Midpoint moves attempted: ", moves
   print *, "Fraction of midpoint moves rejected: ", rejected/moves
   print *, "Maximum observed speed: ", sqrt(maxspeed)
-  !print *, "Diffav: ", diffav/np, " Diffinst: ", diffinst/np, " Distav: ", distav/np
+  print *, "Diffinst: ", diffinst/np
   !print *, "veltest: ", veltest/np
 
   deallocate(weights)
