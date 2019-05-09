@@ -65,8 +65,9 @@ struct IBP_realData {
             "dragz"
         };
     };
-
 };
+
+
 
 struct IBP_intData {
     //Analogous to particle intData (p.m_data)
@@ -84,9 +85,13 @@ struct IBP_intData {
     };
 };
 
+
+
 // TODO: final is used here because IBParticleContainer extends a template
 // class into a non-template class: any further specialization might need
 // different template parameters
+
+
 
 class IBParIter final 
     : public amrex::ParIter<IBP_realData::count, IBP_intData::count, 0, 0>
@@ -98,6 +103,7 @@ public:
 };
 
 
+
 class IBParticleContainer final
     : public amrex::NeighborParticleContainer<IBP_realData::count, IBP_intData::count>
 {
@@ -106,6 +112,22 @@ public:
 
     using NeighborParticleContainer<IBP_realData::count, IBP_intData::count>
         ::NeighborParticleContainer;
+
+    // Get number of particles
+    int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size();};
+
+    IBParticleContainer(amrex::AmrCore * amr_core, int n_nbhd);
+    IBParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
+                        const BoxArray & ba, int n_nbhd);
+
+    // TODO: Audit
+    virtual ~IBParticleContainer() {};
+
+
+
+    /****************************************************************************
+    * Aux data types                                                            *
+    ****************************************************************************/
 
     // Used by PICMultiDeposition when iterating over particles (TODO: Audit)
     //using MyConstParIter = ParConstIter<IBP_realData::count, IBP_intData::count, 0, 0>;
@@ -116,15 +138,15 @@ public:
     //using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     // using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
 
-    // Get number of particles
-    int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size(); };
+    // (ID, init CPU) tuple: unique to each particle
+    using ParticleIndex = std::pair<int, int>;
 
-    IBParticleContainer(amrex::AmrCore * amr_core, int n_nbhd);
-    IBParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
-                        const BoxArray & ba, int n_nbhd);
-
-    // TODO: Audit
-    virtual ~IBParticleContainer() {};
+    // Particle Position, Velocity, and Radius
+    using PPVR = struct {
+        RealVect pos;
+        RealVect vel;
+        double   rad;
+    };
 
 
     /****************************************************************************
@@ -137,12 +159,23 @@ public:
                   const Vector<Real> & rho);
 
 
+
+    /****************************************************************************
+     * Immersed-Boundary Representation                                         *
+     ***************************************************************************/
+
+    const Vector<RealVect> & MarkerPositions(const ParticleIndex & pindex) const {
+        // Do not use std::map::operator[] as this would discard the const qualifier
+        return marker_positions.at(pindex);
+    };
+
+    void FillMarkerPositions(int lev, int n_marker);
+
+
+
     /****************************************************************************
     * Physics                                                                   *
     ****************************************************************************/
-
-    // (ID, init CPU) tuple: unique to each particle
-    using ParticleIndex = std::pair<int, int>;
 
     void InterpolateParticleForces(
             const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
@@ -160,14 +193,17 @@ public:
     void AllocateArrays(int lev, int nghost);
 
 
+
     /****************************************************************************
     * Data Regrid / Data Transfer                                               *
     ****************************************************************************/
 
     //void RegridArrays(int lev, BoxArray& new_grids, DistributionMapping& new_dmap);
+    // TODO: do we still need this?
     void CopyFluidData(int lev, const mfix_level & mf_lev);
 
     int get_nghost() const {return nghost;};
+
 
 
     /****************************************************************************
@@ -204,6 +240,8 @@ private:
         }
     } CheckPair;
 
+
+    std::map<ParticleIndex, Vector<RealVect>> marker_positions;
 
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
