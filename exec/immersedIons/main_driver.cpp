@@ -241,7 +241,8 @@ void main_driver(const char* argv)
             ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //Test this
         }
 
-        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: " << ionParticle[i].dryDiff << ", total: " << ionParticle[i].totalDiff << ", hydro radius: " << ionParticle[i].d/2.0 << "\n";
+        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: " << ionParticle[i].dryDiff << ", total diffusion: " << ionParticle[i].totalDiff << "\n";
+        Print() << "Species " << i << " wet radius: " << wetRad << ", dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << ", total radius: " << ionParticle[i].d/2.0 << "\n";
 
         if(ionParticle[i].dryDiff < 0)
         {

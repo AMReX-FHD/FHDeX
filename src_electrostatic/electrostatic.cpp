@@ -6,33 +6,36 @@
 using namespace amrex;
 using namespace common;
 
-void esSolve(MultiFab& potential, const MultiFab& charge, std::array< MultiFab, AMREX_SPACEDIM >& efield, const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
+void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_SPACEDIM >& efield, const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
 {
     AMREX_D_TERM(efield[0].setVal(0);,
                  efield[1].setVal(0);,
                  efield[2].setVal(0););
 
-    LinOpBCType lobc[3];
-    LinOpBCType hibc[3];
-
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_lo[i] == -1 && bc_hi[i] == -1) {
-            lobc[i] = LinOpBCType::Periodic;
-            hibc[i] = LinOpBCType::Periodic;
-        }
-        if(bc_lo[i] == 2)
-        {
-            lobc[i] = LinOpBCType::Neumann;
-        }
-        if(bc_hi[i] == 2)
-        {
-            hibc[i] = LinOpBCType::Neumann;
-        }
-    }
-
-
     if(es_tog==1)
     {
+
+            LinOpBCType lobc[3];
+            LinOpBCType hibc[3];
+
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                if (bc_lo[i] == -1 && bc_hi[i] == -1) {
+                    lobc[i] = LinOpBCType::Periodic;
+                    hibc[i] = LinOpBCType::Periodic;
+                }
+                if(bc_lo[i] == 2)
+                {
+                    lobc[i] = LinOpBCType::Neumann;
+                }
+                if(bc_hi[i] == 2)
+                {
+                    hibc[i] = LinOpBCType::Neumann;
+                }
+            }
+
+
+            MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
+
             const BoxArray& ba = potential.boxArray();
             const DistributionMapping& dmap = potential.DistributionMap();
 
