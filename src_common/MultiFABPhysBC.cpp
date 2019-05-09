@@ -67,6 +67,38 @@ void MultiFABElectricBC(MultiFab & data, const IntVect & dim_fill_ghost,
     }
 }
 
+void MultiFABChargeBC(MultiFab & data, const Geometry & geom) {
+    MultiFABChargeBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
+}
+
+
+
+void MultiFABChargeBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
+
+    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
+    for(int i=0; i<=seq_fill_ghost; i++)
+        fill_ghost[i] = 1;
+
+    MultiFABChargeBC(data, fill_ghost, geom);
+}
+
+
+
+void MultiFABChargeBC(MultiFab & data, const IntVect & dim_fill_ghost,
+                        const Geometry & geom) {
+
+    Box dom(geom.Domain());
+
+    for (MFIter mfi(data); mfi.isValid(); ++mfi) {
+
+        const Box & bx = mfi.validbox();
+        fab_chargebc(BL_TO_FORTRAN_BOX(bx),
+                       BL_TO_FORTRAN_BOX(dom),
+                       BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
+                       dim_fill_ghost.getVect());
+    }
+}
+
 
 
 void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int dim) {

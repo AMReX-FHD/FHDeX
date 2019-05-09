@@ -90,6 +90,10 @@ void MultiFABElectricBC(MultiFab & efield, const Geometry & geom);
 void MultiFABElectricBC(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
 void MultiFABElectricBC(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
 
+void MultiFABChargeBC(MultiFab & efield, const Geometry & geom);
+void MultiFABChargeBC(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
+void MultiFABChargeBC(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
+
 void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim);
 void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim);
 void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
