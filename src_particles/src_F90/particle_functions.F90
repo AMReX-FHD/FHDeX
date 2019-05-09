@@ -2067,7 +2067,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                 part%vel = part%vel + dry_terms
 
                 !print *, "dry: ", dry_terms
-
               endif
 
               speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
@@ -2088,10 +2087,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
 
-                part%pos(1) = part%pos(1) + inttime*(part%vel(1) + dry_terms(1))*adj
-                part%pos(2) = part%pos(2) + inttime*(part%vel(2) + dry_terms(2))*adj
+                part%pos(1) = part%pos(1) + inttime*(part%vel(1))*adj
+                part%pos(2) = part%pos(2) + inttime*(part%vel(2))*adj
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*(part%vel(3) + dry_terms(3))*adj
+                part%pos(3) = part%pos(3) + inttime*(part%vel(3))*adj
 #endif
                 runtime = runtime - inttime
 
@@ -2116,8 +2115,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               end do   
 
-
-              !print *, "xPos: ", part%pos(1)        
+              print *, "xPos: ", dry_terms
+              print *, "xPos: ", part%pos
 
 !!!!!!!!!! Mean square displacement measurer.
 
