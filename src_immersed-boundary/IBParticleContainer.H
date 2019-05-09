@@ -249,12 +249,22 @@ private:
     } CheckPair;
 
 
+    /***************************************************************************
+     *                                                                         *
+     * IB Marker and interpolation data                                        *
+     *                                                                         *
+     **************************************************************************/
+
+    // Marker positions per particle and level
     Vector<std::map<ParticleIndex, Vector<RealVect>>> marker_positions;
+    // Posotions on faces
+    Vector<std::array<MultiFab, AMREX_SPACEDIM>>      face_coords;
+
 
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
-    void InitInternals();
+    void InitInternals(int ngrow);
 
     void ReadStaticParameters();
 

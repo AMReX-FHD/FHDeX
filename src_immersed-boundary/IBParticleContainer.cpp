@@ -6,6 +6,8 @@
 
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
+#include <common_functions.H>
+
 #include <IBParticleContainer.H>
 #include <ib_functions_F.H>
 #include <MFUtil.H>
@@ -28,7 +30,7 @@ IBParticleContainer::IBParticleContainer(const Geometry & geom,
         ),
     nghost(n_nbhd)
 {
-    InitInternals();
+    InitInternals(n_nbhd);
 }
 
 
@@ -40,7 +42,7 @@ IBParticleContainer::IBParticleContainer(AmrCore * amr_core, int n_nbhd)
     m_amr_core(amr_core),
     nghost(n_nbhd)
 {
-    InitInternals();
+    InitInternals(n_nbhd);
 }
 
 
@@ -161,7 +163,7 @@ void IBParticleContainer::InitList(int lev,
 
 
 
-void IBParticleContainer::InitInternals() {
+void IBParticleContainer::InitInternals(int ngrow) {
     ReadStaticParameters();
 
     this->SetVerbose(0);
@@ -183,6 +185,26 @@ void IBParticleContainer::InitInternals() {
     //setIntCommComp(0, false);  // IBP_intData.phase
     //setIntCommComp(1, false);  // IBP_intData.state
     setIntCommComp(3, false);    // IBP_intData.phase
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Fill auxiallry data used by interpolsation                               *
+     *   -> face_coords: the face-centered coordinates used by the fluid grids  *
+     *                                                                          *
+     ***************************************************************************/
+
+    // TODO: this is only assuming 1 fluid level (level 0)
+    int lev = 0;
+
+    face_coords.resize(lev + 1);
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        face_coords[lev][d].define(convert(ba, nodal_flag_dir[d]), dm, 1, ngrow);
+
+    const Geometry & geom = Geom(lev);
+    FindFaceCoords(face_coords[lev], geom);
 }
 
 
