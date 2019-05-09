@@ -46,6 +46,7 @@ extern "C"
                                      amrex::Real* initial_variance_mom,
                                      amrex::Real* initial_variance_mass,
                                      int* bc_lo, int* bc_hi,
+                                     int* bc_es_lo, int* bc_es_hi,
                                      amrex::Real * p_lo, amrex::Real * p_hi,
                                      amrex::Real* t_lo, amrex::Real* t_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,

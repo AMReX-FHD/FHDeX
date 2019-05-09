@@ -1,7 +1,7 @@
 module multifab_physbc_module
 
   use amrex_fort_module,      only : amrex_real
-  use common_namelist_module, only : bc_lo, bc_hi
+  use common_namelist_module, only : bc_lo, bc_hi, bc_es_lo, bc_es_hi
 
   implicit none
 
@@ -132,8 +132,7 @@ contains
     ! Apply BC to X faces
 
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
-       if(bc_lo(1) .eq. 2) then ! no slip thermal
-
+       if(bc_es_lo(1) .eq. 2) then ! Neumann
           do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
              do i = 1, ngc ! always fill the ghost cells at the bc face
 
@@ -141,13 +140,21 @@ contains
 
              end do
           end do
+       elseif(bc_es_lo(1) .eq. 1) then ! Dirichlet
+          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+             do i = 1, ngc ! always fill the ghost cells at the bc face
 
+                data(lo(1)-i, j, :) = data(lo(1)-1+i, j, :)
+
+             end do
+          end do
        end if
+
+
     end if
 
     if(hi(1) .eq. dom_hi(1)) then ! upper bound
-       if(bc_hi(1) .eq. 2) then ! no slip thermal
-
+       if(bc_es_hi(1) .eq. 2) then ! Neumann
           do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
              do i = 1, ngc ! always fill the ghost cells at the bc face
 
@@ -155,8 +162,17 @@ contains
 
              end do
           end do
+       elseif(bc_es_hi(1) .eq. 1) then ! Dirichlet
 
+          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+             do i = 1, ngc ! always fill the ghost cells at the bc face
+
+                data(hi(1)+i, j, :) = data(hi(1)+1-i, j, :)
+
+             end do
+          end do
        end if
+
     end if
 
 
@@ -164,8 +180,17 @@ contains
     ! Apply BC to Y faces
 
     if(lo(2) .eq. dom_lo(2)) then ! lower bound
-       if(bc_lo(2) .eq. 2) then ! no slip thermal
+       if(bc_es_lo(2) .eq. 2) then ! Neumann
 
+          do j = 1, ngc ! always fill the ghost cells at the bc face
+             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
+
+                data(i, lo(2)-j, :) = data(i, lo(2)-1+j, :)
+
+             end do
+          end do
+
+       elseif(bc_es_lo(2) .eq. 1) then ! Dirichlet
           do j = 1, ngc ! always fill the ghost cells at the bc face
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
@@ -178,8 +203,7 @@ contains
     end if
 
     if(hi(2) .eq. dom_hi(2)) then ! upper bound
-       if(bc_hi(2) .eq. 2) then ! no slip thermal
-
+       if(bc_es_hi(2) .eq. 2) then ! Neumann
           do j = 1, ngc ! always fill the ghost cells at the bc face
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
@@ -187,7 +211,14 @@ contains
 
              end do
           end do
+       elseif(bc_es_hi(2) .eq. 1) then ! Direchlet
+          do j = 1, ngc ! always fill the ghost cells at the bc face
+             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                data(i, hi(2)+j, :) = data(i, hi(2)+1-j, :)
+
+             end do
+          end do
        end if
     end if
 
@@ -354,8 +385,7 @@ contains
     ! Apply BC to X faces
 
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
-       if (bc_lo(1) .eq. 2) then ! no slip thermal
-
+       if (bc_es_lo(1) .eq. 2) then ! Neumann
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, ngc ! always fill the ghost cells at the bc face
@@ -365,13 +395,21 @@ contains
                 end do
              end do
           end do
+       elseif (bc_es_lo(1) .eq. 1) then !Dirichlet
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+                do i = 1, ngc ! always fill the ghost cells at the bc face
 
+                   data(lo(1)-i, j, k, :) = data(lo(1)-1+i, j, k, :)
+
+                end do
+             end do
+          end do
        end if
     end if
 
     if (hi(1) .eq. dom_hi(1)) then ! upper bound
-       if (bc_hi(1) .eq. 2) then ! no slip thermal
-
+       if (bc_es_hi(1) .eq. 2) then !Neumann
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, ngc ! always fill the ghost cells at the bc face
@@ -381,8 +419,18 @@ contains
                 end do
              end do
           end do
+       elseif (bc_es_hi(1) .eq. 1) then ! Dirichlet
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+                do i = 1, ngc ! always fill the ghost cells at the bc face
 
+                   data(hi(1)+i, j, k, :) = data(hi(1)+1-i, j, k, :)
+
+                end do
+             end do
+          end do
        end if
+
     end if
 
 
@@ -390,8 +438,7 @@ contains
     ! Apply BC to Y faces
 
     if (lo(2) .eq. dom_lo(2)) then ! lower bound
-       if (bc_lo(2) .eq. 2) then ! no slip thermal
-
+       if (bc_es_lo(2) .eq. 2) then ! Neumann
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = 1, ngc ! always fill the ghost cells at the bc face
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
@@ -401,13 +448,21 @@ contains
                 end do
              end do
           end do
+       elseif (bc_es_lo(2) .eq. 1) then ! Dirichlet
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do j = 1, ngc ! always fill the ghost cells at the bc face
+                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                   data(i, lo(2)-j, k, :) = data(i, lo(2)-1+j, k, :)
+
+                end do
+             end do
+          end do
        end if
     end if
 
     if (hi(2) .eq. dom_hi(2)) then ! upper bound
-       if (bc_hi(2) .eq. 2) then ! no slip thermal
-
+       if (bc_es_hi(2) .eq. 2) then ! Neumann
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = 1, ngc ! always fill the ghost cells at the bc face
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
@@ -417,7 +472,16 @@ contains
                 end do
              end do
           end do
+       elseif (bc_es_hi(2) .eq. 1) then ! Dirichlet
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do j = 1, ngc ! always fill the ghost cells at the bc face
+                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                   data(i, hi(2)+j, k, :) = data(i, hi(2)+1-j, k, :)
+
+                end do
+             end do
+          end do
        end if
     end if
 
@@ -426,8 +490,7 @@ contains
     ! Apply BC to Z faces
 
     if (lo(3) .eq. dom_lo(3)) then ! lower bound
-       if (bc_lo(3) .eq. 2) then ! no slip thermal
-
+       if (bc_es_lo(3) .eq. 2) then ! Neumann
           do k = 1, ngc ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
@@ -437,13 +500,22 @@ contains
                 end do
              end do
           end do
+       elseif (bc_es_lo(3) .eq. 1) then ! Dirichlet
+          do k = 1, ngc ! always fill the ghost cells at the bc face
+             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                   data(i, j, lo(3)-k, :) = data(i, j, lo(3)-1+k, :)
+
+                end do
+             end do
+          end do
        end if
+
     end if
 
     if (hi(3) .eq. dom_hi(3)) then ! upper bound
-       if (bc_hi(3) .eq. 2) then ! no slip thermal
-
+       if (bc_es_hi(3) .eq. 2) then ! no slip thermal
           do k = 1, ngc ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
@@ -453,7 +525,16 @@ contains
                 end do
              end do
           end do
+       elseif (bc_es_hi(3) .eq. 1) then ! no slip thermal
+          do k = 1, ngc ! always fill the ghost cells at the bc face
+             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                   data(i, j, hi(3)+k, :) = data(i, j, hi(3)+1-k, :)
+
+                end do
+             end do
+          end do
        end if
     end if
 
@@ -1554,9 +1635,5 @@ contains
   end subroutine fab_physbc_macstress
 
 #endif
-
-
-
-
 
 end module multifab_physbc_module

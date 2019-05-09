@@ -712,7 +712,6 @@ void main_driver(const char* argv)
                 particles.clearNeighbors();
 
                 particles.fillNeighbors();
-
                 particles.computeForcesNL();
         }
 

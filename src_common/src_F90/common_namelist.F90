@@ -68,6 +68,10 @@ module common_namelist_module
   double precision,   save :: initial_variance_mass
   integer,            save :: bc_lo(AMREX_SPACEDIM)
   integer,            save :: bc_hi(AMREX_SPACEDIM)
+  integer,            save :: bc_es_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_es_hi(AMREX_SPACEDIM)
+
+
   double precision,   save :: p_lo(AMREX_SPACEDIM)
   double precision,   save :: p_hi(AMREX_SPACEDIM)
   double precision,   save :: t_lo(AMREX_SPACEDIM)
@@ -236,6 +240,10 @@ module common_namelist_module
   namelist /common/ bc_lo
   namelist /common/ bc_hi
 
+  namelist /common/ bc_es_lo
+  namelist /common/ bc_es_hi
+
+
   ! Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
   namelist /common/ p_lo
   namelist /common/ p_hi
@@ -345,6 +353,9 @@ contains
     initial_variance_mass = 0.
     bc_lo(:) = 0
     bc_hi(:) = 0
+    bc_es_lo(:) = 0
+    bc_es_hi(:) = 0
+
     t_lo(:) = 0
     t_hi(:) = 0
     p_lo(:) = 0
@@ -396,6 +407,7 @@ contains
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
                                          bc_lo_in, bc_hi_in, &
+                                         bc_es_lo_in, bc_es_hi_in, &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
@@ -484,6 +496,9 @@ contains
     double precision,       intent(inout) :: initial_variance_mass_in
     integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_es_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_es_hi_in(AMREX_SPACEDIM)
+
     double precision,       intent(inout) :: p_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: p_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: t_lo_in(AMREX_SPACEDIM)
@@ -590,6 +605,9 @@ contains
     initial_variance_mass_in = initial_variance_mass
     bc_lo_in = bc_lo
     bc_hi_in = bc_hi
+    bc_es_lo_in = bc_es_lo
+    bc_es_hi_in = bc_es_hi
+
     p_lo_in = p_lo
     p_hi_in = p_hi
     t_lo_in = t_lo
