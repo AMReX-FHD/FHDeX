@@ -132,7 +132,7 @@ subroutine calculate_force(particles, np, lo, hi, &
 end subroutine calculate_force
 
 subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
-                                     nn, nl, size) &
+                                     nn, nl, size, rcount) &
        bind(c,name='amrex_compute_forces_nl')
 
     use iso_c_binding
@@ -141,6 +141,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     use common_namelist_module, only: cut_off, rmin
         
     integer,          intent(in   ) :: np, nn, size
+    real(amrex_real), intent(inout) :: rcount
     type(particle_t), intent(inout) :: rparticles(np)
     type(particle_t), intent(inout) :: neighbors(nn)
     integer,          intent(in   ) :: nl(size)
@@ -177,7 +178,9 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
          !repulsive interaction
          if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
-            print *, "Repulsing, ", i, r
+            !print *, "Repulsing, ", i, r
+            rcount = rcount + 1
+
             call repulsive_force(particles(i),particles(j),dx,r2) 
 
          end if
@@ -900,18 +903,17 @@ subroutine dry(dt,part,dry_terms)
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
 
-              std = sqrt(part%dry_diff*k_B*2d0*(1/dt)*t_init(1))
+              !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
+              std = sqrt(2.0*part%dry_diff)
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 
-              bfac(1) = std*normalrand(1)
-              bfac(2) = std*normalrand(2)
-              bfac(3) = std*normalrand(3)
+              bfac = std*normalrand/sqrt(dt)
 
               !KK does this have all the forces in it already? need to check
-              dry_terms(1) = part%dry_diff*part%force(1)/(k_B*t_init(1))+std*bfac(1)
-              dry_terms(2) = part%dry_diff*part%force(2)/(k_B*t_init(1))+std*bfac(2)
-              dry_terms(3) = part%dry_diff*part%force(3)/(k_B*t_init(1))+std*bfac(3)
+              dry_terms(1) = part%dry_diff*part%force(1)/(k_B*t_init(1))+bfac(1)
+              dry_terms(2) = part%dry_diff*part%force(2)/(k_B*t_init(1))+bfac(2)
+              dry_terms(3) = part%dry_diff*part%force(3)/(k_B*t_init(1))+bfac(3)
 
               !print *, dry_terms
 
@@ -1647,7 +1649,7 @@ subroutine rfd(weights, indicies, &
   volinv = 1/(dxf(1)*dxf(2)*dxf(3))
   dxfinv = 1/dxf
 
-  delta = 1d-7*dxf(1)
+  delta = 1d-6*dxf(1)
 
   !print*, "Fluid vel: ", uloc, wloc, vloc
 
@@ -2059,9 +2061,11 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               if (dry_move_tog .eq. 1) then
                 call dry(dt,part,dry_terms)
 
+                !print *, "wet: ", part%vel
+
                 part%vel = part%vel + dry_terms
 
-               ! print *, dry_terms
+                !print *, "dry: ", dry_terms
 
               endif
 
@@ -2143,8 +2147,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
                  part%sorted = 0
                  call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
-                 !KK Is it clear why this doesn't affect mass conservation? where is the command to put the particle in a new cell
-                 !DRL particles.ReBin(), called in main loop, adds all particles with a 'sorted' value of 0 to their new cells.
               else
                  p = p + 1
               end if
@@ -2156,10 +2158,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
-  print *, "Midpoint moves attempted: ", moves
   print *, "Fraction of midpoint moves rejected: ", rejected/moves
   print *, "Maximum observed speed: ", sqrt(maxspeed)
-  print *, "Diffinst: ", diffinst/np
+  print *, "Average diffusion coeffcient: ", diffinst/np
   !print *, "veltest: ", veltest/np
 
   deallocate(weights)
