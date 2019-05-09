@@ -414,12 +414,8 @@ void main_driver(const char * argv) {
     ib_pc.InitList(0, ib_pos, ib_r, ib_rho);
 
 
-    // For debug purposes: Test interface
+    // DEBUG: Test interface
     ib_pc.PrintParticleData(0);
-
-    // DEBUG:
-    ib_pc.FillMarkerPositions(0, 101);
-    exit(0);
 
     //__________________________________________________________________________
     // Build IB core
@@ -501,6 +497,7 @@ void main_driver(const char * argv) {
         Real t0_ib = 0;
 
         ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
+        ib_pc.FillMarkerPositions(0, 101);
 
 
         //_______________________________________________________________________
@@ -522,7 +519,7 @@ void main_driver(const char * argv) {
         //         std::cout << f.second[d] << std::endl;
         // }
 
-        ib_pc.InterpolateParticleForces(force_ibm, ib_core, 0, f_trans);
+        ib_pc.InterpolateParticleForces(0, force_ibm, ib_core, f_trans);
 
         // Print() << "Force data AFTER Interpolation:" << std::endl;
         // for (const auto & f : f_trans) {
