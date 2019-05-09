@@ -903,7 +903,8 @@ subroutine dry(dt,part,dry_terms)
               call get_particle_normal(normalrand(2))
               call get_particle_normal(normalrand(3))
 
-              std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
+              !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
+              std = sqrt(2.0*part%dry_diff)
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 

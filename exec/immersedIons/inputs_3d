@@ -20,7 +20,7 @@
   ! Controls for number of steps between actions
   max_step = 300
   plot_int = 1
-  plot_ascii = 1
+  plot_ascii = 0
   struct_fact_int = 1
   n_steps_skip = 1
 
@@ -28,7 +28,7 @@
   fluid_tog = 1 ! Do Stokes solve
   es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
+  rfd_tog = 0 ! Apply RFD force to fluid
   move_tog = 1 ! Total particle move
   dry_move_tog = 1 ! Dry particle move
   sr_tog = 1 ! Short range forces
