@@ -42,7 +42,9 @@ module ib_fort_utils
         integer(c_int)     :: state
     end type particle_t
 
+
 contains
+
 
     subroutine test_interface(info, np) &
             bind(C, name="test_interface")
@@ -316,30 +318,35 @@ contains
 
     pure function interp_lagrange(r, h)
 
-      ! ** output type
-      real(amrex_real) :: interp_lagrange
+        ! The 3-point kernel function based on the paper:
+        ! >*An Adaptive Version of the Immersed Boundary Method*
+        ! >Alexandre M Roma, Charles S Peskin, Marsha J Berger, *Journal of Computational Physics* **153**, 509 (1999)
 
-      ! ** input types
-      real(amrex_real), intent(in   ) :: r, h
+        ! ** output type
+        real(amrex_real) :: interp_lagrange
+
+        ! ** input types
+        real(amrex_real), intent(in   ) :: r, h
 
 
-      ! ** internal parameters
-      real(amrex_real)            :: r_scale
-      real(amrex_real), parameter :: inv3 = 1./3.
-      real(amrex_real), parameter :: inv6 = 1./6.
+        ! ** internal parameters
+        real(amrex_real)            :: r_scale
+        real(amrex_real), parameter :: inv3 = 1./3.
+        real(amrex_real), parameter :: inv6 = 1./6.
 
-      r_scale = abs(r) / h
+        r_scale = abs(r) / h
 
-      if ( r_scale .le. 0.5 ) then
-         interp_lagrange = inv3*( 1 + sqrt( 1-3*r_scale**2 ) )
-      else if (r_scale .le. 1.5) then
-         interp_lagrange = inv6*( 5 - 3*r_scale - sqrt( 1 - 3*(1-r_scale)**2 ) )
-      else
-         interp_lagrange = 0
-      end if
+        if ( r_scale .le. 0.5 ) then
+           interp_lagrange = inv3*( 1 + sqrt( 1-3*r_scale**2 ) )
+        else if (r_scale .le. 1.5) then
+           interp_lagrange = inv6*( 5 - 3*r_scale - sqrt( 1 - 3*(1-r_scale)**2 ) )
+        else
+           interp_lagrange = 0
+        end if
 
 
     end function interp_lagrange
+
 
 
     pure function kernel_6p(r_in)
@@ -823,6 +830,7 @@ contains
     end subroutine fill_fgds_ib
 
 
+
     subroutine fill_force_ib_staggered(lo,  hi,         &
                                        f_u, fulo, fuhi, &
                                        f_v, fvlo, fvhi, &
@@ -949,6 +957,7 @@ contains
 
 
     end subroutine fill_force_ib_staggered
+
 
 
     subroutine fill_force_ib_cc(lo,  hi,         &

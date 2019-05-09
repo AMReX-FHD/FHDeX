@@ -417,6 +417,10 @@ void main_driver(const char * argv) {
     // For debug purposes: Test interface
     ib_pc.PrintParticleData(0);
 
+    // DEBUG:
+    ib_pc.FillMarkerPositions(0, 101);
+    exit(0);
+
     //__________________________________________________________________________
     // Build IB core
 

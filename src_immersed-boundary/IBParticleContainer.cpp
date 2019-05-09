@@ -216,6 +216,163 @@ void IBParticleContainer::ReadStaticParameters() {
 
 
 
+void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
+
+    /****************************************************************************
+     *                                                                          *
+     * Collect the list of particles and neighbor particles                     *
+     *                                                                          *
+     ***************************************************************************/
+
+    fillNeighbors();
+
+    std::map<ParticleIndex, PPVR> ib_ppvr;
+
+    //___________________________________________________________________________
+    // Add particles to list
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        auto & particle_data = GetParticles(lev)[index];
+        long np = particle_data.size();
+
+        // Iterate over local particle data
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            // Add to list if it's not already there (don't forget the
+            // critical, just in case std::vector::push_back is not atomic).
+            // TODO: this implementation needs work to increase performance.
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+                auto part_it = ib_ppvr.find(pindex);
+                if (part_it == ib_ppvr.end()) {
+                    // Position of IBParticle
+                    RealVect pos = RealVect(
+                            AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))
+                        );
+
+                    // Velocity of IBParticle
+                    RealVect vel = RealVect(
+                            AMREX_D_DECL(part.rdata(IBP_realData::velx),
+                                         part.rdata(IBP_realData::vely),
+                                         part.rdata(IBP_realData::velz)   )
+                        );
+
+                    // Radius
+                    Real r = part.rdata(IBP_realData::radius);
+
+                    PPVR ppvr{pos, vel, r};
+                    ib_ppvr[pindex] = ppvr;
+                }
+            }
+        }
+
+        long ng = neighbors[lev][index].size();
+
+        // Iterate over neighbor particle data
+        ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+        for (int i = 0; i < ng; ++i) {
+            ParticleType & part = nbhd_data[i];
+            ParticleIndex pindex(part.id(), part.cpu());
+
+            // Add to list if it's not already there (don't forget the
+            // critical, just in case std::vector::push_back is not atomic).
+            // TODO: this implementation needs work to increase performance.
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+                auto part_it = ib_ppvr.find(pindex);
+                if (part_it == ib_ppvr.end()) {
+                    // Position of IBParticle
+                    RealVect pos = RealVect(
+                            AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))
+                        );
+
+                    // Velocity of IBParticle
+                    RealVect vel = RealVect(
+                            AMREX_D_DECL(part.rdata(IBP_realData::velx),
+                                         part.rdata(IBP_realData::vely),
+                                         part.rdata(IBP_realData::velz)   )
+                        );
+
+                    // Radius
+                    Real r = part.rdata(IBP_realData::radius);
+
+                    PPVR ppvr{pos, vel, r};
+                    ib_ppvr[pindex] = ppvr;
+                }
+            }
+        }
+    }
+
+    // for (const auto & elt : ib_ppvr) {
+    //     std::cout << elt.first.first << ", " << elt.first.second << " = "
+    //               << elt.second.pos[0] << ", "
+    //               << elt.second.pos[1] << ", "
+    //               << elt.second.pos[2] << std::endl;
+    // }
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Fill Markert list                                                        *
+     *                                                                          *
+     ***************************************************************************/
+
+    // Based on the paper:
+    // >*Distributing many points on a sphere*, E. B. Saff, A. B. J. Kuijlaars,
+    // *The Mathematical Intelligencer*, **19** (1997)
+
+    marker_positions.clear();
+    double inv_sqrt_n = 1./std::sqrt(n_marker);
+
+    for (const auto & elt : ib_ppvr) {
+        marker_positions[elt.first].resize(n_marker);
+
+        double   r     = elt.second.rad;
+        RealVect pos_0 = elt.second.pos;
+
+        double phi = 0.;
+        for (int i=0; i<n_marker; ++i) {
+
+            double ck    = -1. + (2.*i)/(n_marker-1);
+            double theta = std::acos(ck);
+
+            if ( (i==0) || (i==n_marker-1) ) phi = 0;
+            else phi = std::fmod(phi + 3.6*inv_sqrt_n/std::sqrt(1-ck*ck), 2*M_PI);
+
+            RealVect pos;
+#if   (AMREX_SPACEDIM == 2)
+            pos[0] = pos_0[0] + r*std::sin(theta);
+            pos[1] = pos_0[1] + r*std::cos(theta);
+#elif (AMREX_SPACEDIM == 3)
+            pos[0] = pos_0[0] + r*std::sin(theta)*std::cos(phi);
+            pos[1] = pos_0[1] + r*std::sin(theta)*std::sin(phi);
+            pos[2] = pos_0[2] + r*std::cos(theta);
+#endif
+
+            marker_positions[elt.first][i] = pos;
+
+        }
+
+        for (const auto & pt : marker_positions[elt.first]) {
+            std::cout << pt << std::endl;
+        }
+    }
+}
+
+
+
 void IBParticleContainer::InterpolateParticleForces(
         const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
         std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
@@ -469,6 +626,7 @@ void IBParticleContainer::AllocateArrays(int lev, int a_nghost) {
 //}
 
 
+// TODO: do we still need this?
 void IBParticleContainer::CopyFluidData(int lev, const mfix_level & mf_lev) {
     //
     // NOTE: kept for reference
