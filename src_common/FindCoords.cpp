@@ -2,18 +2,16 @@
 #include "common_functions_F.H"
 
 
-void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geometry geom)
+void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
+                    const Geometry & geom)
 {
 
-    BL_PROFILE_VAR("FindFaceCoords()",FindFaceCoords);   
+    BL_PROFILE_VAR("FindFaceCoords()", FindFaceCoords);   
 
-    const RealBox& realDomain = geom.ProbDomain();
+    const RealBox & realDomain = geom.ProbDomain();
+    const Real * dx            = geom.CellSize();
 
-    const Real* dx = geom.CellSize();
-
-    for (MFIter mfi(RealFaceCoords[0]); mfi.isValid(); ++mfi) 
-    {
-        //const Box& validBox = mfi.validbox();
+    for (MFIter mfi(RealFaceCoords[0]); mfi.isValid(); ++mfi) {
 
         find_face_coords(ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
                          BL_TO_FORTRAN_3D(RealFaceCoords[0][mfi]),
@@ -21,25 +19,24 @@ void FindFaceCoords(std::array< MultiFab, AMREX_SPACEDIM >& RealFaceCoords, Geom
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(RealFaceCoords[2][mfi]),
 #endif
-                         ZFILL(dx)
-                        );
+                         ZFILL(dx) );
 
     }
 
 }
 
-void FindCenterCoords(MultiFab& RealCenterCoords, Geometry geom)
-{
+void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom) {
 
 
-    const RealBox& realDomain = geom.ProbDomain();
-
-    const Real* dx = geom.CellSize();
+    const RealBox & realDomain = geom.ProbDomain();
+    const Real * dx            = geom.CellSize();
 
     for (MFIter mfi(RealCenterCoords); mfi.isValid(); ++mfi) 
     {
 
-        find_center_coords(ZFILL(realDomain.lo()), ZFILL(realDomain.hi()), BL_TO_FORTRAN_3D(RealCenterCoords[mfi]), ZFILL(dx));
+        find_center_coords(ZFILL(realDomain.lo()), ZFILL(realDomain.hi()),
+                           BL_TO_FORTRAN_3D(RealCenterCoords[mfi]),
+                           ZFILL(dx) );
 
     }
 

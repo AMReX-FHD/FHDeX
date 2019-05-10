@@ -6,6 +6,8 @@
 
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
+#include <common_functions.H>
+
 #include <IBParticleContainer.H>
 #include <ib_functions_F.H>
 #include <MFUtil.H>
@@ -28,7 +30,7 @@ IBParticleContainer::IBParticleContainer(const Geometry & geom,
         ),
     nghost(n_nbhd)
 {
-    InitInternals();
+    InitInternals(n_nbhd);
 }
 
 
@@ -40,7 +42,7 @@ IBParticleContainer::IBParticleContainer(AmrCore * amr_core, int n_nbhd)
     m_amr_core(amr_core),
     nghost(n_nbhd)
 {
-    InitInternals();
+    InitInternals(n_nbhd);
 }
 
 
@@ -161,7 +163,7 @@ void IBParticleContainer::InitList(int lev,
 
 
 
-void IBParticleContainer::InitInternals() {
+void IBParticleContainer::InitInternals(int ngrow) {
     ReadStaticParameters();
 
     this->SetVerbose(0);
@@ -183,6 +185,28 @@ void IBParticleContainer::InitInternals() {
     //setIntCommComp(0, false);  // IBP_intData.phase
     //setIntCommComp(1, false);  // IBP_intData.state
     setIntCommComp(3, false);    // IBP_intData.phase
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Fill auxiallry data used by interpolsation                               *
+     *   -> face_coords: the face-centered coordinates used by the fluid grids  *
+     *                                                                          *
+     ***************************************************************************/
+
+    // TODO: this is only assuming 1 fluid level (level 0)
+    int lev = 0;
+
+    face_coords.resize(lev + 1);
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        const BoxArray ba_fc = convert(ba, nodal_flag_dir[d]);
+        face_coords[lev][d].define(ba_fc, dm, AMREX_SPACEDIM, ngrow);
+    }
+
+    const Geometry & geom = Geom(lev);
+    FindFaceCoords(face_coords[lev], geom);
 }
 
 
@@ -329,28 +353,45 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
      *                                                                          *
      ***************************************************************************/
 
+    //___________________________________________________________________________
     // Based on the paper:
     // >*Distributing many points on a sphere*, E. B. Saff, A. B. J. Kuijlaars,
     // *The Mathematical Intelligencer*, **19** (1997)
 
-    marker_positions.clear();
+    //___________________________________________________________________________
+    // Ensure that the marker lists have enough levels, and clear previous ones
+    if (marker_positions.size() <= lev) marker_positions.resize(lev+1);
+    marker_positions[lev].clear();
+
+
+    //___________________________________________________________________________
+    // Compute marker coordinates for each particle
     double inv_sqrt_n = 1./std::sqrt(n_marker);
 
     for (const auto & elt : ib_ppvr) {
-        marker_positions[elt.first].resize(n_marker);
+        // elt = (particle ID, particle data)
+        //        ^^ first ^^, ^^ second  ^^
+
+        //_______________________________________________________________________
+        // Create blank marker list, and access particle data
+        marker_positions[lev][elt.first].resize(n_marker);
 
         double   r     = elt.second.rad;
         RealVect pos_0 = elt.second.pos;
 
+        //_______________________________________________________________________
+        // Fill marker using Saff spiral
         double phi = 0.;
         for (int i=0; i<n_marker; ++i) {
 
+            // Compute polar coordinates of marker positions
             double ck    = -1. + (2.*i)/(n_marker-1);
             double theta = std::acos(ck);
 
             if ( (i==0) || (i==n_marker-1) ) phi = 0;
             else phi = std::fmod(phi + 3.6*inv_sqrt_n/std::sqrt(1-ck*ck), 2*M_PI);
 
+            // Convert to cartesian coordinates
             RealVect pos;
 #if   (AMREX_SPACEDIM == 2)
             pos[0] = pos_0[0] + r*std::sin(theta);
@@ -361,20 +402,20 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
             pos[2] = pos_0[2] + r*std::cos(theta);
 #endif
 
-            marker_positions[elt.first][i] = pos;
-
+            // Add to list
+            marker_positions[lev][elt.first][i] = pos;
         }
 
-        for (const auto & pt : marker_positions[elt.first]) {
-            std::cout << pt << std::endl;
-        }
+        //  for (const auto & pt : marker_positions[lev][elt.first]) {
+        //      std::cout << pt << std::endl;
+        //  }
     }
 }
 
 
 
-void IBParticleContainer::InterpolateParticleForces(
-        const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
+void IBParticleContainer::InterpolateParticleForces(int lev,
+        const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core,
         std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
     ) {
 

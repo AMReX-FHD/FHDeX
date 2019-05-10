@@ -164,12 +164,20 @@ public:
      * Immersed-Boundary Representation                                         *
      ***************************************************************************/
 
-    const Vector<RealVect> & MarkerPositions(const ParticleIndex & pindex) const {
+    const Vector<RealVect> & MarkerPositions(int lev, const ParticleIndex & pindex) const {
         // Do not use std::map::operator[] as this would discard the const qualifier
-        return marker_positions.at(pindex);
+        return marker_positions[lev].at(pindex);
     };
 
     void FillMarkerPositions(int lev, int n_marker);
+
+    // void SpreadMarkers(const ParticleIndex & pindex,
+    //                    const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+    //                    std::array<MultiFab, AMREX_SPACEDIM> &       f_out);
+
+    // void InterpolateMarkers(const ParticleIndex & pindex,
+    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+    //                         std::array<MultiFab, AMREX_SPACEDIM> &       f_out);
 
 
 
@@ -177,8 +185,8 @@ public:
     * Physics                                                                   *
     ****************************************************************************/
 
-    void InterpolateParticleForces(
-            const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core, int lev,
+    void InterpolateParticleForces(int lev,
+            const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core,
             std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces
         );
 
@@ -241,12 +249,22 @@ private:
     } CheckPair;
 
 
-    std::map<ParticleIndex, Vector<RealVect>> marker_positions;
+    /***************************************************************************
+     *                                                                         *
+     * IB Marker and interpolation data                                        *
+     *                                                                         *
+     **************************************************************************/
+
+    // Marker positions per particle and level
+    Vector<std::map<ParticleIndex, Vector<RealVect>>> marker_positions;
+    // Posotions on faces
+    Vector<std::array<MultiFab, AMREX_SPACEDIM>>      face_coords;
+
 
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
-    void InitInternals();
+    void InitInternals(int ngrow);
 
     void ReadStaticParameters();
 
