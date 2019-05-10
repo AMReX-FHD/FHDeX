@@ -16,14 +16,8 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   !This needs to be updated to handle multispecies.
   ff = part1%eepsilon*4*(1./(dr2*dr2*dr2*dr2))*(-12*(part1%sigma/2d0)**12/(dr2*dr2*dr2)+6*(part1%sigma/2d0)**6)
 
-  !print *, "dx: ", dx
 
-  part1%force = part1%force + dx*ff
-  !part2%force = part2%force - dx*ff
-
-  !print *, "xloc: ", part1%pos(1), " r: ", sqrt(dr2)
-
-  !print *, "Repulsive force: ", part1%force
+  part1%force = part1%force - dx*ff
 
 end subroutine
 
@@ -2114,9 +2108,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                 endif
 
               end do   
-
-              print *, "xPos: ", dry_terms
-              print *, "xPos: ", part%pos
 
 !!!!!!!!!! Mean square displacement measurer.
 
