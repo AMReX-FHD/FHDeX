@@ -70,6 +70,9 @@ void InitializeCommonNamespace() {
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
 
+    potential_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
+    potential_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
+
     density_weights.resize(MAX_SPECIES);
     shift_cc_to_boundary.resize(AMREX_SPACEDIM*LOHI);
 
@@ -116,6 +119,7 @@ void InitializeCommonNamespace() {
                                 p_lo.dataPtr(), p_hi.dataPtr(),
                                 t_lo.dataPtr(), t_hi.dataPtr(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
+                                potential_lo.dataPtr(), potential_hi.dataPtr(),
                                 &struct_fact_int, &n_steps_skip,
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),

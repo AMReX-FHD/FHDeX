@@ -50,6 +50,7 @@ extern "C"
                                      amrex::Real * p_lo, amrex::Real * p_hi,
                                      amrex::Real* t_lo, amrex::Real* t_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
+                                     amrex::Real* potential_lo, amrex::Real* potential_hi,
                                      int* struct_fact_int, int* n_steps_skip,
                                      int* histogram_unit, amrex::Real* density_weights,
                                      int* shift_cc_to_boundary,

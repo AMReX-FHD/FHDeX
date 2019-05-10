@@ -7,7 +7,7 @@
   ! number of cells in domain
   n_cells(1:3) = 32 32 32
   ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 32
+  max_grid_size(1:3) = 32 32 32
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
@@ -15,10 +15,11 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-11
+!  fixed_dt = 5e-12
+  fixed_dt = 5e-15
 
   ! Controls for number of steps between actions
-  max_step = 500
+  max_step = 1
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
@@ -26,11 +27,11 @@
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! Do Stokes solve
-  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
+  es_tog = 1 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 0 ! Apply RFD force to fluid
+  rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 1 ! Total particle move
-  dry_move_tog = 0 ! Dry particle move
+  dry_move_tog = 1 ! Dry particle move
   sr_tog = 1 ! Short range forces
  
 
@@ -51,7 +52,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 200 200
+  particle_count = 50 50
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
@@ -64,11 +65,11 @@
   diameter = -19e-8 -19e-8 
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
   qval = 4.8e-10 -4.8e-10
-  diff = 6e-06 6e-06
+  diff = 5e-06 5e-06
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  eepsilon = 5e-16 5e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
-  sigma = 14e-8 14e-8   !Close range repulsion diameter
+  eepsilon = 1e-16 1e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
+  sigma = 9e-8 9e-8   !Close range repulsion diameter
 
   !Interaction parameters
   !------------
@@ -78,7 +79,7 @@
   crange = 3        !cell depth when building neighbour lists
   images = 10       !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 50000 0 0  !external electric field properties
+  eamp = 0 0 0  !external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
 
@@ -108,9 +109,16 @@
   bc_lo(1:3) = 2 -1 -1
   bc_hi(1:3) = 2 -1 -1
 
+  !wallspeed_lo(1:3) = 0 0 0 !Not implemented yet.
+  !wallspeed_hi(1:3) = 0 0 0 !Not implemented yet.
+
   ! -1 = periodic, 1 = dirichlet, 2 = neumann
   bc_es_lo(1:3) = 2 -1 -1
   bc_es_hi(1:3) = 2 -1 -1
+
+  potential_lo(1:3) = 0 0 0 ! For use with dirichlet, not fully implemented yet.
+  potential_hi(1:3) = 0 0 0 !
+
   
 /
 
