@@ -414,6 +414,15 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
 
 
 
+void IBParticleContainer::SpreadMarkers(const ParticleIndex & pindex,
+                                        const Vector<MultiFab> & f_in,
+                                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
+
+}
+
+
+
+
 void IBParticleContainer::InterpolateParticleForces(int lev,
         const std::array<MultiFab, AMREX_SPACEDIM> & force, const IBCore & ib_core,
         std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> & particle_forces

@@ -476,6 +476,148 @@ contains
 
 
 
+    pure subroutine spread_kernel(lo,       hi,               &
+            &                     mf_x,     mfx_lo,   mfx_hi, &
+            &                     mf_y,     mfy_lo,   mfy_hi, &
+            &                     mf_z,     mfz_lo,   mfz_hi, &
+            &                     coords_x, cx_lo,    cx_hi,  &
+            &                     coords_y, cy_lo,    cy_hi,  &
+            &                     coords_z, cz_lo,    cz_hi,  &
+            &                     pos,      v_spread, dx      )
+
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+
+        ! ** OUT: (staggered) v_spread to staggered multifab
+        integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
+        real(amrex_real), intent(inout) :: mf_x(mfx_lo(1):mfx_hi(1), &
+            &                                   mfx_lo(2):mfx_hi(2), &
+            &                                   mfx_lo(3):mfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfy_lo, mfy_hi
+        real(amrex_real), intent(inout) :: mf_y(mfy_lo(1):mfy_hi(1), &
+            &                                   mfy_lo(2):mfy_hi(2), &
+            &                                   mfy_lo(3):mfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfz_lo, mfz_hi
+        real(amrex_real), intent(inout) :: mf_z(mfz_lo(1):mfz_hi(1), &
+            &                                   mfz_lo(2):mfz_hi(2), &
+            &                                   mfz_lo(3):mfz_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: cx_lo, cx_hi
+        real(amrex_real), intent(inout) :: coords_x(cx_lo(1):cx_hi(1), &
+            &                                       cx_lo(2):cx_hi(2), &
+            &                                       cx_lo(3):cx_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cy_lo, cy_hi
+        real(amrex_real), intent(inout) :: coords_y(cy_lo(1):cy_hi(1), &
+            &                                       cy_lo(2):cy_hi(2), &
+            &                                       cy_lo(3):cy_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cz_lo, cz_hi
+        real(amrex_real), intent(inout) :: coords_z(cz_lo(1):cz_hi(1), &
+            &                                       cz_lo(2):cz_hi(2), &
+            &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
+
+
+
+        ! ** IN:  quantity to spread (v_spread), given kernel position (pos)
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: pos, v_spread, dx
+
+
+        !________________________________________________________________________
+        ! i,    j,    k    => face-centered indices
+        integer :: i, j, k
+        ! ll               => loop counter over AMREX_SPACEDIM
+        integer :: ll
+        ! invvol           => 1/dx^AMREX_SPACEDIM
+        ! weight           => kernel weight function
+        real(amrex_real) :: invvol, weight
+        ! pos_grid         => (pos - (cell position))/dx
+        ! invdx            => 1/dx
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
+
+
+        !________________________________________________________________________
+        ! compute geometric quantities : 1/dx and 1/dx^AMREX_SPACEDIM
+        invdx(:) = 1d0/dx(:)
+        invvol = 1d0
+        do ll = 1, AMREX_SPACEDIM
+            invvol = invvol * invdx(ll)
+        end do
+
+
+
+        !________________________________________________________________________
+        ! x-components
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1) + 1
+
+                    pos_grid(:) = pos(:) - coords_x(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+                    weight = invvol
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    ! weight already includes invvol
+                    mf_x(i, j, k) = mf_x(i, j, k) + v_spread(1) * weight
+
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! y-components
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2) + 1
+                do i = lo(1), hi(1)
+
+                    pos_grid(:) = pos(:) - coords_y(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = invvol
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    ! weight already includes invvol
+                    mf_y(i, j, k) = mf_y(i, j, k) + v_spread(2) * weight
+
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! z-components
+        do k = lo(3), hi(3) + 1
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+
+                    pos_grid(:) = pos(:) - coords_z(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = invvol
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    ! weight already includes invvol
+                    mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight
+
+                end do
+            end do
+        end do
+
+    end subroutine spread_kernel
+
+
+
     pure function effective_tag(i,   j,     k,    dir, &
                                 tag, taglo, taghi      )
       ! ** output type
