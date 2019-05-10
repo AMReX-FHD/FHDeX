@@ -200,8 +200,10 @@ void IBParticleContainer::InitInternals(int ngrow) {
     face_coords.resize(lev + 1);
     const BoxArray & ba            = ParticleBoxArray(lev);
     const DistributionMapping & dm = ParticleDistributionMap(lev);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        face_coords[lev][d].define(convert(ba, nodal_flag_dir[d]), dm, 1, ngrow);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        const BoxArray ba_fc = convert(ba, nodal_flag_dir[d]);
+        face_coords[lev][d].define(ba_fc, dm, AMREX_SPACEDIM, ngrow);
+    }
 
     const Geometry & geom = Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
