@@ -34,7 +34,7 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
             }
 
 
-            MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
+            //MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
 
             const BoxArray& ba = potential.boxArray();
             const DistributionMapping& dmap = potential.DistributionMap();
@@ -77,7 +77,7 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
         efield[d].FillBoundary(geom.periodicity());
-        MultiFABElectricBC(efield[d], d, geom);
+       // MultiFABElectricBC(efield[d], d, geom);
     }
 
 }

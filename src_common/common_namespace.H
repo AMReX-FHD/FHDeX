@@ -138,6 +138,9 @@ namespace common {
     extern amrex::Vector<amrex::Real> wallspeed_lo;
     extern amrex::Vector<amrex::Real> wallspeed_hi;
 
+    extern amrex::Vector<amrex::Real> potential_lo;
+    extern amrex::Vector<amrex::Real> potential_hi;
+
     // structure factor analysis
     extern int                        struct_fact_int;
     extern int                        n_steps_skip;

@@ -50,6 +50,7 @@ extern "C"
                                      amrex::Real * p_lo, amrex::Real * p_hi,
                                      amrex::Real* t_lo, amrex::Real* t_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,
+                                     amrex::Real* potential_lo, amrex::Real* potential_hi,
                                      int* struct_fact_int, int* n_steps_skip,
                                      int* histogram_unit, amrex::Real* density_weights,
                                      int* shift_cc_to_boundary,
@@ -214,6 +215,11 @@ extern "C"
     void fab_electricbc(const int * lo,     const int * hi,
                     const int * dom_lo, const int * dom_hi,
                     amrex::Real * efield, const int * p_lo, const int * p_hi,
+                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
+
+    void fab_potentialbc(const int * lo,     const int * hi,
+                    const int * dom_lo, const int * dom_hi,
+                    amrex::Real * potential, const int * p_lo, const int * p_hi,
                     const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
    void fab_chargebc(const int * lo,     const int * hi,

@@ -78,6 +78,10 @@ module common_namelist_module
   double precision,   save :: t_hi(AMREX_SPACEDIM)
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+
+  double precision,   save :: potential_lo(AMREX_SPACEDIM)
+  double precision,   save :: potential_hi(AMREX_SPACEDIM)
+
   integer,            save :: struct_fact_int
   integer,            save :: n_steps_skip
   integer,            save :: histogram_unit
@@ -256,6 +260,9 @@ module common_namelist_module
   namelist /common/ wallspeed_lo
   namelist /common/ wallspeed_hi
 
+  namelist /common/ potential_lo
+  namelist /common/ potential_hi
+
   ! structure factor analysis
   namelist /common/ struct_fact_int
   namelist /common/ n_steps_skip
@@ -362,6 +369,8 @@ contains
     p_hi(:) = 0
     wallspeed_lo(:,:) = 0
     wallspeed_hi(:,:) = 0
+    potential_lo(:) = 0
+    potential_hi(:) = 0
     struct_fact_int = 0
     n_steps_skip = 0
     histogram_unit = 0
@@ -411,6 +420,7 @@ contains
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
+                                         potential_lo_in, potential_hi_in, &
                                          struct_fact_int_in, n_steps_skip_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
@@ -505,6 +515,10 @@ contains
     double precision,       intent(inout) :: t_hi_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+
+    double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
+
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: n_steps_skip_in
     integer,                intent(inout) :: histogram_unit_in
@@ -614,6 +628,10 @@ contains
     t_hi_in = t_hi
     wallspeed_lo_in = wallspeed_lo
     wallspeed_hi_in = wallspeed_hi
+
+    potential_lo_in = potential_lo
+    potential_hi_in = potential_hi
+
     struct_fact_int_in = struct_fact_int
     n_steps_skip_in = n_steps_skip
     histogram_unit_in = histogram_unit
