@@ -37,6 +37,20 @@ extern "C"
             const int * tag,        const int * taglo, const int * taghi
         );
 
+    void spread_markers(
+            const int * lo,             const int * hi,
+                  amrex_real * mf_x,    const int * mfx_lo, const int * mfx_hi,
+                  amrex_real * mf_y,    const int * mfy_lo, const int * mfy_hi,
+                  amrex_real * mf_z,    const int * mfz_lo, const int * mfz_hi,
+            const amrex_real * coord_x, const int * cx_lo,  const int * cx_hi,
+            const amrex_real * coord_y, const int * cy_lo,  const int * cy_hi,
+            const amrex_real * coord_z, const int * cz_lo,  const int * cz_hi,
+            const void *       pos_marker,
+            const void *       v_marker,
+            const int *        n_marker,
+            const amrex_real * dx
+        );
+
     void interpolate_ib_staggered(
             const int * lo,         const int * hi,
                   amrex_real * u_d, const int * udlo,  const int * udhi,

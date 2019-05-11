@@ -506,6 +506,7 @@ contains
             &                                   mfz_lo(2):mfz_hi(2), &
             &                                   mfz_lo(3):mfz_hi(3))
 
+        ! ** IN:  (staggered) coordinates of stagger (face-centered) faces
         integer(c_int), dimension(3), intent(in   ) :: cx_lo, cx_hi
         real(amrex_real), intent(inout) :: coords_x(cx_lo(1):cx_hi(1), &
             &                                       cx_lo(2):cx_hi(2), &
@@ -520,8 +521,6 @@ contains
         real(amrex_real), intent(inout) :: coords_z(cz_lo(1):cz_hi(1), &
             &                                       cz_lo(2):cz_hi(2), &
             &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
-
-
 
         ! ** IN:  quantity to spread (v_spread), given kernel position (pos)
         real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: pos, v_spread, dx
@@ -615,6 +614,73 @@ contains
         end do
 
     end subroutine spread_kernel
+
+
+
+    subroutine spread_markers(lo,         hi,                  &
+            &                 mf_x,       mfx_lo,   mfx_hi,    &
+            &                 mf_y,       mfy_lo,   mfy_hi,    &
+            &                 mf_z,       mfz_lo,   mfz_hi,    &
+            &                 coords_x,   cx_lo,    cx_hi,     &
+            &                 coords_y,   cy_lo,    cy_hi,     &
+            &                 coords_z,   cz_lo,    cz_hi,     &
+            &                 pos_marker, v_marker, n_marker,  &
+            &                 dx                             ) &
+            bind(C, name="spread_markers")
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+
+        ! ** OUT: (staggered) v_spread to staggered multifab
+        integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
+        real(amrex_real), intent(inout) :: mf_x(mfx_lo(1):mfx_hi(1), &
+            &                                   mfx_lo(2):mfx_hi(2), &
+            &                                   mfx_lo(3):mfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfy_lo, mfy_hi
+        real(amrex_real), intent(inout) :: mf_y(mfy_lo(1):mfy_hi(1), &
+            &                                   mfy_lo(2):mfy_hi(2), &
+            &                                   mfy_lo(3):mfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfz_lo, mfz_hi
+        real(amrex_real), intent(inout) :: mf_z(mfz_lo(1):mfz_hi(1), &
+            &                                   mfz_lo(2):mfz_hi(2), &
+            &                                   mfz_lo(3):mfz_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: cx_lo, cx_hi
+        real(amrex_real), intent(inout) :: coords_x(cx_lo(1):cx_hi(1), &
+            &                                       cx_lo(2):cx_hi(2), &
+            &                                       cx_lo(3):cx_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cy_lo, cy_hi
+        real(amrex_real), intent(inout) :: coords_y(cy_lo(1):cy_hi(1), &
+            &                                       cy_lo(2):cy_hi(2), &
+            &                                       cy_lo(3):cy_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cz_lo, cz_hi
+        real(amrex_real), intent(inout) :: coords_z(cz_lo(1):cz_hi(1), &
+            &                                       cz_lo(2):cz_hi(2), &
+            &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
+
+        ! ** IN:  quantity to spread (v_spread), given kernel position (pos)
+        integer(c_int), intent(in   ) :: n_marker
+        real(amrex_real), intent(in   ) :: pos_marker(AMREX_SPACEDIM, n_marker);
+        real(amrex_real), intent(in   ) :: v_marker(AMREX_SPACEDIM, n_marker);
+
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: dx
+
+
+        integer :: i
+
+        do i =  1, n_marker
+            write(*, *) i, pos_marker(:, i)
+        end do
+
+
+    end subroutine spread_markers
+
+
 
 
 

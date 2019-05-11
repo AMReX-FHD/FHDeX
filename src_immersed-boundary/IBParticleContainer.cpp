@@ -409,7 +409,42 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
         //  for (const auto & pt : marker_positions[lev][elt.first]) {
         //      std::cout << pt << std::endl;
         //  }
+
+        MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, 1);
+
+        MultiFab fc_dummy_x(
+                convert(ParticleBoxArray(0), nodal_flag_dir[0]),
+                ParticleDistributionMap(0), 1, 1
+            );
+        MultiFab fc_dummy_y(
+                convert(ParticleBoxArray(0), nodal_flag_dir[1]),
+                ParticleDistributionMap(0), 1, 1
+            );
+        MultiFab fc_dummy_z(
+                convert(ParticleBoxArray(0), nodal_flag_dir[2]),
+                ParticleDistributionMap(0), 1, 1
+            );
+
+        const Geometry & geom = Geom(0);
+        const Real     *   dx = geom.CellSize();
+
+        for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
+            Box bx = mfi.validbox();
+            spread_markers(BL_TO_FORTRAN_BOX(bx),
+                           BL_TO_FORTRAN_ANYD(fc_dummy_x[mfi]),
+                           BL_TO_FORTRAN_ANYD(fc_dummy_y[mfi]),
+                           BL_TO_FORTRAN_ANYD(fc_dummy_z[mfi]),
+                           BL_TO_FORTRAN_ANYD(fc_dummy_x[mfi]),
+                           BL_TO_FORTRAN_ANYD(fc_dummy_y[mfi]),
+                           BL_TO_FORTRAN_ANYD(fc_dummy_z[mfi]),
+                           marker_positions[lev][elt.first].dataPtr(),
+                           marker_positions[lev][elt.first].dataPtr(),
+                           & n_marker,
+                           dx );
+        }
+    exit(0);
     }
+
 }
 
 
