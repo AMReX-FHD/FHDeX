@@ -672,15 +672,25 @@ contains
 
 
         integer :: i
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos, v_spread
+
 
         do i =  1, n_marker
-            write(*, *) i, pos_marker(:, i)
+            pos = pos_marker(:, i)
+            v_spread = v_marker(:, i)
+
+            call spread_kernel(lo,       hi,               &
+                &              mf_x,     mfx_lo,   mfx_hi, &
+                &              mf_y,     mfy_lo,   mfy_hi, &
+                &              mf_z,     mfz_lo,   mfz_hi, &
+                &              coords_x, cx_lo,    cx_hi,  &
+                &              coords_y, cy_lo,    cy_hi,  &
+                &              coords_z, cz_lo,    cz_hi,  &
+                &              pos,      v_spread, dx      )
+
         end do
 
-
     end subroutine spread_markers
-
-
 
 
 

@@ -523,9 +523,13 @@ void main_driver(const char * argv) {
 
         Vector<RealVect> f_in(n_markers);
         for (int i=0; i<f_in.size(); ++i)
-            f_in[i] = RealVect{1, 0, 0};
+            f_in[i] = RealVect{1, 1, 1};
 
         ib_pc.SpreadMarkers(0, pindex, f_in, f_out);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(f_out[d], "f_out_"+std::to_string(d));
+
         exit(0);
 
 
