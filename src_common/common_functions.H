@@ -91,6 +91,10 @@ void MultiFABElectricBC(MultiFab & efield, const Geometry & geom);
 void MultiFABElectricBC(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
 void MultiFABElectricBC(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
 
+void MultiFABPotentialBC(MultiFab & potential, const Geometry & geom);
+void MultiFABPotentialBC(MultiFab & potential, int seq_fill_ghost, const Geometry & geom);
+void MultiFABPotentialBC(MultiFab & potential, const IntVect & dim_fill_ghost, const Geometry & geom);
+
 void MultiFABChargeBC(MultiFab & efield, const Geometry & geom);
 void MultiFABChargeBC(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
 void MultiFABChargeBC(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);

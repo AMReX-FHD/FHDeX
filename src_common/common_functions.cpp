@@ -70,8 +70,8 @@ void InitializeCommonNamespace() {
     wallspeed_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
     wallspeed_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
 
-    potential_lo.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
-    potential_hi.resize((AMREX_SPACEDIM-1)*AMREX_SPACEDIM);
+    potential_lo.resize(AMREX_SPACEDIM);
+    potential_hi.resize(AMREX_SPACEDIM);
 
     density_weights.resize(MAX_SPECIES);
     shift_cc_to_boundary.resize(AMREX_SPACEDIM*LOHI);

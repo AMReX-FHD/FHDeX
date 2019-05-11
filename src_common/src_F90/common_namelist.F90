@@ -79,8 +79,8 @@ module common_namelist_module
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
 
-  double precision,   save :: potential_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
-  double precision,   save :: potential_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+  double precision,   save :: potential_lo(AMREX_SPACEDIM)
+  double precision,   save :: potential_hi(AMREX_SPACEDIM)
 
   integer,            save :: struct_fact_int
   integer,            save :: n_steps_skip
@@ -369,8 +369,8 @@ contains
     p_hi(:) = 0
     wallspeed_lo(:,:) = 0
     wallspeed_hi(:,:) = 0
-    potential_lo(:,:) = 0
-    potential_hi(:,:) = 0
+    potential_lo(:) = 0
+    potential_hi(:) = 0
     struct_fact_int = 0
     n_steps_skip = 0
     histogram_unit = 0
@@ -516,8 +516,8 @@ contains
     double precision,       intent(inout) :: wallspeed_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
     double precision,       intent(inout) :: wallspeed_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
 
-    double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
-    double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
+    double precision,       intent(inout) :: potential_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
 
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: n_steps_skip_in
