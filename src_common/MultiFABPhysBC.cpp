@@ -67,6 +67,8 @@ void MultiFABElectricBC(MultiFab & data, const IntVect & dim_fill_ghost,
     }
 }
 
+//Note that potential currently only operates on 1 layer of ghost cells.
+
 void MultiFABPotentialBC(MultiFab & data, const Geometry & geom) {
     MultiFABPotentialBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }

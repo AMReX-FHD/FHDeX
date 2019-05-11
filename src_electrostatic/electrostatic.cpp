@@ -34,7 +34,7 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
             }
 
 
-            //MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
+            MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
 
             const BoxArray& ba = potential.boxArray();
             const DistributionMapping& dmap = potential.DistributionMap();
@@ -65,9 +65,7 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
 
             
             potential.FillBoundary(geom.periodicity());
-
-        //    //Find e field, gradient from cell centers to faces
-        //    ComputeGrad(potential, efield, 0, 0, 1, geom);
+            MultiFABPotentialBC(potential, geom); //set ghost cell values so electric field is calculated properly
 
              //Find e field, gradient from cell centers to faces
              ComputeCentredGrad(potential, efield, geom);
@@ -77,7 +75,7 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
         efield[d].FillBoundary(geom.periodicity());
-       // MultiFABElectricBC(efield[d], d, geom);
+        MultiFABElectricBC(efield[d], d, geom);
     }
 
 }
