@@ -17,7 +17,7 @@
 
       double precision alpha,gamma, k, a,b,c,d
       double precision phi_init, phi_0, integral
-      double precision mean,std, ave
+      double precision mean,std, ave, pi, x , y, rad
 
 
       write(6,*)" imax,jmax,cfl,nstep,ntherm,nfreq"
@@ -32,6 +32,7 @@
       write(6,*)"a,b,c,d"
       read(5,*)a,b,c,d
       write(6,*)a,b,c,d
+      read(5,*)rad
 
       call RandomSeeds(1905849284)
       
@@ -43,6 +44,24 @@
       factor = sqrt(2.d0*alpha/(dt*dx*dy))
 
       phi = phi_init
+
+      pi= 4.d0*atan2(1.d0,1.d0)
+
+      do j=1,jmax
+      do i=1,jmax
+     
+         x = dx*dfloat(i-1)
+         y = dy*dfloat(j-1)
+
+      !  phi(i,j) =  (sin(2.d0*pi*x)*sin(2.d0*pi*y)) **2
+         if( (x-.5d0)**2 + (y-.5d0)**2 .lt. rad**2)then
+            phi(i,j) = 1.d0
+         else
+            phi(i,j) = 0.d0
+         endif
+
+      enddo
+      enddo
 
 
       mean = 0.d0
@@ -82,7 +101,7 @@
 
              phin(i,j) = phi(i,j) + dt*gamma*(phi(i+1,j)-2.d0*phi(i,j)+phi(i-1,j))/dx**2  &
               + dt*gamma*(phi(i,j+1)-2.d0*phi(i,j)+phi(i,j-1))/dy**2  &
-              -dt*func(i,j)-k*integral + dt*factor * rnums(i,j)
+              -dt*func(i,j)-dt*k*integral + dt*factor * rnums(i,j)
           
            enddo
          enddo

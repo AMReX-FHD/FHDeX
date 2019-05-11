@@ -1,1 +1,14 @@
 gfortran Precision.f90 Random.f90 GL.f90 output.f90 -o GL.ex
+
+
+inputs:
+
+imax, jmax -- mesh size
+cfl -- fraction of stable diffusive time step
+nstep -- number of steps for statistics
+nthrem -- number of thermalization steps
+nfreq  -- how often to dump data
+
+gamma, alpha, k -- diffusion coefficent, noise coefficient, spring contstant for umbrella
+a,b,c,d -- coefficients of polynomial f
+rad --  radius of initial blob
