@@ -513,7 +513,7 @@ void main_driver(const char * argv) {
         std::array<MultiFab, AMREX_SPACEDIM> f_out;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             const BoxArray & ba_fc = convert(ba, nodal_flag_dir[d]);
-            f_out[d].define(ba_fc, dmap, 1, 1);
+            f_out[d].define(ba_fc, dmap, 1, 10);
             f_out[d].setVal(0.);
         }
 
@@ -522,13 +522,33 @@ void main_driver(const char * argv) {
         Print() << "n_markers = " << n_markers << std::endl;
 
         Vector<RealVect> f_in(n_markers);
-        for (int i=0; i<f_in.size(); ++i)
-            f_in[i] = RealVect{1, 1, 1};
+        for (int i=0; i<f_in.size(); ++i) {
+            f_in[i] = RealVect{0, 1, 1};
+            break;
+        }
 
         ib_pc.SpreadMarkers(0, pindex, f_in, f_out);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
+            f_out[d].FillBoundary(geom.periodicity());
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
             VisMF::Write(f_out[d], "f_out_"+std::to_string(d));
+
+        Vector<RealVect> int_f_in(n_markers);
+        for (int i=0; i<int_f_in.size(); ++i)
+            int_f_in[i] = RealVect{0, 0, 0};
+
+        ib_pc.InterpolateMarkers(0, pindex, int_f_in, f_out);
+
+        Real vol_dx = 1;
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            vol_dx = vol_dx * dx[d];
+
+        Print() << "Back-interpolated markers (vol_dx = " << vol_dx << "):" << std::endl;
+        for (const RealVect & v : int_f_in )
+            Print() << v*vol_dx << std::endl;
+
 
         exit(0);
 
