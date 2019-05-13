@@ -21,7 +21,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
            Real & norm_pre_rhs)
 {
 
-    BL_PROFILE_VAR("GMRES()",GMRES);
+    BL_PROFILE_VAR("GMRES()", GMRES);
 
     if (gmres_verbose >= 1) {
         Print() << "Begin call to GMRES" << std::endl;
@@ -82,6 +82,15 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     MultiFab V_p  (ba, dmap,gmres_max_inner + 1, 0); // Krylov vectors
 
 
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Preflight work: apply scaling and compute perconditioned norms_b         *
+     *                                                                          *
+     ***************************************************************************/
+
+
     // apply scaling factor
     if (scale_factor != 1.) {
         theta_alpha = theta_alpha*scale_factor;
@@ -101,13 +110,15 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     }
 
 
-    // preconditioned norm_b: norm_pre_b
+    // First application of preconditioner
     ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+
+
+    // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
-    norm_p     = p_norm_weight*norm_p;
-    norm_pre_b = sqrt(norm_u*norm_u + norm_p*norm_p);
-
+    norm_p       = p_norm_weight*norm_p;
+    norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
     norm_pre_rhs = norm_pre_b;
 
 
@@ -125,11 +136,13 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // Useful to print out to give expected scale for gmres_abs_tol
         Print() << "GMRES.cpp: GMRES called with ||rhs||=" << norm_b << std::endl;
     }
+
     if (norm_b <= gmres_abs_tol) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             x_u[d].setVal(0.);
         }
         x_p.setVal(0.);
+
         if (gmres_verbose >= 1) {
             Print() << "GMRES.cpp: converged in 0 iterations since rhs=0" << std::endl;
         }
@@ -138,14 +151,21 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
 
+
     ///////////////////
     // begin outer iteration
     ///////////////////
+
+
 
     total_iter = 0;
     outer_iter = 0;
 
     do {
+
+        //_______________________________________________________________________
+        // Compute tmp = b - Ax
+
         // Calculate tmp = Ax
         ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
 
@@ -158,17 +178,19 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         tmp_p.mult(-1., 0, 1, 0);
 
 
+        //_______________________________________________________________________
         // un-preconditioned residuals
         StagL2Norm(tmp_u, 0, norm_u_noprecon);
         CCL2Norm(tmp_p, 0, norm_p_noprecon);
         norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
 
-        if(outer_iter==0) {
-            norm_init_Stokes=norm_resid_Stokes;
-        }
+        if (outer_iter == 0)
+            norm_init_Stokes = norm_resid_Stokes;
 
 
+        //_______________________________________________________________________
+        // Print verbose output
         if (gmres_verbose >= 2) {
             Print() << "total Iters = " << total_iter << std::endl;
             Print() << "r/(r_0,b) = " << norm_resid_Stokes/norm_init_Stokes << "  "
@@ -182,6 +204,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         }
 
 
+        //_______________________________________________________________________
         // solve for r = M^{-1} tmp
         // We should not be counting these toward the number of mg cycles performed
         ApplyPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
@@ -196,22 +219,29 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // If first iteration, save the initial preconditioned residual
         if (outer_iter==0) {
-            norm_init_resid=norm_resid;
-            norm_resid_est=norm_resid;
+            norm_init_resid = norm_resid;
+            norm_resid_est = norm_resid;
         }
 
+
+        //_______________________________________________________________________
+        // Print verbose output
         if (gmres_verbose >= 3) {
             Print() << "Precond. rel. res. (u,v,p) = " << norm_resid/norm_init_resid << "  "
                     << norm_u/norm_init_resid << "  " << norm_p/norm_init_resid << std::endl;
         }
 
+
+        //_______________________________________________________________________
         // We need to test the residual now and exit OuterLoop if converged
         if (total_iter >= gmres_max_iter) {
             if (gmres_verbose >= 1) {
                 Print() << "GMRES did not converge in max number of total inner iterations: Exiting"
                         << std::endl;
             }
+
             break;
+
         } else if (total_iter >= gmres_min_iter) {
             // other options
             if(norm_resid <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid)) {
@@ -228,7 +258,9 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
                 // Only exit if the *true* preconditioned residual is less than tolerance:
                 // Do not trust the gmres estimate
+
                 break; // exit OuterLoop
+
             } else if (norm_resid <= gmres_abs_tol) {
 
                 if (gmres_verbose >= 2) {
@@ -249,20 +281,21 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         outer_iter = outer_iter + 1;
 
 
+        //_______________________________________________________________________
+        // Print verbose output
         if (gmres_verbose >= 3) {
             Print() << "Begin outer iteration " << outer_iter << std::endl;
         }
 
 
-        // create the first basis in Krylov space
-        // V(1) = r / norm(r)
+        //_______________________________________________________________________
+        // Create the first basis in Krylov space: V(1) = r / norm(r)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Copy(V_u[d], r_u[d], 0, 0, 1, 0);
             V_u[d].mult(1./norm_resid, 0, 1, 0);
         }
         MultiFab::Copy(V_p, r_p, 0, 0, 1, 0);
         V_p.mult(1./norm_resid, 0, 1, 0);
-
 
         // s = norm(r) * e_0
         std::fill(s.begin(), s.end(), 0.);
@@ -274,9 +307,14 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // begin inner iteration
         ///////////////////////
 
+
+
         // i is the inner iteration loop index
         for (i=0; i<gmres_max_inner; ++i) {
 
+
+            //___________________________________________________________________
+            // Print verbose output
             if (gmres_verbose >= 3) {
                 Print() << "Begin inner iteration " << i+1 << std::endl;
             }
@@ -286,32 +324,34 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             i_copy     = i;
 
 
+            //___________________________________________________________________
             // tmp=A*V(i)
-            // we use r_p and r_u as temporaries to hold ith component of V
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // use r_p and r_u as temporaries to hold ith component of V
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
                 MultiFab::Copy(r_u[d], V_u[d], i, 0, 1, 0);
-            }
             MultiFab::Copy(r_p, V_p, i, 0, 1, 0);
 
             ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
 
 
+            //___________________________________________________________________
             // w = M^{-1} A*V(i)
             ApplyPrecon(tmp_u, tmp_p, w_u, w_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
 
 
+            //___________________________________________________________________
+            // Form Hessenberg matrix H
             for (int k=0; k<=i; ++k) {
-                // form H(k,i) Hessenberg matrix
                 // H(k,i) = dot_product(w, V(k))
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
                 StagInnerProd(w_u, 0, V_u, k, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
-                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) +
-                          pow(p_norm_weight,2.0)*inner_prod_pres;
+                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
+                          + pow(p_norm_weight, 2.0)*inner_prod_pres;
 
 
                 // w = w - H(k,i) * V(k)
-                //use tmp_u and tmp_p as temporaries to hold kth component of V(k)
+                // use tmp_u and tmp_p as temporaries to hold kth component of V(k)
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     MultiFab::Copy(tmp_u[d], V_u[d], k, 0, 1, 0);
                     tmp_u[d].mult(H[k][i], 0, 1, 0);
@@ -322,7 +362,6 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 MultiFab::Subtract(w_p,tmp_p, 0, 0, 1, 0);
             }
 
-
             // H(i+1,i) = norm(w)
             StagL2Norm(w_u, 0, norm_u);
             CCL2Norm(w_p, 0, norm_p);
@@ -330,6 +369,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             H[i+1][i] = sqrt(norm_u*norm_u + norm_p*norm_p);
 
 
+            //___________________________________________________________________
             // V(i+1) = w / H(i+1,i)
             if (H[i+1][i] != 0.) {
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -343,16 +383,23 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             }
 
 
-            LeastSquares(i, H, cs, sn, s); // solve least square problem
+            //___________________________________________________________________
+            // solve least square problem
+            LeastSquares(i, H, cs, sn, s);
             norm_resid_est = std::abs(s[i+1]);
 
 
+            //___________________________________________________________________
+            // Print verbose output
             if (gmres_verbose >= 2) {
                 Print() << "Total iter " << total_iter << ",  est. rel. resid. |Pr|/(Pr0,b)= "
                         << norm_resid_est/norm_init_resid << "  "
                         << norm_resid_est/norm_pre_b << std::endl;
             }
 
+
+            //___________________________________________________________________
+            // Inner loop termination condition
             if (total_iter >= gmres_max_iter) {
                 break; // exit InnerLoop
             } else if (total_iter >= gmres_min_iter) {
@@ -366,10 +413,10 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
 
-        // update the solution
+        //_______________________________________________________________________
+        // Update the solution
         // first, solve for y
         SolveUTriangular(i_copy-1, H, s, y);
-
 
         // then, x = x + dot(V(1:i),y(1:i))
         UpdateSol(x_u,x_p,V_u,V_p,y,i_copy);
