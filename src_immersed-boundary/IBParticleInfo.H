@@ -32,6 +32,11 @@ struct IBP_info {
 
     int  real;        // Is the particle real (not a neighbor)
                       // NOTE: not a bool because of c/fortran-interface
+
+    std::pair<int, int> asPairIndex() const {
+        std::pair<int, int> pindex(id, cpu);
+        return pindex;
+    }
 };
 
 

@@ -13,6 +13,8 @@
 
 #include "gmres_namespace.H"
 
+#include "ib_functions.H"
+
 #include "IBCore.H"
 
 #include <AMReX_ParallelDescriptor.H>
@@ -32,6 +34,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
              const MultiFab & beta, const MultiFab & gamma,
              const std::array<MultiFab, NUM_EDGE> & beta_ed,
+             const IBParticleContainer & ib_pc,
              IBCore & ib_core,
              const Geometry geom, const Real & dt)
 {
@@ -451,9 +454,9 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     //___________________________________________________________________________
     // Call GMRES to compute predictor
 
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_0,
-          alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    IBGMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_0,
+            alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+            ib_pc, geom, norm_pre_rhs);
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         MultiFab::Copy(umac_0[d], umacNew[d], 0, 0, 1, 1);
@@ -549,9 +552,9 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         //_______________________________________________________________________
         // call GMRES to compute corrector
 
-        GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
-              alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-              geom, norm_pre_rhs);
+        IBGMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
+                alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+                ib_pc, geom, norm_pre_rhs);
 
 
         //_______________________________________________________________________

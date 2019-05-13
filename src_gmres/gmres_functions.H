@@ -142,18 +142,6 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                   const Real & theta,
                   const Geometry & geom);
 
-// Staggered multi-grid solver with implicit forcing coefficient
-// (fcoef_implicit) on faces
-void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                  const MultiFab & beta_cc,
-                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
-                  const MultiFab & gamma_cc,
-                  const std::array<MultiFab, AMREX_SPACEDIM> & fcoef_implicit,
-                  std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
-                  const std::array<MultiFab, AMREX_SPACEDIM> & phiorig_fc,
-                  const Real & theta,
-                  const Geometry & geom);
-
 // compute the number of multigrid levels assuming minwidth is the length of the
 // smallest dimension of the smallest grid at the coarsest multigrid level
 int ComputeNlevsMG(const BoxArray & ba);
