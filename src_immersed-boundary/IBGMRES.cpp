@@ -22,7 +22,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
              MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
              MultiFab & gamma,
              Real theta_alpha,
-             const IBParticleContainer & ib_pc,
+             IBParticleContainer & ib_pc,
              const Geometry & geom,
              Real & norm_pre_rhs)
 {
@@ -88,6 +88,51 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     MultiFab V_p  (ba, dmap,gmres_max_inner + 1, 0); // Krylov vectors
 
 
+    //___________________________________________________________________________
+    // Get all the immersed-boudary particle indices (used to iterate below)
+    Vector<IBP_info> ibp_info;
+    // Vector<RealVect> marker_positions;
+    // TODO: make this a referenced argument
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_forces;
+
+
+
+    // TODO: assuming only 1 level for now
+    int ibpc_lev = 0;
+
+    MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev), 
+                   ib_pc.ParticleDistributionMap(ibpc_lev), 1, 1);
+    for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
+        IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        ib_pc.IBParticleInfo(ibp_info, ibpc_lev, index);
+    }
+
+    Vector<std::pair<int, int>> part_indices(ibp_info.size());
+    for (int i=0; i<ibp_info.size(); ++i) {
+        part_indices[i] = ibp_info[i].asPairIndex();
+
+        // Pre-allocate force arrays
+        const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+        marker_forces[part_indices[i]].resize(marker_positions.size());
+    }
+
+
+    Print() << "Found " << part_indices.size() << " many IB particles in rank 0:"
+            << std::endl;
+    for (const auto & pid : part_indices)
+        Print() << "[" << pid.first << ", " << pid.second << "]";
+    Print() << std::endl << std::endl;
+
+
+    // We don't need the marker positions here at all :P
+    // for (const auto & pindex : part_indices) {
+    //     const Vector<RealVect> pmarkers = ib_pc.MarkerPositions(0, pindex);
+    //     for (const auto & marker : pmarkers)
+    //         marker_positions.push_back(marker);
+    // }
+
+
+
 
 
     /****************************************************************************
@@ -115,12 +160,13 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             beta_ed[d].mult(scale_factor, 0, 1, beta_ed[d].nGrow());
     }
 
-
+    //___________________________________________________________________________
     // First application of preconditioner
+    
     // 1. Fluid Precon
     ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+    
     // 2. IB Precon
-
 
 
 
