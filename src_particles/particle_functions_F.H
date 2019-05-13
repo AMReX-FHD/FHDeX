@@ -211,6 +211,16 @@ extern "C"
 
                          const amrex_real* charge, const int* chargelo, const int* chargehi);
 
+   void compute_dry_mobility( const int *lo,
+                        const int *hi,
+                        amrex_real* mobility,
+                        const int *mlo,
+                        const int *mhi,
+                        const amrex_real* dx,
+                        const amrex_real* plo,
+                        const amrex_real* phi,
+                        const int* ngc);
+
 
     void init_particles(void* particles, const int* np, const amrex::Real* dx,
                         const amrex::Real* real_lo, const amrex::Real* real_hi,

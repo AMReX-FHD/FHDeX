@@ -691,7 +691,7 @@ void main_driver(const char* argv)
                  efieldCC[2].setVal(0););
 
     
-    MultiFab dryMobility(ba, dmap, 2*AMREX_SPACEDIM, 0);
+    MultiFab dryMobility(ba, dmap, AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, geom);
  

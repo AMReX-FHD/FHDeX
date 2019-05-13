@@ -7,6 +7,10 @@
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_NeighborParticles.H"
 #include <AMReX_ArrayLim.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_Utility.H>
+
 
 //#include <AMReX_ParticleInit.H>
 
