@@ -10,6 +10,7 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Utility.H>
+#include "species.H"
 
 
 //#include <AMReX_ParticleInit.H>
@@ -17,6 +18,6 @@
 using namespace amrex;
 
 
-void ComputeDryMobility(MultiFab & dryMobility, const Geometry & geom);
+void ComputeDryMobility(MultiFab & dryMobility, species* particleInfo, const Geometry & geom);
 
 #endif
