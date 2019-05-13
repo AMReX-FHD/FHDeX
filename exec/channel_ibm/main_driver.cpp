@@ -524,7 +524,6 @@ void main_driver(const char * argv) {
         Vector<RealVect> f_in(n_markers);
         for (int i=0; i<f_in.size(); ++i) {
             f_in[i] = RealVect{0, 1, 1};
-            break;
         }
 
         ib_pc.SpreadMarkers(0, pindex, f_in, f_out);
