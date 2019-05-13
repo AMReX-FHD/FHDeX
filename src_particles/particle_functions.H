@@ -13,6 +13,6 @@
 using namespace amrex;
 
 
-//void InitialiseParticles(ParticleContainer<AMREX_SPACEDIM+1,0>& particles, const MultiFab& rhotot);
+void ComputeDryMobility(MultiFab & dryMobility, const Geometry & geom);
 
 #endif

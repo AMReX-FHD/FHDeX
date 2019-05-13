@@ -15,8 +15,7 @@
   es_grid_refine = 1
 
   ! Time-step control
-!  fixed_dt = 5e-12
-  fixed_dt = 5e-15
+  fixed_dt = 5e-12
 
   ! Controls for number of steps between actions
   max_step = 1

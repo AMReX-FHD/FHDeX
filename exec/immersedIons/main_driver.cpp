@@ -28,6 +28,8 @@
 
 #include "electrostatic.H"
 
+#include "particle_functions.H"
+
 //#include "electrostatic.H"
 
 using namespace gmres;
@@ -531,6 +533,8 @@ void main_driver(const char* argv)
 
     
     // AJN - don't need to initialize velocities in overdamped.  first gmres solve should get them as long as they start out with non-NaN values.
+
+    // DRL - This is actually useful for dubugging, to get a known velocity field.
     int dm = 0;
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
@@ -550,8 +554,8 @@ void main_driver(const char* argv)
 
     }
 
-    AMREX_D_TERM(umac[0].setVal(10);,
-                 umac[1].setVal(10);,
+    AMREX_D_TERM(umac[0].setVal(0);,
+                 umac[1].setVal(0);,
                  umac[2].setVal(0););
 
     // fill periodic ghost cells
@@ -665,12 +669,6 @@ void main_driver(const char* argv)
     massFrac.setVal(0);
     massFracTemp.setVal(0);
 
-//    //?????
-//    MultiFab trans(bp, dmap, 1, ngp);
-//    MultiFab transTemp(bp, dmap, 1, ngp);
-//    trans.setVal(0);
-//    transTemp.setVal(0);
-
     //Staggered electric fields
     std::array< MultiFab, AMREX_SPACEDIM > efield;
     std::array< MultiFab, AMREX_SPACEDIM > external;
@@ -692,8 +690,10 @@ void main_driver(const char* argv)
                  efieldCC[1].setVal(0);,
                  efieldCC[2].setVal(0););
 
+    
+    MultiFab dryMobility(ba, dmap, 2*AMREX_SPACEDIM, 0);
 
-
+    ComputeDryMobility(dryMobility, geom);
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
