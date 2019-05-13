@@ -7,12 +7,17 @@
 #include <AMReX_MultiFabUtil.H>
 #include "AMReX_NeighborParticles.H"
 #include <AMReX_ArrayLim.H>
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_Utility.H>
+#include "species.H"
+
 
 //#include <AMReX_ParticleInit.H>
 
 using namespace amrex;
 
 
-//void InitialiseParticles(ParticleContainer<AMREX_SPACEDIM+1,0>& particles, const MultiFab& rhotot);
+void ComputeDryMobility(MultiFab & dryMobility, species* particleInfo, const Geometry & geom);
 
 #endif

@@ -2642,3 +2642,56 @@ subroutine collect_charge(particles, np, lo, hi, &
   
 end subroutine collect_charge
 
+function  normal_mobility(spec, z) result(nm)
+  use species_type_module, only: species_t
+  use amrex_fort_module, only: amrex_real
+
+  implicit none
+
+  type(species_t), intent(in   ) :: spec
+  real(amrex_real),intent(in   ) :: z
+
+  real(amrex_real) nm
+  
+  nm =1
+
+end function  normal_mobility
+
+subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, species)bind(c,name="compute_dry_mobility")
+
+  use amrex_fort_module, only: amrex_real
+  use common_namelist_module, only: visc_type, k_B, pkernel_es, qval, nspecies, bc_lo, bc_hi
+  use species_type_module, only: species_t
+  
+  implicit none
+
+  integer,          intent(in   )         :: lo(3), hi(3), mlo(3), mhi(3), ngc
+  double precision, intent(in   )         :: plo(3), phi(3), dx(3)
+
+  double precision, intent(inout)         :: mobility(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),1:(nspecies*AMREX_SPACEDIM))
+  type(species_t),  intent(in  ),  target :: species(nspecies)
+
+  type(species_t), pointer :: spec
+  
+  integer :: i, j, k, l
+
+  print *, spec%q
+ 
+  do k = lo(3), hi(3)
+     do j = lo(2), hi(2)
+        do i = lo(1), hi(1)
+          do l = 1, nspecies
+
+              !if(bc_lo(1) .ne. -1)
+          
+                spec => species(l)
+
+               ! normal_mobility   
+          enddo         
+    
+        end do
+     end do
+  end do
+  
+end subroutine compute_dry_mobility
+

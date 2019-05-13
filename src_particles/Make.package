@@ -1,2 +1,4 @@
 CEXE_headers   += FhdParticleContainer.H
+CEXE_headers   += particle_functions.H
 CEXE_sources   += FhdParticleContainer.cpp
+CEXE_sources   += particle_mobility.cpp

@@ -1,8 +1,11 @@
 CEXE_sources += IBCore.cpp
 CEXE_sources += IBParticleContainer.cpp
+CEXE_sources += IBGMRES.cpp
+
 
 CEXE_headers += IBCore.H
 CEXE_headers += IBParticleContainer.H
 CEXE_headers += MFUtil.H
 CEXE_headers += IBParticleInfo.H
+CEXE_headers += ib_functions.H
 CEXE_headers += ib_functions_F.H

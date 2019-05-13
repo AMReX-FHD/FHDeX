@@ -8,17 +8,23 @@
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 
+
+#include <IBParticleContainer.H>
+
+
 using namespace common;
 using namespace gmres;
 
-void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
-           std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
-           const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-           MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
-           MultiFab & gamma,
-           Real theta_alpha,
-           const Geometry & geom,
-           Real & norm_pre_rhs)
+
+void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+             std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
+             const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+             MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
+             MultiFab & gamma,
+             Real theta_alpha,
+             IBParticleContainer & ib_pc,
+             const Geometry & geom,
+             Real & norm_pre_rhs)
 {
 
     BL_PROFILE_VAR("GMRES()", GMRES);
@@ -82,6 +88,51 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     MultiFab V_p  (ba, dmap,gmres_max_inner + 1, 0); // Krylov vectors
 
 
+    //___________________________________________________________________________
+    // Get all the immersed-boudary particle indices (used to iterate below)
+    Vector<IBP_info> ibp_info;
+    // Vector<RealVect> marker_positions;
+    // TODO: make this a referenced argument
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_forces;
+
+
+
+    // TODO: assuming only 1 level for now
+    int ibpc_lev = 0;
+
+    MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev), 
+                   ib_pc.ParticleDistributionMap(ibpc_lev), 1, 1);
+    for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
+        IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        ib_pc.IBParticleInfo(ibp_info, ibpc_lev, index);
+    }
+
+    Vector<std::pair<int, int>> part_indices(ibp_info.size());
+    for (int i=0; i<ibp_info.size(); ++i) {
+        part_indices[i] = ibp_info[i].asPairIndex();
+
+        // Pre-allocate force arrays
+        const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+        marker_forces[part_indices[i]].resize(marker_positions.size());
+    }
+
+
+    Print() << "Found " << part_indices.size() << " many IB particles in rank 0:"
+            << std::endl;
+    for (const auto & pid : part_indices)
+        Print() << "[" << pid.first << ", " << pid.second << "]";
+    Print() << std::endl << std::endl;
+
+
+    // We don't need the marker positions here at all :P
+    // for (const auto & pindex : part_indices) {
+    //     const Vector<RealVect> pmarkers = ib_pc.MarkerPositions(0, pindex);
+    //     for (const auto & marker : pmarkers)
+    //         marker_positions.push_back(marker);
+    // }
+
+
+
 
 
     /****************************************************************************
@@ -109,9 +160,14 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             beta_ed[d].mult(scale_factor, 0, 1, beta_ed[d].nGrow());
     }
 
-
+    //___________________________________________________________________________
     // First application of preconditioner
+    
+    // 1. Fluid Precon
     ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+    
+    // 2. IB Precon
+
 
 
     // preconditioned norm_b: norm_pre_b
@@ -454,89 +510,5 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         Print() << "  residual/(norm_b,initial) = " << norm_resid/norm_b << "  "
                 << norm_resid/norm_init_resid << std::endl;
     }
-
-}
-
-void UpdateSol(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
-               MultiFab& x_p,
-               std::array<MultiFab, AMREX_SPACEDIM>& V_u,
-               MultiFab& V_p,
-               Vector<Real>& y,
-               int i)
-{
-    // set V(i) = V(i)*y(i)
-    // set x = x + V(i)
-    for (int iter=0; iter<=i; ++iter) {
-        V_p.mult(y[iter],iter,1,0);
-        MultiFab::Add(x_p,V_p,iter,0,1,0);
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            V_u[d].mult(y[iter],iter,1,0);
-            MultiFab::Add(x_u[d],V_u[d],iter,0,1,0);
-        }
-    }
-}
-
-void LeastSquares(int i,
-                  Vector<Vector<Real>>& H,
-                  Vector<Real>& cs,
-                  Vector<Real>& sn,
-                  Vector<Real>& s)
-{
-    Real temp;
-
-    // apply Givens rotation
-    for (int k=0; k<=i-1; ++k) {
-        temp      =  cs[k]*H[k][i] + sn[k]*H[k+1][i];
-        H[k+1][i] = -sn[k]*H[k][i] + cs[k]*H[k+1][i];
-        H[k][i] = temp;
-    }
-
-    // form i-th rotation matrix
-    RotMat(H[i][i], H[i+1][i], cs[i], sn[i]);
-
-    // approximate residual norm
-    temp = cs[i]*s[i];
-    s[i+1] = -sn[i]*s[i];
-    s[i] = temp;
-    H[i][i] = cs[i]*H[i][i] + sn[i]*H[i+1][i];
-    H[i+1][i] = 0.;
-}
-
-void RotMat(Real a, Real b,
-            Real& cs, Real& sn)
-{
-    Real temp;
-
-    if (b == 0.) {
-        cs = 1.;
-        sn = 0.;
-    }
-    else if (std::abs(b) > std::abs(a)) {
-        temp = a/b;
-        sn = 1./sqrt(1.+temp*temp);
-        cs = temp*sn;
-    }
-    else {
-        temp = b/a;
-        cs = 1./sqrt(1.+temp*temp);
-        sn = temp*cs;
-    }
-}
-
-void SolveUTriangular(int k, Vector<Vector<Real>>& H, Vector<Real>& s, Vector<Real>& y)
-{
-    Real dot;
-
-    y[k+1] = s[k+1]/H[k+1][k+1];
-    for (int i=k; i>=0; --i) {
-
-        dot = 0.;
-        for (int j=i+1; j<= k+1; ++j) {
-            dot += H[i][j]*y[j];
-        }
-
-        y[i] = (s[i] - dot) / H[i][i];
-    }
-
 
 }
