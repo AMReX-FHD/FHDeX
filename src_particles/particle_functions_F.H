@@ -219,7 +219,7 @@ extern "C"
                         const amrex_real* dx,
                         const amrex_real* plo,
                         const amrex_real* phi,
-                        const int* ngc);
+                        const int* ngc, const species* speciesInfo);
 
 
     void init_particles(void* particles, const int* np, const amrex::Real* dx,

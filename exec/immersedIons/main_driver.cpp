@@ -691,9 +691,11 @@ void main_driver(const char* argv)
                  efieldCC[2].setVal(0););
 
     
-    MultiFab dryMobility(ba, dmap, AMREX_SPACEDIM, ang);
+    MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
-    ComputeDryMobility(dryMobility, geom);
+    ComputeDryMobility(dryMobility, ionParticle, geom);
+
+    abort();
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
