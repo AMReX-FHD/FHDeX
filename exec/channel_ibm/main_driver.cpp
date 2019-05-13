@@ -549,7 +549,7 @@ void main_driver(const char * argv) {
             Print() << v*vol_dx << std::endl;
 
 
-        exit(0);
+        // exit(0);
 
 
         //_______________________________________________________________________
@@ -557,7 +557,7 @@ void main_driver(const char * argv) {
 
         advance(umac, umacNew, pres, tracer, force_ibm, 
                 mfluxdiv_predict, mfluxdiv_correct,
-                alpha_fc, beta, gamma, beta_ed, ib_core, geom, dt);
+                alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt);
 
 
         // Empty force data
