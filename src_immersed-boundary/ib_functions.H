@@ -18,7 +18,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
              std::array<MultiFab, NUM_EDGE> & beta_ed,
              MultiFab & gamma,
              Real theta_alpha,
-             const IBParticleContainer & ib_pc,
+             IBParticleContainer & ib_pc,
              const Geometry & geom,
              Real & norm_pre_rhs);
 
