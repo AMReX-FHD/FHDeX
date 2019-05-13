@@ -37,6 +37,11 @@ struct IBP_info {
         std::pair<int, int> pindex(id, cpu);
         return pindex;
     }
+
+    // only compare id and cpu
+    bool operator== (const IBP_info & other) {
+        return ( (this->id == other.id) && (this->cpu == other.cpu) );
+    }
 };
 
 

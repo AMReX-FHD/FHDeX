@@ -100,11 +100,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // TODO: assuming only 1 level for now
     int ibpc_lev = 0;
 
-    MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev), 
+    MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev),
                    ib_pc.ParticleDistributionMap(ibpc_lev), 1, 1);
     for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
         IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
-        ib_pc.IBParticleInfo(ibp_info, ibpc_lev, index);
+        ib_pc.IBParticleInfo(ibp_info, ibpc_lev, index, true);
     }
 
     Vector<std::pair<int, int>> part_indices(ibp_info.size());
@@ -150,7 +150,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         x_p.mult(scale_factor, 0, 1, x_p.nGrow());
 
         // scale the rhs:
-        for (int d=0; d<AMREX_SPACEDIM; ++d) 
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
             b_u[d].mult(scale_factor,0,1,b_u[d].nGrow());
 
         // scale the viscosities:

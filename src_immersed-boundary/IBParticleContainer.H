@@ -218,20 +218,23 @@ public:
 
     void PrintParticleData(int lev);
 
-    void LocalIBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index);
-    Vector<IBP_info> LocalIBParticleInfo(int lev, PairIndex index);
+    void LocalIBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index,
+                             bool unique = false);
+    Vector<IBP_info> LocalIBParticleInfo(int lev, PairIndex index, bool unique = false);
 
-    void NeighborIBParticleInfo(Vector<IBP_info> & npart_info, int lev, PairIndex index);
-    Vector<IBP_info> NeighborIBParticleInfo(int lev, PairIndex index);
+    void NeighborIBParticleInfo(Vector<IBP_info> & npart_info, int lev, PairIndex index,
+                                bool unique = false);
+    Vector<IBP_info> NeighborIBParticleInfo(int lev, PairIndex index, bool unique = false);
 
-    void IBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index);
-    Vector<IBP_info> IBParticleInfo(int lev, PairIndex index);
+    void IBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index,
+                        bool unique = false);
+    Vector<IBP_info> IBParticleInfo(int lev, PairIndex index, bool unique = false);
 
 
 
 private:
 
-    
+
     ///
     /// We add a particle to the neighbor list if it's center is within 3 particle radii
     ///
