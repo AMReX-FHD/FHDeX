@@ -36,7 +36,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     Vector<Real> cs(gmres_max_inner);
     Vector<Real> sn(gmres_max_inner);
     Vector<Real>  y(gmres_max_inner);
-    Vector<Real>  s(gmres_max_inner+1);
+    Vector<Real>  s(gmres_max_inner + 1);
 
     Vector<Vector<Real>> H(gmres_max_inner + 1, Vector<Real>(gmres_max_inner));
 
@@ -115,8 +115,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
         // ... initialized to (0..0)
         marker_forces[part_indices[i]].resize(marker_positions.size());
-        for (auto & elt : marker_forces[part_indices[i]])
-            elt = RealVect{1, 1, 1};
+        // for (auto & elt : marker_forces[part_indices[i]])
+        //     elt = RealVect{1, 1, 1};
     }
 
 
@@ -138,12 +138,22 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     int ib_grow =  ib_pc.get_nghost() + 6;
     //  using the 6-point stencil ----- ^
 
+    // Buffer velocity to allow for enough ghost cells
+    std::array<MultiFab, AMREX_SPACEDIM> u_buffer;
     std::array<MultiFab, AMREX_SPACEDIM> spread_f;
     std::array<MultiFab, AMREX_SPACEDIM> u_precon_f;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        u_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
         spread_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
         u_precon_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+
+        MultiFab::Copy(u_buffer[d], x_u[d], 0, 0, 1, 0);
+        u_buffer[d].FillBoundary(geom.periodicity());
     }
+    MultiFab p_buffer(ba, dmap, 1, ib_grow);
+    MultiFab::Copy(p_buffer, x_p, 0, 0, 1, 0);
+    p_buffer.FillBoundary(geom.periodicity());
+
 
 
 
@@ -164,7 +174,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // scale the rhs:
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            b_u[d].mult(scale_factor,0,1,b_u[d].nGrow());
+            b_u[d].mult(scale_factor, 0, 1, b_u[d].nGrow());
 
         // scale the viscosities:
         beta.mult(scale_factor, 0, 1, beta.nGrow());
@@ -172,6 +182,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         for (int d=0; d<NUM_EDGE; ++d)
             beta_ed[d].mult(scale_factor, 0, 1, beta_ed[d].nGrow());
     }
+
 
     //___________________________________________________________________________
     // First application of preconditioner
@@ -181,14 +192,41 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
     // 2. IB Precon
 
-    // 2.a spread_f = S*Lambda
-    for (const auto & pid : part_indices){
+    // 2.a Lambda = J*u
+    for (const auto & pid : part_indices)
+        ib_pc.InterpolateMarkers(0, pid, marker_forces[pid], u_buffer);
+
+    // 2.b Lambda = J*u - J A^{-1} G p
+    std::array<MultiFab, AMREX_SPACEDIM> Gp;
+    std::array<MultiFab, AMREX_SPACEDIM> AGp;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        Gp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+        AGp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+    }
+
+    ComputeGrad(p_buffer, Gp, 0, 0, 1, geom);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        Gp[d].FillBoundary(geom.periodicity());
+
+    StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGp, Gp, theta_alpha, geom);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        AGp[d].FillBoundary(geom.periodicity());
+
+    for (const auto & pid : part_indices) {
+        Vector<RealVect> mf_tmp(marker_forces[pid].size());
+        ib_pc.InterpolateMarkers(0, pid, mf_tmp, AGp);
+        for (int i=0; i<marker_forces[pid].size(); ++i) 
+            marker_forces[pid][i] = marker_forces[pid][i] + mf_tmp[i];
+    }
+
+    // 2.c spread_f = S*Lambda
+    for (const auto & pid : part_indices) {
         ib_pc.SpreadMarkers(0, pid, marker_forces[pid], spread_f);
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             spread_f[d].FillBoundary(geom.periodicity());
     }
 
-    // 2.b u_precon_f = A^{-1} spread_f = A^{-1} S Lambda
+    // 2.d u_precon_f = A^{-1} spread_f = A^{-1} S Lambda
     StagMGSolver(alpha_fc, beta, beta_ed, gamma, u_precon_f, spread_f, theta_alpha, geom);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         u_precon_f[d].FillBoundary(geom.periodicity());
