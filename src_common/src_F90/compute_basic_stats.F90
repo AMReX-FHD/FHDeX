@@ -22,7 +22,7 @@ subroutine compute_means(instfab, inlo, inhi, insize, meanfab, mlo, mhi, msize, 
   stepsinv = 1/steps
   stepsminusone = steps - 1
 
-  do k = mlo(2), mhi(2)
+  do k = mlo(3), mhi(3)
     do j = mlo(2), mhi(2)
       do i = mlo(1), mhi(1)
 
@@ -48,11 +48,11 @@ subroutine compute_vars(instfab, inlo, inhi, insize, meanfab, mlo, mhi, msize, v
   stepsinv = 1/steps
   stepsminusone = steps - 1
 
-  do k = vlo(2), vhi(2)
+  do k = vlo(3), vhi(3)
     do j = vlo(2), vhi(2)
       do i = vlo(1), vhi(1)
 
-        del = instfab(i,j,k,incomp) - meanfab(i,j,k,7)
+        del = instfab(i,j,k,incomp) - meanfab(i,j,k,mcomp)
 
         varfab(i,j,k,vcomp) = (varfab(i,j,k,vcomp)*stepsminusone + del**2)*stepsinv
 

@@ -788,9 +788,7 @@ void main_driver(const char* argv)
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            umac[d].FillBoundary(geom.periodicity());
-
-            ComputeBasicStats(umac[d], umacM[d], umacV[d], d+1, d+1, statsCount);
+            ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
         }
 
         statsCount++;
@@ -808,11 +806,11 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
            
-            //This write particle data and associated fields
+            //This write particle data and associated fields and electrostatic fields
             WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres);
+           // WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
 
         if(step%1 == 0)

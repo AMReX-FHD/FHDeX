@@ -14,7 +14,9 @@ void WritePlotFileHydro(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& pres)
+		   const MultiFab& pres,
+                   std::array< MultiFab, AMREX_SPACEDIM >& umacM,
+                   std::array< MultiFab, AMREX_SPACEDIM >& umacV)
 {
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -28,7 +30,7 @@ void WritePlotFileHydro(int step,
     // plot all the velocity variables (shifted)
     // plot pressure
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM+2;
+    int nPlot = 4*AMREX_SPACEDIM+2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -52,6 +54,18 @@ void WritePlotFileHydro(int step,
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        std::string x = "averaged_mean";
+        x += (120+i);
+        varNames[cnt++] = x;
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        std::string x = "averaged_var";
+        x += (120+i);
+        varNames[cnt++] = x;
+    }
+
     // reset plotfile variable counter
     cnt = 0;
 
@@ -67,12 +81,25 @@ void WritePlotFileHydro(int step,
         cnt++;
     }
 
+
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
     cnt++;
 
     // compute divergence and store result in plotfile
     ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
+
+    // average staggered means to cell-centers and copy into plotfile
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        AverageFaceToCC(umacM[i],0,plotfile,cnt,1);
+        cnt++;
+    }
+
+    // average staggered vars to cell-centers and copy into plotfile
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        AverageFaceToCC(umacV[i],0,plotfile,cnt,1);
+        cnt++;
+    }
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
