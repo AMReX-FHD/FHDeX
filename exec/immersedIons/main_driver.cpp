@@ -495,6 +495,15 @@ void main_driver(const char* argv)
     }
 
 
+    // staggered mfabs for storing some basic fluid stats
+    std::array< MultiFab, AMREX_SPACEDIM > umacM;
+    std::array< MultiFab, AMREX_SPACEDIM > umacV;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+    }
+
+
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
