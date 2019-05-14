@@ -55,6 +55,13 @@ void FindCenterCoords(MultiFab & RealCenterCoords, const Geometry & geom);
 
 void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab & ccFab);
 
+
+///////////////////////////
+// in ComputeBasicStats.cpp
+
+void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
+                const int incomp, const int outcomp, const int steps);
+
 ///////////////////////////
 // in MultiFABFillRandom.cpp
 
