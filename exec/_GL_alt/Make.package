@@ -1,0 +1,9 @@
+F90EXE_sources += GL_funcs.F90
+F90EXE_sources += GL_namelist.F90
+
+CEXE_sources += main_driver.cpp
+CEXE_sources += timeStep.cpp
+CEXE_sources += writePlotFile.cpp
+CEXE_headers += GL_functions.H
+CEXE_headers += exec_functions.H
+CEXE_headers += exec_functions_F.H

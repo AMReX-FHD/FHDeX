@@ -18,6 +18,7 @@
       double precision alpha,gamma, k, a,b,c,d
       double precision phi_init, phi_0, integral
       double precision mean,std, ave, pi, x , y, rad
+      double precision maxphi,minphi
 
 
       write(6,*)" imax,jmax,cfl,nstep,ntherm,nfreq"
@@ -66,7 +67,6 @@
 
       mean = 0.d0
       std = 0.d0
-      ave = 0.d0
 
       do n=1,ntherm + nstep
 
@@ -74,6 +74,10 @@
 
          call periodic(phi,imax,jmax,ndim)
          call integrate(phi, phi_0, integral,dx,dy,imax,jmax,ndim)
+
+         ave = 0.d0
+         maxphi = phi(1,1)
+         minphi = phi(1,1)
 
          do j=1,jmax
             do i=1,imax
@@ -85,6 +89,8 @@
              mean = mean + value
              std = std + value**2
              ave= ave+phi(i,j)
+             maxphi = max(maxphi, phi(i,j))
+             minphi = min(minphi, phi(i,j))
           
            enddo
          enddo
@@ -94,7 +100,7 @@
          ave = ave / dfloat(imax*jmax)
          std = sqrt(std - mean**2)
 
-         write(6,*)"mean, std, integral", mean,std,integral,factor,ave
+         write(6,*)" average, max, min", ave,maxphi,minphi
 
          do j=1,jmax
            do i= 1,imax

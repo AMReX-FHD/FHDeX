@@ -23,7 +23,7 @@ bool IBParticleContainer::sort_neighbor_list {false};
 
 IBParticleContainer::IBParticleContainer(const Geometry & geom,
                                          const DistributionMapping & dmap,
-                                         const BoxArray & ba, 
+                                         const BoxArray & ba,
                                          int n_nbhd)
     : NeighborParticleContainer<IBP_realData::count, IBP_intData::count>(
             geom, dmap, ba, n_nbhd
@@ -807,7 +807,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
     amrex::AllPrintToFile("ib_particle_data") << "Particles on each box:" << std::endl;
 
     fillNeighbors();
-    
+
     long local_count = 0;
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
@@ -876,7 +876,8 @@ void IBParticleContainer::PrintParticleData(int lev) {
 
 
 void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
-                                              int lev, PairIndex index) {
+                                              int lev, PairIndex index,
+                                              bool unique) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -929,19 +930,28 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
         part_info.real   = 1; // 1 => real (non-neighbor particle)
 
         // Add to list
-        info.push_back(part_info);
+
+        if (unique) {
+            // If in unique-mode: Don't add unless `part_info` is not already in `info`
+            const auto & search = std::find(std::begin(info), std::end(info), part_info);
+            if ( search == std::end(info))
+                info.push_back(part_info);
+        } else {
+            info.push_back(part_info);
+        }
     }
 }
 
 
-Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex index) {
+Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex index,
+                                                          bool unique) {
 
     // Allocate Particle Info vector
     Vector<IBP_info> info;
 
     //___________________________________________________________________________
     // Fill Particle Info vector with local (non-neighbour) data
-    LocalIBParticleInfo(info, lev, index);
+    LocalIBParticleInfo(info, lev, index, unique);
 
 
     return info;
@@ -950,7 +960,8 @@ Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex ind
 
 
 void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
-                                                 int lev, PairIndex index) {
+                                                 int lev, PairIndex index,
+                                                 bool unique) {
 
     RealVect inv_dx = RealVect(
             AMREX_D_DECL(
@@ -1006,19 +1017,28 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
         part_info.real   = 0; // 0 => neighbor particle
 
         // Add to list
-        info.push_back(part_info);
+
+        if (unique) {
+            // If in unique-mode: Don't add unless `part_info` is not already in `info`
+            const auto & search = std::find(std::begin(info), std::end(info), part_info);
+            if ( search == std::end(info))
+                info.push_back(part_info);
+        } else {
+            info.push_back(part_info);
+        }
     }
 }
 
 
-Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex index) {
+Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex index,
+                                                             bool unique) {
 
     // Allocate Particle Info vector
     Vector<IBP_info> info;
 
     //___________________________________________________________________________
     // Fill Particle Info vector with neighbour data
-    NeighborIBParticleInfo(info, lev, index);
+    NeighborIBParticleInfo(info, lev, index, unique);
 
 
     return info;
@@ -1026,25 +1046,27 @@ Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex 
 
 
 
-void IBParticleContainer::IBParticleInfo(Vector<IBP_info> & info, int lev, PairIndex index) {
+void IBParticleContainer::IBParticleInfo(Vector<IBP_info> & info, int lev, PairIndex index,
+                                         bool unique) {
 
     //___________________________________________________________________________
     // Fill Particle Info vector with local (non-neighbour) and neighbour data
-       LocalIBParticleInfo(info, lev, index);
-    NeighborIBParticleInfo(info, lev, index);
+       LocalIBParticleInfo(info, lev, index, unique);
+    NeighborIBParticleInfo(info, lev, index, unique);
 }
 
 
 
-Vector<IBP_info> IBParticleContainer::IBParticleInfo(int lev, PairIndex index) {
+Vector<IBP_info> IBParticleContainer::IBParticleInfo(int lev, PairIndex index,
+                                                     bool unique) {
 
     // Allocate Particle Info vector
     Vector<IBP_info> info;
 
     //___________________________________________________________________________
     // Fill Particle Info vector with local (non-neighbour) and neighbour data
-       LocalIBParticleInfo(info, lev, index);
-    NeighborIBParticleInfo(info, lev, index);
+       LocalIBParticleInfo(info, lev, index, unique);
+    NeighborIBParticleInfo(info, lev, index, unique);
 
 
     return info;

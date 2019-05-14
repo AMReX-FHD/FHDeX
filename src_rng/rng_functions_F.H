@@ -9,6 +9,7 @@ extern "C"
 // in rng_fucntions.F90
 
     void rng_initialize(int* fhd, int* particle, int* sel, int* theta, int* phi, int* general);
+    void rng_init(int* fhd);
     void get_angles(double* costheta, double* sintheta, double* cosphi, double* sinphi);
     double get_uniform_func();
     double get_particle_normal_func();

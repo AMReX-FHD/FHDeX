@@ -54,9 +54,17 @@ contains
     call bl_rng_build_distro(un_general, 0.0d0, 1.0d0)
     call bl_rng_build_distro(un_phi, 0.0d0, 2d0*3.14159265359)
 
-
-
   end subroutine rng_initialize
+
+
+  subroutine rng_init(fhd) bind(c,name='rng_init')
+
+    integer, intent(in) :: fhd
+
+    call bl_rng_build_engine(rng_eng_fhd, fhd)
+    call bl_rng_build_distro(nm_fhd, 0.0d0, 1.0d0)
+
+  end subroutine rng_init
 
 
   subroutine get_particle_normal(test)
