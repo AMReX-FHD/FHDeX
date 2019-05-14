@@ -877,7 +877,7 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 end subroutine move_particles_dry
 
 !extra diffusion term when 
-subroutine dry(dt,part,dry_terms)
+subroutine dry(dt,part,dry_terms, mb)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
@@ -888,8 +888,8 @@ subroutine dry(dt,part,dry_terms)
 
   type(particle_t), intent(inout) :: part 
   double precision, intent(inout) :: dry_terms(3)
-  double precision, intent(in   ) :: dt
-  real(amrex_real) runtime, normalrand(3),std,bfac(3)
+  double precision, intent(in   ) :: dt, mb(3)
+  real(amrex_real) runtime, normalrand(3),std(3),bfac(3)
 
 
                 !Brownian forcing
@@ -899,16 +899,20 @@ subroutine dry(dt,part,dry_terms)
               call get_particle_normal(normalrand(3))
 
               !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
-              std = sqrt(2.0*part%dry_diff)
+              std(1) = sqrt(2.0*mb(1)*part%dry_diff)
+              std(2) = sqrt(2.0*mb(2)*part%dry_diff)
+              std(3) = sqrt(2.0*mb(3)*part%dry_diff)
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 
-              bfac = std*normalrand/sqrt(dt)
+              bfac(1) = std(1)*normalrand(1)/sqrt(dt)
+              bfac(2) = std(2)*normalrand(2)/sqrt(dt)
+              bfac(3) = std(3)*normalrand(3)/sqrt(dt)
 
               !KK does this have all the forces in it already? need to check
-              dry_terms(1) = part%dry_diff*part%force(1)/(k_B*t_init(1))+bfac(1)
-              dry_terms(2) = part%dry_diff*part%force(2)/(k_B*t_init(1))+bfac(2)
-              dry_terms(3) = part%dry_diff*part%force(3)/(k_B*t_init(1))+bfac(3)
+              dry_terms(1) = mb(1)*part%dry_diff*part%force(1)/(k_B*t_init(1))+bfac(1)
+              dry_terms(2) = mb(2)*part%dry_diff*part%force(2)/(k_B*t_init(1))+bfac(2)
+              dry_terms(3) = mb(3)*part%dry_diff*part%force(3)/(k_B*t_init(1))+bfac(3)
 
               !print *, dry_terms
 
@@ -1851,17 +1855,18 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                      sourcez, sourcezlo, sourcezhi, &
 #endif
+                                     mobility, mlo, mhi, &
                                      surfaces, ns, sw)bind(c,name="move_ions_fhd")
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies
   use rng_functions_module
   use surfaces_module
   
   implicit none
 
-  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw
+  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw, mlo(3), mhi(3)
   integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
   integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
 #if (AMREX_SPACEDIM == 3)
@@ -1896,6 +1901,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   double precision, intent(inout) :: sourcez(sourcezlo(1):sourcezhi(1),sourcezlo(2):sourcezhi(2),sourcezlo(3):sourcezhi(3))
 #endif
 
+  double precision, intent(inout) :: mobility(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),1:(nspecies*AMREX_SPACEDIM))
+
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   
@@ -1905,7 +1912,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves, maxspeed, speed
+                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves, maxspeed, speed, mb(3)
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -2054,7 +2061,21 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               runtime = dt
 
               if (dry_move_tog .eq. 1) then
-                call dry(dt,part,dry_terms)
+
+               !Get fluid cell - possibly replace this with peskin interp
+                fi(1) = floor((part%pos(1) - plof(1))*dxfinv(1))
+                fi(2) = floor((part%pos(2) - plof(2))*dxfinv(2))
+#if (BL_SPACEDIM == 3)
+                fi(3) = floor((part%pos(3) - plof(3))*dxfinv(3))
+#else
+                fi(3) = 0
+#endif
+                mb(1) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 1)
+                mb(2) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 2)
+#if (BL_SPACEDIM == 3)
+                mb(3) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 3)
+#endif
+                call dry(dt,part,dry_terms, mb)
 
                 !print *, "wet: ", part%vel
 
@@ -2642,20 +2663,28 @@ subroutine collect_charge(particles, np, lo, hi, &
   
 end subroutine collect_charge
 
-function  normal_mobility(spec, z) result(nm)
+subroutine  get_mobility(nmob, tmob, spec, z)
   use species_type_module, only: species_t
   use amrex_fort_module, only: amrex_real
+  use common_namelist_module, only: k_b, t_init, visc_coef
 
   implicit none
 
   type(species_t), intent(in   ) :: spec
   real(amrex_real),intent(in   ) :: z
+  real(amrex_real),intent(inout) :: nmob, tmob
 
-  real(amrex_real) nm
-  
-  nm =1
+  real(amrex_real) a
 
-end function  normal_mobility
+  a = k_b*t_init(1)/(spec%dry_diff*visc_coef*3.142*6)
+
+  !print *, "z, a, nmob: ", z, a, nmob
+
+  nmob = max(1 - 9*a/(8*z) + (a**3)/(2*z**3) - (a**5)/(8*(z**5)),0d0)
+  tmob = max(1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5)),0d0)
+
+end subroutine get_mobility
+
 
 subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, species)bind(c,name="compute_dry_mobility")
 
@@ -2674,19 +2703,74 @@ subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, s
   type(species_t), pointer :: spec
   
   integer :: i, j, k, l
-
-  print *, spec%q
+  double precision :: z, nmob, tmob
  
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           do l = 1, nspecies
 
-              !if(bc_lo(1) .ne. -1)
-          
-                spec => species(l)
+            mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = 1
+            mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = 1
+#if (BL_SPACEDIM == 3)               
+            mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = 1
+#endif
+            spec => species(l)
 
-               ! normal_mobility   
+            if((bc_lo(1) .eq. 2) .and. (bc_hi(1) .eq. 2)) then
+
+              z = dx(1)*(i+0.5)
+
+              if(z .gt. (phi(1)-plo(1))/2.0) then
+                z = phi(1) - z
+              endif
+
+              call get_mobility(nmob, tmob, spec, z)
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = nmob
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = tmob
+#if (BL_SPACEDIM == 3)               
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = tmob
+#endif
+            endif
+
+            if((bc_lo(2) .eq. 2) .and. (bc_hi(2) .eq. 2)) then
+
+              z = dx(2)*(j+0.5)
+
+              if(z .gt. (phi(2)-plo(2))/2.0) then
+                z = phi(2) - z
+              endif
+
+              call get_mobility(nmob, tmob, spec, z)
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = tmob
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = nmob
+#if (BL_SPACEDIM == 3)               
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = tmob
+#endif
+            endif
+
+
+#if (BL_SPACEDIM == 3)               
+            if((bc_lo(3) .eq. 2) .and. (bc_hi(3) .eq. 2)) then
+
+              z = dx(3)*(k+0.5)
+
+              if(z .gt. (phi(3)-plo(3))/2.0) then
+                z = phi(3) - z
+              endif
+
+              call get_mobility(nmob, tmob, spec, z)
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = tmob
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = tmob
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = nmob
+
+            endif
+#endif
+          
           enddo         
     
         end do

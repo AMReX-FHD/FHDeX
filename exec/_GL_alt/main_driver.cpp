@@ -134,12 +134,13 @@ void main_driver(const char* argv)
 
      }
 
+    amrex::Real integral;
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
     {
 
-        RK2step(phi, phin, rannums, geom, dx, dt);
+        RK2step(phi, phin, rannums, geom, dx, dt, &integral);
 
 //        if(step == n_steps_skip)
 //     {
@@ -152,6 +153,7 @@ void main_driver(const char* argv)
 
         if(step%500 == 0)
         {    
+                amrex::Print() << "Integral " << integral << "\n";
                 amrex::Print() << "Advanced step " << step << "\n";
         }
 
