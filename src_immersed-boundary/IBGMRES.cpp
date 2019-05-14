@@ -113,7 +113,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // Pre-allocate force arrays
         const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+        // ... initialized to (0..0)
         marker_forces[part_indices[i]].resize(marker_positions.size());
+        for (auto & elt : marker_forces[part_indices[i]])
+            elt = RealVect{1, 1, 1};
     }
 
 
@@ -131,6 +134,16 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     //         marker_positions.push_back(marker);
     // }
 
+
+    int ib_grow =  ib_pc.get_nghost() + 6;
+    //  using the 6-point stencil ----- ^
+
+    std::array<MultiFab, AMREX_SPACEDIM> spread_f;
+    std::array<MultiFab, AMREX_SPACEDIM> u_precon_f;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        spread_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+        u_precon_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+    }
 
 
 
@@ -162,11 +175,27 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
     //___________________________________________________________________________
     // First application of preconditioner
-    
+
     // 1. Fluid Precon
     ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
-    
+
     // 2. IB Precon
+
+    // 2.a spread_f = S*Lambda
+    for (const auto & pid : part_indices){
+        ib_pc.SpreadMarkers(0, pid, marker_forces[pid], spread_f);
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            spread_f[d].FillBoundary(geom.periodicity());
+    }
+
+    // 2.b u_precon_f = A^{-1} spread_f = A^{-1} S Lambda
+    StagMGSolver(alpha_fc, beta, beta_ed, gamma, u_precon_f, spread_f, theta_alpha, geom);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        u_precon_f[d].FillBoundary(geom.periodicity());
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        VisMF::Write(u_precon_f[d], "u_precon_f_"+std::to_string(d));
+
 
 
 
