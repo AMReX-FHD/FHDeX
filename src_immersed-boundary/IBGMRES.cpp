@@ -216,7 +216,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         Vector<RealVect> mf_tmp(marker_forces[pid].size());
         ib_pc.InterpolateMarkers(0, pid, mf_tmp, AGp);
         for (int i=0; i<marker_forces[pid].size(); ++i) 
-            marker_forces[pid][i] = marker_forces[pid][i] + mf_tmp[i];
+            marker_forces[pid][i] = marker_forces[pid][i] - mf_tmp[i];
     }
 
     // 2.c spread_f = S*Lambda
