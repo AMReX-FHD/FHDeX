@@ -14,12 +14,14 @@ void WritePlotFile(int step,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
                    const MultiFab& potential,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& efield) 
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield,
+                   const MultiFab& mobility) 
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);
     std::string eplotfilename = Concatenate("eplt",step,9);
     std::string pplotfilename = Concatenate("parplt",step,9);
+    std::string mplotfilename = Concatenate("mplt",step,9);
 
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
@@ -33,12 +35,16 @@ void WritePlotFile(int step,
 
     int enPlot = 2+AMREX_SPACEDIM;
 
+    int fnPlot = nspecies*AMREX_SPACEDIM;
+
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
     MultiFab eplotfile(eba, edmap, enPlot, 0);
 
     Vector<std::string> cvarNames(cnPlot);
     Vector<std::string> evarNames(enPlot);
+
+    Vector<std::string> fvarNames(fnPlot);
 
     amrex::MultiFab::Copy(eplotfile,charge,0,0,1,0);
     amrex::MultiFab::Copy(eplotfile,potential,0,1,1,0);
@@ -48,17 +54,19 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(eplotfile,efield[2],0,4,1,0);
 
 
-
-  // average staggered velocities to cell-centers and copy into plotfile
-//    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-//        AverageFaceToCC(efield[i],0,eplotfile,2+i,1);
-//    }
-
-//    AverageFaceToCC(efield[1],0,eplotout,0,1);
-
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
     amrex::MultiFab::Copy(cplotfile,particleVars,0,23,18,0);
+
+    for (int l=0; l<nspecies; ++l)
+    {
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+        {
+            fvarNames[l*AMREX_SPACEDIM + d] = Concatenate("spec ", l, 0) + Concatenate(" dim ", d, 0);
+
+          //  Print() << fvarNames[l*AMREX_SPACEDIM + d] << "\n";
+        }
+    }
 
     evarNames[0] = "chargeInstant";
     evarNames[1] = "potentialInstant";
@@ -150,8 +158,9 @@ void WritePlotFile(int step,
     cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
     cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
 
-    //WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
+    WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
+    WriteSingleLevelPlotfile(mplotfilename,mobility,fvarNames,geom,time,step);
 
     WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
 

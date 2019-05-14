@@ -694,8 +694,6 @@ void main_driver(const char* argv)
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, ionParticle, geom);
-
-    abort();
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -744,7 +742,7 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             particles.Redistribute();
             particles.ReBin();
@@ -780,7 +778,7 @@ void main_driver(const char* argv)
         {
            
             //This write particle data and associated fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC);
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(step,time,geom,umac,pres);

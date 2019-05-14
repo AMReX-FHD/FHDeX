@@ -1,4 +1,5 @@
 rm -r plt*
+rm -r mplt*
 rm -r parplt*
 rm -r cplt*
 rm -r eplt*
