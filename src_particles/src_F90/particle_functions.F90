@@ -2642,20 +2642,26 @@ subroutine collect_charge(particles, np, lo, hi, &
   
 end subroutine collect_charge
 
-function  normal_mobility(spec, z) result(nm)
+subroutine  get_mobility(nmob, tmob, spec, z)
   use species_type_module, only: species_t
   use amrex_fort_module, only: amrex_real
+  use common_namelist_module, only: k_b, t_init, visc_coef
 
   implicit none
 
   type(species_t), intent(in   ) :: spec
   real(amrex_real),intent(in   ) :: z
+  real(amrex_real),intent(inout) :: nmob, tmob
 
-  real(amrex_real) nm
-  
-  nm =1
+  real(amrex_real) a
 
-end function  normal_mobility
+  a = k_b*t_init(1)/(spec%dry_diff*visc_coef*3.142*6)
+
+  nmob = 1 - 9*a/(8*z) + (a**3)/(2*z**3) - (a**5)/(8*(z**5))
+  tmob = 1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5))
+
+end subroutine get_mobility
+
 
 subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, species)bind(c,name="compute_dry_mobility")
 
@@ -2674,19 +2680,74 @@ subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, s
   type(species_t), pointer :: spec
   
   integer :: i, j, k, l
-
-  print *, spec%q
+  double precision :: z, nmob, tmob
  
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
           do l = 1, nspecies
 
-              !if(bc_lo(1) .ne. -1)
-          
-                spec => species(l)
+            mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = 1
+            mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = 1
+#if (BL_SPACEDIM == 3)               
+            mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = 1
+#endif
+            spec => species(l)
 
-               ! normal_mobility   
+            if((bc_lo(1) .eq. 2) .and. (bc_hi(1) .eq. 2)) then
+
+              z = dx(1)*(i+0.5)
+
+              if(z .gt. bc_lo(1)/2.0) then
+                z = bc_hi(1) - z
+              endif
+
+              call get_mobility(nmob, tmob, spec, z)
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = nmob
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = tmob
+#if (BL_SPACEDIM == 3)               
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = tmob
+#endif
+            endif
+
+            if((bc_lo(2) .eq. 2) .and. (bc_hi(2) .eq. 2)) then
+
+              z = dx(2)*(j+0.5)
+
+              if(z .gt. bc_lo(2)/2.0) then
+                z = bc_hi(2) - z
+              endif
+
+              call get_mobility(nmob, tmob, spec, z)
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = tmob
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = nmob
+#if (BL_SPACEDIM == 3)               
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = tmob
+#endif
+            endif
+
+
+#if (BL_SPACEDIM == 3)               
+            if((bc_lo(3) .eq. 2) .and. (bc_hi(3) .eq. 2)) then
+
+              z = dx(3)*(k+0.5)
+
+              if(z .gt. bc_lo(1)/2.0) then
+                z = bc_hi(3) - z
+              endif
+
+              call get_mobility(nmob, tmob, spec, z)
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 1) = tmob
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 2) = tmob
+
+              mobility(i,j,k,(l-1)*AMREX_SPACEDIM + 3) = nmob
+
+            endif
+#endif
+          
           enddo         
     
         end do
