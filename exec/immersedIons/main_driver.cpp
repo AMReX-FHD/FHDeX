@@ -567,6 +567,14 @@ void main_driver(const char* argv)
                  umac[1].setVal(0);,
                  umac[2].setVal(0););
 
+            AMREX_D_TERM(umacM[0].setVal(0);,
+                     umacM[1].setVal(0);,
+                     umacM[2].setVal(0););
+
+            AMREX_D_TERM(umacV[0].setVal(0);,
+                     umacV[1].setVal(0);,
+                     umacV[2].setVal(0););
+
     // fill periodic ghost cells
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umac[d].FillBoundary(geom.periodicity());
@@ -766,10 +774,24 @@ void main_driver(const char* argv)
         {
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
+            AMREX_D_TERM(umacM[0].setVal(0);,
+                     umacM[1].setVal(0);,
+                     umacM[2].setVal(0););
+
+            AMREX_D_TERM(umacV[0].setVal(0);,
+                     umacV[1].setVal(0);,
+                     umacV[2].setVal(0););
+
             statsCount = 1;
         }
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            umac[d].FillBoundary(geom.periodicity());
+
+            ComputeBasicStats(umac[d], umacM[d], umacV[d], d+1, d+1, statsCount);
+        }
 
         statsCount++;
 	//_______________________________________________________________________
