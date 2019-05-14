@@ -7,12 +7,11 @@
 #include "AMReX_ArrayLim.H"
 
 void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums, 
-                            const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
+                            const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt, amrex::Real& integral)
 {
 
     const int comp=0;
     int ncomp=1;
-    amrex::Real integral;
 
     for (MFIter mfi(rannums); mfi.isValid(); ++mfi) {
 
@@ -40,6 +39,9 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
 
     ParallelDescriptor::ReduceRealSum(integral);
 
+//    if(ParallelDescriptor::MyProc() == 0 ){
+//           std::cout << "integral = "<< integral << std::endl;
+//    }
 
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
