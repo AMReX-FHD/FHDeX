@@ -18,7 +18,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
              std::array<MultiFab, NUM_EDGE> & beta_ed,
              MultiFab & gamma,
              Real theta_alpha,
-             IBParticleContainer & ib_pc,
+             const IBParticleContainer & ib_pc,
              const Geometry & geom,
              Real & norm_pre_rhs);
 
@@ -28,6 +28,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                const MultiFab & gamma, const Real & theta_alpha,
+               const IBParticleContainer & ib_pc,
                std::map<std::pair<int, int>, Vector<RealVect>> marker_forces,
                std::map<std::pair<int, int>, Vector<RealVect>> marker_W,
                const Geometry & geom);

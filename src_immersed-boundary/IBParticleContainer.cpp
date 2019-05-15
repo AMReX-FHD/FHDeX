@@ -416,8 +416,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
 
 
 void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
-                                        const Vector<RealVect> & f_in,
-                                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
+        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
 
     //___________________________________________________________________________
@@ -432,7 +431,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
     const Geometry & geom = Geom(0);
     const Real     *   dx = geom.CellSize();
 
-    const int n_marker = marker_positions[lev][pindex].size();
+    const int n_marker = marker_positions[lev].at(pindex).size();
 
 
     //___________________________________________________________________________
@@ -458,7 +457,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 #if (AMREX_SPACEDIM > 2)
                        BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
 #endif
-                       marker_positions[lev][pindex].dataPtr(),
+                       marker_positions[lev].at(pindex).dataPtr(),
                        f_in.dataPtr(),
                        & n_marker,
                        dx );
@@ -467,8 +466,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 
 
 void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pindex,
-                                             Vector<RealVect> & f_out,
-                                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
+        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
 
 
     //___________________________________________________________________________
@@ -483,7 +481,7 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
     const Geometry & geom = Geom(0);
     const Real     *   dx = geom.CellSize();
 
-    const int n_marker = marker_positions[lev][pindex].size();
+    const int n_marker = marker_positions[lev].at(pindex).size();
 
 
     //___________________________________________________________________________
@@ -509,7 +507,7 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
 #if (AMREX_SPACEDIM > 2)
                             BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
 #endif
-                            marker_positions[lev][pindex].dataPtr(),
+                            marker_positions[lev].at(pindex).dataPtr(),
                             f_out.dataPtr(),
                             & n_marker,
                             dx );
@@ -877,7 +875,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
 
 void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
                                               int lev, PairIndex index,
-                                              bool unique) {
+                                              bool unique) const {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -890,13 +888,13 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
         );
 
 
-    auto & particle_data = GetParticles(lev)[index];
+    auto & particle_data = GetParticles(lev).at(index);
     long np = particle_data.size();
 
     // Iterate over local particle data
-    AoS & particles = particle_data.GetArrayOfStructs();
+    const AoS & particles = particle_data.GetArrayOfStructs();
     for(int i = 0; i < np; i++){
-        ParticleType & part = particles[i];
+        const ParticleType & part = particles[i];
 
         // Position of IBParticle
         RealVect pos = RealVect(
@@ -944,7 +942,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
 
 
 Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex index,
-                                                          bool unique) {
+                                                          bool unique) const {
 
     // Allocate Particle Info vector
     Vector<IBP_info> info;
@@ -961,7 +959,7 @@ Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex ind
 
 void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
                                                  int lev, PairIndex index,
-                                                 bool unique) {
+                                                 bool unique) const {
 
     RealVect inv_dx = RealVect(
             AMREX_D_DECL(
@@ -971,7 +969,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
             )
         );
 
-    int ng = neighbors[lev][index].size();
+    int ng = neighbors[lev].at(index).size();
 
     // Iterate over neighbour particles:
     // TODO: HAXOR!!! This should be fixed ASAP: if I understand this correctly,
@@ -981,9 +979,9 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
     // neighbors[index] array in units of sizeof(ParticleData). All of this is a
     // little too dangerous for my taste: never hide what you're doing from your
     // compiler!!!
-    ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
+    const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
     for(int i = 0; i < ng; i++){
-        ParticleType & part = nbhd_data[i];
+        const ParticleType & part = nbhd_data[i];
 
         // Position of neighbour IBParticle
         RealVect pos = RealVect(
@@ -1031,7 +1029,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
 
 
 Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex index,
-                                                             bool unique) {
+                                                             bool unique) const {
 
     // Allocate Particle Info vector
     Vector<IBP_info> info;
@@ -1047,7 +1045,7 @@ Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex 
 
 
 void IBParticleContainer::IBParticleInfo(Vector<IBP_info> & info, int lev, PairIndex index,
-                                         bool unique) {
+                                         bool unique) const {
 
     //___________________________________________________________________________
     // Fill Particle Info vector with local (non-neighbour) and neighbour data
@@ -1058,7 +1056,7 @@ void IBParticleContainer::IBParticleInfo(Vector<IBP_info> & info, int lev, PairI
 
 
 Vector<IBP_info> IBParticleContainer::IBParticleInfo(int lev, PairIndex index,
-                                                     bool unique) {
+                                                     bool unique) const {
 
     // Allocate Particle Info vector
     Vector<IBP_info> info;

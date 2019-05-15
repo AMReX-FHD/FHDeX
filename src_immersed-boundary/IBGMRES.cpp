@@ -21,7 +21,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
              MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
              MultiFab & gamma, Real theta_alpha,
-             IBParticleContainer & ib_pc,
+             const IBParticleContainer & ib_pc,
              const Geometry & geom,
              Real & norm_pre_rhs) {
 
@@ -57,26 +57,22 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
 
-    BoxArray ba = b_p.boxArray();
+    BoxArray ba              = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
 
 
     // # of ghost cells must match x_u so higher-order stencils can work
     std::array< MultiFab, AMREX_SPACEDIM > r_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
-
     std::array< MultiFab, AMREX_SPACEDIM > w_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > tmp_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > V_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
+        w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
         V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
+    }
 
 
     // # of ghost cells must match x_p so higher-order stencils can work
@@ -584,12 +580,13 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                const MultiFab & gamma, const Real & theta_alpha,
+               const IBParticleContainer & ib_pc,
                std::map<std::pair<int, int>, Vector<RealVect>> marker_forces,
                std::map<std::pair<int, int>, Vector<RealVect>> marker_W,
                const Geometry & geom)
 {
 
-    BL_PROFILE_VAR("ApplyPrecon()", ApplyPrecon);
+    BL_PROFILE_VAR("IBMPrecon()", IBMPrecon);
 
     BoxArray ba              = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
@@ -598,32 +595,30 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     Vector<Real> mean_val_umac(AMREX_SPACEDIM);
 
 
-    MultiFab phi     (ba,dmap, 1, 1);
-    MultiFab mac_rhs (ba,dmap, 1, 0);
-    MultiFab zero_fab(ba,dmap, 1, 0);
-    MultiFab x_p_tmp (ba,dmap, 1, 1);
+    MultiFab phi     (ba, dmap, 1, 1);
+    MultiFab mac_rhs (ba, dmap, 1, 0);
+    MultiFab zero_fab(ba, dmap, 1, 0);
+    MultiFab x_p_tmp (ba, dmap, 1, 1);
 
     // set zero_fab_fc to 0
     zero_fab.setVal(0.);
 
-    // build alphainv_fc, one_fab_fc, zero_fab_fc, and b_u_tmp
+    // build alphainv_fc, one_fab_fc, and zero_fab_fc
     std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
     std::array< MultiFab, AMREX_SPACEDIM > one_fab_fc;
     std::array< MultiFab, AMREX_SPACEDIM > zero_fab_fc;
-    std::array< MultiFab, AMREX_SPACEDIM > b_u_tmp;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+         one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
         zero_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        b_u_tmp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
 
         // set alphainv_fc to 1/alpha_fc
         // set one_fab_fc to 1
         // set zero_fab_fc to 0
         alphainv_fc[d].setVal(1.);
         alphainv_fc[d].divide(alpha_fc[d],0,1,0);
-        one_fab_fc[d].setVal(1.);
+         one_fab_fc[d].setVal(1.);
         zero_fab_fc[d].setVal(0.);
     }
 
@@ -631,9 +626,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     // set the initial guess for Phi in the Poisson solve to 0
     // set x_u = 0 as initial guess
     phi.setVal(0.);
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
         x_u[d].setVal(0.);
-    }
 
 
     // 1 = projection preconditioner
@@ -645,6 +639,10 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
     // projection preconditioner
     if (abs(precon_type) == 1) {
+
+        //_______________________________________________________________________
+        // Temporary arrays
+
 
         //_______________________________________________________________________
         // Fluid velocity part (also used later as part of the immersed boundary)
@@ -682,7 +680,11 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
 
         //_______________________________________________________________________
-        // Pressure part (also used later as part of the immersed boundary)
+        // Immersed boundary part
+
+
+        //_______________________________________________________________________
+        // Pressure part
         // Calculates: x_p = { -(DA^{-1}g + h) + Lp^{-1}(DA^{-1}g + h)
         //                   { L_alpha Lp^{-1}(DA^{-1}g + h)
 
@@ -730,14 +732,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
             // add theta_alpha*Phi to x_p
             MultiFab::Add(x_p, phi, 0, 0, 1, 0);
-        }
-        else {
-            Abort("StagApplyOp: visc_schur_approx != 0 not supported");
-        }
-    }
-    else {
-        Abort("StagApplyOp: unsupposed precon_type");
-    }
+        } else { Abort("StagApplyOp: visc_schur_approx != 0 not supported"); }
+
+    } else { Abort("StagApplyOp: unsupposed precon_type"); }
 
     ////////////////////
     // STEP 5: Handle null-space issues in MG solvers
