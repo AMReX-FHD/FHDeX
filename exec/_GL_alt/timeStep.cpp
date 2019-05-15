@@ -7,11 +7,13 @@
 #include "AMReX_ArrayLim.H"
 
 void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums, 
-                            const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt, amrex::Real& integral)
+               const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt, amrex::Real& integral, int n)
 {
 
     const int comp=0;
     int ncomp=1;
+
+    amrex::Real energy, teng;
 
     for (MFIter mfi(rannums); mfi.isValid(); ++mfi) {
 
@@ -43,6 +45,9 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
 //           std::cout << "integral = "<< integral << std::endl;
 //    }
 
+    energy =0.;
+    teng =0.;
+
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -52,7 +57,16 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                    phin[mfi].dataPtr(),  
                    rannums[mfi].dataPtr(),
                    &integral,
+                   &energy, &teng,
       	           dx, &dt);   
+    }
+
+    ParallelDescriptor::ReduceRealSum(energy);
+    ParallelDescriptor::ReduceRealSum(teng);
+    if(ParallelDescriptor::MyProc() == 0 ){
+           std::cout << n << " " << energy << "  energy  " << std::endl;
+           std::cout << n << " " << teng << "  teng  " << std::endl;
+          // std::cout << time << " " << energy << "  energy = "<< energy << "  dphi/dt  = " << phit << std::endl;
     }
 
 //    phin.FillBoundary(geom.periodicity());
