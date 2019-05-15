@@ -120,6 +120,8 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
+    step = 0;
+
     statsCount = 1;
 
      Init_Phi(phi,dx);
@@ -140,7 +142,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
-        RK2step(phi, phin, rannums, geom, dx, dt, &integral);
+        RK2step(phi, phin, rannums, geom, dx, dt, integral, step);
 
 //        if(step == n_steps_skip)
 //     {
@@ -150,6 +152,8 @@ void main_driver(const char* argv)
 //        evaluateStats(phi, dx);
 
 //        statsCount++;
+
+        inc_phi0(&step);
 
         if(step%500 == 0)
         {    
