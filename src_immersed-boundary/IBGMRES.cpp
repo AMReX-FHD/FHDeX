@@ -20,12 +20,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
              std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
              MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
-             MultiFab & gamma,
-             Real theta_alpha,
+             MultiFab & gamma, Real theta_alpha,
              IBParticleContainer & ib_pc,
              const Geometry & geom,
-             Real & norm_pre_rhs)
-{
+             Real & norm_pre_rhs) {
 
     BL_PROFILE_VAR("GMRES()", GMRES);
 
@@ -36,7 +34,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     Vector<Real> cs(gmres_max_inner);
     Vector<Real> sn(gmres_max_inner);
     Vector<Real>  y(gmres_max_inner);
-    Vector<Real>  s(gmres_max_inner+1);
+    Vector<Real>  s(gmres_max_inner + 1);
 
     Vector<Vector<Real>> H(gmres_max_inner + 1, Vector<Real>(gmres_max_inner));
 
@@ -94,6 +92,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // Vector<RealVect> marker_positions;
     // TODO: make this a referenced argument
     std::map<std::pair<int, int>, Vector<RealVect>> marker_forces;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_W;
 
 
 
@@ -113,7 +112,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // Pre-allocate force arrays
         const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+        // ... initialized to (0..0)
         marker_forces[part_indices[i]].resize(marker_positions.size());
+        // for (auto & elt : marker_forces[part_indices[i]])
+        //     elt = RealVect{1, 1, 1};
+        marker_W[part_indices[i]].resize(marker_positions.size());
     }
 
 
@@ -132,6 +135,23 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // }
 
 
+    int ib_grow = 6; //  using the 6-point stencil
+
+    // Buffer velocity to allow for enough ghost cells
+    std::array<MultiFab, AMREX_SPACEDIM> u_buffer;
+    std::array<MultiFab, AMREX_SPACEDIM> spread_f;
+    std::array<MultiFab, AMREX_SPACEDIM> u_precon_f;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        u_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+        spread_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+        u_precon_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+
+        MultiFab::Copy(u_buffer[d], x_u[d], 0, 0, 1, 0);
+        u_buffer[d].FillBoundary(geom.periodicity());
+    }
+    MultiFab p_buffer(ba, dmap, 1, ib_grow);
+    MultiFab::Copy(p_buffer, x_p, 0, 0, 1, 0);
+    p_buffer.FillBoundary(geom.periodicity());
 
 
 
@@ -151,7 +171,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // scale the rhs:
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            b_u[d].mult(scale_factor,0,1,b_u[d].nGrow());
+            b_u[d].mult(scale_factor, 0, 1, b_u[d].nGrow());
 
         // scale the viscosities:
         beta.mult(scale_factor, 0, 1, beta.nGrow());
@@ -160,13 +180,57 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             beta_ed[d].mult(scale_factor, 0, 1, beta_ed[d].nGrow());
     }
 
+
     //___________________________________________________________________________
     // First application of preconditioner
-    
+
     // 1. Fluid Precon
     ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
-    
+
     // 2. IB Precon
+
+    // 2.a Lambda = J*u
+    for (const auto & pid : part_indices)
+        ib_pc.InterpolateMarkers(0, pid, marker_forces[pid], u_buffer);
+
+    // 2.b Lambda = J*u - J A^{-1} G p
+    std::array<MultiFab, AMREX_SPACEDIM> Gp;
+    std::array<MultiFab, AMREX_SPACEDIM> AGp;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        Gp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+        AGp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+    }
+
+    ComputeGrad(p_buffer, Gp, 0, 0, 1, geom);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        Gp[d].FillBoundary(geom.periodicity());
+
+    StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGp, Gp, theta_alpha, geom);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        AGp[d].FillBoundary(geom.periodicity());
+
+    for (const auto & pid : part_indices) {
+        Vector<RealVect> mf_tmp(marker_forces[pid].size());
+        ib_pc.InterpolateMarkers(0, pid, mf_tmp, AGp);
+        for (int i=0; i<marker_forces[pid].size(); ++i) 
+            marker_forces[pid][i] = marker_forces[pid][i] - mf_tmp[i];
+    }
+
+    // 2.c spread_f = S*Lambda
+    for (const auto & pid : part_indices) {
+        ib_pc.SpreadMarkers(0, pid, marker_forces[pid], spread_f);
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            spread_f[d].FillBoundary(geom.periodicity());
+    }
+
+    // 2.d u_precon_f = A^{-1} spread_f = A^{-1} S Lambda
+    StagMGSolver(alpha_fc, beta, beta_ed, gamma, u_precon_f, spread_f, theta_alpha, geom);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        u_precon_f[d].FillBoundary(geom.periodicity());
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        VisMF::Write(u_precon_f[d], "u_precon_f_"+std::to_string(d));
+
 
 
 
@@ -495,7 +559,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // unscale the rhs
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            b_u[d].mult(1./scale_factor,0,1,b_u[d].nGrow());
+            b_u[d].mult(1./scale_factor, 0, 1, b_u[d].nGrow());
 
         // unscale the viscosities
         beta.mult(1./scale_factor, 0, 1, beta.nGrow());
@@ -511,4 +575,187 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 << norm_resid/norm_init_resid << std::endl;
     }
 
+}
+
+
+
+void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+               std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
+               const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+               const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
+               const MultiFab & gamma, const Real & theta_alpha,
+               std::map<std::pair<int, int>, Vector<RealVect>> marker_forces,
+               std::map<std::pair<int, int>, Vector<RealVect>> marker_W,
+               const Geometry & geom)
+{
+
+    BL_PROFILE_VAR("ApplyPrecon()", ApplyPrecon);
+
+    BoxArray ba              = b_p.boxArray();
+    DistributionMapping dmap = b_p.DistributionMap();
+
+    Real         mean_val_pres;
+    Vector<Real> mean_val_umac(AMREX_SPACEDIM);
+
+
+    MultiFab phi     (ba,dmap, 1, 1);
+    MultiFab mac_rhs (ba,dmap, 1, 0);
+    MultiFab zero_fab(ba,dmap, 1, 0);
+    MultiFab x_p_tmp (ba,dmap, 1, 1);
+
+    // set zero_fab_fc to 0
+    zero_fab.setVal(0.);
+
+    // build alphainv_fc, one_fab_fc, zero_fab_fc, and b_u_tmp
+    std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > one_fab_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > zero_fab_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > b_u_tmp;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        zero_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        b_u_tmp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+
+        // set alphainv_fc to 1/alpha_fc
+        // set one_fab_fc to 1
+        // set zero_fab_fc to 0
+        alphainv_fc[d].setVal(1.);
+        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+        one_fab_fc[d].setVal(1.);
+        zero_fab_fc[d].setVal(0.);
+    }
+
+
+    // set the initial guess for Phi in the Poisson solve to 0
+    // set x_u = 0 as initial guess
+    phi.setVal(0.);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        x_u[d].setVal(0.);
+    }
+
+
+    // 1 = projection preconditioner
+    // 2 = lower triangular preconditioner
+    // 3 = upper triangular preconditioner
+    // 4 = block diagonal preconditioner
+    // 5 = Uzawa-type approximation (see paper)
+    // 6 = upper triangular + viscosity-based BFBt Schur complement (from Georg Stadler)
+
+    // projection preconditioner
+    if (abs(precon_type) == 1) {
+
+        //_______________________________________________________________________
+        // Fluid velocity part (also used later as part of the immersed boundary)
+        // Calculates: x_u = A^{-1}g - GLp^{-1}(DA^{-1}g + h)
+
+
+        ////////////////////
+        // STEP 1: Solve for an intermediate state, x_u^star, using an implicit viscous solve
+        //         x_u^star = A^{-1} b_u
+        ////////////////////
+
+        // x_u^star = A^{-1} b_u ......................................... x_u = A^{-1}g
+        StagMGSolver(alpha_fc, beta, beta_ed, gamma, x_u, b_u, theta_alpha, geom);
+
+        ////////////////////
+        // STEP 2: Construct RHS for pressure Poisson problem
+        ////////////////////
+
+        // set mac_rhs = D(x_u^star) ................................ mac_rhs = DA^{-1}g
+        ComputeDiv(mac_rhs, x_u, 0, 0, 1, geom, 0);
+
+        // add b_p to mac_rhs ................................... mac_rhs = DA^{-1}g + h
+        MultiFab::Add(mac_rhs, b_p, 0, 0, 1, 0);
+
+        ////////////////////
+        // STEP 3: Compute x_u
+        ////////////////////
+
+        // use multigrid to solve for Phi ......................... phi = Lp^{-1}mac_rhs
+        // x_u^star is only passed in to get a norm for absolute residual criteria
+        MacProj(alphainv_fc, mac_rhs, phi, geom);
+
+        // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
+        SubtractWeightedGradP(x_u, alphainv_fc, phi, geom);
+
+
+        //_______________________________________________________________________
+        // Pressure part (also used later as part of the immersed boundary)
+        // Calculates: x_p = { -(DA^{-1}g + h) + Lp^{-1}(DA^{-1}g + h)
+        //                   { L_alpha Lp^{-1}(DA^{-1}g + h)
+
+
+        ////////////////////
+        // STEP 4: Compute x_p by applying the Schur complement approximation
+        ////////////////////
+
+        if (visc_schur_approx == 0) {
+            // if precon_type = +1, or theta_alpha=0 then x_p = theta_alpha*Phi - c*beta*(mac_rhs)
+            // if precon_type = -1                   then x_p = theta_alpha*Phi - c*beta*L_alpha Phi
+
+            if (precon_type == 1 || theta_alpha == 0) {
+                // first set x_p = -mac_rhs ...................... x_p = -(DA^{-1}g + h)
+                MultiFab::Copy(x_p, mac_rhs, 0, 0, 1, 0);
+                x_p.mult(-1., 0, 1, 0);
+            } else {
+                // first set x_p = -L_alpha Phi .... x_p = L_alpha Lp^{-1}(DA^{-1}g + h)
+                CCApplyOp(phi, x_p, zero_fab, alphainv_fc, geom);
+            }
+
+            if ( abs(visc_type) == 1 || abs(visc_type) == 2) {
+                // multiply x_p by beta; x_p = -beta L_alpha Phi
+                MultiFab::Multiply(x_p, beta, 0, 0, 1, 0);
+
+                if (abs(visc_type) == 2) {
+                    // multiply by c=2; x_p = -2*beta L_alpha Phi
+                    x_p.mult(2., 0, 1, 0);
+                }
+            } else if (abs(visc_type) == 3) {
+
+                // multiply x_p by gamma, use mac_rhs a temparary to save x_p
+                MultiFab::Copy(mac_rhs, x_p, 0, 0, 1, 0);
+                MultiFab::Multiply(mac_rhs, gamma, 0, 0, 1, 0);
+                // multiply x_p by beta; x_p = -beta L_alpha Phi
+                MultiFab::Multiply(x_p, beta, 0, 0, 1, 0);
+                // multiply by c=4/3; x_p = -(4/3) beta L_alpha Phi
+                x_p.mult(4./3., 0, 1, 0);
+                // x_p = -(4/3) beta L_alpha Phi - gamma L_alpha Phi
+                MultiFab::Add(x_p, mac_rhs, 0, 0, 1, 0);
+            }
+
+            // multiply Phi by theta_alpha
+            phi.mult(theta_alpha, 0, 1, 0);
+
+            // add theta_alpha*Phi to x_p
+            MultiFab::Add(x_p, phi, 0, 0, 1, 0);
+        }
+        else {
+            Abort("StagApplyOp: visc_schur_approx != 0 not supported");
+        }
+    }
+    else {
+        Abort("StagApplyOp: unsupposed precon_type");
+    }
+
+    ////////////////////
+    // STEP 5: Handle null-space issues in MG solvers
+    ////////////////////
+
+    // subtract off mean value: Single level only! No need for ghost cells
+    SumStag(x_u, 0, mean_val_umac, true);
+    SumCC(x_p, 0, mean_val_pres, true);
+
+    // The pressure Poisson problem is always singular:
+    x_p.plus(-mean_val_pres, 0, 1, 0);
+
+    // The velocity problem is also singular under these cases
+    if (theta_alpha == 0.) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            if (geom.isPeriodic(d)) {
+                x_u[d].plus(-mean_val_umac[d], 0, 1, 0);
+            }
+        }
+    }
 }

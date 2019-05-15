@@ -18,7 +18,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
-                   const MultiFab& potential,const std::array< MultiFab, AMREX_SPACEDIM >& efield);
+                   const MultiFab& potential,const std::array< MultiFab, AMREX_SPACEDIM >& efield,const MultiFab& mobility);
 
 
 ///////////////////////////
@@ -39,7 +39,7 @@ void WritePlotFileHydro(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& pres);
+		   const MultiFab& pres, std::array< MultiFab, AMREX_SPACEDIM >& umacM, std::array< MultiFab, AMREX_SPACEDIM >& umacV);
 
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       MultiFab& pres,

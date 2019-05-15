@@ -8,3 +8,4 @@ F90EXE_sources += find_nodal_values.F90
 F90EXE_sources += multifab_fill_random.F90
 F90EXE_sources += multifab_physbc_mod.F90
 F90EXE_sources += species_type.F90
+F90EXE_sources += compute_basic_stats.F90

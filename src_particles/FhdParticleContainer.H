@@ -143,6 +143,7 @@ public:
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const MultiFab& mobility,
                                            const surface* surfaceList, const int surfaceCount, int sw);
 
     void SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,

@@ -495,6 +495,15 @@ void main_driver(const char* argv)
     }
 
 
+    // staggered mfabs for storing some basic fluid stats
+    std::array< MultiFab, AMREX_SPACEDIM > umacM;
+    std::array< MultiFab, AMREX_SPACEDIM > umacV;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+    }
+
+
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
@@ -557,6 +566,14 @@ void main_driver(const char* argv)
     AMREX_D_TERM(umac[0].setVal(0);,
                  umac[1].setVal(0);,
                  umac[2].setVal(0););
+
+            AMREX_D_TERM(umacM[0].setVal(0);,
+                     umacM[1].setVal(0);,
+                     umacM[2].setVal(0););
+
+            AMREX_D_TERM(umacV[0].setVal(0);,
+                     umacV[1].setVal(0);,
+                     umacV[2].setVal(0););
 
     // fill periodic ghost cells
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -694,8 +711,6 @@ void main_driver(const char* argv)
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, ionParticle, geom);
-
-    abort();
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -744,7 +759,7 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             particles.Redistribute();
             particles.ReBin();
@@ -759,10 +774,22 @@ void main_driver(const char* argv)
         {
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
+            AMREX_D_TERM(umacM[0].setVal(0);,
+                     umacM[1].setVal(0);,
+                     umacM[2].setVal(0););
+
+            AMREX_D_TERM(umacV[0].setVal(0);,
+                     umacV[1].setVal(0);,
+                     umacV[2].setVal(0););
+
             statsCount = 1;
         }
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
+        }
 
         statsCount++;
 	//_______________________________________________________________________
@@ -779,11 +806,11 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
            
-            //This write particle data and associated fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC);
+            //This write particle data and associated fields and electrostatic fields
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres);
+           // WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
 
         if(step%1 == 0)

@@ -128,6 +128,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
                 p.rdata(RealData::sigma) = particleInfo[i_spec].sigma;
                 p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
+
+                p.idata(IntData::species) = i_spec +1;
                 
                 particle_tile.push_back(p);
 
@@ -399,6 +401,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                           const MultiFab& mobility,
                                            const surface* surfaceList, const int surfaceCount, int sw)
 {
     
@@ -464,6 +467,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
+                         , BL_TO_FORTRAN_3D(mobility[pti])
                          , surfaceList, &surfaceCount, &sw
                          );
 

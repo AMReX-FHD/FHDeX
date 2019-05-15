@@ -26,12 +26,12 @@
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! Do Stokes solve
-  es_tog = 1 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
+  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
-  move_tog = 1 ! Total particle move
-  dry_move_tog = 1 ! Dry particle move
-  sr_tog = 1 ! Short range forces
+  rfd_tog = 0 ! Apply RFD force to fluid
+  move_tog = 0 ! Total particle move
+  dry_move_tog = 0 ! Dry particle move
+  sr_tog = 0 ! Short range forces
  
 
 

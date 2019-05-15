@@ -112,6 +112,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                         const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
+                        const amrex_real* mobility, const int* mlo, const int* mhi,
                         const void* surfaces,
                         const int* ns, int* sw);
 

@@ -475,7 +475,6 @@ void main_driver(const char * argv) {
     for(step = 1; step <= max_step; ++step) {
         Real step_strt_time = ParallelDescriptor::second();
 
-        
         if(variance_coef_mom != 0.0) {
 
             //___________________________________________________________________
@@ -523,7 +522,7 @@ void main_driver(const char * argv) {
 
         Vector<RealVect> f_in(n_markers);
         for (int i=0; i<f_in.size(); ++i) {
-            f_in[i] = RealVect{0, 1, 1};
+            f_in[i] = RealVect{1, 1, 1};
         }
 
         ib_pc.SpreadMarkers(0, pindex, f_in, f_out);
@@ -555,7 +554,7 @@ void main_driver(const char * argv) {
         //_______________________________________________________________________
         // Advance umac
 
-        advance(umac, umacNew, pres, tracer, force_ibm, 
+        advance(umac, umacNew, pres, tracer, force_ibm,
                 mfluxdiv_predict, mfluxdiv_correct,
                 alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt);
 
@@ -586,7 +585,7 @@ void main_driver(const char * argv) {
         //_______________________________________________________________________
         // Update structure factor
 
-        if (step > n_steps_skip 
+        if (step > n_steps_skip
                 && struct_fact_int > 0
                 && (step-n_steps_skip-1)%struct_fact_int == 0
             ) {

@@ -202,6 +202,18 @@ extern "C"
 			      const int* ncomp, const int* comp, const double* mytop, const double* mybottom);
 
 ///////////////////////////
+// in compute_basic_stats.F90
+
+    void compute_means(const amrex_real* inst, const int* inlo, const int* inhi, const int* insize,
+		                amrex_real* meanfab, const int* mlo, const int* mhi, const int* msize,
+			            const int* incomp, const int* mcomp, const int* steps);
+
+    void compute_vars(const amrex_real* inst, const int* inlo, const int* inhi, const int* insize,
+		                const amrex_real* meanfab, const int* mlo, const int* mhi, const int* msize,
+		                amrex_real* varfab, const int* vlo, const int* vhi, const int* vsize,
+			            const int* incomp, const int* mcomp, const int* vcomp, const int* steps);
+
+///////////////////////////
 
 
 ///////////////////////////
