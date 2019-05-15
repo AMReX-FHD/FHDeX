@@ -19,7 +19,7 @@ subroutine compute_means(instfab, inlo, inhi, insize, meanfab, mlo, mhi, msize, 
   integer i,j, k
   double precision stepsinv, stepsminusone
 
-  stepsinv = 1/steps
+  stepsinv = 1d0/steps
   stepsminusone = steps - 1
 
   do k = mlo(3), mhi(3)
@@ -45,7 +45,7 @@ subroutine compute_vars(instfab, inlo, inhi, insize, meanfab, mlo, mhi, msize, v
   integer i,j, k
   double precision stepsinv, stepsminusone, del
 
-  stepsinv = 1/steps
+  stepsinv = 1d0/steps
   stepsminusone = steps - 1
 
   do k = vlo(3), vhi(3)

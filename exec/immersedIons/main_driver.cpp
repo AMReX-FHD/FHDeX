@@ -782,6 +782,8 @@ void main_driver(const char* argv)
                      umacV[1].setVal(0);,
                      umacV[2].setVal(0););
 
+            Print() << "Resetting stat collection.\n";
+
             statsCount = 1;
         }
        
@@ -810,7 +812,7 @@ void main_driver(const char* argv)
             WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-           // WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
 
         if(step%1 == 0)
