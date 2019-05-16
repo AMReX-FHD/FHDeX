@@ -704,7 +704,7 @@ void IBParticleContainer::MoveIBParticles(int lev, Real dt,
             ParticleType & part = particles[i];
             ParticleIndex pindex(part.id(), part.cpu());
 
-            // map::operator[] requires non-const particle_forces => use map::at()
+            // std::map::operator[] requires non-const particle_forces => use at()
             std::array<Real, AMREX_SPACEDIM> f = particle_forces.at(pindex);
             Real mass = part.rdata(IBP_realData::mass);
 

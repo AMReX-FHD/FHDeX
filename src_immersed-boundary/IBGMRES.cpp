@@ -68,10 +68,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     std::array< MultiFab, AMREX_SPACEDIM > V_u;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
-        w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+          r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
+          w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
         tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
+          V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
     }
 
 
@@ -581,6 +581,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                const MultiFab & gamma, const Real & theta_alpha,
                const IBParticleContainer & ib_pc,
+               Vector<std::pair<int, int>> pindex_list,
                std::map<std::pair<int, int>, Vector<RealVect>> marker_forces,
                std::map<std::pair<int, int>, Vector<RealVect>> marker_W,
                const Geometry & geom)
@@ -643,23 +644,38 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         //_______________________________________________________________________
         // Temporary arrays
 
+        int ib_grow  = 6; // using the 6-point stencil
+
+        std::array<MultiFab, AMREX_SPACEDIM> Ag;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Ag[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            Ag[d].setVal(0.);
+        }
+
+
+
+        /************************************************************************
+         *                                                                      *
+         * Fluid velocity part (also used later)                                *
+         * Calculates: x_u = A^{-1}g - GLp^{-1}(DA^{-1}g + h)                   *
+         *                                                                      *
+         ***********************************************************************/
 
         //_______________________________________________________________________
-        // Fluid velocity part (also used later as part of the immersed boundary)
-        // Calculates: x_u = A^{-1}g - GLp^{-1}(DA^{-1}g + h)
-
-
-        ////////////////////
-        // STEP 1: Solve for an intermediate state, x_u^star, using an implicit viscous solve
+        // STEP 1: Solve for an intermediate state, x_u^star, using an implicit
+        // viscous solve
         //         x_u^star = A^{-1} b_u
-        ////////////////////
 
         // x_u^star = A^{-1} b_u ......................................... x_u = A^{-1}g
-        StagMGSolver(alpha_fc, beta, beta_ed, gamma, x_u, b_u, theta_alpha, geom);
+        // StagMGSolver(alpha_fc, beta, beta_ed, gamma, x_u, b_u, theta_alpha, geom);
+        StagMGSolver(alpha_fc, beta, beta_ed, gamma, Ag, b_u, theta_alpha, geom);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Ag[d].FillBoundary(geom.periodicity());
+            MultiFab::Copy(x_u[d], Ag[d], 0, 0, 1, x_u[d].nGrow());
+        }
 
-        ////////////////////
+        //_______________________________________________________________________
         // STEP 2: Construct RHS for pressure Poisson problem
-        ////////////////////
 
         // set mac_rhs = D(x_u^star) ................................ mac_rhs = DA^{-1}g
         ComputeDiv(mac_rhs, x_u, 0, 0, 1, geom, 0);
@@ -667,9 +683,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         // add b_p to mac_rhs ................................... mac_rhs = DA^{-1}g + h
         MultiFab::Add(mac_rhs, b_p, 0, 0, 1, 0);
 
-        ////////////////////
+        //_______________________________________________________________________
         // STEP 3: Compute x_u
-        ////////////////////
 
         // use multigrid to solve for Phi ......................... phi = Lp^{-1}mac_rhs
         // x_u^star is only passed in to get a norm for absolute residual criteria
@@ -679,15 +694,71 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         SubtractWeightedGradP(x_u, alphainv_fc, phi, geom);
 
 
+
+        /************************************************************************
+         *                                                                      *
+         * Immersed boundary part                                               *
+         *                                                                      *
+         ***********************************************************************/
+
         //_______________________________________________________________________
-        // Immersed boundary part
+        // Temporary arrays
+        std::map<std::pair<int, int>, Vector<RealVect>> JAgW;
+        std::map<std::pair<int, int>, Vector<RealVect>> JAGphi;
+        std::map<std::pair<int, int>, Vector<RealVect>> JLS;
+        for (const auto & pindex : pindex_list){
+            // initialized to (0..0)
+            JAgW[pindex].resize(marker_W.at(pindex).size());
+            JAGphi[pindex].resize(marker_W.at(pindex).size());
+            JLS[pindex].resize(marker_W.at(pindex).size());
+        }
+
+
+        //int ib_grow  = 6; // using the 6-point stencil
+        int ib_level = 0; // assume single level for now
 
 
         //_______________________________________________________________________
-        // Pressure part
-        // Calculates: x_p = { -(DA^{-1}g + h) + Lp^{-1}(DA^{-1}g + h)
-        //                   { L_alpha Lp^{-1}(DA^{-1}g + h)
+        // Pure pressure gradient complement: G\phi
+        std::array<MultiFab, AMREX_SPACEDIM> Gphi;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Gphi[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            Gphi[d].setVal(0.);
+        }
 
+        SubtractWeightedGradP(Gphi, alphainv_fc, phi, geom);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            Gphi[d].FillBoundary(geom.periodicity());
+
+
+        //_______________________________________________________________________
+        // JAgW, JAGphi, JLS preconditioner terms
+
+        // Buffer fluid MultiFabs so that we have enough ghost cells
+        // TODO: streamline to avoid excessive parallel copy calls
+
+        // JAgW: A^{-1}g sourced above
+        for (const auto & pindex : pindex_list) {
+                  auto & jagw = JAgW[pindex];
+            const auto & W    = marker_W.at(pindex);
+
+            ib_pc.InterpolateMarkers(ib_level, pindex, jagw, Ag);
+
+            for (int i=0; i<jagw.size(); ++i)
+                jagw[i] = jagw[i] + W[i]; // ..................... JAgW = JA^{-1}g + W
+        }
+
+
+
+
+        /************************************************************************
+         *                                                                      *
+         * Pressure part                                                        *
+         * Calculates: x_p = { -(DA^{-1}g + h) + Lp^{-1}(DA^{-1}g + h)          *
+         *                   { L_alpha Lp^{-1}(DA^{-1}g + h)                    *
+         *                                                                      *
+         ***********************************************************************/
 
         ////////////////////
         // STEP 4: Compute x_p by applying the Schur complement approximation
