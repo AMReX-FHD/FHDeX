@@ -120,17 +120,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
           V_lambda[part_indices[i]].resize(marker_positions.size());
     }
 
-    // Temporary containers:
-    std::array<MultiFab, AMREX_SPACEDIM> SLambda;
-    std::array<MultiFab, AMREX_SPACEDIM> x_u_buffer;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        SLambda[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-        SLambda[d].setVal(0.);
-
-        x_u_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-        x_u_buffer[d].setVal(0.);
-    }
-
 
     // DEBUG:
     Print() << "Found " << part_indices.size() << " many IB particles in rank 0:"
@@ -229,35 +218,9 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // Calculate tmp = Ax
         // Fluid part: ........................................... (v, p) = (Av - Gp, -Dv)
         ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
-
-        // IBM part: .................................................. SLambda = S lambda
-        for (const auto & pid : part_indices) {
-            const auto & lambda = x_lambda.at(pid);
-
-            ib_pc.SpreadMarkers(ibpc_lev, pid, lambda, SLambda);
-        }
-
-        // ........................................................ v = Av - Gp - S lambda
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            SLambda[d].FillBoundary(geom.periodicity());
-            MultiFab::Subtract(tmp_u[d], SLambda[d], 0, 0, 1, 0);
-        }
-
-        // Buffer x_u so that it has enough ghost cells (to cover the kernel)
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            MultiFab::Copy(x_u_buffer[d], x_u[d], 0, 0, 1, 0);
-            x_u_buffer[d].FillBoundary(geom.periodicity());
-        }
-
-        // .................................................................. lambda = -Jv
-        for (const auto & pid : part_indices) {
-            auto & tlambda = tmp_lambda.at(pid);
-
-            ib_pc.InterpolateMarkers(ibpc_lev, pid, tlambda, x_u_buffer);
-
-            for (auto & elt : tlambda)
-                elt = -elt;
-        }
+        // IBM part: ............................. (v, lambda) = (Av - Gp - S lambda, -Jv)
+        ApplyIBM(tmp_u, tmp_lambda, x_u, ib_pc, part_indices, x_lambda,
+                 ib_grow, ibpc_lev, geom);
 
 
         // tmp = b - Ax
@@ -449,7 +412,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
                 StagInnerProd(w_u, 0, V_u, k, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
-                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
+                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.)
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
 
 
@@ -971,6 +934,60 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         }
     }
 }
+
+
+
+void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
+                    std::map<std::pair<int, int>, Vector<RealVect>> & b_lambda,
+              const std::array<MultiFab, AMREX_SPACEDIM>            & x_u,
+              const IBParticleContainer                             & ib_pc,
+              const Vector<std::pair<int, int>>                     & part_indices,
+              const std::map<std::pair<int, int>, Vector<RealVect>> & x_lambda,
+              int ib_grow, int ibpc_lev, const Geometry & geom ) {
+
+    // Temporary containers:
+    std::array<MultiFab, AMREX_SPACEDIM> SLambda;
+    std::array<MultiFab, AMREX_SPACEDIM> x_u_buffer;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        SLambda[d].define(x_u[d].boxArray(), x_u[d].DistributionMap(), 1, ib_grow);
+        SLambda[d].setVal(0.);
+
+        x_u_buffer[d].define(x_u[d].boxArray(), x_u[d].DistributionMap(), 1, ib_grow);
+        x_u_buffer[d].setVal(0.);
+    }
+
+
+    // ............................................................ SLambda = S lambda
+    for (const auto & pid : part_indices) {
+        const auto & lambda = x_lambda.at(pid);
+
+        ib_pc.SpreadMarkers(ibpc_lev, pid, lambda, SLambda);
+    }
+
+    // ........................................................ v = Av - Gp - S lambda
+    // ...... (computed elsewhere, before this function call) ------^^^^^^^
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        SLambda[d].FillBoundary(geom.periodicity());
+        MultiFab::Subtract(b_u[d], SLambda[d], 0, 0, 1, 0);
+    }
+
+    // Buffer x_u so that it has enough ghost cells (to cover the kernel)
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(x_u_buffer[d], x_u[d], 0, 0, 1, 0);
+        x_u_buffer[d].FillBoundary(geom.periodicity());
+    }
+
+    // .................................................................. lambda = -Jv
+    for (const auto & pid : part_indices) {
+        auto & bl = b_lambda.at(pid);
+
+        ib_pc.InterpolateMarkers(ibpc_lev, pid, bl, x_u_buffer);
+        for (auto & elt : bl) elt = -elt;
+    }
+
+}
+
 
 
 void VecInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v) {

@@ -35,6 +35,17 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                const Geometry & geom);
 
 
+void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
+                    std::map<std::pair<int, int>, Vector<RealVect>> & b_lambda,
+              const std::array<MultiFab, AMREX_SPACEDIM>            & x_u,
+              const IBParticleContainer                             & ib_pc,
+              const Vector<std::pair<int, int>>                     & part_indices,
+              const std::map<std::pair<int, int>, Vector<RealVect>> & x_lambda,
+              int ib_grow, int ibpc_lev, const Geometry & geom );
+
+
+
+
 void VecInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);
 
 
