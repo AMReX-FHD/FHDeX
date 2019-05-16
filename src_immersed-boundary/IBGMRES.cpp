@@ -798,7 +798,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         }
 
         for (const auto & pindex : pindex_list) {
-            const auto & jls = JLS_rhs[pindex];
+            const auto & jls = JLS_rhs.at(pindex);
 
             ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs);
         }
@@ -816,6 +816,52 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             auto & jls = JLS[pindex];
             ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
         }
+
+
+        //_______________________________________________________________________
+        // Compute JLS preconditioner contributions for the velocity and pressure
+        // JLS_V = A^{-1}S JLS
+        // JLS_P = (\theta\rho_0\Lp^{-1}-\mu_0 1) DA^{-1}S JLS
+
+        std::array<MultiFab, AMREX_SPACEDIM> JLS_V;
+        std::array<MultiFab, AMREX_SPACEDIM> JLS_V_rhs;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            JLS_V[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            JLS_V[d].setVal(0.);
+
+            JLS_V_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            JLS_V_rhs[d].setVal(0.);
+        }
+        MultiFab JLS_P(ba, dmap, 1, ib_grow);
+        MultiFab JLS_P_rhs(ba, dmap, 1, ib_grow);
+        JLS_P.setVal(0.);
+        JLS_P_rhs.setVal(0.);
+
+
+        // Velocity Part:
+
+        for (const auto & pindex : pindex_list) {
+            const auto & jls = JLS_rhs.at(pindex);
+
+            ib_pc.SpreadMarkers(ib_level, pindex, jls, JLS_V_rhs);
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            JLS_V_rhs[d].FillBoundary(geom.periodicity());
+
+        StagMGSolver(alpha_fc, beta, beta_ed, gamma, JLS_V, JLS_V_rhs, theta_alpha, geom);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            JLS_V_rhs[d].FillBoundary(geom.periodicity());
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(JLS_V[d], "JLS_V_"+std::to_string(d));
+
+
+        // Pressure Part:
+        // Note that `JLS_V` (above) is already equal to the A^{-1}S part in `DA^{-1}S`
+
+
 
 
 
