@@ -44,6 +44,9 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
               int ib_grow, int ibpc_lev, const Geometry & geom );
 
 
+void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
+                        std::map<std::pair<int, int>, Vector<RealVect>> & a,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & b);
 
 
 void VecInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);

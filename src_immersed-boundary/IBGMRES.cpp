@@ -218,6 +218,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // Calculate tmp = Ax
         // Fluid part: ........................................... (v, p) = (Av - Gp, -Dv)
         ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+
         // IBM part: ............................. (v, lambda) = (Av - Gp - S lambda, -Jv)
         ApplyIBM(tmp_u, tmp_lambda, x_u, ib_pc, part_indices, x_lambda,
                  ib_grow, ibpc_lev, geom);
@@ -230,18 +231,12 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             tmp_u[d].mult(-1., 0, 1, 0);
         }
 
-        // ........................................................... tmp_p = b_p - (-Dv)
+        // Pressure part: ............................................ tmp_p = b_p - (-Dv)
         MultiFab::Subtract(tmp_p, b_p, 0, 0, 1, 0);
         tmp_p.mult(-1., 0, 1, 0);
 
         // IBM part: ....................................... tmp_lambda = b_lambda - (-Jv)
-        for (const auto & pid : part_indices) {
-            auto & tlambda = tmp_lambda.at(pid);
-            const auto & blambda = b_lambda.at(pid);
-
-            for (int i=0; i<tlambda.size(); ++i)
-                tlambda[i] = blambda[i] - tlambda[i];
-        }
+        MarkerInvSub(part_indices, tmp_lambda, b_lambda);
 
 
         //_______________________________________________________________________
@@ -986,6 +981,22 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
         for (auto & elt : bl) elt = -elt;
     }
 
+}
+
+
+
+void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
+                        std::map<std::pair<int, int>, Vector<RealVect>> & a,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & b) {
+
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        for (int i=0; i<a.size(); ++i)
+            a_markers[i] = b_markers[i] - a_markers[i];
+    }
 }
 
 
