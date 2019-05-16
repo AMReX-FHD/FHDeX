@@ -785,6 +785,37 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                 jls[i] = jagphi[i] + jagw[i]; //  JLS_rhs = JA^{-1}G\phi +JA^{-1}g + W
         }
 
+        // Preconditioner guess: L^{-1} ~ A^{-1} => (JL^{-1}S)^{-1} = JAS
+
+        std::array<MultiFab, AMREX_SPACEDIM> spread_rhs;
+        std::array<MultiFab, AMREX_SPACEDIM> AS_rhs;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            spread_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            spread_rhs[d].setVal(0.);
+
+            AS_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            AS_rhs[d].setVal(0.);
+        }
+
+        for (const auto & pindex : pindex_list) {
+            const auto & jls = JLS_rhs[pindex];
+
+            ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs);
+        }
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            spread_rhs[d].FillBoundary(geom.periodicity());
+
+        // Apply A (Hemlhotz) operator
+        const Real * dx = geom.CellSize();
+        StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            AS_rhs[d].FillBoundary(geom.periodicity());
+
+        // Precon: ......................... JLS = JAS (JA^{-1}G\phi +JA^{-1}g + W )
+        for (const auto & pindex : pindex_list) {
+            auto & jls = JLS[pindex];
+            ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+        }
 
 
 
