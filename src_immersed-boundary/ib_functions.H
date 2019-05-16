@@ -34,4 +34,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                const std::map<std::pair<int, int>, Vector<RealVect>> & marker_W,
                const Geometry & geom);
 
+
+void VecInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);
+
+
 #endif
