@@ -647,9 +647,13 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         int ib_grow  = 6; // using the 6-point stencil
 
         std::array<MultiFab, AMREX_SPACEDIM> Ag;
+        std::array<MultiFab, AMREX_SPACEDIM> AGphi;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             Ag[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
             Ag[d].setVal(0.);
+
+            AGphi[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            AGphi[d].setVal(0.);
         }
 
 
@@ -719,7 +723,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
 
         //_______________________________________________________________________
-        // Pure pressure gradient complement: G\phi
+        // Pure pressure gradient complement: G\phi and A^{-1}G\phi
         std::array<MultiFab, AMREX_SPACEDIM> Gphi;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             Gphi[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
@@ -731,14 +735,16 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             Gphi[d].FillBoundary(geom.periodicity());
 
+        StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGphi, Gphi, theta_alpha, geom);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            AGphi[d].FillBoundary(geom.periodicity());
+
 
         //_______________________________________________________________________
         // JAgW, JAGphi, JLS preconditioner terms
 
-        // Buffer fluid MultiFabs so that we have enough ghost cells
-        // TODO: streamline to avoid excessive parallel copy calls
-
-        // JAgW: A^{-1}g sourced above
+        // J-interpolated terms: A^{-1}g, A^{-1}G\phi, sourced above
         for (const auto & pindex : pindex_list) {
                   auto & jagw = JAgW[pindex];
             const auto & W    = marker_W.at(pindex);
@@ -747,6 +753,10 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
             for (int i=0; i<jagw.size(); ++i)
                 jagw[i] = jagw[i] + W[i]; // ..................... JAgW = JA^{-1}g + W
+
+
+            auto & jagphi = JAGphi[pindex]; // ................. JAGphi = JA^{-1}G\phi
+            ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, AGphi);
         }
 
 
