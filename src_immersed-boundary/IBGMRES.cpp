@@ -779,6 +779,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (const auto & pindex : pindex_list) {
             auto & jls = JLS.at(pindex);
             ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+            for (auto & marker : jls)
+                marker = -marker; // ...... JLS = -JAS (JA^{-1}G\phi +JA^{-1}g + W )
         }
 
 
