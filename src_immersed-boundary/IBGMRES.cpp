@@ -633,11 +633,31 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     }
 
 
+    int ib_grow  = 6; // using the 6-point stencil
+    int ib_level = 0; // assume single level for now
+
+
     // set the initial guess for Phi in the Poisson solve to 0
     // set x_u = 0 as initial guess
     phi.setVal(0.);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         x_u[d].setVal(0.);
+
+
+    std::array<MultiFab, AMREX_SPACEDIM> JLS_V;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        JLS_V[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+        JLS_V[d].setVal(0.);
+    }
+
+    MultiFab JLS_P(ba, dmap, 1, ib_grow);
+    JLS_P.setVal(0.);
+
+    std::map<std::pair<int, int>, Vector<RealVect>> JLS;
+    for (const auto & pindex : pindex_list){
+        // initialized to (0..0)
+        JLS[pindex].resize(marker_W.at(pindex).size());
+    }
 
 
     // 1 = projection preconditioner
@@ -652,8 +672,6 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         //_______________________________________________________________________
         // Temporary arrays
-
-        int ib_grow  = 6; // using the 6-point stencil
 
         std::array<MultiFab, AMREX_SPACEDIM> Ag;
         std::array<MultiFab, AMREX_SPACEDIM> AGphi;
@@ -719,19 +737,14 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         // Temporary arrays
         std::map<std::pair<int, int>, Vector<RealVect>> JAgW;
         std::map<std::pair<int, int>, Vector<RealVect>> JAGphi;
-        std::map<std::pair<int, int>, Vector<RealVect>> JLS;
         std::map<std::pair<int, int>, Vector<RealVect>> JLS_rhs;
         for (const auto & pindex : pindex_list){
             // initialized to (0..0)
             JAgW[pindex].resize(marker_W.at(pindex).size());
             JAGphi[pindex].resize(marker_W.at(pindex).size());
-            JLS[pindex].resize(marker_W.at(pindex).size());
             JLS_rhs[pindex].resize(marker_W.at(pindex).size());
         }
 
-
-        //int ib_grow  = 6; // using the 6-point stencil
-        int ib_level = 0; // assume single level for now
 
 
         //_______________________________________________________________________
@@ -823,18 +836,13 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         // JLS_V = A^{-1}S JLS
         // JLS_P = (\theta\rho_0\Lp^{-1}-\mu_0 1) DA^{-1}S JLS
 
-        std::array<MultiFab, AMREX_SPACEDIM> JLS_V;
         std::array<MultiFab, AMREX_SPACEDIM> JLS_V_rhs;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            JLS_V[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-            JLS_V[d].setVal(0.);
-
             JLS_V_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
             JLS_V_rhs[d].setVal(0.);
         }
-        MultiFab JLS_P(ba, dmap, 1, ib_grow);
+
         MultiFab JLS_P_rhs(ba, dmap, 1, ib_grow);
-        JLS_P.setVal(0.);
         JLS_P_rhs.setVal(0.);
 
 
@@ -854,16 +862,30 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             JLS_V_rhs[d].FillBoundary(geom.periodicity());
 
+
+        // DEBUG:
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             VisMF::Write(JLS_V[d], "JLS_V_"+std::to_string(d));
 
 
         // Pressure Part:
         // Note that `JLS_V` (above) is already equal to the A^{-1}S part in `DA^{-1}S`
+        // This also means the IBM preconditioner has the property that `div(u) = h`
 
+        // ................................................ JLS_P_rhs = DA^{-1}S JLS
+        ComputeDiv(JLS_P_rhs, JLS_V, 0, 0, 1, geom, 0);
+        JLS_P_rhs.FillBoundary(geom.periodicity());
 
+        // use multigrid to solve for Phi ............. JLS_P = Lp^{-1} DA^{-1}S JLS
+        MacProj(alphainv_fc, JLS_P_rhs, JLS_P, geom);
 
+        JLS_P.mult(theta_alpha, 0, 1, 0);
+        JLS_P_rhs.mult(-1, 0, 1, 0);
 
+        MultiFab::Add(JLS_P, JLS_P_rhs, 0, 0, 1, 0);
+
+        //DEBUG:
+        VisMF::Write(JLS_P, "JLS_P");
 
         /************************************************************************
          *                                                                      *
@@ -919,6 +941,32 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         } else { Abort("StagApplyOp: visc_schur_approx != 0 not supported"); }
 
     } else { Abort("StagApplyOp: unsupposed precon_type"); }
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Add Immersed boundary part                                               *
+     *                                                                          *
+     ***************************************************************************/
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(x_u[d], JLS_V[d], 0, 0, 1, 0);
+        x_u[d].FillBoundary(geom.periodicity());
+    }
+
+    MultiFab::Add(x_p, JLS_P, 0, 0, 1, 0);
+    x_p.FillBoundary(geom.periodicity());
+
+    for (const auto & pindex : pindex_list) {
+              auto & force = marker_forces[pindex];
+        const auto & jls   = JLS.at(pindex);
+
+        for (int i=0; i<jls.size(); ++i)
+            force[i] = force[i] + jls[i];
+    }
+
+
 
     ////////////////////
     // STEP 5: Handle null-space issues in MG solvers
