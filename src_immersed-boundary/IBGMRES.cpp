@@ -9,6 +9,9 @@
 #include "gmres_namespace.H"
 
 
+#include <ib_functions.H>
+
+
 #include <IBParticleContainer.H>
 
 
@@ -181,7 +184,13 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // First application of preconditioner
 
     // 1. Fluid Precon
-    ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+    // ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+
+    IBMPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha,
+              ib_pc, part_indices, marker_forces, marker_W,
+              geom);
+
+    exit(0);
 
     // 2. IB Precon
 
@@ -208,7 +217,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     for (const auto & pid : part_indices) {
         Vector<RealVect> mf_tmp(marker_forces[pid].size());
         ib_pc.InterpolateMarkers(0, pid, mf_tmp, AGp);
-        for (int i=0; i<marker_forces[pid].size(); ++i) 
+        for (int i=0; i<marker_forces[pid].size(); ++i)
             marker_forces[pid][i] = marker_forces[pid][i] - mf_tmp[i];
     }
 
@@ -581,9 +590,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                const MultiFab & gamma, const Real & theta_alpha,
                const IBParticleContainer & ib_pc,
-               Vector<std::pair<int, int>> pindex_list,
-               std::map<std::pair<int, int>, Vector<RealVect>> marker_forces,
-               std::map<std::pair<int, int>, Vector<RealVect>> marker_W,
+               const Vector<std::pair<int, int>> & pindex_list,
+               std::map<std::pair<int, int>, Vector<RealVect>> & marker_forces,
+               const std::map<std::pair<int, int>, Vector<RealVect>> & marker_W,
                const Geometry & geom)
 {
 
@@ -676,6 +685,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             Ag[d].FillBoundary(geom.periodicity());
             MultiFab::Copy(x_u[d], Ag[d], 0, 0, 1, x_u[d].nGrow());
+            x_u[d].FillBoundary(geom.periodicity()); // Just in case
         }
 
         //_______________________________________________________________________
@@ -710,11 +720,13 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         std::map<std::pair<int, int>, Vector<RealVect>> JAgW;
         std::map<std::pair<int, int>, Vector<RealVect>> JAGphi;
         std::map<std::pair<int, int>, Vector<RealVect>> JLS;
+        std::map<std::pair<int, int>, Vector<RealVect>> JLS_rhs;
         for (const auto & pindex : pindex_list){
             // initialized to (0..0)
             JAgW[pindex].resize(marker_W.at(pindex).size());
             JAGphi[pindex].resize(marker_W.at(pindex).size());
             JLS[pindex].resize(marker_W.at(pindex).size());
+            JLS_rhs[pindex].resize(marker_W.at(pindex).size());
         }
 
 
@@ -742,7 +754,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
 
         //_______________________________________________________________________
-        // JAgW, JAGphi, JLS preconditioner terms
+        // JAgW, and JAGphi preconditioner terms
 
         // J-interpolated terms: A^{-1}g, A^{-1}G\phi, sourced above
         for (const auto & pindex : pindex_list) {
@@ -757,6 +769,20 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
             auto & jagphi = JAGphi[pindex]; // ................. JAGphi = JA^{-1}G\phi
             ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, AGphi);
+        }
+
+
+        //_______________________________________________________________________
+        // JLS preconditioner term
+
+        // RHS term for preconditioner
+        for (const auto & pindex : pindex_list){
+                  auto & jls = JLS_rhs[pindex];
+            const auto & jagw   = JAgW.at(pindex);
+            const auto & jagphi = JAGphi.at(pindex);
+
+            for (int i=0; i<jls.size(); ++i)
+                jls[i] = jagphi[i] + jagw[i]; //  JLS_rhs = JA^{-1}G\phi +JA^{-1}g + W
         }
 
 

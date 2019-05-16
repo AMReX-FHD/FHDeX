@@ -29,8 +29,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                const MultiFab & gamma, const Real & theta_alpha,
                const IBParticleContainer & ib_pc,
-               std::map<std::pair<int, int>, Vector<RealVect>> marker_forces,
-               std::map<std::pair<int, int>, Vector<RealVect>> marker_W,
+               const Vector<std::pair<int, int>> & pindex_list,
+               std::map<std::pair<int, int>, Vector<RealVect>> & marker_forces,
+               const std::map<std::pair<int, int>, Vector<RealVect>> & marker_W,
                const Geometry & geom);
 
 #endif
