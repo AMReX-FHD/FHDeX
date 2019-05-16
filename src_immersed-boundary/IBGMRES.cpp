@@ -188,7 +188,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
               ib_pc, part_indices, marker_forces, marker_W,
               geom);
 
-    //
+
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
@@ -242,6 +242,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // Calculate tmp = Ax
         ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+
+
 
         // tmp = b - Ax
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -720,7 +722,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         // J-interpolated terms: A^{-1}g, A^{-1}G\phi, sourced above
         for (const auto & pindex : pindex_list) {
-                  auto & jagw = JAgW[pindex];
+                  auto & jagw = JAgW.at(pindex);
             const auto & W    = marker_W.at(pindex);
 
             ib_pc.InterpolateMarkers(ib_level, pindex, jagw, Ag);
@@ -729,7 +731,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                 jagw[i] = jagw[i] + W[i]; // ..................... JAgW = JA^{-1}g + W
 
 
-            auto & jagphi = JAGphi[pindex]; // ................. JAGphi = JA^{-1}G\phi
+            auto & jagphi = JAGphi.at(pindex); // ................. JAGphi = JA^{-1}G\phi
             ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, AGphi);
         }
 
@@ -739,7 +741,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         // RHS term for preconditioner
         for (const auto & pindex : pindex_list){
-                  auto & jls = JLS_rhs[pindex];
+                  auto & jls = JLS_rhs.at(pindex);
             const auto & jagw   = JAgW.at(pindex);
             const auto & jagphi = JAGphi.at(pindex);
 
@@ -775,9 +777,10 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         // Precon: ......................... JLS = JAS (JA^{-1}G\phi +JA^{-1}g + W )
         for (const auto & pindex : pindex_list) {
-            auto & jls = JLS[pindex];
+            auto & jls = JLS.at(pindex);
             ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
         }
+
 
 
         //_______________________________________________________________________
@@ -908,7 +911,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     x_p.FillBoundary(geom.periodicity());
 
     for (const auto & pindex : pindex_list) {
-              auto & force = marker_forces[pindex];
+              auto & force = marker_forces.at(pindex);
         const auto & jls   = JLS.at(pindex);
 
         for (int i=0; i<jls.size(); ++i)
