@@ -113,8 +113,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
         // ... initialized to (0..0)
         marker_forces[part_indices[i]].resize(marker_positions.size());
-        // for (auto & elt : marker_forces[part_indices[i]])
-        //     elt = RealVect{1, 1, 1};
         marker_W[part_indices[i]].resize(marker_positions.size());
     }
 
@@ -778,7 +776,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         // Precon: ......................... JLS = JAS (JA^{-1}G\phi +JA^{-1}g + W )
         for (const auto & pindex : pindex_list) {
             auto & jls = JLS.at(pindex);
+
             ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+
             for (auto & marker : jls)
                 marker = -marker; // ...... JLS = -JAS (JA^{-1}G\phi +JA^{-1}g + W )
         }
