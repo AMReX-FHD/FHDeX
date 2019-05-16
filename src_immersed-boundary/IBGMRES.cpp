@@ -183,62 +183,12 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     //___________________________________________________________________________
     // First application of preconditioner
 
-    // 1. Fluid Precon
     // ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
-
     IBMPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha,
               ib_pc, part_indices, marker_forces, marker_W,
               geom);
 
-    exit(0);
-
-    // 2. IB Precon
-
-    // 2.a Lambda = J*u
-    for (const auto & pid : part_indices)
-        ib_pc.InterpolateMarkers(0, pid, marker_forces[pid], u_buffer);
-
-    // 2.b Lambda = J*u - J A^{-1} G p
-    std::array<MultiFab, AMREX_SPACEDIM> Gp;
-    std::array<MultiFab, AMREX_SPACEDIM> AGp;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        Gp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-        AGp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-    }
-
-    ComputeGrad(p_buffer, Gp, 0, 0, 1, geom);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        Gp[d].FillBoundary(geom.periodicity());
-
-    StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGp, Gp, theta_alpha, geom);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        AGp[d].FillBoundary(geom.periodicity());
-
-    for (const auto & pid : part_indices) {
-        Vector<RealVect> mf_tmp(marker_forces[pid].size());
-        ib_pc.InterpolateMarkers(0, pid, mf_tmp, AGp);
-        for (int i=0; i<marker_forces[pid].size(); ++i)
-            marker_forces[pid][i] = marker_forces[pid][i] - mf_tmp[i];
-    }
-
-    // 2.c spread_f = S*Lambda
-    for (const auto & pid : part_indices) {
-        ib_pc.SpreadMarkers(0, pid, marker_forces[pid], spread_f);
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            spread_f[d].FillBoundary(geom.periodicity());
-    }
-
-    // 2.d u_precon_f = A^{-1} spread_f = A^{-1} S Lambda
-    StagMGSolver(alpha_fc, beta, beta_ed, gamma, u_precon_f, spread_f, theta_alpha, geom);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        u_precon_f[d].FillBoundary(geom.periodicity());
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        VisMF::Write(u_precon_f[d], "u_precon_f_"+std::to_string(d));
-
-
-
-
+    //
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
@@ -273,7 +223,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         }
         return;
     }
-
 
 
 
