@@ -91,13 +91,13 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // Get all the immersed-boudary particle indices (used to iterate below)
     Vector<IBP_info> ibp_info;
     // TODO: make `x_lambda` a referenced argument
-    std::map<std::pair<int, int>, Vector<RealVect>>   b_lambda;
-    std::map<std::pair<int, int>, Vector<RealVect>>   x_lambda;
-    std::map<std::pair<int, int>, Vector<RealVect>>   r_lambda;
-    std::map<std::pair<int, int>, Vector<RealVect>> tmp_lambda;
-    std::map<std::pair<int, int>, Vector<RealVect>>   V_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>         b_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>         x_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>         r_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>       tmp_lambda;
+    std::map<std::pair<int, int>, Vector<Vector<RealVect>>> V_lambda;
 
-    int ibpc_lev = 0;  // assume single level for now
+    int ibpc_lev = 0; // assume single level for now
     int ib_grow  = 6; // using the 6-point stencil
 
     // NOTE: use `ib_pc` BoxArray to collect IB particle data
@@ -119,7 +119,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
           x_lambda[part_indices[i]].resize(marker_positions.size());
           r_lambda[part_indices[i]].resize(marker_positions.size());
         tmp_lambda[part_indices[i]].resize(marker_positions.size());
-          V_lambda[part_indices[i]].resize(marker_positions.size());
+
+          V_lambda[part_indices[i]].resize(gmres_max_inner + 1);
+        for (int j=0; j<gmres_max_inner+1; ++j)
+            V_lambda[part_indices[i]][j].resize(marker_positions.size());
     }
 
 
@@ -161,28 +164,30 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     //___________________________________________________________________________
     // First application of preconditioner
 
-    // ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+    // ApplyPrecon(b_u, b_p, tmp_u, tmp_p,
+    //             alpha_fc, beta, beta_ed, gamma, theta_alpha,
+    //             geom);
     IBMPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha,
-              ib_pc, part_indices, x_lambda, b_lambda, geom);
+              ib_pc, part_indices, tmp_lambda, b_lambda, geom);
 
 
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
-
-    // TODO: lambda norm
+    MarkerL2Norm(part_indices, tmp_lambda, norm_lambda);
     norm_p       = p_norm_weight*norm_p;
-    norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
+    norm_lambda  = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
+    norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
     norm_pre_rhs = norm_pre_b;
 
 
     // calculate the l2 norm of rhs
     StagL2Norm(b_u, 0, norm_u);
     CCL2Norm(b_p, 0, norm_p);
-
-    // TODO: W norm
-    norm_p = p_norm_weight*norm_p;
-    norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
+    MarkerL2Norm(part_indices, b_lambda, norm_lambda);
+    norm_p      = p_norm_weight*norm_p;
+    norm_lambda = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
+    norm_b      = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
 
     //! If norm_b=0 we should return zero as the solution and "return" from this routine
     // It is important to use gmres_abs_tol and not 0 since sometimes due to roundoff we
@@ -222,7 +227,9 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // Calculate tmp = Ax
         // Fluid part: ........................................... (v, p) = (Av - Gp, -Dv)
-        ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+        ApplyMatrix(tmp_u, tmp_p, x_u, x_p,
+                    alpha_fc, beta, beta_ed, gamma, theta_alpha,
+                    geom);
 
         // IBM part: ............................. (v, lambda) = (Av - Gp - S lambda, -Jv)
         ApplyIBM(tmp_u, tmp_lambda, x_u, ib_pc, part_indices, x_lambda,
@@ -250,11 +257,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         CCL2Norm(tmp_p, 0, norm_p_noprecon);
         MarkerL2Norm(part_indices, tmp_lambda, norm_lambda_noprecon);
 
-
-        std::cout << "norm_lambda_noprecon = " << norm_lambda_noprecon << std::endl;
-
-        norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
-        norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
+        norm_p_noprecon      = p_norm_weight*norm_p_noprecon;
+        norm_lambda_noprecon = p_norm_weight*norm_lambda_noprecon; // TODO: use p_norm_weight for now
+        norm_resid_Stokes    = sqrt(norm_u_noprecon*norm_u_noprecon
+                                    + norm_p_noprecon*norm_p_noprecon
+                                    + norm_lambda_noprecon*norm_lambda_noprecon);
 
         if (outer_iter == 0)
             norm_init_Stokes = norm_resid_Stokes;
@@ -278,20 +285,26 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         //_______________________________________________________________________
         // solve for r = M^{-1} tmp
         // We should not be counting these toward the number of mg cycles performed
-        ApplyPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+        // ApplyPrecon(tmp_u, tmp_p, r_u, r_p,
+        //             alpha_fc, beta, beta_ed, gamma, theta_alpha,
+        //             geom);
+        IBMPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha,
+                  ib_pc, part_indices, r_lambda, tmp_lambda, geom);
 
 
         // resid = sqrt(dot_product(r, r))
         StagL2Norm(r_u, 0, norm_u);
         CCL2Norm(r_p, 0, norm_p);
-        norm_p     = p_norm_weight*norm_p;
-        norm_resid = sqrt(norm_u*norm_u + norm_p*norm_p);
+        MarkerL2Norm(part_indices, r_lambda, norm_lambda);
+        norm_p      = p_norm_weight*norm_p;
+        norm_lambda = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
+        norm_resid  = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
 
 
         // If first iteration, save the initial preconditioned residual
         if (outer_iter==0) {
             norm_init_resid = norm_resid;
-            norm_resid_est = norm_resid;
+            norm_resid_est  = norm_resid;
         }
 
 
@@ -365,8 +378,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             MultiFab::Copy(V_u[d], r_u[d], 0, 0, 1, 0);
             V_u[d].mult(1./norm_resid, 0, 1, 0);
         }
+
         MultiFab::Copy(V_p, r_p, 0, 0, 1, 0);
         V_p.mult(1./norm_resid, 0, 1, 0);
+
+
 
         // s = norm(r) * e_0
         std::fill(s.begin(), s.end(), 0.);
@@ -995,6 +1011,14 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
 
 
 
+void MarkerInvSub(Vector<RealVect> & a, const Vector<RealVect> & b) {
+
+    for (int i=0; i<a.size(); ++i)
+        a[i] = b[i] - a[i];
+}
+
+
+
 void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
                         std::map<std::pair<int, int>, Vector<RealVect>> & a,
                   const std::map<std::pair<int, int>, Vector<RealVect>> & b) {
@@ -1004,8 +1028,7 @@ void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
               auto & a_markers = a.at(pid);
         const auto & b_markers = b.at(pid);
 
-        for (int i=0; i<a.size(); ++i)
-            a_markers[i] = b_markers[i] - a_markers[i];
+        MarkerInvSub(a_markers, b_markers);
     }
 }
 
@@ -1030,6 +1053,7 @@ void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
 }
 
 
+
 void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
                   const std::map<std::pair<int, int>, Vector<RealVect>> & b, Real & v) {
 
@@ -1042,4 +1066,11 @@ void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
 
         v = v + l2_norm;
     }
+}
+
+
+
+void MarkerCopy(Vector<RealVect> & a, const Vector<RealVect> & b) {
+    for (int i=0; i<a.size(); ++i)
+        a[i] = b[i];
 }
