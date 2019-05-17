@@ -914,7 +914,7 @@ subroutine dry(dt,part,dry_terms, mb)
               dry_terms(2) = mb(2)*part%dry_diff*part%force(2)/(k_B*t_init(1))+bfac(2)
               dry_terms(3) = mb(3)*part%dry_diff*part%force(3)/(k_B*t_init(1))+bfac(3)
 
-              !print *, dry_terms
+              !print *, part%force
 
 end subroutine dry
 
@@ -1338,12 +1338,14 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
         wcheck = wcheck + weights(i,j,k,store)
 
+        !print *, "Indicies: ", indicies(i,j,k,store,:)
+
       enddo
     enddo
   enddo
 
 
-!  print*, "Total: ", wcheck
+  !print*, "Total: ", wcheck
 
 end subroutine get_weights_scalar_cc
 
@@ -1390,11 +1392,6 @@ subroutine spread_op(weights, indicies, &
         kk1 = indicies(i,j,k,1,3)
 
         sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
-
-        if(jj1 .eq. 12 .and. kk1 .eq. 12) then
-
-          !print *, "Spreading ", sourceu(ii1,jj1,kk1),part%force(1)*weights(i,j,k,1)*volinv, ii1, jj1, kk1
-        endif
 
         spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
         !print*, "S: ", sourceu(ii1,jj1,kk1)
@@ -1536,6 +1533,8 @@ subroutine inter_op(weights, indicies, &
         kk = indicies(i,j,k,3,3)
 
         part%vel(3) = part%vel(3) + weights(i,j,k,3)*velw(ii,jj,kk)
+
+        !print *, velu(ii,jj,kk)
 
       enddo
     enddo
@@ -1828,6 +1827,8 @@ subroutine emf(weights, indicies, &
   !print *, "Poisson force: ", part%vel*part%q
   part%force = part%force + part%vel*part%q
 
+
+  !print *, part%force
   part%vel = uloc
 
 end subroutine emf
@@ -1930,7 +1931,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   domsize = phi - plo
 
-  adj = 0.99999
+  adj = 0.999999999
   adjalt = 2d0*(1d0 - adj)
 
   dxinv = 1.d0/dx
@@ -2077,11 +2078,11 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                 call dry(dt,part,dry_terms, mb)
 
-                !print *, "wet: ", part%vel
+               ! print *, "wet: ", part%vel
 
                 part%vel = part%vel + dry_terms
 
-                !print *, "dry: ", dry_terms
+              !  print *, "dry: ", dry_terms
               endif
 
               speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
@@ -2391,7 +2392,6 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                         part, ks, dxf)
 
       p = p + 1
-
 
    end do
 

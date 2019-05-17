@@ -18,9 +18,9 @@
   cfl = .1
 
   ! Controls for number of steps between actions
-  max_step = 2000000
-  plot_int = 10000
-  n_steps_skip = 000000
+  max_step = 60000000
+  plot_int = 5000
+  n_steps_skip = 0
 
 
   ! Boundary conditions
@@ -41,13 +41,13 @@
 
  diff_coef = 1.
  noise_coef = .010
- umbrella = 100.
+ umbrella = 50.
  ! umbrella = 00.
 
  !phi0 = .5
- phi0 = .0
+ phi0 = .05
  rad = .4
- n_inc_phi = 100000
+ n_inc_phi = 3000000
  phi_inc = .05
 
 

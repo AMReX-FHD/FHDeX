@@ -161,7 +161,7 @@ void main_driver(const char* argv)
                 amrex::Print() << "Advanced step " << step << "\n";
         }
 
-        if (plot_int > 0 && step > 0 && step%plot_int == 0)
+        if (plot_int > 0 && step > n_steps_skip && step%plot_int == 0)
         {
 
            WritePlotFile(step, time, geom, phi);

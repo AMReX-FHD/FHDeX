@@ -220,7 +220,7 @@ contains
     double precision, intent(in      ) :: neff
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -257,6 +257,9 @@ contains
           instant(i,j,k,9) = 0;
           instant(i,j,k,10) = 0;
           instant(i,j,k,11) = 0;
+          instant(i,j,k,12) = 0;
+          instant(i,j,k,13) = 0;
+          instant(i,j,k,14) = 0;
 
           cell_np = cell_part_cnt(i,j,k)
           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
@@ -283,6 +286,14 @@ contains
             instant(i,j,k,8) = instant(i,j,k,8) + part%vel(2)*part%mass
             instant(i,j,k,9) = instant(i,j,k,9) + part%vel(3)*part%mass
 
+            if(part%q .gt. 0) then
+
+              instant(i,j,k,12) = instant(i,j,k,12) + part%vel(1)*part%q
+              instant(i,j,k,13) = instant(i,j,k,13) + part%vel(2)*part%q
+              instant(i,j,k,14) = instant(i,j,k,14) + part%vel(3)*part%q
+
+            endif
+
             nrg = 0.5*part%mass*(part%vel(1)*part%vel(1) + part%vel(2)*part%vel(2) + part%vel(3)*part%vel(3))
 
             instant(i,j,k,10) = instant(i,j,k,10) + nrg
@@ -301,6 +312,10 @@ contains
           instant(i,j,k,3) = instant(i,j,k,3)*membersinv
           instant(i,j,k,4) = instant(i,j,k,4)*membersinv
           instant(i,j,k,5) = instant(i,j,k,5)*membersinv
+
+          instant(i,j,k,12) = instant(i,j,k,12)*neff/cellvols(i,j,k)
+          instant(i,j,k,13) = instant(i,j,k,13)*neff/cellvols(i,j,k)
+          instant(i,j,k,14) = instant(i,j,k,14)*neff/cellvols(i,j,k)
 
 
           instant(i,j,k,7) = instant(i,j,k,7)*neff/cellvols(i,j,k)
@@ -351,9 +366,9 @@ contains
     double precision, intent(in      ) :: neff, delt, n0, T0
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
-    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),12)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),21)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
+    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -361,8 +376,8 @@ contains
     type(particle_t), intent(inout), target :: particles(np)
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k, ti, tj, tk, kc, jc
-    double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
+    integer i,j,k, ti, tj, tk, kc, jc, cellcount
+    double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, avcurrent(3)
 
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
@@ -394,6 +409,12 @@ contains
           means(i,j,k,8) = (means(i,j,k,8)*stepsminusone + instant(i,j,k,8))*stepsinv
           means(i,j,k,9) = (means(i,j,k,9)*stepsminusone + instant(i,j,k,9))*stepsinv
 
+          means(i,j,k,12) = (means(i,j,k,12)*stepsminusone + instant(i,j,k,12))*stepsinv !total current
+          means(i,j,k,13) = (means(i,j,k,13)*stepsminusone + instant(i,j,k,13))*stepsinv
+          means(i,j,k,14) = (means(i,j,k,14)*stepsminusone + instant(i,j,k,14))*stepsinv
+
+          
+
           !pxmean(i,j,k) = 0
           !pymean(i,j,k) = 0
           !pzmean(i,j,k) = 0
@@ -414,6 +435,26 @@ contains
         enddo
       enddo
     enddo
+
+    avcurrent = 0
+        cellcount = 0
+
+    do k = mlo(3), mhi(3)
+      do j = mlo(2), mhi(2)
+        do i = mlo(1), mhi(1)
+
+
+            avcurrent(1) = avcurrent(1) + means(i,j,k,12)
+            avcurrent(2) = avcurrent(2) + means(i,j,k,13)
+            avcurrent(3) = avcurrent(3) + means(i,j,k,14)
+
+                cellcount = cellcount +1
+ 
+        enddo
+      enddo
+    enddo
+
+        print *, "total current density: ", avcurrent/cellcount
         
   end subroutine evaluate_means
 
@@ -434,9 +475,9 @@ contains
     double precision, intent(in      ) :: neff, delt, n0, T0
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
-    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),11)
-    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),12)
-    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),21)
+    double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
+    double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14)
+    double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
 
     type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
     integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
@@ -447,7 +488,7 @@ contains
 
     !double precision fac1, fac2, fac3, test, pairfrac
     integer i,j,k, it, jt, kt
-    double precision stepsminusone, stepsinv, lhs, rhs, tempcm, cv, ncm, velcm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp
+    double precision stepsminusone, stepsinv, lhs, rhs, tempcm, cv, ncm, velcm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp, delix, deliy, deliz
 
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
@@ -474,6 +515,10 @@ contains
           delpx = instant(i,j,k,7) - means(i,j,k,7)
           delpy = instant(i,j,k,8) - means(i,j,k,8)
           delpz = instant(i,j,k,9) - means(i,j,k,9)
+
+          delix = instant(i,j,k,12) - means(i,j,k,12)
+          deliy = instant(i,j,k,13) - means(i,j,k,13)
+          deliz = instant(i,j,k,14) - means(i,j,k,14)
 
           delenergy = instant(i,j,k,10) - means(i,j,k,10)
 
@@ -506,18 +551,11 @@ contains
 
           deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
-!          vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delrho*del1)*stepsinv
-!          vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + delenergy*del2)*stepsinv
-!          vars(i,j,k,18) = (vars(i,j,k,18)*stepsminusone + delrho*del3)*stepsinv
+          vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delix**2)*stepsinv
+          vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + deliy**2)*stepsinv
+          vars(i,j,k,18) = (vars(i,j,k,18)*stepsminusone + deliz**2)*stepsinv
 
-         !deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
-!          vars(i,j,k,16) = (vars(i,j,k,16)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
-!          vars(i,j,k,17) = (vars(i,j,k,17)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
-!          vars(i,j,k,18) = (vars(i,j,k,18)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
-!          vars(i,j,k,19) = (vars(i,j,k,19)*stepsminusone + deltemp*delholder4((n_cells(2))*(k) + (j+1)))*stepsinv
-!          vars(i,j,k,20) = (vars(i,j,k,20)*stepsminusone + delrho*delholder5((n_cells(2))*(k) + (j+1)))*stepsinv
-!          vars(i,j,k,21) = (vars(i,j,k,21)*stepsminusone + delrho*delholder6((n_cells(2))*(k) + (j+1)))*stepsinv
 
           !print *, delrho
         enddo
