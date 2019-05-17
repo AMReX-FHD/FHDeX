@@ -3,6 +3,8 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
+#include <iostream>
+#include <fstream>
 
 #include "FhdParticleContainer.H"
 #include "particle_functions_F.H"
@@ -11,6 +13,7 @@
 
 using namespace amrex;
 using namespace common;
+using namespace std;
 
 //constexpr Real FhdParticleContainer::min_r;
 //constexpr Real FhdParticleContainer::cutoff;
@@ -412,6 +415,8 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
 
+    double kinetic = 0;
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -468,7 +473,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
                          , BL_TO_FORTRAN_3D(mobility[pti])
-                         , surfaceList, &surfaceCount, &sw
+                         , surfaceList, &surfaceCount, &kinetic, &sw
                          );
 
 
@@ -481,23 +486,18 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         }
     }
 
-//    sourceTemp[0].SumBoundary(geomF.periodicity());
-//    sourceTemp[1].SumBoundary(geomF.periodicity());
-//#if (AMREX_SPACEDIM == 3)
-//    sourceTemp[2].SumBoundary(geomF.periodicity());
-//#endif
+        ParallelDescriptor::ReduceRealSum(kinetic);
 
-//    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
-//    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
-//#if (AMREX_SPACEDIM == 3)
-//    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
-//#endif
+        if(ParallelDescriptor::ioProcessor == ParallelDescriptor::MyProc())
+        {
 
-//    source[0].FillBoundary(geomF.periodicity());
-//    source[1].FillBoundary(geomF.periodicity());
-//#if (AMREX_SPACEDIM == 3)
-//    source[2].FillBoundary(geomF.periodicity());
-//#endif
+//		    std::ofstream kineticFile;
+//		    kineticFile.setf(ios::scientific, ios::floatfield);
+//		    kineticFile.setf(ios::showpoint);
+//		    kineticFile.open ("kinetic.dat", ios::out | ios::app);
+
+//            kineticFile << kinetic << std::endl;
+        }
 
 }
 
@@ -515,6 +515,8 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
+
+    double potential = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -561,17 +563,31 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
-                         , surfaceList, &surfaceCount, &sw
+                         , surfaceList, &surfaceCount, &potential, &sw
                          );
 
 
-        // resize particle vectors after call to move_particles
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+//        // resize particle vectors after call to move_particles
+//        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+//        {
+//            const auto new_size = m_vector_size[grid_id](iv);
+//            auto& pvec = m_cell_vectors[grid_id](iv);
+//            pvec.resize(new_size);
+//        }
+
+        ParallelDescriptor::ReduceRealSum(potential);
+
+        if(ParallelDescriptor::ioProcessor == ParallelDescriptor::MyProc())
         {
-            const auto new_size = m_vector_size[grid_id](iv);
-            auto& pvec = m_cell_vectors[grid_id](iv);
-            pvec.resize(new_size);
+
+		    std::ofstream potentialFile;
+		    potentialFile.setf(ios::scientific, ios::floatfield);
+		    potentialFile.setf(ios::showpoint);
+		    potentialFile.open ("potential.dat", ios::out | ios::app);
+
+            potentialFile << potential << std::endl;
         }
+
     }
     
 
@@ -1212,7 +1228,6 @@ FhdParticleContainer::correctCellVectors(int old_index, int new_index,
         }
     }
 }
-
 
 void FhdParticleContainer::WriteParticlesAscii(std::string asciiName)
 {

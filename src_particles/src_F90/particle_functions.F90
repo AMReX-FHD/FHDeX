@@ -68,7 +68,9 @@ subroutine force_function2(part1,part2,domsize) &
             rtdr2 = sqrt(dr2)
 
             if(rtdr2 .lt. maxdist) then
-              part1%force = part1%force + permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
+              part1%force = part1%force + (1d0/(permitivitty*4*3.142))*(dx/rtdr2)*part1%q*part2%q/dr2
+
+              part1%potential = part1%potential + norm2(part1%force)*rtdr2
 
               !print *, "es: ", permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
             endif
@@ -105,10 +107,11 @@ subroutine calculate_force(particles, np, lo, hi, &
 
   domsize = phi - plo
   
-  !calculate N^2 interactions
-
+  !calculate N^2 interaction
 
   part => particles(partno) !this defines one particle--we can access all the data by doing part%something
+
+  part%potential = 0
 
   do n = 1, np
 
@@ -1857,7 +1860,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                                      sourcez, sourcezlo, sourcezhi, &
 #endif
                                      mobility, mlo, mhi, &
-                                     surfaces, ns, sw)bind(c,name="move_ions_fhd")
+                                     surfaces, ns, kinetic, sw)bind(c,name="move_ions_fhd")
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
@@ -1877,6 +1880,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(surface_t),  intent(in),    target :: surfaces(ns)
 
   double precision, intent(in   )         :: dx(3), dxf(3), dxe(3), dt, plo(3), phi(3), plof(3)
+  double precision, intent(inout)         :: kinetic
 
   double precision, intent(in   ) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
   double precision, intent(in   ) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
@@ -1913,7 +1917,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves, maxspeed, speed, mb(3)
+                   diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves, maxspeed, speed, mb(3), dist, maxdist
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -1947,10 +1951,13 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   veltest = 0
   moves = 0
   rejected = 0
-
-   
+        
+  maxdist = 0
+  dist = 0 
   maxspeed = 0
   speed = 0
+
+  kinetic = 0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -2087,6 +2094,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
 
+              
+
               if(speed .gt. maxspeed) then
                 maxspeed = speed
               endif
@@ -2135,6 +2144,14 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
               part%abspos = part%abspos + dt*part%vel
 
+              dist = sqrt(dot_product(dt*part%vel,dt*part%vel))/part%radius
+
+              if(dist .gt. maxdist) then
+
+                maxdist = dist
+
+              endif
+
 !              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
               part%travel_time = part%travel_time + dt
@@ -2173,6 +2190,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   print *, "Fraction of midpoint moves rejected: ", rejected/moves
   print *, "Maximum observed speed: ", sqrt(maxspeed)
+  print *, "Maximum observed displacement (fraction of radius): ", maxdist
   print *, "Average diffusion coeffcient: ", diffinst/np
   !print *, "veltest: ", veltest/np
 
@@ -2204,7 +2222,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                      sourcez, sourcezlo, sourcezhi, &
 #endif
-                                     surfaces, ns, sw)bind(c,name="spread_ions_fhd")
+                                     surfaces, ns, potential, sw)bind(c,name="spread_ions_fhd")
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
@@ -2255,6 +2273,8 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
   type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
+
+  double precision, intent(inout) :: potential
   
   integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, boundflag, midpoint, store
   integer :: ni(3), fi(3)
@@ -2304,6 +2324,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
   distav = 0
   diffinst = 0
   veltest = 0
+  potential = 0
 
    p = 1
 
@@ -2313,6 +2334,8 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
 
       if(es_tog .eq. 2) then
           call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
+
+          potential = potential + part%potential
       endif
 
       !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
@@ -2394,6 +2417,10 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
       p = p + 1
 
    end do
+
+  potential = potential/np
+
+  print *, "Average electrostatic potential: ", potential
 
   deallocate(weights)
   deallocate(indicies)

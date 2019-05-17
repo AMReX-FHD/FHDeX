@@ -114,7 +114,7 @@ extern "C"
 #endif
                         const amrex_real* mobility, const int* mlo, const int* mhi,
                         const void* surfaces,
-                        const int* ns, int* sw);
+                        const int* ns, amrex_real * kinetic, int* sw);
 
     void spread_ions_fhd(void* particles,
                         const int *np,
@@ -153,7 +153,7 @@ extern "C"
                         const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
                         const void* surfaces,
-                        const int* ns, int* sw);
+                        const int* ns, amrex_real* potential, int* sw);
 
     void do_rfd(void* particles,
                         const int *np,
