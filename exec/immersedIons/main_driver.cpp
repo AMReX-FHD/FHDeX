@@ -308,7 +308,10 @@ void main_driver(const char* argv)
     //jz
     //energyDensity
     //pressure
-    MultiFab particleInstant(bc, dmap, 11, 0);
+    //Cx
+    //Cy
+    //Cz
+    MultiFab particleInstant(bc, dmap, 14, 0);
 
     //Members
     //Density
@@ -321,8 +324,10 @@ void main_driver(const char* argv)
     //jz
     //energyDensity
     //pressure
-    //speed    
-    MultiFab particleMeans(bc, dmap, 12, 0);
+    //Cx
+    //Cy
+    //Cz    
+    MultiFab particleMeans(bc, dmap, 14, 0);
 
     //Members
     //Density
@@ -339,13 +344,11 @@ void main_driver(const char* argv)
     //KGCross
     //KRhoCross
     //RhoGCross
-    //SpatialCross1
-    //SpatialCross2
-    //SpatialCross3
-    //SpatialCross4
-    //SpatialCross5
-    //SpatialCross6    
-    MultiFab particleVars(bc, dmap, 21, 0);
+    //Cx
+    //Cy
+    //Cz 
+   
+    MultiFab particleVars(bc, dmap, 18, 0);
     
     //-----------------------------
     //  Hydro setup
