@@ -49,7 +49,11 @@ void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
                   const std::map<std::pair<int, int>, Vector<RealVect>> & b);
 
 
-void VecInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);
+void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);
 
+
+void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2);
+void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & b, Real & v);
 
 #endif

@@ -52,10 +52,12 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     Real norm_init_Stokes;  // |b-Ax|;        computed once at beginning
     Real norm_u_noprecon;   // u component of norm_resid_Stokes
     Real norm_p_noprecon;   // p component of norm_resid_Stokes
+    Real norm_lambda_noprecon;
     Real norm_resid_est;
 
     Real norm_u; // temporary norms used to build full-state norm
     Real norm_p; // temporary norms used to build full-state norm
+    Real norm_lambda;
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
@@ -167,6 +169,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
+
+    // TODO: lambda norm
     norm_p       = p_norm_weight*norm_p;
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
     norm_pre_rhs = norm_pre_b;
@@ -175,9 +179,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // calculate the l2 norm of rhs
     StagL2Norm(b_u, 0, norm_u);
     CCL2Norm(b_p, 0, norm_p);
+
+    // TODO: W norm
     norm_p = p_norm_weight*norm_p;
     norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
-
 
     //! If norm_b=0 we should return zero as the solution and "return" from this routine
     // It is important to use gmres_abs_tol and not 0 since sometimes due to roundoff we
@@ -243,6 +248,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // un-preconditioned residuals
         StagL2Norm(tmp_u, 0, norm_u_noprecon);
         CCL2Norm(tmp_p, 0, norm_p_noprecon);
+        MarkerL2Norm(part_indices, tmp_lambda, norm_lambda_noprecon);
+
+
+        std::cout << "norm_lambda_noprecon = " << norm_lambda_noprecon << std::endl;
+
         norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
 
@@ -1001,12 +1011,35 @@ void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
 
 
 
-void VecInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v) {
+void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v) {
     v = 0;
 
     for (int i=0; i<a.size(); ++i){
         Real vi = a[i].dotProduct(b[i]);
 
         v = v + vi;
+    }
+}
+
+
+
+void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
+    norm_l2 = 0.;
+    MarkerInnerProd(markers, markers, norm_l2);
+    norm_l2 = sqrt(norm_l2);
+}
+
+
+void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & b, Real & v) {
+
+    v = 0.;
+
+    for (const auto & pid : part_indices) {
+        Real l2_norm = 0.;
+
+        MarkerL2Norm(b.at(pid), l2_norm);
+
+        v = v + l2_norm;
     }
 }
