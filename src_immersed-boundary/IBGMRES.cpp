@@ -382,7 +382,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         MultiFab::Copy(V_p, r_p, 0, 0, 1, 0);
         V_p.mult(1./norm_resid, 0, 1, 0);
 
-
+        MarkerCopy(part_indices, 0, V_lambda, r_lambda);
+        MarkerMult(part_indices, 0, 1./norm_resid, V_lambda);
 
         // s = norm(r) * e_0
         std::fill(s.begin(), s.end(), 0.);
@@ -1023,7 +1024,6 @@ void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
                         std::map<std::pair<int, int>, Vector<RealVect>> & a,
                   const std::map<std::pair<int, int>, Vector<RealVect>> & b) {
 
-
     for (const auto & pid : part_indices) {
               auto & a_markers = a.at(pid);
         const auto & b_markers = b.at(pid);
@@ -1034,7 +1034,40 @@ void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
 
 
 
+void MarkerMult(Real factor, Vector<RealVect> & a) {
+
+    for (auto & elt : a)
+        elt = elt*factor;
+}
+
+
+
+void MarkerMult(const Vector<std::pair<int, int>> & part_indices, Real factor,
+                std::map<std::pair<int, int>, Vector<RealVect>> & a ) {
+
+    for (const auto & pid : part_indices) {
+        auto & a_markers = a.at(pid);
+
+        MarkerMult(factor, a_markers);
+    }
+}
+
+
+
+void MarkerMult(const Vector<std::pair<int, int>> & part_indices, int comp, Real factor,
+                std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & a ) {
+
+    for (const auto & pid : part_indices) {
+        auto & a_markers = a.at(pid);
+
+        MarkerMult(factor, a_markers[comp]);
+    }
+}
+
+
+
 void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v) {
+
     v = 0;
 
     for (int i=0; i<a.size(); ++i){
@@ -1047,6 +1080,7 @@ void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Rea
 
 
 void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
+
     norm_l2 = 0.;
     MarkerInnerProd(markers, markers, norm_l2);
     norm_l2 = sqrt(norm_l2);
@@ -1071,6 +1105,35 @@ void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
 
 
 void MarkerCopy(Vector<RealVect> & a, const Vector<RealVect> & b) {
+
     for (int i=0; i<a.size(); ++i)
         a[i] = b[i];
+}
+
+
+
+void MarkerCopy(const Vector<std::pair<int, int>> & part_indices,
+                      std::map<std::pair<int, int>, Vector<RealVect>> & a,
+                const std::map<std::pair<int, int>, Vector<RealVect>> & b) {
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        MarkerCopy(a_markers, b_markers);
+    }
+}
+
+
+
+void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
+                      std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & a,
+                const std::map<std::pair<int, int>,        Vector<RealVect>>  & b) {
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        MarkerCopy(a_markers[comp], b_markers);
+    }
 }
