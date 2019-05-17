@@ -58,6 +58,14 @@ void MarkerMult(const Vector<std::pair<int, int>> & part_indices, int comp, Real
 
 
 void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);
+void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & a,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & b,
+                     Real & v);
+void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices, int comp,
+                     const std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
+                     const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b,
+                     Real & v);
 
 
 void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2);
@@ -72,5 +80,8 @@ void MarkerCopy(const Vector<std::pair<int, int>> & part_indices,
 void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
                       std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & a,
                 const std::map<std::pair<int, int>,        Vector<RealVect>>  & b);
+void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
+                      std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
+                const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b);
 
 #endif

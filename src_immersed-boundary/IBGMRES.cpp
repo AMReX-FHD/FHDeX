@@ -61,6 +61,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
+    Real inner_prod_lambda;
 
     BoxArray ba              = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
@@ -94,6 +95,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     std::map<std::pair<int, int>, Vector<RealVect>>         b_lambda;
     std::map<std::pair<int, int>, Vector<RealVect>>         x_lambda;
     std::map<std::pair<int, int>, Vector<RealVect>>         r_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>         w_lambda;
     std::map<std::pair<int, int>, Vector<RealVect>>       tmp_lambda;
     std::map<std::pair<int, int>, Vector<Vector<RealVect>>> V_lambda;
 
@@ -118,6 +120,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
           b_lambda[part_indices[i]].resize(marker_positions.size());
           x_lambda[part_indices[i]].resize(marker_positions.size());
           r_lambda[part_indices[i]].resize(marker_positions.size());
+          w_lambda[part_indices[i]].resize(marker_positions.size());
         tmp_lambda[part_indices[i]].resize(marker_positions.size());
 
           V_lambda[part_indices[i]].resize(gmres_max_inner + 1);
@@ -414,17 +417,32 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
             //___________________________________________________________________
             // tmp=A*V(i)
+
             // use r_p and r_u as temporaries to hold ith component of V
             for (int d=0; d<AMREX_SPACEDIM; ++d)
                 MultiFab::Copy(r_u[d], V_u[d], i, 0, 1, 0);
+
             MultiFab::Copy(r_p, V_p, i, 0, 1, 0);
 
-            ApplyMatrix(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+            MarkerCopy(part_indices, i, r_lambda, V_lambda);
+
+
+            ApplyMatrix(tmp_u, tmp_p, r_u, r_p,
+                        alpha_fc, beta, beta_ed, gamma, theta_alpha,
+                        geom);
+
+            ApplyIBM(tmp_u, tmp_lambda, r_u, ib_pc, part_indices, r_lambda,
+                     ib_grow, ibpc_lev, geom);
 
 
             //___________________________________________________________________
             // w = M^{-1} A*V(i)
-            ApplyPrecon(tmp_u, tmp_p, w_u, w_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+            // ApplyPrecon(tmp_u, tmp_p, w_u, w_p,
+            //             alpha_fc, beta, beta_ed, gamma, theta_alpha,
+            //             geom);
+            IBMPrecon(tmp_u, tmp_p, w_u, w_p,
+                      alpha_fc, beta, beta_ed, gamma, theta_alpha,
+                      ib_pc, part_indices, w_lambda, tmp_lambda, geom);
 
 
             //___________________________________________________________________
@@ -434,6 +452,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
                 StagInnerProd(w_u, 0, V_u, k, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
+                MarkerInnerProd(part_indices, k, w_lambda, V_lambda, inner_prod_lambda);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.)
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
 
@@ -1079,6 +1098,43 @@ void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Rea
 
 
 
+void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & a,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & b,
+                     Real & v) {
+
+    v = 0.;
+
+    for (const auto & pid : part_indices) {
+        Real l2_norm = 0.;
+
+        MarkerInnerProd(a.at(pid), b.at(pid), l2_norm);
+
+        v = v + l2_norm;
+    }
+}
+
+
+
+void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices, int comp,
+                     const std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
+                     const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b,
+                     Real & v) {
+
+    v = 0.;
+
+    for (const auto & pid : part_indices) {
+        Real l2_norm = 0.;
+
+        MarkerInnerProd(a.at(pid), b.at(pid)[comp], l2_norm);
+
+        v = v + l2_norm;
+    }
+}
+
+
+
+
 void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
 
     norm_l2 = 0.;
@@ -1135,5 +1191,19 @@ void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
         const auto & b_markers = b.at(pid);
 
         MarkerCopy(a_markers[comp], b_markers);
+    }
+}
+
+
+
+void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
+                      std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
+                const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b) {
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        MarkerCopy(a_markers, b_markers[comp]);
     }
 }
