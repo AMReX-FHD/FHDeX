@@ -308,7 +308,10 @@ void main_driver(const char* argv)
     //jz
     //energyDensity
     //pressure
-    MultiFab particleInstant(bc, dmap, 11, 0);
+    //Cx
+    //Cy
+    //Cz
+    MultiFab particleInstant(bc, dmap, 14, 0);
 
     //Members
     //Density
@@ -321,8 +324,10 @@ void main_driver(const char* argv)
     //jz
     //energyDensity
     //pressure
-    //speed    
-    MultiFab particleMeans(bc, dmap, 12, 0);
+    //Cx
+    //Cy
+    //Cz    
+    MultiFab particleMeans(bc, dmap, 14, 0);
 
     //Members
     //Density
@@ -339,13 +344,11 @@ void main_driver(const char* argv)
     //KGCross
     //KRhoCross
     //RhoGCross
-    //SpatialCross1
-    //SpatialCross2
-    //SpatialCross3
-    //SpatialCross4
-    //SpatialCross5
-    //SpatialCross6    
-    MultiFab particleVars(bc, dmap, 21, 0);
+    //Cx
+    //Cy
+    //Cz 
+   
+    MultiFab particleVars(bc, dmap, 18, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -782,6 +785,8 @@ void main_driver(const char* argv)
                      umacV[1].setVal(0);,
                      umacV[2].setVal(0););
 
+            Print() << "Resetting stat collection.\n";
+
             statsCount = 1;
         }
        
@@ -810,7 +815,7 @@ void main_driver(const char* argv)
             WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
             //Writes instantaneous flow field and some other stuff? Check with Guy.
-           // WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
 
         if(step%1 == 0)
