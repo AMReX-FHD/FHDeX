@@ -454,7 +454,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
                 MarkerInnerProd(part_indices, k, w_lambda, V_lambda, inner_prod_lambda);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.)
-                          + pow(p_norm_weight, 2.0)*inner_prod_pres;
+                          + pow(p_norm_weight, 2.0)*inner_prod_pres
+                          + pow(p_norm_weight, 2.0)*inner_prod_lambda; // TODO: use p_norm_weight for now
 
 
                 // w = w - H(k,i) * V(k)
@@ -464,16 +465,23 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                     tmp_u[d].mult(H[k][i], 0, 1, 0);
                     MultiFab::Subtract(w_u[d], tmp_u[d], 0, 0, 1, 0);
                 }
+
                 MultiFab::Copy(tmp_p, V_p, k, 0, 1, 0);
                 tmp_p.mult(H[k][i], 0, 1, 0);
-                MultiFab::Subtract(w_p,tmp_p, 0, 0, 1, 0);
+                MultiFab::Subtract(w_p, tmp_p, 0, 0, 1, 0);
+
+                MarkerCopy(part_indices, k, tmp_lambda, V_lambda);
+                MarkerMult(part_indices, H[k][i], tmp_lambda);
+                MarkerSub(part_indices, w_lambda, tmp_lambda);
             }
 
             // H(i+1,i) = norm(w)
             StagL2Norm(w_u, 0, norm_u);
             CCL2Norm(w_p, 0, norm_p);
-            norm_p    = p_norm_weight*norm_p;
-            H[i+1][i] = sqrt(norm_u*norm_u + norm_p*norm_p);
+            MarkerL2Norm(part_indices, w_lambda, norm_lambda);
+            norm_p      = p_norm_weight*norm_p;
+            norm_lambda = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
+            H[i+1][i]   = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
 
 
             //___________________________________________________________________
@@ -483,6 +491,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                     MultiFab::Copy(V_u[d], w_u[d], 0, i + 1, 1, 0);
                     V_u[d].mult(1./H[i+1][i], i + 1, 1, 0);
                 }
+
                 MultiFab::Copy(V_p, w_p, 0, i + 1, 1, 0);
                 V_p.mult(1./H[i+1][i], i + 1, 1, 0);
             } else {
@@ -1027,6 +1036,28 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
         for (auto & elt : bl) elt = -elt;
     }
 
+}
+
+
+
+void MarkerSub(Vector<RealVect> & a, const Vector<RealVect> & b) {
+
+    for (int i=0; i<a.size(); ++i)
+        a[i] = a[i] - b[i];
+}
+
+
+
+void MarkerSub(const Vector<std::pair<int, int>> & part_indices,
+                     std::map<std::pair<int, int>, Vector<RealVect>> & a,
+               const std::map<std::pair<int, int>, Vector<RealVect>> & b) {
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        MarkerSub(a_markers, b_markers);
+    }
 }
 
 
