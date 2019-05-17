@@ -11,7 +11,9 @@ module GL_namelist_module
   double precision,   save :: diff_coef
   double precision,   save :: noise_coef
   double precision,   save :: phi0
+  double precision,   save :: phi_inc
   double precision,   save :: rad
+  integer,            save :: n_inc_phi
 
 
   ! Problem specification
@@ -23,6 +25,8 @@ module GL_namelist_module
   namelist /GL_params/ diff_coef
   namelist /GL_params/ noise_coef
   namelist /GL_params/ phi0
+  namelist /GL_params/ phi_inc
+  namelist /GL_params/ n_inc_phi
   namelist /GL_params/ rad
 
 contains
@@ -32,6 +36,9 @@ contains
 
     integer               , value         :: length
     character(kind=c_char), intent(in   ) :: inputs_file(length)
+
+    phi_inc = 0.d0
+    n_inc_phi = 10000000
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')

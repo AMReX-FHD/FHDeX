@@ -172,10 +172,10 @@ public:
     void FillMarkerPositions(int lev, int n_marker);
 
     void SpreadMarkers(int lev, const ParticleIndex & pindex, const Vector<RealVect> & f_in,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out);
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
     void InterpolateMarkers(int lev, const ParticleIndex & pindex, Vector<RealVect> & f_out,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
 
 
@@ -219,16 +219,19 @@ public:
     void PrintParticleData(int lev);
 
     void LocalIBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index,
-                             bool unique = false);
-    Vector<IBP_info> LocalIBParticleInfo(int lev, PairIndex index, bool unique = false);
+                             bool unique = false) const;
+    Vector<IBP_info> LocalIBParticleInfo(int lev, PairIndex index,
+                                         bool unique = false) const;
 
     void NeighborIBParticleInfo(Vector<IBP_info> & npart_info, int lev, PairIndex index,
-                                bool unique = false);
-    Vector<IBP_info> NeighborIBParticleInfo(int lev, PairIndex index, bool unique = false);
+                                bool unique = false) const ;
+    Vector<IBP_info> NeighborIBParticleInfo(int lev, PairIndex index,
+                                            bool unique = false) const;
 
     void IBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index,
-                        bool unique = false);
-    Vector<IBP_info> IBParticleInfo(int lev, PairIndex index, bool unique = false);
+                        bool unique = false) const;
+    Vector<IBP_info> IBParticleInfo(int lev, PairIndex index,
+                                    bool unique = false) const;
 
 
 

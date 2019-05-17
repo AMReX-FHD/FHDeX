@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:2) = 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:2) = 1.0 1.0      ! physical hi coordinate
+  prob_hi(1:2) = 4.0 4.0      ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -10,16 +10,16 @@
   nvars = 1
     
   ! number of cells in domain
-  n_cells(1:2) = 32 32
+  n_cells(1:2) = 128 128
   ! max number of cells in a box
-  max_grid_size(1:2) = 16 16
+  max_grid_size(1:2) = 64 64
 
   ! Time-step control
   cfl = .1
 
   ! Controls for number of steps between actions
-  max_step = 10000
-  plot_int = 100
+  max_step = 2000000
+  plot_int = 10000
   n_steps_skip = 000000
 
 
@@ -42,9 +42,13 @@
  diff_coef = 1.
  noise_coef = .010
  umbrella = 100.
+ ! umbrella = 00.
 
- phi0 = .5
+ !phi0 = .5
+ phi0 = .0
  rad = .4
+ n_inc_phi = 100000
+ phi_inc = .05
 
 
 

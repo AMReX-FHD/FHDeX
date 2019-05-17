@@ -9,6 +9,9 @@
 #include "gmres_namespace.H"
 
 
+#include <ib_functions.H>
+
+
 #include <IBParticleContainer.H>
 
 
@@ -20,12 +23,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
              std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
              MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
-             MultiFab & gamma,
-             Real theta_alpha,
-             IBParticleContainer & ib_pc,
+             MultiFab & gamma, Real theta_alpha,
+             const IBParticleContainer & ib_pc,
              const Geometry & geom,
-             Real & norm_pre_rhs)
-{
+             Real & norm_pre_rhs) {
 
     BL_PROFILE_VAR("GMRES()", GMRES);
 
@@ -51,34 +52,32 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     Real norm_init_Stokes;  // |b-Ax|;        computed once at beginning
     Real norm_u_noprecon;   // u component of norm_resid_Stokes
     Real norm_p_noprecon;   // p component of norm_resid_Stokes
+    Real norm_lambda_noprecon;
     Real norm_resid_est;
 
     Real norm_u; // temporary norms used to build full-state norm
     Real norm_p; // temporary norms used to build full-state norm
+    Real norm_lambda;
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
 
-    BoxArray ba = b_p.boxArray();
+    BoxArray ba              = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
 
 
     // # of ghost cells must match x_u so higher-order stencils can work
     std::array< MultiFab, AMREX_SPACEDIM > r_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
-
     std::array< MultiFab, AMREX_SPACEDIM > w_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > tmp_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > V_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+          r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
+          w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+          V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
+    }
 
 
     // # of ghost cells must match x_p so higher-order stencils can work
@@ -91,15 +90,17 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     //___________________________________________________________________________
     // Get all the immersed-boudary particle indices (used to iterate below)
     Vector<IBP_info> ibp_info;
-    // Vector<RealVect> marker_positions;
-    // TODO: make this a referenced argument
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_forces;
+    // TODO: make `x_lambda` a referenced argument
+    std::map<std::pair<int, int>, Vector<RealVect>>   b_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>   x_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>   r_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>> tmp_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>>   V_lambda;
 
+    int ibpc_lev = 0;  // assume single level for now
+    int ib_grow  = 6; // using the 6-point stencil
 
-
-    // TODO: assuming only 1 level for now
-    int ibpc_lev = 0;
-
+    // NOTE: use `ib_pc` BoxArray to collect IB particle data
     MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev),
                    ib_pc.ParticleDistributionMap(ibpc_lev), 1, 1);
     for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
@@ -114,47 +115,20 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // Pre-allocate force arrays
         const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
         // ... initialized to (0..0)
-        marker_forces[part_indices[i]].resize(marker_positions.size());
-        // for (auto & elt : marker_forces[part_indices[i]])
-        //     elt = RealVect{1, 1, 1};
+          b_lambda[part_indices[i]].resize(marker_positions.size());
+          x_lambda[part_indices[i]].resize(marker_positions.size());
+          r_lambda[part_indices[i]].resize(marker_positions.size());
+        tmp_lambda[part_indices[i]].resize(marker_positions.size());
+          V_lambda[part_indices[i]].resize(marker_positions.size());
     }
 
 
+    // DEBUG:
     Print() << "Found " << part_indices.size() << " many IB particles in rank 0:"
             << std::endl;
     for (const auto & pid : part_indices)
         Print() << "[" << pid.first << ", " << pid.second << "]";
     Print() << std::endl << std::endl;
-
-
-    // We don't need the marker positions here at all :P
-    // for (const auto & pindex : part_indices) {
-    //     const Vector<RealVect> pmarkers = ib_pc.MarkerPositions(0, pindex);
-    //     for (const auto & marker : pmarkers)
-    //         marker_positions.push_back(marker);
-    // }
-
-
-    int ib_grow =  ib_pc.get_nghost() + 6;
-    //  using the 6-point stencil ----- ^
-
-    // Buffer velocity to allow for enough ghost cells
-    std::array<MultiFab, AMREX_SPACEDIM> u_buffer;
-    std::array<MultiFab, AMREX_SPACEDIM> spread_f;
-    std::array<MultiFab, AMREX_SPACEDIM> u_precon_f;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        u_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-        spread_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-        u_precon_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-
-        MultiFab::Copy(u_buffer[d], x_u[d], 0, 0, 1, 0);
-        u_buffer[d].FillBoundary(geom.periodicity());
-    }
-    MultiFab p_buffer(ba, dmap, 1, ib_grow);
-    MultiFab::Copy(p_buffer, x_p, 0, 0, 1, 0);
-    p_buffer.FillBoundary(geom.periodicity());
-
-
 
 
 
@@ -187,59 +161,16 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     //___________________________________________________________________________
     // First application of preconditioner
 
-    // 1. Fluid Precon
-    ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
-
-    // 2. IB Precon
-
-    // 2.a Lambda = J*u
-    for (const auto & pid : part_indices)
-        ib_pc.InterpolateMarkers(0, pid, marker_forces[pid], u_buffer);
-
-    // 2.b Lambda = J*u - J A^{-1} G p
-    std::array<MultiFab, AMREX_SPACEDIM> Gp;
-    std::array<MultiFab, AMREX_SPACEDIM> AGp;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        Gp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-        AGp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
-    }
-
-    ComputeGrad(p_buffer, Gp, 0, 0, 1, geom);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        Gp[d].FillBoundary(geom.periodicity());
-
-    StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGp, Gp, theta_alpha, geom);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        AGp[d].FillBoundary(geom.periodicity());
-
-    for (const auto & pid : part_indices) {
-        Vector<RealVect> mf_tmp(marker_forces[pid].size());
-        ib_pc.InterpolateMarkers(0, pid, mf_tmp, AGp);
-        for (int i=0; i<marker_forces[pid].size(); ++i) 
-            marker_forces[pid][i] = marker_forces[pid][i] - mf_tmp[i];
-    }
-
-    // 2.c spread_f = S*Lambda
-    for (const auto & pid : part_indices) {
-        ib_pc.SpreadMarkers(0, pid, marker_forces[pid], spread_f);
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            spread_f[d].FillBoundary(geom.periodicity());
-    }
-
-    // 2.d u_precon_f = A^{-1} spread_f = A^{-1} S Lambda
-    StagMGSolver(alpha_fc, beta, beta_ed, gamma, u_precon_f, spread_f, theta_alpha, geom);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        u_precon_f[d].FillBoundary(geom.periodicity());
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        VisMF::Write(u_precon_f[d], "u_precon_f_"+std::to_string(d));
-
-
+    // ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+    IBMPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha,
+              ib_pc, part_indices, x_lambda, b_lambda, geom);
 
 
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
+
+    // TODO: lambda norm
     norm_p       = p_norm_weight*norm_p;
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
     norm_pre_rhs = norm_pre_b;
@@ -248,9 +179,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // calculate the l2 norm of rhs
     StagL2Norm(b_u, 0, norm_u);
     CCL2Norm(b_p, 0, norm_p);
+
+    // TODO: W norm
     norm_p = p_norm_weight*norm_p;
     norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
-
 
     //! If norm_b=0 we should return zero as the solution and "return" from this routine
     // It is important to use gmres_abs_tol and not 0 since sometimes due to roundoff we
@@ -274,7 +206,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
 
-
     ///////////////////
     // begin outer iteration
     ///////////////////
@@ -290,21 +221,38 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // Compute tmp = b - Ax
 
         // Calculate tmp = Ax
+        // Fluid part: ........................................... (v, p) = (Av - Gp, -Dv)
         ApplyMatrix(tmp_u, tmp_p, x_u, x_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
 
+        // IBM part: ............................. (v, lambda) = (Av - Gp - S lambda, -Jv)
+        ApplyIBM(tmp_u, tmp_lambda, x_u, ib_pc, part_indices, x_lambda,
+                 ib_grow, ibpc_lev, geom);
+
+
         // tmp = b - Ax
+        // Fluid part: ........................... tmp_u = b_u - (Ax_u - Gx_p - Sx_lambda)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Subtract(tmp_u[d], b_u[d], 0, 0, 1, 0);
             tmp_u[d].mult(-1., 0, 1, 0);
         }
+
+        // Pressure part: ............................................ tmp_p = b_p - (-Dv)
         MultiFab::Subtract(tmp_p, b_p, 0, 0, 1, 0);
         tmp_p.mult(-1., 0, 1, 0);
+
+        // IBM part: ....................................... tmp_lambda = b_lambda - (-Jv)
+        MarkerInvSub(part_indices, tmp_lambda, b_lambda);
 
 
         //_______________________________________________________________________
         // un-preconditioned residuals
         StagL2Norm(tmp_u, 0, norm_u_noprecon);
         CCL2Norm(tmp_p, 0, norm_p_noprecon);
+        MarkerL2Norm(part_indices, tmp_lambda, norm_lambda_noprecon);
+
+
+        std::cout << "norm_lambda_noprecon = " << norm_lambda_noprecon << std::endl;
+
         norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
 
@@ -469,7 +417,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
                 StagInnerProd(w_u, 0, V_u, k, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
-                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
+                H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.)
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
 
 
@@ -562,7 +510,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // unscale the rhs
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            b_u[d].mult(1./scale_factor,0,1,b_u[d].nGrow());
+            b_u[d].mult(1./scale_factor, 0, 1, b_u[d].nGrow());
 
         // unscale the viscosities
         beta.mult(1./scale_factor, 0, 1, beta.nGrow());
@@ -578,4 +526,520 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 << norm_resid/norm_init_resid << std::endl;
     }
 
+}
+
+
+
+void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+               std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
+               const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+               const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
+               const MultiFab & gamma, const Real & theta_alpha,
+               const IBParticleContainer & ib_pc,
+               const Vector<std::pair<int, int>> & pindex_list,
+               std::map<std::pair<int, int>, Vector<RealVect>> & marker_forces,
+               const std::map<std::pair<int, int>, Vector<RealVect>> & marker_W,
+               const Geometry & geom)
+{
+
+    BL_PROFILE_VAR("IBMPrecon()", IBMPrecon);
+
+    BoxArray ba              = b_p.boxArray();
+    DistributionMapping dmap = b_p.DistributionMap();
+
+    Real         mean_val_pres;
+    Vector<Real> mean_val_umac(AMREX_SPACEDIM);
+
+
+    MultiFab phi     (ba, dmap, 1, 1);
+    MultiFab mac_rhs (ba, dmap, 1, 0);
+    MultiFab zero_fab(ba, dmap, 1, 0);
+    MultiFab x_p_tmp (ba, dmap, 1, 1);
+
+    // set zero_fab_fc to 0
+    zero_fab.setVal(0.);
+
+    // build alphainv_fc, one_fab_fc, and zero_fab_fc
+    std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > one_fab_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > zero_fab_fc;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+         one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        zero_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+
+        // set alphainv_fc to 1/alpha_fc
+        // set one_fab_fc to 1
+        // set zero_fab_fc to 0
+        alphainv_fc[d].setVal(1.);
+        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+         one_fab_fc[d].setVal(1.);
+        zero_fab_fc[d].setVal(0.);
+    }
+
+
+    int ib_grow  = 6; // using the 6-point stencil
+    int ib_level = 0; // assume single level for now
+
+
+    // set the initial guess for Phi in the Poisson solve to 0
+    // set x_u = 0 as initial guess
+    phi.setVal(0.);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        x_u[d].setVal(0.);
+
+
+    std::array<MultiFab, AMREX_SPACEDIM> JLS_V;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        JLS_V[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+        JLS_V[d].setVal(0.);
+    }
+
+    MultiFab JLS_P(ba, dmap, 1, ib_grow);
+    JLS_P.setVal(0.);
+
+    std::map<std::pair<int, int>, Vector<RealVect>> JLS;
+    for (const auto & pindex : pindex_list){
+        // initialized to (0..0)
+        JLS[pindex].resize(marker_W.at(pindex).size());
+    }
+
+
+    // 1 = projection preconditioner
+    // 2 = lower triangular preconditioner
+    // 3 = upper triangular preconditioner
+    // 4 = block diagonal preconditioner
+    // 5 = Uzawa-type approximation (see paper)
+    // 6 = upper triangular + viscosity-based BFBt Schur complement (from Georg Stadler)
+
+    // projection preconditioner
+    if (abs(precon_type) == 1) {
+
+        //_______________________________________________________________________
+        // Temporary arrays
+
+        std::array<MultiFab, AMREX_SPACEDIM> Ag;
+        std::array<MultiFab, AMREX_SPACEDIM> AGphi;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Ag[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            Ag[d].setVal(0.);
+
+            AGphi[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            AGphi[d].setVal(0.);
+        }
+
+
+
+        /************************************************************************
+         *                                                                      *
+         * Fluid velocity part (also used later)                                *
+         * Calculates: x_u = A^{-1}g - GLp^{-1}(DA^{-1}g + h)                   *
+         *                                                                      *
+         ***********************************************************************/
+
+        //_______________________________________________________________________
+        // STEP 1: Solve for an intermediate state, x_u^star, using an implicit
+        // viscous solve
+        //         x_u^star = A^{-1} b_u
+
+        // x_u^star = A^{-1} b_u ......................................... x_u = A^{-1}g
+        // StagMGSolver(alpha_fc, beta, beta_ed, gamma, x_u, b_u, theta_alpha, geom);
+        StagMGSolver(alpha_fc, beta, beta_ed, gamma, Ag, b_u, theta_alpha, geom);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Ag[d].FillBoundary(geom.periodicity());
+            MultiFab::Copy(x_u[d], Ag[d], 0, 0, 1, x_u[d].nGrow());
+            x_u[d].FillBoundary(geom.periodicity()); // Just in case
+        }
+
+        //_______________________________________________________________________
+        // STEP 2: Construct RHS for pressure Poisson problem
+
+        // set mac_rhs = D(x_u^star) ................................ mac_rhs = DA^{-1}g
+        ComputeDiv(mac_rhs, x_u, 0, 0, 1, geom, 0);
+
+        // add b_p to mac_rhs ................................... mac_rhs = DA^{-1}g + h
+        MultiFab::Add(mac_rhs, b_p, 0, 0, 1, 0);
+
+        //_______________________________________________________________________
+        // STEP 3: Compute x_u
+
+        // use multigrid to solve for Phi ......................... phi = Lp^{-1}mac_rhs
+        // x_u^star is only passed in to get a norm for absolute residual criteria
+        MacProj(alphainv_fc, mac_rhs, phi, geom);
+
+        // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
+        SubtractWeightedGradP(x_u, alphainv_fc, phi, geom);
+
+
+
+        /************************************************************************
+         *                                                                      *
+         * Immersed boundary part                                               *
+         *                                                                      *
+         ***********************************************************************/
+
+        //_______________________________________________________________________
+        // Temporary arrays
+        std::map<std::pair<int, int>, Vector<RealVect>> JAgW;
+        std::map<std::pair<int, int>, Vector<RealVect>> JAGphi;
+        std::map<std::pair<int, int>, Vector<RealVect>> JLS_rhs;
+        for (const auto & pindex : pindex_list){
+            // initialized to (0..0)
+            JAgW[pindex].resize(marker_W.at(pindex).size());
+            JAGphi[pindex].resize(marker_W.at(pindex).size());
+            JLS_rhs[pindex].resize(marker_W.at(pindex).size());
+        }
+
+
+
+        //_______________________________________________________________________
+        // Pure pressure gradient complement: G\phi and A^{-1}G\phi
+        std::array<MultiFab, AMREX_SPACEDIM> Gphi;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            Gphi[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            Gphi[d].setVal(0.);
+        }
+
+        SubtractWeightedGradP(Gphi, alphainv_fc, phi, geom);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            Gphi[d].FillBoundary(geom.periodicity());
+
+        StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGphi, Gphi, theta_alpha, geom);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            AGphi[d].FillBoundary(geom.periodicity());
+
+
+        //_______________________________________________________________________
+        // JAgW, and JAGphi preconditioner terms
+
+        // J-interpolated terms: A^{-1}g, A^{-1}G\phi, sourced above
+        for (const auto & pindex : pindex_list) {
+                  auto & jagw = JAgW.at(pindex);
+            const auto & W    = marker_W.at(pindex);
+
+            ib_pc.InterpolateMarkers(ib_level, pindex, jagw, Ag);
+
+            for (int i=0; i<jagw.size(); ++i)
+                jagw[i] = jagw[i] + W[i]; // ..................... JAgW = JA^{-1}g + W
+
+
+            auto & jagphi = JAGphi.at(pindex); // ................. JAGphi = JA^{-1}G\phi
+            ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, AGphi);
+        }
+
+
+        //_______________________________________________________________________
+        // JLS preconditioner term
+
+        // RHS term for preconditioner
+        for (const auto & pindex : pindex_list){
+                  auto & jls = JLS_rhs.at(pindex);
+            const auto & jagw   = JAgW.at(pindex);
+            const auto & jagphi = JAGphi.at(pindex);
+
+            for (int i=0; i<jls.size(); ++i)
+                jls[i] = jagphi[i] + jagw[i]; //  JLS_rhs = JA^{-1}G\phi +JA^{-1}g + W
+        }
+
+        // Preconditioner guess: L^{-1} ~ A^{-1} => (JL^{-1}S)^{-1} = JAS
+
+        std::array<MultiFab, AMREX_SPACEDIM> spread_rhs;
+        std::array<MultiFab, AMREX_SPACEDIM> AS_rhs;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            spread_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            spread_rhs[d].setVal(0.);
+
+            AS_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            AS_rhs[d].setVal(0.);
+        }
+
+        for (const auto & pindex : pindex_list) {
+            const auto & jls = JLS_rhs.at(pindex);
+
+            ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs);
+        }
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            spread_rhs[d].FillBoundary(geom.periodicity());
+
+        // Apply A (Hemlhotz) operator
+        const Real * dx = geom.CellSize();
+        StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            AS_rhs[d].FillBoundary(geom.periodicity());
+
+        // Precon: ......................... JLS = JAS (JA^{-1}G\phi +JA^{-1}g + W )
+        for (const auto & pindex : pindex_list) {
+            auto & jls = JLS.at(pindex);
+
+            ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+
+            for (auto & marker : jls)
+                marker = -marker; // ...... JLS = -JAS (JA^{-1}G\phi +JA^{-1}g + W )
+        }
+
+
+
+        //_______________________________________________________________________
+        // Compute JLS preconditioner contributions for the velocity and pressure
+        // JLS_V = A^{-1}S JLS
+        // JLS_P = (\theta\rho_0\Lp^{-1}-\mu_0 1) DA^{-1}S JLS
+
+        std::array<MultiFab, AMREX_SPACEDIM> JLS_V_rhs;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            JLS_V_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            JLS_V_rhs[d].setVal(0.);
+        }
+
+        MultiFab JLS_P_rhs(ba, dmap, 1, ib_grow);
+        JLS_P_rhs.setVal(0.);
+
+
+        // Velocity Part:
+
+        for (const auto & pindex : pindex_list) {
+            const auto & jls = JLS_rhs.at(pindex);
+
+            ib_pc.SpreadMarkers(ib_level, pindex, jls, JLS_V_rhs);
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            JLS_V_rhs[d].FillBoundary(geom.periodicity());
+
+        StagMGSolver(alpha_fc, beta, beta_ed, gamma, JLS_V, JLS_V_rhs, theta_alpha, geom);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            JLS_V_rhs[d].FillBoundary(geom.periodicity());
+
+
+        // DEBUG:
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(JLS_V[d], "JLS_V_"+std::to_string(d));
+
+
+        // Pressure Part:
+        // Note that `JLS_V` (above) is already equal to the A^{-1}S part in `DA^{-1}S`
+        // This also means the IBM preconditioner has the property that `div(u) = h`
+
+        // ................................................ JLS_P_rhs = DA^{-1}S JLS
+        ComputeDiv(JLS_P_rhs, JLS_V, 0, 0, 1, geom, 0);
+        JLS_P_rhs.FillBoundary(geom.periodicity());
+
+        // use multigrid to solve for Phi ............. JLS_P = Lp^{-1} DA^{-1}S JLS
+        MacProj(alphainv_fc, JLS_P_rhs, JLS_P, geom);
+
+        JLS_P.mult(theta_alpha, 0, 1, 0);
+        JLS_P_rhs.mult(-1, 0, 1, 0);
+
+        MultiFab::Add(JLS_P, JLS_P_rhs, 0, 0, 1, 0);
+
+        //DEBUG:
+        VisMF::Write(JLS_P, "JLS_P");
+
+        /************************************************************************
+         *                                                                      *
+         * Pressure part                                                        *
+         * Calculates: x_p = { -(DA^{-1}g + h) + Lp^{-1}(DA^{-1}g + h)          *
+         *                   { L_alpha Lp^{-1}(DA^{-1}g + h)                    *
+         *                                                                      *
+         ***********************************************************************/
+
+        ////////////////////
+        // STEP 4: Compute x_p by applying the Schur complement approximation
+        ////////////////////
+
+        if (visc_schur_approx == 0) {
+            // if precon_type = +1, or theta_alpha=0 then x_p = theta_alpha*Phi - c*beta*(mac_rhs)
+            // if precon_type = -1                   then x_p = theta_alpha*Phi - c*beta*L_alpha Phi
+
+            if (precon_type == 1 || theta_alpha == 0) {
+                // first set x_p = -mac_rhs ...................... x_p = -(DA^{-1}g + h)
+                MultiFab::Copy(x_p, mac_rhs, 0, 0, 1, 0);
+                x_p.mult(-1., 0, 1, 0);
+            } else {
+                // first set x_p = -L_alpha Phi .... x_p = L_alpha Lp^{-1}(DA^{-1}g + h)
+                CCApplyOp(phi, x_p, zero_fab, alphainv_fc, geom);
+            }
+
+            if ( abs(visc_type) == 1 || abs(visc_type) == 2) {
+                // multiply x_p by beta; x_p = -beta L_alpha Phi
+                MultiFab::Multiply(x_p, beta, 0, 0, 1, 0);
+
+                if (abs(visc_type) == 2) {
+                    // multiply by c=2; x_p = -2*beta L_alpha Phi
+                    x_p.mult(2., 0, 1, 0);
+                }
+            } else if (abs(visc_type) == 3) {
+
+                // multiply x_p by gamma, use mac_rhs a temparary to save x_p
+                MultiFab::Copy(mac_rhs, x_p, 0, 0, 1, 0);
+                MultiFab::Multiply(mac_rhs, gamma, 0, 0, 1, 0);
+                // multiply x_p by beta; x_p = -beta L_alpha Phi
+                MultiFab::Multiply(x_p, beta, 0, 0, 1, 0);
+                // multiply by c=4/3; x_p = -(4/3) beta L_alpha Phi
+                x_p.mult(4./3., 0, 1, 0);
+                // x_p = -(4/3) beta L_alpha Phi - gamma L_alpha Phi
+                MultiFab::Add(x_p, mac_rhs, 0, 0, 1, 0);
+            }
+
+            // multiply Phi by theta_alpha
+            phi.mult(theta_alpha, 0, 1, 0);
+
+            // add theta_alpha*Phi to x_p
+            MultiFab::Add(x_p, phi, 0, 0, 1, 0);
+        } else { Abort("StagApplyOp: visc_schur_approx != 0 not supported"); }
+
+    } else { Abort("StagApplyOp: unsupposed precon_type"); }
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Add Immersed boundary part                                               *
+     *                                                                          *
+     ***************************************************************************/
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(x_u[d], JLS_V[d], 0, 0, 1, 0);
+        x_u[d].FillBoundary(geom.periodicity());
+    }
+
+    MultiFab::Add(x_p, JLS_P, 0, 0, 1, 0);
+    x_p.FillBoundary(geom.periodicity());
+
+    for (const auto & pindex : pindex_list) {
+              auto & force = marker_forces.at(pindex);
+        const auto & jls   = JLS.at(pindex);
+
+        for (int i=0; i<jls.size(); ++i)
+            force[i] = force[i] + jls[i];
+    }
+
+
+
+    ////////////////////
+    // STEP 5: Handle null-space issues in MG solvers
+    ////////////////////
+
+    // subtract off mean value: Single level only! No need for ghost cells
+    SumStag(x_u, 0, mean_val_umac, true);
+    SumCC(x_p, 0, mean_val_pres, true);
+
+    // The pressure Poisson problem is always singular:
+    x_p.plus(-mean_val_pres, 0, 1, 0);
+
+    // The velocity problem is also singular under these cases
+    if (theta_alpha == 0.) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            if (geom.isPeriodic(d)) {
+                x_u[d].plus(-mean_val_umac[d], 0, 1, 0);
+            }
+        }
+    }
+}
+
+
+
+void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
+                    std::map<std::pair<int, int>, Vector<RealVect>> & b_lambda,
+              const std::array<MultiFab, AMREX_SPACEDIM>            & x_u,
+              const IBParticleContainer                             & ib_pc,
+              const Vector<std::pair<int, int>>                     & part_indices,
+              const std::map<std::pair<int, int>, Vector<RealVect>> & x_lambda,
+              int ib_grow, int ibpc_lev, const Geometry & geom ) {
+
+    // Temporary containers:
+    std::array<MultiFab, AMREX_SPACEDIM> SLambda;
+    std::array<MultiFab, AMREX_SPACEDIM> x_u_buffer;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        SLambda[d].define(x_u[d].boxArray(), x_u[d].DistributionMap(), 1, ib_grow);
+        SLambda[d].setVal(0.);
+
+        x_u_buffer[d].define(x_u[d].boxArray(), x_u[d].DistributionMap(), 1, ib_grow);
+        x_u_buffer[d].setVal(0.);
+    }
+
+
+    // ............................................................ SLambda = S lambda
+    for (const auto & pid : part_indices) {
+        const auto & lambda = x_lambda.at(pid);
+
+        ib_pc.SpreadMarkers(ibpc_lev, pid, lambda, SLambda);
+    }
+
+    // ........................................................ v = Av - Gp - S lambda
+    // ...... (computed elsewhere, before this function call) ------^^^^^^^
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        SLambda[d].FillBoundary(geom.periodicity());
+        MultiFab::Subtract(b_u[d], SLambda[d], 0, 0, 1, 0);
+    }
+
+    // Buffer x_u so that it has enough ghost cells (to cover the kernel)
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(x_u_buffer[d], x_u[d], 0, 0, 1, 0);
+        x_u_buffer[d].FillBoundary(geom.periodicity());
+    }
+
+    // .................................................................. lambda = -Jv
+    for (const auto & pid : part_indices) {
+        auto & bl = b_lambda.at(pid);
+
+        ib_pc.InterpolateMarkers(ibpc_lev, pid, bl, x_u_buffer);
+        for (auto & elt : bl) elt = -elt;
+    }
+
+}
+
+
+
+void MarkerInvSub(const Vector<std::pair<int, int>> & part_indices,
+                        std::map<std::pair<int, int>, Vector<RealVect>> & a,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & b) {
+
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        for (int i=0; i<a.size(); ++i)
+            a_markers[i] = b_markers[i] - a_markers[i];
+    }
+}
+
+
+
+void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v) {
+    v = 0;
+
+    for (int i=0; i<a.size(); ++i){
+        Real vi = a[i].dotProduct(b[i]);
+
+        v = v + vi;
+    }
+}
+
+
+
+void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
+    norm_l2 = 0.;
+    MarkerInnerProd(markers, markers, norm_l2);
+    norm_l2 = sqrt(norm_l2);
+}
+
+
+void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & b, Real & v) {
+
+    v = 0.;
+
+    for (const auto & pid : part_indices) {
+        Real l2_norm = 0.;
+
+        MarkerL2Norm(b.at(pid), l2_norm);
+
+        v = v + l2_norm;
+    }
 }

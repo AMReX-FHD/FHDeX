@@ -12,7 +12,9 @@ extern "C"
 			      amrex::Real* phi,
 			      amrex::Real* phin,
 			      const amrex::Real* rannums,
-                              const amrex::Real* integral,
+                              amrex::Real* integral,
+                              amrex::Real* energy,
+                              amrex::Real* teng,
                               const amrex::Real* dx,
                               const amrex::Real* dt);
 
@@ -32,6 +34,8 @@ extern "C"
                               amrex::Real* integral);
 
    void  setdt ( const amrex::Real* dx, amrex::Real* dt );
+
+   void  inc_phi0 ( const int* step );
 
    void  initphi (const int* lo, const int* hi,
                               amrex::Real* phi,
