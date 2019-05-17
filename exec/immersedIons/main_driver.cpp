@@ -1,4 +1,5 @@
 #include "INS_functions.H"
+#include <iostream>
 
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -53,6 +54,9 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+
+    remove("potential.dat");
+    remove("kinetic.dat");
 
     const int n_rngs = 1;
 

@@ -52,6 +52,7 @@ struct RealData
         totalDiff,
         sigma,
         eepsilon,
+        potential,
         ncomps
     };
 };

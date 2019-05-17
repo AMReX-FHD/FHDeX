@@ -15,10 +15,10 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-11
+  fixed_dt = 1e-14
 
   ! Controls for number of steps between actions
-  max_step = 5000
+  max_step = 100000
   plot_int = 1000
   plot_ascii = 0
   struct_fact_int = 1
@@ -26,7 +26,7 @@
 
   ! Toggles 0=off, 1=on
   fluid_tog = 0 ! Do Stokes solve
-  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
+  es_tog = 2 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel)
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 0 ! Apply RFD force to fluid
   move_tog = 1 ! Total particle move
@@ -55,7 +55,7 @@
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e18 6.02e18
+  particle_n0 = 6.02e17 6.02e17
 
   !Species info
   !--------------
@@ -76,10 +76,10 @@
   permitivitty = 8.85e-21
   !cut_off = 8.732e-8    !cutoff range for close range potential - this is being calculated off sigma now.
   rmin = 5e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
-  crange = 3        !cell depth when building neighbour lists
-  images = 2       !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
+  crange = 1        !cell depth when building neighbour lists
+  images = 1       !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 1e13 0 0  !external electric field properties
+  eamp = 0 0 0  !external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
 
