@@ -488,15 +488,17 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             // V(i+1) = w / H(i+1,i)
             if (H[i+1][i] != 0.) {
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    MultiFab::Copy(V_u[d], w_u[d], 0, i + 1, 1, 0);
-                    V_u[d].mult(1./H[i+1][i], i + 1, 1, 0);
+                    MultiFab::Copy(V_u[d], w_u[d], 0, i+1, 1, 0);
+                    V_u[d].mult(1./H[i+1][i], i+1, 1, 0);
                 }
 
-                MultiFab::Copy(V_p, w_p, 0, i + 1, 1, 0);
-                V_p.mult(1./H[i+1][i], i + 1, 1, 0);
-            } else {
-                Abort("GMRES.cpp: error in orthogonalization");
-            }
+                MultiFab::Copy(V_p, w_p, 0, i+1, 1, 0);
+                V_p.mult(1./H[i+1][i], i+1, 1, 0);
+
+                MarkerCopy(part_indices, i+1, V_lambda, w_lambda);
+                MarkerMult(part_indices, i+1, 1./H[i+1][i], V_lambda);
+
+            } else { Abort("GMRES.cpp: error in orthogonalization"); }
 
 
             //___________________________________________________________________
