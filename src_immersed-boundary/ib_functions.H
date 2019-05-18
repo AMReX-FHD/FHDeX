@@ -44,6 +44,15 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
               int ib_grow, int ibpc_lev, const Geometry & geom );
 
 
+void MarkerAdd(Vector<RealVect> & a, const Vector<RealVect> & b);
+void MarkerAdd(const Vector<std::pair<int, int>> & part_indices,
+                     std::map<std::pair<int, int>, Vector<RealVect>> & a,
+               const std::map<std::pair<int, int>, Vector<RealVect>> & b);
+void MarkerAdd(const Vector<std::pair<int, int>> & part_indices, int comp,
+                     std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
+               const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b);
+
+
 void MarkerSub(Vector<RealVect> & a, const Vector<RealVect> & b);
 void MarkerSub(const Vector<std::pair<int, int>> & part_indices,
                      std::map<std::pair<int, int>, Vector<RealVect>> & a,
@@ -89,5 +98,16 @@ void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
 void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
                       std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
                 const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b);
+
+
+void UpdateSolIBM(const Vector<std::pair<int, int>>                       & part_indices,
+                  std::array<MultiFab, AMREX_SPACEDIM>                    & x_u,
+                  MultiFab                                                & x_p,
+                  std::map<std::pair<int, int>,        Vector<RealVect>>  & x_lambda,
+                  std::array<MultiFab, AMREX_SPACEDIM>                    & V_u,
+                  MultiFab                                                & V_p,
+                  std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & V_lambda,
+                  const Vector<Real>                                      & y,
+                  int i );
 
 #endif

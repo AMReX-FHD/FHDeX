@@ -537,7 +537,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         SolveUTriangular(i_copy-1, H, s, y);
 
         // then, x = x + dot(V(1:i),y(1:i))
-        UpdateSol(x_u,x_p,V_u,V_p,y,i_copy);
+        // UpdateSol(x_u, x_p, V_u, V_p, y, i_copy);
+        UpdateSolIBM(part_indices, x_u, x_p, x_lambda, V_u, V_p, V_lambda, y, i_copy);
 
     } while (true); // end of outer loop (do iter=1,gmres_max_outer)
 
@@ -1042,6 +1043,42 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
 
 
 
+void MarkerAdd(Vector<RealVect> & a, const Vector<RealVect> & b)  {
+
+    for (int i=0; i<a.size(); ++i)
+        a[i] = a[i] + b[i];
+}
+
+
+
+void MarkerAdd(const Vector<std::pair<int, int>> & part_indices,
+                     std::map<std::pair<int, int>, Vector<RealVect>> & a,
+               const std::map<std::pair<int, int>, Vector<RealVect>> & b) {
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        MarkerAdd(a_markers, b_markers);
+    }
+}
+
+
+
+void MarkerAdd(const Vector<std::pair<int, int>> & part_indices, int comp,
+                     std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
+               const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b) {
+
+    for (const auto & pid : part_indices) {
+              auto & a_markers = a.at(pid);
+        const auto & b_markers = b.at(pid);
+
+        MarkerAdd(a_markers, b_markers[comp]);
+    }
+}
+
+
+
 void MarkerSub(Vector<RealVect> & a, const Vector<RealVect> & b) {
 
     for (int i=0; i<a.size(); ++i)
@@ -1238,5 +1275,35 @@ void MarkerCopy(const Vector<std::pair<int, int>> & part_indices, int comp,
         const auto & b_markers = b.at(pid);
 
         MarkerCopy(a_markers, b_markers[comp]);
+    }
+}
+
+
+
+void UpdateSolIBM(const Vector<std::pair<int, int>>                       & part_indices,
+                  std::array<MultiFab, AMREX_SPACEDIM>                    & x_u,
+                  MultiFab                                                & x_p,
+                  std::map<std::pair<int, int>,        Vector<RealVect>>  & x_lambda,
+                  std::array<MultiFab, AMREX_SPACEDIM>                    & V_u,
+                  MultiFab                                                & V_p,
+                  std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & V_lambda,
+                  const Vector<Real>                                      & y,
+                  int i ) {
+
+    // set V(i) = V(i)*y(i)
+    // set x = x + V(i)
+
+    for (int iter=0; iter<=i; ++iter) {
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            V_u[d].mult(y[iter], iter, 1, 0);
+            MultiFab::Add(x_u[d], V_u[d], iter, 0, 1, 0);
+        }
+
+        V_p.mult(y[iter], iter, 1, 0);
+        MultiFab::Add(x_p, V_p, iter, 0, 1, 0);
+
+        MarkerMult(part_indices, iter, y[iter], V_lambda);
+        MarkerAdd(part_indices, iter, x_lambda, V_lambda);
     }
 }
