@@ -174,6 +174,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
               ib_pc, part_indices, tmp_lambda, b_lambda, geom);
 
 
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        VisMF::Write(tmp_u[d], "tmp_u_" + std::to_string(d));
+
+
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
@@ -859,7 +863,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         StagMGSolver(alpha_fc, beta, beta_ed, gamma, JLS_V, JLS_V_rhs, theta_alpha, geom);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            JLS_V_rhs[d].FillBoundary(geom.periodicity());
+            JLS_V[d].FillBoundary(geom.periodicity());
 
 
         // DEBUG:
