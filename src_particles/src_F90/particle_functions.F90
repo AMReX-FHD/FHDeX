@@ -34,8 +34,10 @@ subroutine force_function2(part1,part2,domsize) &
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n
-  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist
+  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs
+  real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist, ee
+
+  ee = (1d0/(permitivitty*4*3.142))
 
   dx0 = part1%pos-part2%pos
 
@@ -43,15 +45,19 @@ subroutine force_function2(part1,part2,domsize) &
   jj=0
   kk=0
 
-  maxdist = images*domsize(1)
+  pairs = 0
+
+  maxdist = (images)*domsize(1)
 
   if(images*domsize(2) .lt. maxdist) then
-    maxdist = images*domsize(2)
+    maxdist = (images)*domsize(2)
   endif
 
   if((images*domsize(3) .lt. images*domsize(2)) .or. (images*domsize(3) .lt. images*domsize(1))) then
-    maxdist = images*domsize(3)
+    maxdist = (images)*domsize(3)
   endif
+
+  maxdist = 0.9*maxdist 
 
   do ii = -images, images
     do jj = -images, images 
@@ -67,18 +73,21 @@ subroutine force_function2(part1,part2,domsize) &
 
             rtdr2 = sqrt(dr2)
 
-            if(rtdr2 .lt. maxdist) then
-              part1%force = part1%force + (1d0/(permitivitty*4*3.142))*(dx/rtdr2)*part1%q*part2%q/dr2
+            !if(rtdr2 .lt. maxdist) then
+              part1%force = part1%force + ee*(dx/rtdr2)*part1%q*part2%q/dr2
 
-              part1%potential = part1%potential + norm2(part1%force)*rtdr2
+              part1%potential = (part1%potential + ee*part1%q*part2%q/rtdr2)/2d0
 
-              !print *, "es: ", permitivitty*(dx/rtdr2)*part1%q*part2%q/dr2
-            endif
+              pairs = pairs + 1
+
+            !endif
           endif
 
       end do
     end do
   end do
+
+  print *, "Pairs: ", pairs
 
 end subroutine force_function2
 
@@ -117,7 +126,7 @@ subroutine calculate_force(particles, np, lo, hi, &
 
      part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
 
-     if(n .ne. p) then
+     if(n .ne. partno) then
 
        call force_function2(part,part2,domsize)
 
@@ -884,7 +893,7 @@ subroutine dry(dt,part,dry_terms, mb)
 
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only: particle_t
-  use common_namelist_module, only: visc_type, k_B, t_init
+  use common_namelist_module, only: visc_type, k_B, t_init,variance_coef_mom
   use rng_functions_module
   
   implicit none
@@ -908,9 +917,9 @@ subroutine dry(dt,part,dry_terms, mb)
 
               !DRL: dry diffusion coef: part%dry_diff, temperature: t_init(1)
 
-              bfac(1) = std(1)*normalrand(1)/sqrt(dt)
-              bfac(2) = std(2)*normalrand(2)/sqrt(dt)
-              bfac(3) = std(3)*normalrand(3)/sqrt(dt)
+              bfac(1) = variance_coef_mom*std(1)*normalrand(1)/sqrt(dt)
+              bfac(2) = variance_coef_mom*std(2)*normalrand(2)/sqrt(dt)
+              bfac(3) = variance_coef_mom*std(3)*normalrand(3)/sqrt(dt)
 
               !KK does this have all the forces in it already? need to check
               dry_terms(1) = mb(1)*part%dry_diff*part%force(1)/(k_B*t_init(1))+bfac(1)
@@ -2142,6 +2151,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 !!!!!!!!!! Mean square displacement measurer.
 
+              print *, part%pos(1)
+
               part%abspos = part%abspos + dt*part%vel
 
               dist = sqrt(dot_product(dt*part%vel,dt*part%vel))/part%radius
@@ -2333,6 +2344,7 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
       part => particles(p)
 
       if(es_tog .eq. 2) then
+
           call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
 
           potential = potential + part%potential

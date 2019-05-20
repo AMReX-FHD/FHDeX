@@ -260,29 +260,29 @@
 
         if(surf%boundary .eq. 1) then
 
-          part%pos(1) = part%pos(1) + 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 2) then
 
-          part%pos(1) = part%pos(1) - 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 3) then
 
-          part%pos(2) = part%pos(2) + 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
 
         elseif(surf%boundary .eq. 4) then
 
-          part%pos(2) = part%pos(2) - 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
 
 #if (BL_SPACEDIM == 3)
 
         elseif(surf%boundary .eq. 5) then
 
-          part%pos(3) = part%pos(3) + 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
 
         elseif(surf%boundary .eq. 6) then
 
-          part%pos(3) = part%pos(3) - 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
 #endif
 
         endif
@@ -354,28 +354,28 @@
 
         if(surf%boundary .eq. 1) then
 
-          part%pos(1) = part%pos(1) + 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 2) then
 
-          part%pos(1) = part%pos(1) - 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 3) then
 
-          part%pos(2) = part%pos(2) + 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
 
         elseif(surf%boundary .eq. 4) then
 
-          part%pos(2) = part%pos(2) - 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
 
 #if (BL_SPACEDIM == 3)
         elseif(surf%boundary .eq. 5) then
 
-          part%pos(3) = part%pos(3) + 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
 
         elseif(surf%boundary .eq. 6) then
 
-          part%pos(3) = part%pos(3) - 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
 #endif
         endif
 
