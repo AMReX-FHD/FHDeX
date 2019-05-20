@@ -138,9 +138,35 @@ void main_driver(const char* argv)
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 
+    //Add interior boundaries
+
     for(int i=6; i<=surfaceCount; i++)
     {
-        surfaceList[i].x0
+        surfaceFile >> surfaceList[i].x0;
+        surfaceFile >> surfaceList[i].y0;
+        surfaceFile >> surfaceList[i].z0;
+
+        surfaceFile >> surfaceList[i].ux;
+        surfaceFile >> surfaceList[i].uy;
+        surfaceFile >> surfaceList[i].uz;
+
+        surfaceFile >> surfaceList[i].vx;
+        surfaceFile >> surfaceList[i].vy;
+        surfaceFile >> surfaceList[i].vz;
+
+        surfaceFile >> surfaceList[i].uTop;
+        surfaceFile >> surfaceList[i].vTop;
+
+        surfaceFile >> surfaceList[i].rnx;
+        surfaceFile >> surfaceList[i].rny;
+        surfaceFile >> surfaceList[i].rnz;
+
+        surfaceFile >> surfaceList[i].lnx;
+        surfaceFile >> surfaceList[i].lny;
+        surfaceFile >> surfaceList[i].lnz;
+
+    }
+
 
 #endif
 #if (BL_SPACEDIM == 2)
