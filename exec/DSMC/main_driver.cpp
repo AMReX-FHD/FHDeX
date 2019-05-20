@@ -137,6 +137,11 @@ void main_driver(const char* argv)
     surfaceCount = surfaceCount + 6
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+
+    for(int i=6; i<=surfaceCount; i++)
+    {
+        surfaceList[i].x0
+
 #endif
 #if (BL_SPACEDIM == 2)
     surfaceCount = surfaceCount + 4
@@ -144,6 +149,7 @@ void main_driver(const char* argv)
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
 
+    surface interior
 
     const int* lims = domain.hiVect();
 

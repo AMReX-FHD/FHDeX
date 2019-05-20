@@ -80,7 +80,6 @@ VPATH_LOCATIONS   += ../../src_electrostatic
 INCLUDE_LOCATIONS += ../../src_electrostatic
 
 include ./Make_precheck.package
-include ./Make_surface.package
 
 include ../../src_surfaces/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_surfaces/src_F90

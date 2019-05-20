@@ -1,7 +1,9 @@
 #include "surfaces.H"
 #include <math.h>
+#include "common_namespace.H"
 
 using namespace amrex;
+using namespace common;
 
 double getTheta(double nx, double ny, double nz)
 {
@@ -52,18 +54,29 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].rny = 0;
     surfaceList[0].rnz = 0;
 
-    surfaceList[0].porosityLeft = 0;
-    surfaceList[0].specularityLeft = 0;
+    surfaceList[0].specularityLeft = 1;
     surfaceList[0].temperatureLeft = 273;
+    surfaceList[0].momentumConsLeft = 1;
 
-    surfaceList[0].porosityRight = 0;
-    surfaceList[0].specularityRight = 0;
+    surfaceList[0].specularityRight = 1;
     surfaceList[0].temperatureRight = 273;
+    surfaceList[0].momentumConsRight = 1;
 
-    surfaceList[0].periodicity = 0;
+    if(bc_lo[0] == -1)
+    {   
+        surfaceList[0].periodicity = 1;
+        surfaceList[0].porosityLeft = 1;
+        surfaceList[0].porosityRight = 1;
+    }else{
+
+        surfaceList[0].periodicity = 0;
+        surfaceList[0].porosityLeft = 0;
+        surfaceList[0].porosityRight = 0;
+
+    }
+
     surfaceList[0].boundary = 1;
         
-
     theta = getTheta(surfaceList[0].lnx, surfaceList[0].lny, surfaceList[0].lnz);
     phi   = getPhi(surfaceList[0].lnx, surfaceList[0].lny, surfaceList[0].lnz);
 
@@ -112,15 +125,27 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[1].rny = 0;
     surfaceList[1].rnz = 0;
 
-    surfaceList[1].porosityLeft = 0;
-    surfaceList[1].specularityLeft = 0;
+    surfaceList[1].specularityLeft = 1;
     surfaceList[1].temperatureLeft = 819;
+    surfaceList[1].momentumConsLeft = 1;
 
-    surfaceList[1].porosityRight = 0;
-    surfaceList[1].specularityRight = 0;
+    surfaceList[1].specularityRight = 1;
     surfaceList[1].temperatureRight = 819;
+    surfaceList[1].momentumConsRight = 1;
 
-    surfaceList[1].periodicity = 0;
+    if(bc_hi[0] == -1)
+    {   
+        surfaceList[1].periodicity = 1;
+        surfaceList[1].porosityLeft = 1;
+        surfaceList[1].porosityRight = 1;
+
+    }else{
+        surfaceList[1].periodicity = 0;
+        surfaceList[1].porosityLeft = 0;
+        surfaceList[1].porosityRight = 0;
+
+    }
+
     surfaceList[1].boundary = 2;
 
     theta = getTheta(surfaceList[1].lnx, surfaceList[1].lny, surfaceList[1].lnz);
@@ -171,15 +196,27 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].rny = -1;
     surfaceList[2].rnz = 0;
 
-    surfaceList[2].porosityLeft = 1;
     surfaceList[2].specularityLeft = 1;
     surfaceList[2].temperatureLeft = 300;
+    surfaceList[2].momentumConsLeft = 1;
 
-    surfaceList[2].porosityRight = 1;
+
     surfaceList[2].specularityRight = 1;
     surfaceList[2].temperatureRight = 300;
+    surfaceList[2].momentumConsRight = 1;
 
-    surfaceList[2].periodicity = 1;
+    if(bc_lo[1] == -1)
+    {   
+        surfaceList[2].periodicity = 1;
+        surfaceList[2].porosityLeft = 1;
+        surfaceList[2].porosityRight = 1;
+
+    }else{
+        surfaceList[2].periodicity = 0;
+        surfaceList[2].porosityLeft = 0;
+        surfaceList[2].porosityRight = 0;
+    }
+
     surfaceList[2].boundary = 3;
 
     theta = getTheta(surfaceList[2].lnx, surfaceList[2].lny, surfaceList[2].lnz);
@@ -230,15 +267,27 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].rny = -1;
     surfaceList[3].rnz = 0;
 
-    surfaceList[3].porosityLeft = 1;
     surfaceList[3].specularityLeft = 1;
     surfaceList[3].temperatureLeft = 700;
+    surfaceList[3].momentumConsLeft = 1;
 
-    surfaceList[3].porosityRight = 1;
-    surfaceList[3].specularityRight = 0;
+    surfaceList[3].specularityRight = 1;
     surfaceList[3].temperatureRight = 700;
+    surfaceList[3].momentumConsRight = 1;
 
-    surfaceList[3].periodicity = 1;
+    if(bc_hi[1] == -1)
+    {   
+        surfaceList[3].periodicity = 1;
+        surfaceList[3].porosityLeft = 1;
+        surfaceList[3].porosityRight = 1;
+
+    }else{
+        surfaceList[3].periodicity = 0;
+        surfaceList[3].porosityLeft = 0;
+        surfaceList[3].porosityRight = 0;
+
+    }
+
     surfaceList[3].boundary = 4;
 
     theta = getTheta(surfaceList[3].lnx, surfaceList[3].lny, surfaceList[3].lnz);
@@ -289,15 +338,27 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[4].rny = 0;
     surfaceList[4].rnz = -1;
 
-    surfaceList[4].porosityLeft = 1;
     surfaceList[4].specularityLeft = 1;
     surfaceList[4].temperatureLeft = 273;
+    surfaceList[4].momentumConsLeft = 1;
 
-    surfaceList[4].porosityRight = 1;
-    surfaceList[4].specularityRight = 0;
+    surfaceList[4].specularityRight = 1;
     surfaceList[4].temperatureRight = 273;
+    surfaceList[4].momentumConsRight = 1;
 
-    surfaceList[4].periodicity = 1;
+    if(bc_lo[2] == -1)
+    {   
+        surfaceList[4].periodicity = 1;
+        surfaceList[4].porosityLeft = 1;
+        surfaceList[4].porosityRight = 1;
+
+    }else{
+        surfaceList[4].periodicity = 0;
+        surfaceList[4].porosityLeft = 0;
+        surfaceList[4].porosityRight = 0;
+
+    }
+
     surfaceList[4].boundary = 5;
 
     theta = getTheta(surfaceList[4].lnx, surfaceList[4].lny, surfaceList[4].lnz);
@@ -348,15 +409,27 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].rny = 0;
     surfaceList[5].rnz = -1;
 
-    surfaceList[5].porosityLeft = 1;
     surfaceList[5].specularityLeft = 1;
     surfaceList[5].temperatureLeft = 273;
+    surfaceList[5].momentumConsLeft = 1;
 
-    surfaceList[5].porosityRight = 1;
-    surfaceList[5].specularityRight = 0;
+    surfaceList[5].specularityRight = 1;
     surfaceList[5].temperatureRight = 273;
+    surfaceList[5].momentumConsRight = 1;
 
-    surfaceList[5].periodicity = 1;
+    if(bc_hi[2] == -1)
+    {   
+        surfaceList[5].periodicity = 1;
+        surfaceList[5].porosityLeft = 1;
+        surfaceList[5].porosityRight = 1;
+
+    }else{
+        surfaceList[5].periodicity = 0;
+        surfaceList[5].porosityLeft = 0;
+        surfaceList[5].porosityRight = 0;
+
+    }
+
     surfaceList[5].boundary = 6;
 
     theta = getTheta(surfaceList[5].lnx, surfaceList[5].lny, surfaceList[5].lnz);
@@ -383,6 +456,67 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].fyRightAv = 0;
     surfaceList[5].fzRightAv = 0;
 
+//Membrane
+  /*  surfaceList[6].x0 = 25e-6;
+    surfaceList[6].y0 = domainLo[1];
+    surfaceList[6].z0 = domainLo[2];
+
+    surfaceList[6].ux = 0;
+    surfaceList[6].uy = 1;
+    surfaceList[6].uz = 0;
+
+    surfaceList[6].vx = 0;
+    surfaceList[6].vy = 0;
+    surfaceList[6].vz = 1;
+
+    surfaceList[6].uTop = domainHi[1];
+    surfaceList[6].vTop = domainHi[2];
+
+    surfaceList[6].lnx = -1;
+    surfaceList[6].lny = 0;
+    surfaceList[6].lnz = 0;
+    
+    surfaceList[6].rnx = 1;
+    surfaceList[6].rny = 0;
+    surfaceList[6].rnz = 0;
+
+    surfaceList[6].porosityLeft = 0.5;
+    surfaceList[6].specularityLeft = 1;
+    surfaceList[6].temperatureLeft = 273;
+    surfaceList[6].momentumConsLeft = 1;
+
+    surfaceList[6].porosityRight = 0.5;
+    surfaceList[6].specularityRight = 1;
+    surfaceList[6].temperatureRight = 273;
+    surfaceList[6].momentumConsRight = 1;
+
+    surfaceList[6].periodicity = 0;
+    surfaceList[6].boundary = 0;
+        
+    theta = getTheta(surfaceList[6].lnx, surfaceList[6].lny, surfaceList[6].lnz);
+    phi   = getPhi(surfaceList[6].lnx, surfaceList[6].lny, surfaceList[6].lnz);
+
+    surfaceList[6].cosThetaLeft = cos(theta);
+    surfaceList[6].sinThetaLeft = sin(theta);
+    surfaceList[6].cosPhiLeft = cos(phi);
+    surfaceList[6].sinPhiLeft = sin(phi);
+
+    theta = getTheta(surfaceList[6].rnx, surfaceList[6].rny, surfaceList[6].rnz);
+    phi   = getPhi(surfaceList[6].rnx, surfaceList[6].rny, surfaceList[6].rnz);
+
+    surfaceList[6].cosThetaRight = cos(theta);
+    surfaceList[6].sinThetaRight = sin(theta);
+    surfaceList[6].cosPhiRight = cos(phi);
+    surfaceList[6].sinPhiRight = sin(phi);
+
+    surfaceList[6].fxLeftAv = 0;
+    surfaceList[6].fyLeftAv = 0;
+    surfaceList[6].fzLeftAv = 0;
+
+    surfaceList[6].fxRightAv = 0;
+    surfaceList[6].fyRightAv = 0;
+    surfaceList[6].fzRightAv = 0;*/
+
 #endif
 
 #if (BL_SPACEDIM == 2)
@@ -407,14 +541,16 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].rny = 0;
 
     surfaceList[0].porosityLeft = 0;
-    surfaceList[0].specularityLeft = 1;
+    surfaceList[0].specularityLeft = 0;
     surfaceList[0].temperatureLeft = 273;
+    surfaceList[0].momentumConsLeft = 1;
 
     surfaceList[0].porosityRight = 0;
-    surfaceList[0].specularityRight = 1;
+    surfaceList[0].specularityRight = 0;
     surfaceList[0].temperatureRight = 273;
+    surfaceList[0].momentumConsRight = 1;
 
-    surfaceList[0].periodicity = 1;
+    surfaceList[0].periodicity = 0;
     surfaceList[0].boundary = 1;
 
     theta = getTheta(surfaceList[0].lnx, surfaceList[0].lny, 0);
@@ -452,15 +588,17 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[1].rny = 0;
 
     surfaceList[1].porosityLeft = 0;
-    surfaceList[1].specularityLeft = 1;
-    surfaceList[1].temperatureLeft = 273;
+    surfaceList[1].specularityLeft = 0;
+    surfaceList[1].temperatureLeft = 819;
+    surfaceList[1].momentumConsLeft = 1;
 
     surfaceList[1].porosityRight = 0;
-    surfaceList[1].specularityRight = 1;
-    surfaceList[1].temperatureRight = 273;
+    surfaceList[1].specularityRight = 0;
+    surfaceList[1].temperatureRight = 819;
+    surfaceList[1].momentumConsRight = 1;
 
-    surfaceList[1].periodicity = 1;
-    surfaceList[1].boundary = 1;
+    surfaceList[1].periodicity = 0;
+    surfaceList[1].boundary = 2;
 
     theta = getTheta(surfaceList[1].lnx, surfaceList[1].lny, 0);
 
@@ -495,16 +633,18 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].rnx = 0;
     surfaceList[2].rny = -1;
 
-    surfaceList[2].porosityLeft = 0;
+    surfaceList[2].porosityLeft = 1;
     surfaceList[2].specularityLeft = 1;
     surfaceList[2].temperatureLeft = 273;
+    surfaceList[2].momentumConsLeft = 1;
 
-    surfaceList[2].porosityRight = 0;
+    surfaceList[2].porosityRight = 1;
     surfaceList[2].specularityRight = 1;
     surfaceList[2].temperatureRight = 273;
+    surfaceList[2].momentumConsRight = 1;
 
     surfaceList[2].periodicity = 1;
-    surfaceList[2].boundary = 2;
+    surfaceList[2].boundary = 3;
 
     theta = getTheta(surfaceList[2].lnx, surfaceList[2].lny, 0);
 
@@ -539,16 +679,18 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].rnx = 0;
     surfaceList[3].rny = -1;
 
-    surfaceList[3].porosityLeft = 0;
+    surfaceList[3].porosityLeft = 1;
     surfaceList[3].specularityLeft = 1;
     surfaceList[3].temperatureLeft = 273;
+    surfaceList[3].momentumConsLeft = 1;
 
-    surfaceList[3].porosityRight = 0;
+    surfaceList[3].porosityRight = 1;
     surfaceList[3].specularityRight = 1;
     surfaceList[3].temperatureRight = 273;
+    surfaceList[3].momentumConsRight = 1;
 
     surfaceList[3].periodicity = 1;
-    surfaceList[3].boundary = 2;
+    surfaceList[3].boundary = 4;
 
     theta = getTheta(surfaceList[3].lnx, surfaceList[3].lny, 0);
 
@@ -567,6 +709,52 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].fxRightAv = 0;
     surfaceList[3].fyRightAv = 0;
     surfaceList[3].fzRightAv = 0;
+
+//Membrane
+    surfaceList[4].x0 = 3.753e-7;
+    surfaceList[4].y0 = domainLo[1];
+
+    surfaceList[4].ux = 0;
+    surfaceList[4].uy = 1;
+
+    surfaceList[4].uTop = domainHi[1];
+
+    surfaceList[4].lnx = -1;
+    surfaceList[4].lny = 0;
+    
+    surfaceList[4].rnx = 1;
+    surfaceList[4].rny = 0;
+
+    surfaceList[4].porosityLeft = 0.2;
+    surfaceList[4].specularityLeft = 1;
+    surfaceList[4].temperatureLeft = 273;
+    surfaceList[4].momentumConsLeft = 1;
+
+    surfaceList[4].porosityRight = 0.2;
+    surfaceList[4].specularityRight = 1;
+    surfaceList[4].temperatureRight = 273;
+    surfaceList[4].momentumConsRight = 1;
+
+    surfaceList[4].periodicity = 0;
+    surfaceList[4].boundary = 0;
+        
+    theta = getTheta(surfaceList[4].lnx, surfaceList[4].lny, 0);
+
+    surfaceList[4].cosThetaLeft = cos(theta);
+    surfaceList[4].sinThetaLeft = sin(theta);
+
+    theta = getTheta(surfaceList[4].rnx, surfaceList[6].rny, 0);
+
+    surfaceList[4].cosThetaRight = cos(theta);
+    surfaceList[4].sinThetaRight = sin(theta);
+
+    surfaceList[4].fxLeftAv = 0;
+    surfaceList[4].fyLeftAv = 0;
+    surfaceList[4].fzLeftAv = 0;
+
+    surfaceList[4].fxRightAv = 0;
+    surfaceList[4].fyRightAv = 0;
+    surfaceList[4].fzRightAv = 0;
 
 #endif
 
