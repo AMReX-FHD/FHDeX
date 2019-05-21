@@ -13,6 +13,10 @@
 #include "common_functions_F.H"
 #include "common_namespace.H"
 
+#include "particle_functions_F.H"
+#include "rng_functions_F.H"
+
+
 //#include "common_namespace_declarations.H"
 
 using namespace common;
