@@ -11,26 +11,13 @@
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
-                   const amrex::Geometry cgeom,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
-                   const MultiFab& particleMembraneFlux,
-                   FhdParticleContainer& particles) ;
+                   FhdParticleContainer& particles);
 
 ///////////////////////////
 
-
-void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
-               std::array<amrex::MultiFab, NUM_EDGE>& betaEdge, 
-               std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
-               std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
-               std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
-               std::array<MultiFab, AMREX_SPACEDIM>& alpha,
-               const Geometry geom,
-               Real* dt);
-
-///////////////////////////
 
 
 #endif

@@ -15,10 +15,6 @@ using namespace amrex;
 using namespace common;
 using namespace std;
 
-//constexpr Real FhdParticleContainer::min_r;
-//constexpr Real FhdParticleContainer::cutoff;
-
-
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
@@ -263,23 +259,8 @@ BL_PROFILE_VAR_STOP(particle_move);
 
         
 
-#ifndef DSMC
-void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                           const MultiFab& betaCC, //Not necessary but may use later
-                                           MultiFab& betaNodal, //Not necessary but may use later
-                                           const MultiFab& rhoCC, //Not necessary but may use later
-                                           const MultiFab& rhoNodal, //Not necessary but may use later
-                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount)
 
-#endif
-#ifdef DSMC
-void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount)
-
-#endif
+void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount)
 {
     
     UpdateCellVectors();
@@ -292,21 +273,6 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
 BL_PROFILE_VAR_NS("particle_move", particle_move);
 
 BL_PROFILE_VAR_START(particle_move);
-
-#ifndef DSMC
-
-    //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (change this later).
-    FindNodalValues(umac[0], umacNodal[0], betaCC);
-    FindNodalValues(umac[1], umacNodal[1], betaCC);
-
-#if (AMREX_SPACEDIM == 3)
-    FindNodalValues(umac[2], umacNodal[2], betaCC);
-
-    //While beta is constant we will pass a prefilled betaNodal
-    //FindNodalValues(betaCC, betaNodal, betaCC);
-#endif
-
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -322,10 +288,6 @@ BL_PROFILE_VAR_START(particle_move);
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        //Print() << "parts: " << np << std::endl;
-        
-#ifdef DSMC
-        //Print() << "DSMC\n";        
         move_particles_dsmc(particles.data(), &np,
                        ARLIM_3D(tile_box.loVect()), 
                        ARLIM_3D(tile_box.hiVect()),
@@ -336,37 +298,6 @@ BL_PROFILE_VAR_START(particle_move);
                        ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
                        surfaceList, &surfaceCount);
    
-#else
-        //Print() << "FHD\n"; 
-//        move_particles_fhd(particles.data(), &np,
-//                         ARLIM_3D(tile_box.loVect()),
-//                         ARLIM_3D(tile_box.hiVect()),
-//                         m_vector_ptrs[grid_id].dataPtr(),
-//                         m_vector_size[grid_id].dataPtr(),
-//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploFluid), ZFILL(dxFluid),
-//                         BL_TO_FORTRAN_3D(umacNodal[0][pti]),
-//                         BL_TO_FORTRAN_3D(umacNodal[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                         BL_TO_FORTRAN_3D(umacNodal[2][pti]),
-//#endif
-//                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
-//                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
-//#endif
-//                         BL_TO_FORTRAN_3D(betaNodal[pti]),
-//                         BL_TO_FORTRAN_3D(rhoNodal[pti]),
-
-//                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
-//                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
-//#if (AMREX_SPACEDIM == 3)
-//                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
-//#endif
-//                         , surfaceList, &surfaceCount
-//                         );
-#endif
 
 
         // resize particle vectors after call to move_particles
@@ -377,24 +308,6 @@ BL_PROFILE_VAR_START(particle_move);
             pvec.resize(new_size);
         }
     }
-
-#ifndef DSMC
-    sourceTemp[0].SumBoundary(Geom(lev).periodicity());
-    sourceTemp[1].SumBoundary(Geom(lev).periodicity());
-#if (AMREX_SPACEDIM == 3)
-    sourceTemp[2].SumBoundary(Geom(lev).periodicity());
-#endif
-    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
-    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
-#if (AMREX_SPACEDIM == 3)
-    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
-#endif
-    source[0].FillBoundary(Geom(lev).periodicity());
-    source[1].FillBoundary(Geom(lev).periodicity());
-#if (AMREX_SPACEDIM == 3)
-    source[2].FillBoundary(Geom(lev).periodicity());
-#endif
-#endif
 
 BL_PROFILE_VAR_STOP(particle_move);
 
