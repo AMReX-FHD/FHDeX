@@ -7,17 +7,10 @@
 #include <fstream>
 
 #include "FhdParticleContainer.H"
-#include "particle_functions_F.H"
-#include "rng_functions_F.H"
-//#include "common_namespace.H"
 
 using namespace amrex;
 using namespace common;
 using namespace std;
-
-//constexpr Real FhdParticleContainer::min_r;
-//constexpr Real FhdParticleContainer::cutoff;
-
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                               const DistributionMapping & dmap,
@@ -26,129 +19,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     : NeighborParticleContainer<RealData::ncomps, IntData::ncomps> (geom, dmap, ba, ncells)
 {}
 
-void FhdParticleContainer::InitParticles(species* particleInfo)
-{
-    
-    const int lev = 0;
-    const Geometry& geom = Geom(lev);
-    const Real* dx = geom.CellSize();
-    const Real* plo = geom.ProbLo();
-    const Real* phi = geom.ProbHi();
 
-    int qcount = 0;
-
-    double cosTheta, sinTheta, cosPhi, sinPhi;    
-
-    int pcount = 0;
-        
-    int ll =0;
-    //double initTemp = 0;
-    //double pc = 0;
-
-    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-    {
-        const Box& tile_box  = mfi.tilebox();
-        const RealBox tile_realbox{tile_box, geom.CellSize(), geom.ProbLo()};
-        const int grid_id = mfi.index();
-        const int tile_id = mfi.LocalTileIndex();
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-
-        //Assuming tile=box for now, i.e. no tiling.
-        IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();       
-
-
-//        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
- //       {
-
-            for(int i_spec=0; i_spec < nspecies; i_spec++)
-            {
-            for (int i_part=0; i_part<particleInfo[i_spec].ppb;i_part++)
-            {
-                ParticleType p;
-                p.id()  = ParticleType::NextID();
-                p.cpu() = ParallelDescriptor::MyProc();
-                p.idata(IntData::sorted) = 0;
-                
-                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-#if (BL_SPACEDIM == 3)
-                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-#endif
-
-//                p.pos(0) = 0.001*dx[0] + ll*(phi[0] - 0.002*dx[0]);
-//                p.pos(1) = 10*dx[1];
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = 10*dx[2];
-//#endif
- //               ll++;
-                
-                p.rdata(RealData::q) = particleInfo[i_spec].q;
-
-//                Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
-
-                //original position stored for MSD calculations
-                p.rdata(RealData::ox) = p.pos(0);
-                p.rdata(RealData::oy) = p.pos(1);
-#if (BL_SPACEDIM == 3)
-                p.rdata(RealData::oz) = p.pos(2);
-#endif
-
-                //p.rdata(RealData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                //p.rdata(RealData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-                //p.rdata(RealData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
-
-                p.rdata(RealData::vx) = 0;
-                p.rdata(RealData::vy) = 0;
-                p.rdata(RealData::vz) = 0;
-
-                p.rdata(RealData::ux) = 0;
-                p.rdata(RealData::uy) = 0;
-                p.rdata(RealData::uz) = 0;
-
-                p.rdata(RealData::ax) = 0;
-                p.rdata(RealData::ay) = 0;
-                p.rdata(RealData::az) = 0;
-
-                p.rdata(RealData::fx) = 0;
-                p.rdata(RealData::fy) = 0;
-                p.rdata(RealData::fz) = 0;
-
-                p.rdata(RealData::travelTime) = 0;
-                p.rdata(RealData::diffAv) = 0;
-                p.rdata(RealData::stepCount) = 0;
-
-                p.rdata(RealData::mass) = particleInfo[i_spec].m; //mass
-                p.rdata(RealData::R) = particleInfo[i_spec].R; //R
-                p.rdata(RealData::radius) = particleInfo[i_spec].d/2.0; //radius
-                p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                //p.rdata(RealData::dragFactor) = 6*3.14159265359*dx[0]*1.322; //drag factor
-
-                p.rdata(RealData::wetDiff) = particleInfo[i_spec].wetDiff;
-                p.rdata(RealData::dryDiff) = particleInfo[i_spec].dryDiff;
-                p.rdata(RealData::totalDiff) = particleInfo[i_spec].totalDiff;
-
-                p.rdata(RealData::sigma) = particleInfo[i_spec].sigma;
-                p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
-
-                p.idata(IntData::species) = i_spec +1;
-                
-                particle_tile.push_back(p);
-
-                pcount++;
-            }
- //           }
-        }
-    }
-
-//    std::cout << "pcount: " << pcount << "\n";
-
-    UpdateCellVectors();
-    Redistribute();
-    ReBin();
-
-}
 
 void FhdParticleContainer::computeForcesNL() {
 
@@ -263,23 +134,8 @@ BL_PROFILE_VAR_STOP(particle_move);
 
         
 
-#ifndef DSMC
-void FhdParticleContainer::MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                           const MultiFab& betaCC, //Not necessary but may use later
-                                           MultiFab& betaNodal, //Not necessary but may use later
-                                           const MultiFab& rhoCC, //Not necessary but may use later
-                                           const MultiFab& rhoNodal, //Not necessary but may use later
-                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount)
 
-#endif
-#ifdef DSMC
-void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount)
-
-#endif
+void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount)
 {
     
     UpdateCellVectors();
@@ -292,21 +148,6 @@ void FhdParticleContainer::MoveParticles(const Real dt, const surface* surfaceLi
 BL_PROFILE_VAR_NS("particle_move", particle_move);
 
 BL_PROFILE_VAR_START(particle_move);
-
-#ifndef DSMC
-
-    //Arg1: Source multifab to be shifted. Arg2: destination multiFab. Arg3: A cell centred multifab for reference (change this later).
-    FindNodalValues(umac[0], umacNodal[0], betaCC);
-    FindNodalValues(umac[1], umacNodal[1], betaCC);
-
-#if (AMREX_SPACEDIM == 3)
-    FindNodalValues(umac[2], umacNodal[2], betaCC);
-
-    //While beta is constant we will pass a prefilled betaNodal
-    //FindNodalValues(betaCC, betaNodal, betaCC);
-#endif
-
-#endif
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -322,10 +163,6 @@ BL_PROFILE_VAR_START(particle_move);
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        //Print() << "parts: " << np << std::endl;
-        
-#ifdef DSMC
-        //Print() << "DSMC\n";        
         move_particles_dsmc(particles.data(), &np,
                        ARLIM_3D(tile_box.loVect()), 
                        ARLIM_3D(tile_box.hiVect()),
@@ -335,39 +172,6 @@ BL_PROFILE_VAR_START(particle_move);
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                        ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
                        surfaceList, &surfaceCount);
-   
-#else
-        //Print() << "FHD\n"; 
-//        move_particles_fhd(particles.data(), &np,
-//                         ARLIM_3D(tile_box.loVect()),
-//                         ARLIM_3D(tile_box.hiVect()),
-//                         m_vector_ptrs[grid_id].dataPtr(),
-//                         m_vector_size[grid_id].dataPtr(),
-//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(ploFluid), ZFILL(dxFluid),
-//                         BL_TO_FORTRAN_3D(umacNodal[0][pti]),
-//                         BL_TO_FORTRAN_3D(umacNodal[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                         BL_TO_FORTRAN_3D(umacNodal[2][pti]),
-//#endif
-//                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
-//                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
-//#endif
-//                         BL_TO_FORTRAN_3D(betaNodal[pti]),
-//                         BL_TO_FORTRAN_3D(rhoNodal[pti]),
-
-//                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
-//                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
-//#if (AMREX_SPACEDIM == 3)
-//                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
-//#endif
-//                         , surfaceList, &surfaceCount
-//                         );
-#endif
-
 
         // resize particle vectors after call to move_particles
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -377,24 +181,6 @@ BL_PROFILE_VAR_START(particle_move);
             pvec.resize(new_size);
         }
     }
-
-#ifndef DSMC
-    sourceTemp[0].SumBoundary(Geom(lev).periodicity());
-    sourceTemp[1].SumBoundary(Geom(lev).periodicity());
-#if (AMREX_SPACEDIM == 3)
-    sourceTemp[2].SumBoundary(Geom(lev).periodicity());
-#endif
-    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
-    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
-#if (AMREX_SPACEDIM == 3)
-    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
-#endif
-    source[0].FillBoundary(Geom(lev).periodicity());
-    source[1].FillBoundary(Geom(lev).periodicity());
-#if (AMREX_SPACEDIM == 3)
-    source[2].FillBoundary(Geom(lev).periodicity());
-#endif
-#endif
 
 BL_PROFILE_VAR_STOP(particle_move);
 
@@ -583,6 +369,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 		    std::ofstream potentialFile;
 		    potentialFile.setf(ios::scientific, ios::floatfield);
 		    potentialFile.setf(ios::showpoint);
+		    potentialFile.precision(12);
 		    potentialFile.open ("potential.dat", ios::out | ios::app);
 
             potentialFile << potential << std::endl;

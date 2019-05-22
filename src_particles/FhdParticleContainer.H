@@ -13,6 +13,10 @@
 #include "common_functions_F.H"
 #include "common_namespace.H"
 
+#include "particle_functions_F.H"
+#include "rng_functions_F.H"
+
+
 //#include "common_namespace_declarations.H"
 
 using namespace common;
@@ -124,21 +128,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount);
 
-#ifdef DSMC
-    void MoveParticles(const Real dt, const surface* surfaceList, const int surfaceCount);
-#else
-    void MoveParticles(const Real dt, const Real* dxFluid, const Real* ploFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& umacNodal,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                           const MultiFab& betaCC, //Not necessary but may use later
-                                           MultiFab& betaNodal, //Not necessary but may use later
-                                           const MultiFab& rhoCC, //Not necessary but may use later
-                                           const MultiFab& rhoNodal, //Not necessary but may use later
-                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount);
-
-#endif
+    void MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount);
 
     void MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,

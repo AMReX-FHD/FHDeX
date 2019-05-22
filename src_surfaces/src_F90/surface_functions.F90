@@ -129,6 +129,8 @@
 
         surf => surfaces(s)
 
+        !print *, "s: ", s, " vtop: ", surf%vtop, " utop ", surf%utop
+
         denominv = 1d0/(part%vel(3)*surf%uy*surf%vx - part%vel(2)*surf%uz*surf%vx - part%vel(3)*surf%ux*surf%vy + part%vel(1)*surf%uz*surf%vy + part%vel(2)*surf%ux*surf%vz - part%vel(1)*surf%uy*surf%vz)
 
         uval = (part%vel(3)*part%pos(2)*surf%vx - part%vel(2)*part%pos(3)*surf%vx - part%vel(3)*surf%y0*surf%vx + part%vel(2)*surf%z0*surf%vx - part%vel(3)*part%pos(1)*surf%vy + part%vel(1)*part%pos(3)*surf%vy + part%vel(3)*surf%x0*surf%vy - part%vel(1)*surf%z0*surf%vy + part%vel(2)*part%pos(1)*surf%vz - part%vel(1)*part%pos(2)*surf%vz -  part%vel(2)*surf%x0*surf%vz + part%vel(1)*surf%y0*surf%vz)*denominv
@@ -260,29 +262,29 @@
 
         if(surf%boundary .eq. 1) then
 
-          part%pos(1) = part%pos(1) + 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 2) then
 
-          part%pos(1) = part%pos(1) - 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 3) then
 
-          part%pos(2) = part%pos(2) + 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
 
         elseif(surf%boundary .eq. 4) then
 
-          part%pos(2) = part%pos(2) - 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
 
 #if (BL_SPACEDIM == 3)
 
         elseif(surf%boundary .eq. 5) then
 
-          part%pos(3) = part%pos(3) + 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
 
         elseif(surf%boundary .eq. 6) then
 
-          part%pos(3) = part%pos(3) - 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
 #endif
 
         endif
@@ -354,28 +356,28 @@
 
         if(surf%boundary .eq. 1) then
 
-          part%pos(1) = part%pos(1) + 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 2) then
 
-          part%pos(1) = part%pos(1) - 0.9999*domsize(1)
+          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
 
         elseif(surf%boundary .eq. 3) then
 
-          part%pos(2) = part%pos(2) + 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
 
         elseif(surf%boundary .eq. 4) then
 
-          part%pos(2) = part%pos(2) - 0.9999*domsize(2)
+          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
 
 #if (BL_SPACEDIM == 3)
         elseif(surf%boundary .eq. 5) then
 
-          part%pos(3) = part%pos(3) + 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
 
         elseif(surf%boundary .eq. 6) then
 
-          part%pos(3) = part%pos(3) - 0.9999*domsize(3)
+          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
 #endif
         endif
 

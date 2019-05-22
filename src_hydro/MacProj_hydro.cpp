@@ -203,7 +203,7 @@ void SetMacSolverBCs(MLABecLaplacian& mlabec)
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
-	if (Geometry::isPeriodic(idim)) {
+	if (DefaultGeometry().isPeriodic(idim)) {
             mlmg_lobc[idim] = mlmg_hibc[idim] = LinOpBCType::Periodic;
         } else {
             //amrex::Error("Invalid BC");

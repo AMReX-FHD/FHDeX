@@ -102,4 +102,7 @@ typedef struct {
 
 void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainLo, const Real* domainHi);
 
+double getTheta(double nx, double ny, double nz);
+double getPhi(double nx, double ny, double nz);
+
 #endif
