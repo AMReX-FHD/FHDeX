@@ -113,14 +113,14 @@ void main_driver(const char* argv)
     cellVols.setVal(dx[0]*dx[1]*dx[2]);
 #endif
 
-    getCellVols(cellVols, geom, 1000);
+    getCellVols(cellVols, geom, 100000);
 
     const RealBox& realDomain = geom.ProbDomain();
 
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
 
-	ifstream surfaceFile("surfaces.dat");
+    ifstream surfaceFile("surfaces.dat");
     int surfaceCount;
     double effectiveVol;
 

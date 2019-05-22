@@ -35,7 +35,7 @@ extern "C"
                     const int *vlo,
                     const int *vhi,
                     const amrex_real* dx,
-                    const int* samples);
+                    const int* samples,const amrex_real* plo);
 
 #ifdef __cplusplus
 }

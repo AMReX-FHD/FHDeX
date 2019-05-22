@@ -120,11 +120,12 @@ void getCellVols(MultiFab & vols, const Geometry & Geom, int samples)
 {
 
     const Real* dx = Geom.CellSize();
+    const Real* plo = Geom.ProbLo();
 
     for ( MFIter mfi(vols); mfi.isValid(); ++mfi ) {
 
         const Box& bx = mfi.validbox();
-        get_cell_vols(BL_TO_FORTRAN_3D(vols[mfi]), ZFILL(dx), &samples);
+        get_cell_vols(BL_TO_FORTRAN_3D(vols[mfi]), ZFILL(dx), &samples, plo);
         
     }
 }
