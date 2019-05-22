@@ -278,29 +278,15 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
               do while (runtime .gt. 0)
 
-                prex = part%vel(1)
+                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
-         !below is surface specific stuff
-         !       call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+                !print *, runtime, inttime
 
-          !      if(intsurf .eq. 6) then
-
-           !       intcount = intcount + 1
-
-            !    endif
-                
-                 
-                !print *, "Parrticle ", p, " intersect ", inttime, intsurf 
-
-                !print *, "Prepos ", part%pos, " prevel ", part%vel
-
-                !call sleep(1)
-                 !inttime is the timestep for making a move here
-    !            posalt(1) = inttime*part%vel(1)*adjalt
-    !            posalt(2) = inttime*part%vel(2)*adjalt
-!#if (BL_SPACEDIM == 3)
-!                posalt(3) = inttime*part%vel(3)*adjalt
-!#endif
+                posalt(1) = inttime*part%vel(1)*adjalt
+                posalt(2) = inttime*part%vel(2)*adjalt
+#if (BL_SPACEDIM == 3)
+                posalt(3) = inttime*part%vel(3)*adjalt
+#endif
 
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
                 part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
@@ -327,14 +313,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                     
                 endif
 
-                !print *, "Postpos ", part%pos, " postvel ", part%vel
-                postx = part%vel(1)
-
               end do
-
-              if(prex .ne. postx) then
-                print *, "Oops!"
-              endif
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue

@@ -454,7 +454,7 @@ contains
       enddo
     enddo
 
-        print *, "total current density: ", avcurrent/cellcount
+        !print *, "total current density: ", avcurrent/cellcount
         
   end subroutine evaluate_means
 
@@ -618,7 +618,6 @@ contains
           else
             membersinv = 0d0
           endif
-     
 
           instant(i,j,k,1) = cell_np
 
@@ -677,13 +676,20 @@ contains
 
           enddo
 
+          
           varx = varx*membersinv
           vary = vary*membersinv
           varz = varz*membersinv
 
-          ratiox = sqrt(r*t/varx)
-          ratioy = sqrt(r*t/vary)
-          ratioz = sqrt(r*t/varz)
+          if(cell_np .gt. 1) then 
+              ratiox = sqrt(r*t/varx)
+              ratioy = sqrt(r*t/vary)
+              ratioz = sqrt(r*t/varz)
+          else
+              ratiox = 1
+              ratioy = 1
+              ratioz = 1
+          endif 
 
           do p = 1, cell_np
 
@@ -719,22 +725,6 @@ contains
           instant(i,j,k,4) = instant(i,j,k,4)*membersinv
           instant(i,j,k,5) = instant(i,j,k,5)*membersinv
 
-          varx = 0
-          vary = 0
-          varz = 0
-
-          do p = 1, cell_np
-
-            part => particles(cell_parts(p))
-            varx = varx + (part%vel(1))**2
-            vary = vary + (part%vel(2))**2
-            varz = varz + (part%vel(3))**2
-
-          enddo
-
-          varx = varx*membersinv
-          vary = vary*membersinv
-          varz = varz*membersinv
 
         enddo
       enddo

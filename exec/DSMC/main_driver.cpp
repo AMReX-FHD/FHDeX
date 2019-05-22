@@ -48,19 +48,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+//    int fhdSeed = 0;
+//    int particleSeed = 0;
+//    int selectorSeed = 0;
+//    int thetaSeed = 0;
+//    int phiSeed = 0;
+//    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -120,13 +120,16 @@ void main_driver(const char* argv)
 
 	ifstream surfaceFile("surfaces.dat");
     int surfaceCount;
-    int effectiveVol;
+    double effectiveVol;
 
     surfaceFile >> surfaceCount;
     surfaceFile >> effectiveVol;
 
+    //Print() << "sc: " << surfaceCount << ", ev: " << effectiveVol << "\n";
+
 #if (BL_SPACEDIM == 3)
     surfaceCount = surfaceCount + 6;
+    //surfaceCount = 6;
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 
@@ -139,8 +142,16 @@ void main_driver(const char* argv)
 
    //Add interior boundaries
 
-    for(int i=6; i<=surfaceCount; i++)
+    double phi, theta;
+#if (BL_SPACEDIM == 3)
+    for(int i=6; i<surfaceCount; i++)
     {
+#endif
+#if (BL_SPACEDIM == 2)
+    for(int i=4; i<surfaceCount; i++)
+    {
+#endif
+
         surfaceFile >> surfaceList[i].x0;
         surfaceFile >> surfaceList[i].y0;
 #if (BL_SPACEDIM == 3)
@@ -161,6 +172,8 @@ void main_driver(const char* argv)
 #if (BL_SPACEDIM == 3)
         surfaceFile >> surfaceList[i].vTop;
 #endif
+        //Print() << surfaceList[i].x0 << ", " << surfaceList[i].y0 << ", " << surfaceList[i].z0 << "\n";
+
         surfaceFile >> surfaceList[i].rnx;
         surfaceFile >> surfaceList[i].rny;
 #if (BL_SPACEDIM == 3)
@@ -183,6 +196,42 @@ void main_driver(const char* argv)
 
         surfaceFile >> surfaceList[i].periodicity;
 
+#if (BL_SPACEDIM == 3)
+        theta = getTheta(surfaceList[i].lnx, surfaceList[i].lny, surfaceList[i].lnz);
+        phi   = getPhi(surfaceList[i].lnx, surfaceList[i].lny, surfaceList[i].lnz);
+
+        surfaceList[i].cosThetaLeft = cos(theta);
+        surfaceList[i].sinThetaLeft = sin(theta);
+        surfaceList[i].cosPhiLeft = cos(phi);
+        surfaceList[i].sinPhiLeft = sin(phi);
+
+        theta = getTheta(surfaceList[i].rnx, surfaceList[i].rny, surfaceList[i].rnz);
+        phi   = getPhi(surfaceList[i].rnx, surfaceList[i].rny, surfaceList[i].rnz);
+
+        surfaceList[i].cosThetaRight = cos(theta);
+        surfaceList[i].sinThetaRight = sin(theta);
+        surfaceList[i].cosPhiRight = cos(phi);
+        surfaceList[i].sinPhiRight = sin(phi);
+
+#endif
+#if (BL_SPACEDIM == 2)
+        theta = getTheta(surfaceList[i].lnx, surfaceList[i].lny, 0);
+
+        surfaceList[i].cosThetaLeft = cos(theta);
+        surfaceList[i].sinThetaLeft = sin(theta);
+
+        theta = getTheta(surfaceList[i].rnx, surfaceList[i].rny, 0);
+
+        surfaceList[3].cosThetaRight = cos(theta);
+        surfaceList[3].sinThetaRight = sin(theta);
+#endif
+        surfaceList[i].fxLeftAv = 0;
+        surfaceList[i].fyLeftAv = 0;
+        surfaceList[i].fzLeftAv = 0;
+
+        surfaceList[i].fxRightAv = 0;
+        surfaceList[i].fyRightAv = 0;
+        surfaceList[i].fzRightAv = 0;
     }
 
     surfaceFile.close();
@@ -217,6 +266,7 @@ void main_driver(const char* argv)
 
         dsmcParticle[i].Neff = particle_neff;
         dsmcParticle[i].R = k_B/dsmcParticle[i].m;
+        dsmcParticle[i].T = T_init[0];
 
         if(particle_count[i] >= 0) {
             // adjust number of particles up so there is the same number per box            
@@ -322,11 +372,11 @@ void main_driver(const char* argv)
     //create particles
     particles.InitParticles(dsmcParticle);
 
-    particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
+    //This will cause problems for cells with less than 2 particles. No need to run this for now.
+    //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
 
     //setup initial DSMC collision parameters
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
-
 
     int statsCount = 1;
     double time = 0;
@@ -338,7 +388,6 @@ void main_driver(const char* argv)
         if(move_tog==1)
         {
             particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount);
-
             particles.Redistribute();
 
             particles.ReBin();

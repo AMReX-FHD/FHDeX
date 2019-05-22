@@ -43,8 +43,8 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].vy = 0;
     surfaceList[0].vz = 1;
 
-    surfaceList[0].uTop = domainHi[1];
-    surfaceList[0].vTop = domainHi[2];
+    surfaceList[0].uTop = domainHi[1] - domainLo[1];
+    surfaceList[0].vTop = domainHi[2] - domainLo[2];
 
     surfaceList[0].lnx = -1;
     surfaceList[0].lny = 0;
@@ -114,8 +114,8 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[1].vy = 0;
     surfaceList[1].vz = 1;
 
-    surfaceList[1].uTop = domainHi[1];
-    surfaceList[1].vTop = domainHi[2];
+    surfaceList[1].uTop = domainHi[1] - domainLo[1];
+    surfaceList[1].vTop = domainHi[2] - domainLo[2];
 
     surfaceList[1].lnx = -1;
     surfaceList[1].lny = 0;
@@ -185,8 +185,8 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].vy = 0;
     surfaceList[2].vz = 1;
 
-    surfaceList[2].uTop = domainHi[0];
-    surfaceList[2].vTop = domainHi[2];
+    surfaceList[2].uTop = domainHi[0] - domainLo[0];
+    surfaceList[2].vTop = domainHi[2] - domainHi[2];
 
     surfaceList[2].lnx = 0;
     surfaceList[2].lny = 1;
@@ -256,8 +256,8 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].vy = 0;
     surfaceList[3].vz = 1;
 
-    surfaceList[3].uTop = domainHi[0];
-    surfaceList[3].vTop = domainHi[2];
+    surfaceList[3].uTop = domainHi[0] - domainLo[0];
+    surfaceList[3].vTop = domainHi[2] - domainLo[2];
 
     surfaceList[3].lnx = 0;
     surfaceList[3].lny = 1;
@@ -327,8 +327,8 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[4].vy = 1;
     surfaceList[4].vz = 0;
 
-    surfaceList[4].uTop = domainHi[0];
-    surfaceList[4].vTop = domainHi[1];
+    surfaceList[4].uTop = domainHi[0] - domainLo[0];
+    surfaceList[4].vTop = domainHi[1] - domainLo[1];
 
     surfaceList[4].lnx = 0;
     surfaceList[4].lny = 0;
@@ -398,8 +398,8 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].vy = 1;
     surfaceList[5].vz = 0;
 
-    surfaceList[5].uTop = domainHi[0];
-    surfaceList[5].vTop = domainHi[1];
+    surfaceList[5].uTop = domainHi[0] - domainLo[0];
+    surfaceList[5].vTop = domainHi[1] - domainLo[1];
 
     surfaceList[5].lnx = 0;
     surfaceList[5].lny = 0;
@@ -471,7 +471,7 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].ux = 0;
     surfaceList[0].uy = 1;
 
-    surfaceList[0].uTop = domainHi[1];
+    surfaceList[0].uTop = domainHi[1] - domainLo[1];
 
     surfaceList[0].lnx = 1;
     surfaceList[0].lny = 0;
@@ -518,7 +518,7 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[1].ux = 0;
     surfaceList[1].uy = 1;
 
-    surfaceList[1].uTop = domainHi[1];
+    surfaceList[1].uTop = domainHi[1] - domainLo[1];
 
     surfaceList[1].lnx = 1;
     surfaceList[1].lny = 0;
@@ -564,7 +564,7 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].ux = 1;
     surfaceList[2].uy = 0;
 
-    surfaceList[2].uTop = domainHi[0];
+    surfaceList[2].uTop = domainHi[0] - domainLo[0];
 
     surfaceList[2].lnx = 0;
     surfaceList[2].lny = 1;
@@ -610,7 +610,7 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].ux = 1;
     surfaceList[3].uy = 0;
 
-    surfaceList[3].uTop = domainHi[0];
+    surfaceList[3].uTop = domainHi[0] - domainLo[0];
 
     surfaceList[3].lnx = 0;
     surfaceList[3].lny = 1;

@@ -13,7 +13,7 @@ void WritePlotFile(int step,
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);
-    std::string pplotfilename = Concatenate("pplt",step,9);
+    std::string pplotfilename = Concatenate("parplt",step,9);
 
     BoxArray cba = particleInstant.boxArray();
     DistributionMapping cdmap = particleInstant.DistributionMap();
