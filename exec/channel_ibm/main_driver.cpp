@@ -475,18 +475,18 @@ void main_driver(const char * argv) {
     for(step = 1; step <= max_step; ++step) {
         Real step_strt_time = ParallelDescriptor::second();
 
-        if(variance_coef_mom != 0.0) {
+        // if(variance_coef_mom != 0.0) {
 
-            //___________________________________________________________________
-            // Fill stochastic terms
+        //     //___________________________________________________________________
+        //     // Fill stochastic terms
 
-            sMflux.fillMStochastic();
+        //     sMflux.fillMStochastic();
 
-            // Compute stochastic force terms (and apply to mfluxdiv_*)
-            // NOTE: StochMFlux::stochMforce fills ghost cells
-            sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-            sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        }
+        //     // Compute stochastic force terms (and apply to mfluxdiv_*)
+        //     // NOTE: StochMFlux::stochMforce fills ghost cells
+        //     sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+        //     sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+        // }
 
 
         //_______________________________________________________________________
@@ -496,7 +496,7 @@ void main_driver(const char * argv) {
         Real t0_ib = 0;
 
         ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
-        ib_pc.FillMarkerPositions(0, 101);
+        ib_pc.FillMarkerPositions(0, 201);
 
 
         //_______________________________________________________________________

@@ -480,6 +480,9 @@ contains
             &                     mf_x,     mfx_lo,   mfx_hi, &
             &                     mf_y,     mfy_lo,   mfy_hi, &
             &                     mf_z,     mfz_lo,   mfz_hi, &
+            &                     weight_x, wfx_lo,   wfx_hi, &
+            &                     weight_y, wfy_lo,   wfy_hi, &
+            &                     weight_z, wfz_lo,   wfz_hi, &
             &                     coords_x, cx_lo,    cx_hi,  &
             &                     coords_y, cy_lo,    cy_hi,  &
             &                     coords_z, cz_lo,    cz_hi,  &
@@ -505,6 +508,23 @@ contains
         real(amrex_real), intent(inout) :: mf_z(mfz_lo(1):mfz_hi(1), &
             &                                   mfz_lo(2):mfz_hi(2), &
             &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** OUT: total spread weights to staggered (face-centered) faces
+        !         corresponding to the MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: wfx_lo, wfx_hi
+        real(amrex_real), intent(inout) :: weight_x(wfx_lo(1):wfx_hi(1), &
+            &                                       wfx_lo(2):wfx_hi(2), &
+            &                                       wfx_lo(3):wfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfy_lo, wfy_hi
+        real(amrex_real), intent(inout) :: weight_y(wfy_lo(1):wfy_hi(1), &
+            &                                       wfy_lo(2):wfy_hi(2), &
+            &                                       wfy_lo(3):wfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfz_lo, wfz_hi
+        real(amrex_real), intent(inout) :: weight_z(wfz_lo(1):wfz_hi(1), &
+            &                                       wfz_lo(2):wfz_hi(2), &
+            &                                       wfz_lo(3):wfz_hi(3))
 
         ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
         !         MultiFabs `mf_*`
@@ -560,13 +580,13 @@ contains
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
 
-                    weight = invvol
+                    weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    ! weight already includes invvol
-                    mf_x(i, j, k) = mf_x(i, j, k) + v_spread(1) * weight
+                    mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
+                    weight_x(i, j, k) = weight_x(i, j, k) + weight
 
                 end do
             end do
@@ -582,13 +602,13 @@ contains
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
 
-                    weight = invvol
+                    weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    ! weight already includes invvol
-                    mf_y(i, j, k) = mf_y(i, j, k) + v_spread(2) * weight
+                    mf_y(i, j, k)     = mf_y(i, j, k) + v_spread(2) * weight * invvol
+                    weight_y(i, j, k) = weight_y(i, j, k) + weight
 
                 end do
             end do
@@ -604,13 +624,13 @@ contains
                     pos_grid(:) = pos(:) - coords_z(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
 
-                    weight = invvol
+                    weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    ! weight already includes invvol
-                    mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight
+                    mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight * invvol
+                    weight_z(i, j, k) = weight_z(i, j, k) + weight
 
                 end do
             end do
@@ -624,6 +644,9 @@ contains
             &                 mf_x,       mfx_lo,   mfx_hi,    &
             &                 mf_y,       mfy_lo,   mfy_hi,    &
             &                 mf_z,       mfz_lo,   mfz_hi,    &
+            &                 weight_x,   wfx_lo,   wfx_hi,    &
+            &                 weight_y,   wfy_lo,   wfy_hi,    &
+            &                 weight_z,   wfz_lo,   wfz_hi,    &
             &                 coords_x,   cx_lo,    cx_hi,     &
             &                 coords_y,   cy_lo,    cy_hi,     &
             &                 coords_z,   cz_lo,    cz_hi,     &
@@ -650,6 +673,23 @@ contains
         real(amrex_real), intent(inout) :: mf_z(mfz_lo(1):mfz_hi(1), &
             &                                   mfz_lo(2):mfz_hi(2), &
             &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** OUT: total spread weights to staggered (face-centered) faces
+        !         corresponding to the MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: wfx_lo, wfx_hi
+        real(amrex_real), intent(inout) :: weight_x(wfx_lo(1):wfx_hi(1), &
+            &                                       wfx_lo(2):wfx_hi(2), &
+            &                                       wfx_lo(3):wfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfy_lo, wfy_hi
+        real(amrex_real), intent(inout) :: weight_y(wfy_lo(1):wfy_hi(1), &
+            &                                       wfy_lo(2):wfy_hi(2), &
+            &                                       wfy_lo(3):wfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfz_lo, wfz_hi
+        real(amrex_real), intent(inout) :: weight_z(wfz_lo(1):wfz_hi(1), &
+            &                                       wfz_lo(2):wfz_hi(2), &
+            &                                       wfz_lo(3):wfz_hi(3))
 
         ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
         !         MultiFabs `mf_*`
@@ -695,6 +735,9 @@ contains
                 &              mf_x,     mfx_lo,   mfx_hi, &
                 &              mf_y,     mfy_lo,   mfy_hi, &
                 &              mf_z,     mfz_lo,   mfz_hi, &
+                &              weight_x, wfx_lo,   wfx_hi, &
+                &              weight_y, wfy_lo,   wfy_hi, &
+                &              weight_z, wfz_lo,   wfz_hi, &
                 &              coords_x, cx_lo,    cx_hi,  &
                 &              coords_y, cy_lo,    cy_hi,  &
                 &              coords_z, cz_lo,    cz_hi,  &
@@ -710,6 +753,9 @@ contains
             &                          mf_x,     mfx_lo,   mfx_hi, &
             &                          mf_y,     mfy_lo,   mfy_hi, &
             &                          mf_z,     mfz_lo,   mfz_hi, &
+            &                          weight_x, wfx_lo,   wfx_hi, &
+            &                          weight_y, wfy_lo,   wfy_hi, &
+            &                          weight_z, wfz_lo,   wfz_hi, &
             &                          coords_x, cx_lo,    cx_hi,  &
             &                          coords_y, cy_lo,    cy_hi,  &
             &                          coords_z, cz_lo,    cz_hi,  &
@@ -735,6 +781,23 @@ contains
         real(amrex_real), intent(in   ) :: mf_z(mfz_lo(1):mfz_hi(1), &
             &                                   mfz_lo(2):mfz_hi(2), &
             &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** IN:  total spread weights to staggered (face-centered) faces
+        !         corresponding to the MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: wfx_lo, wfx_hi
+        real(amrex_real), intent(in   ) :: weight_x(wfx_lo(1):wfx_hi(1), &
+            &                                       wfx_lo(2):wfx_hi(2), &
+            &                                       wfx_lo(3):wfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfy_lo, wfy_hi
+        real(amrex_real), intent(in   ) :: weight_y(wfy_lo(1):wfy_hi(1), &
+            &                                       wfy_lo(2):wfy_hi(2), &
+            &                                       wfy_lo(3):wfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfz_lo, wfz_hi
+        real(amrex_real), intent(in   ) :: weight_z(wfz_lo(1):wfz_hi(1), &
+            &                                       wfz_lo(2):wfz_hi(2), &
+            &                                       wfz_lo(3):wfz_hi(3))
 
         ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
         !         MultiFabs `mf_*`
@@ -765,7 +828,8 @@ contains
         ! ll               => loop counter over AMREX_SPACEDIM
         integer :: ll
         ! weight           => kernel weight function
-        real(amrex_real) :: weight
+        ! wfrac            => weight/total_weight (weight_{x,y,z})
+        real(amrex_real) :: weight, wfrac
         ! pos_grid         => (pos - (cell position))/dx
         ! invdx            => 1/dx
         real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
@@ -790,7 +854,13 @@ contains
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    v_interp(1) = v_interp(1) + mf_x(i, j, k) * weight
+                    if (weight_x(i, j, k) .gt. 0) then
+                        wfrac = weight/weight_x(i, j, k)
+                    else
+                        wfrac = 1d0
+                    end if
+
+                    v_interp(1) = v_interp(1) + mf_x(i, j, k) * wfrac * weight
 
                 end do
             end do
@@ -811,7 +881,13 @@ contains
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    v_interp(2) = v_interp(2) + mf_y(i, j, k) * weight
+                    if (weight_y(i, j, k) .gt. 0) then
+                        wfrac = weight/weight_y(i, j, k)
+                    else
+                        wfrac = 1d0
+                    end if
+
+                    v_interp(2) = v_interp(2) + mf_y(i, j, k) * wfrac * weight
 
                 end do
             end do
@@ -832,7 +908,13 @@ contains
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    v_interp(3) = v_interp(3) + mf_z(i, j, k) * weight
+                    if (weight_z(i, j, k) .gt. 0) then
+                        wfrac = weight/weight_z(i, j, k)
+                    else
+                        wfrac = 1d0
+                    end if
+
+                    v_interp(3) = v_interp(3) + mf_z(i, j, k) * wfrac * weight
 
                 end do
             end do
@@ -846,6 +928,9 @@ contains
             &                      mf_x,       mfx_lo,   mfx_hi,    &
             &                      mf_y,       mfy_lo,   mfy_hi,    &
             &                      mf_z,       mfz_lo,   mfz_hi,    &
+            &                      weight_x,   wfx_lo,   wfx_hi,    &
+            &                      weight_y,   wfy_lo,   wfy_hi,    &
+            &                      weight_z,   wfz_lo,   wfz_hi,    &
             &                      coords_x,   cx_lo,    cx_hi,     &
             &                      coords_y,   cy_lo,    cy_hi,     &
             &                      coords_z,   cz_lo,    cz_hi,     &
@@ -872,6 +957,23 @@ contains
         real(amrex_real), intent(in   ) :: mf_z(mfz_lo(1):mfz_hi(1), &
             &                                   mfz_lo(2):mfz_hi(2), &
             &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** IN:  total spread weights to staggered (face-centered) faces
+        !         corresponding to the MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: wfx_lo, wfx_hi
+        real(amrex_real), intent(in   ) :: weight_x(wfx_lo(1):wfx_hi(1), &
+            &                                       wfx_lo(2):wfx_hi(2), &
+            &                                       wfx_lo(3):wfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfy_lo, wfy_hi
+        real(amrex_real), intent(in   ) :: weight_y(wfy_lo(1):wfy_hi(1), &
+            &                                       wfy_lo(2):wfy_hi(2), &
+            &                                       wfy_lo(3):wfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: wfz_lo, wfz_hi
+        real(amrex_real), intent(in   ) :: weight_z(wfz_lo(1):wfz_hi(1), &
+            &                                       wfz_lo(2):wfz_hi(2), &
+            &                                       wfz_lo(3):wfz_hi(3))
 
         ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
         !         MultiFabs `mf_*`
@@ -917,6 +1019,9 @@ contains
                 &                   mf_x,     mfx_lo,   mfx_hi, &
                 &                   mf_y,     mfy_lo,   mfy_hi, &
                 &                   mf_z,     mfz_lo,   mfz_hi, &
+                &                   weight_x, wfx_lo,   wfx_hi, &
+                &                   weight_y, wfy_lo,   wfy_hi, &
+                &                   weight_z, wfz_lo,   wfz_hi, &
                 &                   coords_x, cx_lo,    cx_hi,  &
                 &                   coords_y, cy_lo,    cy_hi,  &
                 &                   coords_z, cz_lo,    cz_hi,  &

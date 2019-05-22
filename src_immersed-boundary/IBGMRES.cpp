@@ -238,6 +238,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                     alpha_fc, beta, beta_ed, gamma, theta_alpha,
                     geom);
 
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(tmp_u[d], "tmp0_u_"+std::to_string(d));
+
+
         // IBM part: ............................. (v, lambda) = (Av - Gp - S lambda, -Jv)
         ApplyIBM(tmp_u, tmp_lambda, x_u, ib_pc, part_indices, x_lambda,
                  ib_grow, ibpc_lev, geom);
@@ -256,6 +261,9 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // IBM part: ....................................... tmp_lambda = b_lambda - (-Jv)
         MarkerInvSub(part_indices, tmp_lambda, b_lambda);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(tmp_u[d], "tmp1_u_"+std::to_string(d));
 
 
         //_______________________________________________________________________
@@ -283,9 +291,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         }
 
         if (gmres_verbose >= 3) {
-            Print() << "un-Precond. rel. resid. (u,v,p) = " << norm_resid_Stokes/norm_init_Stokes
-                    << "  " << norm_u_noprecon/norm_init_Stokes
-                    << "  " << norm_p_noprecon/norm_init_Stokes << std::endl;
+            Print() << "un-Precond. rel. resid. (u,v,p,lambda) = "
+                    << norm_resid_Stokes/norm_init_Stokes    << "  "
+                    << norm_u_noprecon/norm_init_Stokes      << "  "
+                    << norm_p_noprecon/norm_init_Stokes      << "  "
+                    << norm_lambda_noprecon/norm_init_Stokes << std::endl;
         }
 
 
@@ -297,6 +307,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         //             geom);
         IBMPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha,
                   ib_pc, part_indices, r_lambda, tmp_lambda, geom);
+
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(r_u[d], "r1_u_"+std::to_string(d));
 
 
         // resid = sqrt(dot_product(r, r))
@@ -318,8 +332,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         //_______________________________________________________________________
         // Print verbose output
         if (gmres_verbose >= 3) {
-            Print() << "Precond. rel. res. (u,v,p) = " << norm_resid/norm_init_resid << "  "
-                    << norm_u/norm_init_resid << "  " << norm_p/norm_init_resid << std::endl;
+            Print() << "Precond. rel. res. (u,v,p,lambda) = "
+                    << norm_resid/norm_init_resid  << "  "
+                    << norm_u/norm_init_resid      << "  "
+                    << norm_p/norm_init_resid      << "  "
+                    << norm_lambda/norm_init_resid << std::endl;
         }
 
 
@@ -431,12 +448,20 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             MarkerCopy(part_indices, i, r_lambda, V_lambda);
 
 
+            MarkerL2Norm(part_indices, r_lambda, norm_lambda);
+            std::cout << "norm r_lambda = " << norm_lambda << std::endl;
+
+
             ApplyMatrix(tmp_u, tmp_p, r_u, r_p,
                         alpha_fc, beta, beta_ed, gamma, theta_alpha,
                         geom);
 
             ApplyIBM(tmp_u, tmp_lambda, r_u, ib_pc, part_indices, r_lambda,
                      ib_grow, ibpc_lev, geom);
+
+
+            MarkerL2Norm(part_indices, tmp_lambda, norm_lambda);
+            std::cout << "norm tmp_lambda = " << norm_lambda << std::endl;
 
 
             //___________________________________________________________________
@@ -448,6 +473,11 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                       alpha_fc, beta, beta_ed, gamma, theta_alpha,
                       ib_pc, part_indices, w_lambda, tmp_lambda, geom);
 
+
+            MarkerL2Norm(part_indices, w_lambda, norm_lambda);
+            std::cout << "norm w_lambda = " << norm_lambda << std::endl;
+
+            exit(0);
 
             //___________________________________________________________________
             // Form Hessenberg matrix H
@@ -514,10 +544,19 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             //___________________________________________________________________
             // Print verbose output
             if (gmres_verbose >= 2) {
-                Print() << "Total iter " << total_iter << ",  est. rel. resid. |Pr|/(Pr0,b)= "
+                Print() << "Total iter " << total_iter << ", est. rel. resid. |Pr|/(Pr0, b)= "
                         << norm_resid_est/norm_init_resid << "  "
-                        << norm_resid_est/norm_pre_b << std::endl;
+                        << norm_resid_est/norm_pre_b      << std::endl;
             }
+
+            if (gmres_verbose >= 3) {
+                Print() << "Inner. rel. res. (u,v,p,lambda) = "
+                        << norm_resid/norm_init_resid  << "  "
+                        << norm_u/norm_init_resid      << "  "
+                        << norm_p/norm_init_resid      << "  "
+                        << norm_lambda/norm_init_resid << std::endl;
+            }
+
 
 
             //___________________________________________________________________
@@ -724,6 +763,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         SubtractWeightedGradP(x_u, alphainv_fc, phi, geom);
 
 
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(x_u[d], "x1_u_" + std::to_string(d));
+
 
         /************************************************************************
          *                                                                      *
@@ -760,8 +802,10 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGphi, Gphi, theta_alpha, geom);
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            AGphi[d].mult(-1., 0, 1, ib_grow);
             AGphi[d].FillBoundary(geom.periodicity());
+        }
 
 
         //_______________________________________________________________________
@@ -775,7 +819,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             ib_pc.InterpolateMarkers(ib_level, pindex, jagw, Ag);
 
             for (int i=0; i<jagw.size(); ++i)
-                jagw[i] = jagw[i] + W[i]; // ..................... JAgW = JA^{-1}g + W
+                jagw[i] = jagw[i] + W[i]; // ........................ JAgW = JA^{-1}g + W
 
 
             auto & jagphi = JAGphi.at(pindex); // ................. JAGphi = JA^{-1}G\phi
@@ -793,44 +837,88 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             const auto & jagphi = JAGphi.at(pindex);
 
             for (int i=0; i<jls.size(); ++i)
-                jls[i] = jagphi[i] + jagw[i]; //  JLS_rhs = JA^{-1}G\phi +JA^{-1}g + W
+                jls[i] = jagphi[i] + jagw[i]; //  JLS_rhs = JA^{-1}G\phi + JA^{-1}g + W
         }
+
+        Real norm_lambda = 0.;
+        MarkerL2Norm(pindex_list, JLS_rhs, norm_lambda);
+        std::cout << "norm jls_rhs = " << norm_lambda << std::endl;
+
 
         // Preconditioner guess: L^{-1} ~ A^{-1} => (JL^{-1}S)^{-1} = JAS
 
         std::array<MultiFab, AMREX_SPACEDIM> spread_rhs;
+        std::array<MultiFab, AMREX_SPACEDIM> spread_weights;
         std::array<MultiFab, AMREX_SPACEDIM> AS_rhs;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             spread_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
             spread_rhs[d].setVal(0.);
 
+            spread_weights[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
+            spread_weights[d].setVal(0.);
+
             AS_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
             AS_rhs[d].setVal(0.);
         }
 
+        const Real * dx = geom.CellSize();
+        Real invvol     = 1./0.326;
+        //for (int d=0; d<AMREX_SPACEDIM; ++d)
+        //    invvol = invvol/dx[d];
+
+        std::cout << "invvol = " << invvol << std::endl;
+
         for (const auto & pindex : pindex_list) {
             const auto & jls = JLS_rhs.at(pindex);
 
-            ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs);
-        }
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            spread_rhs[d].FillBoundary(geom.periodicity());
+            ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs, spread_weights);
 
-        // Apply A (Hemlhotz) operator
-        const Real * dx = geom.CellSize();
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                spread_rhs[d].mult(invvol, 0, 1, ib_grow);
+                spread_rhs[d].FillBoundary(geom.periodicity());
+                spread_weights[d].FillBoundary(geom.periodicity());
+            }
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            VisMF::Write(spread_rhs[d], "spread_rhs_" + std::to_string(d));
+            VisMF::Write(spread_weights[d], "spread_weights_" + std::to_string(d));
+        }
+
+        Real norm_srhs = 0;
+        StagL2Norm(spread_rhs, 0, norm_srhs);
+        std::cout << "norm spread_rhs = " << norm_srhs << std::endl;
+
+
+        // Apply A (Helmhotz) operator
         StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             AS_rhs[d].FillBoundary(geom.periodicity());
 
-        // Precon: ......................... JLS = JAS (JA^{-1}G\phi +JA^{-1}g + W )
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(AS_rhs[d], "AS_rhs_" + std::to_string(d));
+
+        Real norm_asrhs = 0;
+        StagL2Norm(AS_rhs, 0, norm_srhs);
+        std::cout << "norm AS_rhs = " << norm_asrhs << std::endl;
+
+
+
+        // Precon: ....................... JLS = - JAS (JA^{-1}G\phi + JA^{-1}g + W )
         for (const auto & pindex : pindex_list) {
             auto & jls = JLS.at(pindex);
 
-            ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+            // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+            ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
+
 
             for (auto & marker : jls)
-                marker = -marker; // ...... JLS = -JAS (JA^{-1}G\phi +JA^{-1}g + W )
+                marker = -1./0.326 * marker;
         }
+
+        norm_lambda = 0.;
+        MarkerL2Norm(pindex_list, JLS, norm_lambda);
+        std::cout << "norm jls = " << norm_lambda << std::endl;
 
 
 
@@ -843,6 +931,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             JLS_V_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, ib_grow);
             JLS_V_rhs[d].setVal(0.);
+
+            spread_weights[d].setVal(0.);
         }
 
         MultiFab JLS_P_rhs(ba, dmap, 1, ib_grow);
@@ -854,11 +944,14 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (const auto & pindex : pindex_list) {
             const auto & jls = JLS_rhs.at(pindex);
 
-            ib_pc.SpreadMarkers(ib_level, pindex, jls, JLS_V_rhs);
+            ib_pc.SpreadMarkers(ib_level, pindex, jls, JLS_V_rhs, spread_weights);
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                JLS_V_rhs[d].FillBoundary(geom.periodicity());
+                spread_weights[d].FillBoundary(geom.periodicity());
+            }
         }
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            JLS_V_rhs[d].FillBoundary(geom.periodicity());
 
         StagMGSolver(alpha_fc, beta, beta_ed, gamma, JLS_V, JLS_V_rhs, theta_alpha, geom);
 
@@ -889,6 +982,17 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         //DEBUG:
         VisMF::Write(JLS_P, "JLS_P");
+
+
+
+        // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
+        SubtractWeightedGradP(JLS_V, alphainv_fc, JLS_P, geom);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            JLS_V[d].FillBoundary(geom.periodicity());
+
+
+
 
         /************************************************************************
          *                                                                      *
@@ -954,12 +1058,16 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
      ***************************************************************************/
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Add(x_u[d], JLS_V[d], 0, 0, 1, 0);
+        MultiFab::Subtract(x_u[d], JLS_V[d], 0, 0, 1, 0);
         x_u[d].FillBoundary(geom.periodicity());
+
+        VisMF::Write(x_u[d], "x2_u_" + std::to_string(d));
     }
 
     MultiFab::Add(x_p, JLS_P, 0, 0, 1, 0);
     x_p.FillBoundary(geom.periodicity());
+    VisMF::Write(x_p, "x2_p");
+
 
     for (const auto & pindex : pindex_list) {
               auto & force = marker_forces.at(pindex);
@@ -1004,6 +1112,7 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
 
     // Temporary containers:
     std::array<MultiFab, AMREX_SPACEDIM> SLambda;
+    std::array<MultiFab, AMREX_SPACEDIM> spread_weights;
     std::array<MultiFab, AMREX_SPACEDIM> x_u_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         SLambda[d].define(x_u[d].boxArray(), x_u[d].DistributionMap(), 1, ib_grow);
@@ -1011,6 +1120,9 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
 
         x_u_buffer[d].define(x_u[d].boxArray(), x_u[d].DistributionMap(), 1, ib_grow);
         x_u_buffer[d].setVal(0.);
+
+        spread_weights[d].define(x_u[d].boxArray(), x_u[d].DistributionMap(), 1, ib_grow);
+        spread_weights[d].setVal(0.);
     }
 
 
@@ -1018,15 +1130,23 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
     for (const auto & pid : part_indices) {
         const auto & lambda = x_lambda.at(pid);
 
-        ib_pc.SpreadMarkers(ibpc_lev, pid, lambda, SLambda);
+        ib_pc.SpreadMarkers(ibpc_lev, pid, lambda, SLambda, spread_weights);
+        // This needs to be done after every immersed boundary to prevent
+        // overwriting valid data in overlapping ghost regions
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            SLambda[d].FillBoundary(geom.periodicity());
+            spread_weights[d].FillBoundary(geom.periodicity());
+        }
     }
 
     // ........................................................ v = Av - Gp - S lambda
     // ...... (computed elsewhere, before this function call) ------^^^^^^^
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        SLambda[d].FillBoundary(geom.periodicity());
+        // SLambda[d].FillBoundary(geom.periodicity());
         MultiFab::Subtract(b_u[d], SLambda[d], 0, 0, 1, 0);
+
+        VisMF::Write(SLambda[d], "SLambda_" + std::to_string(d));
     }
 
     // Buffer x_u so that it has enough ghost cells (to cover the kernel)

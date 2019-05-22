@@ -416,7 +416,8 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
 
 
 void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
-        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
 
 
     //___________________________________________________________________________
@@ -436,6 +437,8 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 
     //___________________________________________________________________________
     // Cell-centered MultiFab used as a reference for iterating over data
+    // WARNING: this will break if IBParticleContainer is on a differnt grid
+    // than the grid which we're spreading to
     MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_out[0].nGrow());
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
@@ -444,14 +447,21 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 
         spread_markers(BL_TO_FORTRAN_BOX(bx),
                        BL_TO_FORTRAN_ANYD(f_out[0][mfi]),
-#if   (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
                        BL_TO_FORTRAN_ANYD(f_out[1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
                        BL_TO_FORTRAN_ANYD(f_out[2][mfi]),
 #endif
+                       BL_TO_FORTRAN_ANYD(f_weights[0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                       BL_TO_FORTRAN_ANYD(f_weights[1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                       BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
+#endif
                        BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
-#if   (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
                        BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
@@ -465,8 +475,28 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 }
 
 
+
+void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
+        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+    //___________________________________________________________________________
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
+                            1, f_out[d].nGrow());
+        f_weights[d].setVal(0.);
+    }
+
+    SpreadMarkers(lev, pindex, f_in, f_out, f_weights);
+
+}
+
+
+
 void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pindex,
-        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
+        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+        const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
 
 
     //___________________________________________________________________________
@@ -488,6 +518,7 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
     // Cell-centered MultiFab used as a reference for iterating over data
     MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_in[0].nGrow());
 
+
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
         Box bx = mfi.growntilebox();
@@ -499,6 +530,13 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
 #endif
 #if (AMREX_SPACEDIM > 2)
                             BL_TO_FORTRAN_ANYD(f_in[2][mfi]),
+#endif
+                            BL_TO_FORTRAN_ANYD(f_weights[0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                            BL_TO_FORTRAN_ANYD(f_weights[1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                            BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
 #endif
                             BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
 #if   (AMREX_SPACEDIM > 1)
@@ -512,6 +550,24 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
                             & n_marker,
                             dx );
     }
+}
+
+
+
+void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pindex,
+        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
+
+    //___________________________________________________________________________
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_in[d].boxArray(), f_in[d].DistributionMap(),
+                            1, f_in[d].nGrow());
+        f_weights[d].setVal(-1.); // Set to <0 to guarantee that weights are ignored
+    }
+
+    InterpolateMarkers(lev, pindex, f_out, f_in, f_weights);
+
 }
 
 
