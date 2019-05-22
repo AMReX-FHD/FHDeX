@@ -9,6 +9,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
+                   const MultiFab& cellVols,
                    FhdParticleContainer& particles) 
 {
 
@@ -20,7 +21,7 @@ void WritePlotFile(int step,
 
  
 //    int cnPlot = 40;
-    int cnPlot = 46;
+    int cnPlot = 47;
 
     MultiFab cplotfile(cba, cdmap, cnPlot, 0);
 
@@ -29,6 +30,7 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,14,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,14,14,0);
     amrex::MultiFab::Copy(cplotfile,particleVars,0,28,18,0);
+    amrex::MultiFab::Copy(cplotfile,cellVols,0,46,1,0);
 
     cvarNames[0] = "membersInstant";
     cvarNames[1] = "densityInstant";
@@ -78,6 +80,7 @@ void WritePlotFile(int step,
     cvarNames[43] = "ixVar";
     cvarNames[44] = "iyVar";
     cvarNames[45] = "izVar";
+    cvarNames[46] = "cellVols";
 
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,geom,time,step);

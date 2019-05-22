@@ -42,14 +42,14 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
                 
                 rad = 1;
-                while(rad > (2.5e-5))
+                while(rad > 0.99*(2.5e-5))
                 {                
                     p.pos(0) = plo[0] + get_uniform_func()*(phi[0]-plo[0]);
                     p.pos(1) = plo[1] + get_uniform_func()*(phi[1]-plo[1]);
 #if (BL_SPACEDIM == 3)
                     p.pos(2) = plo[2] + get_uniform_func()*(phi[2]-plo[2]);
 #endif
-                    rad = sqrt((p.pos(0)-2.5e-5)*(p.pos(0)-2.5e-5) + (p.pos(1)-2.5e-5)*(p.pos(1)-2.5e-5));
+                    rad = sqrt((p.pos(0)-0)*(p.pos(0)-0) + (p.pos(1)-0)*(p.pos(1)-0));
                 }
                 
                 p.rdata(RealData::q) = 0;
@@ -110,8 +110,21 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
         }
     }
 
-    UpdateCellVectors();
     Redistribute();
+    UpdateCellVectors();
     ReBin();
 
+}
+
+void getCellVols(MultiFab & vols, const Geometry & Geom, int samples)
+{
+
+    const Real* dx = Geom.CellSize();
+
+    for ( MFIter mfi(vols); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.validbox();
+        get_cell_vols(BL_TO_FORTRAN_3D(vols[mfi]), ZFILL(dx), &samples);
+        
+    }
 }

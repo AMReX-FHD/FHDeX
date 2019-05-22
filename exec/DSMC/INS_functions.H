@@ -14,10 +14,31 @@ void WritePlotFile(int step,
                    const MultiFab& particleInstant,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
+                   const MultiFab& cellVols,
                    FhdParticleContainer& particles);
 
 ///////////////////////////
+// in particleGen.cpp
 
 
+    void getCellVols(MultiFab & vols, const Geometry & Geom, int samples);
+
+
+///////////////////////////
+// in cellvols.F90
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    void get_cell_vols(
+                    amrex_real* vols,
+                    const int *vlo,
+                    const int *vhi,
+                    const amrex_real* dx,
+                    const int* samples);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

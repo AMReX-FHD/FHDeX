@@ -114,9 +114,10 @@ contains
 
     projrad = proj(1)**2 + proj(2)**2 + proj(3)**2
 
-    !if((projrad .ge. (2.5e-5)**2) .or. (proj(3) .le. 0) .or. (proj(3) .ge. 0.5e-5)) then
+    flag = 1
+    if((projrad .ge. 0.95*(2.5e-5)**2) .or. (proj(3) .le. 0) .or. (proj(3) .ge. 0.5e-5)) then
       flag = 0
-    !endif
+    endif
     
   end subroutine precheck
 
