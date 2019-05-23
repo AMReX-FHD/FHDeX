@@ -239,9 +239,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                     geom);
 
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            VisMF::Write(tmp_u[d], "tmp0_u_"+std::to_string(d));
-
 
         // IBM part: ............................. (v, lambda) = (Av - Gp - S lambda, -Jv)
         ApplyIBM(tmp_u, tmp_lambda, x_u, ib_pc, part_indices, x_lambda,
@@ -447,21 +444,12 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
             MarkerCopy(part_indices, i, r_lambda, V_lambda);
 
-
-            MarkerL2Norm(part_indices, r_lambda, norm_lambda);
-            std::cout << "norm r_lambda = " << norm_lambda << std::endl;
-
-
             ApplyMatrix(tmp_u, tmp_p, r_u, r_p,
                         alpha_fc, beta, beta_ed, gamma, theta_alpha,
                         geom);
 
             ApplyIBM(tmp_u, tmp_lambda, r_u, ib_pc, part_indices, r_lambda,
                      ib_grow, ibpc_lev, geom);
-
-
-            MarkerL2Norm(part_indices, tmp_lambda, norm_lambda);
-            std::cout << "norm tmp_lambda = " << norm_lambda << std::endl;
 
 
             //___________________________________________________________________
@@ -473,11 +461,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                       alpha_fc, beta, beta_ed, gamma, theta_alpha,
                       ib_pc, part_indices, w_lambda, tmp_lambda, geom);
 
-
-            MarkerL2Norm(part_indices, w_lambda, norm_lambda);
-            std::cout << "norm w_lambda = " << norm_lambda << std::endl;
-
-            exit(0);
 
             //___________________________________________________________________
             // Form Hessenberg matrix H
@@ -735,13 +718,15 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         //         x_u^star = A^{-1} b_u
 
         // x_u^star = A^{-1} b_u ......................................... x_u = A^{-1}g
-        // StagMGSolver(alpha_fc, beta, beta_ed, gamma, x_u, b_u, theta_alpha, geom);
         StagMGSolver(alpha_fc, beta, beta_ed, gamma, Ag, b_u, theta_alpha, geom);
+
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             Ag[d].FillBoundary(geom.periodicity());
+
             MultiFab::Copy(x_u[d], Ag[d], 0, 0, 1, x_u[d].nGrow());
             x_u[d].FillBoundary(geom.periodicity()); // Just in case
         }
+
 
         //_______________________________________________________________________
         // STEP 2: Construct RHS for pressure Poisson problem
@@ -761,10 +746,6 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
         SubtractWeightedGradP(x_u, alphainv_fc, phi, geom);
-
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            VisMF::Write(x_u[d], "x1_u_" + std::to_string(d));
 
 
         /************************************************************************
@@ -832,18 +813,13 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         // RHS term for preconditioner
         for (const auto & pindex : pindex_list){
-                  auto & jls = JLS_rhs.at(pindex);
+                  auto & jls    = JLS_rhs.at(pindex);
             const auto & jagw   = JAgW.at(pindex);
             const auto & jagphi = JAGphi.at(pindex);
 
             for (int i=0; i<jls.size(); ++i)
-                jls[i] = jagphi[i] + jagw[i]; //  JLS_rhs = JA^{-1}G\phi + JA^{-1}g + W
+                jls[i] = jagphi[i] + jagw[i]; // .. JLS_rhs = JA^{-1}G\phi + JA^{-1}g + W
         }
-
-        Real norm_lambda = 0.;
-        MarkerL2Norm(pindex_list, JLS_rhs, norm_lambda);
-        std::cout << "norm jls_rhs = " << norm_lambda << std::endl;
-
 
         // Preconditioner guess: L^{-1} ~ A^{-1} => (JL^{-1}S)^{-1} = JAS
 
@@ -861,12 +837,11 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             AS_rhs[d].setVal(0.);
         }
 
+
         const Real * dx = geom.CellSize();
-        Real invvol     = 1./0.326;
+        Real invvol     = 1.; //1./0.326;
         //for (int d=0; d<AMREX_SPACEDIM; ++d)
         //    invvol = invvol/dx[d];
-
-        std::cout << "invvol = " << invvol << std::endl;
 
         for (const auto & pindex : pindex_list) {
             const auto & jls = JLS_rhs.at(pindex);
@@ -874,34 +849,21 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs, spread_weights);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                spread_rhs[d].mult(invvol, 0, 1, ib_grow);
+                // spread_rhs[d].mult(invvol, 0, 1, ib_grow);
                 spread_rhs[d].FillBoundary(geom.periodicity());
                 spread_weights[d].FillBoundary(geom.periodicity());
             }
         }
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            VisMF::Write(spread_rhs[d], "spread_rhs_" + std::to_string(d));
-            VisMF::Write(spread_weights[d], "spread_weights_" + std::to_string(d));
-        }
-
-        Real norm_srhs = 0;
-        StagL2Norm(spread_rhs, 0, norm_srhs);
-        std::cout << "norm spread_rhs = " << norm_srhs << std::endl;
-
-
         // Apply A (Helmhotz) operator
-        StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
+        // StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
         for (int d=0; d<AMREX_SPACEDIM; ++d)
+            MultiFab::Copy(AS_rhs[d], spread_rhs[d], 0, 0, 1, ib_grow);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // AS_rhs[d].mult(1e-3, 0, 1, ib_grow);
             AS_rhs[d].FillBoundary(geom.periodicity());
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            VisMF::Write(AS_rhs[d], "AS_rhs_" + std::to_string(d));
-
-        Real norm_asrhs = 0;
-        StagL2Norm(AS_rhs, 0, norm_srhs);
-        std::cout << "norm AS_rhs = " << norm_asrhs << std::endl;
-
+        }
 
 
         // Precon: ....................... JLS = - JAS (JA^{-1}G\phi + JA^{-1}g + W )
@@ -911,14 +873,18 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
             ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
 
-
             for (auto & marker : jls)
-                marker = -1./0.326 * marker;
+                marker = - invvol * marker;
         }
 
-        norm_lambda = 0.;
-        MarkerL2Norm(pindex_list, JLS, norm_lambda);
-        std::cout << "norm jls = " << norm_lambda << std::endl;
+
+        // for (const auto & pindex : pindex_list) {
+        //           auto & jls     = JLS.at(pindex);
+        //     const auto & jls_rhs = JLS_rhs.at(pindex);
+
+        //     for (int i=0; i<jls.size(); ++i)
+        //         jls[i] = -jls_rhs[i];
+        // }
 
 
 
@@ -952,16 +918,10 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             }
         }
 
-
         StagMGSolver(alpha_fc, beta, beta_ed, gamma, JLS_V, JLS_V_rhs, theta_alpha, geom);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             JLS_V[d].FillBoundary(geom.periodicity());
-
-
-        // DEBUG:
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            VisMF::Write(JLS_V[d], "JLS_V_"+std::to_string(d));
 
 
         // Pressure Part:
@@ -980,17 +940,12 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         MultiFab::Add(JLS_P, JLS_P_rhs, 0, 0, 1, 0);
 
-        //DEBUG:
-        VisMF::Write(JLS_P, "JLS_P");
-
-
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
         SubtractWeightedGradP(JLS_V, alphainv_fc, JLS_P, geom);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             JLS_V[d].FillBoundary(geom.periodicity());
-
 
 
 
@@ -1058,15 +1013,19 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
      ***************************************************************************/
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Subtract(x_u[d], JLS_V[d], 0, 0, 1, 0);
+        MultiFab::Add(x_u[d], JLS_V[d], 0, 0, 1, 0);
         x_u[d].FillBoundary(geom.periodicity());
-
-        VisMF::Write(x_u[d], "x2_u_" + std::to_string(d));
     }
 
     MultiFab::Add(x_p, JLS_P, 0, 0, 1, 0);
     x_p.FillBoundary(geom.periodicity());
-    VisMF::Write(x_p, "x2_p");
+
+
+    for (const auto & pindex : pindex_list) {
+        auto & force = marker_forces.at(pindex);
+        for (auto & elt : force)
+            elt = RealVect{0,0,0};
+    }
 
 
     for (const auto & pindex : pindex_list) {

@@ -525,7 +525,7 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
 
         interpolate_markers(BL_TO_FORTRAN_BOX(bx),
                             BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
-#if   (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
                             BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
@@ -539,7 +539,7 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
                             BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
 #endif
                             BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
-#if   (AMREX_SPACEDIM > 1)
+#if (AMREX_SPACEDIM > 1)
                             BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
