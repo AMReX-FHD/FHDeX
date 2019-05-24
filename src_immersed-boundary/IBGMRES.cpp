@@ -238,12 +238,9 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                     alpha_fc, beta, beta_ed, gamma, theta_alpha,
                     geom);
 
-
-
         // IBM part: ............................. (v, lambda) = (Av - Gp - S lambda, -Jv)
         ApplyIBM(tmp_u, tmp_lambda, x_u, ib_pc, part_indices, x_lambda,
                  ib_grow, ibpc_lev, geom);
-
 
         // tmp = b - Ax
         // Fluid part: ........................... tmp_u = b_u - (Ax_u - Gx_p - Sx_lambda)
@@ -258,9 +255,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         // IBM part: ....................................... tmp_lambda = b_lambda - (-Jv)
         MarkerInvSub(part_indices, tmp_lambda, b_lambda);
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            VisMF::Write(tmp_u[d], "tmp1_u_"+std::to_string(d));
 
 
         //_______________________________________________________________________
@@ -837,7 +831,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
 
         // const Real * dx = geom.CellSize();
-        // Real invvol     = 1; //1./0.326;
+        // Real invvol     = 1.;//1./0.326;
         // // for (int d=0; d<AMREX_SPACEDIM; ++d)
         // //     invvol = invvol/dx[d];
 
@@ -868,8 +862,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         // for (const auto & pindex : pindex_list) {
         //     auto & jls = JLS.at(pindex);
 
-        //     // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
-        //     ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
+        //     ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+        //     // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
 
         //     for (auto & marker : jls)
         //         marker = - invvol * marker;
