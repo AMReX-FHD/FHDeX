@@ -351,7 +351,7 @@ contains
 
     pure function kernel_6p(r_in)
 
-        ! The 6-point kernel function, based on the paper: 
+        ! The 6-point kernel function, based on the paper:
         !
         ! >*A Gaussian-like immersed-boundary kernel with three continuous derivatives and improved translational invariance*
         ! >Yuanxun Bao, Jason Kaye, Charles S. Peskin, *Journal of Computational Physics* **316**, 139 (2016)
@@ -400,7 +400,7 @@ contains
         else if (r .le.  1) then
             kernel_6p = 2*phi1(r) + rat58 - inv4*(K+r**2)
         else if (r .le.  2) then
-            r = r - 1 
+            r = r - 1
             kernel_6p = -3*phi1(r) + inv4 - inv6*((4-3*K)*r-r**3)
         else if (r .le.  3) then
             r = r - 2
@@ -550,7 +550,7 @@ contains
 
         !________________________________________________________________________
         ! i, j, k   => face-centered indices
-        integer :: i, j, k
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
         ! ll        => loop counter over AMREX_SPACEDIM
         integer :: ll
         ! invvol    => 1/dx^AMREX_SPACEDIM
@@ -570,12 +570,22 @@ contains
         end do
 
 
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 6))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 6))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 6))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 6))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 6))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 6))
+
 
         !________________________________________________________________________
         ! x-components
-        do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-                do i = lo(1), hi(1) + 1
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1) + 1
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -595,9 +605,12 @@ contains
 
         !________________________________________________________________________
         ! y-components
-        do k = lo(3), hi(3)
-            do j = lo(2), hi(2) + 1
-                do i = lo(1), hi(1)
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2) + 1
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -617,9 +630,12 @@ contains
 
         !________________________________________________________________________
         ! z-components
-        do k = lo(3), hi(3) + 1
-            do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
+        ! do k = lo(3), hi(3) + 1
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_z(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -824,7 +840,7 @@ contains
 
         !________________________________________________________________________
         ! i,    j,    k    => face-centered indices
-        integer :: i, j, k
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
         ! ll               => loop counter over AMREX_SPACEDIM
         integer :: ll
         ! weight           => kernel weight function
@@ -839,12 +855,23 @@ contains
         ! compute geometric quantity 1/dx
         invdx(:) = 1d0/dx(:)
 
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 6))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 6))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 6))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 6))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 6))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 6))
+
+
 
         !________________________________________________________________________
         ! x-components
-        do k = lo(3), hi(3)
-            do j = lo(2), hi(2)
-                do i = lo(1), hi(1) + 1
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1) + 1
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -869,9 +896,12 @@ contains
 
         !________________________________________________________________________
         ! y-components
-        do k = lo(3), hi(3)
-            do j = lo(2), hi(2) + 1
-                do i = lo(1), hi(1)
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2) + 1
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -896,9 +926,12 @@ contains
 
         !________________________________________________________________________
         ! z-components
-        do k = lo(3), hi(3) + 1
-            do j = lo(2), hi(2)
-                do i = lo(1), hi(1)
+        ! do k = lo(3), hi(3) + 1
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_z(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)

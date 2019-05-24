@@ -458,8 +458,10 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
             alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
             ib_pc, geom, norm_pre_rhs);
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(umac_0[d], umacNew[d], 0, 0, 1, 1);
+        VisMF::Write(umac_0[d], "umac_0_"+std::to_string(d));
+    }
 
 
 
@@ -524,7 +526,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     for (int i=0; i<100; i++) {
 
         //_______________________________________________________________________
-        // Set up the RHS for the corrector 
+        // Set up the RHS for the corrector
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             // explicit part
@@ -618,7 +620,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         // for (int d=0; d<AMREX_SPACEDIM; ++d) {
         //     MultiFab::Copy(force_est[d], r_f[d], 0, 0, 1, 1);
         //     force_est[d].mult(1e6, 0);
- 
+
         //     //MultiFab::Add(force_1[d], force_est[d], 0, 0, 1, 1);
         // }
 

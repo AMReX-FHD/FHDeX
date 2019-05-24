@@ -306,10 +306,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                   ib_pc, part_indices, r_lambda, tmp_lambda, geom);
 
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            VisMF::Write(r_u[d], "r1_u_"+std::to_string(d));
-
-
         // resid = sqrt(dot_product(r, r))
         StagL2Norm(r_u, 0, norm_u);
         CCL2Norm(r_p, 0, norm_p);
@@ -663,6 +659,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         x_u[d].setVal(0.);
 
+    x_p.setVal(0.);
+
 
     std::array<MultiFab, AMREX_SPACEDIM> JLS_V;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -838,53 +836,53 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         }
 
 
-        const Real * dx = geom.CellSize();
-        Real invvol     = 1.; //1./0.326;
-        //for (int d=0; d<AMREX_SPACEDIM; ++d)
-        //    invvol = invvol/dx[d];
-
-        for (const auto & pindex : pindex_list) {
-            const auto & jls = JLS_rhs.at(pindex);
-
-            ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs, spread_weights);
-
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                // spread_rhs[d].mult(invvol, 0, 1, ib_grow);
-                spread_rhs[d].FillBoundary(geom.periodicity());
-                spread_weights[d].FillBoundary(geom.periodicity());
-            }
-        }
-
-        // Apply A (Helmhotz) operator
-        // StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            MultiFab::Copy(AS_rhs[d], spread_rhs[d], 0, 0, 1, ib_grow);
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            // AS_rhs[d].mult(1e-3, 0, 1, ib_grow);
-            AS_rhs[d].FillBoundary(geom.periodicity());
-        }
-
-
-        // Precon: ....................... JLS = - JAS (JA^{-1}G\phi + JA^{-1}g + W )
-        for (const auto & pindex : pindex_list) {
-            auto & jls = JLS.at(pindex);
-
-            // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
-            ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
-
-            for (auto & marker : jls)
-                marker = - invvol * marker;
-        }
-
+        // const Real * dx = geom.CellSize();
+        // Real invvol     = 1; //1./0.326;
+        // // for (int d=0; d<AMREX_SPACEDIM; ++d)
+        // //     invvol = invvol/dx[d];
 
         // for (const auto & pindex : pindex_list) {
-        //           auto & jls     = JLS.at(pindex);
-        //     const auto & jls_rhs = JLS_rhs.at(pindex);
+        //     const auto & jls = JLS_rhs.at(pindex);
 
-        //     for (int i=0; i<jls.size(); ++i)
-        //         jls[i] = -jls_rhs[i];
+        //     ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs, spread_weights);
+
+        //     for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        //         spread_rhs[d].mult(invvol, 0, 1, ib_grow);
+        //         spread_rhs[d].FillBoundary(geom.periodicity());
+        //         spread_weights[d].FillBoundary(geom.periodicity());
+        //     }
         // }
+
+        // // Apply A (Helmhotz) operator
+        // StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
+        // // for (int d=0; d<AMREX_SPACEDIM; ++d)
+        // //     MultiFab::Copy(AS_rhs[d], spread_rhs[d], 0, 0, 1, ib_grow);
+
+        // for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        //     // AS_rhs[d].mult(1e-3, 0, 1, ib_grow);
+        //     AS_rhs[d].FillBoundary(geom.periodicity());
+        // }
+
+
+        // // Precon: ....................... JLS = - JAS (JA^{-1}G\phi + JA^{-1}g + W )
+        // for (const auto & pindex : pindex_list) {
+        //     auto & jls = JLS.at(pindex);
+
+        //     // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+        //     ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
+
+        //     for (auto & marker : jls)
+        //         marker = - invvol * marker;
+        // }
+
+
+        for (const auto & pindex : pindex_list) {
+                  auto & jls     = JLS.at(pindex);
+            const auto & jls_rhs = JLS_rhs.at(pindex);
+
+            for (int i=0; i<jls.size(); ++i)
+                jls[i] = - jls_rhs[i];
+        }
 
 
 

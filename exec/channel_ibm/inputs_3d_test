@@ -87,7 +87,9 @@
   gmres_verbose = 5                     ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20                  ! max number of outer iterations
   gmres_max_inner = 5                   ! max number of inner iterations, or restart number
-  gmres_max_iter = 400                  ! max number of gmres iterations
+  gmres_max_iter = 800                  ! max number of gmres iterations
   gmres_min_iter = 1                    ! min number of gmres iterations
+
+  p_norm_weight = 1d0
 
 /
