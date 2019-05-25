@@ -145,6 +145,15 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
      ***************************************************************************/
 
 
+    // TODO: Assumptions: dx=dy=dz (approx) as well as constant viscosity
+    const Real * dx = geom.CellSize();
+    const Real c1 = dx[0]/visc_coef;
+    const Real c2 = dx[0]*dx[0];
+    const Real c3 = 1./dx[0];
+    const Real c4 = 1./(visc_coef*dx[0]);
+
+    scale_factor = c1;
+
     // apply scaling factor
     if (scale_factor != 1.) {
         theta_alpha = theta_alpha*scale_factor;
@@ -615,6 +624,17 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     Vector<Real> mean_val_umac(AMREX_SPACEDIM);
 
 
+
+    // TODO: Assumptions: dx=dy=dz (approx) as well as constant viscosity
+    const Real * dx = geom.CellSize();
+    const Real c1 = dx[0]/visc_coef;
+    const Real c2 = dx[0]*dx[0];
+    const Real c3 = 1./dx[0];
+    const Real c4 = 1./(visc_coef*dx[0]);
+
+
+
+
     MultiFab phi     (ba, dmap, 1, 1);
     MultiFab mac_rhs (ba, dmap, 1, 0);
     MultiFab zero_fab(ba, dmap, 1, 0);
@@ -790,6 +810,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             const auto & W    = marker_W.at(pindex);
 
             ib_pc.InterpolateMarkers(ib_level, pindex, jagw, Ag);
+            for (auto & elt : jagw) elt = c3*elt;
 
             for (int i=0; i<jagw.size(); ++i)
                 jagw[i] = jagw[i] + W[i]; // ........................ JAgW = JA^{-1}g + W
@@ -797,6 +818,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
             auto & jagphi = JAGphi.at(pindex); // ................. JAGphi = JA^{-1}G\phi
             ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, AGphi);
+            for (auto & elt : jagphi) elt = c3*elt;
         }
 
 
@@ -905,6 +927,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             ib_pc.SpreadMarkers(ib_level, pindex, jls, JLS_V_rhs, spread_weights);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // Scale the Spreading operator by c2
+                JLS_V_rhs[d].mult(c2, 0, 1, ib_grow);
+
                 JLS_V_rhs[d].FillBoundary(geom.periodicity());
                 spread_weights[d].FillBoundary(geom.periodicity());
             }
@@ -1061,6 +1086,17 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
               const std::map<std::pair<int, int>, Vector<RealVect>> & x_lambda,
               int ib_grow, int ibpc_lev, const Geometry & geom ) {
 
+
+
+    // TODO: Assumptions: dx=dy=dz (approx) as well as constant viscosity
+    const Real * dx = geom.CellSize();
+    const Real c1 = dx[0]/visc_coef;
+    const Real c2 = dx[0]*dx[0];
+    const Real c3 = 1./dx[0];
+    const Real c4 = 1./(visc_coef*dx[0]);
+
+
+
     // Temporary containers:
     std::array<MultiFab, AMREX_SPACEDIM> SLambda;
     std::array<MultiFab, AMREX_SPACEDIM> spread_weights;
@@ -1085,6 +1121,10 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
         // This needs to be done after every immersed boundary to prevent
         // overwriting valid data in overlapping ghost regions
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+            // Scale the S lambda operator by c2
+            SLambda[d].mult(c2, 0, 1, ib_grow);
+
             SLambda[d].FillBoundary(geom.periodicity());
             spread_weights[d].FillBoundary(geom.periodicity());
         }
@@ -1111,9 +1151,8 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
         auto & bl = b_lambda.at(pid);
 
         ib_pc.InterpolateMarkers(ibpc_lev, pid, bl, x_u_buffer);
-        for (auto & elt : bl) elt = -elt;
+        for (auto & elt : bl) elt = -c3*elt;
     }
-
 }
 
 
