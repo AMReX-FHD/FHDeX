@@ -183,10 +183,6 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
               ib_pc, part_indices, tmp_lambda, b_lambda, geom);
 
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        VisMF::Write(tmp_u[d], "tmp_u_" + std::to_string(d));
-
-
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
@@ -925,15 +921,16 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             const auto & jls = JLS_rhs.at(pindex);
 
             ib_pc.SpreadMarkers(ib_level, pindex, jls, JLS_V_rhs, spread_weights);
-
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                // Scale the Spreading operator by c2
-                JLS_V_rhs[d].mult(c2, 0, 1, ib_grow);
-
-                JLS_V_rhs[d].FillBoundary(geom.periodicity());
-                spread_weights[d].FillBoundary(geom.periodicity());
-            }
         }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // Scale the Spreading operator by c2
+            JLS_V_rhs[d].mult(c2, 0, 1, ib_grow);
+
+            JLS_V_rhs[d].FillBoundary(geom.periodicity());
+            spread_weights[d].FillBoundary(geom.periodicity());
+        }
+
 
         StagMGSolver(alpha_fc, beta, beta_ed, gamma, JLS_V, JLS_V_rhs, theta_alpha, geom);
 
@@ -1118,27 +1115,23 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
         const auto & lambda = x_lambda.at(pid);
 
         ib_pc.SpreadMarkers(ibpc_lev, pid, lambda, SLambda, spread_weights);
-        // This needs to be done after every immersed boundary to prevent
-        // overwriting valid data in overlapping ghost regions
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
-            // Scale the S lambda operator by c2
-            SLambda[d].mult(c2, 0, 1, ib_grow);
-
-            SLambda[d].FillBoundary(geom.periodicity());
-            spread_weights[d].FillBoundary(geom.periodicity());
-        }
     }
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+        // Scale the S lambda operator by c2
+        SLambda[d].mult(c2, 0, 1, ib_grow);
+
+        SLambda[d].FillBoundary(geom.periodicity());
+        spread_weights[d].FillBoundary(geom.periodicity());
+    }
+
 
     // ........................................................ v = Av - Gp - S lambda
     // ...... (computed elsewhere, before this function call) ------^^^^^^^
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        // SLambda[d].FillBoundary(geom.periodicity());
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
         MultiFab::Subtract(b_u[d], SLambda[d], 0, 0, 1, 0);
-
-        VisMF::Write(SLambda[d], "SLambda_" + std::to_string(d));
-    }
 
     // Buffer x_u so that it has enough ghost cells (to cover the kernel)
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -1296,6 +1289,8 @@ void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices,
 
         v = v + l2_norm;
     }
+
+    ParallelDescriptor::ReduceRealSum(v);
 }
 
 
@@ -1314,6 +1309,8 @@ void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices, int comp,
 
         v = v + l2_norm;
     }
+
+    ParallelDescriptor::ReduceRealSum(v);
 }
 
 
@@ -1324,6 +1321,7 @@ void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
     norm_l2 = 0.;
     MarkerInnerProd(markers, markers, norm_l2);
     norm_l2 = sqrt(norm_l2);
+
 }
 
 
@@ -1340,6 +1338,8 @@ void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
 
         v = v + l2_norm;
     }
+
+    ParallelDescriptor::ReduceRealSum(v);
 }
 
 
