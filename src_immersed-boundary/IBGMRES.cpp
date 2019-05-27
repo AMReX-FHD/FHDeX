@@ -859,7 +859,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         //     ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs, spread_weights);
 
         //     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        //         spread_rhs[d].mult(invvol, 0, 1, ib_grow);
+
+        //         spread_rhs[d].mult(c2*invvol, 0, 1, ib_grow);
         //         spread_rhs[d].FillBoundary(geom.periodicity());
         //         spread_weights[d].FillBoundary(geom.periodicity());
         //     }
@@ -884,7 +885,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         //     // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
 
         //     for (auto & marker : jls)
-        //         marker = - invvol * marker;
+        //         marker = - c3*invvol * marker;
         // }
 
 
@@ -892,8 +893,12 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                   auto & jls     = JLS.at(pindex);
             const auto & jls_rhs = JLS_rhs.at(pindex);
 
-            for (int i=0; i<jls.size(); ++i)
+            std::cout << "MPI rank = " << ParallelDescriptor::MyProc() <<":: ";
+            for (int i=0; i<jls.size(); ++i) {
                 jls[i] = - jls_rhs[i];
+                std::cout << i << ":" << jls[i] << ", ";
+            }
+            std::cout << std::endl;
         }
 
 
