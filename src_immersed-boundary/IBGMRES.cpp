@@ -99,6 +99,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     std::map<std::pair<int, int>, Vector<RealVect>>       tmp_lambda;
     std::map<std::pair<int, int>, Vector<Vector<RealVect>>> V_lambda;
 
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos;
+
     int ibpc_lev = 0; // assume single level for now
     int ib_grow  = 6; // using the 6-point stencil
 
@@ -126,6 +128,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
           V_lambda[part_indices[i]].resize(gmres_max_inner + 1);
         for (int j=0; j<gmres_max_inner+1; ++j)
             V_lambda[part_indices[i]][j].resize(marker_positions.size());
+
+        marker_pos[part_indices[i]] = marker_positions;
     }
 
 
@@ -176,6 +180,10 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     //___________________________________________________________________________
     // First application of preconditioner
 
+
+    // Dummy cell-centered MultiFab (used to construct MFIters)
+    MultiFab dummy_iter(ba, dmap, 1, 0);
+
     // ApplyPrecon(b_u, b_p, tmp_u, tmp_p,
     //             alpha_fc, beta, beta_ed, gamma, theta_alpha,
     //             geom);
@@ -186,7 +194,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // preconditioned norm_b: norm_pre_b
     StagL2Norm(tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
-    MarkerL2Norm(part_indices, tmp_lambda, norm_lambda);
+    MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, tmp_lambda, norm_lambda);
     norm_p       = p_norm_weight*norm_p;
     norm_lambda  = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
@@ -196,7 +204,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     // calculate the l2 norm of rhs
     StagL2Norm(b_u, 0, norm_u);
     CCL2Norm(b_p, 0, norm_p);
-    MarkerL2Norm(part_indices, b_lambda, norm_lambda);
+    MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, b_lambda, norm_lambda);
     norm_p      = p_norm_weight*norm_p;
     norm_lambda = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
     norm_b      = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
@@ -266,7 +274,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // un-preconditioned residuals
         StagL2Norm(tmp_u, 0, norm_u_noprecon);
         CCL2Norm(tmp_p, 0, norm_p_noprecon);
-        MarkerL2Norm(part_indices, tmp_lambda, norm_lambda_noprecon);
+        MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos,
+                     tmp_lambda, norm_lambda_noprecon);
 
         norm_p_noprecon      = p_norm_weight*norm_p_noprecon;
         norm_lambda_noprecon = p_norm_weight*norm_lambda_noprecon; // TODO: use p_norm_weight for now
@@ -308,7 +317,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         // resid = sqrt(dot_product(r, r))
         StagL2Norm(r_u, 0, norm_u);
         CCL2Norm(r_p, 0, norm_p);
-        MarkerL2Norm(part_indices, r_lambda, norm_lambda);
+        MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, r_lambda, norm_lambda);
         norm_p      = p_norm_weight*norm_p;
         norm_lambda = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
         norm_resid  = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
@@ -464,7 +473,8 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
                 StagInnerProd(w_u, 0, V_u, k, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
-                MarkerInnerProd(part_indices, k, w_lambda, V_lambda, inner_prod_lambda);
+                MarkerInnerProd(part_indices, k, dummy_iter, geom, marker_pos,
+                                w_lambda, V_lambda, inner_prod_lambda);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.)
                           + pow(p_norm_weight, 2.0)*inner_prod_pres
                           + pow(p_norm_weight, 2.0)*inner_prod_lambda; // TODO: use p_norm_weight for now
@@ -490,7 +500,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             // H(i+1,i) = norm(w)
             StagL2Norm(w_u, 0, norm_u);
             CCL2Norm(w_p, 0, norm_p);
-            MarkerL2Norm(part_indices, w_lambda, norm_lambda);
+            MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, w_lambda, norm_lambda);
             norm_p      = p_norm_weight*norm_p;
             norm_lambda = p_norm_weight*norm_lambda; // TODO: use p_norm_weight for now
             H[i+1][i]   = sqrt(norm_u*norm_u + norm_p*norm_p + norm_lambda*norm_lambda);
@@ -895,7 +905,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
             std::cout << "MPI rank = " << ParallelDescriptor::MyProc() <<":: ";
             for (int i=0; i<jls.size(); ++i) {
-                jls[i] = - jls_rhs[i];
+                jls[i] = jls_rhs[i];
                 std::cout << i << ":" << jls[i] << ", ";
             }
             std::cout << std::endl;
@@ -1267,32 +1277,45 @@ void MarkerMult(const Vector<std::pair<int, int>> & part_indices, int comp, Real
 
 
 
-void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v) {
+void MarkerInnerProd(const Box & bx, const Geometry & geom,
+                     const Vector<RealVect> & marker_pos,
+                     const Vector<RealVect> & a, const Vector<RealVect> & b,
+                     Real & v) {
 
     v = 0;
 
-    for (int i=0; i<a.size(); ++i){
-        Real vi = a[i].dotProduct(b[i]);
+    for (int i=0; i<a.size(); ++i) {
+        IntVect cc_index = geom.CellIndex(marker_pos[i].dataPtr());
 
-        v = v + vi;
+        if (bx.contains(cc_index)) {
+            Real vi = a[i].dotProduct(b[i]);
+            v       = v + vi;
+        }
     }
 }
 
 
 
 void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices,
+                     const MultiFab & cc_iter, const Geometry & geom,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & marker_pos,
                      const std::map<std::pair<int, int>, Vector<RealVect>> & a,
                      const std::map<std::pair<int, int>, Vector<RealVect>> & b,
                      Real & v) {
 
     v = 0.;
 
-    for (const auto & pid : part_indices) {
-        Real l2_norm = 0.;
+    for (MFIter mfi(cc_iter); mfi.isValid(); ++ mfi) {
+        for (const auto & pid : part_indices) {
 
-        MarkerInnerProd(a.at(pid), b.at(pid), l2_norm);
+            const Box & bx = mfi.tilebox();
 
-        v = v + l2_norm;
+            Real l2_norm = 0.;
+            MarkerInnerProd(bx, geom, marker_pos.at(pid),
+                            a.at(pid), b.at(pid),
+                            l2_norm);
+            v = v + l2_norm;
+        }
     }
 
     ParallelDescriptor::ReduceRealSum(v);
@@ -1301,18 +1324,25 @@ void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices,
 
 
 void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices, int comp,
+                     const MultiFab & cc_iter, const Geometry & geom,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & marker_pos,
                      const std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
                      const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b,
                      Real & v) {
 
     v = 0.;
 
-    for (const auto & pid : part_indices) {
-        Real l2_norm = 0.;
+    for (MFIter mfi(cc_iter); mfi.isValid(); ++ mfi) {
+        for (const auto & pid : part_indices) {
 
-        MarkerInnerProd(a.at(pid), b.at(pid)[comp], l2_norm);
+            const Box & bx = mfi.tilebox();
 
-        v = v + l2_norm;
+            Real l2_norm = 0.;
+            MarkerInnerProd(bx, geom, marker_pos.at(pid),
+                            a.at(pid), b.at(pid)[comp],
+                            l2_norm);
+            v = v + l2_norm;
+        }
     }
 
     ParallelDescriptor::ReduceRealSum(v);
@@ -1321,10 +1351,11 @@ void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices, int comp,
 
 
 
-void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
+void MarkerL2Norm(const Box & bx, const Geometry & geom, const Vector<RealVect> & marker_pos,
+                  const Vector<RealVect> & markers, Real & norm_l2) {
 
     norm_l2 = 0.;
-    MarkerInnerProd(markers, markers, norm_l2);
+    MarkerInnerProd(bx, geom, marker_pos, markers, markers, norm_l2);
     norm_l2 = sqrt(norm_l2);
 
 }
@@ -1332,16 +1363,21 @@ void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2) {
 
 
 void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
+                  const MultiFab & cc_iter, const Geometry & geom,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & marker_pos,
                   const std::map<std::pair<int, int>, Vector<RealVect>> & b, Real & v) {
 
     v = 0.;
 
-    for (const auto & pid : part_indices) {
-        Real l2_norm = 0.;
+    for (MFIter mfi(cc_iter); mfi.isValid(); ++ mfi) {
+        for (const auto & pid : part_indices) {
 
-        MarkerL2Norm(b.at(pid), l2_norm);
+            const Box & bx = mfi.tilebox();
 
-        v = v + l2_norm;
+            Real l2_norm = 0.;
+            MarkerL2Norm(bx, geom, marker_pos.at(pid), b.at(pid), l2_norm);
+            v = v + l2_norm;
+        }
     }
 
     ParallelDescriptor::ReduceRealSum(v);
