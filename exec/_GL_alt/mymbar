@@ -1,0 +1,109 @@
+#!/share/apps/bin/python
+
+import sys, numpy, pymbar
+
+usage = "mymbar path/to/meta path/to/dump"
+
+if len(sys.argv) != 3:
+    print >> sys.stderr, usage
+    sys.exit(1)
+else:
+    read = sys.argv[1]
+    dump = sys.argv[2]
+
+T_k = []     ## Number of correlated samples in window k
+K_k = []     ## Spring constant for window k
+K0_k = []    ## Umbrella minimum of window k
+ts_k = []    ## File where time-series data for window k is stored
+
+with open(read) as f:
+    meta = map(lambda line: line.split(), f.readlines())
+
+## Import metadata for each window/state
+## 
+for T, K, K0, ts in meta:
+    T_k += [int(T)]
+    K_k += [float(K)]
+    K0_k += [float(K0)]
+    ts_k += [ts]
+
+K = len(meta)  ## Number of windows/states
+
+T_k = numpy.array(T_k)  ## Convert list to array (required later)
+
+## Import configurations from time-series data
+## 
+## n_ln = numpy.zeros([K, T_k.max()], numpy.int32)
+z_ln = numpy.zeros([K, T_k.max()], numpy.float64)
+r_ln = numpy.zeros([K, T_k.max()], numpy.float64)
+
+for l, filename in enumerate(ts_k):
+    with open(filename) as f:
+        for n, line in enumerate(f.readlines()):
+            line = line.split()
+            ## n_ln[l, n] = int(line[0])
+            z_ln[l, n] = float(line[0])
+            r_ln[l, n] = float(line[1])-20
+
+def u(l, k, n):
+    ## return 0.5 * K_k[k] * ((n_ln[l, n] - K0_k[k]) ** 2)
+    return 0.5 * K_k[k] * ((z_ln[l, n] - K0_k[k]) ** 2)
+
+## Energy of configuration t of state l for umbrella potential of state k
+## 
+u_klt = numpy.zeros([K, K, T_k.max()], numpy.float64)
+
+for k in range(K):
+    for l in range(K):
+        for n in range(T_k[k]):
+            u_klt[k, l, n] = u(k, l, n)
+
+uncorr_ind = []
+
+# Subsample the time-series data to extract only uncorrelated samples.
+# N_k is the equivalent of T_k for the uncorrelated subsamples.
+# u_kln is the equivalent of u_klt for the uncorrelated subsamples.
+
+N_k = numpy.zeros([K], numpy.int32)
+u_kln = numpy.zeros([K, K, T_k.max()], numpy.float64)
+
+N_k = T_k
+u_kln = u_klt
+
+"""
+print "Subsampling time-series data..."
+
+for k in range(K):
+    print "Round " + str(k + 1)
+    indices = pymbar.timeseries.subsampleCorrelatedData(u_klt[k, k, 0:T_k[k]])
+    N_k[k] = len(indices)
+    print "Independent samples in window %s: %s" % (K0_k[k], N_k[k])
+    uncorr_ind.append(indices)
+    for l in range(K):
+        u_kln[k, l, 0:N_k[k]] = u_klt[k, l, indices]
+"""
+
+# Unbiased potential energy, i.e. without umbrella potentials.
+# If the temperatures of all the states are the same, set these all to zero.
+
+u_kn = numpy.zeros([K, N_k.max()], numpy.float64)
+
+## ref = numpy.array([200 - (200.0 / 36.0) * i for i in range(0, 41)])
+
+## mbar = pymbar.MBAR(u_kln, N_k, initial_f_k=ref)
+mbar = pymbar.MBAR(u_kln, N_k)
+
+# Populate bins for the PMF calculation.
+
+bins_kn = numpy.zeros([K, N_k.max()], numpy.int32)
+
+for k in range(K):
+    ## bins_kn[k, 0:N_k[k]] = n_ln[k, uncorr_ind[k]]
+    ## bins_kn[k, 0:N_k[k]] = n_ln[k]
+    bins_kn[k, 0:N_k[k]] = r_ln[k]
+
+(f_i, df_i) = mbar.computePMF(u_kn, bins_kn, bins_kn.max() + 1)
+
+with open(dump, "w") as f:
+    for i in range(bins_kn.max() + 1):
+        print >> f, '%3d %f %f' % (i+20, f_i[i], df_i[i])
