@@ -496,7 +496,7 @@ void main_driver(const char * argv) {
         Real t0_ib = 0;
 
         ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
-        ib_pc.FillMarkerPositions(0, 2);
+        ib_pc.FillMarkerPositions(0, 8);
 
 
         //_______________________________________________________________________

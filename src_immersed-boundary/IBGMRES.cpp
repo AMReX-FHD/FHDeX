@@ -799,12 +799,12 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             Gphi[d].FillBoundary(geom.periodicity());
 
-        StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGphi, Gphi, theta_alpha, geom);
+        // StagMGSolver(alpha_fc, beta, beta_ed, gamma, AGphi, Gphi, theta_alpha, geom);
 
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            AGphi[d].mult(-1., 0, 1, ib_grow);
-            AGphi[d].FillBoundary(geom.periodicity());
-        }
+        // for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        //     AGphi[d].mult(-1., 0, 1, ib_grow);
+        //     AGphi[d].FillBoundary(geom.periodicity());
+        // }
 
 
         //_______________________________________________________________________
@@ -823,7 +823,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
 
             auto & jagphi = JAGphi.at(pindex); // ................. JAGphi = JA^{-1}G\phi
-            ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, AGphi);
+            // ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, AGphi);
+            ib_pc.InterpolateMarkers(ib_level, pindex, jagphi, Gphi);
             for (auto & elt : jagphi) elt = c3*elt;
         }
 
@@ -858,58 +859,60 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         }
 
 
-        // const Real * dx = geom.CellSize();
-        // Real invvol     = 1.;//1./0.326;
-        // // for (int d=0; d<AMREX_SPACEDIM; ++d)
-        // //     invvol = invvol/dx[d];
-
-        // for (const auto & pindex : pindex_list) {
-        //     const auto & jls = JLS_rhs.at(pindex);
-
-        //     ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs, spread_weights);
-
-        //     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
-        //         spread_rhs[d].mult(c2*invvol, 0, 1, ib_grow);
-        //         spread_rhs[d].FillBoundary(geom.periodicity());
-        //         spread_weights[d].FillBoundary(geom.periodicity());
-        //     }
-        // }
-
-        // // Apply A (Helmhotz) operator
-        // StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
-        // // for (int d=0; d<AMREX_SPACEDIM; ++d)
-        // //     MultiFab::Copy(AS_rhs[d], spread_rhs[d], 0, 0, 1, ib_grow);
-
-        // for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        //     // AS_rhs[d].mult(1e-3, 0, 1, ib_grow);
-        //     AS_rhs[d].FillBoundary(geom.periodicity());
-        // }
-
-
-        // // Precon: ....................... JLS = - JAS (JA^{-1}G\phi + JA^{-1}g + W )
-        // for (const auto & pindex : pindex_list) {
-        //     auto & jls = JLS.at(pindex);
-
-        //     ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
-        //     // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
-
-        //     for (auto & marker : jls)
-        //         marker = - c3*invvol * marker;
-        // }
-
+        const Real * dx = geom.CellSize();
+        Real invvol     = 0.01;//1./0.326;
+        // for (int d=0; d<AMREX_SPACEDIM; ++d)
+        //     invvol = invvol/dx[d];
 
         for (const auto & pindex : pindex_list) {
-                  auto & jls     = JLS.at(pindex);
-            const auto & jls_rhs = JLS_rhs.at(pindex);
+            const auto & jls = JLS_rhs.at(pindex);
 
-            std::cout << "MPI rank = " << ParallelDescriptor::MyProc() <<":: ";
-            for (int i=0; i<jls.size(); ++i) {
-                jls[i] = jls_rhs[i];
-                std::cout << i << ":" << jls[i] << ", ";
+            ib_pc.SpreadMarkers(ib_level, pindex, jls, spread_rhs, spread_weights);
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+                spread_rhs[d].mult(c2*invvol, 0, 1, ib_grow);
+                spread_rhs[d].FillBoundary(geom.periodicity());
+                spread_weights[d].FillBoundary(geom.periodicity());
             }
-            std::cout << std::endl;
         }
+
+        // Apply A (Helmhotz) operator
+        StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
+        // for (int d=0; d<AMREX_SPACEDIM; ++d)
+        //     MultiFab::Copy(AS_rhs[d], spread_rhs[d], 0, 0, 1, ib_grow);
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // AS_rhs[d].mult(1e-3, 0, 1, ib_grow);
+            AS_rhs[d].FillBoundary(geom.periodicity());
+        }
+
+
+        // Precon: ....................... JLS = - JAS (JA^{-1}G\phi + JA^{-1}g + W )
+        for (const auto & pindex : pindex_list) {
+            auto & jls = JLS.at(pindex);
+
+            ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+            // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
+
+            for (auto & marker : jls)
+                marker = c3*invvol * marker;
+        }
+
+
+        // for (const auto & pindex : pindex_list) {
+        //           auto & jls     = JLS.at(pindex);
+        //     const auto & jls_rhs = JLS_rhs.at(pindex);
+
+        //     // std::cout << "MPI rank = " << ParallelDescriptor::MyProc() <<":: ";
+        //     for (int i=0; i<jls.size(); ++i) {
+        //         jls[i] = c3 * jls_rhs[i];
+        //         // std::cout << i << ":" << jls[i] << ", ";
+        //     }
+
+        //     // Print() << "jls_rhs[0] = " << jls_rhs[0] << std::endl;
+        //     // std::cout << std::endl;
+        // }
 
 
 
@@ -933,7 +936,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         // Velocity Part:
 
         for (const auto & pindex : pindex_list) {
-            const auto & jls = JLS_rhs.at(pindex);
+            const auto & jls = JLS.at(pindex);
 
             ib_pc.SpreadMarkers(ib_level, pindex, jls, JLS_V_rhs, spread_weights);
         }
@@ -945,7 +948,6 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             JLS_V_rhs[d].FillBoundary(geom.periodicity());
             spread_weights[d].FillBoundary(geom.periodicity());
         }
-
 
         StagMGSolver(alpha_fc, beta, beta_ed, gamma, JLS_V, JLS_V_rhs, theta_alpha, geom);
 
@@ -964,17 +966,17 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         // use multigrid to solve for Phi ............. JLS_P = Lp^{-1} DA^{-1}S JLS
         MacProj(alphainv_fc, JLS_P_rhs, JLS_P, geom);
 
-        JLS_P.mult(theta_alpha, 0, 1, 0);
-        JLS_P_rhs.mult(-1, 0, 1, 0);
-
-        MultiFab::Add(JLS_P, JLS_P_rhs, 0, 0, 1, 0);
-
-
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
         SubtractWeightedGradP(JLS_V, alphainv_fc, JLS_P, geom);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             JLS_V[d].FillBoundary(geom.periodicity());
+
+
+        JLS_P.mult(theta_alpha, 0, 1, 0);
+        MultiFab::Subtract(JLS_P, JLS_P_rhs, 0, 0, 1, 0);
+        JLS_P.FillBoundary(geom.periodicity());
+
 
 
 
@@ -1029,6 +1031,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
             // add theta_alpha*Phi to x_p
             MultiFab::Add(x_p, phi, 0, 0, 1, 0);
+
         } else { Abort("StagApplyOp: visc_schur_approx != 0 not supported"); }
 
     } else { Abort("StagApplyOp: unsupposed precon_type"); }
@@ -1140,6 +1143,12 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
         SLambda[d].FillBoundary(geom.periodicity());
         spread_weights[d].FillBoundary(geom.periodicity());
     }
+
+    Real norm_sl = 0;
+    Real norm_bu = 0;
+    StagL2Norm(SLambda, 0, norm_sl);
+    StagL2Norm(b_u, 0, norm_bu);
+    Print() << "norm SLambda = " << norm_sl <<  " norm bu = " << norm_bu << std::endl;
 
 
     // ........................................................ v = Av - Gp - S lambda
