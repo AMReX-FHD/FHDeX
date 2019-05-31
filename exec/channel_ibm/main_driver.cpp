@@ -496,7 +496,86 @@ void main_driver(const char * argv) {
         Real t0_ib = 0;
 
         ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
-        ib_pc.FillMarkerPositions(0, 8);
+        ib_pc.FillMarkerPositions(0, 64);
+
+
+        Vector<IBP_info> ibp_info;
+        MultiFab dummy(ib_pc.ParticleBoxArray(lev_ib),
+                       ib_pc.ParticleDistributionMap(lev_ib), 1, 1);
+        for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
+            IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
+            ib_pc.IBParticleInfo(ibp_info, lev_ib, index, true);
+        }
+
+        Vector<std::pair<int, int>> part_indices(ibp_info.size());
+        std::map<std::pair<int, int>, Vector<RealVect>> b_lambda;
+        for (int i=0; i<ibp_info.size(); ++i) {
+            part_indices[i] = ibp_info[i].asPairIndex();
+            const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+
+            b_lambda[part_indices[i]].resize(marker_positions.size());
+            for (auto & elt : b_lambda.at(part_indices[i]))
+                elt = RealVect{1, 1, 1};
+        }
+
+        std::array<MultiFab, AMREX_SPACEDIM> spread_rhs;
+        std::array<MultiFab, AMREX_SPACEDIM> spread_weights;
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            spread_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+            spread_rhs[d].setVal(0.);
+
+            spread_weights[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+            spread_weights[d].setVal(0.);
+        }
+
+        for (const auto & pindex : part_indices) {
+            const auto & jls = b_lambda.at(pindex);
+
+            ib_pc.SpreadMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            spread_rhs[d].FillBoundary(geom.periodicity());
+            spread_weights[d].FillBoundary(geom.periodicity());
+        }
+
+        for (const auto & pindex : part_indices) {
+            auto & jls = b_lambda.at(pindex);
+
+            ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs);
+            // ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
+
+            for (auto & elt : jls) Print() << elt << std::endl;
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            spread_rhs[d].setVal(1.);
+
+        for (const auto & pindex : part_indices) {
+            auto & jls = b_lambda.at(pindex);
+
+            for (auto & elt : jls) elt = RealVect{0., 0., 0.};
+
+            ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs);
+            // ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            spread_rhs[d].setVal(0.);
+
+        for (const auto & pindex : part_indices) {
+            const auto & jls = b_lambda.at(pindex);
+
+            ib_pc.SpreadMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            VisMF::Write(spread_rhs[d], "spread_rhs_" + std::to_string(d));
+
+
+        // ParallelDescriptor::Barrier();
+        // exit(0);
 
 
         //_______________________________________________________________________
