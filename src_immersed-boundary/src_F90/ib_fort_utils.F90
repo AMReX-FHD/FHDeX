@@ -570,12 +570,12 @@ contains
         end do
 
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 6))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 6))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 6))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 6))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 6))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 6))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
 
 
         !________________________________________________________________________
@@ -855,12 +855,12 @@ contains
         ! compute geometric quantity 1/dx
         invdx(:) = 1d0/dx(:)
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 6))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 6))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 6))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 6))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 6))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 6))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
 
 
 
