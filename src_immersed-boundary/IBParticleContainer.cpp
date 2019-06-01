@@ -494,6 +494,59 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 
 
 
+void IBParticleContainer::InvInterpolateMarkers(int lev, const ParticleIndex & pindex,
+        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+
+    //___________________________________________________________________________
+    // Don't do anything if pindex isn't on this rank
+    auto part_it = marker_positions[lev].find(pindex);
+    if (part_it == marker_positions[lev].end())
+        return;
+
+
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = Geom(0);
+    const Real     *   dx = geom.CellSize();
+
+    const int n_marker = marker_positions[lev].at(pindex).size();
+
+
+    //___________________________________________________________________________
+    // Cell-centered MultiFab used as a reference for iterating over data
+    // WARNING: this will break if IBParticleContainer is on a differnt grid
+    // than the grid which we're spreading to
+    MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_out[0].nGrow());
+
+    for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.growntilebox();
+
+        inv_interpolate_markers(BL_TO_FORTRAN_BOX(bx),
+                                BL_TO_FORTRAN_ANYD(f_out[0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                                BL_TO_FORTRAN_ANYD(f_out[1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                                BL_TO_FORTRAN_ANYD(f_out[2][mfi]),
+#endif
+                                BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                                BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                                BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
+#endif
+                                marker_positions[lev].at(pindex).dataPtr(),
+                                f_in.dataPtr(),
+                                & n_marker,
+                                dx );
+    }
+}
+
+
+
 void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pindex,
         Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
         const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
@@ -568,6 +621,58 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
 
     InterpolateMarkers(lev, pindex, f_out, f_in, f_weights);
 
+}
+
+
+
+void IBParticleContainer::InvSpreadMarkers(int lev, const ParticleIndex & pindex,
+        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
+
+
+    //___________________________________________________________________________
+    // Don't do anything if pindex isn't on this rank
+    auto part_it = marker_positions[lev].find(pindex);
+    if (part_it == marker_positions[lev].end())
+        return;
+
+
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = Geom(0);
+    const Real     *   dx = geom.CellSize();
+
+    const int n_marker = marker_positions[lev].at(pindex).size();
+
+
+    //___________________________________________________________________________
+    // Cell-centered MultiFab used as a reference for iterating over data
+    MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_in[0].nGrow());
+
+
+    for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.growntilebox();
+
+        inv_spread_markers(BL_TO_FORTRAN_BOX(bx),
+                           BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                           BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                           BL_TO_FORTRAN_ANYD(f_in[2][mfi]),
+#endif
+                           BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                           BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                           BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
+#endif
+                           marker_positions[lev].at(pindex).dataPtr(),
+                           f_out.dataPtr(),
+                           & n_marker,
+                           dx );
+    }
 }
 
 

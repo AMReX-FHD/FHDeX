@@ -1068,6 +1068,503 @@ contains
 
 
 
+    pure subroutine inv_interpolate_kernel(lo,       hi,               &
+            &                              mf_x,     mfx_lo,   mfx_hi, &
+            &                              mf_y,     mfy_lo,   mfy_hi, &
+            &                              mf_z,     mfz_lo,   mfz_hi, &
+            &                              coords_x, cx_lo,    cx_hi,  &
+            &                              coords_y, cy_lo,    cy_hi,  &
+            &                              coords_z, cz_lo,    cz_hi,  &
+            &                              pos,      v_spread, dx      )
+
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+
+        ! ** OUT: vector quantity `v_spread` is spread to (staggered) MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
+        real(amrex_real), intent(inout) :: mf_x(mfx_lo(1):mfx_hi(1), &
+            &                                   mfx_lo(2):mfx_hi(2), &
+            &                                   mfx_lo(3):mfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfy_lo, mfy_hi
+        real(amrex_real), intent(inout) :: mf_y(mfy_lo(1):mfy_hi(1), &
+            &                                   mfy_lo(2):mfy_hi(2), &
+            &                                   mfy_lo(3):mfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfz_lo, mfz_hi
+        real(amrex_real), intent(inout) :: mf_z(mfz_lo(1):mfz_hi(1), &
+            &                                   mfz_lo(2):mfz_hi(2), &
+            &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
+        !         MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: cx_lo, cx_hi
+        real(amrex_real), intent(in   ) :: coords_x(cx_lo(1):cx_hi(1), &
+            &                                       cx_lo(2):cx_hi(2), &
+            &                                       cx_lo(3):cx_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cy_lo, cy_hi
+        real(amrex_real), intent(in   ) :: coords_y(cy_lo(1):cy_hi(1), &
+            &                                       cy_lo(2):cy_hi(2), &
+            &                                       cy_lo(3):cy_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cz_lo, cz_hi
+        real(amrex_real), intent(in   ) :: coords_z(cz_lo(1):cz_hi(1), &
+            &                                       cz_lo(2):cz_hi(2), &
+            &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
+
+        ! ** IN:  quantity to spread (v_spread), given kernel position (pos), and the
+        !         fluid grid discretization (dx)
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: pos, v_spread, dx
+
+
+        !________________________________________________________________________
+        ! i, j, k   => face-centered indices
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
+        ! ll        => loop counter over AMREX_SPACEDIM
+        integer :: ll
+        ! invvol    => 1/dx^AMREX_SPACEDIM
+        ! weight    => kernel weight function
+        real(amrex_real) :: invvol, weight
+        ! pos_grid  => (pos - (cell position))/dx
+        ! invdx     => 1/dx
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
+
+
+        !________________________________________________________________________
+        ! compute geometric quantities : 1/dx and 1/dx^AMREX_SPACEDIM
+        invdx(:) = 1d0/dx(:)
+        invvol = 1d0
+        do ll = 1, AMREX_SPACEDIM
+            invvol = invvol * invdx(ll)
+        end do
+
+
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
+
+
+        !________________________________________________________________________
+        ! x-components
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1) + 1
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_x(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. 0) then
+                        mf_x(i, j, k) = mf_x(i, j, k) + v_spread(1) / weight / 6
+                    end if
+
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! y-components
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2) + 1
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_y(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. 0) then
+                        mf_y(i, j, k) = mf_y(i, j, k) + v_spread(2) / weight / 6
+                    end if
+
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! z-components
+        ! do k = lo(3), hi(3) + 1
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_z(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. 0) then
+                        mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) / weight
+                    end if
+
+                end do
+            end do
+        end do
+
+    end subroutine inv_interpolate_kernel
+
+
+
+    subroutine inv_interpolate_markers(lo,         hi,                  &
+            &                          mf_x,       mfx_lo,   mfx_hi,    &
+            &                          mf_y,       mfy_lo,   mfy_hi,    &
+            &                          mf_z,       mfz_lo,   mfz_hi,    &
+            &                          coords_x,   cx_lo,    cx_hi,     &
+            &                          coords_y,   cy_lo,    cy_hi,     &
+            &                          coords_z,   cz_lo,    cz_hi,     &
+            &                          pos_marker, v_marker, n_marker,  &
+            &                          dx                             ) &
+            bind(C, name="inv_interpolate_markers")
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+
+        ! ** OUT: vector quantity `v_marker` is spread to (staggered) MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
+        real(amrex_real), intent(inout) :: mf_x(mfx_lo(1):mfx_hi(1), &
+            &                                   mfx_lo(2):mfx_hi(2), &
+            &                                   mfx_lo(3):mfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfy_lo, mfy_hi
+        real(amrex_real), intent(inout) :: mf_y(mfy_lo(1):mfy_hi(1), &
+            &                                   mfy_lo(2):mfy_hi(2), &
+            &                                   mfy_lo(3):mfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfz_lo, mfz_hi
+        real(amrex_real), intent(inout) :: mf_z(mfz_lo(1):mfz_hi(1), &
+            &                                   mfz_lo(2):mfz_hi(2), &
+            &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
+        !         MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: cx_lo, cx_hi
+        real(amrex_real), intent(in   ) :: coords_x(cx_lo(1):cx_hi(1), &
+            &                                       cx_lo(2):cx_hi(2), &
+            &                                       cx_lo(3):cx_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cy_lo, cy_hi
+        real(amrex_real), intent(in   ) :: coords_y(cy_lo(1):cy_hi(1), &
+            &                                       cy_lo(2):cy_hi(2), &
+            &                                       cy_lo(3):cy_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cz_lo, cz_hi
+        real(amrex_real), intent(in   ) :: coords_z(cz_lo(1):cz_hi(1), &
+            &                                       cz_lo(2):cz_hi(2), &
+            &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
+
+        ! ** IN:  `n_marker`-many marker positions (pos_marker). The `pos_marker` and
+        !         `v_marker` arrays are `Vector<RealVecr>` in c-land.
+        integer(c_int), intent(in   ) :: n_marker
+        real(amrex_real), intent(in   ) :: pos_marker(AMREX_SPACEDIM, n_marker);
+        ! ** IN:  each marker spreads a vector qunantity `v_marker` to the stagged
+        !         MultiFabs `mf_*`
+        real(amrex_real), intent(in   ) :: v_marker(AMREX_SPACEDIM, n_marker);
+        ! ** IN:  fluid grid discretization
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: dx
+
+
+        !________________________________________________________________________
+        ! i        <= loop counter over markers
+        integer :: i
+        ! pos      <= position of current marker
+        ! v_spread <= current markers vector quantity to spread
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos, v_spread
+
+
+        do i =  1, n_marker
+            pos = pos_marker(:, i)
+            v_spread = v_marker(:, i)
+
+            call inv_interpolate_kernel(lo,       hi,               &
+                &                       mf_x,     mfx_lo,   mfx_hi, &
+                &                       mf_y,     mfy_lo,   mfy_hi, &
+                &                       mf_z,     mfz_lo,   mfz_hi, &
+                &                       coords_x, cx_lo,    cx_hi,  &
+                &                       coords_y, cy_lo,    cy_hi,  &
+                &                       coords_z, cz_lo,    cz_hi,  &
+                &                       pos,      v_spread, dx      )
+
+        end do
+
+    end subroutine inv_interpolate_markers
+
+
+
+    pure subroutine inv_spread_kernel(lo,       hi,               &
+            &                         mf_x,     mfx_lo,   mfx_hi, &
+            &                         mf_y,     mfy_lo,   mfy_hi, &
+            &                         mf_z,     mfz_lo,   mfz_hi, &
+            &                         coords_x, cx_lo,    cx_hi,  &
+            &                         coords_y, cy_lo,    cy_hi,  &
+            &                         coords_z, cz_lo,    cz_hi,  &
+            &                         pos,      v_interp, dx      )
+
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+
+        ! ** IN:  interpolating v_interp from staggered MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
+        real(amrex_real), intent(in   ) :: mf_x(mfx_lo(1):mfx_hi(1), &
+            &                                   mfx_lo(2):mfx_hi(2), &
+            &                                   mfx_lo(3):mfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfy_lo, mfy_hi
+        real(amrex_real), intent(in   ) :: mf_y(mfy_lo(1):mfy_hi(1), &
+            &                                   mfy_lo(2):mfy_hi(2), &
+            &                                   mfy_lo(3):mfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfz_lo, mfz_hi
+        real(amrex_real), intent(in   ) :: mf_z(mfz_lo(1):mfz_hi(1), &
+            &                                   mfz_lo(2):mfz_hi(2), &
+            &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
+        !         MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: cx_lo, cx_hi
+        real(amrex_real), intent(in   ) :: coords_x(cx_lo(1):cx_hi(1), &
+            &                                       cx_lo(2):cx_hi(2), &
+            &                                       cx_lo(3):cx_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cy_lo, cy_hi
+        real(amrex_real), intent(in   ) :: coords_y(cy_lo(1):cy_hi(1), &
+            &                                       cy_lo(2):cy_hi(2), &
+            &                                       cy_lo(3):cy_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cz_lo, cz_hi
+        real(amrex_real), intent(in   ) :: coords_z(cz_lo(1):cz_hi(1), &
+            &                                       cz_lo(2):cz_hi(2), &
+            &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
+
+        ! ** OUT: vector to interpolate (v_interp) from staggered `mf_*`
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(inout) :: v_interp
+        ! ** IN:  kernel position (pos), and the fluid grid discretization (dx)
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: pos, dx
+
+
+        !________________________________________________________________________
+        ! i,    j,    k    => face-centered indices
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
+        ! ll               => loop counter over AMREX_SPACEDIM
+        integer :: ll
+        ! weight           => kernel weight function
+        ! wfrac            => weight/total_weight (weight_{x,y,z})
+        real(amrex_real) :: weight, wfrac
+        ! pos_grid         => (pos - (cell position))/dx
+        ! invdx            => 1/dx
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
+
+
+        !________________________________________________________________________
+        ! compute geometric quantity 1/dx
+        invdx(:) = 1d0/dx(:)
+
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
+
+
+
+        !________________________________________________________________________
+        ! x-components
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1) + 1
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_x(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. 0) then
+                        v_interp(1) = v_interp(1) + mf_x(i, j, k) / weight / 6
+                    end if
+
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! y-components
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2) + 1
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_y(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. 0) then
+                        v_interp(2) = v_interp(2) + mf_y(i, j, k) / weight / 6
+                    end if
+
+                end do
+            end do
+        end do
+
+
+        !________________________________________________________________________
+        ! z-components
+        ! do k = lo(3), hi(3) + 1
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1)
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_z(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. 0) then
+                        v_interp(3) = v_interp(3) + mf_z(i, j, k) / weight / 6
+                    end if
+
+                end do
+            end do
+        end do
+
+    end subroutine inv_spread_kernel
+
+
+
+    subroutine inv_spread_markers(lo,         hi,                  &
+            &                     mf_x,       mfx_lo,   mfx_hi,    &
+            &                     mf_y,       mfy_lo,   mfy_hi,    &
+            &                     mf_z,       mfz_lo,   mfz_hi,    &
+            &                     coords_x,   cx_lo,    cx_hi,     &
+            &                     coords_y,   cy_lo,    cy_hi,     &
+            &                     coords_z,   cz_lo,    cz_hi,     &
+            &                     pos_marker, v_marker, n_marker,  &
+            &                     dx                             ) &
+            bind(C, name="inv_spread_markers")
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+
+        ! ** IN:  vector quantity `v_marker` is interpolated from (staggered) MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
+        real(amrex_real), intent(in   ) :: mf_x(mfx_lo(1):mfx_hi(1), &
+            &                                   mfx_lo(2):mfx_hi(2), &
+            &                                   mfx_lo(3):mfx_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfy_lo, mfy_hi
+        real(amrex_real), intent(in   ) :: mf_y(mfy_lo(1):mfy_hi(1), &
+            &                                   mfy_lo(2):mfy_hi(2), &
+            &                                   mfy_lo(3):mfy_hi(3))
+
+        integer(c_int), dimension(3), intent(in   ) :: mfz_lo, mfz_hi
+        real(amrex_real), intent(in   ) :: mf_z(mfz_lo(1):mfz_hi(1), &
+            &                                   mfz_lo(2):mfz_hi(2), &
+            &                                   mfz_lo(3):mfz_hi(3))
+
+        ! ** IN:  coordinates of staggered (face-centered) faces corresponding to the
+        !         MultiFabs `mf_*`
+        integer(c_int), dimension(3), intent(in   ) :: cx_lo, cx_hi
+        real(amrex_real), intent(in   ) :: coords_x(cx_lo(1):cx_hi(1), &
+            &                                       cx_lo(2):cx_hi(2), &
+            &                                       cx_lo(3):cx_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cy_lo, cy_hi
+        real(amrex_real), intent(in   ) :: coords_y(cy_lo(1):cy_hi(1), &
+            &                                       cy_lo(2):cy_hi(2), &
+            &                                       cy_lo(3):cy_hi(3), AMREX_SPACEDIM)
+
+        integer(c_int), dimension(3), intent(in   ) :: cz_lo, cz_hi
+        real(amrex_real), intent(in   ) :: coords_z(cz_lo(1):cz_hi(1), &
+            &                                       cz_lo(2):cz_hi(2), &
+            &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
+
+        ! ** IN:  `n_marker`-many marker positions (pos_marker). The `pos_marker` and
+        !         `v_marker` arrays are `Vector<RealVecr>` in c-land.
+        integer(c_int), intent(in   ) :: n_marker
+        real(amrex_real), intent(in   ) :: pos_marker(AMREX_SPACEDIM, n_marker);
+        ! ** OUT: each marker vector `v_marker` is interpolated from the stagged
+        !         MultiFabs `mf_*`
+        real(amrex_real), intent(inout) :: v_marker(AMREX_SPACEDIM, n_marker);
+        ! ** IN:  fluid grid discretization
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: dx
+
+
+        !________________________________________________________________________
+        ! i        <= loop counter over markers
+        integer :: i
+        ! pos      <= position of current marker
+        ! v_spread <= current markers vector quantity to spread
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos, v_spread
+
+
+        do i =  1, n_marker
+            pos = pos_marker(:, i)
+            v_spread = (/0d0, 0d0, 0d0/) ! v_marker(:, i)
+
+            call inv_spread_kernel(lo,       hi,               &
+                &                   mf_x,     mfx_lo,   mfx_hi, &
+                &                   mf_y,     mfy_lo,   mfy_hi, &
+                &                   mf_z,     mfz_lo,   mfz_hi, &
+                &                   coords_x, cx_lo,    cx_hi,  &
+                &                   coords_y, cy_lo,    cy_hi,  &
+                &                   coords_z, cz_lo,    cz_hi,  &
+                &                   pos,      v_spread, dx      )
+
+            v_marker(:, i) = v_spread(:)
+
+        end do
+
+    end subroutine inv_spread_markers
+
+
+
     pure function effective_tag(i,   j,     k,    dir, &
                                 tag, taglo, taghi      )
       ! ** output type
