@@ -57,7 +57,7 @@ subroutine force_function2(part1,part2,domsize) &
     maxdist = (images)*domsize(3)
   endif
 
-  maxdist = 0.9*maxdist 
+  maxdist = 0.99*maxdist 
 
   do ii = -images, images
     do jj = -images, images 
@@ -73,21 +73,21 @@ subroutine force_function2(part1,part2,domsize) &
 
             rtdr2 = sqrt(dr2)
 
-            !if(rtdr2 .lt. maxdist) then
+            if(rtdr2 .lt. maxdist) then
               part1%force = part1%force + ee*(dx/rtdr2)*part1%q*part2%q/dr2
 
               part1%potential = (part1%potential + ee*part1%q*part2%q/rtdr2)/2d0
 
               pairs = pairs + 1
 
-            !endif
+            endif
           endif
 
       end do
     end do
   end do
 
-  print *, "Pairs: ", pairs
+  !print *, "Pairs: ", pairs
 
 end subroutine force_function2
 
@@ -2130,7 +2130,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 !!!!!!!!!! Mean square displacement measurer.
 
-              print *, part%pos(1)
+              !print *, part%pos(1)
 
               part%abspos = part%abspos + dt*part%vel
 

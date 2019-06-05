@@ -286,13 +286,13 @@ contains
             instant(i,j,k,8) = instant(i,j,k,8) + part%vel(2)*part%mass
             instant(i,j,k,9) = instant(i,j,k,9) + part%vel(3)*part%mass
 
-            if(part%q .gt. 0) then
+            !if(part%q .gt. 0) then
 
               instant(i,j,k,12) = instant(i,j,k,12) + part%vel(1)*part%q
               instant(i,j,k,13) = instant(i,j,k,13) + part%vel(2)*part%q
               instant(i,j,k,14) = instant(i,j,k,14) + part%vel(3)*part%q
 
-            endif
+            !endif
 
             nrg = 0.5*part%mass*(part%vel(1)*part%vel(1) + part%vel(2)*part%vel(2) + part%vel(3)*part%vel(3))
 
@@ -454,7 +454,7 @@ contains
       enddo
     enddo
 
-        !print *, "total current density: ", avcurrent/cellcount
+      !  print *, "total current density: ", avcurrent/cellcount
         
   end subroutine evaluate_means
 
