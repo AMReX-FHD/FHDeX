@@ -18,11 +18,11 @@
   fixed_dt = 1e-11
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 100
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
-  n_steps_skip = 1000
+  n_steps_skip = 10
 
   ! Toggles 0=off, 1=on
   move_tog = 1 ! Particle move
