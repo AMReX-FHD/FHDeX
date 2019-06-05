@@ -171,12 +171,31 @@ public:
 
     void FillMarkerPositions(int lev, int n_marker);
 
-    void SpreadMarkers(int lev, const ParticleIndex & pindex, const Vector<RealVect> & f_in,
+    void SpreadMarkers(int lev, const ParticleIndex & pindex,
+                       const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
-    void InterpolateMarkers(int lev, const ParticleIndex & pindex, Vector<RealVect> & f_out,
+    void SpreadMarkers(int lev, const ParticleIndex & pindex,
+                       const Vector<RealVect> & f_in,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+    void InvInterpolateMarkers(int lev, const ParticleIndex & pindex,
+                               const Vector<RealVect> & f_in,
+                               std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+
+    void InterpolateMarkers(int lev, const ParticleIndex & pindex,
+                            Vector<RealVect> & f_out,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+    void InterpolateMarkers(int lev, const ParticleIndex & pindex,
+                            Vector<RealVect> & f_out,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
+    void InvSpreadMarkers(int lev, const ParticleIndex & pindex,
+                          Vector<RealVect> & f_out,
+                          const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
 
     /****************************************************************************

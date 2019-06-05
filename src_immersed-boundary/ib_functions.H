@@ -72,19 +72,27 @@ void MarkerMult(const Vector<std::pair<int, int>> & part_indices, int comp, Real
                 std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & a);
 
 
-void MarkerInnerProd(const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);
+void MarkerInnerProd(const Box & bx, const Geometry & geom, const Vector<RealVect> & marker_pos,
+                     const Vector<RealVect> & a, const Vector<RealVect> & b, Real & v);
 void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices,
+                     const MultiFab & cc_iter, const Geometry & geom,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & marker_pos,
                      const std::map<std::pair<int, int>, Vector<RealVect>> & a,
                      const std::map<std::pair<int, int>, Vector<RealVect>> & b,
                      Real & v);
 void MarkerInnerProd(const Vector<std::pair<int, int>> & part_indices, int comp,
+                     const MultiFab & cc_iter, const Geometry & geom,
+                     const std::map<std::pair<int, int>, Vector<RealVect>> & marker_pos,
                      const std::map<std::pair<int, int>,        Vector<RealVect>>  & a,
                      const std::map<std::pair<int, int>, Vector<Vector<RealVect>>> & b,
                      Real & v);
 
 
-void MarkerL2Norm(const Vector<RealVect> & markers, Real & norm_l2);
+void MarkerL2Norm(const Box & bx, const Geometry & geom, const Vector<RealVect> & marker_pos,
+                  const Vector<RealVect> & markers, Real & norm_l2);
 void MarkerL2Norm(const Vector<std::pair<int, int>> & part_indices,
+                  const MultiFab & cc_iter, const Geometry & geom,
+                  const std::map<std::pair<int, int>, Vector<RealVect>> & marker_pos,
                   const std::map<std::pair<int, int>, Vector<RealVect>> & b, Real & v);
 
 
