@@ -90,6 +90,8 @@ void main_driver(const char* argv)
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
+    Print() << "Hack: boxarray = " << ba << "\n";
+
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
     const Real* dx = geom.CellSize();
@@ -194,6 +196,8 @@ void main_driver(const char* argv)
     prim.setVal(0,2,1,ngc);
     prim.setVal(0,3,1,ngc);
     prim.setVal(T_init[0],4,1,ngc);
+
+    amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
 
     double massvec[nspecies];
     double intEnergy, T0;
@@ -345,6 +349,8 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    // amrex::Abort();
 
     amrex::Finalize();
 

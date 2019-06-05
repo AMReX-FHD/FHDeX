@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 5e-7 5e-7 5e-7     ! physical hi coordinate
+  prob_hi(1:3) = 0.5e-5 0.5e-5 0.5e-5     ! physical hi coordinate
     
   ! number of cells in domain
   n_cells(1:3) = 8 8 8
@@ -15,14 +15,14 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-14
+  fixed_dt = 2.5e-14
 
   ! Controls for number of steps between actions
-  max_step = 700
-  plot_int = 1000
+  max_step = 100000
+  plot_int = 500
   plot_ascii = 0
   struct_fact_int = 1
-  n_steps_skip = 1000
+  n_steps_skip = 5000
 
   ! Toggles 0=off, 1=on
   fluid_tog = 0 ! Do Stokes solve
@@ -50,11 +50,11 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 2 0
+  particle_count = -1 -1
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e17 6.02e17
+  particle_n0 = 6.02e18 6.02e18
 
   !Species info
   !--------------
@@ -76,9 +76,9 @@
   !cut_off = 8.732e-8    !cutoff range for close range potential - this is being calculated off sigma now.
   rmin = 5e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
   crange = 1        !cell depth when building neighbour lists
-  images = 50    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
+  images = 1    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 0 0 0  !external electric field properties
+  eamp = 1e15 0 0  !external electric field properties
   efreq = 0 0 0
   ephase = 0 0 0     
 
@@ -98,7 +98,7 @@
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
-  variance_coef_mom = 0
+  variance_coef_mom = 1
    
 
   ! Boundary conditions
