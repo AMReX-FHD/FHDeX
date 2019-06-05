@@ -42,6 +42,8 @@ contains
       !Hard sphere for now. Check these defs
       !Per Sone (Sone Grad-Hilbert, Bird Chapman Enskog? Check this)
 
+      ! print *, "Hack: dims = ", lo(1),hi(1), lo(2),hi(2), lo(3),hi(3)
+
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -60,6 +62,10 @@ contains
 
             eta(i,j,k) = rootT*specaveta
             kappa(i,j,k) = rootT*specavkappa
+            
+            ! if((i.eq.0).and.(j.eq.0)) then
+            !    print *, "Hack = ", i, j, k, specaveta, specavkappa, rootT, prim(i,j,k,5)
+            ! endif
 
             if(kappa(i,j,k) .ne. kappa(i,j,k)) then
                print *, "NAN! kappa ", i, j, k, prim(i,j,k,5)
