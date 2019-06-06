@@ -283,11 +283,7 @@ void main_driver(const char* argv)
 
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-
     statsCount = 1;
-
-
-
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -329,18 +325,18 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        if(step%500 == 0)
-        {    
+        // if(step%500 == 0)
+        // {    
                 amrex::Print() << "Advanced step " << step << "\n";
-        }
+        // }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {
 
-           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, etaMean, kappaMean, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
-           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
+           // yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, etaMean, kappaMean, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
+           // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
 
-           //WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, etaMean, kappaMean);
+           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, etaMean, kappaMean);
         }
 
         time = time + dt;
