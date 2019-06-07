@@ -227,7 +227,6 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   
   integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount
   integer :: cell(3)
-  integer(c_int) :: count5, count6
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
@@ -240,8 +239,6 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   inv_dt = 1.d0/dt
   
   domsize = phi - plo
-            count5=0
-            count6=0
 
   do p = 1, ns
 
@@ -368,8 +365,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
      end do
   end do
-           write(*,*) "Number of particles to hit boundary 5:", count5
-           write(*,*) "Number of particles to hit boundary 6:", count6
+
 
   !print *, "intcount: ", intcount
 

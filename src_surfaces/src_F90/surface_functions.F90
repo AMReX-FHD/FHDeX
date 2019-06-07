@@ -397,12 +397,12 @@
       endif
  
    endif
-   call test(part)
+   call test(part, surf)
         
   end subroutine apply_bc
 
 
- subroutine test(part)
+ subroutine test(part, surf)
     
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
@@ -413,8 +413,14 @@
     implicit none
 
     type(particle_t), intent(inout) :: part
+    type(surface_t) :: surf
+    integer(c_int) :: count5, count6, intsurf
 
     real(amrex_real) dotprod, srt
+
+             intsurf=surf%boundary
+             count5=0
+             count6=0
   
                  if(intsurf .eq.  5) then
                     write(*,*) "5", part%pos(1), part%pos(2), part%pos(3)
@@ -423,6 +429,8 @@
                     write(*,*)  "6", part%pos(1), part%pos(2), part%pos(3)
                    count6= count6+1
                 endif
+           write(*,*) "Number of particles to hit boundary 5:", count5
+           write(*,*) "Number of particles to hit boundary 6:", count6
 end subroutine test
   
   
