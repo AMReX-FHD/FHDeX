@@ -396,9 +396,35 @@
 
       endif
  
-    endif
+   endif
+   call test(part)
         
   end subroutine apply_bc
+
+
+ subroutine test(part)
+    
+    use iso_c_binding, only: c_int
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use cell_sorted_particle_module, only: particle_t
+    use surfaces_module
+    use rng_functions_module
+    
+    implicit none
+
+    type(particle_t), intent(inout) :: part
+
+    real(amrex_real) dotprod, srt
+  
+                 if(intsurf .eq.  5) then
+                    write(*,*) "5", part%pos(1), part%pos(2), part%pos(3)
+                    count5=count5+1
+                 elseif(intsurf .eq. 6) then
+                    write(*,*)  "6", part%pos(1), part%pos(2), part%pos(3)
+                   count6= count6+1
+                endif
+end subroutine test
+  
   
 
 

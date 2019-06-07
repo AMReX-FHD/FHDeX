@@ -227,6 +227,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   
   integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount
   integer :: cell(3)
+  integer(c_int) :: count5, count6
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
@@ -239,6 +240,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   inv_dt = 1.d0/dt
   
   domsize = phi - plo
+            count5=0
+            count6=0
 
   do p = 1, ns
 
@@ -265,6 +268,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
            new_np = cell_np
            p = 1
+
            do while (p <= new_np)
 
               !if(cell_parts(p) .eq. 1320) then
@@ -275,6 +279,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
               part => particles(cell_parts(p))
 
               runtime = dt
+             
 
               do while (runtime .gt. 0)
 
@@ -287,7 +292,14 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                 posalt(3) = inttime*part%vel(3)*adjalt
 #endif
-
+                
+                ! if(intsurf .eq.  5 .or. intsurf .eq.  6) then
+                !    write(*,*) "YAY"
+                   
+                ! endif
+                
+                
+                
                 ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
                 part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
                 part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
@@ -296,9 +308,17 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #endif
                 runtime = runtime - inttime
 
+                !  if(intsurf .eq.  5) then
+                !     write(*,*) "5", part%pos(1), part%pos(2), part%pos(3)
+                !     count5=count5+1
+                !  elseif(intsurf .eq. 6) then
+                !     write(*,*)  "6", part%pos(1), part%pos(2), part%pos(3)
+                !    count6= count6+1
+                ! endif
                 if(intsurf .gt. 0) then
 
-                  surf => surfaces(intsurf)
+                   surf => surfaces(intsurf)
+
 
                   call apply_bc(surf, part, intside, domsize, push)
 
@@ -309,11 +329,13 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                       part%pos(3) = part%pos(3) + posalt(3)
 #endif
-                    endif
+                   endif
                     
                 endif
 
-              end do
+             end do
+
+             
 
               ! if it has changed cells, remove from vector.
               ! otherwise continue
@@ -325,6 +347,13 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #else
               cell(3) = 0
 #endif
+               ! if(intsurf .eq.  5) then
+               !      write(*,*) "5", part%pos(1), part%pos(2), part%pos(3)
+               !      count5=count5+1
+               !   elseif(intsurf .eq. 6) then
+               !      write(*,*)  "6", part%pos(1), part%pos(2), part%pos(3)
+               !     count6= count6+1
+               !  endif
               if ((cell(1) /= i) .or. (cell(2) /= j) .or. (cell(3) /= k)) then
                  part%sorted = 0
             
@@ -334,12 +363,13 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                  p = p + 1
               end if
            end do
-
            cell_part_cnt(i,j,k) = new_np           
         end do
 
      end do
   end do
+           write(*,*) "Number of particles to hit boundary 5:", count5
+           write(*,*) "Number of particles to hit boundary 6:", count6
 
   !print *, "intcount: ", intcount
 
