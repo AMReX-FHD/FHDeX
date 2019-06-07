@@ -4,8 +4,6 @@
 
 //#include "hydro_functions.H"
 //#include "hydro_functions_F.H"
-//#include "StochMFlux.H"
-//#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -25,6 +23,9 @@
 #include "compressible_functions_F.H"
 
 #include "exec_functions.H"
+
+//#include "StochMFlux.H"
+#include "StructFact.H"
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -266,6 +267,40 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
+    ///////////////////////////////////////////
+    // structure factor:
+    ///////////////////////////////////////////
+
+    Vector< std::string > var_names;
+    int nvar_sf = AMREX_SPACEDIM+2;
+    var_names.resize(nvar_sf);
+    int cnt = 0;
+    std::string x;
+    var_names[cnt++] = "rho";
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "mom";
+      x += (120+d);
+      var_names[cnt++] = x;
+    }
+    var_names[cnt++] = "E";
+
+    MultiFab struct_in_cc;
+    struct_in_cc.define(ba, dmap, nvar_sf, 0);
+
+    amrex::Vector< int > s_pairA(nvar_sf);
+    amrex::Vector< int > s_pairB(nvar_sf);
+
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<nvar_sf; d++) {
+      s_pairA[d] = d;
+      s_pairB[d] = d;
+    }
+
+    StructFact structFact(ba,dmap,var_names);
+    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
+
+    ///////////////////////////////////////////
+
     //Initialise everything
     calculateTransportCoeffs(prim, eta, zeta, kappa);
 
@@ -321,7 +356,16 @@ void main_driver(const char* argv)
 //            dt = 2.0*dt;
 //        }
 
-        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+        // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+
+	///////////////////////////////////////////
+	// Update structure factor
+	///////////////////////////////////////////
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+	  structFact.FortStructure(struct_in_cc,geom);
+        }
+	///////////////////////////////////////////
 
         statsCount++;
 
@@ -341,6 +385,15 @@ void main_driver(const char* argv)
 
         time = time + dt;
     }
+
+    if (struct_fact_int > 0) {
+
+      Real SFscale = 1.0;
+      structFact.Finalize(SFscale);
+      structFact.WritePlotFile(step,time,geom);
+
+    }
+
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
