@@ -98,6 +98,10 @@ typedef struct {
 
     int boundary;
 
+    double tension;
+    double stiffness;
+    double temperature;
+
 } surface;
 
 void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainLo, const Real* domainHi);

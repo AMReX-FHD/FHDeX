@@ -210,7 +210,11 @@
     type(particle_t), intent(inout) :: part
 
     real(amrex_real) dotprod, srt
-
+    
+    if(surf%boundary .eq. 6) then
+       call test(part, surf, intside)
+    endif
+    
     if(intside .eq. 1) then
    
       if(get_uniform_func() > surf%porosityright) then
@@ -396,9 +400,51 @@
 
       endif
  
-    endif
+   endif
+   if(surf%boundary .eq. 6) then
+      call test(part, surf, intside)
+   endif
         
   end subroutine apply_bc
+
+
+ subroutine test(part, surf, intside)
+    
+    use iso_c_binding, only: c_int
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use cell_sorted_particle_module, only: particle_t
+    use surfaces_module
+    use rng_functions_module
+    
+    implicit none
+
+    type(particle_t), intent(inout) :: part
+    type(surface_t) :: surf
+    integer(c_int) :: count5, count6, intside
+    real(amrex_real), dimension(3):: rnorm, lnorm, j
+
+    rnorm=(/ surf%rnx, surf%rny, surf%rnz /)
+    lnorm=(/ surf%lnx, surf%lny, surf%lnz /)
+    if(intside .eq. 1) then
+       j=dot_product(part%vel, rnorm)*rnorm*part%mass
+    else
+       j=dot_product(part%vel, lnorm)*part%mass*lnorm
+    endif
+       ! write(*,*) j(1), j(2), j(3)
+
+             ! intsurf=surf%boundary
+  
+             !     if(intsurf .eq.  5) then
+             !        write(*,*) "5", part%pos(1), part%pos(2), part%pos(3)
+             !        count5=count5+1
+             !     elseif(intsurf .eq. 6) then
+             !        write(*,*)  "6", part%pos(1), part%pos(2), part%pos(3)
+             !       count6= count6+1
+    !    endif
+
+    
+end subroutine test
+  
   
 
 
