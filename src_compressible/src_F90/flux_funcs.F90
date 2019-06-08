@@ -87,8 +87,8 @@ contains
 
             !momentum fluxes
             xflux(i+1,j,k,2) = xflux(i+1,j,k,2) - taux
-            !xflux(i+1,j,k,3) = xflux(i+1,j,k,3) - tauy
-            !xflux(i+1,j,k,4) = xflux(i+1,j,k,4) - tauz
+            xflux(i+1,j,k,3) = xflux(i+1,j,k,3) - tauy
+            xflux(i+1,j,k,4) = xflux(i+1,j,k,4) - tauz
     
             !print *,  taux
             
@@ -114,10 +114,7 @@ contains
             !print *, "tau: ", taux, tauy, tauz
             !print *, "vel: ", u, v, w
             !energy flux
-            !xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
-
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux) - kappaf*(dtx) !1D
-
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
 
           end do
         end do
@@ -314,10 +311,8 @@ contains
                primitive(l) = wgt1*(prim(i+1,j,k,l)+prim(i,j,k,l)) -wgt2*(prim(i-1,j,k,l)+prim(i+2,j,k,l))  
             enddo
 
-
             temp = primitive(5)
             pt = primitive(6)
-
             
             call get_density_gas(pt,rho, temp)
 
@@ -585,44 +580,44 @@ contains
 !         end do
 !       endif
 
-      !if on lower bound and specular
-      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
-         do l = 2,5
-            do k = lo(3),hi(3)
-               do j = lo(2),hi(2)
+      ! !if on lower bound and specular
+      ! if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
+      !    do l = 2,5
+      !       do k = lo(3),hi(3)
+      !          do j = lo(2),hi(2)
 
-                  xflux(0,j,k,l) = 0        
+      !             xflux(0,j,k,l) = 0        
 
-               end do
-            end do
-         end do
-      endif
+      !          end do
+      !       end do
+      !    end do
+      ! endif
 
-      !if on upper bound and specular
-      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
-         do l = 2,5
-            do k = lo(3),hi(3)
-               do j = lo(2),hi(2)
+      ! !if on upper bound and specular
+      ! if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
+      !    do l = 2,5
+      !       do k = lo(3),hi(3)
+      !          do j = lo(2),hi(2)
 
-                  xflux(hi(1)+1,j,k,l) = 0           
+      !             xflux(hi(1)+1,j,k,l) = 0           
 
-               end do
-            end do
-         end do
-      endif
+      !          end do
+      !       end do
+      !    end do
+      ! endif
 
-      !if on lower bound and diff
-      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
-         do l = 2,5
-            do k = lo(3),hi(3)
-               do j = lo(2),hi(2)
+      ! !if on lower bound and diff
+      ! if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
+      !    do l = 2,5
+      !       do k = lo(3),hi(3)
+      !          do j = lo(2),hi(2)
 
-                  xflux(0,j,k,l) = 1.4142*xflux(0,j,k,2)
+      !             xflux(0,j,k,l) = 1.4142*xflux(0,j,k,2)
 
-               end do
-            end do
-         end do
-      endif
+      !          end do
+      !       end do
+      !    end do
+      ! endif
 
       !if on upper bound and diff
       if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
