@@ -7,6 +7,9 @@ void calculateTransportCoeffs(const MultiFab& prim, MultiFab& eta, MultiFab& zet
     // Loop over boxes
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
     {
+        
+        // amrex::Print() << "Hack: Got here \n";
+        
         const Box& bx = mfi.validbox();
 
         trans_coeffs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  

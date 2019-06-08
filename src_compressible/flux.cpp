@@ -20,15 +20,13 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                  flux[1].setVal(0);,
                  flux[2].setVal(0););
 
-//    for(int i=1;i<5;i++)
-//    {
-//          MultiFABFillRandom(stochFlux[0], i, 1, geom);
-//          MultiFABFillRandom(stochFlux[1], i, 1, geom);
-//          MultiFABFillRandom(stochFlux[2], i, 1, geom);
-//    }
-
-      MultiFABFillRandom(stochFlux[0], 1, 1, geom);
-      MultiFABFillRandom(stochFlux[0], 4, 1, geom);
+    for(int d=1;d<AMREX_SPACEDIM;d++)
+      {
+    	for(int i=1;i<5;i++)
+    	  {
+    	    MultiFABFillRandom(stochFlux[d], i, 1, geom);
+    	  }
+      }
 
 //    for(int i=0;i<2;i++)
 //    {
