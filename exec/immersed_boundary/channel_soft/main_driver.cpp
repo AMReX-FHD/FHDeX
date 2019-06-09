@@ -335,23 +335,17 @@ void main_driver(const char * argv) {
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi(), & dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi(), & dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi(), & dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+        // initialize velocity
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            init_vel(BL_TO_FORTRAN_BOX(bx),
+                     BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
+                     geom.ProbLo(), geom.ProbHi(), & d,
+                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
     	// initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+                   BL_TO_FORTRAN_ANYD(tracer[mfi]),
+                   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
     }
 
@@ -497,96 +491,6 @@ void main_driver(const char * argv) {
 
         ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
         ib_pc.FillMarkerPositions(0, 64);
-
-
-        Vector<IBP_info> ibp_info;
-        MultiFab dummy(ib_pc.ParticleBoxArray(lev_ib),
-                       ib_pc.ParticleDistributionMap(lev_ib), 1, 1);
-        for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
-            IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
-            ib_pc.IBParticleInfo(ibp_info, lev_ib, index, true);
-        }
-
-        Vector<std::pair<int, int>> part_indices(ibp_info.size());
-        std::map<std::pair<int, int>, Vector<RealVect>> b_lambda;
-        for (int i=0; i<ibp_info.size(); ++i) {
-            part_indices[i] = ibp_info[i].asPairIndex();
-            const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
-
-            b_lambda[part_indices[i]].resize(marker_positions.size());
-            for (auto & elt : b_lambda.at(part_indices[i]))
-                elt = RealVect{1, 1, 1};
-        }
-
-
-        std::array<MultiFab, AMREX_SPACEDIM> spread_rhs;
-        std::array<MultiFab, AMREX_SPACEDIM> spread_weights;
-        std::array<MultiFab, AMREX_SPACEDIM> inv_interpolate;
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            spread_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-            spread_rhs[d].setVal(0.);
-
-            spread_weights[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-            spread_weights[d].setVal(0.);
-
-            inv_interpolate[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-            inv_interpolate[d].setVal(0.);
-        }
-
-        for (const auto & pindex : part_indices) {
-            const auto & jls = b_lambda.at(pindex);
-
-            ib_pc.SpreadMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
-            ib_pc.InvInterpolateMarkers(lev_ib, pindex, jls, inv_interpolate);
-        }
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            spread_rhs[d].FillBoundary(geom.periodicity());
-            spread_weights[d].FillBoundary(geom.periodicity());
-            inv_interpolate[d].FillBoundary(geom.periodicity());
-
-            VisMF::Write(inv_interpolate[d], "inv_interpolate_"+std::to_string(d));
-            Print() << inv_interpolate[d].sum() << std::endl;
-        }
-
-
-        for (const auto & pindex : part_indices) {
-            auto & jls = b_lambda.at(pindex);
-
-            // ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs);
-            // ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
-            ib_pc.InterpolateMarkers(lev_ib, pindex, jls, inv_interpolate);
-
-            for (auto & elt : jls) Print() << elt << std::endl;
-        }
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            spread_rhs[d].setVal(1.);
-
-        for (const auto & pindex : part_indices) {
-            auto & jls = b_lambda.at(pindex);
-
-            for (auto & elt : jls) elt = RealVect{0., 0., 0.};
-
-            ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs);
-            // ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
-        }
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            spread_rhs[d].setVal(0.);
-
-        for (const auto & pindex : part_indices) {
-            const auto & jls = b_lambda.at(pindex);
-
-            ib_pc.SpreadMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
-        }
-
-        for (int d=0; d<AMREX_SPACEDIM; ++d)
-            VisMF::Write(spread_rhs[d], "spread_rhs_" + std::to_string(d));
-
-
-        // ParallelDescriptor::Barrier();
-        // exit(0);
 
 
         //_______________________________________________________________________
