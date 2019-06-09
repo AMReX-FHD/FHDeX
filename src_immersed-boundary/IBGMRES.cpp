@@ -116,9 +116,9 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     for (int i=0; i<ibp_info.size(); ++i) {
         part_indices[i] = ibp_info[i].asPairIndex();
 
-        // Pre-allocate force arrays
+        // Pre-allocate particle arrays
         const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
-        // ... initialized to (0..0)
+        // ... initialized to (0..0) by default constructor
           b_lambda[part_indices[i]].resize(marker_positions.size());
           x_lambda[part_indices[i]].resize(marker_positions.size());
           r_lambda[part_indices[i]].resize(marker_positions.size());
@@ -129,6 +129,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         for (int j=0; j<gmres_max_inner+1; ++j)
             V_lambda[part_indices[i]][j].resize(marker_positions.size());
 
+        // Fill these with initial values
         marker_pos[part_indices[i]] = marker_positions;
     }
 

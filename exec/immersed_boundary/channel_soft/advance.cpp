@@ -283,6 +283,92 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     /****************************************************************************
      *                                                                          *
+     * Advance immersed boundary markers (for predictor's force)                *
+     *                                                                          *
+     ***************************************************************************/
+
+    int ibpc_lev = 0; // assume single level for now
+    int ib_grow  = 6; // using the 6-point stencil
+
+    Real spring_coefficient = 1e3;
+
+
+    //___________________________________________________________________________
+    // Collect data on the immersed boundaries interacting with this rank
+
+    Vector<IBP_info> ibp_info;
+
+    // NOTE: use `ib_pc` BoxArray to collect IB particle data
+    MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev),
+                   ib_pc.ParticleDistributionMap(ibpc_lev), 1, 1);
+    for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
+        IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        ib_pc.IBParticleInfo(ibp_info, ibpc_lev, index, true);
+    }
+
+
+    //___________________________________________________________________________
+    // Storage data structurs for immersed boundary markers
+
+    Vector<std::pair<int, int>> part_indices(ibp_info.size());
+
+    std::map<std::pair<int, int>, Vector<RealVect>> b_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>> x_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_vel;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos_0;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_delta_0;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_force_0;
+
+    for (int i=0; i<ibp_info.size(); ++i) {
+        part_indices[i] = ibp_info[i].asPairIndex();
+
+        // Pre-allocate particle arrays
+        const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+        // ... initialized to (0..0) by default constructor
+        b_lambda[part_indices[i]].resize(marker_positions.size());
+        x_lambda[part_indices[i]].resize(marker_positions.size());
+        marker_vel[part_indices[i]].resize(marker_positions.size());
+        marker_delta_0[part_indices[i]].resize(marker_positions.size());
+        marker_force_0[part_indices[i]].resize(marker_positions.size());
+
+
+        // Fill these with initial values
+        marker_pos[part_indices[i]] = marker_positions;
+        marker_pos_0[part_indices[i]] = marker_positions;
+    }
+
+
+    //___________________________________________________________________________
+    // Predictor step: advect immersed boundary markers
+
+    for (const auto & pindex : part_indices) {
+        auto & vel = marker_vel.at(pindex);
+
+        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umac);
+    }
+
+    for (const auto & pindex : part_indices) {
+        const auto & vel   = marker_vel.at(pindex);
+        const auto & pos   = marker_pos.at(pindex);
+              auto & pos_0 = marker_pos_0.at(pindex);
+              auto & del_0 = marker_delta_0.at(pindex);
+              auto & force = marker_force_0.at(pindex);
+
+        for (int i=0; i<vel.size(); ++i) {
+            del_0[i] = dt*vel[i];
+            pos_0[i] = pos[i] + del_0[i];
+            force[i] = -spring_coefficient*del_0[i];
+
+            Print() << "force[" << i << "] = " << force[i] << std::endl;
+        }
+    }
+
+
+
+
+    /****************************************************************************
+     *                                                                          *
      * ADVANCE velocity field                                                   *
      *                                                                          *
      ***************************************************************************/
