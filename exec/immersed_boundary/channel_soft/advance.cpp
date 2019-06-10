@@ -635,7 +635,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // NOTE: 100 max attempts at getting the residual down, TODO: pass this as a
     // parameter (or tie to MAX ITER)
 
-    for (int i=0; i<100; i++) {
+    for (int i=0; i<10; i++) {
 
 
         //___________________________________________________________________________
@@ -663,9 +663,10 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
             for (int i=0; i<vel.size(); ++i) {
                 del_1[i] = dt*vel[i];
                 pos_1[i] = pos[i] + del_1[i];
-                force[i] = -spring_coefficient*del_1[i];
+                force[i] -= spring_coefficient*del_1[i];
 
-                Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
+                if (i == 10)
+                    Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
             }
         }
 
@@ -674,7 +675,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         // Add immersed-boundary forces to predictor's RHS
 
         for (const auto & pindex : part_indices) {
-            const auto & force = marker_force_0.at(pindex);
+            const auto & force = marker_force_1.at(pindex);
 
             ib_pc.SpreadMarkers(ibpc_lev, pindex, force, force_1);
         }
@@ -745,7 +746,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
 
         // if (norm_r < 1e-12) break;
-        break;
+        // break;
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
