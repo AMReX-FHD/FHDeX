@@ -518,33 +518,44 @@ void main_driver(const char * argv) {
                 elt = RealVect{1, 1, 1};
         }
 
+
         std::array<MultiFab, AMREX_SPACEDIM> spread_rhs;
         std::array<MultiFab, AMREX_SPACEDIM> spread_weights;
-
+        std::array<MultiFab, AMREX_SPACEDIM> inv_interpolate;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             spread_rhs[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
             spread_rhs[d].setVal(0.);
 
             spread_weights[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
             spread_weights[d].setVal(0.);
+
+            inv_interpolate[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+            inv_interpolate[d].setVal(0.);
         }
 
         for (const auto & pindex : part_indices) {
             const auto & jls = b_lambda.at(pindex);
 
             ib_pc.SpreadMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
+            ib_pc.InvInterpolateMarkers(lev_ib, pindex, jls, inv_interpolate);
         }
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             spread_rhs[d].FillBoundary(geom.periodicity());
             spread_weights[d].FillBoundary(geom.periodicity());
+            inv_interpolate[d].FillBoundary(geom.periodicity());
+
+            VisMF::Write(inv_interpolate[d], "inv_interpolate_"+std::to_string(d));
+            Print() << inv_interpolate[d].sum() << std::endl;
         }
+
 
         for (const auto & pindex : part_indices) {
             auto & jls = b_lambda.at(pindex);
 
-            ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs);
+            // ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs);
             // ib_pc.InterpolateMarkers(lev_ib, pindex, jls, spread_rhs, spread_weights);
+            ib_pc.InterpolateMarkers(lev_ib, pindex, jls, inv_interpolate);
 
             for (auto & elt : jls) Print() << elt << std::endl;
         }

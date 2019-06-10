@@ -1,7 +1,4 @@
 
-//#include "hydro_test_functions.H"
-//#include "hydro_test_functions_F.H"
-
 //#include "hydro_functions.H"
 //#include "hydro_functions_F.H"
 
@@ -32,6 +29,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFab.H>
+
+#include "compressible_test_functions_F.H"
 
 using namespace amrex;
 using namespace common;
@@ -96,6 +95,7 @@ void main_driver(const char* argv)
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
     const Real* dx = geom.CellSize();
+    const RealBox& realDomain = geom.ProbDomain();
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
@@ -272,17 +272,18 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     Vector< std::string > var_names;
-    int nvar_sf = AMREX_SPACEDIM+2;
+    // int nvar_sf = AMREX_SPACEDIM+2;
+    int nvar_sf = AMREX_SPACEDIM;
     var_names.resize(nvar_sf);
     int cnt = 0;
     std::string x;
-    var_names[cnt++] = "rho";
+    // var_names[cnt++] = "rho";
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       x = "mom";
       x += (120+d);
       var_names[cnt++] = x;
     }
-    var_names[cnt++] = "E";
+    // var_names[cnt++] = "E";
 
     MultiFab struct_in_cc;
     struct_in_cc.define(ba, dmap, nvar_sf, 0);
@@ -301,7 +302,8 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
-    //Initialise everything
+    //Initialize everything
+
     calculateTransportCoeffs(prim, eta, zeta, kappa);
 
     conservedToPrimitive(prim, cu);
@@ -356,13 +358,25 @@ void main_driver(const char* argv)
 //            dt = 2.0*dt;
 //        }
 
+	// for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+	//   const Box& bx = mfi.validbox();
+
+	//   init_consvar(BL_TO_FORTRAN_BOX(bx),
+	// 	       BL_TO_FORTRAN_FAB(cu[mfi]),
+	// 	       dx, 
+	// 	       // geom.ProbLo(), geom.ProbHi(),
+	// 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+	// }
+
         // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
 
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+	  // MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+	  MultiFab::Copy(struct_in_cc, cu, 1, 0, nvar_sf, 0);
 	  structFact.FortStructure(struct_in_cc,geom);
         }
 	///////////////////////////////////////////
