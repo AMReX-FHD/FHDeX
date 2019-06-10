@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 5.0e-4 5.0e-4 5.0e-4      ! physical hi coordinate
+  prob_hi(1:3) = 5.0e-4 5.0e-4 1.25e-6      ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -11,9 +11,9 @@
   nprimvars = 10
     
   ! number of cells in domain
-  n_cells(1:3) = 16 16 16
+  n_cells(1:3) = 32 32 1
   ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 16
+  max_grid_size(1:3) = 32 32 1
 
   ! Time-step control
   fixed_dt = 1e-12

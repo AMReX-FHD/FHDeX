@@ -116,9 +116,9 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     for (int i=0; i<ibp_info.size(); ++i) {
         part_indices[i] = ibp_info[i].asPairIndex();
 
-        // Pre-allocate force arrays
+        // Pre-allocate particle arrays
         const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
-        // ... initialized to (0..0)
+        // ... initialized to (0..0) by default constructor
           b_lambda[part_indices[i]].resize(marker_positions.size());
           x_lambda[part_indices[i]].resize(marker_positions.size());
           r_lambda[part_indices[i]].resize(marker_positions.size());
@@ -129,6 +129,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         for (int j=0; j<gmres_max_inner+1; ++j)
             V_lambda[part_indices[i]][j].resize(marker_positions.size());
 
+        // Fill these with initial values
         marker_pos[part_indices[i]] = marker_positions;
     }
 
@@ -865,8 +866,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         //     invvol = invvol/dx[d];
 
         Real c  = 0.326;
-        Real D1 = 1.e0;// 2.e2; // SJ
-        Real D2 = 1.e0;// 2.e2; // JS
+        Real D1 = 1.e2; // SJ
+        Real D2 = 1.e2; // JS
 
         for (const auto & pindex : pindex_list) {
             const auto & jls = JLS_rhs.at(pindex);
@@ -878,6 +879,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // spread_rhs[d].mult(c2*invvol, 0, 1, ib_grow);
             spread_rhs[d].mult(c2/D1, 0, 1, ib_grow);
+            // spread_rhs[d].mult(1./5, 0, 1, ib_grow);
             spread_rhs[d].FillBoundary(geom.periodicity());
             spread_weights[d].FillBoundary(geom.periodicity());
         }
@@ -897,9 +899,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         for (const auto & pindex : pindex_list) {
             auto & jls = JLS.at(pindex);
 
-            // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
+            ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs);
             // ib_pc.InterpolateMarkers(ib_level, pindex, jls, AS_rhs, spread_weights);
-            ib_pc.InvSpreadMarkers(ib_level, pindex, jls, AS_rhs);
+            // ib_pc.InvSpreadMarkers(ib_level, pindex, jls, AS_rhs);
 
             // for (auto & marker : jls) marker = c3*invvol * marker;
             for (auto & marker : jls) marker = c3/D2 * marker;
