@@ -9,10 +9,14 @@ from pymbar import testsystems
 
 #mbar = MBAR(u_kn, N_k)
 
-files = ['data_-0.00150',
-        'data_-0.001.txt',
-        'data_-0.00050',
-        'data_0.000']
+
+N = 2 #number of umbrellas
+files = []
+phi_initial = 0.05
+phi_increment = 0.0025
+for y in range (0,N):
+	print('data'+str((y)*phi_increment+phi_initial))
+	files.append('data'+str((y)*phi_increment+phi_initial))
 
 x_kn = []
 N_k = []
@@ -35,8 +39,6 @@ for i in range(len(N_k)):
 
 x_n = np.array(sum(x_kn, []))
 
-tobs = 25
-
 def U(k, x):
   #  lam = [0.003, 0.002, 0.001, 0.0, -0.001]
     lam = [] #input bias
@@ -56,4 +58,4 @@ f_k, df_k = mbar.computePMF(u_kn, x_n_adj, nbins = x_n_adj.max() + 1)
 
 with open('FE.txt', 'w') as f:
     for k, (fe, err) in enumerate(zip(f_k, df_k)):
-        print('{:4.2f} {:9.6f} {:8.6f}'.format(x_n_min + (k * resolution), f
+        print('{:4.2f} {:9.6f} {:8.6f}'.format(x_n_min + (k * resolution), fe, err), file = f)
