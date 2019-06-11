@@ -368,8 +368,10 @@ void main_driver(const char* argv)
 	// 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
 	// }
-
-        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	
+	if (step > n_steps_skip) {
+	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	}
 
 	///////////////////////////////////////////
 	// Update structure factor
