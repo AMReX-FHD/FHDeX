@@ -209,7 +209,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     int ibpc_lev = 0; // assume single level for now
     int ib_grow  = 6; // using the 6-point stencil
 
-    Real spring_coefficient = 1e3;
+    Real spring_coefficient = 1e6;
 
 
     //___________________________________________________________________________
@@ -262,7 +262,6 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         marker_pos_0[part_indices[i]] = marker_positions;
         marker_pos_1[part_indices[i]] = marker_positions;
     }
-
 
 
 
@@ -529,7 +528,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         for (int i=0; i<vel.size(); ++i) {
             del_1[i] = dt*vel[i];
             pos_1[i] = pos[i] + del_1[i];
-            force[i] -= spring_coefficient*del_1[i];
+            force[i] = -spring_coefficient*del_1[i];
 
             if (i == 10)
                 Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
