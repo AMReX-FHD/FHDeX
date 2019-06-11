@@ -44,6 +44,8 @@ void AmrCoreAdv::Initialize()
     Dphi_y.resize(nlevs_max);
     Dphi_z.resize(nlevs_max);
 
+    bcs.resize(1);
+    
     // periodic boundaries
     int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
@@ -53,14 +55,14 @@ void AmrCoreAdv::Initialize()
     int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
     int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
 */
-
+//    bcs.resize(1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         // lo-side BCs
         if (bc_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_lo[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setLo(idim, bc_lo[idim]);
+            bcs[0].setLo(idim, bc_lo[idim]);
         }
         else {
             amrex::Abort("Invalid bc_lo");
@@ -70,7 +72,7 @@ void AmrCoreAdv::Initialize()
         if (bc_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_hi[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setHi(idim, bc_hi[idim]);
+            bcs[0].setHi(idim, bc_hi[idim]);
         }
         else {
             amrex::Abort("Invalid bc_hi");
@@ -479,10 +481,18 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Vector<Real> stime;
 	GetData(0, time, smf, stime);
 
-	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(phifill));
-	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
-				     geom[lev], physbc);
-    }
+//	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(phifill));
+//	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
+//				     geom[lev], physbc);
+        BndryFuncArray bfunc(phifill);
+        PhysBCFunct<BndryFuncArray> physbc(geom[lev], bcs, bfunc);
+        amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
+                                    geom[lev], physbc, 0);
+
+
+
+  
+   }
     else
     {
 	Vector<MultiFab*> cmf, fmf;
@@ -490,15 +500,18 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-        PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
-        PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+//        PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
+//        PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+        BndryFuncArray bfunc(phifill);
+        PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
+        PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
 
 	Interpolater* mapper = &cell_cons_interp;
 
 	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
-				   cphysbc, fphysbc, refRatio(lev-1),
-				   mapper, bcs);
+				   cphysbc,0, fphysbc, 0, refRatio(lev-1),
+				   mapper, bcs,0);
     }
 }
 
@@ -517,15 +530,18 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
     if (cmf.size() != 1) {
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
+    BndryFuncArray bfunc(phifill);
+    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
+    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
 
-    PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
-    PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+//    PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
+//    PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
 
     Interpolater* mapper = &cell_cons_interp;
 
     amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
-				 cphysbc, fphysbc, refRatio(lev-1),
-				 mapper, bcs);
+				 cphysbc,0, fphysbc, 0, refRatio(lev-1),
+				 mapper, bcs,0);
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab

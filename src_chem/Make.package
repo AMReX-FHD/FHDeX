@@ -1,2 +1,19 @@
-f90EXE_sources += Adv_nd.f90
-f90EXE_sources += Tagging_nd.f90 tagging_params.f90
+CEXE_headers += AmrCoreAdv_F.H
+CEXE_headers += AmrCoreAdv.H
+
+CEXE_sources += AmrCoreAdv.cpp
+
+F90EXE_source += Adv_2d.F90
+F90EXE_source += Adv_3d.F90
+F90EXE_source += bc_fill_nd.F90
+F90EXE_source += compute_flux_2d.F90
+F90EXE_source += compute_flux_3d.F90
+F90EXE_source += PhiGrad_2d.F90
+F90EXE_source += PhiGrad_3d.F90
+F90EXE_source += Prob.F90
+F90EXE_source += ptsourcefill_2d.F90
+F90EXE_source += ptsourcefill_3d.F90
+F90EXE_source += slope_2d.F90
+F90EXE_source += slope_3d.F90
+F90EXE_source += Tagging_nd.F90
+
