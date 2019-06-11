@@ -20,7 +20,7 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                  flux[1].setVal(0);,
                  flux[2].setVal(0););
 
-    for(int d=1;d<AMREX_SPACEDIM;d++)
+    for(int d=0;d<AMREX_SPACEDIM;d++)
       {
     	for(int i=1;i<5;i++)
     	  {

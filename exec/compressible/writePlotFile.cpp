@@ -17,76 +17,79 @@ void WritePlotFile(int step,
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
-    amrex::MultiFab plotfile(ba, dmap, 39, 0);
+    amrex::MultiFab plotfile(ba, dmap, 40, 0);
 
     amrex::MultiFab::Copy(plotfile,cuMeans,0,0,5,0);
     amrex::MultiFab::Copy(plotfile,primMeans,0,5,6,0);
 
     amrex::MultiFab::Copy(plotfile,cu,0,11,5,0);
 
-    amrex::MultiFab::Copy(plotfile,prim,0,16,5,0);
+    amrex::MultiFab::Copy(plotfile,prim,0,16,6,0);
 
-    amrex::MultiFab::Copy(plotfile,cuVars,0,21,5,0);
+    amrex::MultiFab::Copy(plotfile,cuVars,0,22,5,0);
 
-    amrex::MultiFab::Copy(plotfile,primVars,0,26,5,0);
+    amrex::MultiFab::Copy(plotfile,primVars,0,27,5,0);
 
-    amrex::MultiFab::Copy(plotfile,spatialCross,0,31,6,0);
+    amrex::MultiFab::Copy(plotfile,spatialCross,0,32,6,0);
 
-    amrex::MultiFab::Copy(plotfile,etaMeanAv,0,37,1,0);
-    amrex::MultiFab::Copy(plotfile,kappaMeanAv,0,38,1,0);
+    amrex::MultiFab::Copy(plotfile,etaMeanAv,0,38,1,0);
+    amrex::MultiFab::Copy(plotfile,kappaMeanAv,0,39,1,0);
 
 
     std::string plotfilename = amrex::Concatenate("plt",step,9);
 
-    amrex::Vector<std::string> varNames(39);
+    amrex::Vector<std::string> varNames(40);
 
-    varNames[0] = "rhoMean";
-    varNames[1] = "jxMean";
-    varNames[2] = "jyMean";
-    varNames[3] = "jzMean";
-    varNames[4] = "eMean";
+    int cnt = 0;
 
-    varNames[5] = "rhoMean";
-    varNames[6] = "uxMean";
-    varNames[7] = "uyMean";
-    varNames[8] = "uzMean";
-    varNames[9] = "tMean";
-    varNames[10] = "pMean";
+    varNames[cnt++] = "rhoMean";
+    varNames[cnt++] = "jxMean";
+    varNames[cnt++] = "jyMean";
+    varNames[cnt++] = "jzMean";
+    varNames[cnt++] = "eMean";
 
-    varNames[11] = "rhoInstant";
-    varNames[12] = "jxInstant";
-    varNames[13] = "jyInstant";
-    varNames[14] = "jzInstant";
-    varNames[15] = "eInstant";
+    varNames[cnt++] = "rhoMean";
+    varNames[cnt++] = "uxMean";
+    varNames[cnt++] = "uyMean";
+    varNames[cnt++] = "uzMean";
+    varNames[cnt++] = "tMean";
+    varNames[cnt++] = "pMean";
 
-    varNames[16] = "rhoInstant";
-    varNames[17] = "uxInstant";
-    varNames[18] = "uyInstant";
-    varNames[19] = "uzInstant";
-    varNames[20] = "tInstant";
+    varNames[cnt++] = "rhoInstant";
+    varNames[cnt++] = "jxInstant";
+    varNames[cnt++] = "jyInstant";
+    varNames[cnt++] = "jzInstant";
+    varNames[cnt++] = "eInstant";
 
-    varNames[21] = "rhoVar";
-    varNames[22] = "jxVar";
-    varNames[23] = "jyVar";
-    varNames[24] = "jzVar";
-    varNames[25] = "eVar";
+    varNames[cnt++] = "rhoInstant";
+    varNames[cnt++] = "uxInstant";
+    varNames[cnt++] = "uyInstant";
+    varNames[cnt++] = "uzInstant";
+    varNames[cnt++] = "tInstant";
+    varNames[cnt++] = "pInstant";
 
-    varNames[26] = "rhoVar";
-    varNames[27] = "uxVar";
-    varNames[28] = "uyVar";
-    varNames[29] = "uzVar";
-    varNames[30] = "tVar";
+    varNames[cnt++] = "rhoVar";
+    varNames[cnt++] = "jxVar";
+    varNames[cnt++] = "jyVar";
+    varNames[cnt++] = "jzVar";
+    varNames[cnt++] = "eVar";
 
-    varNames[31] = "Energy-densityCross";
-    varNames[32] = "Energy-energyCross";
-    varNames[33] = "Momentum-densityCross";
+    varNames[cnt++] = "rhoVar";
+    varNames[cnt++] = "uxVar";
+    varNames[cnt++] = "uyVar";
+    varNames[cnt++] = "uzVar";
+    varNames[cnt++] = "tVar";
 
-    varNames[34] = "Temperature-temperatureCross";
-    varNames[35] = "Temperature-densityCross";
-    varNames[36] = "Velelocity-densityCross";
+    varNames[cnt++] = "Energy-densityCross";
+    varNames[cnt++] = "Energy-energyCross";
+    varNames[cnt++] = "Momentum-densityCross";
 
-    varNames[37] = "eta";
-    varNames[38] = "kappa";
+    varNames[cnt++] = "Temperature-temperatureCross";
+    varNames[cnt++] = "Temperature-densityCross";
+    varNames[cnt++] = "Velelocity-densityCross";
+
+    varNames[cnt++] = "eta";
+    varNames[cnt++] = "kappa";
 
 
     // write a plotfile
