@@ -580,44 +580,44 @@ contains
 !         end do
 !       endif
 
-      ! !if on lower bound and specular
-      ! if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do j = lo(2),hi(2)
+      !if on lower bound and specular
+      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do j = lo(2),hi(2)
 
-      !             xflux(0,j,k,l) = 0        
+                  xflux(0,j,k,l) = 0        
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on upper bound and specular
-      ! if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do j = lo(2),hi(2)
+      !if on upper bound and specular
+      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do j = lo(2),hi(2)
 
-      !             xflux(hi(1)+1,j,k,l) = 0           
+                  xflux(hi(1)+1,j,k,l) = 0           
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on lower bound and diff
-      ! if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do j = lo(2),hi(2)
+      !if on lower bound and diff
+      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do j = lo(2),hi(2)
 
-      !             xflux(0,j,k,l) = 1.4142*xflux(0,j,k,2)
+                  xflux(0,j,k,l) = 1.4142*xflux(0,j,k,2)
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
       !if on upper bound and diff
       if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
@@ -719,67 +719,67 @@ contains
 !        end do
 !      endif
 
-      do k = lo(3)-1,hi(3)
-        do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+!       do k = lo(3)-1,hi(3)
+!         do j = lo(2),hi(2)
+!           do i = lo(1),hi(1)
 
-!            muzp = eta(i,j,k+1)*prim(i,j,k+1,5) + eta(i,j,k)*prim(i,j,k,5)
-!            kzp = kappa(i,j,k+1)*prim(i,j,k+1,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2
+! !            muzp = eta(i,j,k+1)*prim(i,j,k+1,5) + eta(i,j,k)*prim(i,j,k,5)
+! !            kzp = kappa(i,j,k+1)*prim(i,j,k+1,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2
 
-!            fweights(1)=0 ! No mass flux
-!            fweights(2:4)=sqrt(k_b*muzp*volinv*dtinv)
-!            fweights(5)=sqrt(k_b*kzp*volinv*dtinv)
+! !            fweights(1)=0 ! No mass flux
+! !            fweights(2:4)=sqrt(k_b*muzp*volinv*dtinv)
+! !            fweights(5)=sqrt(k_b*kzp*volinv*dtinv)
 
-!            weiner(1:5) = weights(1)*fweights(1:5)*zsflux(i,j,k+1,1:5)
+! !            weiner(1:5) = weights(1)*fweights(1:5)*zsflux(i,j,k+1,1:5)
 
-!            nweight=sqrt(k_b*volinv*dtinv)
+! !            nweight=sqrt(k_b*volinv*dtinv)
 
-!             muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
-!                               eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
+! !             muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+! !                               eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+! !                               eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
+! !                               eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
 
-!             muzemp = 0.25d0*(eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
-!                               eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
+! !             muzemp = 0.25d0*(eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+! !                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+! !                               eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
+! !                               eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
 
-!             muzepm = 0.25d0*(eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k-1)*prim(i,j,k+1,5) + &
-!                               eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + eta(i,j-1,k-1)*prim(i,j-1,k+1,5) + &
-!                               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) )/3.d0
-!                               
-!             muzemm = 0.25d0*(eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,5) + eta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
-!                               eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
-!                               eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
-!                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
+! !             muzepm = 0.25d0*(eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k-1)*prim(i,j,k+1,5) + &
+! !                               eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + eta(i,j-1,k-1)*prim(i,j-1,k+1,5) + &
+! !                               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+! !                               eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) )/3.d0
+! !                               
+! !             muzemm = 0.25d0*(eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,5) + eta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
+! !                               eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
+! !                               eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
+! !                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
 
-!            weiner(4) = weiner(4) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+ sqrt(muzemp)*rancorn(i-1,j,k,1) + sqrt(muzepm)*rancorn(i,j-1,k,1)+ sqrt(muzemm)*rancorn(i-1,j-1,k,1))
+! !            weiner(4) = weiner(4) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+ sqrt(muzemp)*rancorn(i-1,j,k,1) + sqrt(muzepm)*rancorn(i,j-1,k,1)+ sqrt(muzemm)*rancorn(i-1,j-1,k,1))
 
-!            zflux(i,j,k+1,2:5) = zflux(i,j,k+1,2:5) + weiner(2:5)
+! !            zflux(i,j,k+1,2:5) = zflux(i,j,k+1,2:5) + weiner(2:5)
 
-!          ! Viscous heating:
-!            phiflx =  0.5d0*(weiner(2)*(prim(i,j,k,2)+prim(i,j,k+1,2)) + weiner(3)*(prim(i,j,k,3)+prim(i,j,k+1,3))+weiner(4)*(prim(i,j,k,4)+prim(i,j,k+1,4)))
+! !          ! Viscous heating:
+! !            phiflx =  0.5d0*(weiner(2)*(prim(i,j,k,2)+prim(i,j,k+1,2)) + weiner(3)*(prim(i,j,k,3)+prim(i,j,k+1,3))+weiner(4)*(prim(i,j,k,4)+prim(i,j,k+1,4)))
 
 
-!            !print *, "z: ", phiflx
+! !            !print *, "z: ", phiflx
 
-!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + phiflx
+! !            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + phiflx
 
-            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
-            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
-            velu = 0.5*(prim(i,j,k,2)+prim(i,j,k+1,2))
-            velv = 0.5*(prim(i,j,k,3)+prim(i,j,k+1,3))
-            velw = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
+!             kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
+!             etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
+!             velu = 0.5*(prim(i,j,k,2)+prim(i,j,k+1,2))
+!             velv = 0.5*(prim(i,j,k,3)+prim(i,j,k+1,3))
+!             velw = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
 
-            do l = 2,4
-               zflux(i,j,k+1,l) = zflux(i,j,k+1,l) + sqrt(sFac*etatF)*zsflux(i,j,k+1,l)
-            end do
-            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velu*sqrt(sFac*etatF)*zsflux(i,j,k+1,2) + velv*sqrt(sFac*etatF)*zsflux(i,j,k+1,3) + velw*sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
+!             do l = 2,4
+!                zflux(i,j,k+1,l) = zflux(i,j,k+1,l) + sqrt(sFac*etatF)*zsflux(i,j,k+1,l)
+!             end do
+!             zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velu*sqrt(sFac*etatF)*zsflux(i,j,k+1,2) + velv*sqrt(sFac*etatF)*zsflux(i,j,k+1,3) + velw*sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
 
-          end do
-        end do
-      end do
+!           end do
+!         end do
+!       end do
 
 !      !if on lower bound and not periodic
 !      if((lo(3) .eq. 0) .and. (bc_lo(3) .ne. -1)) then

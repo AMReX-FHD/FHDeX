@@ -29,10 +29,10 @@ contains
 
       ! print*, "nx, ny", nx, ny
 
-      if ((mod(nx,2)==1).OR.(mod(ny,2)==1)) then
-         print*, "ERROR: Odd dimensions, fftshift will not work"
-         stop
-      end if
+      ! if ((mod(nx,2)==1).OR.(mod(ny,2)==1)) then
+      !    print*, "ERROR: Odd dimensions, fftshift will not work"
+      !    stop
+      ! end if
 
       nxh = nx/2
       nyh = ny/2
@@ -53,7 +53,7 @@ contains
 
                if (j.gt.nxh) then
                   jp = j - (nxh + 1)
-               else 
+               else
                   jp = j + (nxh - 1)
                end if
 
@@ -88,10 +88,10 @@ contains
       ny = hi(2) - lo(2) + 1
       nz = hi(3) - lo(3) + 1
       
-      if ((mod(nx,2)==1).OR.(mod(ny,2)==1).OR.(mod(nz,2)==1)) then
-         print*, "ERROR: Odd dimensions, fftshift will not work"
-         stop
-      end if
+      ! if ((mod(nx,2)==1).OR.(mod(ny,2)==1).OR.(mod(nz,2)==1)) then
+      !    print*, "ERROR: Odd dimensions, fftshift will not work"
+      !    stop
+      ! end if
 
       nxh = nx/2
       nyh = ny/2
