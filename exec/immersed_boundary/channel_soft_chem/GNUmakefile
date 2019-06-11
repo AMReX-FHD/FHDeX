@@ -7,7 +7,7 @@ endif
 
 # ... alternatively if you set AMREX_HOME as an environment variable, this line
 # will be ignored => this line acts as a default
-AMREX_HOME ?= ../../../../amrex
+AMREX_HOME ?=   ../../../../amrex
 FBOXLIB_HOME ?= ../../../../FBoxLib
 
 DEBUG     = FALSE
@@ -74,6 +74,10 @@ INCLUDE_LOCATIONS += ../../../src_immersed-boundary/src_F90
 include ../../../src_immersed-boundary/Make.package
 VPATH_LOCATIONS   += ../../../src_immersed-boundary
 INCLUDE_LOCATIONS += ../../../src_immersed-boundary
+
+include ../../../src_chem/src_F90/Make.package
+VPATH_LOCATIONS   += ../../../src_chem/src_F90
+INCLUDE_LOCATIONS += ../../../src_chem/src_F90
 
 include ../../../src_chem/Make.package
 VPATH_LOCATIONS   += ../../../src_chem
