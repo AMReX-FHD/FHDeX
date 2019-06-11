@@ -173,8 +173,8 @@ private:
    Vector< std::unique_ptr<MultiFab> >  wface;
    std::unique_ptr<iMultiFab>           source_loc;
     // condition types at the lo/hi walls in each direction
-    BCRec bcs;
-
+    //BCRec bcs;
+   amrex::Vector<BCRec> bcs; 
     // stores fluxes at coarse-fine interface for synchronization
     // this will be sized "nlevs_max+1"
     // NOTE: the flux register associated with flux_reg[lev] is associated
