@@ -181,6 +181,8 @@ contains
 
           !print *, (n_cells(2))*(k) + (j+1), k, j
 
+          ! print *, "HACK: cross corr... ", delrho, delholder1((n_cells(2))*(k) + (j+1))
+
           spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
           spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
           spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
