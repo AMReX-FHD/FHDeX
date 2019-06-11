@@ -13,7 +13,7 @@
   ! number of cells in domain
   n_cells(1:3) = 32 32 1
   ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 1
+  max_grid_size(1:3) = 32 32 1
 
   ! Time-step control
   fixed_dt = 1e-12
@@ -35,7 +35,7 @@
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
   runiv = 8.314462175e7
-  T_init(1) = 400
+  T_init(1) = 300
   rho0 = 4.83e-4
 
   struct_fact_int = 10
@@ -48,7 +48,7 @@
   bc_lo(1:3) = -1 -1 -1
   bc_hi(1:3) = -1 -1 -1
 
-  membrane_cell = 0
+  membrane_cell = -1
   cross_cell = 0
   transmission = 0.0
 

@@ -315,8 +315,10 @@ void main_driver(const char* argv)
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
-
-    setBC(prim, cu, eta, zeta, kappa);
+    
+    // Impose membrane BCs
+    if (membrane_cell >= 0) 
+      setBC(prim, cu, eta, zeta, kappa);
 
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 

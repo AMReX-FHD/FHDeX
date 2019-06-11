@@ -4,6 +4,10 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
 
+#include "common_namespace.H"
+
+using namespace common;
+
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux, std::array<MultiFab, AMREX_SPACEDIM>& stochFlux, 
                                                  std::array<MultiFab, AMREX_SPACEDIM>& cornx, std::array<MultiFab, AMREX_SPACEDIM>& corny, std::array<MultiFab, AMREX_SPACEDIM>& cornz, MultiFab& visccorn, MultiFab& rancorn, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
 {
@@ -33,7 +37,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup, eta, zeta, kappa);
+    if (membrane_cell >= 0) 
+      setBC(prim, cup, eta, zeta, kappa);
 
     calculateFlux(cup, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, ZFILL(dx), dt);
 
@@ -65,7 +70,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup2, eta, zeta, kappa);
+    if (membrane_cell >= 0) 
+      setBC(prim, cup2, eta, zeta, kappa);
 
     calculateFlux(cup2, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
@@ -99,8 +105,9 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
 
-    setBC(prim, cu, eta, zeta, kappa);
-
+    if (membrane_cell >= 0) 
+      setBC(prim, cu, eta, zeta, kappa);
+    
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
 }
