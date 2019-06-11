@@ -10,9 +10,8 @@
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
-
-#include <AmrCoreAdv.H>
 #include <AmrCoreAdv_F.H>
+#include <AmrCoreAdv.H>
 
 using namespace amrex;
 
