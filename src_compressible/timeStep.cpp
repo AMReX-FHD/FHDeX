@@ -37,8 +37,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
 
-    if (membrane_cell >= 0) 
-      setBC(prim, cup, eta, zeta, kappa);
+    setBC(prim, cup, eta, zeta, kappa);
 
     calculateFlux(cup, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, ZFILL(dx), dt);
 
@@ -70,8 +69,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
 
-    if (membrane_cell >= 0) 
-      setBC(prim, cup2, eta, zeta, kappa);
+    setBC(prim, cup2, eta, zeta, kappa);
 
     calculateFlux(cup2, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
@@ -105,8 +103,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
 
-    if (membrane_cell >= 0) 
-      setBC(prim, cu, eta, zeta, kappa);
+    setBC(prim, cu, eta, zeta, kappa);
     
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
