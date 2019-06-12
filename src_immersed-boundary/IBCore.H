@@ -107,6 +107,11 @@ public:
         return part_box[ibm_index];
     }
 
+    const iMultiFab & get_TagInterface() const {
+        return * tag_interface;
+    }
+
+
     // This is unsafe => don't use!
     // const Box & get_IBMBox(const PairIndex & part_index) const {
     //     int ibm_index = get_IBMIndex(part_index);

@@ -214,7 +214,18 @@ void advance(AmrCoreAdv & amr_core_adv,
     Real spring_coefficient = 1e4;
 
 
-    //___________________________________________________________________________
+
+   if (solve_chem) {
+
+        // We get a pointer to the interface tag multifab to pass into advection
+        // diffuision (AD) code
+        const iMultiFab & iface = ib_core.get_TagInterface();
+
+        amrex::Print() << "Solving AD Eqn" << std::endl;
+
+        amr_core_adv.EvolveChem(u_g, v_g, w_g, iface, lev, nstep, dt, time);
+    }
+ //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank
 
     Vector<IBP_info> ibp_info;
