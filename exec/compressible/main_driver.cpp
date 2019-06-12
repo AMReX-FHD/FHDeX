@@ -198,7 +198,7 @@ void main_driver(const char* argv)
     prim.setVal(0,3,1,ngc);
     prim.setVal(T_init[0],4,1,ngc);
 
-    amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
+    // amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
 
     double massvec[nspecies];
     double intEnergy, T0;
@@ -371,7 +371,7 @@ void main_driver(const char* argv)
 	// }
 	
 	if (step > n_steps_skip) {
-	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
 	}
 
 	///////////////////////////////////////////

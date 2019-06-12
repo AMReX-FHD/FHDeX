@@ -34,8 +34,8 @@ contains
       !    stop
       ! end if
 
-      nxh = nx/2
-      nyh = ny/2
+      nxh = (nx+1)/2
+      nyh = (ny+1)/2
 
       do n = 1,ncomp
 
@@ -45,17 +45,8 @@ contains
          do j = lo(2),hi(2)
             do i = lo(1),hi(1)
                ! Find shifted indices
-               if (i.gt.nxh) then
-                  ip = i - (nxh + 1)
-               else 
-                  ip = i + (nxh - 1)
-               end if
-
-               if (j.gt.nxh) then
-                  jp = j - (nxh + 1)
-               else
-                  jp = j + (nxh - 1)
-               end if
+               ip = MOD(i+nxh,nx)
+               jp = MOD(j+nyh,ny)
 
                ! Switch values
                dft(ip,jp,n) = dft_temp(i,j)
@@ -92,10 +83,11 @@ contains
       !    print*, "ERROR: Odd dimensions, fftshift will not work"
       !    stop
       ! end if
-
-      nxh = nx/2
-      nyh = ny/2
-      nzh = nz/2
+      
+      ! Take ceiling
+      nxh = (nx+1)/2
+      nyh = (ny+1)/2
+      nzh = (nz+1)/2
 
       do n = 1,ncomp
 
@@ -106,23 +98,9 @@ contains
             do j = lo(2),hi(2)
                do i = lo(1),hi(1)
                   ! Find shifted indices
-                  if (i.gt.nxh) then
-                     ip = i - (nxh + 1)
-                  else 
-                     ip = i + (nxh - 1)
-                  end if
-
-                  if (j.gt.nxh) then
-                     jp = j - (nxh + 1)
-                  else 
-                     jp = j + (nxh - 1)
-                  end if
-
-                  if (k.gt.nxh) then
-                     kp = k - (nxh + 1)
-                  else 
-                     kp = k + (nxh - 1)
-                  end if
+                  ip = MOD(i+nxh,nx)
+                  jp = MOD(j+nyh,ny)
+                  kp = MOD(k+nzh,nz)
 
                   ! Switch values
                   dft(ip,jp,kp,n) = dft_temp(i,j,k)
