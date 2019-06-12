@@ -10,6 +10,14 @@
 
 
 
+//_______________________________________________________________________________
+// Abbreviations:
+
+// (ID, initial CPU) tuple: unique to each particle
+using ParticleIndex = IBParticleContainer::ParticleIndex;
+using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
+
+
 /********************************************************************************
  *                                                                              *
  * Advance Solution                                                             *
@@ -22,6 +30,7 @@ void advance( AmrCoreAdv & amr_core_adv,
              std::array< MultiFab, AMREX_SPACEDIM > & umacNew,
              MultiFab & pres, MultiFab & tracer,
              std::array< MultiFab, AMREX_SPACEDIM > & force_ibm,
+             IBMarkerMap & ib_forces,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_correct,
              const std::array< MultiFab, AMREX_SPACEDIM > & alpha_fc,

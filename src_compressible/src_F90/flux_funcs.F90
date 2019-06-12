@@ -674,7 +674,7 @@ contains
 
 !             phiflx = 0.5*(weiner(2)*(prim(i,j,k,2)+prim(i,j+1,k,2)) + weiner(3)*(prim(i,j,k,3)+prim(i,j+1,k,3)) + weiner(4)*(prim(i,j,k,4)+prim(i,j+1,k,4)))
 
-!             yflux(i,j+1,k,5) = xflux(i,j+1,k,5) + phiflx
+!             yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + phiflx
 
             !print *, "y: ", phiflx
 
