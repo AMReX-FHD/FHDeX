@@ -523,7 +523,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     for (const auto & pindex : part_indices) {
         const auto & vel   = marker_vel.at(pindex);
         const auto & pos   = marker_pos.at(pindex);
-        const auto & f_0   = ib_forces.at(pindex);
+              auto & f_0   = ib_forces.at(pindex);
               auto & pos_1 = marker_pos_1.at(pindex);
               auto & del_1 = marker_delta_1.at(pindex);
               auto & force = marker_force_1.at(pindex);
@@ -532,6 +532,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
             del_1[i] = dt*vel[i];
             pos_1[i] = pos[i] + del_1[i];
             force[i] = f_0[i] - spring_coefficient*del_1[i];
+            f_0[i]   = force[i];
 
             if (i == 10)
                 Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
