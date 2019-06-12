@@ -31,6 +31,15 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+//chemistry
+#include <iostream>
+
+#include <AMReX.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
+
+#include <AmrCoreAdv.H>
+
 using namespace amrex;
 using namespace common;
 using namespace gmres;
@@ -385,6 +394,9 @@ void main_driver(const char * argv) {
     int step = 0;
     Real time = 0.;
 
+   // Initialize Chemical fields
+
+//   AmrCoreAdv amr_core_adv;
 
 
     /****************************************************************************
@@ -422,6 +434,9 @@ void main_driver(const char * argv) {
         pp.addarr("n_cell", n_cells);
     }
 
+//    AmrCoreAdv amr_core_adv;
+
+
     IBCore ib_core;
     ib_core.set_IBParticleContainer(& ib_pc);
 
@@ -432,8 +447,12 @@ void main_driver(const char * argv) {
         force_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         force_ibm[d].setVal(0.);
     }
+    //__________________________________________________________________________
+    // Build AmrCore and initialize chemical multifabs
 
-
+    AmrCoreAdv amr_core_adv;
+    amr_core_adv.InitData();
+ 
 
     /****************************************************************************
      *                                                                          *
