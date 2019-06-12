@@ -113,7 +113,7 @@ void main_driver(const char* argv)
     cellVols.setVal(dx[0]*dx[1]*dx[2]);
 #endif
 
-    getCellVols(cellVols, geom, 100000);
+    getCellVols(cellVols, geom, 1000);
 
     const RealBox& realDomain = geom.ProbDomain();
 

@@ -1,11 +1,6 @@
 
-//#include "hydro_test_functions.H"
-//#include "hydro_test_functions_F.H"
-
 //#include "hydro_functions.H"
 //#include "hydro_functions_F.H"
-//#include "StochMFlux.H"
-//#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -26,11 +21,16 @@
 
 #include "exec_functions.H"
 
+//#include "StochMFlux.H"
+#include "StructFact.H"
+
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFab.H>
+
+#include "compressible_test_functions_F.H"
 
 using namespace amrex;
 using namespace common;
@@ -90,11 +90,12 @@ void main_driver(const char* argv)
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
     }
 
-    Print() << "Hack: boxarray = " << ba << "\n";
+    // Print() << "Hack: boxarray = " << ba << "\n";
 
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
     const Real* dx = geom.CellSize();
+    const RealBox& realDomain = geom.ProbDomain();
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
@@ -197,7 +198,7 @@ void main_driver(const char* argv)
     prim.setVal(0,3,1,ngc);
     prim.setVal(T_init[0],4,1,ngc);
 
-    amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
+    // amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
 
     double massvec[nspecies];
     double intEnergy, T0;
@@ -266,7 +267,43 @@ void main_driver(const char* argv)
 
     int step, statsCount;
 
-    //Initialise everything
+    ///////////////////////////////////////////
+    // structure factor:
+    ///////////////////////////////////////////
+
+    Vector< std::string > var_names;
+    int nvar_sf = AMREX_SPACEDIM+2;
+    // int nvar_sf = AMREX_SPACEDIM;
+    var_names.resize(nvar_sf);
+    int cnt = 0;
+    std::string x;
+    var_names[cnt++] = "rho";
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "mom";
+      x += (120+d);
+      var_names[cnt++] = x;
+    }
+    var_names[cnt++] = "E";
+
+    MultiFab struct_in_cc;
+    struct_in_cc.define(ba, dmap, nvar_sf, 0);
+
+    amrex::Vector< int > s_pairA(nvar_sf);
+    amrex::Vector< int > s_pairB(nvar_sf);
+
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<nvar_sf; d++) {
+      s_pairA[d] = d;
+      s_pairB[d] = d;
+    }
+
+    StructFact structFact(ba,dmap,var_names);
+    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
+
+    ///////////////////////////////////////////
+
+    //Initialize everything
+
     calculateTransportCoeffs(prim, eta, zeta, kappa);
 
     conservedToPrimitive(prim, cu);
@@ -278,16 +315,13 @@ void main_driver(const char* argv)
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
-
+    
+    // Impose membrane BCs
     setBC(prim, cu, eta, zeta, kappa);
 
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-
     statsCount = 1;
-
-
-
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -325,34 +359,78 @@ void main_driver(const char* argv)
 //            dt = 2.0*dt;
 //        }
 
-        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	// for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+	//   const Box& bx = mfi.validbox();
+
+	//   init_consvar(BL_TO_FORTRAN_BOX(bx),
+	// 	       BL_TO_FORTRAN_FAB(cu[mfi]),
+	// 	       dx, 
+	// 	       // geom.ProbLo(), geom.ProbHi(),
+	// 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+	// }
+	
+	if (step > n_steps_skip) {
+	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	}
+
+	///////////////////////////////////////////
+	// Update structure factor
+	///////////////////////////////////////////
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+	  // MultiFab::Copy(struct_in_cc, cu, 1, 0, nvar_sf, 0);
+	  structFact.FortStructure(struct_in_cc,geom);
+        }
+	///////////////////////////////////////////
 
         statsCount++;
 
         if(step%500 == 0)
         {    
-                amrex::Print() << "Advanced step " << step << "\n";
+	amrex::Print() << "Advanced step " << step << "\n";
         }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {
 
-           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, etaMean, kappaMean, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
-           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
+           // yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, etaMean, kappaMean, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
+           // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
 
-           //WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, etaMean, kappaMean);
+           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
         }
 
         time = time + dt;
     }
+
+    if (struct_fact_int > 0) {
+
+      Real dVol = dx[0]*dx[1];
+      int tot_n_cells = n_cells[0]*n_cells[1];
+      if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+      } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+	tot_n_cells = n_cells[2]*tot_n_cells;
+      }
+
+      // let rho = 1
+      Real SFscale = dVol/(rho0*k_B*T_init[0]);
+      // SFscale = 1.0;
+      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+      
+      structFact.Finalize(SFscale);
+      structFact.WritePlotFile(step,time,geom);
+
+    }
+
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
 
     // amrex::Abort();
-
-    amrex::Finalize();
+    // amrex::Finalize();
 
 }
 

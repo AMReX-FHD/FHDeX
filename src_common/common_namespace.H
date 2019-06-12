@@ -195,5 +195,6 @@ namespace common {
     extern amrex::Vector<amrex::Real> ephase;
 
     extern int                        plot_ascii;
-    
+    // parameters neccesary for chemical reactions
+    extern bool                       solve_chem;    
 }

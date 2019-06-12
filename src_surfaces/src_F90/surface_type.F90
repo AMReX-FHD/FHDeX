@@ -96,6 +96,10 @@ module surfaces_module
 
      integer :: boundary
 
+     real(amrex_particle_real) :: tension
+     real(amrex_particle_real) :: stiffness
+     real(amrex_particle_real) :: temperature
+
   end type surface_t
 
 end module surfaces_module

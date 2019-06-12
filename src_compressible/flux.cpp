@@ -20,15 +20,13 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                  flux[1].setVal(0);,
                  flux[2].setVal(0););
 
-//    for(int i=1;i<5;i++)
-//    {
-//          MultiFABFillRandom(stochFlux[0], i, 1, geom);
-//          MultiFABFillRandom(stochFlux[1], i, 1, geom);
-//          MultiFABFillRandom(stochFlux[2], i, 1, geom);
-//    }
-
-      MultiFABFillRandom(stochFlux[0], 1, 1, geom);
-      MultiFABFillRandom(stochFlux[0], 4, 1, geom);
+    for(int d=0;d<AMREX_SPACEDIM;d++)
+      {
+    	for(int i=1;i<5;i++)
+    	  {
+    	    MultiFABFillRandom(stochFlux[d], i, 1, geom);
+    	  }
+      }
 
 //    for(int i=0;i<2;i++)
 //    {
@@ -62,18 +60,41 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
     			       ZFILL(dx), &dt);
 
 
-        diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                       cons[mfi].dataPtr(),  
-                       prim[mfi].dataPtr(),  
-                       eta[mfi].dataPtr(),  
-                       zeta[mfi].dataPtr(),  
-                       kappa[mfi].dataPtr(),  
-        		       flux[0][mfi].dataPtr(),
-        		       flux[1][mfi].dataPtr(),
+//         diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+//                        cons[mfi].dataPtr(),  
+//                        prim[mfi].dataPtr(),  
+//                        eta[mfi].dataPtr(),  
+//                        zeta[mfi].dataPtr(),  
+//                        kappa[mfi].dataPtr(),  
+//         		       flux[0][mfi].dataPtr(),
+//         		       flux[1][mfi].dataPtr(),
+// #if (AMREX_SPACEDIM == 3)
+//         		       flux[2][mfi].dataPtr(),
+// #endif
+//     			       ZFILL(dx));
+
+	diff_flux_sym(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                      cons[mfi].dataPtr(),  
+                      prim[mfi].dataPtr(),  
+                      eta[mfi].dataPtr(),  
+                      zeta[mfi].dataPtr(),  
+                      kappa[mfi].dataPtr(),  
+       		       flux[0][mfi].dataPtr(),
+       		       flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-        		       flux[2][mfi].dataPtr(),
+       		       flux[2][mfi].dataPtr(),
 #endif
-    			       ZFILL(dx));
+                              cornx[0][mfi].dataPtr(),
+                              cornx[1][mfi].dataPtr(),
+                              cornx[2][mfi].dataPtr(),
+                              corny[0][mfi].dataPtr(),
+                              corny[1][mfi].dataPtr(),
+                              corny[2][mfi].dataPtr(),
+                              cornz[0][mfi].dataPtr(),
+                              cornz[1][mfi].dataPtr(),
+                              cornz[2][mfi].dataPtr(),
+                              visccorn[mfi].dataPtr(),
+   			       ZFILL(dx));
 
         hyp_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                        cons[mfi].dataPtr(),  
@@ -84,30 +105,6 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
         		       flux[2][mfi].dataPtr(),
 #endif
     			       ZFILL(dx));
-
-//        diff_flux_sym(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-//                       cons[mfi].dataPtr(),  
-//                       prim[mfi].dataPtr(),  
-//                       eta[mfi].dataPtr(),  
-//                       zeta[mfi].dataPtr(),  
-//                       kappa[mfi].dataPtr(),  
-//        		       flux[0][mfi].dataPtr(),
-//        		       flux[1][mfi].dataPtr(),
-//#if (AMREX_SPACEDIM == 3)
-//        		       flux[2][mfi].dataPtr(),
-//#endif
-
-//                               cornx[0][mfi].dataPtr(),
-//                               cornx[1][mfi].dataPtr(),
-//                               cornx[2][mfi].dataPtr(),
-//                               corny[0][mfi].dataPtr(),
-//                               corny[1][mfi].dataPtr(),
-//                               corny[2][mfi].dataPtr(),
-//                               cornz[0][mfi].dataPtr(),
-//                               cornz[1][mfi].dataPtr(),
-//                               cornz[2][mfi].dataPtr(),
-//                               visccorn[mfi].dataPtr(),
-//    			       ZFILL(dx));
    
     }
 

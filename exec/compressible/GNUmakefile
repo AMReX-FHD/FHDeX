@@ -18,13 +18,6 @@ include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-# include $(AMREX_HOME)/Src/F_BaseLib/FParallelMG2.mak
-# VPATH_LOCATIONS   += $(AMREX_HOME)/Src/F_BaseLib/
-# INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/F_BaseLib/
-
-# include $(FBOXLIB_HOME)/Src/BaseLib/FParallelMG_RNG.mak
-# VPATH_LOCATIONS   += $(FBOXLIB_HOME)/Src/BaseLib/
-# INCLUDE_LOCATIONS += $(FBOXLIB_HOME)/Src/BaseLib/
 
 include ../../src_compressible/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/
@@ -34,13 +27,13 @@ include ../../src_compressible/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/src_F90
 INCLUDE_LOCATIONS += ../../src_compressible/src_F90
 
-#include ../../src_analysis/src_F90/Make.package
-#VPATH_LOCATIONS   += ../../src_analysis/src_F90
-#INCLUDE_LOCATIONS += ../../src_analysis/src_F90
+include ../../src_analysis/src_F90/Make.package
+VPATH_LOCATIONS   += ../../src_analysis/src_F90
+INCLUDE_LOCATIONS += ../../src_analysis/src_F90
 
-#include ../../src_analysis/Make.package
-#VPATH_LOCATIONS   += ../../src_analysis/
-#INCLUDE_LOCATIONS += ../../src_analysis/
+include ../../src_analysis/Make.package
+VPATH_LOCATIONS   += ../../src_analysis/
+INCLUDE_LOCATIONS += ../../src_analysis/
 
 include ../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_rng/src_F90

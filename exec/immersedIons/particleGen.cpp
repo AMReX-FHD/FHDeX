@@ -61,7 +61,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
+                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
 
                 //original position stored for MSD calculations
                 p.rdata(RealData::ox) = p.pos(0);

@@ -1,0 +1,107 @@
+&common
+
+  ! Problem specification
+  prob_lo(1:3) = 0.0 0.0 0.0                ! physical lo coordinate
+  prob_hi(1:3) = 1.0e-3 1.0e-3 1.25e-6      ! physical hi coordinate
+
+  ! Number of ghost cells, conserved, and primitive variables
+  ! ---------------------
+  ngc = 2 2 2   
+  nvars = 9
+  nprimvars = 10
+    
+  ! number of cells in domain
+  n_cells(1:3) = 64 64 1
+  ! max number of cells in a box
+  max_grid_size(1:3) = 16 16 1
+
+  ! Time-step control
+  fixed_dt = 1e-12
+
+  ! Controls for number of steps between actions
+  max_step = 100000
+  plot_int = 10000
+
+  ! Viscous friction L phi operator
+  ! if abs(visc_type) = 1, L = div beta grad
+  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  ! positive = assume constant coefficients
+  ! negative = assume spatially-varying coefficients
+  !visc_coef = 1.
+  visc_coef = 1e-2
+  visc_type = 1
+
+  ! Initial parameters
+  k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
+  runiv = 8.314462175e7
+  T_init(1) = 300
+  rho0 = 4.83e-4
+
+  struct_fact_int = 100
+  n_steps_skip = 10000
+
+  ! Boundary conditions
+  ! ----------------------
+  ! BC specifications:
+  ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
+  bc_lo(1:3) = -1 -1 -1
+  bc_hi(1:3) = -1 -1 -1
+
+  membrane_cell = -1
+  cross_cell = 0
+  transmission = 0.0
+
+  ! Temperature if thermal BC specified
+  t_lo(1:3) = 200 200 200
+  t_hi(1:3) = 400 400 400
+
+  !Kinetic species info
+  !--------------
+  nspecies = 4
+  molmass = 39.948, 39.948, 39.948, 39.948
+  diameter =  3.66e-8, 3.66e-8, 3.66e-8, 3.66e-8
+  rhobar =  0.25, 0.25, 0.25, 0.25
+
+  !Enter negative dof to use ucv & hcp values
+
+  dof     =  3, 3, 3, 3
+  hcv = -1 -1 -1 -1
+  hcp = -1 -1 -1 -1
+
+
+/
+
+&gmres
+
+  mg_verbose = 0                  ! multigrid verbosity
+
+  ! Staggered multigrid solver parameters
+  stag_mg_verbosity = 0          ! verbosity
+  stag_mg_max_vcycles = 1         ! max number of v-cycles
+  stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
+  stag_mg_bottom_solver = 0       ! bottom solver type
+  ! 0 = smooths only, controlled by mg_nsmooths_bottom
+  ! 4 = Fancy bottom solve that coarsens additionally
+  !     and then applies stag_mg_nsmooths_bottom smooths
+  stag_mg_nsmooths_down = 2  ! number of smooths at each level on the way down
+  stag_mg_nsmooths_up = 2    ! number of smooths at each level on the way up
+  stag_mg_nsmooths_bottom = 8     ! number of smooths at the bottom
+  stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
+  stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
+  stag_mg_smoother = 1            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
+  stag_mg_rel_tol = 1.d-9         ! relative tolerance stopping criteria
+
+
+  ! GMRES solver parameters
+  gmres_rel_tol = 1.e-12                ! relative tolerance stopping criteria
+  gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
+  gmres_verbose = 1                     ! gmres verbosity; if greater than 1, more residuals will be printed out
+  gmres_max_outer = 20                  ! max number of outer iterations
+  gmres_max_inner = 5                   ! max number of inner iterations, or restart number
+  gmres_max_iter = 100                  ! max number of gmres iterations
+  gmres_min_iter = 1                    ! min number of gmres iterations
+
+/
+
+
