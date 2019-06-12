@@ -5,6 +5,9 @@
 #include "gmres_functions.H"
 
 #include "IBCore.H"
+#include <AMReX_AmrCore.H>
+#include <AmrCoreAdv.H>
+
 
 
 /********************************************************************************
@@ -14,7 +17,8 @@
  *                                                                              *
  *******************************************************************************/
 
-void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
+void advance( AmrCoreAdv & amr_core_adv,
+             std::array< MultiFab, AMREX_SPACEDIM > & umac,
              std::array< MultiFab, AMREX_SPACEDIM > & umacNew,
              MultiFab & pres, MultiFab & tracer,
              std::array< MultiFab, AMREX_SPACEDIM > & force_ibm,
