@@ -132,7 +132,11 @@ module common_namelist_module
 
   integer,            save :: plot_ascii
 
-  integer,             save :: solve_chem
+  integer,            save :: solve_chem
+  double precision,   save :: diffcoeff
+  integer,            save :: regrid_int
+  integer,            save :: do_reflux
+
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -304,6 +308,9 @@ module common_namelist_module
 
   ! chemistry
   namelist /common/ solve_chem
+  namelist /common/ diffcoeff
+  namelist /common/ regrid_int
+  namelist /common/ do_reflux
 
 contains
 
@@ -386,7 +393,9 @@ contains
     pkernel_fluid = 4    
     pkernel_es = 4
     solve_chem = 0
-        
+    diffcoeff  = 0.001
+    regrid_int = 25
+    do_reflux  = 0
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -430,7 +439,7 @@ contains
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, solve_chem_in) &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, solve_chem_in, diffcoeff_in, regrid_int_in, do_reflux_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -560,6 +569,9 @@ contains
 
     integer,                intent(inout) :: plot_ascii_in
     integer,                intent(inout) :: solve_chem_in
+    double precision,       intent(inout) :: diffcoeff_in
+    integer,                intent(inout) :: regrid_int_in
+    integer,                intent(inout) :: do_reflux_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -680,7 +692,9 @@ contains
 
     plot_ascii_in = plot_ascii
     solve_chem_in = solve_chem
-
+    diffcoeff_in  = diffcoeff
+    regrid_int_in = regrid_int
+    do_reflux_in  = do_reflux
   end subroutine initialize_common_namespace
 
 end module common_namelist_module

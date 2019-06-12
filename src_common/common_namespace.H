@@ -197,4 +197,8 @@ namespace common {
     extern int                        plot_ascii;
     // parameters neccesary for chemical reactions
     extern int                        solve_chem;    
+    extern amrex::Real                diffcoeff;
+    extern int                        regrid_int;    
+    extern int                        do_reflux;    
+
 }
