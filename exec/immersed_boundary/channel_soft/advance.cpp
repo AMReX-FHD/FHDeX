@@ -229,16 +229,16 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     //___________________________________________________________________________
     // Storage data structures for immersed boundary markers
 
-    Vector<std::pair<int, int>> part_indices(ibp_info.size());
+    Vector<ParticleIndex> part_indices(ibp_info.size());
 
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos;
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_vel;
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos_0;
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_delta_0;
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_force_0;
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos_1;
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_delta_1;
-    std::map<std::pair<int, int>, Vector<RealVect>> marker_force_1;
+    IBMarkerMap marker_pos;
+    IBMarkerMap marker_vel;
+    IBMarkerMap marker_pos_0;
+    IBMarkerMap marker_delta_0;
+    IBMarkerMap marker_force_0;
+    IBMarkerMap marker_pos_1;
+    IBMarkerMap marker_delta_1;
+    IBMarkerMap marker_force_1;
 
 
     //___________________________________________________________________________

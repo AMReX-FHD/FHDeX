@@ -7,6 +7,14 @@
 #include "IBCore.H"
 
 
+//_______________________________________________________________________________
+// Abbreviations:
+
+// (ID, initial CPU) tuple: unique to each particle
+using ParticleIndex = IBParticleContainer::ParticleIndex;
+using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
+
+
 /********************************************************************************
  *                                                                              *
  * Advance Solution                                                             *

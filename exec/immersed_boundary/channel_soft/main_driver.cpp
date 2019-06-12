@@ -36,10 +36,6 @@ using namespace common;
 using namespace gmres;
 
 
-// (ID, init CPU) tuple: unique to each particle
-using ParticleIndex = std::pair<int, int>;
-
-
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
 //! nodal_flag_[x,y,z]). Each MultiFab has 1 component, and 1 ghost cell
 inline void defineFC(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
