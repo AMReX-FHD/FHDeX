@@ -132,7 +132,7 @@ module common_namelist_module
 
   integer,            save :: plot_ascii
 
-  logical,             save :: solve_chem
+  integer,             save :: solve_chem
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate
@@ -302,6 +302,9 @@ module common_namelist_module
 
   namelist /common/ plot_ascii
 
+  ! chemistry
+  namelist /common/ solve_chem
+
 contains
 
   ! read in fortran namelist into common_params_module
@@ -382,6 +385,7 @@ contains
 
     pkernel_fluid = 4    
     pkernel_es = 4
+    solve_chem = 0
         
 
     ! read in common namelist
@@ -426,7 +430,7 @@ contains
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in) &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, solve_chem_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -555,6 +559,7 @@ contains
     double precision,       intent(inout) :: ephase_in(3)
 
     integer,                intent(inout) :: plot_ascii_in
+    integer,                intent(inout) :: solve_chem_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -674,6 +679,7 @@ contains
     ephase_in = ephase
 
     plot_ascii_in = plot_ascii
+    solve_chem_in = solve_chem
 
   end subroutine initialize_common_namespace
 

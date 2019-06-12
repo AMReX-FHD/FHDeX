@@ -196,5 +196,5 @@ namespace common {
 
     extern int                        plot_ascii;
     // parameters neccesary for chemical reactions
-    extern bool                       solve_chem;    
+    extern int                        solve_chem;    
 }

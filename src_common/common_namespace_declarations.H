@@ -136,7 +136,7 @@ amrex::Vector<amrex::Real> common::ephase;
 
 int                        common::plot_ascii;
 
-bool                       common::solve_chem;
+int                       common::solve_chem;
 
 
 

@@ -452,7 +452,7 @@ void main_driver(const char * argv) {
     amr_core_adv.InitData();
  
 
-    if (solve_chem)
+    if (solve_chem==1)
     {
       amr_core_adv.InitData();
         amrex::Print()<< "Solving for chemical fields"<< std::endl;

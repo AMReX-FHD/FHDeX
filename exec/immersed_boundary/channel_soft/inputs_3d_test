@@ -24,7 +24,7 @@
   max_step = 100
   plot_int = 1
 
-  ! Viscous friction L phi operator
+
   ! if abs(visc_type) = 1, L = div beta grad
   ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
   ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
@@ -57,6 +57,21 @@
 
   p_lo(1:3)  = 0 -1  0
   p_hi(1:3)  = 0  1  0
+
+!  Chemical solver parameters
+  solve_chem       = 1
+!  diffcoeff       =  0.000001
+!  max_grid_size   =  32
+!! amr.ref_ratio       = 2 2 2 2 # refinement ratio
+!  blocking_factor = 8       # block factor in grid generation
+!  !amr.max_grid_size   = 16
+!
+!amr.regrid_int      = 2  
+!  do_reflux = 0
+!
+! #Tagging
+! adv.phierr = 1.01  1.1  1.5
+
 
 /
 
@@ -91,19 +106,5 @@
   gmres_min_iter = 1                    ! min number of gmres iterations
 
   p_norm_weight = 1d0
-  ! Chemical solver parameters
-!  solve_chem       = true
-!  diffcoeff       =  0.000001
-!  max_grid_size   =  32
-!! amr.ref_ratio       = 2 2 2 2 # refinement ratio
-!  blocking_factor = 8       # block factor in grid generation
-!  !amr.max_grid_size   = 16
-!
-!amr.regrid_int      = 2  
-!  do_reflux = 0
-!
-! #Tagging
-! adv.phierr = 1.01  1.1  1.5
-
  
 /
