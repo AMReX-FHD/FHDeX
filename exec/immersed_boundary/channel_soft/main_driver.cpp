@@ -31,6 +31,14 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+//chemistry
+#include <iostream>
+#include <AMReX.H>
+#include <AMReX_BLProfiler.H>
+#include <AMReX_ParallelDescriptor.H>
+#include <AmrCoreAdv.H>
+
+
 using namespace amrex;
 using namespace common;
 using namespace gmres;
@@ -433,6 +441,13 @@ void main_driver(const char * argv) {
         force_ibm[d].setVal(0.);
     }
 
+    AmrCoreAdv amr_core_adv;
+
+//    if (solve_chem)
+//    {
+//        amr_core_adv.InitData();
+//        amrex::Print()<< "Solving for chemical fields"<< std::endl;
+//    }
 
 
     /****************************************************************************
