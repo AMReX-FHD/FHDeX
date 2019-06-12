@@ -538,7 +538,7 @@ contains
             do l = 2,4
                xflux(i+1,j,k,l) = xflux(i+1,j,k,l) + sqrt(sFac*etatF)*xsflux(i+1,j,k,l)
             end do
-            ! xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,5) + velu*sqrt(sFac*etatF)*xsflux(i+1,j,k,2) + velv*sqrt(sFac*etatF)*xsflux(i+1,j,k,3) + velw*sqrt(sFac*etatF)*xsflux(i+1,j,k,4)
+            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,5) + velu*sqrt(sFac*etatF)*xsflux(i+1,j,k,2) + velv*sqrt(sFac*etatF)*xsflux(i+1,j,k,3) + velw*sqrt(sFac*etatF)*xsflux(i+1,j,k,4)
 
           end do
         end do
@@ -580,57 +580,57 @@ contains
 !         end do
 !       endif
 
-      ! !if on lower bound and specular
-      ! if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do j = lo(2),hi(2)
+      !if on lower bound and specular
+      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do j = lo(2),hi(2)
 
-      !             xflux(0,j,k,l) = 0        
+                  xflux(0,j,k,l) = 0        
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on upper bound and specular
-      ! if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do j = lo(2),hi(2)
+      !if on upper bound and specular
+      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do j = lo(2),hi(2)
 
-      !             xflux(hi(1)+1,j,k,l) = 0           
+                  xflux(hi(1)+1,j,k,l) = 0           
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on lower bound and diff
-      ! if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do j = lo(2),hi(2)
+      !if on lower bound and diff
+      if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do j = lo(2),hi(2)
 
-      !             xflux(0,j,k,l) = 1.4142*xflux(0,j,k,2)
+                  xflux(0,j,k,l) = 1.4142*xflux(0,j,k,2)
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on upper bound and diff
-      ! if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do j = lo(2),hi(2)
+      !if on upper bound and diff
+      if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do j = lo(2),hi(2)
 
-      !             xflux(hi(1)+1,j,k,l) = 1.4142*xflux(hi(1)+1,j,k,l)        
+                  xflux(hi(1)+1,j,k,l) = 1.4142*xflux(hi(1)+1,j,k,l)        
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
       do k = lo(3),hi(3)
         do j = lo(2)-1,hi(2)
@@ -687,63 +687,63 @@ contains
             do l = 2,4
                yflux(i,j+1,k,l) = yflux(i,j+1,k,l) + sqrt(sFac*etatF)*ysflux(i,j+1,k,l)
             end do
-            ! yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velu*sqrt(sFac*etatF)*ysflux(i,j+1,k,2) + velv*sqrt(sFac*etatF)*ysflux(i,j+1,k,3) + velw*sqrt(sFac*etatF)*ysflux(i,j+1,k,4)
+            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velu*sqrt(sFac*etatF)*ysflux(i,j+1,k,2) + velv*sqrt(sFac*etatF)*ysflux(i,j+1,k,3) + velw*sqrt(sFac*etatF)*ysflux(i,j+1,k,4)
 
           end do
         end do
       end do
 
-      ! !if on lower bound and specular
-      ! if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do i = lo(1),hi(1)
+      !if on lower bound and specular
+      if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do i = lo(1),hi(1)
 
-      !             yflux(i,0,k,l) = 0        
+                  yflux(i,0,k,l) = 0        
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on upper bound and specular
-      ! if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do i = lo(1),hi(1)
+      !if on upper bound and specular
+      if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do i = lo(1),hi(1)
 
-      !             yflux(i,hi(2)+1,k,l) = 0           
+                  yflux(i,hi(2)+1,k,l) = 0           
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on lower bound and diff
-      ! if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do i = lo(1),hi(1)
+      !if on lower bound and diff
+      if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do i = lo(1),hi(1)
 
-      !             yflux(i,0,k,l) = 1.4142*yflux(i,0,k,4)
+                  yflux(i,0,k,l) = 1.4142*yflux(i,0,k,4)
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on upper bound and diff
-      ! if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
-      !    do l = 2,5
-      !       do k = lo(3),hi(3)
-      !          do i = lo(1),hi(1)
+      !if on upper bound and diff
+      if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
+         do l = 2,5
+            do k = lo(3),hi(3)
+               do i = lo(1),hi(1)
 
-      !             yflux(i,hi(2)+1,k,l) = 1.4142*yflux(i,hi(2)+1,k,l)        
+                  yflux(i,hi(2)+1,k,l) = 1.4142*yflux(i,hi(2)+1,k,l)        
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
       do k = lo(3)-1,hi(3)
         do j = lo(2),hi(2)
@@ -801,50 +801,63 @@ contains
             do l = 2,4
                zflux(i,j,k+1,l) = zflux(i,j,k+1,l) + sqrt(sFac*etatF)*zsflux(i,j,k+1,l)
             end do
-            ! zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velu*sqrt(sFac*etatF)*zsflux(i,j,k+1,2) + velv*sqrt(sFac*etatF)*zsflux(i,j,k+1,3) + velw*sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
+            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velu*sqrt(sFac*etatF)*zsflux(i,j,k+1,2) + velv*sqrt(sFac*etatF)*zsflux(i,j,k+1,3) + velw*sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
 
           end do
         end do
       end do
 
-      ! !if on lower bound and specular
-      ! if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 1)) then
-      !    do l = 2,5
-      !       do j = lo(2),hi(2)
-      !          do i = lo(1),hi(1)
+      !if on lower bound and specular
+      if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 1)) then
+         do l = 2,5
+            do j = lo(2),hi(2)
+               do i = lo(1),hi(1)
 
-      !             zflux(i,j,0,l) = 0
+                  zflux(i,j,0,l) = 0
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on upper bound and specular
-      ! if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 1)) then
-      !    do l = 2,5
-      !       do j = lo(2),hi(2)
-      !          do i = lo(1),hi(1)
+      !if on upper bound and specular
+      if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 1)) then
+         do l = 2,5
+            do j = lo(2),hi(2)
+               do i = lo(1),hi(1)
 
-      !             zflux(i,j,hi(3)+1,l) = 0           
+                  zflux(i,j,hi(3)+1,l) = 0           
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
 
-      ! !if on lower bound and diff
-      ! if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 2)) then
-      !    do l = 2,5
-      !       do j = lo(2),hi(2)
-      !          do i = lo(1),hi(1)
+      !if on lower bound and diff
+      if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 2)) then
+         do l = 2,5
+            do j = lo(2),hi(2)
+               do i = lo(1),hi(1)
 
-      !             zflux(i,j,0,l) = 1.4142*zflux(i,j,0,5)
+                  zflux(i,j,0,l) = 1.4142*zflux(i,j,0,5)
 
-      !          end do
-      !       end do
-      !    end do
-      ! endif
+               end do
+            end do
+         end do
+      endif
+
+      !if on upper bound and diff
+      if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 2)) then
+         do l = 2,5
+            do j = lo(2),hi(2)
+               do i = lo(1),hi(1)
+
+                  zflux(i,j,hi(3)+1,l) = 1.4142*zflux(i,j,hi(3)+1,l)        
+
+               end do
+            end do
+         end do
+      endif
 
       
   end subroutine stoch_flux
@@ -991,12 +1004,12 @@ contains
             cornwz(i+1,j+1,k+1) = 0.25d0*muxp*(prim(i,j,k+1,4)-prim(i,j,k,4) + prim(i+1,j,k+1,4)-prim(i+1,j,k,4) + prim(i,j+1,k+1,4)-prim(i,j+1,k,4) + prim(i+1,j+1,k+1,4)-prim(i+1,j+1,k,4))*dxinv(3)
 
             visccorn(i+1,j+1,k+1) =  (muxp*onetwelfth+zetaxp*0.25d0)*( & ! Divergence stress
-                                     (prim(i+1,j,k,2)-prim(i,j,k,2))*dxinv(1) + (prim(i+1,j+1,k,2)-prim(i,j+1,k,2))*dxinv(1) + &
-                                     (prim(i+1,j,k+1,2)-prim(i,j,k+1,2))*dxinv(1) + (prim(i+1,j+1,k+1,2)-prim(i,j+1,k+1,2))*dxinv(1) + &
-                                     (prim(i,j+1,k,3)-prim(i,j,k,3))*dxinv(2) + (prim(i+1,j+1,k,3)-prim(i+1,j,k,3))*dxinv(2) + &
-                                     (prim(i,j+1,k+1,3)-prim(i,j,k+1,3))*dxinv(2) + (prim(i+1,j+1,k+1,3)-prim(i+1,j,k+1,3))*dxinv(2) + &
-                                     (prim(i,j,k+1,4)-prim(i,j,k,4))*dxinv(3) + (prim(i+1,j,k+1,4)-prim(i+1,j,k,4))*dxinv(3) + &
-                                     (prim(i,j+1,k+1,4)-prim(i,j+1,k,4))*dxinv(3) + (prim(i+1,j+1,k+1,4)-prim(i+1,j+1,k,4))*dxinv(3))
+                                     (prim(i+1,j  ,k  ,2)-prim(i  ,j  ,k  ,2))*dxinv(1) + (prim(i+1,j+1,k  ,2)-prim(i  ,j+1,k  ,2))*dxinv(1) + &
+                                     (prim(i+1,j  ,k+1,2)-prim(i  ,j  ,k+1,2))*dxinv(1) + (prim(i+1,j+1,k+1,2)-prim(i  ,j+1,k+1,2))*dxinv(1) + &
+                                     (prim(i  ,j+1,k  ,3)-prim(i  ,j  ,k  ,3))*dxinv(2) + (prim(i+1,j+1,k  ,3)-prim(i+1,j  ,k  ,3))*dxinv(2) + &
+                                     (prim(i  ,j+1,k+1,3)-prim(i  ,j  ,k+1,3))*dxinv(2) + (prim(i+1,j+1,k+1,3)-prim(i+1,j  ,k+1,3))*dxinv(2) + &
+                                     (prim(i  ,j  ,k+1,4)-prim(i  ,j  ,k  ,4))*dxinv(3) + (prim(i+1,j  ,k+1,4)-prim(i+1,j  ,k  ,4))*dxinv(3) + &
+                                     (prim(i  ,j+1,k+1,4)-prim(i  ,j+1,k  ,4))*dxinv(3) + (prim(i+1,j+1,k+1,4)-prim(i+1,j+1,k  ,4))*dxinv(3))
 
           end do
         end do

@@ -317,8 +317,7 @@ void main_driver(const char* argv)
     kappa.FillBoundary(geom.periodicity());
     
     // Impose membrane BCs
-    if (membrane_cell >= 0) 
-      setBC(prim, cu, eta, zeta, kappa);
+    setBC(prim, cu, eta, zeta, kappa);
 
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
@@ -387,10 +386,10 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        // if(step%500 == 0)
-        // {    
+        if(step%500 == 0)
+        {    
 	amrex::Print() << "Advanced step " << step << "\n";
-        // }
+        }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {
