@@ -486,6 +486,41 @@ void main_driver(const char * argv) {
     // }
 
 
+    ib_pc.FillMarkerPositions(0, 64);
+
+
+    //___________________________________________________________________________
+    // Temporary place to store marker forces _outside_ advanve
+    // => this will be moved to the IBParticleContainer class ASAP
+
+    Vector<IBP_info> ibp_info;
+
+    // NOTE: use `ib_pc` BoxArray to collect IB particle data
+    MultiFab dummy(ib_pc.ParticleBoxArray(0),
+                   ib_pc.ParticleDistributionMap(0), 1, 1);
+    for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
+        IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        ib_pc.IBParticleInfo(ibp_info, 0, index, true);
+    }
+
+    Vector<ParticleIndex> part_indices(ibp_info.size());
+
+    IBMarkerMap marker_force_0;
+
+    for (int i=0; i<ibp_info.size(); ++i) {
+        part_indices[i] = ibp_info[i].asPairIndex();
+
+        // Pre-allocate particle arrays
+        const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+        // ... initialized to (0..0) by default constructor
+        marker_force_0[part_indices[i]].resize(marker_positions.size());
+    }
+
+    //---------------------------------------------------------------------------
+
+
+
+
     for(step = 1; step <= max_step; ++step) {
         Real step_strt_time = ParallelDescriptor::second();
 
@@ -510,13 +545,12 @@ void main_driver(const char * argv) {
         Real t0_ib = 0;
 
         ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
-        ib_pc.FillMarkerPositions(0, 64);
 
 
         //_______________________________________________________________________
         // Advance umac
 
-        advance(umac, umacNew, pres, tracer, force_ibm,
+        advance(umac, umacNew, pres, tracer, force_ibm, marker_force_0,
                 mfluxdiv_predict, mfluxdiv_correct,
                 alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt);
 

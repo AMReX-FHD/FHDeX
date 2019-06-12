@@ -29,6 +29,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
              std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
              MultiFab & pres, MultiFab & tracer,
              std::array<MultiFab, AMREX_SPACEDIM> & force_ibm,
+             IBMarkerMap & ib_forces,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
@@ -209,7 +210,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     int ibpc_lev = 0; // assume single level for now
     int ib_grow  = 6; // using the 6-point stencil
 
-    Real spring_coefficient = 1e6;
+    Real spring_coefficient = 1e4;
 
 
     //___________________________________________________________________________
@@ -295,6 +296,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     for (const auto & pindex : part_indices) {
         const auto & vel   = marker_vel.at(pindex);
         const auto & pos   = marker_pos.at(pindex);
+        const auto & f_0   = ib_forces.at(pindex);
               auto & pos_0 = marker_pos_0.at(pindex);
               auto & del_0 = marker_delta_0.at(pindex);
               auto & force = marker_force_0.at(pindex);
@@ -302,7 +304,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         for (int i=0; i<vel.size(); ++i) {
             del_0[i] = dt*vel[i];
             pos_0[i] = pos[i] + del_0[i];
-            force[i] = -spring_coefficient*del_0[i];
+            force[i] = f_0[i] - spring_coefficient*del_0[i];
 
             if (i == 10)
                 Print() << "predictor force[" << i << "] = " << force[i] << std::endl;
@@ -521,6 +523,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     for (const auto & pindex : part_indices) {
         const auto & vel   = marker_vel.at(pindex);
         const auto & pos   = marker_pos.at(pindex);
+        const auto & f_0   = ib_forces.at(pindex);
               auto & pos_1 = marker_pos_1.at(pindex);
               auto & del_1 = marker_delta_1.at(pindex);
               auto & force = marker_force_1.at(pindex);
@@ -528,7 +531,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         for (int i=0; i<vel.size(); ++i) {
             del_1[i] = dt*vel[i];
             pos_1[i] = pos[i] + del_1[i];
-            force[i] = -spring_coefficient*del_1[i];
+            force[i] = f_0[i] - spring_coefficient*del_1[i];
 
             if (i == 10)
                 Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
