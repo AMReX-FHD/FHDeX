@@ -46,17 +46,17 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-//#endif
-
-                p.pos(0) = dx[0] + ll*(phi[0] - 2*dx[0]);
-                p.pos(1) = 4*dx[1];
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = 4*dx[2];
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
+
+//                p.pos(0) = dx[0] + ll*(phi[0] - 2*dx[0]);
+//                p.pos(1) = 4*dx[1];
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = 4*dx[2];
+//#endif
                 ll++;
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
@@ -109,7 +109,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
 
                 p.idata(IntData::species) = i_spec +1;
-                
+		p.rdata(RealData::potential) = 0.;                 
                 particle_tile.push_back(p);
 
                 pcount++;
