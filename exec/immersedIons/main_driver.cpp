@@ -750,7 +750,7 @@ void main_driver(const char* argv)
         
 
         //compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if((variance_coef_mom != 0.0) && fluid_tog == 1) {
           // compute the random numbers needed for the stochastic momentum forcing
@@ -759,7 +759,7 @@ void main_driver(const char* argv)
           sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
         }
 
-  	    advance(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+  	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 
         if(move_tog==1)

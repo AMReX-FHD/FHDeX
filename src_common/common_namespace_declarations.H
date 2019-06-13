@@ -135,10 +135,8 @@ amrex::Vector<amrex::Real> common::efreq;
 amrex::Vector<amrex::Real> common::ephase;
 
 int                        common::plot_ascii;
+int                        common::particle_motion;
+
 
 bool                       common::solve_chem;
-
-
-
-
 

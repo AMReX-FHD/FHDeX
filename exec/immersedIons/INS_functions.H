@@ -41,7 +41,17 @@ void WritePlotFileHydro(int step,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& pres, std::array< MultiFab, AMREX_SPACEDIM >& umacM, std::array< MultiFab, AMREX_SPACEDIM >& umacV);
 
-void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
+void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
+	       MultiFab& pres,
+	       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
+	       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
+	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+	       MultiFab& beta,
+               MultiFab& gamma,
+	       std::array< MultiFab, NUM_EDGE >& beta_ed,
+	       const Geometry geom, const Real& dt);
+
+void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       MultiFab& pres,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
 	       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,

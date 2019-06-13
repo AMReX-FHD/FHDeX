@@ -288,6 +288,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 }
 
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                           const MultiFab& charge,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            const MultiFab& cellCenters,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
@@ -338,6 +339,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(efield[2][pti]),
 #endif
+                         BL_TO_FORTRAN_3D(charge[pti]),
                          BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
                          BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
 #if (AMREX_SPACEDIM == 3)
@@ -742,7 +744,6 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
 //        delHolder3[i] = del3;
 //        delHolder4[i] = del4;
 //        delHolder5[i] = del5;
-//        delHolder6[i] = del6;
 //    }
 
 //    ParallelDescriptor::ReduceRealSum(totalMass);

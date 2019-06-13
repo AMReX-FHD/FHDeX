@@ -131,6 +131,7 @@ module common_namelist_module
   double precision,   save :: ephase(3)
 
   integer,            save :: plot_ascii
+  integer,            save :: particle_motion
 
   logical,             save :: solve_chem
   ! Problem specification
@@ -301,6 +302,7 @@ module common_namelist_module
   namelist /common/ ephase
 
   namelist /common/ plot_ascii
+  namelist /common/ particle_motion
 
 contains
 
@@ -382,6 +384,8 @@ contains
 
     pkernel_fluid = 4    
     pkernel_es = 4
+
+    particle_motion = 0    
         
 
     ! read in common namelist
@@ -426,7 +430,7 @@ contains
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in) &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, particle_motion_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -555,6 +559,7 @@ contains
     double precision,       intent(inout) :: ephase_in(3)
 
     integer,                intent(inout) :: plot_ascii_in
+    integer,                intent(inout) :: particle_motion_in
 
     prob_lo_in = prob_lo
     prob_hi_in = prob_hi
@@ -674,6 +679,7 @@ contains
     ephase_in = ephase
 
     plot_ascii_in = plot_ascii
+    particle_motion_in = particle_motion
 
   end subroutine initialize_common_namespace
 
