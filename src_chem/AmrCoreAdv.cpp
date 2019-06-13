@@ -661,6 +661,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     Vector<int> yloc;
     Vector<int> zloc;
     Real strength = 0.001;
+    Real Sphere_cent_x=0.5;
+    Real Sphere_cent_y=0.5;
+    Real Sphere_cent_z=0.5;
 
     MultiFab &  S_new     = * phi_new[lev];
     MultiFab &  uface_lev = * uface[lev];
@@ -685,13 +688,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
 
-    static Vector<Real> ib_init_pos;
-
-    {
-        ParmParse pp("mfix");
-        int n = pp.countval("ib_init__pos");
-        if (n > 0) pp.getarr("ib_init__pos",ib_init_pos, 0, n);
-    }
+//    static Vector<Real> ib_init_pos;
+//
+//    {
+//        ParmParse pp("mfix");
+//        int n = pp.countval("ib_init__pos");
+//        if (n > 0) pp.getarr("ib_init__pos",ib_init_pos, 0, n);
+//    }
 
 
 #ifdef _OPENMP
@@ -722,7 +725,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                 get_ptsource_2d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
-                                 & strength, dx, & ib_init_pos[0], & ib_init_pos[1],
+                                 & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
                                  AMREX_ZFILL(prob_lo));
 
                 // compute new state (stateout) and fluxes.
@@ -740,11 +743,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                            dx, & dt_lev, &diffcoeff);
             } else {
                 // fill the point source multifab from the tagged interface multifab
+std::cout << "before get_ptsource_3d"<<std::endl;
+ 
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
-                                 & strength, dx, & ib_init_pos[0], & ib_init_pos[1],
-                                 & ib_init_pos[2], AMREX_ZFILL(prob_lo));
+                                 & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
+                                 & Sphere_cent_z, AMREX_ZFILL(prob_lo));
 
                 // compute new state (stateout) and fluxes.
                 advect_3d(& time, bx.loVect(), bx.hiVect(),
@@ -800,7 +805,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabsx),
                                 BL_TO_FORTRAN_3D(fabsy),
                                 BL_TO_FORTRAN_3D(fabsl),
-                                & ib_init_pos[0], & ib_init_pos[1],
+                                & Sphere_cent_x, & Sphere_cent_y,
                                 dx, AMREX_ZFILL(prob_lo));
             } else {
                 get_phigrad_3d( bx.loVect(), bx.hiVect(),
@@ -809,8 +814,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabsy),
                                 BL_TO_FORTRAN_3D(fabsz),
                                 BL_TO_FORTRAN_3D(fabsl),
-                                & ib_init_pos[0], & ib_init_pos[1],
-                                & ib_init_pos[2], dx, AMREX_ZFILL(prob_lo));
+                                & Sphere_cent_x, & Sphere_cent_y,
+                                & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
             }
         }
     }
