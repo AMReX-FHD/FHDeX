@@ -22,10 +22,10 @@
   max_step = 100000
   plot_int = 10000
 
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  ! Viscous tensor form
+  ! if abs(visc_type) = 1, L = not-symmetric (bulk viscosity = 0)
+  ! if abs(visc_type) = 2, L = symmetric (bulk viscosity = 0)
+  ! if abs(visc_type) = 3, L = symmetric + bulk viscosity
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
   !visc_coef = 1.
@@ -39,7 +39,7 @@
   rho0 = 4.83e-4
 
   struct_fact_int = 100
-  n_steps_skip = 10000
+  n_steps_skip = 20000
 
   ! Boundary conditions
   ! ----------------------
