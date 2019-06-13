@@ -30,6 +30,10 @@ extern "C"
                         const amrex_real* phi,
                         const amrex_real* dx);
 
+                void amrex_compute_poisson_correction_nl(void* particles, const int* np,
+                        const void* ghosts,    const int* nn,
+                        const int* neighbor_list, const int* size, amrex_real* rcount);
+
                 void amrex_compute_forces_nl(void* particles, const int* np,
                         const void* ghosts,    const int* nn,
                         const int* neighbor_list, const int* size, amrex_real* rcount);

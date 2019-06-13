@@ -137,6 +137,64 @@ subroutine calculate_force(particles, np, lo, hi, &
   
 end subroutine calculate_force
 
+!!!!!!!!!!!!!!!!!!!!!
+subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, & 
+                                     nn, nl, size, rcount) &
+       bind(c,name='amrex_compute_poisson_correction_nl')
+
+    use iso_c_binding
+    use amrex_fort_module,           only : amrex_real
+    use cell_sorted_particle_module, only : particle_t
+    use common_namelist_module, only: cut_off, rmin
+        
+    integer,          intent(in   ) :: np, nn, size
+    real(amrex_real), intent(inout) :: rcount
+    type(particle_t), intent(inout) :: rparticles(np)
+    type(particle_t), intent(inout) :: neighbors(nn)
+    integer,          intent(in   ) :: nl(size)
+
+    real(amrex_real) :: dx(3), r2, r, coef, mass
+    integer :: i, j, index, nneighbors
+
+    type(particle_t)                    :: particles(np+nn)
+        
+    particles(    1:np) = rparticles
+    particles(np+1:   ) = neighbors
+ 
+    
+    index = 1
+    do i = 1, np
+
+
+       nneighbors = nl(index)
+       index = index + 1
+
+       !print *, "particle ", i, " has ", nneighbors, " neighbours."
+
+       do j = index, index + nneighbors - 1
+
+          dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
+          dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
+          dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
+
+          r2 = dx(1) * dx(1) + dx(2) * dx(2) + dx(3) * dx(3)
+          r2 = max(r2, rmin*rmin) 
+          r = sqrt(r2)
+
+          ! DO SOMETHING! 
+
+       end do
+
+       index = index + nneighbors
+
+    end do
+
+    rparticles(:) = particles(1:np)
+    neighbors(:)  = particles(np+1:)
+
+end subroutine amrex_compute_poisson_correction_nl
+!!!!!!!!!!!!!!!!!!!!!
+
 subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
                                      nn, nl, size, rcount) &
        bind(c,name='amrex_compute_forces_nl')
