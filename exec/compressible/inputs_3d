@@ -21,8 +21,8 @@
   fixed_dt = 1e-12
 
   ! Controls for number of steps between actions
-  max_step = 20000
-  plot_int = 2000
+  max_step = 250000
+  plot_int = 250000
 
   ! Viscous tensor form
   ! if abs(visc_type) = 1, L = not-symmetric (bulk viscosity = 0)
@@ -40,8 +40,8 @@
   T_init(1) = 300
   rho0 = 4.83e-4
 
-  struct_fact_int = 20
-  n_steps_skip = 2000
+  struct_fact_int = 250
+  n_steps_skip = 25000
 
   ! Boundary conditions
   ! ----------------------
