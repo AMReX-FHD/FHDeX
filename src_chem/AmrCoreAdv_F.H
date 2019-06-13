@@ -14,18 +14,6 @@ extern "C"
 		  BL_FORT_FAB_ARG_3D(state),
 		  const amrex_real* dx, const amrex_real* problo);
 
-    void get_face_velocity_2d(const int* level, const amrex_real* time, 
-			   AMREX_D_DECL(BL_FORT_FAB_ARG(xvel),
-				  BL_FORT_FAB_ARG(yvel),
-				  BL_FORT_FAB_ARG(zvel)),
-			   const amrex_real* dx, const amrex_real* problo);
-    
-    void get_face_velocity_3d(const int* level, const amrex_real* time,
-                           AMREX_D_DECL(BL_FORT_FAB_ARG(xvel),
-                                  BL_FORT_FAB_ARG(yvel),
-                                  BL_FORT_FAB_ARG(zvel)),
-                           const amrex_real* dx, const amrex_real* problo);
-
 
     void state_error(int* tag, const int* tag_lo, const int* tag_hi,
 		     const BL_FORT_FAB_ARG_3D(state),

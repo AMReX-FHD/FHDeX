@@ -10,9 +10,8 @@
 #ifdef BL_MEM_PROFILING
 #include <AMReX_MemProfiler.H>
 #endif
-
-#include <AmrCoreAdv.H>
 #include <AmrCoreAdv_F.H>
+#include <AmrCoreAdv.H>
 
 using namespace amrex;
 
@@ -25,7 +24,7 @@ using namespace amrex;
 
 void AmrCoreAdv::Initialize()
 {
-    ReadParameters();
+//    ReadParameters();
 
     int nlevs_max = max_level + 1;
 
@@ -44,6 +43,8 @@ void AmrCoreAdv::Initialize()
     Dphi_y.resize(nlevs_max);
     Dphi_z.resize(nlevs_max);
 
+    bcs.resize(1);
+    
     // periodic boundaries
     int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
     int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
@@ -53,14 +54,14 @@ void AmrCoreAdv::Initialize()
     int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
     int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
 */
-
+//    bcs.resize(1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         // lo-side BCs
         if (bc_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_lo[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setLo(idim, bc_lo[idim]);
+            bcs[0].setLo(idim, bc_lo[idim]);
         }
         else {
             amrex::Abort("Invalid bc_lo");
@@ -70,7 +71,7 @@ void AmrCoreAdv::Initialize()
         if (bc_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
             bc_hi[idim] == BCType::foextrap ||  // first-order extrapolation
             bc_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs.setHi(idim, bc_hi[idim]);
+            bcs[0].setHi(idim, bc_hi[idim]);
         }
         else {
             amrex::Abort("Invalid bc_hi");
@@ -479,10 +480,18 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	Vector<Real> stime;
 	GetData(0, time, smf, stime);
 
-	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(phifill));
-	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
-				     geom[lev], physbc);
-    }
+//	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(phifill));
+//	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
+//				     geom[lev], physbc);
+        BndryFuncArray bfunc(phifill);
+        PhysBCFunct<BndryFuncArray> physbc(geom[lev], bcs, bfunc);
+        amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
+                                    geom[lev], physbc, 0);
+
+
+
+  
+   }
     else
     {
 	Vector<MultiFab*> cmf, fmf;
@@ -490,15 +499,18 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-        PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
-        PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+//        PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
+//        PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+        BndryFuncArray bfunc(phifill);
+        PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
+        PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
 
 	Interpolater* mapper = &cell_cons_interp;
 
 	amrex::FillPatchTwoLevels(mf, time, cmf, ctime, fmf, ftime,
 				   0, icomp, ncomp, geom[lev-1], geom[lev],
-				   cphysbc, fphysbc, refRatio(lev-1),
-				   mapper, bcs);
+				   cphysbc,0, fphysbc, 0, refRatio(lev-1),
+				   mapper, bcs,0);
     }
 }
 
@@ -517,15 +529,18 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
     if (cmf.size() != 1) {
 	amrex::Abort("FillCoarsePatch: how did this happen?");
     }
+    BndryFuncArray bfunc(phifill);
+    PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
+    PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
 
-    PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
-    PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
+//    PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(phifill));
+//    PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(phifill));
 
     Interpolater* mapper = &cell_cons_interp;
 
     amrex::InterpFromCoarseLevel(mf, time, *cmf[0], 0, icomp, ncomp, geom[lev-1], geom[lev],
-				 cphysbc, fphysbc, refRatio(lev-1),
-				 mapper, bcs);
+				 cphysbc,0, fphysbc, 0, refRatio(lev-1),
+				 mapper, bcs,0);
 }
 
 // utility to copy in data from phi_old and/or phi_new into another multifab
@@ -840,218 +855,6 @@ void AmrCoreAdv::phi_new_copy(int lev, Vector<std::unique_ptr<MultiFab>> & MF,
     else if (indicator==3) MF[lev]->copy(* Dphi_z[lev], 0, dcomp,1, 0, 0);
     else amrex::Abort( "Incorrect indicator for copying information from AmrCoreAdv to Mfix" );
 }
-
-
-//void
-//AmrCoreAdv::ComputeDt ()
-//{
-//    Vector<Real> dt_tmp(finest_level+1);
-//
-//    for (int lev = 0; lev <= finest_level; ++lev)
-//    {
-//	dt_tmp[lev] = EstTimeStep(lev, true);
-//    }
-//    ParallelDescriptor::ReduceRealMin(&dt_tmp[0], dt_tmp.size());
-//
-//    constexpr Real change_max = 1.1;
-//    Real dt_0 = dt_tmp[0];
-//    int n_factor = 1;
-//    for (int lev = 0; lev <= finest_level; ++lev) {
-//	dt_tmp[lev] = std::min(dt_tmp[lev], change_max*dt[lev]);
-//	n_factor *= nsubsteps[lev];
-//	dt_0 = std::min(dt_0, n_factor*dt_tmp[lev]);
-//    }
-//
-//    // Limit dt's by the value of stop_time.
-//    const Real eps = 1.e-3*dt_0;
-//    if (t_new[0] + dt_0 > stop_time - eps) {
-//	dt_0 = stop_time - t_new[0];
-//    }
-//
-//    dt[0] = dt_0;
-//    for (int lev = 1; lev <= finest_level; ++lev) {
-//	dt[lev] = dt[lev-1] / nsubsteps[lev];
-//    }
-//}
-//
-// compute dt from CFL considerations
-//Real
-//AmrCoreAdv::EstTimeStep (int lev, bool local) const
-//{
-//    BL_PROFILE("AmrCoreAdv::EstTimeStep()");
-//
-//    Real dt_est = std::numeric_limits<Real>::max();
-//
-//    const Real* dx = geom[lev].CellSize();
-//    const Real* prob_lo = geom[lev].ProbLo();
-//    const Real cur_time = t_new[lev];
-//    const MultiFab& S_new = phi_new[lev];
-//
-// #ifdef _OPENMP
-// #pragma omp parallel reduction(min:dt_est)
-// #endif
-//    {
-//	FArrayBox uface[BL_SPACEDIM];
-//
-//	for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi)
-//	{
-//	    for (int i = 0; i < BL_SPACEDIM ; i++) {
-//		const Box& bx = mfi.nodaltilebox(i);
-//		uface[i].resize(bx,1);
-//	    }
-//
-//
-//            if (BL_SPACEDIM==2){
-//            get_face_velocity_2d(&lev, &cur_time,
-//                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-//                                     BL_TO_FORTRAN(uface[1]),
-//                                     BL_TO_FORTRAN(uface[2])),
-//                              dx, prob_lo);
-//                }
-//            else {
-//            get_face_velocity_3d(&lev, &cur_time,
-//                              AMREX_D_DECL(BL_TO_FORTRAN(uface[0]),
-//                                     BL_TO_FORTRAN(uface[1]),
-//                                     BL_TO_FORTRAN(uface[2])),
-//                             dx, prob_lo);
-//                 }
-//	    for (int i = 0; i < BL_SPACEDIM; ++i) {
-//		Real umax = uface[i].norm(0);
-//		if (umax > 1.e-100) {
-//		    dt_est = std::min(dt_est, dx[i] / umax);
-//		}
-//	    }
-//	}
-//  }
-//
-//    if (!local) {
-//	ParallelDescriptor::ReduceRealMin(dt_est);
-//    }
-//
-//    dt_est *= cfl;
-//
-//    return dt_est;
-//}
-//
-// get plotfile name
-//std::string
-//AmrCoreAdv::PlotFileName (int lev) const
-//{
-//    return amrex::Concatenate(plot_file, lev, 5);
-//}
-//
-// put together an array of multifabs for writing
-//Vector<const MultiFab*>
-//AmrCoreAdv::PlotFileMF () const
-//{
-//    Vector<const MultiFab*> r;
-//    for (int i = 0; i <= finest_level; ++i) {
-//	r.push_back(&phi_new[i]);
-//    }
- //   return r;
-//}
-//
-// set plotfile variable names
-//Vector<std::string>
-//AmrCoreAdv::PlotFileVarNames () const
-//{
-//    return {"phi"};
-//}
-
-// write plotfile to disk
-//void
-//AmrCoreAdv::WritePlotFile () const
-//{
-//    const std::string& plotfilename = PlotFileName(istep[0]);
-//    const auto& mf = PlotFileMF();
-//    const auto& varnames = PlotFileVarNames();
-// 
-//    amrex::Print() << "Writing plotfile " << plotfilename << "\n";
-//
-//    amrex::WriteMultiLevelPlotfile(plotfilename, finest_level+1, mf, varnames,
-//				   Geom(), t_new[0], istep, refRatio());
-//}
-
-//void
-//AmrCoreAdv::WriteCheckpointFile () const
-//{
-
-    // chk00010            write a checkpoint file with this root directory
-    // chk00010/Header     this contains information you need to save (e.g., finest_level, t_new, etc.) and also
-    //                     the BoxArrays at each level
-    // chk00010/Level_0/
-    // chk00010/Level_1/
-    // etc.                these subdirectories will hold the MultiFab data at each level of refinement
-
-    // checkpoint file name, e.g., chk00010
-  //  const std::string& checkpointname = amrex::Concatenate(chk_file,istep[0]);
-//
-//    amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
-//
-//    const int nlevels = finest_level+1;
-
-    // ---- prebuild a hierarchy of directories
-    // ---- dirName is built first.  if dirName exists, it is renamed.  then build
-    // ---- dirName/subDirPrefix_0 .. dirName/subDirPrefix_nlevels-1
-    // ---- if callBarrier is true, call ParallelDescriptor::Barrier()
-    // ---- after all directories are built
-    // ---- ParallelDescriptor::IOProcessor() creates the directories
-//    amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, true);
-//
-//    // write Header file
-//   if (ParallelDescriptor::IOProcessor()) {
-//
-//       std::string HeaderFileName(checkpointname + "/Header");
-//       std::ofstream HeaderFile(HeaderFileName.c_str(), std::ofstream::out   |
-//				                        std::ofstream::trunc |
-//				                        std::ofstream::binary);
-//       if( ! HeaderFile.good()) {
-//           amrex::FileOpenFailed(HeaderFileName);
- //      }
-//
- //      HeaderFile.precision(17);
-//
-//       VisMF::IO_Buffer io_buffer(VisMF::IO_Buffer_Size);
- //      HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
-//
-//       // write out title line
-//       HeaderFile << "Checkpoint file for AmrCoreAdv\n";
-//
-//      // write out finest_level
-//       HeaderFile << finest_level << "\n";
-//
-//       // write out array of istep
-//       for (int i = 0; i < istep.size(); ++i) {
-//           HeaderFile << istep[i] << " ";
-//       }
-//       HeaderFile << "\n";
-//
-//       // write out array of dt
-//       for (int i = 0; i < dt.size(); ++i) {
-//           HeaderFile << dt[i] << " ";
-//       }
- //      HeaderFile << "\n";
-//
-//       // write out array of t_new
-//       for (int i = 0; i < t_new.size(); ++i) {
-//           HeaderFile << t_new[i] << " ";
-//       }
-//       HeaderFile << "\n";
-//
-//       // write the BoxArray at each level
-//       for (int lev = 0; lev <= finest_level; ++lev) {
-//           boxArray(lev).writeOn(HeaderFile);
-//           HeaderFile << '\n';
-//       }
-//   }
-//
-//   // write the MultiFab data to, e.g., chk00010/Level_0/
-//  for (int lev = 0; lev <= finest_level; ++lev) {
-//       VisMF::Write(phi_new[lev],
-//                    amrex::MultiFabFileFullPrefix(lev, checkpointname, "Level_", "phi"));
-//   }
-//
-//}
 
 
 void AmrCoreAdv::ReadCheckpointFile ()

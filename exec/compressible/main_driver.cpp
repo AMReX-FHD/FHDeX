@@ -198,7 +198,7 @@ void main_driver(const char* argv)
     prim.setVal(0,3,1,ngc);
     prim.setVal(T_init[0],4,1,ngc);
 
-    amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
+    // amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
 
     double massvec[nspecies];
     double intEnergy, T0;
@@ -315,7 +315,8 @@ void main_driver(const char* argv)
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
-
+    
+    // Impose membrane BCs
     setBC(prim, cu, eta, zeta, kappa);
 
     calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
@@ -368,8 +369,10 @@ void main_driver(const char* argv)
 	// 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
 	// }
-
-        evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	
+	if (step > n_steps_skip) {
+	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	}
 
 	///////////////////////////////////////////
 	// Update structure factor
@@ -383,10 +386,10 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        // if(step%500 == 0)
-        // {    
+        if(step%100 == 0)
+        {    
 	amrex::Print() << "Advanced step " << step << "\n";
-        // }
+        }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {

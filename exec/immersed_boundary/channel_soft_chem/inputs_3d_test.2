@@ -11,18 +11,18 @@
   prob_type = 3
   
   ! number of cells in domain
-  n_cells(1:3) = 128 128 128
+  n_cells(1:3) = 16 16 16
   ! max number of cells in a box
-  max_grid_size(1:3) = 128 128 128
+  max_grid_size(1:3) =  8  8  8 
 
   ! Time-step control
-  fixed_dt = 2e-3
+  fixed_dt = 1e-3
 
   ! Controls for number of steps between actions
-  ! max_step = 020
-  ! plot_int = 020
-  max_step = 020
-  plot_int = 020
+  ! max_step = 200000
+  ! plot_int = 200000
+  max_step = 20
+  plot_int = 10
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -34,7 +34,7 @@
   ! visc_coef = 1.
   visc_coef = 1e-3
 
-  visc_type = 1
+  visc_type = 2
 
   ! Stochastic parameters
   variance_coef_mom = 1.	
@@ -59,10 +59,10 @@
 
 &gmres
 
-  mg_verbose = 0                  ! multigrid verbosity
+  mg_verbose = 1                  ! multigrid verbosity
 
   ! Staggered multigrid solver parameters
-  stag_mg_verbosity = 0          ! verbosity
+  stag_mg_verbosity = 1          ! verbosity
   stag_mg_max_vcycles = 1         ! max number of v-cycles
   stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
   stag_mg_bottom_solver = 0       ! bottom solver type

@@ -212,28 +212,11 @@ public:
         );
 
 
-    // TODO: do we still need this?
-    void AllocData();
-    // TODO: do we still need this?
-    void AllocateArrays(int lev, int nghost);
-
-
-
-    /****************************************************************************
-    * Data Regrid / Data Transfer                                               *
-    ****************************************************************************/
-
-    //void RegridArrays(int lev, BoxArray& new_grids, DistributionMapping& new_dmap);
-    // TODO: do we still need this?
-    void CopyFluidData(int lev, const mfix_level & mf_lev);
-
-    int get_nghost() const {return nghost;};
-
-
-
     /****************************************************************************
      * Output particle data                                                     *
      ***************************************************************************/
+
+    int get_nghost() const {return nghost;};
 
     void PrintParticleData(int lev);
 
@@ -241,16 +224,21 @@ public:
                              bool unique = false) const;
     Vector<IBP_info> LocalIBParticleInfo(int lev, PairIndex index,
                                          bool unique = false) const;
+    Vector<IBP_info> LocalIBParticleInfo(int lev, bool unique = false) const;
+
 
     void NeighborIBParticleInfo(Vector<IBP_info> & npart_info, int lev, PairIndex index,
                                 bool unique = false) const ;
     Vector<IBP_info> NeighborIBParticleInfo(int lev, PairIndex index,
                                             bool unique = false) const;
+    Vector<IBP_info> NeighborIBParticleInfo(int lev, bool unique = false) const;
+
 
     void IBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index,
                         bool unique = false) const;
     Vector<IBP_info> IBParticleInfo(int lev, PairIndex index,
                                     bool unique = false) const;
+    Vector<IBP_info> IBParticleInfo(int lev, bool unique = false) const;
 
 
 

@@ -133,7 +133,7 @@ module common_namelist_module
   integer,            save :: plot_ascii
   integer,            save :: particle_motion
 
-
+  logical,             save :: solve_chem
   ! Problem specification
   namelist /common/ prob_lo       ! physical lo coordinate
   namelist /common/ prob_hi       ! physical hi coordinate

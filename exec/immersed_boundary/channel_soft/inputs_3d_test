@@ -91,5 +91,19 @@
   gmres_min_iter = 1                    ! min number of gmres iterations
 
   p_norm_weight = 1d0
+  ! Chemical solver parameters
+!  solve_chem       = true
+!  diffcoeff       =  0.000001
+!  max_grid_size   =  32
+!! amr.ref_ratio       = 2 2 2 2 # refinement ratio
+!  blocking_factor = 8       # block factor in grid generation
+!  !amr.max_grid_size   = 16
+!
+!amr.regrid_int      = 2  
+!  do_reflux = 0
+!
+! #Tagging
+! adv.phierr = 1.01  1.1  1.5
 
+ 
 /

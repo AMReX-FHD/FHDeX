@@ -109,7 +109,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
 
                 p.idata(IntData::species) = i_spec +1;
-                
+		p.rdata(RealData::potential) = 0.;                 
                 particle_tile.push_back(p);
 
                 pcount++;

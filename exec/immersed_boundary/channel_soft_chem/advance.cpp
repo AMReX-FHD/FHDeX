@@ -19,6 +19,11 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
+//chemistry
+//#include <iostream>
+//#include <AMReX.H>
+//#include <AmrCoreAdv.H>
+
 
 using namespace amrex;
 using namespace common;
@@ -29,7 +34,6 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
              std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
              MultiFab & pres, MultiFab & tracer,
              std::array<MultiFab, AMREX_SPACEDIM> & force_ibm,
-             IBMarkerMap & ib_forces,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
              const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
@@ -71,8 +75,6 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     std::array< MultiFab, AMREX_SPACEDIM > advFluxdivPred;
     // Staggered momentum
     std::array< MultiFab, AMREX_SPACEDIM > uMom;
-    // Staggered pressure gradient
-    std::array< MultiFab, AMREX_SPACEDIM > pg;
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
            gmres_rhs_u[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
@@ -80,8 +82,11 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
             advFluxdiv[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
-                    pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
     }
+
+    std::array< MultiFab, AMREX_SPACEDIM > pg;
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+        pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
 
     // Tracer concentration field for predictor
     MultiFab tracerPred(ba, dmap, 1, 1);
@@ -207,53 +212,76 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
      *                                                                          *
      ***************************************************************************/
 
-    int ibpc_lev = 0; // assume single level for now
-    int ib_grow  = 6; // using the 6-point stencil
+    // MultiFabs storing Immersed-Boundary data
+    std::array<MultiFab, AMREX_SPACEDIM> f_ibm;
+    std::array<MultiFab, AMREX_SPACEDIM> vel_d;
+    std::array<MultiFab, AMREX_SPACEDIM> vel_g;
 
-    Real spring_coefficient = 1e4;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        vel_d[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        vel_g[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+    }
 
 
-    //___________________________________________________________________________
-    // Collect data on the immersed boundaries interacting with this rank
+    // MultiFab tagging the alpha_fc array
+    std::array<MultiFab, AMREX_SPACEDIM> alpha_fc_1;
 
-    Vector<IBP_info> ibp_info = ib_pc.IBParticleInfo(0, true);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        alpha_fc_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
 
 
-    //___________________________________________________________________________
-    // Storage data structures for immersed boundary markers
+    // Gradient of p, where div(grad(p)) = div(r), where r is the slip velocity
+    // due to the unconstrained stokes problem.
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_ibm_f;
 
-    Vector<ParticleIndex> part_indices(ibp_info.size());
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        tmp_ibm_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_ibm_f[d].setVal(0.);
+    }
 
-    IBMarkerMap marker_pos;
-    IBMarkerMap marker_vel;
-    IBMarkerMap marker_pos_0;
-    IBMarkerMap marker_delta_0;
-    IBMarkerMap marker_force_0;
-    IBMarkerMap marker_pos_1;
-    IBMarkerMap marker_delta_1;
-    IBMarkerMap marker_force_1;
 
 
     //___________________________________________________________________________
     // Build coefficients for IB spreading and interpolation operators
 
-    for (int i=0; i<ibp_info.size(); ++i) {
-        part_indices[i] = ibp_info[i].asPairIndex();
+    int lev_ib = 0;
 
-        // Pre-allocate particle arrays
-        const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
-        // ... initialized to (0..0) by default constructor
-        marker_vel[part_indices[i]].resize(marker_positions.size());
-        marker_delta_0[part_indices[i]].resize(marker_positions.size());
-        marker_force_0[part_indices[i]].resize(marker_positions.size());
-        marker_delta_1[part_indices[i]].resize(marker_positions.size());
-        marker_force_1[part_indices[i]].resize(marker_positions.size());
+    ib_core.ImplicitDeposition(f_ibm[0], f_ibm[1], f_ibm[2],
+                               vel_d[0], vel_d[1], vel_d[2],
+                               vel_g[0], vel_g[1], vel_g[2],
+                               lev_ib, dt);
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        f_ibm[d].FillBoundary(geom.periodicity());
 
 
-        // Fill these with initial values
-        marker_pos[part_indices[i]]   = marker_positions;
-        marker_pos_0[part_indices[i]] = marker_positions;
-        marker_pos_1[part_indices[i]] = marker_positions;
+    //___________________________________________________________________________
+    // For debug purposes: Write out the immersed-boundary data
+
+    VisMF::Write(f_ibm[0], "ib_data/f_u");
+    VisMF::Write(f_ibm[1], "ib_data/f_v");
+    VisMF::Write(f_ibm[2], "ib_data/f_w");
+
+    VisMF::Write(vel_d[0], "ib_data/u_d");
+    VisMF::Write(vel_d[1], "ib_data/v_d");
+    VisMF::Write(vel_d[2], "ib_data/w_d");
+
+    VisMF::Write(vel_g[0], "ib_data/u_g");
+    VisMF::Write(vel_g[1], "ib_data/v_g");
+    VisMF::Write(vel_g[2], "ib_data/w_g");
+
+
+    //___________________________________________________________________________
+    // Tag alpha_fc to solve implicit immersed boundary force
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(alpha_fc_1[d], f_ibm[d], 0, 0, 1, 1);
+        // 1e6 is a magic number (for now)
+        // alpha_fc_1[d].mult(1.e6, 1);
+        alpha_fc_1[d].mult(0, 1);
+        // Tag implicit force terms
+        MultiFab::Add(alpha_fc_1[d], alpha_fc[d], 0, 0, 1, 1);
     }
 
 
@@ -263,6 +291,64 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
      * Advance immersed boundary markers (for predictor's force)                *
      *                                                                          *
      ***************************************************************************/
+
+    int ibpc_lev = 0; // assume single level for now
+    int ib_grow  = 6; // using the 6-point stencil
+
+    Real spring_coefficient = 1e3;
+
+
+    //___________________________________________________________________________
+    // Collect data on the immersed boundaries interacting with this rank
+
+    Vector<IBP_info> ibp_info;
+
+    // NOTE: use `ib_pc` BoxArray to collect IB particle data
+    MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev),
+                   ib_pc.ParticleDistributionMap(ibpc_lev), 1, 1);
+    for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
+        IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        ib_pc.IBParticleInfo(ibp_info, ibpc_lev, index, true);
+    }
+
+
+    //___________________________________________________________________________
+    // Storage data structurs for immersed boundary markers
+
+    Vector<std::pair<int, int>> part_indices(ibp_info.size());
+
+    std::map<std::pair<int, int>, Vector<RealVect>> b_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>> x_lambda;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_vel;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos_0;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_delta_0;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_force_0;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_pos_1;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_delta_1;
+    std::map<std::pair<int, int>, Vector<RealVect>> marker_force_1;
+
+
+    for (int i=0; i<ibp_info.size(); ++i) {
+        part_indices[i] = ibp_info[i].asPairIndex();
+
+        // Pre-allocate particle arrays
+        const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
+        // ... initialized to (0..0) by default constructor
+        b_lambda[part_indices[i]].resize(marker_positions.size());
+        x_lambda[part_indices[i]].resize(marker_positions.size());
+        marker_vel[part_indices[i]].resize(marker_positions.size());
+        marker_delta_0[part_indices[i]].resize(marker_positions.size());
+        marker_force_0[part_indices[i]].resize(marker_positions.size());
+        marker_delta_1[part_indices[i]].resize(marker_positions.size());
+        marker_force_1[part_indices[i]].resize(marker_positions.size());
+
+
+        // Fill these with initial values
+        marker_pos[part_indices[i]] = marker_positions;
+        marker_pos_0[part_indices[i]] = marker_positions;
+        marker_pos_1[part_indices[i]] = marker_positions;
+    }
 
 
     // Explicit force terms used by GMRES to solve for predictor (0) and
@@ -288,7 +374,6 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     for (const auto & pindex : part_indices) {
         const auto & vel   = marker_vel.at(pindex);
         const auto & pos   = marker_pos.at(pindex);
-        const auto & f_0   = ib_forces.at(pindex);
               auto & pos_0 = marker_pos_0.at(pindex);
               auto & del_0 = marker_delta_0.at(pindex);
               auto & force = marker_force_0.at(pindex);
@@ -296,16 +381,15 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
         for (int i=0; i<vel.size(); ++i) {
             del_0[i] = dt*vel[i];
             pos_0[i] = pos[i] + del_0[i];
-            force[i] = f_0[i] - spring_coefficient*del_0[i];
+            force[i] = -spring_coefficient*del_0[i];
 
-            if (i == 10)
-                Print() << "predictor force[" << i << "] = " << force[i] << std::endl;
+            Print() << "predictor force[" << i << "] = " << force[i] << std::endl;
         }
     }
 
-
     //___________________________________________________________________________
     // Add immersed-boundary forces to predictor's RHS
+
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         force_0[d].setVal(0);
@@ -339,11 +423,62 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     }
 
 
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_f_0;
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_f_1;
+    std::array<MultiFab, AMREX_SPACEDIM> r_f;
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_r_f;
+    std::array<MultiFab, AMREX_SPACEDIM> tmp_f_mask;
+    std::array<MultiFab, AMREX_SPACEDIM> force_est;
+
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        tmp_f_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_f_0[d].setVal(0.);
+
+        tmp_f_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_f_1[d].setVal(0.);
+
+        tmp_f_mask[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_f_mask[d].setVal(0.);
+
+        r_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        r_f[d].setVal(0.);
+
+        tmp_r_f[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        tmp_r_f[d].setVal(0.);
+
+        force_est[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        force_est[d].setVal(0.);
+    }
+
+    MultiFab p_f(ba, dmap, 1, 1);
+    p_f.setVal(0.);
+
+    MultiFab tmp_pf(ba, dmap, 1, 1);
+    tmp_pf.setVal(0.);
+
     MultiFab p_0(ba, dmap, 1, 1);
     p_0.setVal(0.);
 
     MultiFab p_1(ba, dmap, 1, 1);
     p_1.setVal(0.);
+
+    MultiFab p_ibm_0(ba, dmap, 1, 1);
+    p_ibm_0.setVal(0.);
+
+    MultiFab p_ibm_1(ba, dmap, 1, 1);
+    p_ibm_1.setVal(0.);
+
+    MultiFab zeros_cc(ba, dmap, 1, 1);
+    zeros_cc.setVal(0.);
+
+    std::array< MultiFab, AMREX_SPACEDIM > ones_fc;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        ones_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        ones_fc[d].setVal(1.);
+    }
+
 
 
     /****************************************************************************
@@ -436,7 +571,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // Call GMRES to compute predictor
 
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_0,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+          alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -449,7 +584,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     /****************************************************************************
      *                                                                          *
-     * ADVANCE (CORRECTOR) STEP (crank-nicolson heun's method: part 2)          *
+     * ADVANCE (CORRECTOR) STEP (crank-nicolosn heun's method: part 2)          *
      *                                                                          *
      ***************************************************************************/
 
@@ -501,85 +636,123 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
 
     //___________________________________________________________________________
-    // Predictor step: advect immersed boundary markers
+    // Solve IBM constraint force by iterating
+    // NOTE: 100 max attempts at getting the residual down, TODO: pass this as a
+    // parameter (or tie to MAX ITER)
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        force_1[d].setVal(0);
+    for (int i=0; i<10; i++) {
 
-    for (const auto & pindex : part_indices) {
-        auto & vel = marker_vel.at(pindex);
 
-        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umacNew);
-    }
+        //___________________________________________________________________________
+        // Predictor step: advect immersed boundary markers
 
-    for (const auto & pindex : part_indices) {
-        const auto & vel   = marker_vel.at(pindex);
-        const auto & pos   = marker_pos.at(pindex);
-              auto & f_0   = ib_forces.at(pindex);
-              auto & pos_1 = marker_pos_1.at(pindex);
-              auto & del_1 = marker_delta_1.at(pindex);
-              auto & force = marker_force_1.at(pindex);
 
-        for (int i=0; i<vel.size(); ++i) {
-            del_1[i] = dt*vel[i];
-            pos_1[i] = pos[i] + del_1[i];
-            force[i] = f_0[i] - spring_coefficient*del_1[i];
-            f_0[i]   = force[i];
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            force_1[d].setVal(0);
 
-            if (i == 10)
-                Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
+
+
+        for (const auto & pindex : part_indices) {
+            auto & vel = marker_vel.at(pindex);
+
+            ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umacNew);
         }
+
+        for (const auto & pindex : part_indices) {
+            const auto & vel   = marker_vel.at(pindex);
+            const auto & pos   = marker_pos.at(pindex);
+                  auto & pos_1 = marker_pos_1.at(pindex);
+                  auto & del_1 = marker_delta_1.at(pindex);
+                  auto & force = marker_force_1.at(pindex);
+
+            for (int i=0; i<vel.size(); ++i) {
+                del_1[i] = dt*vel[i];
+                pos_1[i] = pos[i] + del_1[i];
+                force[i] -= spring_coefficient*del_1[i];
+
+                if (i == 10)
+                    Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
+            }
+        }
+
+
+        //___________________________________________________________________________
+        // Add immersed-boundary forces to predictor's RHS
+
+        for (const auto & pindex : part_indices) {
+            const auto & force = marker_force_1.at(pindex);
+
+            ib_pc.SpreadMarkers(ibpc_lev, pindex, force, force_1);
+        }
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            force_1[d].FillBoundary(geom.periodicity());
+            VisMF::Write(force_1[d], "force_1_" + std::to_string(d));
+        }
+
+
+        //_______________________________________________________________________
+        // Set up the RHS for the corrector
+
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+            // explicit part
+            MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
+            gmres_rhs_u[d].mult(dtinv, 1);
+
+            MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
+            MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
+            MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
+            MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
+            MultiFab::Add(gmres_rhs_u[d], force_1[d],          0, 0, 1, 1);
+
+            // fill boundary before adding pressure part to prevent it from
+            // overwriding any pressure gradients in the ghost cells
+            gmres_rhs_u[d].FillBoundary(geom.periodicity());
+
+            // add pressure
+            pg[d].FillBoundary(geom.periodicity());
+            MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
+
+            // initial guess for new solution
+            MultiFab::Copy(umacNew[d], umac_1[d], 0, 0, 1, 1);
+        }
+
+        //_______________________________________________________________________
+        // call GMRES to compute corrector
+
+        GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
+              alpha_fc_1, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+              geom, norm_pre_rhs);
+
+
+        //_______________________________________________________________________
+        // Slip velocity term
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Copy    (r_f[d], umacNew[d], 0, 0, 1, 1);
+            MultiFab::Multiply(r_f[d], f_ibm[d],   0, 0, 1, 1);
+            r_f[d].mult(-1., 0);
+        }
+
+
+        //_______________________________________________________________________
+        // Updated slip velocity as error estimate
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            r_f[d].setVal(0.);
+            MultiFab::Copy    (r_f[d], umacNew[d], 0, 0, 1, 1);
+            MultiFab::Multiply(r_f[d], f_ibm[d],   0, 0, 1, 1);
+        }
+
+
+        Real norm_r;
+        StagL2Norm(r_f, 0, norm_r);
+        Print() << "step: " << i << " norm_resid = " << norm_r << std::endl;
+
+
+        // if (norm_r < 1e-12) break;
+        // break;
     }
-
-
-    //___________________________________________________________________________
-    // Add immersed-boundary forces to predictor's RHS
-
-    for (const auto & pindex : part_indices) {
-        const auto & force = marker_force_1.at(pindex);
-
-        ib_pc.SpreadMarkers(ibpc_lev, pindex, force, force_1);
-    }
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        force_1[d].FillBoundary(geom.periodicity());
-        VisMF::Write(force_1[d], "force_1_" + std::to_string(d));
-    }
-
-
-    //_______________________________________________________________________
-    // Set up the RHS for the corrector
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        // explicit part
-        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
-        gmres_rhs_u[d].mult(dtinv, 1);
-
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], force_1[d],          0, 0, 1, 1);
-
-        // fill boundary before adding pressure part to prevent it from
-        // overwriding any pressure gradients in the ghost cells
-        gmres_rhs_u[d].FillBoundary(geom.periodicity());
-
-        // add pressure
-        pg[d].FillBoundary(geom.periodicity());
-        MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
-
-        // initial guess for new solution
-        MultiFab::Copy(umacNew[d], umac_1[d], 0, 0, 1, 1);
-    }
-
-    //_______________________________________________________________________
-    // call GMRES to compute corrector
-
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
-
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // Output velocity solution
@@ -587,6 +760,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // Output immersed-boundary forces
         MultiFab::Copy(force_ibm[d], force_1[d],   0, 0, 1, 1);
+        // Include divergence part
+        MultiFab::Add (force_ibm[d], tmp_ibm_f[d], 0, 0, 1, 1);
 
         // Output pressure solution
         MultiFab::Copy(pres,         p_1,          0, 0, 1, 1);

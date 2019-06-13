@@ -31,74 +31,78 @@ contains
 
       bcell = membrane_cell
 
-      if(lo(1) .eq. bcell) then !Interior rhs, apply slip adiabatic
+      if(bcell .ge. 0) then !Apply if membrane
 
-        !print *, "Bcell!"
+         if(lo(1) .eq. bcell) then !Interior rhs, apply slip adiabatic
 
-        do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-            do i = 1, ngc(1)
+            !print *, "Bcell!"
 
-              eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
-              zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
-              kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
+            do k = lo(3)-ngc(3),hi(3)+ngc(3)
+               do j = lo(2)-ngc(2),hi(2)+ngc(2)
+                  do i = 1, ngc(1)
 
-              cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
-              cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
-              cons(lo(1)-i,j,k,3) = cons(lo(1)-1+i,j,k,3) 
-              cons(lo(1)-i,j,k,4) = cons(lo(1)-1+i,j,k,4) 
-              cons(lo(1)-i,j,k,5) = cons(lo(1)-1+i,j,k,5) 
-             
-              prim(lo(1)-i,j,k,1) = prim(lo(1)-1+i,j,k,1)
-              prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
-              prim(lo(1)-i,j,k,3) = prim(lo(1)-1+i,j,k,3)
-              prim(lo(1)-i,j,k,4) = prim(lo(1)-1+i,j,k,4)
-              prim(lo(1)-i,j,k,5) = prim(lo(1)-1+i,j,k,5)
-              prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
-              
-              do l = 1, nspecies
-                cons(lo(1)-i,j,k,5+l) = cons(lo(1)-1+i,j,k,5+l)
-                prim(lo(1)-i,j,k,6+l) = prim(lo(1)-1+i,j,k,6+l)
-              enddo
+                     eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
+                     zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
+                     kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
+                     cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
+                     cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
+                     cons(lo(1)-i,j,k,3) = cons(lo(1)-1+i,j,k,3) 
+                     cons(lo(1)-i,j,k,4) = cons(lo(1)-1+i,j,k,4) 
+                     cons(lo(1)-i,j,k,5) = cons(lo(1)-1+i,j,k,5) 
+
+                     prim(lo(1)-i,j,k,1) = prim(lo(1)-1+i,j,k,1)
+                     prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
+                     prim(lo(1)-i,j,k,3) = prim(lo(1)-1+i,j,k,3)
+                     prim(lo(1)-i,j,k,4) = prim(lo(1)-1+i,j,k,4)
+                     prim(lo(1)-i,j,k,5) = prim(lo(1)-1+i,j,k,5)
+                     prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
+
+                     do l = 1, nspecies
+                        cons(lo(1)-i,j,k,5+l) = cons(lo(1)-1+i,j,k,5+l)
+                        prim(lo(1)-i,j,k,6+l) = prim(lo(1)-1+i,j,k,6+l)
+                     enddo
+
+                  enddo
+               enddo
             enddo
-          enddo
-        enddo
 
-      endif
+         endif
 
 
-      if(hi(1) .eq. bcell-1) then !Interior lhs, apply slip adiabatic
+         if(hi(1) .eq. bcell-1) then !Interior lhs, apply slip adiabatic
 
-        do k = lo(3)-ngc(3),hi(3)+ngc(3)
-          do j = lo(2)-ngc(2),hi(2)+ngc(2)
-            do i = 1, ngc(1)
+            do k = lo(3)-ngc(3),hi(3)+ngc(3)
+               do j = lo(2)-ngc(2),hi(2)+ngc(2)
+                  do i = 1, ngc(1)
 
-              eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
-              zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
-              kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)         
+                     eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
+                     zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
+                     kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)         
 
-              cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
-              cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
-              cons(hi(1)+i,j,k,3) = cons(hi(1)+1-i,j,k,3) 
-              cons(hi(1)+i,j,k,4) = cons(hi(1)+1-i,j,k,4) 
-              cons(hi(1)+i,j,k,5) = cons(hi(1)+1-i,j,k,5) 
-             
-              prim(hi(1)+i,j,k,1) = prim(hi(1)+1-i,j,k,1)
-              prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
-              prim(hi(1)+i,j,k,3) = prim(hi(1)+1-i,j,k,3)
-              prim(hi(1)+i,j,k,4) = prim(hi(1)+1-i,j,k,4)
-              prim(hi(1)+i,j,k,5) = prim(hi(1)+1-i,j,k,5)
-              prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
-              
-              do l = 1, nspecies
-                cons(hi(1)+i,j,k,5+l) = cons(hi(1)+1-i,j,k,5+l)
-                prim(hi(1)+i,j,k,6+l) = prim(hi(1)+1-i,j,k,6+l)
-              enddo
+                     cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
+                     cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
+                     cons(hi(1)+i,j,k,3) = cons(hi(1)+1-i,j,k,3) 
+                     cons(hi(1)+i,j,k,4) = cons(hi(1)+1-i,j,k,4) 
+                     cons(hi(1)+i,j,k,5) = cons(hi(1)+1-i,j,k,5) 
 
+                     prim(hi(1)+i,j,k,1) = prim(hi(1)+1-i,j,k,1)
+                     prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
+                     prim(hi(1)+i,j,k,3) = prim(hi(1)+1-i,j,k,3)
+                     prim(hi(1)+i,j,k,4) = prim(hi(1)+1-i,j,k,4)
+                     prim(hi(1)+i,j,k,5) = prim(hi(1)+1-i,j,k,5)
+                     prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
+
+                     do l = 1, nspecies
+                        cons(hi(1)+i,j,k,5+l) = cons(hi(1)+1-i,j,k,5+l)
+                        prim(hi(1)+i,j,k,6+l) = prim(hi(1)+1-i,j,k,6+l)
+                     enddo
+
+                  enddo
+               enddo
             enddo
-          enddo
-        enddo
+         endif
+
       endif
 
       if(lo(1) .eq. 0) then !lower x bound
