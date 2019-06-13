@@ -216,17 +216,9 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank
 
-    Vector<IBP_info> ibp_info;
+    Vector<IBP_info> ibp_info = ib_pc.IBParticleInfo(0, true);
 
-    // NOTE: use `ib_pc` BoxArray to collect IB particle data
-    MultiFab dummy(ib_pc.ParticleBoxArray(ibpc_lev),
-                   ib_pc.ParticleDistributionMap(ibpc_lev), 1, 1);
-    for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
-        IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
-        ib_pc.IBParticleInfo(ibp_info, ibpc_lev, index, true);
-    }
 
-    //
     //___________________________________________________________________________
     // Storage data structures for immersed boundary markers
 

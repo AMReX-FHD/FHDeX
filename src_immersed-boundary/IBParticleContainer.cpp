@@ -439,7 +439,12 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
     // Cell-centered MultiFab used as a reference for iterating over data
     // WARNING: this will break if IBParticleContainer is on a differnt grid
     // than the grid which we're spreading to
-    MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_out[0].nGrow());
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, f_out[0].nGrow());
+
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
@@ -516,8 +521,13 @@ void IBParticleContainer::InvInterpolateMarkers(int lev, const ParticleIndex & p
     //___________________________________________________________________________
     // Cell-centered MultiFab used as a reference for iterating over data
     // WARNING: this will break if IBParticleContainer is on a differnt grid
-    // than the grid which we're spreading to
-    MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_out[0].nGrow());
+    // than the grid which we're inverse interpolating to
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, f_out[0].nGrow());
+
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
@@ -569,7 +579,13 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
 
     //___________________________________________________________________________
     // Cell-centered MultiFab used as a reference for iterating over data
-    MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_in[0].nGrow());
+    // WARNING: this will break if IBParticleContainer is on a differnt grid
+    // than the grid which we're interpolating from
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
 
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
@@ -646,7 +662,13 @@ void IBParticleContainer::InvSpreadMarkers(int lev, const ParticleIndex & pindex
 
     //___________________________________________________________________________
     // Cell-centered MultiFab used as a reference for iterating over data
-    MultiFab dummy(ParticleBoxArray(0), ParticleDistributionMap(0), 1, f_in[0].nGrow());
+    // WARNING: this will break if IBParticleContainer is on a differnt grid
+    // than the grid which we're inverse spreading from
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
 
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
@@ -1102,6 +1124,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
 }
 
 
+
 Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex index,
                                                           bool unique) const {
 
@@ -1111,6 +1134,36 @@ Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, PairIndex ind
     //___________________________________________________________________________
     // Fill Particle Info vector with local (non-neighbour) data
     LocalIBParticleInfo(info, lev, index, unique);
+
+
+    return info;
+}
+
+
+
+Vector<IBP_info> IBParticleContainer::LocalIBParticleInfo(int lev, bool unique) const {
+
+    // Allocate Particle Info vector
+    Vector<IBP_info> info;
+
+    //___________________________________________________________________________
+    // Cell-centered MultiFab used as a reference for iterating over data
+    // WARNING: this will break if IBParticleContainer is on a differnt grid
+    // than the grid which we're searching for particles (this should usually
+    // be fine though)
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, 1);
+
+    //___________________________________________________________________________
+    // Iterate over `dummy` looking for particles. NOTE: use the
+    // IBParticleContainer tile size
+    for (MFIter mfi(dummy, tile_size); mfi.isValid(); ++mfi){
+        PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        LocalIBParticleInfo(info, lev, index, true);
+    }
 
 
     return info;
@@ -1189,6 +1242,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
 }
 
 
+
 Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex index,
                                                              bool unique) const {
 
@@ -1198,6 +1252,36 @@ Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, PairIndex 
     //___________________________________________________________________________
     // Fill Particle Info vector with neighbour data
     NeighborIBParticleInfo(info, lev, index, unique);
+
+
+    return info;
+}
+
+
+
+Vector<IBP_info> IBParticleContainer::NeighborIBParticleInfo(int lev, bool unique) const {
+
+    // Allocate Particle Info vector
+    Vector<IBP_info> info;
+
+    //___________________________________________________________________________
+    // Cell-centered MultiFab used as a reference for iterating over data
+    // WARNING: this will break if IBParticleContainer is on a differnt grid
+    // than the grid which we're searching for particles (this should usually
+    // be fine though)
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, 1);
+
+    //___________________________________________________________________________
+    // Iterate over `dummy` looking for particles. NOTE: use the
+    // IBParticleContainer tile size
+    for (MFIter mfi(dummy, tile_size); mfi.isValid(); ++mfi){
+        PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        NeighborIBParticleInfo(info, lev, index, true);
+    }
 
 
     return info;
@@ -1226,6 +1310,36 @@ Vector<IBP_info> IBParticleContainer::IBParticleInfo(int lev, PairIndex index,
     // Fill Particle Info vector with local (non-neighbour) and neighbour data
        LocalIBParticleInfo(info, lev, index, unique);
     NeighborIBParticleInfo(info, lev, index, unique);
+
+
+    return info;
+}
+
+
+
+Vector<IBP_info> IBParticleContainer::IBParticleInfo(int lev, bool unique) const {
+
+    // Allocate Particle Info vector
+    Vector<IBP_info> info;
+
+    //___________________________________________________________________________
+    // Cell-centered MultiFab used as a reference for iterating over data
+    // WARNING: this will break if IBParticleContainer is on a differnt grid
+    // than the grid which we're searching for particles (this should usually
+    // be fine though)
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, 1);
+
+    //___________________________________________________________________________
+    // Iterate over `dummy` looking for particles. NOTE: use the
+    // IBParticleContainer tile size
+    for (MFIter mfi(dummy, tile_size); mfi.isValid(); ++mfi){
+        PairIndex index(mfi.index(), mfi.LocalTileIndex());
+        IBParticleInfo(info, lev, index, true);
+    }
 
 
     return info;

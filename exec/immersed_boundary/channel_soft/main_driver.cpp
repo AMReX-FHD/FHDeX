@@ -468,8 +468,6 @@ void main_driver(const char * argv) {
     }
 
 
-
-
     //___________________________________________________________________________
     // FFT test
     // if (struct_fact_int > 0) {
