@@ -195,5 +195,6 @@ namespace common {
     extern amrex::Vector<amrex::Real> ephase;
 
     extern int                        plot_ascii;
+    extern int                        particle_motion;
     
 }
