@@ -95,12 +95,11 @@ void AmrCoreAdv::Initialize()
  *******************************************************************************/
 
 void AmrCoreAdv::EvolveChem(
-        const Vector< std::unique_ptr<MultiFab> > & u_g,
-        const Vector< std::unique_ptr<MultiFab> > & v_g,
-        const Vector< std::unique_ptr<MultiFab> > & w_g,
-        const iMultiFab & iface,
-        int lev, int step, Real dt_fluid, Real time)
+        std::array<MultiFab, AMREX_SPACEDIM> * umac, 
+        const iMultiFab & iface, int nstep, int lev,
+        Real dt_fluid)
 {
+    int time=0;
     dt[lev] = dt_fluid;
 
     // initialize copies of velocities u_g, v_g, w_g and first derivatives of
@@ -134,13 +133,13 @@ void AmrCoreAdv::EvolveChem(
         Dphi_y[lev]->setVal(0.);
         Dphi_z[lev]->setVal(0.);
 
-        uface[lev]->copy(* u_g[lev], 0, 0, 1, 0, 0);
-        vface[lev]->copy(* v_g[lev], 0, 0, 1, 0, 0);
-        wface[lev]->copy(* w_g[lev], 0, 0, 1, 0, 0);
+       uface[lev]->copy(&(umac)(0), 0, 0, 1, 0, 0);
+       vface[lev]->copy(*(umac)[1], 0, 0, 1, 0, 0);
+       wface[lev]->copy(umac[2], 0, 0, 1, 0, 0);
 
-        uface[lev]->FillBoundary(geom[lev].periodicity());
-        vface[lev]->FillBoundary(geom[lev].periodicity());
-        wface[lev]->FillBoundary(geom[lev].periodicity());
+       uface[lev]->FillBoundary(geom[lev].periodicity());
+       vface[lev]->FillBoundary(geom[lev].periodicity());
+       wface[lev]->FillBoundary(geom[lev].periodicity());
     }
 
     source_loc.reset(new iMultiFab(phiba, phidm, 1, 1));

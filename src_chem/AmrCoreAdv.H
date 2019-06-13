@@ -33,11 +33,9 @@ public:
 
     // advance solution (of the advection diffusion equation) in time
     void EvolveChem(
-            const Vector< std::unique_ptr<MultiFab> > & u_g,
-            const Vector< std::unique_ptr<MultiFab> > & v_g,
-            const Vector< std::unique_ptr<MultiFab> > & w_g,
+            std::array<MultiFab, AMREX_SPACEDIM>  & umac, 
             const iMultiFab & iface,
-            int lev, int step, Real dt_fluid, Real time);
+            int lev, int step, Real dt_fluid);
 
     // initializes multilevel data
     void InitData ();
