@@ -1,7 +1,7 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, membrane_cell
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, membrane_cell, visc_type
   use conv_module, only : get_temperature, get_pressure_gas, get_temperature_gas, get_energy, get_density_gas, get_energy_gas
   implicit none
 
@@ -80,8 +80,11 @@ contains
 #endif
             !div = dux + dvy + dwz
             div = dux !1D
-
-            taux = zetaf*div + etaf*(2d0*dux - twothirds*div)
+            
+            taux = etaf*(2d0*dux - twothirds*div)
+            if (abs(visc_type) .eq. 3) then
+               taux = taux + zetaf*div
+            endif
             tauy = etaf*(duy + dvx)
             tauz = etaf*(duz + dwx)
 
@@ -158,7 +161,10 @@ contains
            div = dux + dvy + dwz
 
            taux = etaf*(duy +  dvx)
-           tauy = zetaf*div + etaf*(2d0*dvy - twothirds*div)                  
+           tauy = etaf*(2d0*dvy - twothirds*div)                  
+           if (abs(visc_type) .eq. 3) then
+              tauy = tauy + zetaf*div                  
+           endif
            tauz = etaf*(dvz + dwy)
 
            !momentum fluxes
@@ -230,7 +236,10 @@ contains
 
            taux = etaf*(duz + dwx)
            tauy = etaf*(dvz + dwy)
-           tauz = zetaf*div + etaf*(2d0*dwz - twothirds*div)
+           tauz = etaf*(2d0*dwz - twothirds*div)
+           if (abs(visc_type) .eq. 3) then
+              tauz = tauz + zetaf*div
+           endif
 
            !momentum fluxes
            zflux(i,j,k+1,2) = zflux(i,j,k+1,2) - taux
@@ -485,60 +494,85 @@ contains
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
           do i = lo(1)-1,hi(1)
+             
+             if (abs(visc_type) .gt. 1) then
 
+                !! JB's tensor form
 
-!             muxp = (eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5))
-!             kxp = (kappa(i+1,j,k)*prim(i+1,j,k,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2)
+                muxp = (eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5))
+                kxp = (kappa(i+1,j,k)*prim(i+1,j,k,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2)
 
-!             fweights(1) = 0
-!             fweights(2:4)=sqrt(k_b*muxp*volinv*dtinv)
-!             fweights(5)=sqrt(k_b*kxp*volinv*dtinv)
+                fweights(1) = 0
+                fweights(2:4)=sqrt(k_b*muxp*volinv*dtinv)
+                fweights(5)=sqrt(k_b*kxp*volinv*dtinv)
 
-!             weiner(1:5) = weights(1)*fweights(1:5)*xsflux(i+1,j,k,1:5)
+                weiner(1:5) = weights(1)*fweights(1:5)*xsflux(i+1,j,k,1:5)
 
-!             nweight=sqrt(k_b*volinv*dtinv)
+                nweight=sqrt(k_b*volinv*dtinv)
 
-!             muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
-!                               eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
-!             muzemp = 0.25d0*(eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
-!                               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + eta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
-!                               eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
-!             muzepm = 0.25d0*(eta(i+1,j,k-1)*prim(i+1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
-!                               eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,5) + eta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
-!                               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) )/3.d0
-!             muzemm = 0.25d0*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,5) + eta(i,j-1,k-1)*prim(i,j-1,k-1,5) + &
-!                               eta(i+1,j,k-1)*prim(i+1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
-!                               eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
-!                               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
+                muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+                     eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
+                     eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
+                muzemp = 0.25d0*(eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
+                     eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + eta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
+                     eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
+                muzepm = 0.25d0*(eta(i+1,j,k-1)*prim(i+1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
+                     eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,5) + eta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
+                     eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) )/3.d0
+                muzemm = 0.25d0*(eta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,5) + eta(i,j-1,k-1)*prim(i,j-1,k-1,5) + &
+                     eta(i+1,j,k-1)*prim(i+1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
+                     eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
+                     eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
 
-!             weiner(2) = weiner(2) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+sqrt(muzemp)*rancorn(i,j-1,k,1) + sqrt(muzepm)* rancorn(i,j,k-1,1)+sqrt(muzemm)*rancorn(i,j-1,k-1,1))
+                if (abs(visc_type) .eq. 3) then
 
-!             xflux(i+1,j,k,2:5) = xflux(i+1,j,k,2:5) + weiner(2:5)
+                   muzepp = muzepp + 0.25d0*(zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i+1,j+1,k)*prim(i+1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) + &
+                        zeta(i+1,j,k+1)*prim(i+1,j,k+1,5) + zeta(i,j,k+1)*prim(i,j,k+1,5) + &
+                        zeta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + zeta(i,j+1,k+1)*prim(i,j+1,k+1,5) )
+                   muzemp = muzemp + 0.25d0*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) + &
+                        zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
+                        zeta(i+1,j,k+1)*prim(i+1,j,k+1,5) + zeta(i,j,k+1)*prim(i,j,k+1,5) )
+                   muzepm = muzepm + 0.25d0*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,5) + zeta(i,j,k-1)*prim(i,j,k-1,5) + &
+                        zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,5) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
+                        zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i+1,j+1,k)*prim(i+1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) )
+                   muzemm = muzemm + 0.25d0*(zeta(i+1,j-1,k-1)*prim(i+1,j-1,k-1,5) + zeta(i,j-1,k-1)*prim(i,j-1,k-1,5) + &
+                        zeta(i+1,j,k-1)*prim(i+1,j,k-1,5) + zeta(i,j,k-1)*prim(i,j,k-1,5) + &
+                        zeta(i+1,j-1,k)*prim(i+1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) + &
+                        zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) )
 
+                endif
 
-!             phiflx =  (weiner(2)*(prim(i,j,k,2)+prim(i+1,j,k,2)) + weiner(3)*(prim(i,j,k,3)+prim(i+1,j,k,3)) + weiner(4)*(prim(i,j,k,4)+prim(i+1,j,k,4)))*0.5
+                weiner(2) = weiner(2) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+sqrt(muzemp)*rancorn(i,j-1,k,1) + sqrt(muzepm)* rancorn(i,j,k-1,1)+sqrt(muzemm)*rancorn(i,j-1,k-1,1))
 
-!             xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + phiflx
+                xflux(i+1,j,k,2:5) = xflux(i+1,j,k,2:5) + weiner(2:5)
 
-            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i+1,j,k)*prim(i+1,j,k,5)*prim(i+1,j,k,5))
-            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i+1,j,k)*prim(i+1,j,k,5))
-            velu = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
-            velv = 0.5*(prim(i,j,k,3)+prim(i+1,j,k,3))
-            velw = 0.5*(prim(i,j,k,4)+prim(i+1,j,k,4))
+                ! Viscous heating:
+                phiflx =  (weiner(2)*(prim(i,j,k,2)+prim(i+1,j,k,2)) + weiner(3)*(prim(i,j,k,3)+prim(i+1,j,k,3)) + weiner(4)*(prim(i,j,k,4)+prim(i+1,j,k,4)))*0.5
 
-!            if((i .eq. hi(1)) .or. (i .eq. lo(1)-1)) then
-!              velv = 0
-!              velw = 0
-!            endif
-            
-            do l = 2,4
-               xflux(i+1,j,k,l) = xflux(i+1,j,k,l) + sqrt(sFac*etatF)*xsflux(i+1,j,k,l)
-            end do
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,5) + velu*sqrt(sFac*etatF)*xsflux(i+1,j,k,2) + velv*sqrt(sFac*etatF)*xsflux(i+1,j,k,3) + velw*sqrt(sFac*etatF)*xsflux(i+1,j,k,4)
+                xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + phiflx
+
+             else
+
+                !! DL's tensor form
+
+                kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i+1,j,k)*prim(i+1,j,k,5)*prim(i+1,j,k,5))
+                etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i+1,j,k)*prim(i+1,j,k,5))
+                velu = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
+                velv = 0.5*(prim(i,j,k,3)+prim(i+1,j,k,3))
+                velw = 0.5*(prim(i,j,k,4)+prim(i+1,j,k,4))
+
+                do l = 2,4
+                   xflux(i+1,j,k,l) = xflux(i+1,j,k,l) + sqrt(sFac*etatF)*xsflux(i+1,j,k,l)
+                end do
+                xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,5) + velu*sqrt(sFac*etatF)*xsflux(i+1,j,k,2) + velv*sqrt(sFac*etatF)*xsflux(i+1,j,k,3) + velw*sqrt(sFac*etatF)*xsflux(i+1,j,k,4)
+
+             endif
 
           end do
         end do
@@ -636,172 +670,239 @@ contains
         do j = lo(2)-1,hi(2)
           do i = lo(1),hi(1)
 
+             if (abs(visc_type) .gt. 1) then
 
-!             muyp = eta(i,j+1,k)*prim(i,j+1,k,5) + eta(i,j,k)*prim(i,j,k,5)
-!             kyp = kappa(i,j+1,k)*prim(i,j+1,k,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2
+                !! JB's tensor form
 
-!             fweights(1) = 0
-!             fweights(2:4)=sqrt(k_b*muyp*volinv*dtinv)
-!             fweights(5)=sqrt(k_b*kyp*volinv*dtinv)
+                muyp = eta(i,j+1,k)*prim(i,j+1,k,5) + eta(i,j,k)*prim(i,j,k,5)
+                kyp = kappa(i,j+1,k)*prim(i,j+1,k,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2
 
-!             weiner(1:5) = weights(1)*fweights(1:5)*ysflux(i,j+1,k,1:5)
+                fweights(1) = 0
+                fweights(2:4)=sqrt(k_b*muyp*volinv*dtinv)
+                fweights(5)=sqrt(k_b*kyp*volinv*dtinv)
 
-!             nweight=sqrt(k_b*volinv*dtinv)
+                weiner(1:5) = weights(1)*fweights(1:5)*ysflux(i,j+1,k,1:5)
 
-!             muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
-!                               eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
+                nweight=sqrt(k_b*volinv*dtinv)
 
-!             muzemp = 0.25d0*(eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
-!                               eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
+                muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+                     eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
+                     eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
 
-!             muzepm = 0.25d0*(eta(i+1,j,k-1)*prim(i+1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
-!                               eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,5) + eta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
-!                               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) )/3.d0
-!                               
-!             muzemm = 0.25d0*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,5) + eta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
-!                               eta(i-1,j,k-1)*prim(i-1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
-!                               eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
+                muzemp = 0.25d0*(eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+                     eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
+                     eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
 
-!             weiner(3) = weiner(3) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+ sqrt(muzemp)*rancorn(i-1,j,k,1) + sqrt(muzepm)*rancorn(i,j,k-1,1) + sqrt(muzemm)*rancorn(i-1,j,k-1,1))
+                muzepm = 0.25d0*(eta(i+1,j,k-1)*prim(i+1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
+                     eta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,5) + eta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
+                     eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) )/3.d0
 
-!             yflux(i,j+1,k,2:5) = yflux(i,j+1,k,2:5) + weiner(2:5)
+                muzemm = 0.25d0*(eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,5) + eta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
+                     eta(i-1,j,k-1)*prim(i-1,j,k-1,5) + eta(i,j,k-1)*prim(i,j,k-1,5) + &
+                     eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+                     eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
 
-!             phiflx = 0.5*(weiner(2)*(prim(i,j,k,2)+prim(i,j+1,k,2)) + weiner(3)*(prim(i,j,k,3)+prim(i,j+1,k,3)) + weiner(4)*(prim(i,j,k,4)+prim(i,j+1,k,4)))
+                if (abs(visc_type) .eq. 3) then
 
-!             yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + phiflx
+                   muzepp = muzepp + 0.25d0*(zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i+1,j+1,k)*prim(i+1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) + &
+                        zeta(i+1,j,k+1)*prim(i+1,j,k+1,5) + zeta(i,j,k+1)*prim(i,j,k+1,5) + &
+                        zeta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + zeta(i,j+1,k+1)*prim(i,j+1,k+1,5) )
 
-            !print *, "y: ", phiflx
+                   muzemp = muzemp + 0.25d0*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) + &
+                        zeta(i-1,j,k)*prim(i-1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + zeta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
+                        zeta(i-1,j,k+1)*prim(i-1,j,k+1,5) + zeta(i,j,k+1)*prim(i,j,k+1,5) )
 
-            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
-            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
-            velu = 0.5*(prim(i,j,k,2)+prim(i,j+1,k,2))            
-            velv = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
-            velw = 0.5*(prim(i,j,k,4)+prim(i,j+1,k,4))
-            
-            do l = 2,4
-               yflux(i,j+1,k,l) = yflux(i,j+1,k,l) + sqrt(sFac*etatF)*ysflux(i,j+1,k,l)
-            end do
-            yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velu*sqrt(sFac*etatF)*ysflux(i,j+1,k,2) + velv*sqrt(sFac*etatF)*ysflux(i,j+1,k,3) + velw*sqrt(sFac*etatF)*ysflux(i,j+1,k,4)
+                   muzepm =  muzepm +0.25d0*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,5) + zeta(i,j,k-1)*prim(i,j,k-1,5) + &
+                        zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,5) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
+                        zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i+1,j+1,k)*prim(i+1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) )
+
+
+                   muzemm = muzemm + 0.25d0*(zeta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,5) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,5) + &
+                        zeta(i-1,j,k-1)*prim(i-1,j,k-1,5) + zeta(i,j,k-1)*prim(i,j,k-1,5) + &
+                        zeta(i-1,j+1,k)*prim(i-1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) + &
+                        zeta(i-1,j,k)*prim(i-1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) )
+
+                endif
+
+                weiner(3) = weiner(3) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+ sqrt(muzemp)*rancorn(i-1,j,k,1) + sqrt(muzepm)*rancorn(i,j,k-1,1) + sqrt(muzemm)*rancorn(i-1,j,k-1,1))
+
+                yflux(i,j+1,k,2:5) = yflux(i,j+1,k,2:5) + weiner(2:5)
+
+                phiflx = 0.5*(weiner(2)*(prim(i,j,k,2)+prim(i,j+1,k,2)) + weiner(3)*(prim(i,j,k,3)+prim(i,j+1,k,3)) + weiner(4)*(prim(i,j,k,4)+prim(i,j+1,k,4)))
+
+                yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + phiflx
+
+                ! print *, "y: ", phiflx
+
+             else
+
+                !! DL's tensor form
+
+                kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
+                etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
+                velu = 0.5*(prim(i,j,k,2)+prim(i,j+1,k,2))            
+                velv = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
+                velw = 0.5*(prim(i,j,k,4)+prim(i,j+1,k,4))
+
+                do l = 2,4
+                   yflux(i,j+1,k,l) = yflux(i,j+1,k,l) + sqrt(sFac*etatF)*ysflux(i,j+1,k,l)
+                end do
+                yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velu*sqrt(sFac*etatF)*ysflux(i,j+1,k,2) + velv*sqrt(sFac*etatF)*ysflux(i,j+1,k,3) + velw*sqrt(sFac*etatF)*ysflux(i,j+1,k,4)
+
+             endif
 
           end do
-        end do
-      end do
+       end do
+    end do
 
-      !if on lower bound and specular
-      if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
-         do l = 2,5
-            do k = lo(3),hi(3)
-               do i = lo(1),hi(1)
+    !if on lower bound and specular
+    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
+       do l = 2,5
+          do k = lo(3),hi(3)
+             do i = lo(1),hi(1)
 
-                  yflux(i,0,k,l) = 0        
+                yflux(i,0,k,l) = 0        
 
-               end do
-            end do
-         end do
-      endif
+             end do
+          end do
+       end do
+    endif
 
-      !if on upper bound and specular
-      if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
-         do l = 2,5
-            do k = lo(3),hi(3)
-               do i = lo(1),hi(1)
+    !if on upper bound and specular
+    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
+       do l = 2,5
+          do k = lo(3),hi(3)
+             do i = lo(1),hi(1)
 
-                  yflux(i,hi(2)+1,k,l) = 0           
+                yflux(i,hi(2)+1,k,l) = 0           
 
-               end do
-            end do
-         end do
-      endif
+             end do
+          end do
+       end do
+    endif
 
-      !if on lower bound and diff
-      if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
-         do l = 2,5
-            do k = lo(3),hi(3)
-               do i = lo(1),hi(1)
+    !if on lower bound and diff
+    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
+       do l = 2,5
+          do k = lo(3),hi(3)
+             do i = lo(1),hi(1)
 
-                  yflux(i,0,k,l) = 1.4142*yflux(i,0,k,4)
+                yflux(i,0,k,l) = 1.4142*yflux(i,0,k,4)
 
-               end do
-            end do
-         end do
-      endif
+             end do
+          end do
+       end do
+    endif
 
-      !if on upper bound and diff
-      if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
-         do l = 2,5
-            do k = lo(3),hi(3)
-               do i = lo(1),hi(1)
+    !if on upper bound and diff
+    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
+       do l = 2,5
+          do k = lo(3),hi(3)
+             do i = lo(1),hi(1)
 
-                  yflux(i,hi(2)+1,k,l) = 1.4142*yflux(i,hi(2)+1,k,l)        
+                yflux(i,hi(2)+1,k,l) = 1.4142*yflux(i,hi(2)+1,k,l)        
 
-               end do
-            end do
-         end do
-      endif
+             end do
+          end do
+       end do
+    endif
 
-      do k = lo(3)-1,hi(3)
-        do j = lo(2),hi(2)
+    do k = lo(3)-1,hi(3)
+       do j = lo(2),hi(2)
           do i = lo(1),hi(1)
 
-!            muzp = eta(i,j,k+1)*prim(i,j,k+1,5) + eta(i,j,k)*prim(i,j,k,5)
-!            kzp = kappa(i,j,k+1)*prim(i,j,k+1,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2
+             if (abs(visc_type) .gt. 1) then
 
-!            fweights(1)=0 ! No mass flux
-!            fweights(2:4)=sqrt(k_b*muzp*volinv*dtinv)
-!            fweights(5)=sqrt(k_b*kzp*volinv*dtinv)
+                !! JB's tensor form:
 
-!            weiner(1:5) = weights(1)*fweights(1:5)*zsflux(i,j,k+1,1:5)
+                muzp = eta(i,j,k+1)*prim(i,j,k+1,5) + eta(i,j,k)*prim(i,j,k,5)
+                kzp = kappa(i,j,k+1)*prim(i,j,k+1,5)**2 + kappa(i,j,k)*prim(i,j,k,5)**2
 
-!            nweight=sqrt(k_b*volinv*dtinv)
+                fweights(1)=0 ! No mass flux
+                fweights(2:4)=sqrt(k_b*muzp*volinv*dtinv)
+                fweights(5)=sqrt(k_b*kzp*volinv*dtinv)
 
-!             muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
-!                               eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
+                weiner(1:5) = weights(1)*fweights(1:5)*zsflux(i,j,k+1,1:5)
 
-!             muzemp = 0.25d0*(eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
-!                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
-!                               eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
+                nweight=sqrt(k_b*volinv*dtinv)
 
-!             muzepm = 0.25d0*(eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k-1)*prim(i,j,k+1,5) + &
-!                               eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + eta(i,j-1,k-1)*prim(i,j-1,k+1,5) + &
-!                               eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
-!                               eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) )/3.d0
-!                               
-!             muzemm = 0.25d0*(eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,5) + eta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
-!                               eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
-!                               eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
-!                               eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
+                muzepp = 0.25d0*(eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i+1,j+1,k)*prim(i+1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+                     eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
+                     eta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) )/3.d0
 
-!            weiner(4) = weiner(4) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+ sqrt(muzemp)*rancorn(i-1,j,k,1) + sqrt(muzepm)*rancorn(i,j-1,k,1)+ sqrt(muzemm)*rancorn(i-1,j-1,k,1))
+                muzemp = 0.25d0*(eta(i-1,j+1,k)*prim(i-1,j+1,k,5) + eta(i,j+1,k)*prim(i,j+1,k,5) + &
+                     eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + eta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
+                     eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) )/3.d0
 
-!            zflux(i,j,k+1,2:5) = zflux(i,j,k+1,2:5) + weiner(2:5)
+                muzepm = 0.25d0*(eta(i+1,j,k+1)*prim(i+1,j,k+1,5) + eta(i,j,k-1)*prim(i,j,k+1,5) + &
+                     eta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + eta(i,j-1,k-1)*prim(i,j-1,k+1,5) + &
+                     eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) )/3.d0
 
-!          ! Viscous heating:
-!            phiflx =  0.5d0*(weiner(2)*(prim(i,j,k,2)+prim(i,j,k+1,2)) + weiner(3)*(prim(i,j,k,3)+prim(i,j,k+1,3))+weiner(4)*(prim(i,j,k,4)+prim(i,j,k+1,4)))
+                muzemm = 0.25d0*(eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,5) + eta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
+                     eta(i-1,j,k+1)*prim(i-1,j,k+1,5) + eta(i,j,k+1)*prim(i,j,k+1,5) + &
+                     eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
+                     eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
 
+                if (abs(visc_type) .eq. 3) then
 
-!            !print *, "z: ", phiflx
+                   muzepp = muzepp+ 0.25d0*(zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i+1,j+1,k)*prim(i+1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) + &
+                        zeta(i+1,j,k+1)*prim(i+1,j,k+1,5) + zeta(i,j,k+1)*prim(i,j,k+1,5) + &
+                        zeta(i+1,j+1,k+1)*prim(i+1,j+1,k+1,5) + zeta(i,j+1,k+1)*prim(i,j+1,k+1,5) )
 
-!            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + phiflx
+                   muzemp = muzemp + 0.25d0*(zeta(i-1,j+1,k)*prim(i-1,j+1,k,5) + zeta(i,j+1,k)*prim(i,j+1,k,5) + &
+                        zeta(i-1,j,k)*prim(i-1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) + zeta(i,j+1,k+1)*prim(i,j+1,k+1,5) + &
+                        zeta(i-1,j,k+1)*prim(i-1,j,k+1,5) + zeta(i,j,k+1)*prim(i,j,k+1,5) )
 
-            kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
-            etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
-            velu = 0.5*(prim(i,j,k,2)+prim(i,j,k+1,2))
-            velv = 0.5*(prim(i,j,k,3)+prim(i,j,k+1,3))
-            velw = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
+                   muzepm = muzepm + 0.25d0*(zeta(i+1,j,k+1)*prim(i+1,j,k+1,5) + zeta(i,j,k-1)*prim(i,j,k+1,5) + &
+                        zeta(i+1,j-1,k+1)*prim(i+1,j-1,k+1,5) + zeta(i,j-1,k-1)*prim(i,j-1,k+1,5) + &
+                        zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i+1,j-1,k)*prim(i+1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) )
 
-            do l = 2,4
-               zflux(i,j,k+1,l) = zflux(i,j,k+1,l) + sqrt(sFac*etatF)*zsflux(i,j,k+1,l)
-            end do
-            zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velu*sqrt(sFac*etatF)*zsflux(i,j,k+1,2) + velv*sqrt(sFac*etatF)*zsflux(i,j,k+1,3) + velw*sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
+                   muzemm = muzemm + 0.25d0*(zeta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,5) + zeta(i,j-1,k+1)*prim(i,j-1,k+1,5) + &
+                        zeta(i-1,j,k+1)*prim(i-1,j,k+1,5) + zeta(i,j,k+1)*prim(i,j,k+1,5) + &
+                        zeta(i-1,j-1,k)*prim(i-1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) + &
+                        zeta(i-1,j,k)*prim(i-1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) )
+
+                endif
+
+                weiner(4) = weiner(4) + weights(1)*0.25d0*nweight*(sqrt(muzepp)*rancorn(i,j,k,1)+ sqrt(muzemp)*rancorn(i-1,j,k,1) + sqrt(muzepm)*rancorn(i,j-1,k,1)+ sqrt(muzemm)*rancorn(i-1,j-1,k,1))
+
+                zflux(i,j,k+1,2:5) = zflux(i,j,k+1,2:5) + weiner(2:5)
+
+                ! Viscous heating:
+                phiflx =  0.5d0*(weiner(2)*(prim(i,j,k,2)+prim(i,j,k+1,2)) + weiner(3)*(prim(i,j,k,3)+prim(i,j,k+1,3))+weiner(4)*(prim(i,j,k,4)+prim(i,j,k+1,4)))
+
+                zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + phiflx
+
+                !            !print *, "z: ", phiflx
+
+             else
+
+                !! DL's tensor form:
+
+                kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
+                etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
+                velu = 0.5*(prim(i,j,k,2)+prim(i,j,k+1,2))
+                velv = 0.5*(prim(i,j,k,3)+prim(i,j,k+1,3))
+                velw = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
+
+                do l = 2,4
+                   zflux(i,j,k+1,l) = zflux(i,j,k+1,l) + sqrt(sFac*etatF)*zsflux(i,j,k+1,l)
+                end do
+                zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velu*sqrt(sFac*etatF)*zsflux(i,j,k+1,2) + velv*sqrt(sFac*etatF)*zsflux(i,j,k+1,3) + velw*sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
+
+             endif
 
           end do
         end do
