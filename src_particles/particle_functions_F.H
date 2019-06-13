@@ -145,6 +145,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* efz, const int* efzlo, const int* efzhi,
 #endif
+                         const amrex_real* charge, const int* chargelo, const int* chargehi,
                          const amrex_real* coordsx, const int* coordsxlo, const int* coordsxhi,
                          const amrex_real* coordsy, const int* coordsylo, const int* coordsyhi,
 #if (AMREX_SPACEDIM == 3)

@@ -2285,6 +2285,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                      efz, efzlo, efzhi, &
 #endif
+                                     charge, chargelo, chargehi, &
                                      coordsx, coordsxlo, coordsxhi, &
                                      coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
@@ -2310,7 +2311,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
   integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
 #if (AMREX_SPACEDIM == 3)
-  integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
+  integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3), chargelo(3), chargehi(3)
 #endif
   type(particle_t), intent(inout), target :: particles(np)
   type(surface_t),  intent(in),    target :: surfaces(ns)
@@ -2331,13 +2332,15 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   double precision, intent(in   ) :: efz(efzlo(1):efzhi(1),efzlo(2):efzhi(2),efzlo(3):efzhi(3))
 #endif
 
+  double precision, intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
+
   double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
   double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
 #if (AMREX_SPACEDIM == 3)
   double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
 #endif
 
-double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1),cellcenterslo(2):cellcentershi(2),cellcenterslo(3):cellcentershi(3),1:AMREX_SPACEDIM)
+  double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1),cellcenterslo(2):cellcentershi(2),cellcenterslo(3):cellcentershi(3),1:AMREX_SPACEDIM)
 
   double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
   double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
