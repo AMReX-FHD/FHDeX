@@ -95,8 +95,8 @@ void AmrCoreAdv::Initialize()
  *******************************************************************************/
 
 void AmrCoreAdv::EvolveChem(
-        std::array<MultiFab, AMREX_SPACEDIM> * umac, 
-        const iMultiFab & iface, int nstep, int lev,
+        std::array<MultiFab, AMREX_SPACEDIM> & umac, 
+        const iMultiFab & iface, int lev, int nstep,
         Real dt_fluid)
 {
     int time=0;
@@ -133,8 +133,8 @@ void AmrCoreAdv::EvolveChem(
         Dphi_y[lev]->setVal(0.);
         Dphi_z[lev]->setVal(0.);
 
-       uface[lev]->copy(&(umac)(0), 0, 0, 1, 0, 0);
-       vface[lev]->copy(*(umac)[1], 0, 0, 1, 0, 0);
+       uface[lev]->copy(umac[0], 0, 0, 1, 0, 0);
+       vface[lev]->copy(umac[1], 0, 0, 1, 0, 0);
        wface[lev]->copy(umac[2], 0, 0, 1, 0, 0);
 
        uface[lev]->FillBoundary(geom[lev].periodicity());

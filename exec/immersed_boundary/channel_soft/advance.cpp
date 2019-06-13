@@ -226,7 +226,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem( & umac, iface, lev, nstep,dt);
+        amr_core_adv.EvolveChem( umac, iface, lev, nstep,dt);
     }
  //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank

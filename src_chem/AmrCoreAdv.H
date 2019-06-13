@@ -33,7 +33,7 @@ public:
 
     // advance solution (of the advection diffusion equation) in time
     void EvolveChem(
-            std::array<MultiFab, AMREX_SPACEDIM>  & umac, 
+            std::array<MultiFab, AMREX_SPACEDIM> & umac, 
             const iMultiFab & iface,
             int lev, int step, Real dt_fluid);
 
