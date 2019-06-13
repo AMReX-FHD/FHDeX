@@ -491,15 +491,7 @@ void main_driver(const char * argv) {
     // Temporary place to store marker forces _outside_ advanve
     // => this will be moved to the IBParticleContainer class ASAP
 
-    Vector<IBP_info> ibp_info;
-
-    // NOTE: use `ib_pc` BoxArray to collect IB particle data
-    MultiFab dummy(ib_pc.ParticleBoxArray(0),
-                   ib_pc.ParticleDistributionMap(0), 1, 1);
-    for (MFIter mfi(dummy, ib_pc.tile_size); mfi.isValid(); ++mfi){
-        IBParticleContainer::PairIndex index(mfi.index(), mfi.LocalTileIndex());
-        ib_pc.IBParticleInfo(ibp_info, 0, index, true);
-    }
+    Vector<IBP_info> ibp_info = ib_pc.IBParticleInfo(0, true);
 
     Vector<ParticleIndex> part_indices(ibp_info.size());
 
