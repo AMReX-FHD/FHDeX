@@ -394,16 +394,12 @@ contains
 
     pkernel_fluid = 4    
     pkernel_es = 4
-<<<<<<< HEAD
     solve_chem = 0
     diffcoeff  = 0.001
     regrid_int = 25
     do_reflux  = 0
-=======
-
     particle_motion = 0    
         
->>>>>>> master
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -447,11 +443,7 @@ contains
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-<<<<<<< HEAD
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, solve_chem_in, diffcoeff_in, regrid_int_in, do_reflux_in) &
-=======
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, particle_motion_in) &
->>>>>>> master
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, solve_chem_in, diffcoeff_in, regrid_int_in, do_reflux_in, particle_motion_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
