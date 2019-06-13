@@ -18,22 +18,13 @@ subroutine get_ptsource_3d( lo, hi, &
   integer :: i, j, k
   double precision:: z
 
-print *, 'fortran print test'
-print *, 'k lo',' k hi', lo(3), hi(3) 
-print *, 'j lo',' j hi', lo(2), hi(2) 
-print *, 'i lo',' i hi', lo(1), hi(1) 
 
  do       k = lo(3), hi(3)
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
-           print *, 'k','j','i', k,j, i
 
            z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
-           print *, ' z' ,z
-           print *, ' iface ', iface(i, j, k) 
-           print *, ' ib_cen_z ', ib_cen_z 
            if ((iface(i,j,k).eq.1) .and. (z .le. ib_cen_z)) then
-           print *, 'catalyst interface'
            pts(i,j,k)=strength
            endif
         enddo

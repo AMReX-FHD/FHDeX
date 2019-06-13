@@ -213,7 +213,6 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     Real spring_coefficient = 1e4;
 
-   int lev=0;
    int nstep=0;
 
 
@@ -226,7 +225,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem( umac, iface, lev, nstep,dt);
+        amr_core_adv.EvolveChem( umac, iface, ibpc_lev, nstep,dt);
     }
  //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank

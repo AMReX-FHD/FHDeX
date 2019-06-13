@@ -39,7 +39,7 @@ subroutine advect_2d(time, lo, hi, &
   double precision :: dtdx(2), umax, vmax
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
-  double precision, dimension(:,:), pointer, contiguous :: phix_1d, phiy_1d, phix, phiy, slope
+  double precision, dimension(:,:), pointer, contiguous :: conx_1d, cony_1d, conx, cony, slope
 
   dtdx = dt/dx
 
@@ -47,10 +47,10 @@ subroutine advect_2d(time, lo, hi, &
   ghi = hi + 1
 
   ! edge states
-  call bl_allocate(phix_1d, glo(1), ghi(1), glo(2), ghi(2))
-  call bl_allocate(phiy_1d, glo(1), ghi(1), glo(2), ghi(2))
-  call bl_allocate(phix   , glo(1), ghi(1), glo(2), ghi(2))
-  call bl_allocate(phiy   , glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(conx_1d, glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(cony_1d, glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(conx   , glo(1), ghi(1), glo(2), ghi(2))
+  call bl_allocate(cony   , glo(1), ghi(1), glo(2), ghi(2))
   ! slope                                                 
   call bl_allocate(slope  , glo(1), ghi(1), glo(2), ghi(2))
 
@@ -77,18 +77,18 @@ subroutine advect_2d(time, lo, hi, &
                        vy, vy_lo, vy_hi, &
                        flxx, fx_lo, fx_hi, &
                        flxy, fy_lo, fy_hi, &
-                       phix_1d, phiy_1d, phix, phiy, slope, glo, ghi)
+                       conx_1d, cony_1d, conx, cony, slope, glo, ghi)
 
   ! Final fluxes
   do    j = lo(2), hi(2)
      do i = lo(1), hi(1)+1
-        flxx(i,j) = phix(i,j) * vx(i,j)-nu*(uin(i,j)-uin(i-1,j))/dx(1)
+        flxx(i,j) = conx(i,j) * vx(i,j)-nu*(uin(i,j)-uin(i-1,j))/dx(1)
      end do
   end do
   !
   do    j = lo(2), hi(2)+1
      do i = lo(1), hi(1)
-        flxy(i,j) = phiy(i,j) * vy(i,j)-nu*(uin(i,j)-uin(i,j-1))/dx(2)
+        flxy(i,j) = cony(i,j) * vy(i,j)-nu*(uin(i,j)-uin(i,j-1))/dx(2)
      end do
   end do
 
@@ -119,10 +119,10 @@ subroutine advect_2d(time, lo, hi, &
      enddo
   enddo
 
-  call bl_deallocate(phix_1d)
-  call bl_deallocate(phiy_1d)
-  call bl_deallocate(phix)
-  call bl_deallocate(phiy)
+  call bl_deallocate(conx_1d)
+  call bl_deallocate(cony_1d)
+  call bl_deallocate(conx)
+  call bl_deallocate(cony)
   call bl_deallocate(slope)
 
 end subroutine advect_2d

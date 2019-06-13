@@ -45,7 +45,7 @@ subroutine advect_3d(time, lo, hi, &
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
-       phix, phix_y, phix_z, phiy, phiy_x, phiy_z, phiz, phiz_x, phiz_y, slope
+       conx, conx_y, conx_z, cony, cony_x, cony_z, conz, conz_x, conz_y, slope
 
   dtdx = dt/dx
 
@@ -53,15 +53,15 @@ subroutine advect_3d(time, lo, hi, &
   ghi = hi + 1
 
   ! edge states
-  call bl_allocate(phix  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phix_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phix_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiy  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiy_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiy_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiz  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiz_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(phiz_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
   ! slope
   call bl_allocate(slope,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))  
   
@@ -94,9 +94,9 @@ subroutine advect_3d(time, lo, hi, &
                        flxx, fx_lo, fx_hi, &
                        flxy, fy_lo, fy_hi, &
                        flxz, fz_lo, fz_hi, &
-                       phix, phix_y, phix_z, &
-                       phiy, phiy_x, phiy_z, &
-                       phiz, phiz_x, phiz_y, &
+                       conx, conx_y, conx_z, &
+                       cony, cony_x, cony_z, &
+                       conz, conz_x, conz_y, &
                        slope, glo, ghi,nu)
 
   ! Do a conservative update
@@ -157,15 +157,15 @@ subroutine advect_3d(time, lo, hi, &
      enddo
   enddo
 
-  call bl_deallocate(phix  )
-  call bl_deallocate(phix_y)
-  call bl_deallocate(phix_z)
-  call bl_deallocate(phiy  )
-  call bl_deallocate(phiy_x)
-  call bl_deallocate(phiy_z)
-  call bl_deallocate(phiz  )
-  call bl_deallocate(phiz_x)
-  call bl_deallocate(phiz_y)
+  call bl_deallocate(conx  )
+  call bl_deallocate(conx_y)
+  call bl_deallocate(conx_z)
+  call bl_deallocate(cony  )
+  call bl_deallocate(cony_x)
+  call bl_deallocate(cony_z)
+  call bl_deallocate(conz  )
+  call bl_deallocate(conz_x)
+  call bl_deallocate(conz_y)
   call bl_deallocate(slope)
 
 end subroutine advect_3d

@@ -20,7 +20,7 @@ extern "C"
 		     const int* tagval, const int* clearval,
 		     const int* lo, const int* hi,
 		     const amrex_real* dx, const amrex_real* problo,
-		     const amrex_real* time, const amrex_real* phierr);
+		     const amrex_real* time, const amrex_real* conerr);
 
     void advect_2d(const amrex_real* time, const int* lo, const int* hi,
 		const BL_FORT_FAB_ARG_3D(statein),
@@ -49,19 +49,19 @@ extern "C"
                 const amrex_real* dx, const amrex_real* dt, 
                 const amrex_real* nu);
 
-    void get_phigrad_3d( const int* lo, const int* hi,
-                const BL_FORT_FAB_ARG_3D(phi),
-                BL_FORT_FAB_ARG_3D(phi_x),
-                BL_FORT_FAB_ARG_3D(phi_y),
-                BL_FORT_FAB_ARG_3D(phi_z),
+    void get_congrad_3d( const int* lo, const int* hi,
+                const BL_FORT_FAB_ARG_3D(con),
+                BL_FORT_FAB_ARG_3D(con_x),
+                BL_FORT_FAB_ARG_3D(con_y),
+                BL_FORT_FAB_ARG_3D(con_z),
                 int* iface, const int* if_lo, const int* if_hi,
                 const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
                 const amrex_real* ib_cen_z, 
                 const amrex_real* dx, const amrex_real* prob_lo);
-   void get_phigrad_2d( const int* lo, const int* hi,
-                const BL_FORT_FAB_ARG_3D(phi),
-                BL_FORT_FAB_ARG_3D(phi_x),
-                BL_FORT_FAB_ARG_3D(phi_y),
+   void get_congrad_2d( const int* lo, const int* hi,
+                const BL_FORT_FAB_ARG_3D(con),
+                BL_FORT_FAB_ARG_3D(con_x),
+                BL_FORT_FAB_ARG_3D(con_y),
                 int* iface, const int* if_lo, const int* if_hi,
                 const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
                 const amrex_real* dx, const amrex_real* prob_lo);
@@ -84,7 +84,7 @@ extern "C"
  		const amrex_real* ib_cen_z, const amrex_real* prob_lo);
    
 
-     void phifill (BL_FORT_FAB_ARG_3D(state),
+     void confill (BL_FORT_FAB_ARG_3D(state),
 		  const int* dlo, const int* dhi,
 		  const amrex_real* dx, const amrex_real* glo, 
 		  const amrex_real* time, const int* bc);

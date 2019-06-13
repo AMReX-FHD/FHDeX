@@ -66,10 +66,10 @@ public:
     // overrides the pure virtual function in AmrCore
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
-    //amrex::Vector<std::unique_ptr<MultiFab>> * phi_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> * phiNew);
-    void phi_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> & MF, int dcomp, int indicator);
+    //amrex::Vector<std::unique_ptr<MultiFab>> * con_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> * conNew);
+    void con_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> & MF, int dcomp, int indicator);
 
-//    amrex::Vector<std::unique_ptr<MultiFab>> phi_return();
+//    amrex::Vector<std::unique_ptr<MultiFab>> con_return();
 
 
 private:
@@ -89,7 +89,7 @@ private:
     // compute the number of cells at a level
     long CountCells (int lev);
 
-    // compute a new multifab by coping in phi from valid region and filling ghost cells
+    // compute a new multifab by coping in con from valid region and filling ghost cells
     // works for single level and 2-level cases (fill fine grid ghost by interpolating from coarse)
     void FillPatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
 
@@ -97,7 +97,7 @@ private:
     // this comes into play when a new level of refinement appears
     void FillCoarsePatch (int lev, amrex::Real time, amrex::MultiFab& mf, int icomp, int ncomp);
 
-    // utility to copy in data from phi_old and/or phi_new into another multifab
+    // utility to copy in data from con_old and/or con_new into another multifab
     void GetData (int lev, amrex::Real time, amrex::Vector<amrex::MultiFab*>& data,
                   amrex::Vector<amrex::Real>& datatime);
 
@@ -157,16 +157,16 @@ private:
 
     // array of multifabs to store the solution at each level of refinement
     // after advancing a level we use "swap".
-    // amrex::Vector<amrex::MultiFab> phi_new;
-    amrex::Vector<std::unique_ptr<amrex:: MultiFab>> phi_new;
-    amrex::Vector<std::unique_ptr<amrex:: MultiFab>> phi_old;
+    // amrex::Vector<amrex::MultiFab> con_new;
+    amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_new;
+    amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_old;
 
 
    Vector< std::unique_ptr<MultiFab> >  uface;
    Vector< std::unique_ptr<MultiFab> >  vface;
-   Vector< std::unique_ptr<MultiFab> >  Dphi_x;
-   Vector< std::unique_ptr<MultiFab> >  Dphi_y;
-   Vector< std::unique_ptr<MultiFab> >  Dphi_z;
+   Vector< std::unique_ptr<MultiFab> >  Dcon_x;
+   Vector< std::unique_ptr<MultiFab> >  Dcon_y;
+   Vector< std::unique_ptr<MultiFab> >  Dcon_z;
 
    Vector< std::unique_ptr<MultiFab> >  wface;
    std::unique_ptr<iMultiFab>           source_loc;
