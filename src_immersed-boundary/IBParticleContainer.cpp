@@ -339,13 +339,6 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
         }
     }
 
-    // for (const auto & elt : ib_ppvr) {
-    //     std::cout << elt.first.first << ", " << elt.first.second << " = "
-    //               << elt.second.pos[0] << ", "
-    //               << elt.second.pos[1] << ", "
-    //               << elt.second.pos[2] << std::endl;
-    // }
-
 
     /****************************************************************************
      *                                                                          *
@@ -360,8 +353,14 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
 
     //___________________________________________________________________________
     // Ensure that the marker lists have enough levels, and clear previous ones
-    if (marker_positions.size() <= lev) marker_positions.resize(lev+1);
+    if (marker_positions.size() <= lev) {
+        marker_positions.resize(lev+1);
+        marker_velocities.resize(lev+1);
+        marker_forces.resize(lev+1);
+    }
     marker_positions[lev].clear();
+    marker_velocities.clear();
+    marker_forces.clear();
 
 
     //___________________________________________________________________________
@@ -374,7 +373,11 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
 
         //_______________________________________________________________________
         // Create blank marker list, and access particle data
+        // ... initialized to (0..0) by default constructor
         marker_positions[lev][elt.first].resize(n_marker);
+        marker_velocities[lev][elt.first].resize(n_marker);
+        marker_forces[lev][elt.first].resize(n_marker);
+
 
         double   r     = elt.second.rad;
         RealVect pos_0 = elt.second.pos;
@@ -405,10 +408,6 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
             // Add to list
             marker_positions[lev][elt.first][i] = pos;
         }
-
-        //  for (const auto & pt : marker_positions[lev][elt.first]) {
-        //      std::cout << pt << std::endl;
-        //  }
     }
 
 }
