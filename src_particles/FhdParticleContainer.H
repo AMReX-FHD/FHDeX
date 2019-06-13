@@ -100,7 +100,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int* hiVect, const int ppc);
 
-    void computeForcesNL();
+    void computeForcesNL(const MultiFab& charge);
 
     void InitCollisionCells(              MultiFab& collisionPairs,
                                           MultiFab& collisionFactor, 

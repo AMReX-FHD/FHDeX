@@ -21,7 +21,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 
 
-void FhdParticleContainer::computeForcesNL() {
+void FhdParticleContainer::computeForcesNL(const MultiFab& charge) {
 
     BL_PROFILE("FhdParticleContainer::computeForcesNL");
 
@@ -42,9 +42,19 @@ void FhdParticleContainer::computeForcesNL() {
         int Nn = neighbors[lev][index].size();
         int size = neighbor_list[lev][index].size();
 
-        amrex_compute_forces_nl(particles.data(), &Np, 
-                                neighbors[lev][index].dataPtr(), &Nn,
-                                neighbor_list[lev][index].dataPtr(), &size, &rcount); 
+        if(sr_tog==1)
+        {
+                amrex_compute_forces_nl(particles.data(), &Np, 
+                                        neighbors[lev][index].dataPtr(), &Nn,
+                                        neighbor_list[lev][index].dataPtr(), &size, &rcount);
+        }
+        if(es_tog==3)
+        {
+                amrex_compute_poisson_correction_nl(particles.data(), &Np, 
+                                        neighbors[lev][index].dataPtr(), &Nn,
+                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
+                                        BL_TO_FORTRAN_3D(charge[pti])); 
+        }
     }
 
     ParallelDescriptor::ReduceRealSum(rcount);

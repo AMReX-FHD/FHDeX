@@ -732,12 +732,12 @@ void main_driver(const char* argv)
 
         particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        if(sr_tog==1)
+        if(sr_tog==1 || es_tog==3)
         {
                 particles.clearNeighbors();
 
                 particles.fillNeighbors();
-                particles.computeForcesNL();
+                particles.computeForcesNL(charge);
         }
 
         if(es_tog==1)

@@ -138,8 +138,8 @@ subroutine calculate_force(particles, np, lo, hi, &
 end subroutine calculate_force
 
 !!!!!!!!!!!!!!!!!!!!!
-subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, & 
-                                     nn, nl, size, rcount) &
+subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
+                                     nn, nl, size, rcount, charge, chargelo, chargehi) &
        bind(c,name='amrex_compute_poisson_correction_nl')
 
     use iso_c_binding
@@ -147,11 +147,13 @@ subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
     use cell_sorted_particle_module, only : particle_t
     use common_namelist_module, only: cut_off, rmin
         
-    integer,          intent(in   ) :: np, nn, size
+    integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3)
     real(amrex_real), intent(inout) :: rcount
     type(particle_t), intent(inout) :: rparticles(np)
     type(particle_t), intent(inout) :: neighbors(nn)
     integer,          intent(in   ) :: nl(size)
+
+    real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
 
     real(amrex_real) :: dx(3), r2, r, coef, mass
     integer :: i, j, index, nneighbors
