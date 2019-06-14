@@ -25,7 +25,8 @@ using namespace common;
 using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
-void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
+void advance(AmrCoreAdv & amr_core_adv,
+             std::array<MultiFab, AMREX_SPACEDIM> & umac,
              std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
              MultiFab & pres, MultiFab & tracer,
              std::array<MultiFab, AMREX_SPACEDIM> & force_ibm,
@@ -212,8 +213,21 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     Real spring_coefficient = 1e4;
 
+   int nstep=0;
 
-    //___________________________________________________________________________
+
+
+   if (solve_chem) {
+
+        // We get a pointer to the interface tag multifab to pass into advection
+        // diffuision (AD) code
+        const iMultiFab & iface = ib_core.get_TagInterface();
+
+        amrex::Print() << "Solving AD Eqn" << std::endl;
+
+        amr_core_adv.EvolveChem( umac, iface, ibpc_lev, nstep,dt);
+    }
+ //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank
 
     Vector<IBP_info> ibp_info = ib_pc.IBParticleInfo(0, true);

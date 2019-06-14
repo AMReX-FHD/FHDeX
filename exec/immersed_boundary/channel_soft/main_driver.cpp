@@ -445,14 +445,14 @@ void main_driver(const char * argv) {
     // Build AmrCore and initialize chemical multifabs
 
     AmrCoreAdv amr_core_adv;
-    amr_core_adv.InitData();
- 
-
-    if (solve_chem)
-    {
       amr_core_adv.InitData();
-        amrex::Print()<< "Solving for chemical fields"<< std::endl;
-    }
+ // Need to have only one level for now
+int lev =0;
+//    if (solve_chem==1)
+//    {
+//      amr_core_adv.InitData();
+//        amrex::Print()<< "Solving for chemical fields"<< std::endl;
+//    }
 
 
     /****************************************************************************
@@ -464,7 +464,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc);
+        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc,  amr_core_adv, lev );
     }
 
 
@@ -540,7 +540,8 @@ void main_driver(const char * argv) {
         //_______________________________________________________________________
         // Advance umac
 
-        advance(umac, umacNew, pres, tracer, force_ibm, marker_force_0,
+        advance(amr_core_adv,
+		umac, umacNew, pres, tracer, force_ibm, marker_force_0,
                 mfluxdiv_predict, mfluxdiv_correct,
                 alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt);
 
@@ -590,7 +591,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, pres, f_ibm, and particle data to a plotfile
-            WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc);
+            WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc, amr_core_adv,lev);
         }
     }
 
