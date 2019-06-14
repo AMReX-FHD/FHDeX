@@ -9,6 +9,7 @@
 #include <AMReX_Particles.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_NeighborParticles.H>
+#include <IBParticleInfo.H>
 
 
 using namespace amrex;
@@ -90,6 +91,12 @@ public:
     using MarkerIndex = std::pair<int, int>;
  
 
+    void InitList(int lev,
+                  const Vector<RealVect> & pos,
+                  const Vector<Real> & r,
+                  const Vector<Real> & rho);
+
+
 
 
 
@@ -97,6 +104,22 @@ public:
     int NumberOfMarkers(IBParIter & pti){ return pti.GetArrayOfStructs().size();};
 
 
+    void SpreadMarkers(int lev, const ParticleIndex & pindex,
+                       const Vector<RealVect> & f_in,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+
+    void InterpolateMarkers(int lev, const ParticleIndex & pindex,
+                            Vector<RealVect> & f_out,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+
+
+
+
+
+
+    void InitInternals(int ngrow);
+
+    void ReadStaticParameters();
 
 }
 
