@@ -8,6 +8,8 @@
 
 #include "common_namespace.H"
 
+#include "AmrCoreAdv.H"
+
 using namespace common;
 
 void WritePlotFile(int step,
@@ -17,7 +19,10 @@ void WritePlotFile(int step,
                    const MultiFab & tracer,
                    const MultiFab & pres,
                    const std::array< MultiFab, AMREX_SPACEDIM> & force_ibm,
-                   const IBParticleContainer & ib_pc)
+                   const IBParticleContainer & ib_pc,
+                   const AmrCoreAdv & amr_core_adv,
+                   int lev
+                    )
 {
 
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -63,6 +68,27 @@ void WritePlotFile(int step,
     varNames[cnt++] = "shifted_force_ibm_y";
     varNames[cnt++] = "shifted_force_ibm_z";
 
+//    for (int i=0; i<lev; ++i) {
+//        std::string x = "C";
+//        x += (120+i);
+//        varNames[cnt++] = x;
+//    }
+//    for (int i=0; i<lev; ++i) {
+//        std::string x = "dCdx";
+//        x += (120+i);
+//        varNames[cnt++] = x;
+//    }
+//    for (int i=0; i<lev; ++i) {
+//        std::string x = "dCdy";
+//        x += (120+i);
+//        varNames[cnt++] = x;
+//    }
+//    for (int i=0; i<lev; ++i) {
+//        std::string x = "dCdz";
+//        x += (120+i);
+//        varNames[cnt++] = x;
+//    }
+
 
 
     // reset plotfile variable counter
@@ -101,6 +127,25 @@ void WritePlotFile(int step,
         cnt++;
     }
 
+ //   AmrCoreAdv amr_core_adv;
+ //
+ //   for (int d=0; d<lev; ++d) {
+ //   MultiFab::Copy(plotfile,*(con_new[d]), 0, cnt, 1, 0);
+ //   cnt++;
+ //   }
+
+ //   for (int d=0; d<lev; ++d) {
+ //   MultiFab::Copy(plotfile,*(Dcon_x[d]), 0, cnt, 1, 0);
+ //   cnt++;
+ //   }
+ //   for (int d=0; d<lev; ++d) {
+ //   MultiFab::Copy(plotfile,*(Dcon_y[d]), 0, cnt, 1, 0);
+ //   cnt++;
+ //   }
+ //   for (int d=0; d<lev; ++d) {
+ //   MultiFab::Copy(plotfile,*(Dcon_z[d]), 0, cnt, 1, 0);
+ //   cnt++;
+ //   }
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename, plotfile, varNames, geom, time, step);

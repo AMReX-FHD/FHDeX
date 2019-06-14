@@ -61,7 +61,10 @@ void WritePlotFile(const int step,
                    const MultiFab & tracer,
                    const MultiFab & pres,
                    const std::array< MultiFab, AMREX_SPACEDIM > & force_ibm,
-                   const IBParticleContainer & ib_pc);
+                   const IBParticleContainer & ib_pc,
+                   const AmrCoreAdv & amr_core_adv,
+                   const int lev
+                   );
 
 
 #endif
