@@ -42,6 +42,12 @@ void AmrCoreAdv::Initialize()
     Dcon_x.resize(nlevs_max);
     Dcon_y.resize(nlevs_max);
     Dcon_z.resize(nlevs_max);
+    con_new[lev]->setVal(0.);
+    con_old[lev]->setVal(0.);
+
+    Dcon_x[lev]->setVal(0.);
+    Dcon_y[lev]->setVal(0.);
+    Dcon_z[lev]->setVal(0.);
 
     bcs.resize(1);
     
@@ -865,7 +871,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     // indicator gives which quantity is being copied into MF
     //mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
-    if (indicator==0)      MF[lev]->copy(* con_new[lev], 0, 0,1, 0, 0);
+    if (indicator==0)      MF[lev]->copy(* con_old[lev], 0, 0,1, 0, 0);
     else if (indicator==1) MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 0, 0);
     else if (indicator==2) MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 0, 0);
     else if (indicator==3) MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);

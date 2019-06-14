@@ -211,7 +211,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     int ibpc_lev = 0; // assume single level for now
     int ib_grow  = 6; // using the 6-point stencil
 
-    Real spring_coefficient = 1e4;
+    Real spring_coefficient = 1e3; //1e4;
 
    int nstep=0;
 
