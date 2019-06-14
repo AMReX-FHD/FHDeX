@@ -2414,6 +2414,9 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
           call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
 
           potential = potential + part%potential
+      else if (es_tog .eq. 3) then ! do short range part of P3M
+          ! for each particle within coulomb radius, compute es force directly 
+          ! call ...
       endif
 
       !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.

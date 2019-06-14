@@ -38,6 +38,7 @@ module cell_sorted_particle_module
      real(amrex_particle_real) :: sigma
      real(amrex_particle_real) :: eepsilon
      real(amrex_particle_real) :: potential
+     real(amrex_particle_real) :: coulomb_radius_factor
 
      integer(c_int)            :: id         
      integer(c_int)            :: cpu        
