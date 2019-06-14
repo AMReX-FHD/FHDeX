@@ -295,7 +295,7 @@ private:
 
 
     // TODO: this might bto be used anymore:
-    amrex::AmrCore * m_amr_core;
+    AmrCore * m_amr_core;
     int nghost;
 };
 
