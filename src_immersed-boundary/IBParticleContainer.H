@@ -23,9 +23,7 @@ class IBCore;
 
 //TODO: Check members lables with "Audit"
 
-// IBP => Immmersed Boundary Particle: fairly simple immersed boundaries
-// (analogous to MFIX Particles)
-
+// IBP => Immmersed Boundary Particle
 struct IBP_realData {
     //Analogous to particle realData (p.m_data)
     // TODO: orientation?
@@ -116,7 +114,7 @@ public:
     // Get number of particles
     int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size();};
 
-    IBParticleContainer(amrex::AmrCore * amr_core, int n_nbhd);
+    IBParticleContainer(AmrCore * amr_core, int n_nbhd);
     IBParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
                         const BoxArray & ba, int n_nbhd);
 
