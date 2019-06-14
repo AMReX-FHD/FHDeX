@@ -126,7 +126,7 @@ public:
 
 
     /****************************************************************************
-    * Aux data types                                                            *
+    * Auxiliary data types                                                      *
     ****************************************************************************/
 
     // Used by PICMultiDeposition when iterating over particles (TODO: Audit)
@@ -138,10 +138,11 @@ public:
     //using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     // using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
 
-    // (ID, init CPU) tuple: unique to each particle
+    // (ID, initial CPU) tuple: unique to each particle
     using ParticleIndex = std::pair<int, int>;
+    using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
 
-    // Particle Position, Velocity, and Radius
+    // Particle Position, Velocity, and Radius (abbriated particle info struct)
     using PPVR = struct {
         RealVect pos;
         RealVect vel;
@@ -168,6 +169,17 @@ public:
         // Do not use std::map::operator[] as this would discard the const qualifier
         return marker_positions[lev].at(pindex);
     };
+
+    const Vector<RealVect> & MarkerVelocities(int lev, const ParticleIndex & pindex) const {
+        // Do not use std::map::operator[] as this would discard the const qualifier
+        return marker_velocities[lev].at(pindex);
+    };
+
+    const Vector<RealVect> & MarkerForces(int lev, const ParticleIndex & pindex) const {
+        // Do not use std::map::operator[] as this would discard the const qualifier
+        return marker_forces[lev].at(pindex);
+    };
+
 
     void FillMarkerPositions(int lev, int n_marker);
 
@@ -266,10 +278,14 @@ private:
      *                                                                         *
      **************************************************************************/
 
+
     // Marker positions per particle and level
-    Vector<std::map<ParticleIndex, Vector<RealVect>>> marker_positions;
+    Vector<IBMarkerMap> marker_positions;
+    Vector<IBMarkerMap> marker_velocities;
+    Vector<IBMarkerMap> marker_forces;
+
     // Posotions on faces
-    Vector<std::array<MultiFab, AMREX_SPACEDIM>>      face_coords;
+    Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
 
     static bool use_neighbor_list;

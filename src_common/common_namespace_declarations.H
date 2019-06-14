@@ -141,4 +141,3 @@ amrex::Real                common::diffcoeff;
 int                        common::regrid_int;
 int                        common::do_reflux;
 
-
