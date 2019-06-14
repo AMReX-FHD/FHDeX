@@ -63,10 +63,10 @@ struct IBM_info {
     }
 
     // only compare id and cpu
-    bool operator== (const IBP_info & other) {
+    bool operator== (const IBM_info & other) {
         return ( (this->id == other.id) && (this->cpu == other.cpu) );
     }
-}
+};
 
 
 #endif

@@ -42,7 +42,7 @@ struct IBM_realData {
 
 
 
-struct IBP_intData {
+struct IBM_intData {
     //Analogous to particle intData (p.m_data)
     enum {
         phase = 0,  // ................................... TODO: Audit
@@ -61,18 +61,18 @@ struct IBP_intData {
 
 
 class IBMarIter final 
-    : public amrex::ParIter<IBP_realData::count, IBP_intData::count, 0, 0>
+    : public amrex::ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
 {
 
 public:
 
-    using ParIter<IBP_realData::count, IBP_intData::count, 0, 0>::ParIter;
+    using ParIter<IBM_realData::count, IBM_intData::count, 0, 0>::ParIter;
 };
 
 
 
 class IBMarkerContainer final
-    : public amrex::NeighborParticleContainer<IBP_realData::count, IBP_intData::count>
+    : public amrex::NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
 {
 
 public:
