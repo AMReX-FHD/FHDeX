@@ -13,6 +13,6 @@ F90EXE_sources += Tagging_nd.F90
 #F90EXE_sources += ptsource_fill_2d.F9
 #F90EXE_sources += slope_2d.F90
 
-VPATH_LOCATIONS += /home/malvarado/FHDeX/src_chem/src_F90
-INCLUDE_LOCATIONS += /home/malvarado/FHDeX/src_chem/src_F90
+#VPATH_LOCATIONS += /home/malvarado/FHDeX/src_chem/src_F90
+#INCLUDE_LOCATIONS += /home/malvarado/FHDeX/src_chem/src_F90
 

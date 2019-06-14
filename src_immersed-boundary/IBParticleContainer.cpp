@@ -7,6 +7,7 @@
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
 #include <common_functions.H>
+#include <common_namespace.H>
 
 #include <IBParticleContainer.H>
 #include <ib_functions_F.H>
@@ -14,6 +15,7 @@
 
 
 
+using namespace common;
 using namespace amrex;
 
 bool IBParticleContainer::use_neighbor_list  {true};

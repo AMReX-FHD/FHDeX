@@ -46,4 +46,27 @@ struct IBP_info {
 
 
 
+struct IBM_info {
+    RealVect pos;     // Particle position
+    RealVect vel;     // Particle velocity
+    RealVect force;   // Marker forces
+
+    int  id;          // Particle ID (local initial MPI rank)
+    int  cpu;         // MPI rank (where the particle was created)
+
+    int  real;        // Is the particle real (not a neighbor)
+                      // NOTE: not a bool because of c/fortran-interface
+
+    std::pair<int, int> asPairIndex() const {
+        std::pair<int, int> pindex(id, cpu);
+        return pindex;
+    }
+
+    // only compare id and cpu
+    bool operator== (const IBM_info & other) {
+        return ( (this->id == other.id) && (this->cpu == other.cpu) );
+    }
+};
+
+
 #endif
