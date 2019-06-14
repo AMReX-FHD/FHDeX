@@ -57,8 +57,8 @@ struct RealData
         sigma,
         eepsilon,
         potential,
-        ncomps,
-	coulomb_radius_factor
+	coulomb_radius_factor,
+        ncomps
     };
 };
 
@@ -101,7 +101,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            iMultiFab& collisionCellMembers, iMultiFab& collisionCellLists, const Real* dxc, const int* hiVect, const int ppc);
 
-    void computeForcesNL(const MultiFab& charge);
+    void computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
     void InitCollisionCells(              MultiFab& collisionPairs,
                                           MultiFab& collisionFactor, 

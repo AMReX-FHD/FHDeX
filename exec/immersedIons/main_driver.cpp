@@ -737,7 +737,7 @@ void main_driver(const char* argv)
                 particles.clearNeighbors();
 
                 particles.fillNeighbors();
-                particles.computeForcesNL(charge);
+                particles.computeForcesNL(charge, RealCenteredCoords, dxp);
         }
 
         if(es_tog==1)

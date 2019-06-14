@@ -32,7 +32,8 @@ extern "C"
 
                 void amrex_compute_poisson_correction_nl(void* particles, const int* np,
                         const void* ghosts,    const int* nn,
-                        const int* neighbor_list, const int* size, amrex_real* rcount, const amrex_real* charge, const int* chargelo, const int* chargehi);
+                        const int* neighbor_list, const int* size, amrex_real* rcount, const amrex_real* charge, const int* chargelo,
+                        const int* chargehi, const amrex_real* coords, const int* coordslo, const int* coordshi, const int* lo, const int* hi, const amrex_real* dx);
 
                 void amrex_compute_forces_nl(void* particles, const int* np,
                         const void* ghosts,    const int* nn,

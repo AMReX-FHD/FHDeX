@@ -21,12 +21,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 
 
-void FhdParticleContainer::computeForcesNL(const MultiFab& charge) {
+void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
 
     BL_PROFILE("FhdParticleContainer::computeForcesNL");
 
     double rcount = 0;
-
     const int lev = 0;
 
     buildNeighborList(CheckPair);
@@ -42,6 +41,8 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge) {
         int Nn = neighbors[lev][index].size();
         int size = neighbor_list[lev][index].size();
 
+        const Box& tile_box  = pti.tilebox();
+
         if(sr_tog==1)
         {
                 amrex_compute_forces_nl(particles.data(), &Np, 
@@ -53,7 +54,7 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge) {
                 amrex_compute_poisson_correction_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
                                         neighbor_list[lev][index].dataPtr(), &size, &rcount,
-                                        BL_TO_FORTRAN_3D(charge[pti])); 
+                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx)); 
         }
     }
 
