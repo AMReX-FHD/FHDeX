@@ -67,7 +67,7 @@ public:
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
     //amrex::Vector<std::unique_ptr<MultiFab>> * con_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> * conNew);
-    void con_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> & MF, int dcomp, int indicator);
+    void con_new_copy(int lev,  amrex::Vector<std::unique_ptr<MultiFab>> & MF, int indicator);
 
 //    amrex::Vector<std::unique_ptr<MultiFab>> con_return();
 

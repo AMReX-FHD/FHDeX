@@ -850,13 +850,25 @@ std::cout << "before get_ptsource_3d"<<std::endl;
 
 // copy con or one of it's first derivatives into a multifab mf, mf doesn't
 // have to have the same dm and box array
-void AmrCoreAdv::con_new_copy(int lev, Vector<std::unique_ptr<MultiFab>> & MF,
-                              int dcomp, int indicator) {
+//void AmrCoreAdv::con_new_copy(int lev, Vector<std::unique_ptr<MultiFab>> & MF,
+//                              int dcomp, int indicator) {
+//    // indicator gives which quantity is being copied into MF
+//    //mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
+//
+//    if (indicator==0)      MF[lev]->copy(* con_new[lev], 0, dcomp,1, 0, 0);
+//    else if (indicator==1) MF[lev]->copy(* Dcon_x[lev], 0, dcomp,1, 0, 0);
+//    else if (indicator==2) MF[lev]->copy(* Dcon_y[lev], 0, dcomp,1, 0, 0);
+//    else if (indicator==3) MF[lev]->copy(* Dcon_z[lev], 0, dcomp,1, 0, 0);
+//    else amrex::Abort( "Incorrect indicator for copying information from AmrCoreAdv to Mfix" );
+//}
+void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>> & MF, int indicator) {
     // indicator gives which quantity is being copied into MF
-    if (indicator==0)      MF[lev]->copy(* con_new[lev], 0, dcomp,1, 0, 0);
-    else if (indicator==1) MF[lev]->copy(* Dcon_x[lev], 0, dcomp,1, 0, 0);
-    else if (indicator==2) MF[lev]->copy(* Dcon_y[lev], 0, dcomp,1, 0, 0);
-    else if (indicator==3) MF[lev]->copy(* Dcon_z[lev], 0, dcomp,1, 0, 0);
+    //mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
+
+    if (indicator==0)      MF[lev]->copy(* con_new[lev], 0, 0,1, 0, 0);
+    else if (indicator==1) MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 0, 0);
+    else if (indicator==2) MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 0, 0);
+    else if (indicator==3) MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);
     else amrex::Abort( "Incorrect indicator for copying information from AmrCoreAdv to Mfix" );
 }
 
