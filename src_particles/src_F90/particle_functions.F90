@@ -145,7 +145,7 @@ subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cut_off, rmin
+    use common_namelist_module, only: cut_off, rmin, pkernel_es
         
     integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3), coordslo(3), coordshi(3), lo(3), hi(3)
     real(amrex_real), intent(in   ) :: dx(3)
@@ -158,9 +158,23 @@ subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
     real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
     real(amrex_real) :: rx(3), r2, r, coef, mass
-    integer :: i, j, index, nneighbors, store
+    integer :: i, j, index, nneighbors, store, ks
 
     type(particle_t)                    :: particles(np+nn)
+
+    double precision, allocatable :: weights(:,:,:,:)
+    integer, allocatable :: indicies(:,:,:,:,:)
+
+   if(pkernel_es .eq. 3) then
+      ks = 2
+   elseif(pkernel_es .eq. 4) then
+     ks = 3
+   elseif(pkernel_es .eq. 6) then
+     ks = 4
+   endif
+  
+   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
+   allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
         
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
