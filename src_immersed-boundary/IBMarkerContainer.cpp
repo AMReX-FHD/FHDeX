@@ -200,6 +200,109 @@ void IBMarkerContainer::SpreadMarkers(int lev,
 
 
 
+void IBMarkerContainer::SpreadMarkers(int lev,
+        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+    //___________________________________________________________________________
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
+                            1, f_out[d].nGrow());
+        f_weights[d].setVal(0.);
+    }
+
+    SpreadMarkers(lev, f_in, f_out, f_weights);
+
+}
+
+
+
+void IBMarkerContainer::InterpolateMarkers(int lev,
+        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+        const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
+
+
+    //___________________________________________________________________________
+    // Fill vector of marker positions (for current level)
+    Vector<IBM_info> marker_info = IBMarkerInfo(lev);
+    Vector<RealVect> marker_positions(marker_info.size());
+    for (int i=0; i<marker_info.size(); ++i)
+        marker_positions[i] = marker_info[i].pos;
+
+
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = Geom(0);
+    const Real     *   dx = geom.CellSize();
+
+    const int n_marker = marker_positions.size();
+
+
+    //___________________________________________________________________________
+    // Cell-centered MultiFab used as a reference for iterating over data
+    // WARNING: this will break if IBMarkerContainer is on a differnt grid
+    // than the grid which we're interpolating from
+
+    const BoxArray & ba            = ParticleBoxArray(lev);
+    const DistributionMapping & dm = ParticleDistributionMap(lev);
+
+    MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
+
+
+    for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.growntilebox();
+
+        interpolate_markers(BL_TO_FORTRAN_BOX(bx),
+                            BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                            BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                            BL_TO_FORTRAN_ANYD(f_in[2][mfi]),
+#endif
+                            BL_TO_FORTRAN_ANYD(f_weights[0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                            BL_TO_FORTRAN_ANYD(f_weights[1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                            BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
+#endif
+                            BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
+#if (AMREX_SPACEDIM > 1)
+                            BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                            BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
+#endif
+                            marker_positions.dataPtr(),
+                            f_out.dataPtr(),
+                            & n_marker,
+                            dx );
+    }
+}
+
+
+
+void IBMarkerContainer::InterpolateMarkers(int lev,
+        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
+
+    //___________________________________________________________________________
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_in[d].boxArray(), f_in[d].DistributionMap(),
+                            1, f_in[d].nGrow());
+        f_weights[d].setVal(-1.); // Set to <0 to guarantee that weights are ignored
+    }
+
+    InterpolateMarkers(lev, f_out, f_in, f_weights);
+
+}
+
+
+
 // void IBMarkerContainer::PrintMarkersData(int lev) {
 // 
 //     // Inverse cell-size vector => max is used for determining IBParticle
