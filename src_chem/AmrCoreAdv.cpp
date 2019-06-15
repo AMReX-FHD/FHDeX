@@ -22,7 +22,7 @@ using namespace amrex;
  *                                                                             * 
  *******************************************************************************/
 
-void AmrCoreAdv::Initialize()
+void AmrCoreAdv::Initialize( )
 {
 //    ReadParameters();
 
@@ -42,12 +42,6 @@ void AmrCoreAdv::Initialize()
     Dcon_x.resize(nlevs_max);
     Dcon_y.resize(nlevs_max);
     Dcon_z.resize(nlevs_max);
-    con_new[lev]->setVal(0.);
-    con_old[lev]->setVal(0.);
-
-    Dcon_x[lev]->setVal(0.);
-    Dcon_y[lev]->setVal(0.);
-    Dcon_z[lev]->setVal(0.);
 
     bcs.resize(1);
     
@@ -90,6 +84,8 @@ void AmrCoreAdv::Initialize()
     // spacing associated with lev-1) therefore flux_reg[0] is never actually
     // used in the reflux operation
     flux_reg.resize(nlevs_max+1);
+
+
 }
 
 
@@ -194,7 +190,7 @@ void AmrCoreAdv::EvolveChem(
  *                                                                             *
  *******************************************************************************/
 
-void AmrCoreAdv::InitData ()
+void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 {
     Initialize();
 
@@ -218,21 +214,24 @@ void AmrCoreAdv::InitData ()
 
    // initialize grad con
    for (int lev = 0; lev <= finest_level; ++lev) {
-       DistributionMapping condm = con_new[lev]->DistributionMap();
-       BoxArray conba            = con_new[lev]->boxArray();
+       con_new[lev]->setVal(0.);
+       con_old[lev]->setVal(0.);
 
-       Dcon_x[lev].reset(new MultiFab(conba, condm, 1, 0));
-       Dcon_y[lev].reset(new MultiFab(conba, condm, 1, 0));
-       Dcon_z[lev].reset(new MultiFab(conba, condm, 1, 0));
+       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
+       
+       Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 0));
+       Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 0));
+       Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 0));
 
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
        Dcon_z[lev]->setVal(0.);
-   }
+//       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
 
+   }
+}
     // DEBUG: write intitial plotfile
     // if (plot_int > 0) WritePlotFile();
-}
 
 
 // Make a new level using provided BoxArray and DistributionMapping and fill
@@ -312,9 +311,9 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     t_new[lev] = time;
     t_old[lev] = time - 1.e200;
 
-    if (lev > 0 && do_reflux) {
-	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
-    }
+//    if (lev > 0 && do_reflux) {
+//	flux_reg[lev].reset(new FluxRegister(ba, dm, refRatio(lev-1), lev, ncomp));
+//    }
 
     const Real* dx = geom[lev].CellSize();
     const Real* prob_lo = geom[lev].ProbLo();
@@ -871,7 +870,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     // indicator gives which quantity is being copied into MF
     //mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
 
-    if (indicator==0)      MF[lev]->copy(* con_old[lev], 0, 0,1, 0, 0);
+    if (indicator==0)      MF[lev]->copy(* con_new[lev], 0, 0,1, 0, 0);
     else if (indicator==1) MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 0, 0);
     else if (indicator==2) MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 0, 0);
     else if (indicator==3) MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);

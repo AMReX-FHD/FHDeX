@@ -38,7 +38,7 @@ public:
             int lev, int step, Real dt_fluid);
 
     // initializes multilevel data
-    void InitData ();
+    void InitData ( amrex::BoxArray & ba, amrex::DistributionMapping & dm);
 
     // Make a new level using provided BoxArray and DistributionMapping and
     // fill with interpolated coarse level data.
