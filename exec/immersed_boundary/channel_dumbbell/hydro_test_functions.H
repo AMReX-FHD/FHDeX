@@ -3,7 +3,7 @@
 
 #include "common_functions.H"
 #include "gmres_functions.H"
-
+#include "IBMarkerContainer.H"
 
 
 ///////////////////////////
@@ -11,6 +11,7 @@
 void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
 	     amrex::MultiFab& pres, amrex::MultiFab& tracer,
+         IBMarkerContainer & ib_mc,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,

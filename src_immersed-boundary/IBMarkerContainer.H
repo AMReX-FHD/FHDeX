@@ -61,7 +61,7 @@ struct IBM_intData {
 
 
 
-class IBMarIter final 
+class IBMarIter
     : public amrex::ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
 {
 
@@ -72,7 +72,7 @@ public:
 
 
 
-class IBMarkerContainer final
+class IBMarkerContainer
     : public amrex::NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
 {
 
@@ -167,9 +167,6 @@ public:
     AmrCore * m_amr_core;
     int nghost;
 };
-
-
-
 
 
 #endif

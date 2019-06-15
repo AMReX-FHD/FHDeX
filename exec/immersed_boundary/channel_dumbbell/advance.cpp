@@ -14,6 +14,8 @@
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
+#include <IBMarkerContainer.H>
+
 
 using namespace amrex;
 using namespace common;
@@ -23,6 +25,7 @@ using namespace gmres;
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
 	       MultiFab& pres, MultiFab& tracer,
+           IBMarkerContainer & ib_mc,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
@@ -214,6 +217,24 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // crank-nicolson terms
     StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
+
+    //___________________________________________________________________________
+    // Spread forces to preconditioner
+    Vector<IBM_info> ib_info = ib_mc.IBMarkerInfo(0);
+    Vector<RealVect> ibm_forces(ib_info.size());
+    for (auto & elt: ibm_forces)
+        elt = RealVect{0,0,0};
+
+    std::array<MultiFab, AMREX_SPACEDIM> fc_force;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        fc_force[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        fc_force[d].setVal(0.);
+    }
+
+
+    ib_mc.SpreadMarkers(0, ibm_forces, fc_force);
+
+
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         Lumac[d].FillBoundary(geom.periodicity());
 
@@ -227,6 +248,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force[d],         0, 0, 1, 0);
     }
 
     std::array< MultiFab, AMREX_SPACEDIM > pg;
@@ -257,6 +279,30 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
+
+    //___________________________________________________________________________
+    // Move markers according to predictor velocity
+    Vector<RealVect> ibm_velocity_pred(ib_info.size());
+    for (auto & elt: ibm_velocity_pred)
+        elt = RealVect{0,0,0};
+
+    ib_mc.InterpolateMarkers(0, ibm_velocity_pred, umacNew);
+
+    //
+    //
+    // TODO: Move Markers to predictor position (HERE)
+    //
+    //
+
+
+    //
+    //
+    // TODO: Do the same thing for corrector (BELOW)
+    //
+    //
+
+
+
 
     // Compute predictor advective term
     // let rho = 1

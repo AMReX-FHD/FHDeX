@@ -28,6 +28,9 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <IBMarkerContainer.H>
+
+
 using namespace amrex;
 using namespace common;
 using namespace gmres;
@@ -321,6 +324,16 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+    IBMarkerContainer ib_mc(geom, dmap, ba, 1);
+    
+    Vector<RealVect> marker_positions(1);
+    marker_positions[0] = RealVect{0.5, 0.5, 0.5};
+
+    ib_mc.InitList(0, marker_positions);
+
+
+    //___________________________________________________________________________
+    // Initialize velocities (fluid and tracers)
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
@@ -389,7 +402,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-	WritePlotFile(step, time, geom, umac, tracer, pres);
+        WritePlotFile(step, time, geom, umac, tracer, pres);
     }
 
 
@@ -419,23 +432,23 @@ void main_driver(const char * argv) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
-	if(variance_coef_mom != 0.0) {
+	// if(variance_coef_mom != 0.0) {
 
-            //___________________________________________________________________
-            // Fill stochastic terms
+    //     //___________________________________________________________________
+    //     // Fill stochastic terms
 
-            sMflux.fillMStochastic();
+    //     sMflux.fillMStochastic();
 
-            // Compute stochastic force terms (and apply to mfluxdiv_*)
-            sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-            sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+    //     // Compute stochastic force terms (and apply to mfluxdiv_*)
+    //     sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+    //     sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+	// }
 
-            //___________________________________________________________________
-            // Advance umac
-            advance(umac, umacNew, pres, tracer, mfluxdiv_predict, mfluxdiv_correct,
-                    alpha_fc, beta, gamma, beta_ed, geom,dt);
+    //___________________________________________________________________
+    // Advance umac
+    advance(umac, umacNew, pres, tracer, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+            alpha_fc, beta, gamma, beta_ed, geom, dt);
 
-	}
 
 
 	//_______________________________________________________________________

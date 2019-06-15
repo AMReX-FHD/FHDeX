@@ -122,7 +122,7 @@ void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
     }
 
     ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
-    amrex::Print() << "Total number of generated particles: " << total_np << std::endl;
+    std::cout << "Total number of generated particles: " << total_np << std::endl;
 
     // We shouldn't need this if the particles are tiled with one tile per
     // grid, but otherwise we do need this to move particles from tile 0 to the
