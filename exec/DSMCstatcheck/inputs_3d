@@ -16,7 +16,6 @@
 
   ! Time-step control
   fixed_dt = 1e-11
-
   ! Controls for number of steps between actions
   max_step = 1000
   plot_int = 10
