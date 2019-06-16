@@ -34,7 +34,7 @@ subroutine force_function2(part1,part2,domsize) &
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs
+  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs, imag
   real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist, ee
 
   ee = (1d0/(permitivitty*4*3.142))
@@ -47,17 +47,24 @@ subroutine force_function2(part1,part2,domsize) &
 
   pairs = 0
 
-  maxdist = (images)*domsize(1)
-
-  if(images*domsize(2) .lt. maxdist) then
-    maxdist = (images)*domsize(2)
+  if(images .eq. 0) then
+    imag = 1
+  else
+    imag = images
   endif
 
-  if((images*domsize(3) .lt. images*domsize(2)) .or. (images*domsize(3) .lt. images*domsize(1))) then
-    maxdist = (images)*domsize(3)
+  maxdist = (imag)*domsize(1)
+
+  if(imag*domsize(2) .lt. maxdist) then
+    maxdist = (imag)*domsize(2)
+  endif
+
+  if((imag*domsize(3) .lt. imag*domsize(2)) .or. (imag*domsize(3) .lt. imag*domsize(1))) then
+    maxdist = (imag)*domsize(3)
   endif
 
   maxdist = 0.99*maxdist 
+
 
   do ii = -images, images
     do jj = -images, images 
@@ -1034,7 +1041,6 @@ end subroutine dry
 
 subroutine peskin_3pt(r,w)
 
-  !This isn't three point! Fill in correct values later
 
   double precision, intent(in   ) :: r
   double precision, intent(inout) :: w
@@ -1381,7 +1387,7 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
   double precision, intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
-  integer :: fi(3), fn(3),i, j, k
+  integer :: fi(3), fn(3),i, j, k, wcount
   double precision :: xx,yy,zz, w1, w2, w3, fr(3), fd(3), wcheck
 
   !find scalar cell
@@ -1415,6 +1421,7 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
   endif    
 
   wcheck = 0
+  wcount = 0
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
@@ -1446,6 +1453,9 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
         weights(i,j,k,store) = w1*w2*w3
 
+        if(weights(i,j,k,store) .ne. 0) then
+           wcount = wcount +1
+        endif
         indicies(i,j,k,store,1) = fi(1)+i+fn(1)
         indicies(i,j,k,store,2) = fi(2)+j+fn(2)
         indicies(i,j,k,store,3) = fi(3)+k+fn(3)
@@ -1457,9 +1467,12 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
       enddo
     enddo
   enddo
+  
+  !xx=0.5001
+  !call peskin_3pt(xx,w1)
 
-
-  !print*, "Total: ", wcheck
+  !print *, "w: ", w1
+  !print*, "Total: ", wcheck, "count: ", wcount, "kernel: ", pkernel_es
 
 end subroutine get_weights_scalar_cc
 
@@ -1557,13 +1570,16 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
-  if(pkernel_es .eq. 3) then    !this is exactly 2pi for all kernels?
-    pvol = 6.28319
+  if(pkernel_es .eq. 3) then 
+    !pvol = 6.28319
+    pvol = 0.5
   elseif(pkernel_es .eq. 4) then  
-    pvol = 6.28319
+    pvol = 0.5
   elseif(pkernel_es .eq. 6) then  
-    pvol = 6.28319
+    pvol = 0.5
   endif
+
+
 
   if(mq .eq. 0) then
     qm = pvol*part%q/permitivitty
@@ -1581,7 +1597,7 @@ subroutine spread_op_scalar_cc(weights, indicies, &
         kk = indicies(i,j,k,1,3)
 
 
-        source(ii,jj,kk) = qm*weights(i,j,k,store)*volinv
+        source(ii,jj,kk) = source(ii,jj,kk) + qm*weights(i,j,k,store)*volinv
 
       enddo
     enddo
@@ -2525,6 +2541,9 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                       part, ks, plof)
 
       !  print*, "SPREAD"
+
+            print *, "Part force: ", part%force
+
 
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &
