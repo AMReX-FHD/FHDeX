@@ -691,18 +691,27 @@ void IBMarkerContainer::InitInternals(int ngrow) {
     // Turn off certain components for ghost particle communication
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
     //      => 3 corresponds to the start of IBM_realData
-    setRealCommComp(4, true);  // IBM_realData.velx
-    setRealCommComp(5, true);  // IBM_realData.vely
-    setRealCommComp(6, true);  // IBM_realData.velz
-    setRealCommComp(7, true);  // IBM_realData.forcex
-    setRealCommComp(8, true);  // IBM_realData.forcey
-    setRealCommComp(9, true);  // IBM_realData.forcez
+    setRealCommComp(4, true);   // IBM_realData.velx
+    setRealCommComp(5, true);   // IBM_realData.vely
+    setRealCommComp(6, true);   // IBM_realData.velz
+    setRealCommComp(7, true);   // IBM_realData.forcex
+    setRealCommComp(8, true);   // IBM_realData.forcey
+    setRealCommComp(9, true);   // IBM_realData.forcez
+    setRealCommComp(10, true);  // IBM_realData.pred_posx
+    setRealCommComp(11, true);  // IBM_realData.pred_posy
+    setRealCommComp(12, true);  // IBM_realData.pred_posz
+    setRealCommComp(13, true);  // IBM_realData.pred_forcex
+    setRealCommComp(14, true);  // IBM_realData.pred_forcey
+    setRealCommComp(15, true);  // IBM_realData.pred_forcez
 
     // Field numbers: {0, 1} => {ID, CPU}
     //      => 2 corresponds to the start of IBM_intData
     // We _do_ want the the neighbour particles to have ID and cpu init data.
-    //setIntCommComp(0, false);  // IBM_intData.phase
-    //setIntCommComp(1, false);  // IBM_intData.state
+    setIntCommComp(2, true);  // IBM_intData.id_0
+    setIntCommComp(3, true);  // IBM_intData.cpu_0
+    setIntCommComp(4, true);  // IBM_intData.id_1
+    setIntCommComp(5, true);  // IBM_intData.cpu_1
+
 
 
     /****************************************************************************
