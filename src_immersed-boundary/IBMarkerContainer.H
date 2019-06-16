@@ -61,8 +61,10 @@ struct IBM_intData {
 
     static Vector<std::string> names() {
         return Vector<std::string> {
-            "phase",
-            "state"
+            "id_0",
+            "cpu_0",
+            "id_1",
+            "cpu_1",
         };
     };
 };
@@ -133,7 +135,7 @@ public:
 
     int get_nghost() const {return nghost;};
 
-    // void PrintMarkerData(int lev);
+    void PrintMarkerData(int lev) const;
 
     void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
                            bool unique = false) const;

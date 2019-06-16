@@ -310,88 +310,75 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 
 
-// void IBMarkerContainer::PrintMarkersData(int lev) {
-// 
-//     // Inverse cell-size vector => max is used for determining IBParticle
-//     // radius in units of cell size
-//     Vector<Real> inv_dx = {
-//             AMREX_D_DECL(
-//                 Geom(lev).InvCellSize(0),
-//                 Geom(lev).InvCellSize(1),
-//                 Geom(lev).InvCellSize(2)
-//             )
-//         };
-//     // Find max inv_dx (in case we have an anisotropic grid)
-//     Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
-// 
-//     amrex::AllPrintToFile("ib_particle_data") << "Particles on each box:" << std::endl;
-// 
-//     fillNeighbors();
-// 
-//     long local_count = 0;
-// 
-//     // ParIter skips tiles without particles => Iterate over MultiFab instead
-//     // of ParticleIter
-//     for(MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-//         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
-//         PairIndex index(pti.index(), pti.LocalTileIndex());
-// 
-//         // Neighbours are stored as raw data (see below)
-//         int ng = neighbors[lev][index].size();
-// 
-//         //long np = NumberOfParticles(pti);
-//         auto & particle_data = GetParticles(lev)[index];
-//         long np = particle_data.size();
-// 
-//         local_count += np;
-// 
-//         // Print current box info
-//         AllPrintToFile("ib_particle_data") << "Box:"         << pti.index()
-//                                            << " "            << pti.tilebox()
-//                                            << ", count: "    << np
-//                                            << ", nb count: " << ng
-//                                            << std::endl;
-// 
-//         // Print IBParticle
-//         AllPrintToFile("ib_particle_data") << " * IBPartcies:" << std::endl;
-// 
-//         //AoS & particles = pti.GetArrayOfStructs();
-//         AoS & particles = particle_data.GetArrayOfStructs();
-//         for(int i = 0; i < np; i++){
-//             ParticleType & part = particles[i];
-//             Real r              = part.rdata(IBP_realData::radius);
-// 
-//             int r_ncx = (int) (r * mx_inv_dx);
-// 
-//             AllPrintToFile("ib_particle_data") << "   +- " << part << std::endl;
-//             AllPrintToFile("ib_particle_data") << "   +---> Radius [NCells]: " << r_ncx << std::endl;
-//         }
-// 
-//         // Print neighbour IBParticles
-//         AllPrintToFile("ib_particle_data") << " * Grown IBParticles:" << std::endl;
-// 
-//         // TODO: HAXOR!!! This should be fixed ASAP: if I understand this
-//         // correctly, the neighbor data contains the particle data as a binary
-//         // array (char). By casting to ParticleType, what we're doing is
-//         // interpreting the data in neighbours[index] as valid particle data.
-//         // Also we stride the neighbors[index] array in units of
-//         // sizeof(ParticleData). All of this is a little too dangerous for my
-//         // taste: never hide what you're doing from your compiler!!!
-//         ParticleType * nbhd_data = (ParticleType *) neighbors[lev][index].dataPtr();
-//         for(int i = 0; i < ng; i++){
-//             ParticleType & part = nbhd_data[i];
-//             Real r              = part.rdata(IBP_realData::radius);
-// 
-//             int r_ncx = (int) (r * mx_inv_dx);
-// 
-//             AllPrintToFile("ib_particle_data") << "   +- " << part << std::endl;
-//             AllPrintToFile("ib_particle_data") << "   +---> Radius [NCells]: " << r_ncx << std::endl;
-//         }
-//     }
-// 
-//     AllPrintToFile("ib_particle_data") << "Total for this process: "
-//                                        << local_count << std::endl << std::endl;
-// }
+void IBMarkerContainer::PrintMarkerData(int lev) const {
+
+    // Inverse cell-size vector => max is used for determining IBParticle
+    // radius in units of cell size
+    Vector<Real> inv_dx = {AMREX_D_DECL(Geom(lev).InvCellSize(0),
+                                        Geom(lev).InvCellSize(1),
+                                        Geom(lev).InvCellSize(2)   )};
+
+    // Find max inv_dx (in case we have an anisotropic grid)
+    Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
+
+
+    amrex::AllPrintToFile("ib_marker_data") << "Particles on each box:" << std::endl;
+
+
+    long local_count = 0;
+
+    // ParIter skips tiles without particles => Iterate over MultiFab instead
+    // of ParticleIter
+    for(MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        // Neighbours are stored as raw data (see below)
+        int ng = neighbors[lev].at(index).size();
+
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        local_count += np;
+
+        // Print current box info
+        AllPrintToFile("ib_marker_data") << "Box:"         << pti.index()
+                                         << " "            << pti.tilebox()
+                                         << ", count: "    << np
+                                         << ", nb count: " << ng
+                                         << std::endl;
+
+        // Print IBMarker
+        AllPrintToFile("ib_marker_data") << " * IBMarkers:" << std::endl;
+
+        const AoS & particles = particle_data.GetArrayOfStructs();
+        for(int i = 0; i < np; i++){
+            const ParticleType & part = particles[i];
+
+            AllPrintToFile("ib_marker_data") << "   +--> " << part << std::endl;
+        }
+
+        // Print neighbour IBParticles
+        AllPrintToFile("ib_marker_data") << " * Grown IBParticles:" << std::endl;
+
+        // TODO: HAXOR!!! This should be fixed ASAP: if I understand this
+        // correctly, the neighbor data contains the particle data as a binary
+        // array (char). By casting to ParticleType, what we're doing is
+        // interpreting the data in neighbours[index] as valid particle data.
+        // Also we stride the neighbors[index] array in units of
+        // sizeof(ParticleData). All of this is a little too dangerous for my
+        // taste: never hide what you're doing from your compiler!!!
+        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+        for(int i = 0; i < ng; i++){
+            const ParticleType & part = nbhd_data[i];
+
+            AllPrintToFile("ib_marker_data") << "   +--> " << part << std::endl;
+        }
+    }
+
+    AllPrintToFile("ib_marker_data") << "Total for this process: "
+                                       << local_count << std::endl << std::endl;
+}
 
 
 
