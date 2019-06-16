@@ -7,6 +7,7 @@
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
 #include <common_functions.H>
+#include <common_namespace.H>
 
 #include <IBParticleContainer.H>
 #include <ib_functions_F.H>
@@ -14,6 +15,7 @@
 
 
 
+using namespace common;
 using namespace amrex;
 
 bool IBParticleContainer::use_neighbor_list  {true};
@@ -1048,10 +1050,17 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
         if (unique) {
             // If in unique-mode: Don't add unless `part_info` is not already in `info`
             const auto & search = std::find(std::begin(info), std::end(info), part_info);
-            if ( search == std::end(info))
-                info.push_back(part_info);
+            if ( search == std::end(info)) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+                { info.push_back(part_info); }
+            }
         } else {
-            info.push_back(part_info);
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            { info.push_back(part_info); }
         }
     }
 }
@@ -1163,13 +1172,21 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
 
         // Add to list
 
+ 
         if (unique) {
             // If in unique-mode: Don't add unless `part_info` is not already in `info`
             const auto & search = std::find(std::begin(info), std::end(info), part_info);
-            if ( search == std::end(info))
-                info.push_back(part_info);
+            if ( search == std::end(info)) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+                { info.push_back(part_info); }
+            }
         } else {
-            info.push_back(part_info);
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            { info.push_back(part_info); }
         }
     }
 }

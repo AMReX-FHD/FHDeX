@@ -10,6 +10,7 @@
 #include <AMReX_Periodicity.H>
 #include <AMReX_NeighborParticles.H>
 #include <IBParticleInfo.H>
+#include <common_namespace.H>
 
 
 using namespace amrex;
@@ -60,7 +61,7 @@ struct IBM_intData {
 
 
 
-class IBMarIter final 
+class IBMarIter
     : public amrex::ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
 {
 
@@ -71,13 +72,13 @@ public:
 
 
 
-class IBMarkerContainer final
+class IBMarkerContainer
     : public amrex::NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
 {
 
 public:
 
-    using NeighborParticleContainer<IBP_realData::count, IBP_intData::count>
+    using NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
         ::NeighborParticleContainer;
 
     IBMarkerContainer(AmrCore * amr_core, int n_nbhd);
@@ -91,28 +92,60 @@ public:
     using MarkerIndex = std::pair<int, int>;
  
 
-    void InitList(int lev,
-                  const Vector<RealVect> & pos,
-                  const Vector<Real> & r,
-                  const Vector<Real> & rho);
+    void InitList(int lev, const Vector<RealVect> & pos);
 
 
 
 
 
     // Get number of particles
-    int NumberOfMarkers(IBParIter & pti){ return pti.GetArrayOfStructs().size();};
+    int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().size();};
 
 
-    void SpreadMarkers(int lev, const ParticleIndex & pindex,
+    void SpreadMarkers(int lev,
                        const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
-    void InterpolateMarkers(int lev, const ParticleIndex & pindex,
+    void SpreadMarkers(int lev,
+                       const Vector<RealVect> & f_in,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+
+    void InterpolateMarkers(int lev,
                             Vector<RealVect> & f_out,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
+    void InterpolateMarkers(int lev,
+                            Vector<RealVect> & f_out,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
+
+
+    int get_nghost() const {return nghost;};
+
+    // void PrintMarkerData(int lev);
+
+    void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
+                           bool unique = false) const;
+    Vector<IBM_info> LocalIBMarkerInfo(int lev, PairIndex index,
+                                       bool unique = false) const;
+    Vector<IBM_info> LocalIBMarkerInfo(int lev, bool unique = false) const;
+
+
+    void NeighborIBMarkerInfo(Vector<IBM_info> & npart_info, int lev, PairIndex index,
+                              bool unique = false) const ;
+    Vector<IBM_info> NeighborIBMarkerInfo(int lev, PairIndex index,
+                                          bool unique = false) const;
+    Vector<IBM_info> NeighborIBMarkerInfo(int lev, bool unique = false) const;
+
+
+    void IBMarkerInfo(Vector<IBM_info> & part_info, int lev, PairIndex index,
+                        bool unique = false) const;
+    Vector<IBM_info> IBMarkerInfo(int lev, PairIndex index,
+                                  bool unique = false) const;
+    Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
 
 
 
@@ -121,10 +154,19 @@ public:
 
     void ReadStaticParameters();
 
-}
+
+    static bool use_neighbor_list;
+    static bool sort_neighbor_list;
+
+
+    // Posotions on faces
+    Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
 
 
+    AmrCore * m_amr_core;
+    int nghost;
+};
 
 
 #endif
