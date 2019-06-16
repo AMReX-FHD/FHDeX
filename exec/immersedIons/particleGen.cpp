@@ -109,7 +109,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::eepsilon) = particleInfo[i_spec].eepsilon;
 
                 p.idata(IntData::species) = i_spec +1;
-		p.rdata(RealData::potential) = 0.;                 
+		p.rdata(RealData::potential) = 0;                 
+		// SPC: temporary hack--set distance for which we do direct coulomb force calculation
+		//      to be same as that of the SR leonard jones
+		p.rdata(RealData::coulombRadiusFactor) = particleInfo[i_spec].sigma;                 
                 particle_tile.push_back(p);
 
                 pcount++;
