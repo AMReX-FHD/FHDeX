@@ -40,6 +40,9 @@ struct IBM_realData {
             "forcex",
             "forcey",
             "forcez",
+            "pred_posx",
+            "pred_posy",
+            "pred_posz",
             "pred_forcex",
             "pred_forcey",
             "pred_forcez"

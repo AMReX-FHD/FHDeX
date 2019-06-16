@@ -68,6 +68,9 @@ module ib_fort_utils
         real(amrex_real)   :: forcex        !< Force x
         real(amrex_real)   :: forcey        !< Force y
         real(amrex_real)   :: forcez        !< Force z
+        real(amrex_real)   :: pred_posx     !< Predictor position x
+        real(amrex_real)   :: pred_posy     !< Predictor position y
+        real(amrex_real)   :: pred_posz     !< Predictor position z
         real(amrex_real)   :: pred_forcex   !< Predictor force x
         real(amrex_real)   :: pred_forcey   !< Predictor force y
         real(amrex_real)   :: pred_forcez   !< Predictor force z

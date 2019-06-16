@@ -327,9 +327,10 @@ void IBMarkerContainer::PrintMarkerData(int lev) const {
 
     long local_count = 0;
 
-    // ParIter skips tiles without particles => Iterate over MultiFab instead
-    // of ParticleIter
-    for(MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    // ParIter skips tiles without particles => Iterate over MultiFab instead of
+    // ParticleIter. Note also that AmrexParticleContainer uses wired tiling =>
+    // turn tiling off
+    for(MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
