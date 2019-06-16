@@ -109,8 +109,15 @@ void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
                 p_new.rdata(IBM_realData::forcey) = 0.;
                 p_new.rdata(IBM_realData::forcez) = 0.;
 
-                p_new.idata(IBM_intData::phase)     = 1; // TODO: not needed anymore?
-                p_new.idata(IBM_intData::state)     = 1; // TODO: not needed anymore?
+                p_new.rdata(IBM_realData::pred_forcex) = 0.;
+                p_new.rdata(IBM_realData::pred_forcey) = 0.;
+                p_new.rdata(IBM_realData::pred_forcez) = 0.;
+
+                p_new.idata(IBM_intData::id_0)    = 0;
+                p_new.idata(IBM_intData::cpu_0)   = 0;
+
+                p_new.idata(IBM_intData::id_1)    = 0;
+                p_new.idata(IBM_intData::cpu_1)   = 0;
 
                 // Add to the data structure
                 particles.push_back(p_new);

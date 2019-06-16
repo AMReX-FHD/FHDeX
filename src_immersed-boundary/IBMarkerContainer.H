@@ -26,7 +26,10 @@ struct IBM_realData {
         forcex,
         forcey,
         forcez,
-        count     // Awesome little trick!
+        pred_forcex,
+        pred_forcey,
+        pred_forcez,
+        count    // Awesome little trick!
     };
 
     static Vector<std::string> names() {
@@ -36,7 +39,10 @@ struct IBM_realData {
             "velz",
             "forcex",
             "forcey",
-            "forcez"
+            "forcez",
+            "pred_forcex",
+            "pred_forcey",
+            "pred_forcez"
         };
     };
 };
@@ -46,8 +52,10 @@ struct IBM_realData {
 struct IBM_intData {
     //Analogous to particle intData (p.m_data)
     enum {
-        phase = 0,  // ................................... TODO: Audit
-        state,      // ................................... TODO: Audit
+        id_0 = 0,
+        cpu_0,
+        id_1,
+        cpu_1,
         count
     };
 
@@ -90,7 +98,7 @@ public:
 
     // (ID, initial CPU) tuple: unique to each particle
     using MarkerIndex = std::pair<int, int>;
- 
+
 
     void InitList(int lev, const Vector<RealVect> & pos);
 
