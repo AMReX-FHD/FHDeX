@@ -642,14 +642,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev, const std::array<MultiFab, A
             for (int d=0; d<AMREX_SPACEDIM; ++d)
                 ppos[d] = part.pos(d);
 
-            pfor[0] = part.rdata(IBM_realData::forcex);
-#if (AMREX_SPACEDIM > 1)
-            pfor[1] = part.rdata(IBM_realData::forcey);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            pfor[2] = part.rdata(IBM_realData::forcez);
-#endif
-
+            // pfor should be (0, .., 0)
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -668,13 +661,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev, const std::array<MultiFab, A
             for (int d=0; d<AMREX_SPACEDIM; ++d)
                 ppos[d] = part.pos(d);
 
-            pfor[0] = part.rdata(IBM_realData::forcex);
-#if (AMREX_SPACEDIM > 1)
-            pfor[1] = part.rdata(IBM_realData::forcey);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            pfor[2] = part.rdata(IBM_realData::forcez);
-#endif
+            // pfor should be (0, .., 0)
 
 #ifdef _OPENMP
 #pragma omp critical
@@ -761,12 +748,12 @@ void IBMarkerContainer::InterpolateMarkers(int lev, const std::array<MultiFab, A
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
 
-            part.rdata(IBM_realData::forcex) += marker_forces[i][0];
+            part.rdata(IBM_realData::velx) += marker_forces[i][0];
 #if (AMREX_SPACEDIM > 1)
-            part.rdata(IBM_realData::forcey) += marker_forces[i][1];
+            part.rdata(IBM_realData::vely) += marker_forces[i][1];
 #endif
 #if (AMREX_SPACEDIM > 2)
-            part.rdata(IBM_realData::forcez) += marker_forces[i][2];
+            part.rdata(IBM_realData::velz) += marker_forces[i][2];
 #endif
         }
 
@@ -775,12 +762,12 @@ void IBMarkerContainer::InterpolateMarkers(int lev, const std::array<MultiFab, A
         for (int i = 0; i < np; ++i) {
             ParticleType & part = nbhd_data[i];
 
-            part.rdata(IBM_realData::forcex) += marker_forces[i][0];
+            part.rdata(IBM_realData::velx) += marker_forces[i][0];
 #if (AMREX_SPACEDIM > 1)
-            part.rdata(IBM_realData::forcey) += marker_forces[i][1];
+            part.rdata(IBM_realData::vely) += marker_forces[i][1];
 #endif
 #if (AMREX_SPACEDIM > 2)
-            part.rdata(IBM_realData::forcez) += marker_forces[i][2];
+            part.rdata(IBM_realData::velz) += marker_forces[i][2];
 #endif
 
         }
