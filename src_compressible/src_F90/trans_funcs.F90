@@ -56,7 +56,8 @@ contains
               specavkappa = specavkappa + prim(i,j,k,6+l)*tconst(l)
             enddo
 
-            rootT = sqrt(prim(i,j,k,5))
+            ! rootT = sqrt(prim(i,j,k,5))
+            rootT = sqrt(300.d0)
 
             zeta(i,j,k) = 0 !no bulk viscosity for now
 

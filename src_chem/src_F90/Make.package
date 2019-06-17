@@ -1,0 +1,18 @@
+F90EXE_sources += Prob.F90
+F90EXE_sources += Adv_3d.F90
+F90EXE_sources += bc_fill_nd.F90
+F90EXE_sources += compute_flux_3d.F90
+F90EXE_sources += ConGrad_3d.F90
+F90EXE_sources += ptsource_fill_3d.F90
+F90EXE_sources += slope_3d.F90
+F90EXE_sources += Tagging_nd.F90
+
+#F90EXE_sources += Adv_2d.F90
+#F90EXE_sources += compute_flux_2d.F90
+#F90EXE_sources += ConGrad_2d.F90
+#F90EXE_sources += ptsource_fill_2d.F9
+#F90EXE_sources += slope_2d.F90
+
+#VPATH_LOCATIONS += /home/malvarado/FHDeX/src_chem/src_F90
+#INCLUDE_LOCATIONS += /home/malvarado/FHDeX/src_chem/src_F90
+

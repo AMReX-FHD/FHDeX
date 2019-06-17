@@ -54,11 +54,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].rny = 0;
     surfaceList[0].rnz = 0;
 
-    surfaceList[0].specularityLeft = 1;
+    surfaceList[0].specularityLeft = 0;
     surfaceList[0].temperatureLeft = T_init[0];
     surfaceList[0].momentumConsLeft = 1;
 
-    surfaceList[0].specularityRight = 1;
+    surfaceList[0].specularityRight = 0;
     surfaceList[0].temperatureRight = T_init[0];
     surfaceList[0].momentumConsRight = 1;
 
@@ -125,11 +125,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[1].rny = 0;
     surfaceList[1].rnz = 0;
 
-    surfaceList[1].specularityLeft = 1;
+    surfaceList[1].specularityLeft = 0;
     surfaceList[1].temperatureLeft = T_init[0];
     surfaceList[1].momentumConsLeft = 1;
 
-    surfaceList[1].specularityRight = 1;
+    surfaceList[1].specularityRight = 0;
     surfaceList[1].temperatureRight = T_init[0];
     surfaceList[1].momentumConsRight = 1;
 
@@ -196,12 +196,12 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].rny = -1;
     surfaceList[2].rnz = 0;
 
-    surfaceList[2].specularityLeft = 1;
+    surfaceList[2].specularityLeft = 0;
     surfaceList[2].temperatureLeft = T_init[0];
     surfaceList[2].momentumConsLeft = 1;
 
 
-    surfaceList[2].specularityRight = 1;
+    surfaceList[2].specularityRight = 0;
     surfaceList[2].temperatureRight = T_init[0];
     surfaceList[2].momentumConsRight = 1;
 
@@ -267,11 +267,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[3].rny = -1;
     surfaceList[3].rnz = 0;
 
-    surfaceList[3].specularityLeft = 1;
+    surfaceList[3].specularityLeft = 0;
     surfaceList[3].temperatureLeft = T_init[0];
     surfaceList[3].momentumConsLeft = 1;
 
-    surfaceList[3].specularityRight = 1;
+    surfaceList[3].specularityRight = 0;
     surfaceList[3].temperatureRight = T_init[0];
     surfaceList[3].momentumConsRight = 1;
 
@@ -338,11 +338,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[4].rny = 0;
     surfaceList[4].rnz = -1;
 
-    surfaceList[4].specularityLeft = 1;
+    surfaceList[4].specularityLeft = 0;
     surfaceList[4].temperatureLeft = T_init[0];
     surfaceList[4].momentumConsLeft = 1;
 
-    surfaceList[4].specularityRight = 1;
+    surfaceList[4].specularityRight = 0;
     surfaceList[4].temperatureRight = T_init[0];
     surfaceList[4].momentumConsRight = 1;
 
@@ -409,11 +409,11 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].rny = 0;
     surfaceList[5].rnz = -1;
 
-    surfaceList[5].specularityLeft = 1;
+    surfaceList[5].specularityLeft = 0;
     surfaceList[5].temperatureLeft = T_init[0];
     surfaceList[5].momentumConsLeft = 1;
 
-    surfaceList[5].specularityRight = 1;
+    surfaceList[5].specularityRight = 0;
     surfaceList[5].temperatureRight = T_init[0];
     surfaceList[5].momentumConsRight = 1;
 

@@ -1,10 +1,10 @@
-subroutine get_phigrad_2d( lo, hi, &
-     &            phi , p_lo, p_hi, &
-     &            phi_x, px_lo, px_hi, &
-     &            phi_y, py_lo, py_hi,&
+subroutine get_congrad_2d( lo, hi, &
+     &            con , p_lo, p_hi, &
+     &            con_x, px_lo, px_hi, &
+     &            con_y, py_lo, py_hi,&
      &            iface, if_lo, if_hi,&
      &            ib_cen_x, ib_cen_y, &
-     &            dx, prob_lo) bind(C, name="get_phigrad_2d")
+     &            dx, prob_lo) bind(C, name="get_congrad_2d")
   
 
   implicit none
@@ -15,13 +15,13 @@ subroutine get_phigrad_2d( lo, hi, &
   integer, intent(in) :: px_lo(2), px_hi(2)
   integer, intent(in) :: py_lo(2), py_hi(2)
   integer, intent(in) :: if_lo(2), if_hi(2)
-  double precision, intent(in   ) :: phi (p_lo(1):p_hi(1),p_lo(2):p_hi(2))
-  double precision, intent(out) :: phi_x(px_lo(1):px_hi(1),px_lo(2):px_hi(2))
-  double precision, intent(out) :: phi_y(py_lo(1):py_hi(1),py_lo(2):py_hi(2))
+  double precision, intent(in   ) :: con (p_lo(1):p_hi(1),p_lo(2):p_hi(2))
+  double precision, intent(out) :: con_x(px_lo(1):px_hi(1),px_lo(2):px_hi(2))
+  double precision, intent(out) :: con_y(py_lo(1):py_hi(1),py_lo(2):py_hi(2))
   integer, intent(in) :: iface(if_lo(1):if_hi(1),if_lo(2):if_hi(2))
 
   integer :: i, j
-  double precision :: phi_xp, phi_xm, phi_xc, phi_yp, phi_ym, phi_yc, x, y, theta
+  double precision :: con_xp, con_xm, con_xc, con_yp, con_ym, con_yc, x, y, theta
   double precision ::  n1, n2, t_t1, t_t2
 
      do    j = lo(2), hi(2)
@@ -35,46 +35,46 @@ subroutine get_phigrad_2d( lo, hi, &
 
            if (iface(i,j) .lt. 2) then
 
-           ! one sided and centered difference of phi
-           phi_xp=(phi(i+1,j)-phi(i,j))/dx(1)
-           phi_xm=(phi(i,j)-phi(i-1,j))/dx(1)
-           phi_xc=(phi_xp+phi_xm)/2
+           ! one sided and centered difference of con
+           con_xp=(con(i+1,j)-con(i,j))/dx(1)
+           con_xm=(con(i,j)-con(i-1,j))/dx(1)
+           con_xc=(con_xp+con_xm)/2
 
-           phi_yp=(phi(i,j+1)-phi(i,j))/dx(2)
-           phi_ym=(phi(i,j)-phi(i,j-1))/dx(2)
-           phi_yc=(phi_yp+phi_ym)/2
+           con_yp=(con(i,j+1)-con(i,j))/dx(2)
+           con_ym=(con(i,j)-con(i,j-1))/dx(2)
+           con_yc=(con_yp+con_ym)/2
 
 
            ! if one side is interior to IB then use other one sided derivative  
               if (iface(i,j) .eq. 1) then
                  if (iface(i+1,j) .eq. 2)then
-                 phi_x(i,j)=phi_xm 
+                 con_x(i,j)=con_xm 
                  else if (iface(i-1,j) .eq. 2) then
-                 phi_x(i,j)=phi_xp
+                 con_x(i,j)=con_xp
                  else
-                 phi_x(i,j)=phi_xc
+                 con_x(i,j)=con_xc
                  end if
                  
                  if (iface(i,j+1) .eq. 2)then
-                 phi_y(i,j)=phi_ym 
+                 con_y(i,j)=con_ym 
                  else if (iface(i,j-1) .eq. 2) then
-                 phi_y(i,j)=phi_yp
+                 con_y(i,j)=con_yp
                  else 
-                 phi_y(i,j)=phi_yc
+                 con_y(i,j)=con_yc
                  end if
 
              else 
-             phi_x(i,j)=phi_xc
-             phi_y(i,j)=phi_yc
+             con_x(i,j)=con_xc
+             con_y(i,j)=con_yc
              end if
 !              else
 !              n1=x/(sqrt(x**2+y**2+z**2))
 !              n2=y/(sqrt(x**2+y**2+z**2))
 !              n3=z/(sqrt(x**2+y**2+z**2))
 !
-!              t1=phi_x- n1*(phi_x*n1+phi_y*n2+phi_z*n3)
-!              t2=phi_y- n2*(phi_x*n1+phi_y*n2+phi_z*n3)
-!              t3=phi_z- n3*(phi_x*n1+phi_y*n2+phi_z*n3)
+!              t1=con_x- n1*(con_x*n1+con_y*n2+con_z*n3)
+!              t2=con_y- n2*(con_x*n1+con_y*n2+con_z*n3)
+!              t3=con_z- n3*(con_x*n1+con_y*n2+con_z*n3)
 !             
 !              t_t1=-y/(sqrt(x**2+y**2))
 !              t_t2=x/(sqrt(x**2+y**2))
@@ -83,9 +83,9 @@ subroutine get_phigrad_2d( lo, hi, &
 !              t_p2=(z/sqrt(x**2+y**2+z**2))*(y/sqrt(x**2+y**2))
 !              t_p3=-sqrt(x**2+y**2)/sqrt(x**2+y*2+z**2)
 !
-!              phi_n(i,j,k)=phi_x*n1+phi_y*n2+phi_z*n3
-!              phi_t(i,j,k)=t1*t_t1+t2*t_t2 
-!              phi_p(i,j,k)=t1*t_p1+t2*t_p2+t3*t_p3
+!              con_n(i,j,k)=con_x*n1+con_y*n2+con_z*n3
+!              con_t(i,j,k)=t1*t_t1+t2*t_t2 
+!              con_p(i,j,k)=t1*t_p1+t2*t_p2+t3*t_p3
 
 
               theta=atan2(y,x)
@@ -98,16 +98,16 @@ subroutine get_phigrad_2d( lo, hi, &
               t_t2=cos(theta)
 
 
-             ! phi_n(i,j,k)= phi_x !phi_x*n1+phi_y*n2+phi_z*n3
-             ! phi_t(i,j,k)= phi_y !phi_x*t_t1+phi_y*t_t2+phi_z*t_t3
-             ! phi_p(i,j,k)= phi_z !phi_x*t_p1+phi_y*t_p2+phi_z*t_p3 
+             ! con_n(i,j,k)= con_x !con_x*n1+con_y*n2+con_z*n3
+             ! con_t(i,j,k)= con_y !con_x*t_t1+con_y*t_t2+con_z*t_t3
+             ! con_p(i,j,k)= con_z !con_x*t_p1+con_y*t_p2+con_z*t_p3 
 
             !  end if
            else
-           phi_x(i,j)=0.d0
-           phi_y(i,j)=0.d0
+           con_x(i,j)=0.d0
+           con_y(i,j)=0.d0
           endif
         enddo
      enddo
 
-end subroutine get_phigrad_2d
+end subroutine get_congrad_2d
