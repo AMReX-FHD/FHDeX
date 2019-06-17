@@ -39,6 +39,10 @@ extern "C"
                         const void* ghosts,    const int* nn,
                         const int* neighbor_list, const int* size, amrex_real* rcount);
 
+                void amrex_compute_coulomb_forces_nl(void* particles, const int* np,
+                        const void* ghosts,    const int* nn,
+                        const int* neighbor_list, const int* size, amrex_real* rcount, const amrex_real* charge, const int* chargelo,
+			const int* chargehi);
 
   	        void move_particles_dry(void* particles,
                         const int *np,

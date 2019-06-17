@@ -927,7 +927,8 @@ void IBParticleContainer::PrintParticleData(int lev) {
     long local_count = 0;
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
-    // of ParticleIter
+    // of ParticleIter. Note also that AmrexParticleContainer uses wired tiling =>
+    // turn tiling off
     for(MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -1050,10 +1051,17 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
         if (unique) {
             // If in unique-mode: Don't add unless `part_info` is not already in `info`
             const auto & search = std::find(std::begin(info), std::end(info), part_info);
-            if ( search == std::end(info))
-                info.push_back(part_info);
+            if ( search == std::end(info)) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+                { info.push_back(part_info); }
+            }
         } else {
-            info.push_back(part_info);
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            { info.push_back(part_info); }
         }
     }
 }
@@ -1165,13 +1173,21 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
 
         // Add to list
 
+ 
         if (unique) {
             // If in unique-mode: Don't add unless `part_info` is not already in `info`
             const auto & search = std::find(std::begin(info), std::end(info), part_info);
-            if ( search == std::end(info))
-                info.push_back(part_info);
+            if ( search == std::end(info)) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+                { info.push_back(part_info); }
+            }
         } else {
-            info.push_back(part_info);
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            { info.push_back(part_info); }
         }
     }
 }
