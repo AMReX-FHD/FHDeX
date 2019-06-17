@@ -63,10 +63,6 @@ void WritePlotFile(int step,
         x += (120+i);
         varNames[cnt++] = x;
     }
-        varNames[cnt++] ="C";
-        varNames[cnt++] = "dCdx";
-        varNames[cnt++] = "dCdy";
-        varNames[cnt++] = "dCdz";
 
     varNames[cnt++] = "tracer";
     varNames[cnt++] = "pres";
@@ -77,6 +73,10 @@ void WritePlotFile(int step,
     varNames[cnt++] = "shifted_force_ibm_x";
     varNames[cnt++] = "shifted_force_ibm_y";
     varNames[cnt++] = "shifted_force_ibm_z";
+    varNames[cnt++] ="C";
+    varNames[cnt++] = "dCdx";
+    varNames[cnt++] = "dCdy";
+    varNames[cnt++] = "dCdz";
 
     for (int i=0; i<nPlot; ++i) {
         std::cout<<" i= "<< varNames[i]<<std::endl ;
@@ -98,30 +98,6 @@ void WritePlotFile(int step,
         cnt++;
     }
 
-    for (int d=0; d<lev; ++d) {
-    Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
-     amr_core_adv.con_new_copy( lev, mf,0);
-     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
-    cnt++;}
-//    }
-    for (int d=0; d<lev; ++d) { 
-   Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
-     amr_core_adv.con_new_copy( lev, mf,1);
-     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
-    cnt++;}
-//    }
-    for (int d=0; d<lev; ++d) {
-  Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
-     amr_core_adv.con_new_copy( lev, mf,2);
-     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
-    cnt++;}
-//    }
-    for (int d=0; d<lev; ++d) {
-   Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
-     amr_core_adv.con_new_copy( lev, mf,3);
-
-     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
-    cnt++;}
 //    }
 
 
@@ -145,6 +121,43 @@ void WritePlotFile(int step,
         ShiftFaceToCC(force_ibm[d], 0, plotfile, cnt, 1);
         cnt++;
     }
+   // for (int d=0; d<lev+1; ++d) {
+   // Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
+     amr_core_adv.con_new_copy( lev, mf,0);
+    // mf[lev]->setVal(0.);
+     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
+    cnt++;
+   // }
+//    }
+  //  for (int d=0; d<lev+1; ++d) { 
+  // Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
+   //  mf[lev]->setVal(0.);
+
+     amr_core_adv.con_new_copy( lev, mf,0);
+     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
+    cnt++;//}
+//    }
+//    for (int d=0; d<lev+1; ++d) {
+ // Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
+   //  mf[lev]->setVal(0.);
+    
+     amr_core_adv.con_new_copy( lev, mf,1);
+     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
+    cnt++;//}
+//    }
+   // for (int d=0; d<lev+1; ++d) {
+   //Vector<std::unique_ptr<amrex:: MultiFab>> mf(lev+1);
+   //  mf[lev]->setVal(0.);
+    
+   amr_core_adv.con_new_copy( lev, mf,2);
+
+     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
+    cnt++;//}
+
+     amr_core_adv.con_new_copy( lev, mf,3);
+    // mf[lev]->setVal(0.);
+     MultiFab::Copy(plotfile,*mf[lev], 0, cnt, 1, 0);
+    cnt++;
 
  //   AmrCoreAdv amr_core_adv;
  //

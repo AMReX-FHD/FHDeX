@@ -42,7 +42,7 @@ void advance( AmrCoreAdv & amr_core_adv,
 # endif
              IBParticleContainer & ib_pc,
              IBCore & ib_core,
-             const Geometry geom, const Real & dt);
+             const Geometry geom, const Real & dt, Real time);
 
 
 

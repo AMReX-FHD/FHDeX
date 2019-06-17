@@ -25,6 +25,8 @@ using namespace amrex;
 void AmrCoreAdv::Initialize( )
 {
 //    ReadParameters();
+    std::cout<< "max level "<< max_level<< std::endl;
+    std::cout << "Initialize"<<std::endl;
 
     int nlevs_max = max_level + 1;
 
@@ -99,9 +101,9 @@ void AmrCoreAdv::Initialize( )
 void AmrCoreAdv::EvolveChem(
         std::array<MultiFab, AMREX_SPACEDIM> & umac, 
         const iMultiFab & iface, int lev, int nstep,
-        Real dt_fluid)
+        Real dt_fluid, Real time)
 {
-    int time=0;
+    
     dt[lev] = dt_fluid;
 
     // initialize copies of velocities u_g, v_g, w_g and first derivatives of
@@ -126,6 +128,9 @@ void AmrCoreAdv::EvolveChem(
         uface[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         vface[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
         wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
+        uface[lev]->setVal(0.);
+        vface[lev]->setVal(0.);
+        wface[lev]->setVal(0.);
 
         Dcon_x[lev].reset(new MultiFab(conba, condm, 1, 0));
         Dcon_y[lev].reset(new MultiFab(conba, condm, 1, 0));
@@ -192,6 +197,7 @@ void AmrCoreAdv::EvolveChem(
 
 void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 {
+    std::cout << "InitData"<<std::endl;
     Initialize();
 
     if (restart_chkfile == "") {
@@ -200,8 +206,11 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
         const Real time = 0.0;
 
         // initialize Levels (done in AmrCore)
+        std::cout << "Before InitFromScratchData"<<std::endl;
+        
         InitFromScratch(time);
-        AverageDown();
+        //AverageDown();
+        std::cout << "After InitFromScratchData"<<std::endl;
 
         // DEBUG: write intial checkpoint
         // if (chk_int > 0) WriteCheckpointFile();
@@ -214,10 +223,13 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 
    // initialize grad con
    for (int lev = 0; lev <= finest_level; ++lev) {
-       con_new[lev]->setVal(0.);
-       con_old[lev]->setVal(0.);
+       //con_new[lev]->setVal(0.);
+       //con_old[lev]->setVal(0.);
+        std::cout << "For loop InitData"<<std::endl;
 
-       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
+//       MakeNewLevelFromScratch ( lev, 0., ba, dm);
+//       con_new[lev]->setVal(0.);
+//       con_old[lev]->setVal(0.);
        
        Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 0));
        Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 0));
@@ -301,7 +313,8 @@ AmrCoreAdv::ClearLevel (int lev)
 void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 					  const DistributionMapping& dm)
 {
-
+    std::cout << "MakeNewLevelFromScratch"<<std::endl;
+    
     const int ncomp = 1;
     const int nghost = 0;
 
@@ -748,7 +761,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                            dx, & dt_lev, &diffcoeff);
             } else {
                 // fill the point source multifab from the tagged interface multifab
-std::cout << "before get_ptsource_3d"<<std::endl;
  
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
@@ -868,12 +880,26 @@ std::cout << "before get_ptsource_3d"<<std::endl;
 //}
 void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>> & MF, int indicator) {
     // indicator gives which quantity is being copied into MF
-    //mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
+   // mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
+    DistributionMapping condm = con_new[lev]->DistributionMap();
+    BoxArray conba            = con_new[lev]->boxArray();
 
-    if (indicator==0)      MF[lev]->copy(* con_new[lev], 0, 0,1, 0, 0);
-    else if (indicator==1) MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 0, 0);
-    else if (indicator==2) MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 0, 0);
-    else if (indicator==3) MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);
+    MF[lev].reset(new MultiFab(conba, condm, 1, 0));
+
+    MF[lev]->setVal(0.);
+
+    if (indicator==0){
+        MF[lev]->copy(* con_new[lev], 0, 0,1, 0, 0);
+        std::cout<< "Indicator " << indicator<< std::endl;}
+    else if (indicator==1){
+        MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 0, 0);
+        std::cout<< "Indicator " << indicator<< std::endl;}
+    else if (indicator==2){
+	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 0, 0);
+        std::cout<< "Indicator " << indicator<< std::endl;}
+    else if (indicator==3){
+	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);
+        std::cout<< "Indicator " << indicator<< std::endl;}
     else amrex::Abort( "Incorrect indicator for copying information from AmrCoreAdv to Mfix" );
 }
 

@@ -38,7 +38,7 @@ void advance(AmrCoreAdv & amr_core_adv,
              const std::array<MultiFab, NUM_EDGE> & beta_ed,
              IBParticleContainer & ib_pc,
              IBCore & ib_core,
-             const Geometry geom, const Real & dt)
+             const Geometry geom, const Real & dt, Real time)
 {
 
     BL_PROFILE_VAR("advance()",advance);
@@ -211,7 +211,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     int ibpc_lev = 0; // assume single level for now
     int ib_grow  = 6; // using the 6-point stencil
 
-    Real spring_coefficient = 1e3; //1e4;
+    Real spring_coefficient = 1e4;
 
    int nstep=0;
 
@@ -225,7 +225,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem( umac, iface, ibpc_lev, nstep,dt);
+        amr_core_adv.EvolveChem( umac, iface, ibpc_lev, nstep,dt, time);
     }
  //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank

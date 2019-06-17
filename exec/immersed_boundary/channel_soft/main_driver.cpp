@@ -543,7 +543,7 @@ int lev =0;
         advance(amr_core_adv,
 		umac, umacNew, pres, tracer, force_ibm, marker_force_0,
                 mfluxdiv_predict, mfluxdiv_correct,
-                alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt);
+                alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt, time);
 
 
         // Empty force data

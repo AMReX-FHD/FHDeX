@@ -30,5 +30,4 @@ subroutine get_ptsource_3d( lo, hi, &
         enddo
      enddo
   enddo
-print *, ' end do loop '
 end subroutine get_ptsource_3d
