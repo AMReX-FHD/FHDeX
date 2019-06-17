@@ -26,6 +26,12 @@ struct IBM_realData {
         forcex,
         forcey,
         forcez,
+        pred_posx,
+        pred_posy,
+        pred_posz,
+        pred_velx,
+        pred_vely,
+        pred_velz,
         pred_forcex,
         pred_forcey,
         pred_forcez,
@@ -43,6 +49,9 @@ struct IBM_realData {
             "pred_posx",
             "pred_posy",
             "pred_posz",
+            "pred_velx",
+            "pred_vely",
+            "pred_velz",
             "pred_forcex",
             "pred_forcey",
             "pred_forcez"
@@ -115,24 +124,41 @@ public:
     int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().size();};
 
 
-    void SpreadMarkers(int lev,
-                       const Vector<RealVect> & f_in,
+    void SpreadMarkers(int lev, const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
-    void SpreadMarkers(int lev,
-                       const Vector<RealVect> & f_in,
+    void SpreadMarkers(int lev, const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
 
-    void InterpolateMarkers(int lev,
-                            Vector<RealVect> & f_out,
+    // void SpreadMarkers(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+
+    // void SpreadPredictor(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+
+
+
+    void InterpolateMarkers(int lev, Vector<RealVect> & f_out,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
-    void InterpolateMarkers(int lev,
-                            Vector<RealVect> & f_out,
+    void InterpolateMarkers(int lev, Vector<RealVect> & f_out,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+
+    // void InterpolateMarkers(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+
+    // void InterpolatePredictor(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+
+
+
+
+    /****************************************************************************
+     * Physics                                                                   *
+     ****************************************************************************/
+
+    void MoveMarkers(int lev, Real dt);
+    void MovePredictor(int lev, Real dt);
 
 
 

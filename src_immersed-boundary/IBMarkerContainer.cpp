@@ -139,6 +139,49 @@ void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
 
 
 
+void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            MarkerIndex pindex(part.id(), part.cpu());
+
+            part.pos(0) += dt * part.rdata(IBM_realData::velx);
+            part.pos(1) += dt * part.rdata(IBM_realData::vely);
+            part.pos(2) += dt * part.rdata(IBM_realData::velz);
+        }
+    }
+}
+
+
+
+void IBMarkerContainer::MovePredictor(int lev, Real dt) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            MarkerIndex pindex(part.id(), part.cpu());
+
+            part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
+            part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
+            part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
+        }
+    }
+}
+
+
 
 void IBMarkerContainer::SpreadMarkers(int lev,
         const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out,
