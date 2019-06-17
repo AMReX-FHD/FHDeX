@@ -146,9 +146,9 @@ public:
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
 
-    void InterpolateMarkers(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+    void InterpolateMarkers(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
 
-    void InterpolatePredictor(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+    void InterpolatePredictor(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
 
 
 
