@@ -132,9 +132,9 @@ public:
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
 
-    // void SpreadMarkers(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+    void SpreadMarkers(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
-    // void SpreadPredictor(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+    void SpreadPredictor(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
 
 
@@ -146,9 +146,9 @@ public:
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
 
-    // void InterpolateMarkers(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+    void InterpolateMarkers(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
-    // void InterpolatePredictor(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+    void InterpolatePredictor(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
 
 
