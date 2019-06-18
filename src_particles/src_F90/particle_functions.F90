@@ -160,8 +160,8 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
     real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
-    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70)
-    integer :: i, j, index, nneighbors, store, ks
+    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70), dx2_inv, r_cell_frac,m
+    integer :: i, j, index, nneighbors, store, ks, lookup_idx, k
 
     type(particle_t)                    :: particles(np+nn)
 
@@ -172,14 +172,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
    correction_force_mag=0.d0
 
    ee = 1.d0/(permitivitty*4*3.142) 
-
-   if(pkernel_es .eq. 3) then
-      ks = 2
-   elseif(pkernel_es .eq. 4) then
-     ks = 3
-   elseif(pkernel_es .eq. 6) then
-     ks = 4
-   endif
+   dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
   
    allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
    allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
@@ -187,6 +180,11 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+    ! p6 tables:
+    !!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    ! this is force per dx**2
     vals =(/0.0, 0.0000000789, 0.000000157, 0.000000233, 0.000000307, &
               0.000000378, 0.000000445, 0.000000507, 0.000000564, 0.000000617, &
               0.000000663, 0.000000704, 0.000000737, 0.000000766, 0.000000789, &
@@ -201,7 +199,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
               0.000000199, 0.000000192, 0.000000186, 0.000000179, 0.000000173, &
               0.000000167, 0.000000162, 0.000000157, 0.000000152, 0.000000147, &
               0.000000143, 0.000000139, 0.000000134, 0.00000013, 0.0000001270/)
-
+    ! these are fractions of cell size dx
     points =(/0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, &
               1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, &
               2.8, 2.9, 3., 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4., 4.1, &
@@ -223,62 +221,39 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           dr(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
           r2 = dot_product(dr,dr) 
-          !r2 = max(r2, rmin*rmin)  ! SC: need this for short range coulomb? 
           r = sqrt(r2)
+          r_cell_frac = r/dx(1) ! for use in lookup below
 
-         if (r .lt. (particles(i)%coulombRadiusFactor)) then ! NOTE--hack warning: currently coulombRadiusFactor = sigma is how particles are initialized... 
+         if (r .lt. (particles(i)%coulombRadiusFactor)) then 
 
             !!!!!!!!!!!!!!!!!!!!!!!!!!
-            ! do local (short range) coulomb interaction within coulombRadiusFactor
+            ! Do local (short range) coulomb interaction within coulombRadiusFactor
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(j)%q/r2
 
             !!!!!!!!!!!!!!!!!!!!!!!!!!
-            ! Compute correction for fact that above sr coulomb interactions accounted for in poisson solve
+            ! Compute correction for fact that the above, sr coulomb interactions accounted for in poisson solve
             ! and hence are double counted 
             !
             ! Currently only implemented for pkernel=6
-
-
-            ! p6 tables:
-
-              
-
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             if (pkernel_es .eq. 6) then 
-               !call calculate_correction_force_pkernel6(correction_force_mag, r) ! needs to be scaled by 1/(4*pi*eps_0) * q_i * q_j 
-                                                                                 ! and needs a unit vector to make it a vector
+               do k = 1, 70
+                  if (r_cell_frac .lt. points(i+1)) then 
+                     ! do linear interpolation of force between vals(i+1) and val(i) 
+                     m = (vals(i+1)-vals(i))/(points(i+1)-points(i))
+                     correction_force = m*r_cell_frac + vals(i+1) - m*points(i+1)
+                     exit ! terminate do-loop, we found the correct correction force. 
+                  endif 
+               end do
             endif 
             ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
-            particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(j)%q*(dr/r)*correction_force_mag
+            particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(j)%q*(dr/r)*correction_force_mag*dx2_inv
 
             ! SC:  update potential here as well? 
 
          end if 
 
-
-
-       end do
-
-       index = index + nneighbors
-
-    end do
-
-    !coulomb correction for pppm
-
-    store = 1
-    index = 1
-    do i = 1, np
-
-       nneighbors = nl(index)
-       index = index + 1
-
-    
-!       call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
-!                        cellcenters, cellcenterslo, cellcentershi, &
-!                        part, ks, lo, hi, plo, store)
-
-       do j = index, index + nneighbors - 1
 
 
        end do
