@@ -51,7 +51,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 #if (BL_SPACEDIM == 3)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
-                sep = 1;
+                sep = 0;
                 th = 3.14159/6.0;
                 //th = 0;
                 cosTheta = cos(th);
@@ -103,7 +103,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::R) = particleInfo[i_spec].R; //R
                 p.rdata(RealData::radius) = particleInfo[i_spec].d/2.0; //radius
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
+                //p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
+                p.rdata(RealData::dragFactor) = 0; //drag factor
                 //p.rdata(RealData::dragFactor) = 6*3.14159265359*dx[0]*1.322; //drag factor
 
                 p.rdata(RealData::wetDiff) = particleInfo[i_spec].wetDiff;

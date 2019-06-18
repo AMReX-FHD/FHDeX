@@ -824,7 +824,7 @@ void main_driver(const char* argv)
 
         if(step%1 == 0)
         {    
-                amrex::Print() << "Advanced step " << step << "\n";
+                //amrex::Print() << "Advanced step " << step << "\n";
         }
         
         time = time + dt;

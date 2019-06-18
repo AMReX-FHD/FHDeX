@@ -2624,11 +2624,30 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
       !  print*, "SPREAD"
 
-      part%diff_av = part%diff_av + norm2(part%force)
-      part%step_count = part%step_count + 1
+      if(mod(int(part%step_count),100) .eq. 0) then
 
-      print *, "Part force: ", norm2(part%force)
-      print *, "Average: ", part%diff_av/part%step_count
+        part%step_count = 0
+        part%diff_av = 0
+        part%travel_time = 0
+
+      endif
+
+
+      part%step_count = part%step_count + 1
+      part%diff_av = part%diff_av + norm2(part%force)
+      part%travel_time = part%travel_time + (norm2(part%force) - part%diff_av/(part%step_count))**2
+
+
+      if(mod(int(part%step_count),100) .eq. 0) then
+        
+        !print *, "Part force: ", norm2(part%force)
+        print *, "Sep: ", part%drag_factor
+        print *, "Average: ", part%diff_av/part%step_count
+        !print *, "% SD: ", 100+100*(sqrt(part%travel_time)/part%step_count-part%diff_av/part%step_count)/(part%diff_av/part%step_count)
+        part%drag_factor = part%drag_factor + 0.1
+
+      endif
+
 
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &
@@ -2645,8 +2664,8 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   part => particles(1)
   part2 => particles(2)
 
-  sep = 1
-  call set_pos(part, part2,dxe,sep)
+
+  call set_pos(part, part2,dxe,part%drag_factor)
 
   deallocate(weights)
   deallocate(indicies)
