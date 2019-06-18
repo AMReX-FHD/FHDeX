@@ -12,7 +12,7 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
                  efield[1].setVal(0);,
                  efield[2].setVal(0););
 
-    if(es_tog==1)
+    if(es_tog==1 || es_tog==3)
     {
 
             LinOpBCType lobc[3];

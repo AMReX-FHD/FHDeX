@@ -740,7 +740,7 @@ void main_driver(const char* argv)
                 particles.computeForcesNL(charge, RealCenteredCoords, dxp);
         }
 
-        if(es_tog==1)
+        if(es_tog==1 || es_tog==3)
         {
             //Spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
@@ -824,7 +824,7 @@ void main_driver(const char* argv)
 
         if(step%1 == 0)
         {    
-                //amrex::Print() << "Advanced step " << step << "\n";
+                amrex::Print() << "Advanced step " << step << "\n";
         }
         
         time = time + dt;

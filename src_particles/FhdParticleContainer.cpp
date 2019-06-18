@@ -59,9 +59,12 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
         }
     }
 
-    ParallelDescriptor::ReduceRealSum(rcount);
+    if(sr_tog==1) 
+    {
+            ParallelDescriptor::ReduceRealSum(rcount);
 
-    Print() << rcount/2 << " close range interactions.\n";
+            Print() << rcount/2 << " close range interactions.\n";
+    }
 }
 
 void FhdParticleContainer::MoveParticlesDry(const Real dt, const Real* dxFluid, const std::array<MultiFab, AMREX_SPACEDIM>& umac,
