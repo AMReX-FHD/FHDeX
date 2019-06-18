@@ -41,7 +41,7 @@ subroutine advect_3d(time, lo, hi, &
 
   integer :: i, j, k
   integer :: glo(3), ghi(3)
-  double precision :: dtdx(3), umax, vmax, wmax
+  double precision :: dtdx(3), umax, vmax, wmax, conmax_in, conmax_out
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
@@ -77,6 +77,7 @@ subroutine advect_3d(time, lo, hi, &
   vmax = maxval(abs(vy))
   wmax = maxval(abs(vz))
 
+  conmax_in=maxval(abs(uin))
   if ( umax*dt .ge. dx(1) .or. &
        vmax*dt .ge. dx(2) .or. &
        wmax*dt .ge. dx(3) ) then
@@ -133,6 +134,7 @@ subroutine advect_3d(time, lo, hi, &
         enddo
      enddo
   enddo
+  conmax_out=maxval(abs(uout))
 
   ! Scale by face area in order to correctly reflx
   do       k = lo(3), hi(3)

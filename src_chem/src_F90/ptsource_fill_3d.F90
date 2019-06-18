@@ -16,15 +16,17 @@ subroutine get_ptsource_3d( lo, hi, &
   double precision, intent(out) :: ptS(pts_lo(1):pts_hi(1),pts_lo(2):pts_hi(2),pts_lo(3):pts_hi(3))
 
   integer :: i, j, k
-  double precision:: z
+  double precision:: y, z
 
 
  do       k = lo(3), hi(3)
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)
 
-           z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
-           if ((iface(i,j,k).eq.1) .and. (z .le. ib_cen_z)) then
+           ! z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
+           y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+
+           if ((iface(i,j,k).eq.1)) then ! .and. (y .le. ib_cen_y)) then
            pts(i,j,k)=strength
            endif
         enddo

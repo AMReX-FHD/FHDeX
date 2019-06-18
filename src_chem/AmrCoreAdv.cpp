@@ -25,8 +25,8 @@ using namespace amrex;
 void AmrCoreAdv::Initialize( )
 {
 //    ReadParameters();
-    std::cout<< "max level "<< max_level<< std::endl;
-    std::cout << "Initialize"<<std::endl;
+//    std::cout<< "max level "<< max_level<< std::endl;
+//    std::cout << "Initialize"<<std::endl;
 
     int nlevs_max = max_level + 1;
 
@@ -103,6 +103,7 @@ void AmrCoreAdv::EvolveChem(
         const iMultiFab & iface, int lev, int nstep,
         Real dt_fluid, Real time)
 {
+//    std::cout << "EvolveChem"<<std::endl;
     
     dt[lev] = dt_fluid;
 
@@ -128,6 +129,10 @@ void AmrCoreAdv::EvolveChem(
         uface[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         vface[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
         wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
+       // uface[lev].reset(new MultiFab(x_face_ba, condm, 1, 0));
+       // vface[lev].reset(new MultiFab(y_face_ba, condm, 1, 0));
+       // wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 0));
+
         uface[lev]->setVal(0.);
         vface[lev]->setVal(0.);
         wface[lev]->setVal(0.);
@@ -143,10 +148,13 @@ void AmrCoreAdv::EvolveChem(
        uface[lev]->copy(umac[0], 0, 0, 1, 0, 0);
        vface[lev]->copy(umac[1], 0, 0, 1, 0, 0);
        wface[lev]->copy(umac[2], 0, 0, 1, 0, 0);
+//       std::cout<<(*uface[lev]).max(0) << std::endl; 
+//       std::cout<<(*vface[lev]).max(0) << std::endl; 
+//       std::cout<<(*wface[lev]).max(0) << std::endl; 
 
-       uface[lev]->FillBoundary(geom[lev].periodicity());
-       vface[lev]->FillBoundary(geom[lev].periodicity());
-       wface[lev]->FillBoundary(geom[lev].periodicity());
+      // uface[lev]->FillBoundary(geom[lev].periodicity());
+      // vface[lev]->FillBoundary(geom[lev].periodicity());
+      // wface[lev]->FillBoundary(geom[lev].periodicity());
     }
 
     source_loc.reset(new iMultiFab(conba, condm, 1, 1));
@@ -197,7 +205,7 @@ void AmrCoreAdv::EvolveChem(
 
 void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 {
-    std::cout << "InitData"<<std::endl;
+ //   std::cout << "InitData"<<std::endl;
     Initialize();
 
     if (restart_chkfile == "") {
@@ -206,11 +214,11 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
         const Real time = 0.0;
 
         // initialize Levels (done in AmrCore)
-        std::cout << "Before InitFromScratchData"<<std::endl;
+  //      std::cout << "Before InitFromScratchData"<<std::endl;
         
         InitFromScratch(time);
         //AverageDown();
-        std::cout << "After InitFromScratchData"<<std::endl;
+    //    std::cout << "After InitFromScratchData"<<std::endl;
 
         // DEBUG: write intial checkpoint
         // if (chk_int > 0) WriteCheckpointFile();
@@ -223,11 +231,11 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 
    // initialize grad con
    for (int lev = 0; lev <= finest_level; ++lev) {
-       //con_new[lev]->setVal(0.);
-       //con_old[lev]->setVal(0.);
-        std::cout << "For loop InitData"<<std::endl;
+       con_new[lev]->setVal(0.);
+       con_old[lev]->setVal(0.);
+   //     std::cout << "For loop InitData"<<std::endl;
 
-//       MakeNewLevelFromScratch ( lev, 0., ba, dm);
+       MakeNewLevelFromScratch ( lev, 0., ba, dm);
 //       con_new[lev]->setVal(0.);
 //       con_old[lev]->setVal(0.);
        
@@ -252,6 +260,7 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 void AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray & ba,
 				         const DistributionMapping & dm)
 {
+//    std::cout << "MakeNewLevelFromCoarse"<<std::endl;
 
     const int ncomp  = con_new[lev-1]->nComp();
     const int nghost = con_new[lev-1]->nGrow();
@@ -276,6 +285,7 @@ void AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray & ba
 void AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray & ba,
                               const DistributionMapping & dm)
 {
+   // std::cout << "RemakeLevel"<<std::endl;
 
     const int ncomp = con_new[lev]->nComp();
     const int nghost =con_new[lev]->nGrow();
@@ -301,6 +311,7 @@ void AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray & ba,
 void
 AmrCoreAdv::ClearLevel (int lev)
 {
+   // std::cout << "ClearLevel"<<std::endl;
 
     con_new[lev]->clear();
     con_old[lev]->clear();
@@ -313,7 +324,7 @@ AmrCoreAdv::ClearLevel (int lev)
 void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 					  const DistributionMapping& dm)
 {
-    std::cout << "MakeNewLevelFromScratch"<<std::endl;
+//   std::cout << "MakeNewLevelFromScratch"<<std::endl;
     
     const int ncomp = 1;
     const int nghost = 0;
@@ -352,6 +363,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 void
 AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
+ //   std::cout << "ErrorEst"<<std::endl;
 
     static bool first = true;
     static Vector<Real> conerr;
@@ -421,37 +433,39 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 }
 
 // read in some parameters from inputs file
-void AmrCoreAdv::ReadParameters ()
-{
-    {
-        amrex::Print() << "ReadParameters"<< std::endl;
-        ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
-        pp.query("max_step", max_step);
-        pp.query("stop_time", stop_time);
-    }
-
-    {
-        ParmParse pp("amr"); // Traditionally, these have prefix, amr.
-
-        pp.query("regrid_int", regrid_int);
-        pp.query("plot_file", plot_file);
-        pp.query("plot_int", plot_int);
-        pp.query("chk_file", chk_file);
-        pp.query("chk_int", chk_int);
-        pp.query("restart",restart_chkfile);
-    }
-{
-        ParmParse pp("adv");
-
-        pp.query("cfl", cfl);
-        pp.query("diffcoeff", diffcoeff);
-        pp.query("do_reflux", do_reflux);
-    }
-}
+//void AmrCoreAdv::ReadParameters ()
+//{
+//    {
+//        amrex::Print() << "ReadParameters"<< std::endl;
+//        ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
+//        pp.query("max_step", max_step);
+//        pp.query("stop_time", stop_time);
+//    }
+//
+//    {
+//        ParmParse pp("amr"); // Traditionally, these have prefix, amr.
+//
+//        pp.query("regrid_int", regrid_int);
+//        pp.query("plot_file", plot_file);
+//        pp.query("plot_int", plot_int);
+//        pp.query("chk_file", chk_file);
+//        pp.query("chk_int", chk_int);
+//        pp.query("restart",restart_chkfile);
+//    }
+//{
+//        ParmParse pp("adv");
+//
+//        pp.query("cfl", cfl);
+//        pp.query("diffcoeff", diffcoeff);
+//        pp.query("do_reflux", do_reflux);
+//    }
+//}
 
 // set covered coarse cells to be the average of overlying fine cells
 void AmrCoreAdv::AverageDown ()
 {
+ //   std::cout << "AverageDown"<<std::endl;
+
     for (int lev = finest_level-1; lev >= 0; --lev)
         amrex::average_down(
                 * con_new[lev+1], * con_new[lev],
@@ -463,6 +477,8 @@ void AmrCoreAdv::AverageDown ()
 // more flexible version of AverageDown() that lets you average down across multiple levels
 void AmrCoreAdv::AverageDownTo (int crse_lev)
 {
+  //  std::cout << "AverageDownTo"<<std::endl;
+ 
     amrex::average_down(
             * con_new[crse_lev+1], * con_new[crse_lev],
                  geom[crse_lev+1],   geom[crse_lev],
@@ -491,18 +507,24 @@ long AmrCoreAdv::CountCells (int lev)
 void
 AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
+ //   std::cout << "FillPatch"<<std::endl;
+
     if (lev == 0)
     {
 	Vector<MultiFab*> smf;
 	Vector<Real> stime;
+
 	GetData(0, time, smf, stime);
+
 
 //	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(confill));
 //	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
 //				     geom[lev], physbc);
         BndryFuncArray bfunc(confill);
+
         PhysBCFunct<BndryFuncArray> physbc(geom[lev], bcs, bfunc);
-        amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
+  
+       amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
                                     geom[lev], physbc, 0);
 
 
@@ -536,6 +558,7 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 void
 AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
+    std::cout << "FillCoarsePatch"<<std::endl;
 
     BL_ASSERT(lev > 0);
 
@@ -562,6 +585,7 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 
 // utility to copy in data from con_old and/or con_new into another multifab
 void AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab *> & data, Vector<Real> & datatime) {
+//    std::cout << "GetData"<<std::endl;
 
     data.clear();
     datatime.clear();
@@ -596,36 +620,37 @@ void AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab *> & data, Vector<
 // includes a recursive call for finer levels
 void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 {
+//    std::cout << "timeStep"<<std::endl;
 
-    if (regrid_int > 0)  // We may need to regrid
-    {
+//    if (regrid_int > 0)  // We may need to regrid
+//    {
 
         // help keep track of whether a level was already regridded from a
         // coarser level call to regrid
-        static Vector<int> last_regrid_step(max_level+1, 0);
+//        static Vector<int> last_regrid_step(max_level+1, 0);
 
         // regrid changes level "lev+1" so we don't regrid on max_level also
         // make sure we don't regrid fine levels again if it was taken care of
-        // during a coarser regrid
-        if (lev < max_level && istep[lev] > last_regrid_step[lev]) {
-            if (istep[lev] % regrid_int == 0) {
-
+//        // during a coarser regrid
+//        if (lev < max_level && istep[lev] > last_regrid_step[lev]) {
+//            if (istep[lev] % regrid_int == 0) {
+//
                 // regrid could add newly refine levels (if finest_level < max_level)
                 // so we save the previous finest level index
-                int old_finest = finest_level;
-                regrid(lev, time);
+//                int old_finest = finest_level;
+//                regrid(lev, time);
                 // mark that we have regridded this level already
-                for (int k = lev; k <= finest_level; ++k) {
-                    last_regrid_step[k] = istep[k];
-                }
-
-                // if there are newly created levels, set the time step
-                for (int k = old_finest+1; k <= finest_level; ++k) {
-                    dt[k] = dt[k-1] / MaxRefRatio(k-1);
-                }
-            }
-        }
-    }
+//                for (int k = lev; k <= finest_level; ++k) {
+//                    last_regrid_step[k] = istep[k];
+//                }
+//
+//                // if there are newly created levels, set the time step
+ //               for (int k = old_finest+1; k <= finest_level; ++k) {
+ //                   dt[k] = dt[k-1] / MaxRefRatio(k-1);
+ //               }
+//            }
+//        }
+//    }
 
 
     // advance a single level for a single time step, updates flux registers
@@ -647,13 +672,13 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
         }
 
-        if (do_reflux)
-        {
-         // update lev based on coarse-fine flux mismatch
-            flux_reg[lev+1]->Reflux(*con_new[lev], 1.0, 0, 0, con_new[lev]->nComp(), geom[lev]);
-        }
+//        if (do_reflux)
+//        {
+//         // update lev based on coarse-fine flux mismatch
+//            flux_reg[lev+1]->Reflux(*con_new[lev], 1.0, 0, 0, con_new[lev]->nComp(), geom[lev]);
+//        }
 
-        AverageDownTo(lev); // average lev+1 down to lev
+//        AverageDownTo(lev); // average lev+1 down to lev
     }
 
 }
@@ -661,8 +686,10 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
 // advance a single level for a single time step, updates flux registers
 void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle) {
-
-    constexpr int num_grow = 3;
+//    std::cout << "Advance"<<std::endl;
+//    std::cout << "max con 1 "<< (*con_new[lev]).max(0) <<std::endl;
+    
+    constexpr int num_grow =3; // 3;
 
     std::swap(con_old[lev], con_new[lev]);
     t_old[lev]  = t_new[lev];
@@ -674,14 +701,16 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab ptSource(badp,dmdp,1,0);
 
     ptSource.setVal(0.);
-
+    Real diffcoeff=0.001;
+    std::cout<< "DiffCoeff"<< diffcoeff<<std::endl;
     Vector<int> xloc;
     Vector<int> yloc;
     Vector<int> zloc;
-    Real strength = 0.001;
+    Real strength = 0.1;
     Real Sphere_cent_x=0.5;
     Real Sphere_cent_y=0.5;
     Real Sphere_cent_z=0.5;
+//    std::cout<<(*uface[lev]).max(0) << std::endl; 
 
     MultiFab &  S_new     = * con_new[lev];
     MultiFab &  uface_lev = * uface[lev];
@@ -702,9 +731,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     }
 
     // State with ghost cells
-    MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
+    //MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
+    MultiFab Sborder(badp,dmdp, S_new.nComp(), num_grow);
+    Sborder.setVal(0.);
     FillPatch(lev, time, Sborder, 0, Sborder.nComp());
 
+//    std::cout << "max con 2 "<< (*con_new[lev]).max(0) <<std::endl;
+//    std::cout << "max Sborder "<< Sborder.max(0,num_grow) <<std::endl;
 
 //    static Vector<Real> ib_init_pos;
 //
@@ -720,9 +753,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 #endif
     {
         FArrayBox flux[BL_SPACEDIM];
+//    std::cout << "max con 2.1 "<< (*con_new[lev]).max(0) <<std::endl;
 
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi) {
             const Box & bx = mfi.tilebox();
+//    std::cout << "max con 2.2 "<< (*con_new[lev]).max(0) <<std::endl;
+//    std::cout << "max Sborder 1 "<< Sborder.max(0,num_grow) <<std::endl;
+//    std::cout << "max Sborder mfi "<< Sborder[mfi].max(0) <<std::endl;
 
             const FArrayBox & statein =   Sborder[mfi];
             FArrayBox & stateout      =     S_new[mfi];
@@ -731,12 +768,17 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & uface_mf      = uface_lev[mfi];
             FArrayBox & vface_mf      = vface_lev[mfi];
             FArrayBox & wface_mf      = wface_lev[mfi];
+//    std::cout << "max statein 1 "<< statein.max(0) <<std::endl;
+
+//    std::cout << "max con 2.3 "<< (*con_new[lev]).max(0) <<std::endl;
 
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
                 flux[i].resize(bxtmp,S_new.nComp());
             }
 
+//    std::cout << "max con 2.4 "<< (*con_new[lev]).max(0) <<std::endl;
+//    std::cout << "max statein 2 "<< statein.max(0) <<std::endl;
 
             if (BL_SPACEDIM==2) {
                 // fill the point source multifab from the tagged interface multifab
@@ -761,12 +803,16 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                            dx, & dt_lev, &diffcoeff);
             } else {
                 // fill the point source multifab from the tagged interface multifab
+//         std::cout << "max con 2.5 "<< (*con_new[lev]).max(0) <<std::endl;
  
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
                                  & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
                                  & Sphere_cent_z, AMREX_ZFILL(prob_lo));
+//    std::cout << "max con 2.6 "<< (*con_new[lev]).max(0) <<std::endl;
+//    std::cout << "max Sborder 3 "<< Sborder.max(0) <<std::endl;
+//    std::cout << "max statein  "<< statein.max(0) <<std::endl;
 
                 // compute new state (stateout) and fluxes.
                 advect_3d(& time, bx.loVect(), bx.hiVect(),
@@ -781,6 +827,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                        BL_TO_FORTRAN_3D(flux[1]),
                                        BL_TO_FORTRAN_3D(flux[2])),
                           dx, & dt_lev, & diffcoeff);}
+//    std::cout << "max con 2.7 "<< (*con_new[lev]).max(0) <<std::endl;
 
 
             if (do_reflux) {
@@ -790,6 +837,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             }
         }
     }
+//    std::cout << "max con 3 "<< (*con_new[lev]).max(0) <<std::endl;
 
     // After updating con_new we compute the first derivatives
     MultiFab &  sx_mf       = * Dcon_x[lev];
@@ -798,8 +846,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
     // con_new including 1 ghost cell
     MultiFab S_new_fill(grids[lev], dmap[lev], S_new.nComp(), 1);
+//    std::cout << "max con 4 "<< (*con_new[lev]).max(0) <<std::endl;
+
     S_new_fill.copy(S_new, 0, 0,1, 0, 0);
+//    std::cout << "max con 5 "<< (*con_new[lev]).max(0) <<std::endl;
+
     S_new_fill.FillBoundary(geom[lev].periodicity());
+//    std::cout << "max con 6 "<< (*con_new[lev]).max(0) <<std::endl;
 
 
 #ifdef _OPENMP
@@ -839,6 +892,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
     amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;
+//    std::cout << "max con 7 "<< (*con_new[lev]).max(0) <<std::endl;
 
     // increment or decrement the flux registers by area and time-weighted
     // fluxes Note that the fluxes have already been scaled by dt and area In
@@ -881,6 +935,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>> & MF, int indicator) {
     // indicator gives which quantity is being copied into MF
    // mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
+//    std::cout << "con_new_copy"<<std::endl;
+
     DistributionMapping condm = con_new[lev]->DistributionMap();
     BoxArray conba            = con_new[lev]->boxArray();
 
@@ -890,16 +946,20 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
     if (indicator==0){
         MF[lev]->copy(* con_new[lev], 0, 0,1, 0, 0);
-        std::cout<< "Indicator " << indicator<< std::endl;}
+ //       std::cout<< "Indicator " << indicator<< std::endl;}
+    }
     else if (indicator==1){
         MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 0, 0);
-        std::cout<< "Indicator " << indicator<< std::endl;}
+//        std::cout<< "Indicator " << indicator<< std::endl;}
+    }
     else if (indicator==2){
 	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 0, 0);
-        std::cout<< "Indicator " << indicator<< std::endl;}
+ //       std::cout<< "Indicator " << indicator<< std::endl;}
+    }
     else if (indicator==3){
 	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);
-        std::cout<< "Indicator " << indicator<< std::endl;}
+ //       std::cout<< "Indicator " << indicator<< std::endl;}
+    }
     else amrex::Abort( "Incorrect indicator for copying information from AmrCoreAdv to Mfix" );
 }
 
@@ -1001,6 +1061,7 @@ void AmrCoreAdv::ReadCheckpointFile ()
 void
 AmrCoreAdv::GotoNextLine (std::istream& is)
 {
+//    std::cout << "GotoNextLine"<<std::endl;
 
     constexpr std::streamsize bl_ignore_max { 100000 };
     is.ignore(bl_ignore_max, '\n');
