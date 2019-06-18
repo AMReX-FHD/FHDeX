@@ -83,8 +83,6 @@ subroutine force_function2(part1,part2,domsize) &
             if(rtdr2 .lt. maxdist) then
               part1%force = part1%force + ee*(dx/rtdr2)*part1%q*part2%q/dr2
 
-              part1%potential = (part1%potential + ee*part1%q*part2%q/rtdr2)/2d0
-
               pairs = pairs + 1
 
             endif
@@ -126,8 +124,6 @@ subroutine calculate_force(particles, np, lo, hi, &
   !calculate N^2 interaction
 
   part => particles(partno) !this defines one particle--we can access all the data by doing part%something
-
-  part%potential = 0
 
   do n = 1, np
 
@@ -1963,6 +1959,32 @@ subroutine emf(weights, indicies, &
 
 end subroutine emf
 
+subroutine set_pos(part1, part2, dx, sep)
+
+  use common_namelist_module
+  use rng_functions_module
+  use cell_sorted_particle_module, only: particle_t
+
+  type(particle_t), intent(inout) :: part1, part2
+  double precision, intent(in   ) :: dx(3), sep
+
+  double precision cosTheta, sinTheta, cosPhi, sinPhi, fx, fy, fz
+
+  call get_angles(costheta, sintheta, cosphi, sinphi)
+  call get_uniform(fx)
+  call get_uniform(fy)
+  call get_uniform(fz)
+
+  part1%pos(1) = prob_hi(1)/2.0 + fx*dx(1) - (sep/2.0)*sintheta*cosphi*dx(1)
+  part1%pos(2) = prob_hi(2)/2.0 + fy*dx(2) - (sep/2.0)*sintheta*sinphi*dx(2)
+  part1%pos(3) = prob_hi(3)/2.0 + fz*dx(3) - (sep/2.0)*costheta*dx(3)
+
+  part2%pos(1) = prob_hi(1)/2.0 + fx*dx(1) + (sep/2.0)*sintheta*cosphi*dx(1)
+  part2%pos(2) = prob_hi(2)/2.0 + fy*dx(2) + (sep/2.0)*sintheta*sinphi*dx(2)
+  part2%pos(3) = prob_hi(3)/2.0 + fz*dx(3) + (sep/2.0)*costheta*dx(3)
+
+end subroutine set_pos
+
 subroutine move_ions_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, dxe, &
                                      velx, velxlo, velxhi, &
@@ -2283,7 +2305,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 !              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
-              part%travel_time = part%travel_time + dt
+              !part%travel_time = part%travel_time + dt
 
               norm = part%abspos
 
@@ -2411,10 +2433,10 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, boundflag, midpoint, store
   integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
-  type(particle_t), pointer :: part
+  type(particle_t), pointer :: part, part2
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv
+                   diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv, sep
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -2542,8 +2564,11 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
       !  print*, "SPREAD"
 
-            print *, "Part force: ", part%force
+      part%diff_av = part%diff_av + norm2(part%force)
+      part%step_count = part%step_count + 1
 
+      print *, "Part force: ", norm2(part%force)
+      print *, "Average: ", part%diff_av/part%step_count
 
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &
@@ -2557,9 +2582,11 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
    end do
 
-  potential = potential/np
+  part => particles(1)
+  part2 => particles(2)
 
-  print *, "Average electrostatic potential: ", potential
+  sep = 1
+  call set_pos(part, part2,dxe,sep)
 
   deallocate(weights)
   deallocate(indicies)

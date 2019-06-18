@@ -13,7 +13,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
     int qcount = 0;
 
-    double cosTheta, sinTheta, cosPhi, sinPhi;    
+    double cosTheta, sinTheta, cosPhi, sinPhi,sep, th;    
 
     int pcount = 0;
         
@@ -51,11 +51,16 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 #if (BL_SPACEDIM == 3)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
+                sep = 1;
+                th = 3.14159/6.0;
+                //th = 0;
+                cosTheta = cos(th);
+                sinTheta = sin(th);
 
-                p.pos(0) = phi[0]/2.0 - 0.75*dx[0] + ll*(1.5*dx[0]);
-                p.pos(1) = phi[1]/2.0;
+                p.pos(0) = phi[0]/2.0+0.08*dx[0] - (sep/2)*cosTheta*dx[0] + ll*(sep)*cosTheta*dx[0];
+                p.pos(1) = phi[1]/2.0+0.31*dx[1] - (sep/2)*sinTheta*dx[1] + ll*(sep)*sinTheta*dx[1];
 #if (BL_SPACEDIM == 3)
-                p.pos(2) = phi[2]/2.0;
+                p.pos(2) = phi[2]/2.0+0.77*dx[2];
 #endif
                 ll++;
                 
