@@ -26,6 +26,12 @@ struct IBM_realData {
         forcex,
         forcey,
         forcez,
+        pred_posx,
+        pred_posy,
+        pred_posz,
+        pred_velx,
+        pred_vely,
+        pred_velz,
         pred_forcex,
         pred_forcey,
         pred_forcez,
@@ -43,6 +49,9 @@ struct IBM_realData {
             "pred_posx",
             "pred_posy",
             "pred_posz",
+            "pred_velx",
+            "pred_vely",
+            "pred_velz",
             "pred_forcex",
             "pred_forcey",
             "pred_forcez"
@@ -115,6 +124,8 @@ public:
     int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().size();};
 
 
+    //___________________________________________________________________________
+    // Spreading operators applied to external forces
     void SpreadMarkers(int lev,
                        const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
@@ -124,7 +135,28 @@ public:
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
+    void SpreadMarkers(int lev,
+                       const Vector<RealVect> & f_in,
+                       const Vector<RealVect> & f_pos,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+    //---------------------------------------------------------------------------
 
+
+
+    //___________________________________________________________________________
+    // Spreading operators applied to internal force fields (in amrex::Particles)
+    void SpreadMarkers(int lev,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+
+    void SpreadPredictor(int lev,
+                         std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+    //---------------------------------------------------------------------------
+
+
+
+    //___________________________________________________________________________
+    // Interpolation operators applied to external forces
     void InterpolateMarkers(int lev,
                             Vector<RealVect> & f_out,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
@@ -133,6 +165,37 @@ public:
                             Vector<RealVect> & f_out,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+    void InterpolateMarkers(int lev,
+                            Vector<RealVect> & f_out,
+                            const Vector<RealVect> & f_pos,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+    //---------------------------------------------------------------------------
+
+
+
+    //___________________________________________________________________________
+    // Interpolation operators applied to internal force fields (in amrex::Particles)
+    void InterpolateMarkers(int lev,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
+
+    void InterpolatePredictor(int lev,
+                              const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
+    //---------------------------------------------------------------------------
+
+
+
+
+    /****************************************************************************
+     * Physics                                                                   *
+     ****************************************************************************/
+
+    void MoveMarkers(int lev, Real dt);
+    void MovePredictor(int lev, Real dt);
+    void ResetMarkers(int lev);
+    void ResetPredictor(int lev);
+
 
 
 

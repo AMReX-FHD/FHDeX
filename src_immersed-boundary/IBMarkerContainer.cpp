@@ -139,18 +139,97 @@ void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
 
 
 
+void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            part.pos(0) += dt * part.rdata(IBM_realData::velx);
+            part.pos(1) += dt * part.rdata(IBM_realData::vely);
+            part.pos(2) += dt * part.rdata(IBM_realData::velz);
+        }
+    }
+}
+
+
+
+void IBMarkerContainer::MovePredictor(int lev, Real dt) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            MarkerIndex pindex(part.id(), part.cpu());
+
+            part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
+            part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
+            part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
+        }
+    }
+}
+
+
+
+void IBMarkerContainer::ResetMarkers(int lev) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            part.rdata(IBM_realData::velx) = 0.;
+            part.rdata(IBM_realData::vely) = 0.;
+            part.rdata(IBM_realData::velz) = 0.;
+        }
+    }
+}
+
+
+
+void IBMarkerContainer::ResetPredictor(int lev) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            MarkerIndex pindex(part.id(), part.cpu());
+
+            part.rdata(IBM_realData::pred_velx) = 0.;
+            part.rdata(IBM_realData::pred_vely) = 0.;
+            part.rdata(IBM_realData::pred_velz) = 0.;
+        }
+    }
+}
+
+
 
 void IBMarkerContainer::SpreadMarkers(int lev,
-        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
-
-
-    //___________________________________________________________________________
-    // Fill vector of marker positions (for current level)
-    Vector<IBM_info> marker_info = IBMarkerInfo(lev);
-    Vector<RealVect> marker_positions(marker_info.size());
-    for (int i=0; i<marker_info.size(); ++i)
-        marker_positions[i] = marker_info[i].pos;
+                                      const Vector<RealVect> & f_in,
+                                      const Vector<RealVect> & f_pos,
+                                      std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                                      std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
 
 
     //___________________________________________________________________________
@@ -158,12 +237,12 @@ void IBMarkerContainer::SpreadMarkers(int lev,
     const Geometry & geom = Geom(0);
     const Real     *   dx = geom.CellSize();
 
-    const int n_marker = marker_positions.size();
+    const int n_marker = f_pos.size();
 
 
     //___________________________________________________________________________
     // Cell-centered MultiFab used as a reference for iterating over data
-    // WARNING: this will break if IBMarkerContainer is on a differnt grid
+    // WARNING: this will break if IBMarkerContainer is on a different grid
     // than the grid which we're spreading to
 
     const BoxArray & ba            = ParticleBoxArray(lev);
@@ -198,7 +277,7 @@ void IBMarkerContainer::SpreadMarkers(int lev,
 #if (AMREX_SPACEDIM > 2)
                        BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
 #endif
-                       marker_positions.dataPtr(),
+                       f_pos.dataPtr(),
                        f_in.dataPtr(),
                        & n_marker,
                        dx );
@@ -208,7 +287,25 @@ void IBMarkerContainer::SpreadMarkers(int lev,
 
 
 void IBMarkerContainer::SpreadMarkers(int lev,
-        const Vector<RealVect> & f_in, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+                                      const Vector<RealVect> & f_in,
+                                      std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                                      std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
+
+    //___________________________________________________________________________
+    // Fill vector of marker positions (for current level)
+    Vector<IBM_info> marker_info = IBMarkerInfo(lev);
+    Vector<RealVect> marker_positions(marker_info.size());
+    for (int i=0; i<marker_info.size(); ++i)
+        marker_positions[i] = marker_info[i].pos;
+
+
+    SpreadMarkers(lev, f_in, marker_positions, f_out, f_weights);
+
+}
+
+void IBMarkerContainer::SpreadMarkers(int lev,
+                                      const Vector<RealVect> & f_in,
+                                      std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
     //___________________________________________________________________________
     // We don't need these spreading weights => create a dummy MF
@@ -225,17 +322,209 @@ void IBMarkerContainer::SpreadMarkers(int lev,
 
 
 
-void IBMarkerContainer::InterpolateMarkers(int lev,
-        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-        const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
+void IBMarkerContainer::SpreadMarkers(int lev,
+                                      std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
 
     //___________________________________________________________________________
-    // Fill vector of marker positions (for current level)
-    Vector<IBM_info> marker_info = IBMarkerInfo(lev);
-    Vector<RealVect> marker_positions(marker_info.size());
-    for (int i=0; i<marker_info.size(); ++i)
-        marker_positions[i] = marker_info[i].pos;
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
+                            1, f_out[d].nGrow());
+        f_weights[d].setVal(0.);
+    }
+
+
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+
+        // Marker (non-neighbor particle) data for current tile
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const auto & particle_data = GetParticles(lev).at(index);
+
+
+        //_______________________________________________________________________
+        // Fill vector of marker positions and forces (for current level)
+        long np = particle_data.size();
+
+        Vector<RealVect> marker_positions(np), marker_forces(np);
+
+        const AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            const ParticleType & part = particles[i];
+
+            RealVect ppos, pfor;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                ppos[d] = part.pos(d);
+
+            pfor[0] = part.rdata(IBM_realData::forcex);
+#if (AMREX_SPACEDIM > 1)
+            pfor[1] = part.rdata(IBM_realData::forcey);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            pfor[2] = part.rdata(IBM_realData::forcez);
+#endif
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+        //_______________________________________________________________________
+        // Spread the non-neighbor particles (markers)
+        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+
+        // Clear vectors => to be filled with neighbor data now
+        marker_positions.clear();
+        marker_forces.clear();
+
+
+        // Neighbor marker data for current tile
+        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+
+        //_______________________________________________________________________
+        // Fill vector of neighbor marker positions and forces
+        int ng = neighbors[lev].at(index).size();
+
+        marker_positions.resize(ng);
+        marker_forces.resize(ng);
+
+        for (int i = 0; i < ng; ++i) {
+            const ParticleType & part = nbhd_data[i];
+
+            RealVect ppos, pfor;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                ppos[d] = part.pos(d);
+
+            pfor[0] = part.rdata(IBM_realData::forcex);
+#if (AMREX_SPACEDIM > 1)
+            pfor[1] = part.rdata(IBM_realData::forcey);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            pfor[2] = part.rdata(IBM_realData::forcez);
+#endif
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+        //_______________________________________________________________________
+        // Spread the neighbor particles (markers)
+        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+    }
+}
+
+
+
+void IBMarkerContainer::SpreadPredictor(int lev,
+                                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+
+    //___________________________________________________________________________
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
+                            1, f_out[d].nGrow());
+        f_weights[d].setVal(0.);
+    }
+
+
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+
+        // Marker (non-neighbor particle) data for current tile
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        const auto & particle_data = GetParticles(lev).at(index);
+
+        //_______________________________________________________________________
+        // Fill vector of marker positions and forces (for current level)
+        long np = particle_data.size();
+
+        Vector<RealVect> marker_positions(np), marker_forces(np);
+
+        const AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            const ParticleType & part = particles[i];
+
+            RealVect ppos, pfor;
+
+            ppos[0] = part.rdata(IBM_realData::pred_posx);
+#if (AMREX_SPACEDIM > 1)
+            ppos[1] = part.rdata(IBM_realData::pred_posy);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            ppos[2] = part.rdata(IBM_realData::pred_posz);
+#endif
+
+            pfor[0] = part.rdata(IBM_realData::pred_forcex);
+#if (AMREX_SPACEDIM > 1)
+            pfor[1] = part.rdata(IBM_realData::pred_forcey);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            pfor[2] = part.rdata(IBM_realData::pred_forcez);
+#endif
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+        //_______________________________________________________________________
+        // Spread the non-neighbor particles (markers)
+        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+
+        // Clear vectors => to be filled with neighbor data now
+        marker_positions.clear();
+        marker_forces.clear();
+
+
+        // Neighbor marker data for current tile
+        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+
+
+        //_______________________________________________________________________
+        // Fill vector of neighbor marker positions and forces
+        int ng = neighbors[lev].at(index).size();
+
+        marker_positions.resize(ng);
+        marker_forces.resize(ng);
+
+        for (int i = 0; i < ng; ++i) {
+            const ParticleType & part = nbhd_data[i];
+
+            RealVect ppos, pfor;
+
+            ppos[0] = part.rdata(IBM_realData::pred_posx);
+#if (AMREX_SPACEDIM > 1)
+            ppos[1] = part.rdata(IBM_realData::pred_posy);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            ppos[2] = part.rdata(IBM_realData::pred_posz);
+#endif
+
+            pfor[0] = part.rdata(IBM_realData::pred_forcex);
+#if (AMREX_SPACEDIM > 1)
+            pfor[1] = part.rdata(IBM_realData::pred_forcey);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            pfor[2] = part.rdata(IBM_realData::pred_forcez);
+#endif
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+        //_______________________________________________________________________
+        // Spread the eighbor particles (markers)
+        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+    }
+}
+
+
+
+void IBMarkerContainer::InterpolateMarkers(int lev,
+                                           Vector<RealVect> & f_out,
+                                           const Vector<RealVect> & f_pos,
+                                           const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+                                           const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
 
 
     //___________________________________________________________________________
@@ -243,7 +532,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
     const Geometry & geom = Geom(0);
     const Real     *   dx = geom.CellSize();
 
-    const int n_marker = marker_positions.size();
+    const int n_marker = f_pos.size();
 
 
     //___________________________________________________________________________
@@ -283,11 +572,31 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 #if (AMREX_SPACEDIM > 2)
                             BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
 #endif
-                            marker_positions.dataPtr(),
+                            f_pos.dataPtr(),
                             f_out.dataPtr(),
                             & n_marker,
                             dx );
     }
+
+}
+
+
+
+
+void IBMarkerContainer::InterpolateMarkers(int lev,
+                                           Vector<RealVect> & f_out,
+                                           const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+                                           const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
+
+
+    //___________________________________________________________________________
+    // Fill vector of marker positions (for current level)
+    Vector<IBM_info> marker_info = IBMarkerInfo(lev);
+    Vector<RealVect> marker_positions(marker_info.size());
+    for (int i=0; i<marker_info.size(); ++i)
+        marker_positions[i] = marker_info[i].pos;
+
+    InterpolateMarkers(lev, f_out, marker_positions, f_in, f_weights);
 }
 
 
@@ -306,6 +615,242 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
     InterpolateMarkers(lev, f_out, f_in, f_weights);
 
+}
+
+
+
+void IBMarkerContainer::InterpolateMarkers(int lev,
+                                           const std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
+
+
+    //___________________________________________________________________________
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
+                            1, f_out[d].nGrow());
+        f_weights[d].setVal(-1.);
+    }
+
+
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+
+        // Marker (non-neighbor particle) data for current tile
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+
+        //_______________________________________________________________________
+        // Fill vector of marker positions and forces (for current level)
+        long np = particle_data.size();
+
+        Vector<RealVect> marker_positions(np), marker_forces(np);
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            const ParticleType & part = particles[i];
+
+            RealVect ppos, pfor;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                ppos[d] = part.pos(d);
+
+            // pfor should be (0, .., 0)
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+
+        //_______________________________________________________________________
+        // Interpolate the non-neighbor particles (markers)
+        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+
+        // Add interpolated markers back to the particles (markers)
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            part.rdata(IBM_realData::velx) += marker_forces[i][0];
+#if (AMREX_SPACEDIM > 1)
+            part.rdata(IBM_realData::vely) += marker_forces[i][1];
+#endif
+#if (AMREX_SPACEDIM > 2)
+            part.rdata(IBM_realData::velz) += marker_forces[i][2];
+#endif
+        }
+
+        // Clear vectors => to be filled with neighbor data now
+        marker_positions.clear();
+        marker_forces.clear();
+
+
+        // Neighbor marker data for current tile
+        ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+
+
+        //_______________________________________________________________________
+        // Fill vector of neighbor marker positions and forces
+        int ng = neighbors[lev].at(index).size();
+
+        marker_positions.resize(ng);
+        marker_forces.resize(ng);
+
+        for (int i = 0; i < ng; ++i) {
+            ParticleType & part = nbhd_data[i];
+
+            RealVect ppos, pfor;
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                ppos[d] = part.pos(d);
+
+            // pfor should be (0, .., 0)
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+        //_______________________________________________________________________
+        // Interpolate the neighbor particles (markers)
+        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+
+        // Add interpolated markers back to the particles (markers)
+        for (int i = 0; i < ng; ++i) {
+            ParticleType & part = nbhd_data[i];
+
+            part.rdata(IBM_realData::velx) += marker_forces[i][0];
+#if (AMREX_SPACEDIM > 1)
+            part.rdata(IBM_realData::vely) += marker_forces[i][1];
+#endif
+#if (AMREX_SPACEDIM > 2)
+            part.rdata(IBM_realData::velz) += marker_forces[i][2];
+#endif
+
+        }
+
+        // TODO: sync neighbors?
+    }
+}
+
+
+
+
+void IBMarkerContainer::InterpolatePredictor(int lev,
+                                             const std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
+
+
+    //___________________________________________________________________________
+    // We don't need these spreading weights => create a dummy MF
+    std::array<MultiFab, AMREX_SPACEDIM> f_weights;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
+                            1, f_out[d].nGrow());
+        f_weights[d].setVal(-1.);
+    }
+
+
+    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+
+        // Marker (non-neighbor particle) data for current tile
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+
+        //_______________________________________________________________________
+        // Fill vector of marker positions and forces (for current level)
+        long np = particle_data.size();
+
+        Vector<RealVect> marker_positions(np), marker_forces(np);
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            const ParticleType & part = particles[i];
+
+            RealVect ppos, pfor;
+
+            ppos[0] = part.rdata(IBM_realData::pred_posx);
+#if (AMREX_SPACEDIM > 1)
+            ppos[1] = part.rdata(IBM_realData::pred_posy);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            ppos[2] = part.rdata(IBM_realData::pred_posz);
+#endif
+
+            // pfor should be (0, .., 0)
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+
+        //_______________________________________________________________________
+        // Interpolate the non-neighbor particles (markers)
+        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+
+        // Add interpolated markers back to the particles (markers)
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            part.rdata(IBM_realData::pred_velx) += marker_forces[i][0];
+#if (AMREX_SPACEDIM > 1)
+            part.rdata(IBM_realData::pred_vely) += marker_forces[i][1];
+#endif
+#if (AMREX_SPACEDIM > 2)
+            part.rdata(IBM_realData::pred_velz) += marker_forces[i][2];
+#endif
+        }
+
+        // Clear vectors => to be filled with neighbor data now
+        marker_positions.clear();
+        marker_forces.clear();
+
+
+        // Neighbor marker data for current tile
+        ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+
+
+        //_______________________________________________________________________
+        // Fill vector of neighbor marker positions and forces
+        int ng = neighbors[lev].at(index).size();
+
+        marker_positions.resize(ng);
+        marker_forces.resize(ng);
+
+        for (int i = 0; i < ng; ++i) {
+            const ParticleType & part = nbhd_data[i];
+
+            RealVect ppos, pfor;
+
+            ppos[0] = part.rdata(IBM_realData::pred_posx);
+#if (AMREX_SPACEDIM > 1)
+            ppos[1] = part.rdata(IBM_realData::pred_posy);
+#endif
+#if (AMREX_SPACEDIM > 2)
+            ppos[2] = part.rdata(IBM_realData::pred_posz);
+#endif
+
+
+            // pfor should be (0, .., 0)
+
+            marker_positions[i] = ppos;
+            marker_forces[i]    = pfor;
+        }
+
+        //_______________________________________________________________________
+        // Interpolate the neighbor particles (markers)
+        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+
+        // Add interpolated markers back to the particles (markers)
+        for (int i = 0; i < ng; ++i) {
+            ParticleType & part = nbhd_data[i];
+
+            part.rdata(IBM_realData::pred_velx) += marker_forces[i][0];
+#if (AMREX_SPACEDIM > 1)
+            part.rdata(IBM_realData::pred_vely) += marker_forces[i][1];
+#endif
+#if (AMREX_SPACEDIM > 2)
+            part.rdata(IBM_realData::pred_velz) += marker_forces[i][2];
+#endif
+
+        }
+
+        // TODO: sync neighbors?
+    }
 }
 
 
@@ -691,12 +1236,12 @@ void IBMarkerContainer::InitInternals(int ngrow) {
     // Turn off certain components for ghost particle communication
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
     //      => 3 corresponds to the start of IBM_realData
-    setRealCommComp(4, true);   // IBM_realData.velx
-    setRealCommComp(5, true);   // IBM_realData.vely
-    setRealCommComp(6, true);   // IBM_realData.velz
-    setRealCommComp(7, true);   // IBM_realData.forcex
-    setRealCommComp(8, true);   // IBM_realData.forcey
-    setRealCommComp(9, true);   // IBM_realData.forcez
+    setRealCommComp(4,  true);  // IBM_realData.velx
+    setRealCommComp(5,  true);  // IBM_realData.vely
+    setRealCommComp(6,  true);  // IBM_realData.velz
+    setRealCommComp(7,  true);  // IBM_realData.forcex
+    setRealCommComp(8,  true);  // IBM_realData.forcey
+    setRealCommComp(9,  true);  // IBM_realData.forcez
     setRealCommComp(10, true);  // IBM_realData.pred_posx
     setRealCommComp(11, true);  // IBM_realData.pred_posy
     setRealCommComp(12, true);  // IBM_realData.pred_posz

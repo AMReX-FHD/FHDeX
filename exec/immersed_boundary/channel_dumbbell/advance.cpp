@@ -219,7 +219,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     //___________________________________________________________________________
-    // Spread forces to preconditioner
+    // Spread forces to predictor
     ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles
     Vector<IBM_info> ib_info = ib_mc.IBMarkerInfo(0);
     Vector<RealVect> ibm_forces(ib_info.size());
