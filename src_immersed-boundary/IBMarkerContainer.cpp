@@ -586,7 +586,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
                             1, f_out[d].nGrow());
-        f_weights[d].setVal(0.);
+        f_weights[d].setVal(-1.);
     }
 
 
@@ -688,7 +688,8 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 
 
-void IBMarkerContainer::InterpolatePredictor(int lev, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
+void IBMarkerContainer::InterpolatePredictor(int lev,
+                                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
 
     //___________________________________________________________________________
     // Fill vector of marker positions and forces (for current level)
