@@ -18,8 +18,8 @@
   fixed_dt = 2.5e-14
 
   ! Controls for number of steps between actions
-  max_step = 3
-  plot_int = 500
+  max_step = 7000
+  plot_int = 10000
   plot_ascii = 0
   struct_fact_int = 1
   n_steps_skip = 5000
@@ -87,9 +87,9 @@
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------
-  poisson_rel_tol = 1.e-13                ! relative tolerance stopping criteria
-  poisson_verbose =  1                   ! multigrid verbosity
-  poisson_bottom_verbose =  1           ! base solver verbosity
+  poisson_rel_tol = 1.e-8                ! relative tolerance stopping criteria
+  poisson_verbose =  0                   ! multigrid verbosity
+  poisson_bottom_verbose =  0           ! base solver verbosity
   poisson_max_iter = 100                 
 
 
