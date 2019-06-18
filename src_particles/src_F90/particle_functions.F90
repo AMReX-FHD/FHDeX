@@ -21,6 +21,7 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
 
 end subroutine
 
+
 subroutine force_function2(part1,part2,domsize) &
     bind(c,name="force_function2")
 
@@ -34,7 +35,7 @@ subroutine force_function2(part1,part2,domsize) &
   type(particle_t), intent(inout) :: part2
   real(amrex_real), intent(in) :: domsize(3)
 
-  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs
+  integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs, imag
   real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist, ee
 
   ee = (1d0/(permitivitty*4*3.142))
@@ -47,17 +48,24 @@ subroutine force_function2(part1,part2,domsize) &
 
   pairs = 0
 
-  maxdist = (images)*domsize(1)
-
-  if(images*domsize(2) .lt. maxdist) then
-    maxdist = (images)*domsize(2)
+  if(images .eq. 0) then
+    imag = 1
+  else
+    imag = images
   endif
 
-  if((images*domsize(3) .lt. images*domsize(2)) .or. (images*domsize(3) .lt. images*domsize(1))) then
-    maxdist = (images)*domsize(3)
+  maxdist = (imag)*domsize(1)
+
+  if(imag*domsize(2) .lt. maxdist) then
+    maxdist = (imag)*domsize(2)
+  endif
+
+  if((imag*domsize(3) .lt. imag*domsize(2)) .or. (imag*domsize(3) .lt. imag*domsize(1))) then
+    maxdist = (imag)*domsize(3)
   endif
 
   maxdist = 0.99*maxdist 
+
 
   do ii = -images, images
     do jj = -images, images 
@@ -137,6 +145,101 @@ subroutine calculate_force(particles, np, lo, hi, &
   
 end subroutine calculate_force
 
+subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
+                                     nn, nl, size, rcount, charge, chargelo, chargehi, coords, coordslo, coordshi, lo, hi, dx) &
+       bind(c,name='amrex_compute_poisson_correction_nl')
+
+    use iso_c_binding
+    use amrex_fort_module,           only : amrex_real
+    use cell_sorted_particle_module, only : particle_t
+    use common_namelist_module, only: cut_off, rmin, pkernel_es
+        
+    integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3), coordslo(3), coordshi(3), lo(3), hi(3)
+    real(amrex_real), intent(in   ) :: dx(3)
+    real(amrex_real), intent(inout) :: rcount
+    type(particle_t), intent(inout) :: rparticles(np)
+    type(particle_t), intent(inout) :: neighbors(nn)
+    integer,          intent(in   ) :: nl(size)
+
+    real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
+    real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
+
+    real(amrex_real) :: rx(3), r2, r, coef, mass
+    integer :: i, j, index, nneighbors, store, ks
+
+    type(particle_t)                    :: particles(np+nn)
+
+    double precision, allocatable :: weights(:,:,:,:)
+    integer, allocatable :: indicies(:,:,:,:,:)
+
+   if(pkernel_es .eq. 3) then
+      ks = 2
+   elseif(pkernel_es .eq. 4) then
+     ks = 3
+   elseif(pkernel_es .eq. 6) then
+     ks = 4
+   endif
+  
+   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
+   allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
+        
+    particles(    1:np) = rparticles
+    particles(np+1:   ) = neighbors
+    
+    index = 1
+    do i = 1, np
+
+       nneighbors = nl(index)
+       index = index + 1
+
+       !print *, "particle ", i, " has ", nneighbors, " neighbours."
+
+       do j = index, index + nneighbors - 1
+
+          rx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
+          rx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
+          rx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
+
+          r2 = rx(1) * rx(1) + rx(2) * rx(2) + rx(3) * rx(3)
+          r2 = max(r2, rmin*rmin) 
+          r = sqrt(r2)
+
+          ! DO SOMETHING! 
+
+       end do
+
+       index = index + nneighbors
+
+    end do
+
+    !coulomb correction for pppm
+
+    store = 1
+    index = 1
+    do i = 1, np
+
+       nneighbors = nl(index)
+       index = index + 1
+
+    
+!       call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
+!                        cellcenters, cellcenterslo, cellcentershi, &
+!                        part, ks, lo, hi, plo, store)
+
+       do j = index, index + nneighbors - 1
+
+
+       end do
+
+       index = index + nneighbors
+
+    end do
+
+    rparticles(:) = particles(1:np)
+    neighbors(:)  = particles(np+1:)
+
+end subroutine amrex_compute_poisson_correction_nl
+
 subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
                                      nn, nl, size, rcount) &
        bind(c,name='amrex_compute_forces_nl')
@@ -151,6 +254,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     type(particle_t), intent(inout) :: rparticles(np)
     type(particle_t), intent(inout) :: neighbors(nn)
     integer,          intent(in   ) :: nl(size)
+
 
     real(amrex_real) :: dx(3), r2, r, coef, mass
     integer :: i, j, index, nneighbors
@@ -181,17 +285,16 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
           r2 = max(r2, rmin*rmin) 
           r = sqrt(r2)
 
-          !print *, r , (1.122*particles(i)%sigma/2.0)
          !repulsive interaction
+
+         !print *, r , (1.122*particles(i)%sigma/2.0)
          if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
             !print *, "Repulsing, ", i, r
             rcount = rcount + 1
 
             call repulsive_force(particles(i),particles(j),dx,r2) 
-
          end if
-
 
        end do
 
@@ -203,6 +306,70 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     neighbors(:)  = particles(np+1:)
 
 end subroutine amrex_compute_forces_nl
+
+subroutine amrex_compute_coulomb_forces_nl(rparticles, np, neighbors, & 
+                                     nn, nl, size, rcount, charge, chargelo, chargehi) &
+       bind(c,name='amrex_compute_coulomb_forces_nl')
+
+    use iso_c_binding
+    use amrex_fort_module,           only : amrex_real
+    use cell_sorted_particle_module, only : particle_t
+    use common_namelist_module, only: cut_off, rmin, sr_tog, es_tog, permitivitty
+        
+    integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3)
+    real(amrex_real), intent(inout) :: rcount
+    type(particle_t), intent(inout) :: rparticles(np)
+    type(particle_t), intent(inout) :: neighbors(nn)
+    integer,          intent(in   ) :: nl(size)
+    real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
+
+    real(amrex_real) :: dx(3), r2, r, coef, mass, ee
+    integer :: i, j, index, nneighbors
+
+    type(particle_t)                    :: particles(np+nn)
+        
+    particles(    1:np) = rparticles
+    particles(np+1:   ) = neighbors
+
+    ee = 1.d0/(permitivitty*4*3.142) 
+    
+    index = 1
+    do i = 1, np
+
+      !We need to check this properly
+
+       nneighbors = nl(index)
+       index = index + 1
+
+       !print *, "particle ", i, " has ", nneighbors, " neighbours."
+
+       do j = index, index + nneighbors - 1
+
+          dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
+          dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
+          dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
+
+          r2 = dot_product(dx,dx) 
+          !r2 = max(r2, rmin*rmin)  ! SC: need this for short range coulomb? 
+          r = sqrt(r2)
+
+         ! do local (short range) coulomb interaction within coulombRadiusFactor
+         if (r .lt. (particles(i)%coulombRadiusFactor)) then ! NOTE--hack warning: currently coulombRadiusFactor = sigma is how particles are initialized... 
+
+            particles(i)%force = particles(i)%force + ee*(dx/r)*particles(i)%q*particles(j)%q/r2
+            ! SC:  update potential here as well? 
+         end if 
+
+       end do
+
+       index = index + nneighbors
+
+    end do
+
+    !rparticles(:) = particles(1:np)
+    !neighbors(:)  = particles(np+1:) ! SC: need these lines??
+
+end subroutine amrex_compute_coulomb_forces_nl
 
 subroutine move_particles_dsmc(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns) &
@@ -937,7 +1104,6 @@ end subroutine dry
 
 subroutine peskin_3pt(r,w)
 
-  !This isn't three point! Fill in correct values later
 
   double precision, intent(in   ) :: r
   double precision, intent(inout) :: w
@@ -1284,7 +1450,7 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
   double precision, intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
-  integer :: fi(3), fn(3),i, j, k
+  integer :: fi(3), fn(3),i, j, k, wcount
   double precision :: xx,yy,zz, w1, w2, w3, fr(3), fd(3), wcheck
 
   !find scalar cell
@@ -1318,6 +1484,7 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
   endif    
 
   wcheck = 0
+  wcount = 0
 
   do k = -(ks-1), ks
     do j = -(ks-1), ks
@@ -1349,6 +1516,9 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
 
         weights(i,j,k,store) = w1*w2*w3
 
+        if(weights(i,j,k,store) .ne. 0) then
+           wcount = wcount +1
+        endif
         indicies(i,j,k,store,1) = fi(1)+i+fn(1)
         indicies(i,j,k,store,2) = fi(2)+j+fn(2)
         indicies(i,j,k,store,3) = fi(3)+k+fn(3)
@@ -1360,9 +1530,12 @@ subroutine get_weights_scalar_cc(dx, dxinv, weights, indicies, &
       enddo
     enddo
   enddo
+  
+  !xx=0.5001
+  !call peskin_3pt(xx,w1)
 
-
-  !print*, "Total: ", wcheck
+  !print *, "w: ", w1
+  !print*, "Total: ", wcheck, "count: ", wcount, "kernel: ", pkernel_es
 
 end subroutine get_weights_scalar_cc
 
@@ -1460,13 +1633,16 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   volinv = 1/(dx(1)*dx(2)*dx(3))
 
-  if(pkernel_es .eq. 3) then    !this is exactly 2pi for all kernels?
-    pvol = 6.28319
+  if(pkernel_es .eq. 3) then 
+    !pvol = 6.28319
+    pvol = 0.5
   elseif(pkernel_es .eq. 4) then  
-    pvol = 6.28319
+    pvol = 0.5
   elseif(pkernel_es .eq. 6) then  
-    pvol = 6.28319
+    pvol = 0.5
   endif
+
+
 
   if(mq .eq. 0) then
     qm = pvol*part%q/permitivitty
@@ -1484,7 +1660,7 @@ subroutine spread_op_scalar_cc(weights, indicies, &
         kk = indicies(i,j,k,1,3)
 
 
-        source(ii,jj,kk) = qm*weights(i,j,k,store)*volinv
+        source(ii,jj,kk) = source(ii,jj,kk) + qm*weights(i,j,k,store)*volinv
 
       enddo
     enddo
@@ -2227,6 +2403,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 #if (BL_SPACEDIM == 3)
                                      efz, efzlo, efzhi, &
 #endif
+                                     charge, chargelo, chargehi, &
                                      coordsx, coordsxlo, coordsxhi, &
                                      coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
@@ -2252,7 +2429,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
   integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
 #if (AMREX_SPACEDIM == 3)
-  integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
+  integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3), chargelo(3), chargehi(3)
 #endif
   type(particle_t), intent(inout), target :: particles(np)
   type(surface_t),  intent(in),    target :: surfaces(ns)
@@ -2273,13 +2450,15 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   double precision, intent(in   ) :: efz(efzlo(1):efzhi(1),efzlo(2):efzhi(2),efzlo(3):efzhi(3))
 #endif
 
+  double precision, intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
+
   double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
   double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
 #if (AMREX_SPACEDIM == 3)
   double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
 #endif
 
-double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1),cellcenterslo(2):cellcentershi(2),cellcenterslo(3):cellcentershi(3),1:AMREX_SPACEDIM)
+  double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1),cellcenterslo(2):cellcentershi(2),cellcenterslo(3):cellcentershi(3),1:AMREX_SPACEDIM)
 
   double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
   double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
@@ -2422,6 +2601,9 @@ double precision, intent(in   ) :: cellcenters(cellcenterslo(1):cellcentershi(1)
                       part, ks, plof)
 
       !  print*, "SPREAD"
+
+            print *, "Part force: ", part%force
+
 
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &

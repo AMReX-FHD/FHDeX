@@ -4,7 +4,9 @@ module ib_fort_utils
 
     implicit none
 
-    public particle_info_t, particle_t
+
+    public particle_info_t, particle_t, marker_info_t, marker_t
+
 
     type, bind(C) :: particle_info_t
         ! Same types an order as struct IBP_info in IBParticleInfo.H
@@ -16,6 +18,7 @@ module ib_fort_utils
         integer(c_int)     :: cpu       !< CPU at time of initialization
         integer(c_int)     :: real      !< Particle is real (not a neighbor)
     end type particle_info_t
+
 
     ! Fortran analoque to the particle data structure. This _must_ have the same order as:
     ! ( pos(1), pos(2), pos(3), {IBP_realData}, id, cpu, {IBP_intData} )
@@ -42,6 +45,45 @@ module ib_fort_utils
         integer(c_int)     :: state
     end type particle_t
 
+
+    type, bind(C) :: marker_info_t
+       ! Same types an order as struct IBM_info in IBParticleInfo.H
+       real(amrex_real)   :: pos(3)    !< Position
+       real(amrex_real)   :: vel(3)    !< Velocity
+       real(amrex_real)   :: force(3)  !< Force
+       integer(c_int)     :: id        !< Unique index
+       integer(c_int)     :: cpu       !< CPU at time of initialization
+       integer(c_int)     :: real      !< Particle is real (not a neighbor)
+    end type marker_info_t
+
+
+    ! Fortran analoque to the marker data structure. This _must_ have the same order as:
+    ! ( pos(1), pos(2), pos(3), {IBM_realData}, id, cpu, {IBM_intData} )
+    ! ... as defined in the IBMarkerContainer.
+    type, bind(C) :: marker_t
+        real(amrex_real)   :: pos(3)        !< Position
+        real(amrex_real)   :: velx          !< Velocity x
+        real(amrex_real)   :: vely          !< Velocity y
+        real(amrex_real)   :: velz          !< Velocity z
+        real(amrex_real)   :: forcex        !< Force x
+        real(amrex_real)   :: forcey        !< Force y
+        real(amrex_real)   :: forcez        !< Force z
+        real(amrex_real)   :: pred_posx     !< Predictor position x
+        real(amrex_real)   :: pred_posy     !< Predictor position y
+        real(amrex_real)   :: pred_posz     !< Predictor position z
+        real(amrex_real)   :: pred_velx     !< Predictor position x
+        real(amrex_real)   :: pred_vely     !< Predictor position y
+        real(amrex_real)   :: pred_velz     !< Predictor position z
+        real(amrex_real)   :: pred_forcex   !< Predictor force x
+        real(amrex_real)   :: pred_forcey   !< Predictor force y
+        real(amrex_real)   :: pred_forcez   !< Predictor force z
+        integer(c_int)     :: id            !< Unique index
+        integer(c_int)     :: cpu           !< CPU at time of initialization
+        integer(c_int)     :: id_0          !< ID of neighbor 0
+        integer(c_int)     :: cpu_0         !< CPU (at time of init) of neighbor 0
+        integer(c_int)     :: id_1          !< ID of neighbor 1
+        integer(c_int)     :: cpu_1         !< CPU (at time of init) of neighbor 1
+    end type marker_t
 
 contains
 

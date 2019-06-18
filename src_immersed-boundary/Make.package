@@ -1,9 +1,11 @@
 CEXE_sources += IBCore.cpp
+CEXE_sources += IBMarkerContainer.cpp
 CEXE_sources += IBParticleContainer.cpp
 CEXE_sources += IBGMRES.cpp
 
 
 CEXE_headers += IBCore.H
+CEXE_headers += IBMarkerContainer.H
 CEXE_headers += IBParticleContainer.H
 CEXE_headers += MFUtil.H
 CEXE_headers += IBParticleInfo.H

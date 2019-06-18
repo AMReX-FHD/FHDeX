@@ -5,6 +5,9 @@
 #include "gmres_functions.H"
 
 #include "IBCore.H"
+#include <AMReX_AmrCore.H>
+#include <AmrCoreAdv.H>
+
 
 
 //_______________________________________________________________________________
@@ -12,7 +15,7 @@
 
 // (ID, initial CPU) tuple: unique to each particle
 using ParticleIndex = IBParticleContainer::ParticleIndex;
-using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
+using IBMarkerMap   = IBParticleContainer::IBMarkerMap;
 
 
 /********************************************************************************
@@ -22,7 +25,8 @@ using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
  *                                                                              *
  *******************************************************************************/
 
-void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
+void advance( AmrCoreAdv & amr_core_adv,
+             std::array< MultiFab, AMREX_SPACEDIM > & umac,
              std::array< MultiFab, AMREX_SPACEDIM > & umacNew,
              MultiFab & pres, MultiFab & tracer,
              std::array< MultiFab, AMREX_SPACEDIM > & force_ibm,
@@ -57,7 +61,10 @@ void WritePlotFile(const int step,
                    const MultiFab & tracer,
                    const MultiFab & pres,
                    const std::array< MultiFab, AMREX_SPACEDIM > & force_ibm,
-                   const IBParticleContainer & ib_pc);
+                   const IBParticleContainer & ib_pc,
+                   const AmrCoreAdv & amr_core_adv,
+                   const int lev
+                   );
 
 
 #endif

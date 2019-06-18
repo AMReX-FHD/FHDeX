@@ -21,12 +21,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 
 
-void FhdParticleContainer::computeForcesNL() {
+void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
 
     BL_PROFILE("FhdParticleContainer::computeForcesNL");
 
     double rcount = 0;
-
     const int lev = 0;
 
     buildNeighborList(CheckPair);
@@ -42,9 +41,26 @@ void FhdParticleContainer::computeForcesNL() {
         int Nn = neighbors[lev][index].size();
         int size = neighbor_list[lev][index].size();
 
-        amrex_compute_forces_nl(particles.data(), &Np, 
-                                neighbors[lev][index].dataPtr(), &Nn,
-                                neighbor_list[lev][index].dataPtr(), &size, &rcount); 
+        const Box& tile_box  = pti.tilebox();
+
+        if(sr_tog==1) 
+        {
+                amrex_compute_forces_nl(particles.data(), &Np, 
+                                        neighbors[lev][index].dataPtr(), &Nn,
+                                        neighbor_list[lev][index].dataPtr(), &size, &rcount);
+        }
+        if(es_tog==3)
+        {
+                amrex_compute_coulomb_forces_nl(particles.data(), &Np, 
+                                        neighbors[lev][index].dataPtr(), &Nn,
+                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
+					  BL_TO_FORTRAN_3D(charge[pti]));
+
+                amrex_compute_poisson_correction_nl(particles.data(), &Np, 
+                                        neighbors[lev][index].dataPtr(), &Nn,
+                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
+                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx)); 
+        }
     }
 
     ParallelDescriptor::ReduceRealSum(rcount);
@@ -288,6 +304,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 }
 
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                           const MultiFab& charge,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                            const MultiFab& cellCenters,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
@@ -338,6 +355,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #if (AMREX_SPACEDIM == 3)
                          BL_TO_FORTRAN_3D(efield[2][pti]),
 #endif
+                         BL_TO_FORTRAN_3D(charge[pti]),
                          BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
                          BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
 #if (AMREX_SPACEDIM == 3)
@@ -742,7 +760,6 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
 //        delHolder3[i] = del3;
 //        delHolder4[i] = del4;
 //        delHolder5[i] = del5;
-//        delHolder6[i] = del6;
 //    }
 
 //    ParallelDescriptor::ReduceRealSum(totalMass);
