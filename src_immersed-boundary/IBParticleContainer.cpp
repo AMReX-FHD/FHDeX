@@ -927,7 +927,8 @@ void IBParticleContainer::PrintParticleData(int lev) {
     long local_count = 0;
 
     // ParIter skips tiles without particles => Iterate over MultiFab instead
-    // of ParticleIter
+    // of ParticleIter. Note also that AmrexParticleContainer uses wired tiling =>
+    // turn tiling off
     for(MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());

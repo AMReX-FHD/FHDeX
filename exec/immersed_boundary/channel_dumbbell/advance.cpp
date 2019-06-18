@@ -22,16 +22,16 @@ using namespace common;
 using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
-void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-	       MultiFab& pres, MultiFab& tracer,
-           IBMarkerContainer & ib_mc,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       const MultiFab& beta, const MultiFab& gamma,
-	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
-	       const Geometry geom, const Real& dt)
+void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+             std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
+             MultiFab& pres, MultiFab& tracer,
+             IBMarkerContainer & ib_mc,
+             const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
+             const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+             const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+             const MultiFab& beta, const MultiFab& gamma,
+             const std::array< MultiFab, NUM_EDGE >& beta_ed,
+             const Geometry geom, const Real& dt)
 {
 
     BL_PROFILE_VAR("advance()",advance);
@@ -219,7 +219,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     //___________________________________________________________________________
-    // Spread forces to preconditioner
+    // Spread forces to predictor
     ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles
     Vector<IBM_info> ib_info = ib_mc.IBMarkerInfo(0);
     Vector<RealVect> ibm_forces(ib_info.size());

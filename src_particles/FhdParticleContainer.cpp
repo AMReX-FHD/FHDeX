@@ -43,7 +43,7 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
         const Box& tile_box  = pti.tilebox();
 
-        if(sr_tog==1)
+        if(sr_tog==1) 
         {
                 amrex_compute_forces_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
@@ -51,6 +51,11 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
         }
         if(es_tog==3)
         {
+                amrex_compute_coulomb_forces_nl(particles.data(), &Np, 
+                                        neighbors[lev][index].dataPtr(), &Nn,
+                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
+					  BL_TO_FORTRAN_3D(charge[pti]));
+
                 amrex_compute_poisson_correction_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
                                         neighbor_list[lev][index].dataPtr(), &size, &rcount,
