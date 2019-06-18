@@ -124,12 +124,21 @@ public:
     int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().size();};
 
 
-    void SpreadMarkers(int lev, const Vector<RealVect> & f_in,
+    void SpreadMarkers(int lev,
+                       const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
-    void SpreadMarkers(int lev, const Vector<RealVect> & f_in,
+    void SpreadMarkers(int lev,
+                       const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+    void SpreadMarkers(int lev,
+                       const Vector<RealVect> & f_in,
+                       const Vector<RealVect> & f_pos,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
 
 
     void SpreadMarkers(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;

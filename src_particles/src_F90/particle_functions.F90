@@ -141,14 +141,14 @@ subroutine calculate_force(particles, np, lo, hi, &
   
 end subroutine calculate_force
 
-subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
+subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
                                      nn, nl, size, rcount, charge, chargelo, chargehi, coords, coordslo, coordshi, lo, hi, dx) &
-       bind(c,name='amrex_compute_poisson_correction_nl')
+       bind(c,name='amrex_compute_p3m_sr_correction_nl')
 
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cut_off, rmin, pkernel_es
+    use common_namelist_module, only: cut_off, rmin, pkernel_es, permitivitty
         
     integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3), coordslo(3), coordshi(3), lo(3), hi(3)
     real(amrex_real), intent(in   ) :: dx(3)
@@ -160,13 +160,18 @@ subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
     real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
     real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
-    real(amrex_real) :: rx(3), r2, r, coef, mass
+    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee
     integer :: i, j, index, nneighbors, store, ks
 
     type(particle_t)                    :: particles(np+nn)
 
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
+
+   ! initialize to 0 in case pkernel doesn't equal 6
+   correction_force_mag=0.d0
+
+   ee = 1.d0/(permitivitty*4*3.142) 
 
    if(pkernel_es .eq. 3) then
       ks = 2
@@ -192,15 +197,39 @@ subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
 
        do j = index, index + nneighbors - 1
 
-          rx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
-          rx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
-          rx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
+          dr(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
+          dr(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
+          dr(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
-          r2 = rx(1) * rx(1) + rx(2) * rx(2) + rx(3) * rx(3)
-          r2 = max(r2, rmin*rmin) 
+          r2 = dot_product(dr,dr) 
+          !r2 = max(r2, rmin*rmin)  ! SC: need this for short range coulomb? 
           r = sqrt(r2)
 
-          ! DO SOMETHING! 
+         if (r .lt. (particles(i)%coulombRadiusFactor)) then ! NOTE--hack warning: currently coulombRadiusFactor = sigma is how particles are initialized... 
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!
+            ! do local (short range) coulomb interaction within coulombRadiusFactor
+            !!!!!!!!!!!!!!!!!!!!!!!!!!
+            particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(j)%q/r2
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!
+            ! Compute correction for fact that above sr coulomb interactions accounted for in poisson solve
+            ! and hence are double counted 
+            !
+            ! Currently only implemented for pkernel=6
+            !!!!!!!!!!!!!!!!!!!!!!!!!!
+            if (ks.eq.4) then 
+               !call calculate_correction_force_pkernel6(correction_force_mag, r) ! needs to be scaled by 1/(4*pi*eps_0) * q_i * q_j 
+                                                                                 ! and needs a unit vector to make it a vector
+            endif 
+            ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
+            particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(j)%q*(dr/r)*correction_force_mag
+
+            ! SC:  update potential here as well? 
+
+         end if 
+
+
 
        end do
 
@@ -234,7 +263,7 @@ subroutine amrex_compute_poisson_correction_nl(rparticles, np, neighbors, &
     rparticles(:) = particles(1:np)
     neighbors(:)  = particles(np+1:)
 
-end subroutine amrex_compute_poisson_correction_nl
+end subroutine amrex_compute_p3m_sr_correction_nl
 
 subroutine amrex_compute_forces_nl(rparticles, np, neighbors, & 
                                      nn, nl, size, rcount) &
@@ -302,70 +331,6 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     neighbors(:)  = particles(np+1:)
 
 end subroutine amrex_compute_forces_nl
-
-subroutine amrex_compute_coulomb_forces_nl(rparticles, np, neighbors, & 
-                                     nn, nl, size, rcount, charge, chargelo, chargehi) &
-       bind(c,name='amrex_compute_coulomb_forces_nl')
-
-    use iso_c_binding
-    use amrex_fort_module,           only : amrex_real
-    use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cut_off, rmin, sr_tog, es_tog, permitivitty
-        
-    integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3)
-    real(amrex_real), intent(inout) :: rcount
-    type(particle_t), intent(inout) :: rparticles(np)
-    type(particle_t), intent(inout) :: neighbors(nn)
-    integer,          intent(in   ) :: nl(size)
-    real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
-
-    real(amrex_real) :: dx(3), r2, r, coef, mass, ee
-    integer :: i, j, index, nneighbors
-
-    type(particle_t)                    :: particles(np+nn)
-        
-    particles(    1:np) = rparticles
-    particles(np+1:   ) = neighbors
-
-    ee = 1.d0/(permitivitty*4*3.142) 
-    
-    index = 1
-    do i = 1, np
-
-      !We need to check this properly
-
-       nneighbors = nl(index)
-       index = index + 1
-
-       !print *, "particle ", i, " has ", nneighbors, " neighbours."
-
-       do j = index, index + nneighbors - 1
-
-          dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
-          dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
-          dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
-
-          r2 = dot_product(dx,dx) 
-          !r2 = max(r2, rmin*rmin)  ! SC: need this for short range coulomb? 
-          r = sqrt(r2)
-
-         ! do local (short range) coulomb interaction within coulombRadiusFactor
-         if (r .lt. (particles(i)%coulombRadiusFactor)) then ! NOTE--hack warning: currently coulombRadiusFactor = sigma is how particles are initialized... 
-
-            particles(i)%force = particles(i)%force + ee*(dx/r)*particles(i)%q*particles(j)%q/r2
-            ! SC:  update potential here as well? 
-         end if 
-
-       end do
-
-       index = index + nneighbors
-
-    end do
-
-    !rparticles(:) = particles(1:np)
-    !neighbors(:)  = particles(np+1:) ! SC: need these lines??
-
-end subroutine amrex_compute_coulomb_forces_nl
 
 subroutine move_particles_dsmc(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns) &
