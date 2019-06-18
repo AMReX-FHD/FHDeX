@@ -141,9 +141,11 @@ public:
 
 
 
-    void SpreadMarkers(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+    void SpreadMarkers(int lev,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
-    void SpreadPredictor(int lev, std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+    void SpreadPredictor(int lev,
+                         std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
 
 
