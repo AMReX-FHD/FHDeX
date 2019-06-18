@@ -668,7 +668,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
         InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
 
         // Add interpolated markers back to the particles (markers)
-        for (int i = 0; i < np; ++i) {
+        for (int i = 0; i < ng; ++i) {
             ParticleType & part = nbhd_data[i];
 
             part.rdata(IBM_realData::velx) += marker_forces[i][0];
