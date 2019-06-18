@@ -84,8 +84,6 @@ subroutine force_function2(part1,part2,domsize) &
             if(rtdr2 .lt. maxdist) then
               part1%force = part1%force + ee*(dx/rtdr2)*part1%q*part2%q/dr2
 
-              part1%potential = (part1%potential + ee*part1%q*part2%q/rtdr2)/2d0
-
               pairs = pairs + 1
 
             endif
@@ -128,8 +126,6 @@ subroutine calculate_force(particles, np, lo, hi, &
 
   part => particles(partno) !this defines one particle--we can access all the data by doing part%something
 
-  part%potential = 0
-
   do n = 1, np
 
      part2 => particles(n) !this defines one particle--we can access all the data by doing part%something
@@ -164,7 +160,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
     real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
-    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee
+    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70)
     integer :: i, j, index, nneighbors, store, ks
 
     type(particle_t)                    :: particles(np+nn)
@@ -190,6 +186,27 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
         
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
+
+    vals =(/0.0, 0.0000000789, 0.000000157, 0.000000233, 0.000000307, &
+              0.000000378, 0.000000445, 0.000000507, 0.000000564, 0.000000617, &
+              0.000000663, 0.000000704, 0.000000737, 0.000000766, 0.000000789, &
+              0.000000805, 0.000000812, 0.000000821, 0.000000819, 0.000000815, &
+              0.000000807, 0.000000793, 0.000000783, 0.000000764, 0.000000739, &
+              0.000000716, 0.000000697, 0.00000067, 0.000000645, 0.000000622, &
+              0.000000593, 0.000000567, 0.000000544, 0.000000521, 0.000000494, &
+              0.000000474, 0.000000451, 0.000000428, 0.000000412, 0.000000391, &
+              0.000000373, 0.000000355, 0.00000034, 0.000000324, 0.000000311, &
+              0.000000295, 0.000000284, 0.000000273, 0.000000261, 0.000000251, &
+              0.000000242, 0.000000232, 0.000000222, 0.000000215, 0.000000206, &
+              0.000000199, 0.000000192, 0.000000186, 0.000000179, 0.000000173, &
+              0.000000167, 0.000000162, 0.000000157, 0.000000152, 0.000000147, &
+              0.000000143, 0.000000139, 0.000000134, 0.00000013, 0.0000001270/)
+
+    points =(/0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, &
+              1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, &
+              2.8, 2.9, 3., 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4., 4.1, &
+              4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5., 5.1, 5.2, 5.3, 5.4, 5.5, &
+              5.6, 5.7, 5.8, 5.9, 6., 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9/)
     
     index = 1
     do i = 1, np
@@ -221,8 +238,14 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             ! and hence are double counted 
             !
             ! Currently only implemented for pkernel=6
+
+
+            ! p6 tables:
+
+              
+
             !!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (ks.eq.4) then 
+            if (pkernel_es .eq. 6) then 
                !call calculate_correction_force_pkernel6(correction_force_mag, r) ! needs to be scaled by 1/(4*pi*eps_0) * q_i * q_j 
                                                                                  ! and needs a unit vector to make it a vector
             endif 
@@ -1991,6 +2014,32 @@ subroutine emf(weights, indicies, &
 
 end subroutine emf
 
+subroutine set_pos(part1, part2, dx, sep)
+
+  use common_namelist_module
+  use rng_functions_module
+  use cell_sorted_particle_module, only: particle_t
+
+  type(particle_t), intent(inout) :: part1, part2
+  double precision, intent(in   ) :: dx(3), sep
+
+  double precision cosTheta, sinTheta, cosPhi, sinPhi, fx, fy, fz
+
+  call get_angles(costheta, sintheta, cosphi, sinphi)
+  call get_uniform(fx)
+  call get_uniform(fy)
+  call get_uniform(fz)
+
+  part1%pos(1) = prob_hi(1)/2.0 + fx*dx(1) - (sep/2.0)*sintheta*cosphi*dx(1)
+  part1%pos(2) = prob_hi(2)/2.0 + fy*dx(2) - (sep/2.0)*sintheta*sinphi*dx(2)
+  part1%pos(3) = prob_hi(3)/2.0 + fz*dx(3) - (sep/2.0)*costheta*dx(3)
+
+  part2%pos(1) = prob_hi(1)/2.0 + fx*dx(1) + (sep/2.0)*sintheta*cosphi*dx(1)
+  part2%pos(2) = prob_hi(2)/2.0 + fy*dx(2) + (sep/2.0)*sintheta*sinphi*dx(2)
+  part2%pos(3) = prob_hi(3)/2.0 + fz*dx(3) + (sep/2.0)*costheta*dx(3)
+
+end subroutine set_pos
+
 subroutine move_ions_fhd(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, plof, dxf, dxe, &
                                      velx, velxlo, velxhi, &
@@ -2311,7 +2360,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 !              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
-              part%travel_time = part%travel_time + dt
+              !part%travel_time = part%travel_time + dt
 
               norm = part%abspos
 
@@ -2439,10 +2488,10 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
   integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount, pointcount, ks, boundflag, midpoint, store
   integer :: ni(3), fi(3)
   integer(c_int), pointer :: cell_parts(:)
-  type(particle_t), pointer :: part
+  type(particle_t), pointer :: part, part2
   type(surface_t), pointer :: surf
   real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
-                   diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv
+                   diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv, sep
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
@@ -2567,7 +2616,29 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
       !  print*, "SPREAD"
 
-            print *, "Part force: ", part%force
+      if(mod(int(part%step_count),100) .eq. 0) then
+
+        part%step_count = 0
+        part%diff_av = 0
+        part%travel_time = 0
+
+      endif
+
+
+      part%step_count = part%step_count + 1
+      part%diff_av = part%diff_av + norm2(part%force)
+      part%travel_time = part%travel_time + (norm2(part%force) - part%diff_av/(part%step_count))**2
+
+
+      if(mod(int(part%step_count),100) .eq. 0) then
+        
+        !print *, "Part force: ", norm2(part%force)
+        print *, "Sep: ", part%drag_factor
+        print *, "Average: ", part%diff_av/part%step_count
+        !print *, "% SD: ", 100+100*(sqrt(part%travel_time)/part%step_count-part%diff_av/part%step_count)/(part%diff_av/part%step_count)
+        part%drag_factor = part%drag_factor + 0.1
+
+      endif
 
 
       call spread_op(weights, indicies, &
@@ -2582,9 +2653,11 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
    end do
 
-  potential = potential/np
+  part => particles(1)
+  part2 => particles(2)
 
-  print *, "Average electrostatic potential: ", potential
+
+  call set_pos(part, part2,dxe,part%drag_factor)
 
   deallocate(weights)
   deallocate(indicies)
