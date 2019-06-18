@@ -51,7 +51,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 #if (BL_SPACEDIM == 3)
 //                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
-                sep = 0;
+                sep = 3.1;
                 th = 3.14159/6.0;
                 //th = 0;
                 cosTheta = cos(th);
@@ -118,7 +118,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 		p.rdata(RealData::potential) = 0;                 
 		// SPC: temporary hack--set distance for which we do direct coulomb force calculation
 		//      to be same as that of the SR leonard jones
-		p.rdata(RealData::coulombRadiusFactor) = particleInfo[i_spec].sigma;                 
+		p.rdata(RealData::coulombRadiusFactor) = 6.5*dx[0];                 
                 particle_tile.push_back(p);
 
                 pcount++;

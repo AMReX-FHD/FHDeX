@@ -212,13 +212,15 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        nneighbors = nl(index)
        index = index + 1
 
-       !print *, "particle ", i, " has ", nneighbors, " neighbours."
+       print *, "particle ", i, " has ", nneighbors, " neighbours."
 
        do j = index, index + nneighbors - 1
 
           dr(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
           dr(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
           dr(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
+
+          print *, "Doing ", i, nl(j)
 
           r2 = dot_product(dr,dr) 
           r = sqrt(r2)
@@ -229,7 +231,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Do local (short range) coulomb interaction within coulombRadiusFactor
             !!!!!!!!!!!!!!!!!!!!!!!!!!
-            particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(j)%q/r2
+            particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Compute correction for fact that the above, sr coulomb interactions accounted for in poisson solve
@@ -242,13 +244,13 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
                   if (r_cell_frac .lt. points(i+1)) then 
                      ! do linear interpolation of force between vals(i+1) and val(i) 
                      m = (vals(i+1)-vals(i))/(points(i+1)-points(i))
-                     correction_force = m*r_cell_frac + vals(i+1) - m*points(i+1)
+                     correction_force_mag = m*r_cell_frac + vals(i+1) - m*points(i+1)
                      exit ! terminate do-loop, we found the correct correction force. 
                   endif 
                end do
             endif 
             ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
-            particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(j)%q*(dr/r)*correction_force_mag*dx2_inv
+            particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv
 
             ! SC:  update potential here as well? 
 
@@ -2591,30 +2593,30 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
       !  print*, "SPREAD"
 
-      if(mod(int(part%step_count),100) .eq. 0) then
+!      if(mod(int(part%step_count),100) .eq. 0) then
 
-        part%step_count = 0
-        part%diff_av = 0
-        part%travel_time = 0
+!        part%step_count = 0
+!        part%diff_av = 0
+!        part%travel_time = 0
 
-      endif
-
-
-      part%step_count = part%step_count + 1
-      part%diff_av = part%diff_av + norm2(part%force)
-      part%travel_time = part%travel_time + (norm2(part%force) - part%diff_av/(part%step_count))**2
+!      endif
 
 
-      if(mod(int(part%step_count),100) .eq. 0) then
-        
-        !print *, "Part force: ", norm2(part%force)
-        print *, "Sep: ", part%drag_factor
-        print *, "Average: ", part%diff_av/part%step_count
-        !print *, "% SD: ", 100+100*(sqrt(part%travel_time)/part%step_count-part%diff_av/part%step_count)/(part%diff_av/part%step_count)
-        part%drag_factor = part%drag_factor + 0.1
+!      part%step_count = part%step_count + 1
+!      part%diff_av = part%diff_av + norm2(part%force)
+!      part%travel_time = part%travel_time + (norm2(part%force) - part%diff_av/(part%step_count))**2
 
-      endif
 
+!      if(mod(int(part%step_count),10) .eq. 0) then
+!        
+!        !print *, "Part force: ", norm2(part%force)
+!        print *, "Sep: ", part%drag_factor
+!        print *, "Average: ", part%diff_av/part%step_count
+!        !print *, "% SD: ", 100+100*(sqrt(part%travel_time)/part%step_count-part%diff_av/part%step_count)/(part%diff_av/part%step_count)
+!        part%drag_factor = part%drag_factor + 0.1
+
+!      endif
+      print *, "Part force: ", norm2(part%force)
 
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &
@@ -2628,11 +2630,11 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
    end do
 
-  part => particles(1)
-  part2 => particles(2)
+!  part => particles(1)
+ ! part2 => particles(2)
 
 
-  call set_pos(part, part2,dxe,part%drag_factor)
+  !call set_pos(part, part2,dxe,part%drag_factor)
 
   deallocate(weights)
   deallocate(indicies)
