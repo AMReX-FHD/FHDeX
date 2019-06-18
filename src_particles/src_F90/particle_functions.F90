@@ -322,7 +322,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
             !print *, "Repulsing, ", i, r
             rcount = rcount + 1
 
-            call repulsive_force(particles(i),particles(j),dx,r2) 
+            call repulsive_force(particles(i),particles(nl(j)),dx,r2) 
          end if
 
        end do
