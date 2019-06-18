@@ -193,6 +193,9 @@ public:
 
     void MoveMarkers(int lev, Real dt);
     void MovePredictor(int lev, Real dt);
+    void ResetMarkers(int lev);
+    void ResetPredictor(int lev);
+
 
 
 

@@ -220,6 +220,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Interpolate immersed boundary predictor
+    ib_mc.ResetPredictor(0);
     ib_mc.InterpolatePredictor(0, umac);
 
     //___________________________________________________________________________
@@ -320,6 +321,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Interpolate immersed boundary
+    ib_mc.ResetMarkers(0);
     ib_mc.InterpolateMarkers(0, umac);
 
     //___________________________________________________________________________

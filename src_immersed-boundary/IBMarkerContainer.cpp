@@ -182,6 +182,49 @@ void IBMarkerContainer::MovePredictor(int lev, Real dt) {
 
 
 
+void IBMarkerContainer::ResetMarkers(int lev) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            part.rdata(IBM_realData::velx) = 0.;
+            part.rdata(IBM_realData::vely) = 0.;
+            part.rdata(IBM_realData::velz) = 0.;
+        }
+    }
+}
+
+
+
+void IBMarkerContainer::ResetPredictor(int lev) {
+
+    for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            MarkerIndex pindex(part.id(), part.cpu());
+
+            part.rdata(IBM_realData::pred_velx) = 0.;
+            part.rdata(IBM_realData::pred_vely) = 0.;
+            part.rdata(IBM_realData::pred_velz) = 0.;
+        }
+    }
+}
+
+
+
 void IBMarkerContainer::SpreadMarkers(int lev,
                                       const Vector<RealVect> & f_in,
                                       const Vector<RealVect> & f_pos,
