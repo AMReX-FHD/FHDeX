@@ -35,10 +35,10 @@ public:
     void EvolveChem(
             std::array<MultiFab, AMREX_SPACEDIM> & umac, 
             const iMultiFab & iface,
-            int lev, int step, Real dt_fluid);
+            int lev, int step, Real dt_fluid, Real time);
 
     // initializes multilevel data
-    void InitData ();
+    void InitData ( amrex::BoxArray & ba, amrex::DistributionMapping & dm);
 
     // Make a new level using provided BoxArray and DistributionMapping and
     // fill with interpolated coarse level data.
@@ -67,7 +67,7 @@ public:
     virtual void ErrorEst (int lev, amrex::TagBoxArray& tags, amrex::Real time, int ngrow) override;
 
     //amrex::Vector<std::unique_ptr<MultiFab>> * con_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> * conNew);
-    void con_new_copy(int lev, amrex::Vector< std::unique_ptr<MultiFab>> & MF, int dcomp, int indicator);
+    void con_new_copy(int lev,  amrex::Vector<std::unique_ptr<MultiFab>> & MF, int indicator);
 
 //    amrex::Vector<std::unique_ptr<MultiFab>> con_return();
 

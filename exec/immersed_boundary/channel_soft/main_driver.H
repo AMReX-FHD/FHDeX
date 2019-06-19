@@ -42,7 +42,7 @@ void advance( AmrCoreAdv & amr_core_adv,
 # endif
              IBParticleContainer & ib_pc,
              IBCore & ib_core,
-             const Geometry geom, const Real & dt);
+             const Geometry geom, const Real & dt, Real time);
 
 
 
@@ -62,7 +62,7 @@ void WritePlotFile(const int step,
                    const MultiFab & pres,
                    const std::array< MultiFab, AMREX_SPACEDIM > & force_ibm,
                    const IBParticleContainer & ib_pc,
-                   const AmrCoreAdv & amr_core_adv,
+                   AmrCoreAdv & amr_core_adv,
                    const int lev
                    );
 

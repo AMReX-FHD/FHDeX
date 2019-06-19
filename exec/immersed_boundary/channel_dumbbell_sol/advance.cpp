@@ -234,6 +234,29 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
 
+    int ib_lev = 0;
+    using PairIndex    = IBMarkerContainer::PairIndex;
+    using ParticleType = IBMarkerContainer::ParticleType;
+    using AoS          = IBMarkerContainer::AoS;
+
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = ib_mc.GetParticles(ib_lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            part.rdata(IBM_realData::pred_forcex) = 0.;
+            part.rdata(IBM_realData::pred_forcey) = 1e-1;
+            part.rdata(IBM_realData::pred_forcez) = 0.;
+        }
+    }
+
+
 
     //___________________________________________________________________________
     // Spread forces to predictor
@@ -322,11 +345,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Interpolate immersed boundary
     ib_mc.ResetMarkers(0);
-    ib_mc.InterpolateMarkers(0, umac);
+    ib_mc.InterpolateMarkers(0, umacNew);
 
     //___________________________________________________________________________
     // Move markers according to velocity
     ib_mc.MoveMarkers(0, dt);
+    ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
 
     //
@@ -334,6 +358,22 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // TODO: Update forces between markers
     //
     //
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = ib_mc.GetParticles(ib_lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            part.rdata(IBM_realData::forcex) = 0.;
+            part.rdata(IBM_realData::forcey) = 1e-1;
+            part.rdata(IBM_realData::forcez) = 0.;
+        }
+    }
 
 
     //___________________________________________________________________________

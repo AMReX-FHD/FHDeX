@@ -21,8 +21,8 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 100
-  plot_int = 1
+  max_step = 10000
+  plot_int = 10
 
 
   ! if abs(visc_type) = 1, L = div beta grad
@@ -60,7 +60,7 @@
 
 !  Chemical solver parameters
   solve_chem       = 1
-  diffcoeff       =  0.000001
+  diffcoeff       =  1 ! 0.1
 !  max_grid_size   =  32
 !! amr.ref_ratio       = 2 2 2 2 # refinement ratio
 !  blocking_factor = 8       # block factor in grid generation

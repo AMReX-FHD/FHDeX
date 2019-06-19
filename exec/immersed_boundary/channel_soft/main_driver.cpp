@@ -445,7 +445,7 @@ void main_driver(const char * argv) {
     // Build AmrCore and initialize chemical multifabs
 
     AmrCoreAdv amr_core_adv;
-      amr_core_adv.InitData();
+      amr_core_adv.InitData( ba, dmap);
  // Need to have only one level for now
 int lev =0;
 //    if (solve_chem==1)
@@ -543,7 +543,7 @@ int lev =0;
         advance(amr_core_adv,
 		umac, umacNew, pres, tracer, force_ibm, marker_force_0,
                 mfluxdiv_predict, mfluxdiv_correct,
-                alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt);
+                alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt, time);
 
 
         // Empty force data
