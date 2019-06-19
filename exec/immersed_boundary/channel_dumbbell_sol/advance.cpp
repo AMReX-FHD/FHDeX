@@ -345,7 +345,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Interpolate immersed boundary
     ib_mc.ResetMarkers(0);
-    ib_mc.InterpolateMarkers(0, umac);
+    ib_mc.InterpolateMarkers(0, umacNew);
 
     //___________________________________________________________________________
     // Move markers according to velocity
