@@ -160,8 +160,8 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
     real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
-    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70), dx2_inv, r_cell_frac,m
-    integer :: i, j, index, nneighbors, store, ks, lookup_idx, k
+    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70), dx2_inv, r_cell_frac,m, r_norm
+    integer :: i, j, index, nneighbors, store, ks, lookup_idx, k,  r_cell
 
     type(particle_t)                    :: particles(np+nn)
 
@@ -185,20 +185,18 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     !!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! this is force per dx**2
-    vals =(/0.0, 0.0000000789, 0.000000157, 0.000000233, 0.000000307, &
-              0.000000378, 0.000000445, 0.000000507, 0.000000564, 0.000000617, &
-              0.000000663, 0.000000704, 0.000000737, 0.000000766, 0.000000789, &
-              0.000000805, 0.000000812, 0.000000821, 0.000000819, 0.000000815, &
-              0.000000807, 0.000000793, 0.000000783, 0.000000764, 0.000000739, &
-              0.000000716, 0.000000697, 0.00000067, 0.000000645, 0.000000622, &
-              0.000000593, 0.000000567, 0.000000544, 0.000000521, 0.000000494, &
-              0.000000474, 0.000000451, 0.000000428, 0.000000412, 0.000000391, &
-              0.000000373, 0.000000355, 0.00000034, 0.000000324, 0.000000311, &
-              0.000000295, 0.000000284, 0.000000273, 0.000000261, 0.000000251, &
-              0.000000242, 0.000000232, 0.000000222, 0.000000215, 0.000000206, &
-              0.000000199, 0.000000192, 0.000000186, 0.000000179, 0.000000173, &
-              0.000000167, 0.000000162, 0.000000157, 0.000000152, 0.000000147, &
-              0.000000143, 0.000000139, 0.000000134, 0.00000013, 0.0000001270/)
+    vals =(/0., 0.0130335, 0.0259347, 0.0384891, 0.0507132, 0.0624416, 0.0735093, &
+            0.0837511, 0.0931669, 0.101922, 0.109521, 0.116293, 0.121745, &
+            0.126535, 0.130335, 0.132978, 0.134134, 0.135621, 0.13529, 0.134629, &
+            0.133308, 0.130995, 0.129343, 0.126205, 0.122075, 0.118276, 0.115137, &
+            0.110677, 0.106547, 0.102748, 0.0979574, 0.0936624, 0.0898631, &
+            0.0860637, 0.0816036, 0.0782998, 0.0745005, 0.0707011, 0.0680581, &
+            0.0645891, 0.0616157, 0.0586423, 0.0561644, 0.0535214, 0.0513739, &
+            0.0487309, 0.0469138, 0.0450967, 0.0431145, 0.0414626, 0.0399759, &
+            0.038324, 0.0366721, 0.0355157, 0.034029, 0.0328727, 0.0317164, &
+            0.0307252, 0.0295689, 0.0285778, 0.0275866, 0.0267607, 0.0259347, &
+            0.0251088, 0.0242829, 0.0236221, 0.0229613, 0.0221354, 0.0214746, &
+            0.0209791/)
     ! these are fractions of cell size dx
     points =(/0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, &
               1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, &
@@ -212,7 +210,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        nneighbors = nl(index)
        index = index + 1
 
-       print *, "particle ", i, " has ", nneighbors, " neighbours."
+      ! print *, "particle ", i, " has ", nneighbors, " neighbours."
 
        do j = index, index + nneighbors - 1
 
@@ -220,11 +218,19 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           dr(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
           dr(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
-          print *, "Doing ", i, nl(j)
+          !Rationalise this later
 
           r2 = dot_product(dr,dr) 
           r = sqrt(r2)
-          r_cell_frac = r/dx(1) ! for use in lookup below
+          r_norm = r/dx(1)
+          r_cell = floor(r_norm/0.1)
+          r_cell_frac = r_norm/0.1-r_cell ! for use in lookup below
+          r_cell = r_cell + 1
+          r_cell_frac = r_cell_frac*0.1
+
+          !print *, "r: ", r_cell_frac
+          !print *, "cr: ", r_cell
+          !print *, "r_cell_frac: ", r_cell_frac
 
          if (r .lt. (particles(i)%coulombRadiusFactor)) then 
 
@@ -240,17 +246,20 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             ! Currently only implemented for pkernel=6
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             if (pkernel_es .eq. 6) then 
-               do k = 1, 70
-                  if (r_cell_frac .lt. points(i+1)) then 
-                     ! do linear interpolation of force between vals(i+1) and val(i) 
-                     m = (vals(i+1)-vals(i))/(points(i+1)-points(i))
-                     correction_force_mag = m*r_cell_frac + vals(i+1) - m*points(i+1)
-                     exit ! terminate do-loop, we found the correct correction force. 
-                  endif 
-               end do
+            
+                !Put more efficient version here.
+                ! do linear interpolation of force between vals(i+1) and val(i) 
+              m = (vals(r_cell+1)-vals(r_cell))/(points(r_cell+1)-points(r_cell))
+
+              correction_force_mag = m*r_cell_frac + vals(r_cell)
+              !correction_force_mag = vals(r_cell)
+    
             endif 
             ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
             particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv
+
+            !print *, "Corr:", ee*particles(i)%q*particles(nl(j))%q*correction_force_mag*dx2_inv
+            !print *, "norm:", correction_force_mag
 
             ! SC:  update potential here as well? 
 
@@ -2337,7 +2346,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 !              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
-              !part%travel_time = part%travel_time + dt
+              part%travel_time = part%travel_time + dt
 
               norm = part%abspos
 
@@ -2524,7 +2533,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
           potential = potential + part%potential
       endif
-
+      !print *, "start weights", p
       !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
       call get_weights(dxf, dxfinv, weights, indicies, &
                       coordsx, coordsxlo, coordsxhi, &
@@ -2533,7 +2542,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                       coordsz, coordszlo, coordszhi, &
 #endif
                       part, ks, plof)
-
+      !print *, "finish weights", p
       if(drag_tog .eq. 1) then
 
         call drag(weights, indicies, &
@@ -2616,7 +2625,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 !        part%drag_factor = part%drag_factor + 0.1
 
 !      endif
-      print *, "Part force: ", norm2(part%force)
+     ! print *, "Part force: ", norm2(part%force)
 
       call spread_op(weights, indicies, &
                         sourcex, sourcexlo, sourcexhi, &
