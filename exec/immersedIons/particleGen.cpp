@@ -46,23 +46,23 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
 #if (BL_SPACEDIM == 3)
-//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
 #endif
-                sep = 3.1;
-                th = 3.14159/6.0;
-                //th = 0;
-                cosTheta = cos(th);
-                sinTheta = sin(th);
+//                sep = 4.05;
+//                th = 3.14159/6.0;
+//                //th = 0;
+//                cosTheta = cos(th);
+//                sinTheta = sin(th);
 
-                p.pos(0) = phi[0]/2.0+0.08*dx[0] - (sep/2)*cosTheta*dx[0] + ll*(sep)*cosTheta*dx[0];
-                p.pos(1) = phi[1]/2.0+0.31*dx[1] - (sep/2)*sinTheta*dx[1] + ll*(sep)*sinTheta*dx[1];
-#if (BL_SPACEDIM == 3)
-                p.pos(2) = phi[2]/2.0+0.77*dx[2];
-#endif
-                ll++;
+//                p.pos(0) = phi[0]/2.0+0.08*dx[0] - (sep/2)*cosTheta*dx[0] + ll*(sep)*cosTheta*dx[0];
+//                p.pos(1) = phi[1]/2.0+0.31*dx[1] - (sep/2)*sinTheta*dx[1] + ll*(sep)*sinTheta*dx[1];
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = phi[2]/2.0+0.77*dx[2];
+//#endif
+//                ll++;
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
 
