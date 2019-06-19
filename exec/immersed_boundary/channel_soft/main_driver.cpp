@@ -446,7 +446,9 @@ void main_driver(const char * argv) {
     std:: cout << "Diff Coeff Maindriver"<< diffcoeff << std::endl;
 
     AmrCoreAdv amr_core_adv;
-      amr_core_adv.InitData( ba, dmap);
+    std:: cout << " After declaring AmrCoreAdv Class"<< diffcoeff << std::endl;
+
+    amr_core_adv.InitData( ba, dmap);
  // Need to have only one level for now
 int lev =0;
 //    if (solve_chem==1)
@@ -468,6 +470,7 @@ int lev =0;
         WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc,  amr_core_adv, lev );
     }
 
+    std::cout<< "Write Plot File Success "<<std::endl;
 
     //___________________________________________________________________________
     // FFT test
