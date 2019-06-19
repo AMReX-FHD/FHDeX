@@ -443,6 +443,7 @@ void main_driver(const char * argv) {
     }
     //__________________________________________________________________________
     // Build AmrCore and initialize chemical multifabs
+    std:: cout << "Diff Coeff Maindriver"<< diffcoeff << std::endl;
 
     AmrCoreAdv amr_core_adv;
       amr_core_adv.InitData( ba, dmap);

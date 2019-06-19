@@ -101,9 +101,11 @@ void AmrCoreAdv::Initialize( )
 void AmrCoreAdv::EvolveChem(
         std::array<MultiFab, AMREX_SPACEDIM> & umac, 
         const iMultiFab & iface, int lev, int nstep,
-        Real dt_fluid, Real time)
+        Real dt_fluid, Real time, Real dc)
 {
-//    std::cout << "EvolveChem"<<std::endl;
+   diffcoeff=dc;
+
+   std::cout << "EvolveChem diffcoeff"<< diffcoeff<<std::endl;
     
     dt[lev] = dt_fluid;
 
@@ -701,7 +703,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab ptSource(badp,dmdp,1,0);
 
     ptSource.setVal(0.);
-    Real diffcoeff=0.01;
+   // Real diffcoeff=0.01;
     std::cout<< "DiffCoeff"<< diffcoeff<<std::endl;
     Vector<int> xloc;
     Vector<int> yloc;
