@@ -48,7 +48,9 @@ IBMarkerContainer::IBMarkerContainer(AmrCore * amr_core, int n_nbhd)
 
 
 
-void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
+void IBMarkerContainer::InitList(int lev,
+                                 const Vector<Real> & radius,
+                                 const Vector<RealVect> & pos) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -76,6 +78,10 @@ void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
         const int tile_id = mfi.LocalTileIndex();
         auto & particles = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
+
+        int prev_id  = -1;
+        int prev_cpu = -1;
+
         for(int i = 0; i < pos.size(); i++) {
             // IntVect representing particle's position in the tile_box grid.
             RealVect pos_grid = pos[i];
@@ -100,6 +106,8 @@ void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
                 p_new.pos(1) = pos[i][1];
                 p_new.pos(2) = pos[i][2];
 
+                p_new.rdata(IBM_realData::radius) = radius[i];
+
                 // Initialize marker velocity as well as forces to 0
                 p_new.rdata(IBM_realData::velx)   = 0.;
                 p_new.rdata(IBM_realData::vely)   = 0.;
@@ -113,14 +121,18 @@ void IBMarkerContainer::InitList(int lev, const Vector<RealVect> & pos) {
                 p_new.rdata(IBM_realData::pred_forcey) = 0.;
                 p_new.rdata(IBM_realData::pred_forcez) = 0.;
 
-                p_new.idata(IBM_intData::id_0)    = 0;
-                p_new.idata(IBM_intData::cpu_0)   = 0;
+                p_new.idata(IBM_intData::id_0)    = prev_id;
+                p_new.idata(IBM_intData::cpu_0)   = prev_cpu;
 
-                p_new.idata(IBM_intData::id_1)    = 0;
-                p_new.idata(IBM_intData::cpu_1)   = 0;
+                p_new.idata(IBM_intData::id_1)    = -1;
+                p_new.idata(IBM_intData::cpu_1)   = -1;
 
                 // Add to the data structure
                 particles.push_back(p_new);
+
+
+                prev_id  = p_new.id();
+                prev_cpu = p_new.cpu();
             }
         }
 
@@ -1303,8 +1315,8 @@ void IBMarkerContainer::ReadStaticParameters() {
         if (pp.queryarr("tile_size", ts))
             tile_size = IntVect(ts);
 
-        pp.query("use_neighbor_list", use_neighbor_list);
-        pp.query("sort_neighbor_list", sort_neighbor_list);
+        // pp.query("use_neighbor_list", use_neighbor_list);
+        // pp.query("sort_neighbor_list", sort_neighbor_list);
 
         initialized = true;
     }
