@@ -239,21 +239,19 @@ public:
     static bool sort_neighbor_list;
 
 
-private:
 
     struct {
         bool operator()(const ParticleType & p1, const ParticleType & p2) const
             {
-                std::cout << "asdf" << std::endl;
-
                 return AMREX_D_TERM((p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
                                      + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
                                      + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-                    <= 9.0*p1.rdata(0)*p1.rdata(0);
+                    <= 4.0*p1.rdata(0)*p1.rdata(0);
             }
     } CheckPair;
 
 
+private:
 
     // Posotions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;

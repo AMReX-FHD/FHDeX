@@ -234,9 +234,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
 
+    ib_mc.buildNeighborList(ib_mc.CheckPair);
 
     ib_mc.clearNeighbors();
-    ib_mc.fillNeighbors();
+    ib_mc.fillNeighbors(); // Does ghost cells
 
 
     int ib_lev = 0;
@@ -257,6 +258,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         std::cout << nbhd.size() << std::endl;
 
+        for (const auto & elt : nbhd) {
+            std::cout << elt << std::endl;
+        }
 
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
