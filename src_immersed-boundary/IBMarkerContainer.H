@@ -199,8 +199,13 @@ public:
     void ResetPredictor(int lev);
 
     const IntVector & get_neighbor_list(int lev, const PairIndex & index) {
-        return neighbor_list[lev][index];
+        return neighbor_list[lev].at(index);
     };
+
+    ParticleType * get_neighbors(int lev, const PairIndex & index) {
+        return (ParticleType *) neighbors[lev].at(index).dataPtr();
+    }
+
 
 
     int get_nghost() const {return nghost;};
