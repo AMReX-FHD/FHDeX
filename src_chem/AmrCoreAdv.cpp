@@ -701,7 +701,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab ptSource(badp,dmdp,1,0);
 
     ptSource.setVal(0.);
-    Real diffcoeff=0.001;
+    Real diffcoeff=0.01;
     std::cout<< "DiffCoeff"<< diffcoeff<<std::endl;
     Vector<int> xloc;
     Vector<int> yloc;

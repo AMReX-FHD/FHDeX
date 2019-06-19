@@ -381,7 +381,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
         marker_forces[lev][elt.first].resize(n_marker);
 
 
-        double   r     = elt.second.rad*0.9; // HACK: put markers slightly inside
+        double   r     = elt.second.rad;//*0.8; // HACK: put markers slightly inside
         RealVect pos_0 = elt.second.pos;
 
         //_______________________________________________________________________
