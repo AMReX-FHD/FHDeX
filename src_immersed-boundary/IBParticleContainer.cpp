@@ -361,8 +361,8 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
         marker_forces.resize(lev+1);
     }
     marker_positions[lev].clear();
-    marker_velocities.clear();
-    marker_forces.clear();
+    marker_velocities[lev].clear();
+    marker_forces[lev].clear();
 
 
     //___________________________________________________________________________

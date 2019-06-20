@@ -26,7 +26,7 @@ subroutine get_ptsource_3d( lo, hi, &
            ! z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
            y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
 
-           if ((iface(i,j,k).eq.1)) then ! .and. (y .le. ib_cen_y)) then
+           if ((iface(i,j,k).eq.1) .and. (y .le. ib_cen_y)) then
            pts(i,j,k)=strength
            endif
         enddo
