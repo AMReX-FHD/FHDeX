@@ -15,18 +15,19 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-11
+  fixed_dt = 1e-10
 
   ! Controls for number of steps between actions
-  max_step = 1000
-  plot_int = 1
+  max_step = 10000
+  plot_int = 1000
   plot_ascii = 0
-  struct_fact_int = 1
+  struct_fact_int = 0
   n_steps_skip = 10
 
   ! Toggles 0=off, 1=on
-  move_tog = 0 ! Particle move
-  sr_tog = 0 ! Particle collisions
+  move_tog = 1 ! Particle move
+  sr_tog = 1 ! Particle collisions
+
  
 
   ! Fluid info
@@ -60,6 +61,7 @@
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
+  T_init(2) = 300.00
   variance_coef_mom = 0
    
 
