@@ -26,7 +26,7 @@ void AmrCoreAdv::Initialize( )
 {
 //    ReadParameters();
 //    std::cout<< "max level "<< max_level<< std::endl;
-//    std::cout << "Initialize"<<std::endl;
+    std::cout << "Initialize"<<std::endl;
 
     int nlevs_max = max_level + 1;
 
@@ -207,7 +207,7 @@ void AmrCoreAdv::EvolveChem(
 
 void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 {
- //   std::cout << "InitData"<<std::endl;
+    std::cout << "InitData"<<std::endl;
     Initialize();
 
     if (restart_chkfile == "") {
@@ -217,8 +217,17 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 
         // initialize Levels (done in AmrCore)
   //      std::cout << "Before InitFromScratchData"<<std::endl;
-        
-        InitFromScratch(time);
+        finest_level = 0;
+
+        const BoxArray& ba = MakeBaseGrids();
+        DistributionMapping dm(ba);
+
+        MakeNewLevelFromScratch(0, time, ba, dm);
+
+        SetBoxArray(0, ba);
+        SetDistributionMap(0, dm);
+     
+  //      InitFromScratch(time);
         //AverageDown();
     //    std::cout << "After InitFromScratchData"<<std::endl;
 
@@ -233,6 +242,9 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 
    // initialize grad con
    for (int lev = 0; lev <= finest_level; ++lev) {
+       SetBoxArray(lev, ba);
+       SetDistributionMap(lev, dm);
+ 
        con_new[lev]->setVal(0.);
        con_old[lev]->setVal(0.);
    //     std::cout << "For loop InitData"<<std::endl;
@@ -262,7 +274,7 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 void AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray & ba,
 				         const DistributionMapping & dm)
 {
-//    std::cout << "MakeNewLevelFromCoarse"<<std::endl;
+    std::cout << "MakeNewLevelFromCoarse"<<std::endl;
 
     const int ncomp  = con_new[lev-1]->nComp();
     const int nghost = con_new[lev-1]->nGrow();
@@ -287,7 +299,7 @@ void AmrCoreAdv::MakeNewLevelFromCoarse (int lev, Real time, const BoxArray & ba
 void AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray & ba,
                               const DistributionMapping & dm)
 {
-   // std::cout << "RemakeLevel"<<std::endl;
+    std::cout << "RemakeLevel"<<std::endl;
 
     const int ncomp = con_new[lev]->nComp();
     const int nghost =con_new[lev]->nGrow();
@@ -313,7 +325,7 @@ void AmrCoreAdv::RemakeLevel (int lev, Real time, const BoxArray & ba,
 void
 AmrCoreAdv::ClearLevel (int lev)
 {
-   // std::cout << "ClearLevel"<<std::endl;
+    std::cout << "ClearLevel"<<std::endl;
 
     con_new[lev]->clear();
     con_old[lev]->clear();
@@ -326,7 +338,7 @@ AmrCoreAdv::ClearLevel (int lev)
 void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba,
 					  const DistributionMapping& dm)
 {
-//   std::cout << "MakeNewLevelFromScratch"<<std::endl;
+   std::cout << "MakeNewLevelFromScratch"<<std::endl;
     
     const int ncomp = 1;
     const int nghost = 0;
@@ -365,7 +377,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 void
 AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 {
- //   std::cout << "ErrorEst"<<std::endl;
+    std::cout << "ErrorEst"<<std::endl;
 
     static bool first = true;
     static Vector<Real> conerr;
@@ -466,7 +478,7 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
 // set covered coarse cells to be the average of overlying fine cells
 void AmrCoreAdv::AverageDown ()
 {
- //   std::cout << "AverageDown"<<std::endl;
+    std::cout << "AverageDown"<<std::endl;
 
     for (int lev = finest_level-1; lev >= 0; --lev)
         amrex::average_down(
@@ -479,7 +491,7 @@ void AmrCoreAdv::AverageDown ()
 // more flexible version of AverageDown() that lets you average down across multiple levels
 void AmrCoreAdv::AverageDownTo (int crse_lev)
 {
-  //  std::cout << "AverageDownTo"<<std::endl;
+    std::cout << "AverageDownTo"<<std::endl;
  
     amrex::average_down(
             * con_new[crse_lev+1], * con_new[crse_lev],
@@ -509,7 +521,7 @@ long AmrCoreAdv::CountCells (int lev)
 void
 AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 {
- //   std::cout << "FillPatch"<<std::endl;
+    std::cout << "FillPatch"<<std::endl;
 
     if (lev == 0)
     {
@@ -587,7 +599,7 @@ AmrCoreAdv::FillCoarsePatch (int lev, Real time, MultiFab& mf, int icomp, int nc
 
 // utility to copy in data from con_old and/or con_new into another multifab
 void AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab *> & data, Vector<Real> & datatime) {
-//    std::cout << "GetData"<<std::endl;
+    std::cout << "GetData"<<std::endl;
 
     data.clear();
     datatime.clear();
@@ -622,7 +634,7 @@ void AmrCoreAdv::GetData (int lev, Real time, Vector<MultiFab *> & data, Vector<
 // includes a recursive call for finer levels
 void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 {
-//    std::cout << "timeStep"<<std::endl;
+    std::cout << "timeStep"<<std::endl;
 
 //    if (regrid_int > 0)  // We may need to regrid
 //    {
@@ -688,7 +700,7 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
 // advance a single level for a single time step, updates flux registers
 void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle) {
-//    std::cout << "Advance"<<std::endl;
+    std::cout << "Advance"<<std::endl;
 //    std::cout << "max con 1 "<< (*con_new[lev]).max(0) <<std::endl;
     
     constexpr int num_grow =3; // 3;
@@ -834,6 +846,10 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++) {
+		    Print() << mfi.DistributionMap() << std::endl;
+	            Print() << dmap[lev] << std::endl;
+		    Print() << fluxes[i].DistributionMap() << std::endl;
+
                     fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
                 }
             }
@@ -919,6 +935,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             }
         }
     }
+    std::cout << " end advance " <<std::endl;
+
 }
 
 // copy con or one of it's first derivatives into a multifab mf, mf doesn't
@@ -937,10 +955,11 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>> & MF, int indicator) {
     // indicator gives which quantity is being copied into MF
    // mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
-//    std::cout << "con_new_copy"<<std::endl;
+//    std::cout << "con_new_copy "<< con_new[lev]->DistributionMap <<std::endl;
 
     DistributionMapping condm = con_new[lev]->DistributionMap();
     BoxArray conba            = con_new[lev]->boxArray();
+    std::cout << "Distribution Map "<< condm <<std::endl;
 
     MF[lev].reset(new MultiFab(conba, condm, 1, 0));
 
@@ -1063,7 +1082,7 @@ void AmrCoreAdv::ReadCheckpointFile ()
 void
 AmrCoreAdv::GotoNextLine (std::istream& is)
 {
-//    std::cout << "GotoNextLine"<<std::endl;
+    std::cout << "GotoNextLine"<<std::endl;
 
     constexpr std::streamsize bl_ignore_max { 100000 };
     is.ignore(bl_ignore_max, '\n');
