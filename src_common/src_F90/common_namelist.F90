@@ -123,7 +123,8 @@ module common_namelist_module
   integer,            save :: rfd_tog
   integer,            save :: dry_move_tog
   integer,            save :: sr_tog
-  integer,            save :: crange
+  integer,            save :: graphene_tog
+  integer,            save :: crange  
 
   integer,            save :: images
   double precision,   save :: eamp(3)
@@ -293,7 +294,9 @@ module common_namelist_module
   namelist /common/ rfd_tog
   namelist /common/ dry_move_tog
   namelist /common/ sr_tog
+  namelist /common/ graphene_tog
   namelist /common/ crange
+
 
   namelist /common/ images
   namelist /common/ eamp
@@ -426,7 +429,7 @@ contains
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in) &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -548,6 +551,7 @@ contains
     integer,                intent(inout) :: dry_move_tog_in
     integer,                intent(inout) :: sr_tog_in
     integer,                intent(inout) :: crange_in
+    integer,                intent(inout) :: graphene_tog_in
 
     integer,                intent(inout) :: images_in
     double precision,       intent(inout) :: eamp_in(3)
@@ -667,6 +671,7 @@ contains
     dry_move_tog_in = dry_move_tog
     sr_tog_in = sr_tog
     crange_in = crange
+    graphene_tog_in = graphene_tog
 
     images_in = images
     eamp_in = eamp

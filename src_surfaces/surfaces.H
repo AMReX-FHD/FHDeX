@@ -44,6 +44,17 @@ typedef struct {
     double cosPhiRight;
     double sinPhiRight;
 
+    double velx;
+    double vely;
+    double velz;
+
+    double c0;
+    double graPhi;
+    double graC;
+
+    double besslist[100];
+    double dbesslist[100];
+
 #endif
 
 #if (BL_SPACEDIM == 2)
