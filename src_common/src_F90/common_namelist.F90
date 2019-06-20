@@ -402,6 +402,8 @@ contains
     regrid_int = 25
     do_reflux  = 0
     particle_motion = 0    
+
+    graphene_tog = 0
         
 
     ! read in common namelist
