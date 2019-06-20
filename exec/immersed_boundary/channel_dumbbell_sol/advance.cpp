@@ -245,6 +245,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     using ParticleType = IBMarkerContainer::ParticleType;
     using AoS          = IBMarkerContainer::AoS;
 
+    // define some parameters here tempararily
+    Real spr_k = 10.0 ; // spring constant
+    Real init_dx = 0., init_dy = 0.01, init_dz = 0.; //initial distance btw markers
+
 
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
@@ -257,6 +261,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         const Vector<int> & nbhd = ib_mc.get_neighbor_list(ib_lev, index);
         int nbhd_index = 0;
+
+
+        //// Set all forces to zero. Get ready for updating ////////
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            part.rdata(IBM_realData::pred_forcex) = 0.;
+            part.rdata(IBM_realData::pred_forcey) = 0.;
+            part.rdata(IBM_realData::pred_forcez) = 0.;       
+        }
 
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
@@ -281,13 +294,22 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     std::cout << "particle = " << npart.pos(1) << std::endl;
                     std::cout << "particle id = " << npart.id() << std::endl;
                 }
+                
+                //check if the neighbor candidate(s) is the actual neighbor to apply force. 
+                //If so, compute and update forces for both current particle and its interacting neighbor
+                if (npart.id()==part.idata(IBM_intData::id_0) && npart.cpu()==part.idata(IBM_intData::cpu_0)) {
+                    part.rdata(IBM_realData::pred_forcex) += spr_k * ((part.rdata(IBM_realData::pred_velx)-npart.rdata(IBM_realData::pred_velx) - init_dx);
+                    part.rdata(IBM_realData::pred_forcey) += spr_k * ((part.rdata(IBM_realData::pred_vely)-npart.rdata(IBM_realData::pred_vely) - init_dy);
+                    part.rdata(IBM_realData::pred_forcez) += spr_k * ((part.rdata(IBM_realData::pred_velz)-npart.rdata(IBM_realData::pred_velz) - init_dz);
+
+                    npart.rdata(IBM_realData::pred_forcex) += part.rdata(IBM_realData::pred_forcex);
+                    npart.rdata(IBM_realData::pred_forcey) += part.rdata(IBM_realData::pred_forcey);
+                    npart.rdata(IBM_realData::pred_forcez) += part.rdata(IBM_realData::pred_forcez);                     
+                }
                 nbhd_index ++;
             }
 
-            // part.rdata(IBM_realData::pred_forcex) = 0.;
-            // part.rdata(IBM_realData::pred_forcey) = 1e-1;
-            // part.rdata(IBM_realData::pred_forcez) = 0.;
-        }
+         }
     }
 
     Abort();
