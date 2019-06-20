@@ -11,6 +11,32 @@ using namespace common;
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, std::array<MultiFab, AMREX_SPACEDIM>& flux, std::array<MultiFab, AMREX_SPACEDIM>& stochFlux, 
                                                  std::array<MultiFab, AMREX_SPACEDIM>& cornx, std::array<MultiFab, AMREX_SPACEDIM>& corny, std::array<MultiFab, AMREX_SPACEDIM>& cornz, MultiFab& visccorn, MultiFab& rancorn, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
 {
+
+    amrex::Vector< amrex::Real > stoch_weights;
+    amrex::Real swgt1, swgt2;
+    swgt1 = 1.0;
+
+    calculateTransportCoeffs(prim, eta, zeta, kappa);
+
+    conservedToPrimitive(prim, cu);
+    cu.FillBoundary(geom.periodicity());
+    prim.FillBoundary(geom.periodicity());
+
+    calculateTransportCoeffs(prim, eta, zeta, kappa);
+
+    eta.FillBoundary(geom.periodicity());
+    zeta.FillBoundary(geom.periodicity());
+    kappa.FillBoundary(geom.periodicity());
+    
+    // Impose membrane BCs
+    setBC(prim, cu, eta, zeta, kappa);
+
+    // Set stochastic weights
+    swgt2 = ( 2.0*std::sqrt(2.0) + 1.0*std::sqrt(3.0) ) / 5.0;
+    stoch_weights = {swgt1, swgt2};
+
+    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, stoch_weights, dx, dt);
+
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -38,9 +64,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     kappa.FillBoundary(geom.periodicity());
 
     setBC(prim, cup, eta, zeta, kappa);
+    
+    // Set stochastic weights
+    swgt2 = ( -4.0*std::sqrt(2.0) + 3.0*std::sqrt(3.0) ) / 5.0;
+    stoch_weights = {swgt1, swgt2};
 
-    calculateFlux(cup, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, ZFILL(dx), dt);
-
+    calculateFlux(cup, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, stoch_weights, dx, dt);
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
@@ -70,8 +99,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     kappa.FillBoundary(geom.periodicity());
 
     setBC(prim, cup2, eta, zeta, kappa);
+    
+    // Set stochastic weights
+    swgt2 = ( 1.0*std::sqrt(2.0) - 2.0*std::sqrt(3.0) ) / 10.0;
+    stoch_weights = {swgt1, swgt2};
 
-    calculateFlux(cup2, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
+    calculateFlux(cup2, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, stoch_weights, dx, dt);
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
@@ -90,22 +123,6 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
       	           ZFILL(dx), &dt);
     
     }
-
-    conservedToPrimitive(prim, cu);
-    cu.FillBoundary(geom.periodicity());
-    prim.FillBoundary(geom.periodicity());
-
-    //doMembrane(cu, prim, flux, geom, ZFILL(dx), dt);
-
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
-
-    eta.FillBoundary(geom.periodicity());
-    zeta.FillBoundary(geom.periodicity());
-    kappa.FillBoundary(geom.periodicity());
-
-    setBC(prim, cu, eta, zeta, kappa);
-    
-    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
 }
 

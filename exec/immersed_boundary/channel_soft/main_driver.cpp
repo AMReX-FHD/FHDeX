@@ -140,6 +140,8 @@ void main_driver(const char * argv) {
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
+    Print() << "distribution mapping at the very beginning: " << dmap << std::endl;
+
 
     //___________________________________________________________________________
     // Cell size, and time step
@@ -443,9 +445,15 @@ void main_driver(const char * argv) {
     }
     //__________________________________________________________________________
     // Build AmrCore and initialize chemical multifabs
+    std:: cout << "Diff Coeff Maindriver"<< diffcoeff << std::endl;
 
     AmrCoreAdv amr_core_adv;
-      amr_core_adv.InitData( ba, dmap);
+    std:: cout << " After declaring AmrCoreAdv Class"<< diffcoeff << std::endl;
+
+    amr_core_adv.InitData( ba, dmap);
+
+    Print() << "distribution mapping after init = " << dmap << std::endl;
+
  // Need to have only one level for now
 int lev =0;
 //    if (solve_chem==1)
@@ -467,6 +475,7 @@ int lev =0;
         WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc,  amr_core_adv, lev );
     }
 
+    std::cout<< "Write Plot File Success "<<std::endl;
 
     //___________________________________________________________________________
     // FFT test

@@ -215,6 +215,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
    int nstep=0;
 
+   std::cout<<" Diff Coeff advance "<< diffcoeff<<std::endl;
 
 
    if (solve_chem) {
@@ -225,7 +226,9 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem( umac, iface, ibpc_lev, nstep,dt, time);
+        amr_core_adv.EvolveChem( umac, iface, ibpc_lev, nstep,dt, time, diffcoeff);
+        amrex::Print() << "After Solving AD Eqn" << std::endl;
+  
     }
  //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank

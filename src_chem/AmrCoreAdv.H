@@ -35,7 +35,7 @@ public:
     void EvolveChem(
             std::array<MultiFab, AMREX_SPACEDIM> & umac, 
             const iMultiFab & iface,
-            int lev, int step, Real dt_fluid, Real time);
+            int lev, int step, Real dt_fluid, Real time, Real diffcoeff);
 
     // initializes multilevel data
     void InitData ( amrex::BoxArray & ba, amrex::DistributionMapping & dm);

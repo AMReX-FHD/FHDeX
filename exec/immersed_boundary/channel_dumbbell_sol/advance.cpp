@@ -234,6 +234,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //
     //
 
+
+    ib_mc.clearNeighbors();
+    ib_mc.fillNeighbors(); // Does ghost cells
+
+    ib_mc.buildNeighborList(ib_mc.CheckPair);
+
     int ib_lev = 0;
     using PairIndex    = IBMarkerContainer::PairIndex;
     using ParticleType = IBMarkerContainer::ParticleType;
@@ -247,15 +253,44 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         long np = particle_data.size();
 
         AoS & particles = particle_data.GetArrayOfStructs();
+        ParticleType * nbhd_data = ib_mc.get_neighbors(ib_lev, index);
+
+        const Vector<int> & nbhd = ib_mc.get_neighbor_list(ib_lev, index);
+        int nbhd_index = 0;
+
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
+            
+            std::cout << "my id = " << part.id() << std::endl;
 
-            part.rdata(IBM_realData::pred_forcex) = 0.;
-            part.rdata(IBM_realData::pred_forcey) = 1e-1;
-            part.rdata(IBM_realData::pred_forcez) = 0.;
+            int nn = nbhd[nbhd_index];
+            nbhd_index ++; // pointing at first neighbor
+
+            // Loops over neighbor list
+            for (int j=0; j < nn; ++j){
+                int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing
+                std::cout << "neighbor list index " << ni << std::endl;
+
+                if (ni >= np) {
+                    ni = ni - np;
+                    ParticleType & npart = nbhd_data[ni];
+                    std::cout << "neighbor = " << npart.pos(1) << std::endl;
+                    std::cout << "neighbor id = " << npart.id() << std::endl;
+                } else {
+                    ParticleType & npart = particles[ni];
+                    std::cout << "particle = " << npart.pos(1) << std::endl;
+                    std::cout << "particle id = " << npart.id() << std::endl;
+                }
+                nbhd_index ++;
+            }
+
+            // part.rdata(IBM_realData::pred_forcex) = 0.;
+            // part.rdata(IBM_realData::pred_forcey) = 1e-1;
+            // part.rdata(IBM_realData::pred_forcez) = 0.;
         }
     }
 
+    Abort();
 
 
     //___________________________________________________________________________
@@ -358,6 +393,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // TODO: Update forces between markers
     //
     //
+
+
+    
 
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 

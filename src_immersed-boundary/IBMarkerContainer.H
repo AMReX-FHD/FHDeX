@@ -20,6 +20,7 @@ using namespace amrex;
 struct IBM_realData {
     //Analogous to particle realData (p.m_data)
     enum {
+        radius,
         velx,
         vely,
         velz,
@@ -40,6 +41,7 @@ struct IBM_realData {
 
     static Vector<std::string> names() {
         return Vector<std::string> {
+            "radius",
             "velx",
             "vely",
             "velz",
@@ -114,7 +116,7 @@ public:
     using MarkerIndex = std::pair<int, int>;
 
 
-    void InitList(int lev, const Vector<RealVect> & pos);
+    void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos);
 
 
 
@@ -196,6 +198,13 @@ public:
     void ResetMarkers(int lev);
     void ResetPredictor(int lev);
 
+    const IntVector & get_neighbor_list(int lev, const PairIndex & index) {
+        return neighbor_list[lev].at(index);
+    };
+
+    ParticleType * get_neighbors(int lev, const PairIndex & index) {
+        return (ParticleType *) neighbors[lev].at(index).dataPtr();
+    }
 
 
 
@@ -234,6 +243,20 @@ public:
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
+
+
+    struct {
+        bool operator()(const ParticleType & p1, const ParticleType & p2) const
+            {
+                return AMREX_D_TERM((p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
+                                     + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                     + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                    <= 4.0*p1.rdata(0)*p1.rdata(0);
+            }
+    } CheckPair;
+
+
+private:
 
     // Posotions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;

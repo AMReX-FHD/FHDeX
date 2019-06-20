@@ -242,7 +242,8 @@ void main_driver(const char* argv)
                  stochFlux[2].setVal(0.0););
 
     MultiFab rancorn;
-    rancorn.define(ba, dmap, 2, 1);
+    rancorn.define(convert(ba,nodal_flag), dmap, 1, 0);
+    rancorn.setVal(0.0);
 
     //nodal arrays used for calculating viscous stress
     std::array< MultiFab, AMREX_SPACEDIM > cornx;
@@ -303,23 +304,6 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     //Initialize everything
-
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
-
-    conservedToPrimitive(prim, cu);
-    cu.FillBoundary(geom.periodicity());
-    prim.FillBoundary(geom.periodicity());
-
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
-
-    eta.FillBoundary(geom.periodicity());
-    zeta.FillBoundary(geom.periodicity());
-    kappa.FillBoundary(geom.periodicity());
-    
-    // Impose membrane BCs
-    setBC(prim, cu, eta, zeta, kappa);
-
-    calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
     statsCount = 1;
 
