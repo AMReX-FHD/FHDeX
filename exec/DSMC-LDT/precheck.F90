@@ -96,29 +96,29 @@ contains
 #endif
   end subroutine precheck
 
-  subroutine precheck(part, surfaces, ns, delt, flag, phi, plo)
+!  subroutine precheck(part, surfaces, ns, delt, flag, phi, plo)
 
-    use iso_c_binding, only: c_int
-    use cell_sorted_particle_module, only: particle_t
-    use surfaces_module, only: surface_t
+!    use iso_c_binding, only: c_int
+!    use cell_sorted_particle_module, only: particle_t
+!    use surfaces_module, only: surface_t
 
-    type(particle_t), intent(inout) :: part
-    type(surface_t), intent(in), target :: surfaces(ns)
-    real(amrex_real), intent(in) :: delt, phi(3), plo(3)
-    integer(c_int), intent(inout) :: flag
-    integer(c_int), intent(in) :: ns
+!    type(particle_t), intent(inout) :: part
+!    type(surface_t), intent(in), target :: surfaces(ns)
+!    real(amrex_real), intent(in) :: delt, phi(3), plo(3)
+!    integer(c_int), intent(inout) :: flag
+!    integer(c_int), intent(in) :: ns
 
-    double precision proj(3), projrad, rad, height
+!    double precision proj(3), projrad, rad, height
 
-    proj = part%pos + part%vel*delt
+!    proj = part%pos + part%vel*delt
 
-    projrad = proj(1)**2 + proj(2)**2 + proj(3)**2
+!    projrad = proj(1)**2 + proj(2)**2 + proj(3)**2
 
-    flag = 1
-    if((projrad .ge. 0.95*(2.5e-5)**2) .or. (proj(3) .le. 0) .or. (proj(3) .ge. 0.5e-5)) then
-      flag = 0
-    endif
-    
-  end subroutine precheck
+!    flag = 1
+!    if((projrad .ge. 0.95*(2.5e-5)**2) .or. (proj(3) .le. 0) .or. (proj(3) .ge. 0.5e-5)) then
+!      flag = 0
+!    endif
+!    
+!  end subroutine precheck
 
 end module precheck_module

@@ -375,7 +375,7 @@ void main_driver(const char* argv)
     particles.InitParticles(dsmcParticle);
 
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
-    //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
+    particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
 
     //setup initial DSMC collision parameters
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
