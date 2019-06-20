@@ -140,6 +140,8 @@ void main_driver(const char * argv) {
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
+    Print() << "distribution mapping at the very beginning: " << dmap << std::endl;
+
 
     //___________________________________________________________________________
     // Cell size, and time step
@@ -449,6 +451,9 @@ void main_driver(const char * argv) {
     std:: cout << " After declaring AmrCoreAdv Class"<< diffcoeff << std::endl;
 
     amr_core_adv.InitData( ba, dmap);
+
+    Print() << "distribution mapping after init = " << dmap << std::endl;
+
  // Need to have only one level for now
 int lev =0;
 //    if (solve_chem==1)
