@@ -313,11 +313,11 @@ contains
      
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
-          do i = lo(1)-1,hi(1)
+          do i = lo(1),hi(1)+1
 
 
             do l = 2,nprimvars             
-               primitive(l) = wgt1*(prim(i+1,j,k,l)+prim(i,j,k,l)) -wgt2*(prim(i-1,j,k,l)+prim(i+2,j,k,l))  
+               primitive(l) = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) -wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l))  
             enddo
 
             temp = primitive(5)
@@ -333,29 +333,13 @@ contains
 
             conserved(5) = intenergy + 0.5*rho*vsqr
 
+            xflux(i,j,k,1) = xflux(i,j,k,1) + conserved(1)*primitive(2)
+            xflux(i,j,k,2) = xflux(i,j,k,2) + conserved(1)*(primitive(2)**2)+primitive(6)
+            xflux(i,j,k,3) = xflux(i,j,k,3) + conserved(1)*primitive(2)*primitive(3)
+            xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
 
-!            do l = 1,nvars             
-!               conserved(l) = wgt1*(cons(i+1,j,k,l)+cons(i,j,k,l)) -wgt2*(cons(i-1,j,k,l)+cons(i+2,j,k,l))
-!            enddo
-
-!            primitive(2) = conserved(2)/conserved(1)
-
-!            intenergy = conserved(5) - 0.5*conserved(2)*primitive(2)
-
-!            primitive(6) = 2.0*intenergy/3.0
-
-
-            xflux(i+1,j,k,1) = xflux(i+1,j,k,1) + conserved(1)*primitive(2)
-            xflux(i+1,j,k,2) = xflux(i+1,j,k,2) + conserved(1)*(primitive(2)**2)+primitive(6)
-            xflux(i+1,j,k,3) = xflux(i+1,j,k,3) + conserved(1)*primitive(2)*primitive(3)
-            xflux(i+1,j,k,4) = xflux(i+1,j,k,4) + conserved(1)*primitive(2)*primitive(4)
-
-            xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
+            xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
  
-!            if(i .eq. 79) then 
-!              print *, "temp interp: ", primitive(5)
-!            endif
-
           end do
         end do
       end do
@@ -364,11 +348,11 @@ contains
      !y flux
     
      do k = lo(3),hi(3)
-       do j = lo(2)-1,hi(2)
+       do j = lo(2),hi(2)+1
          do i = lo(1),hi(1)
 
            do l = 2,nprimvars 
-             primitive(l) = wgt1*(prim(i,j+1,k,l)+prim(i,j,k,l)) -wgt2*(prim(i,j-1,k,l)+prim(i,j+2,k,l))
+             primitive(l) = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) -wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l))
            enddo
 
            temp = primitive(5)
@@ -384,17 +368,12 @@ contains
 
            conserved(5) = intenergy + 0.5*rho*vsqr
 
-           yflux(i,j+1,k,1) = yflux(i,j+1,k,1) + conserved(1)*primitive(3)
-           yflux(i,j+1,k,2) = yflux(i,j+1,k,2) + conserved(1)*primitive(2)*primitive(3)
-           yflux(i,j+1,k,3) = yflux(i,j+1,k,3) + conserved(1)*primitive(3)**2+primitive(6)
-           yflux(i,j+1,k,4) = yflux(i,j+1,k,4) + conserved(1)*primitive(4)*primitive(3)
+           yflux(i,j,k,1) = yflux(i,j,k,1) + conserved(1)*primitive(3)
+           yflux(i,j,k,2) = yflux(i,j,k,2) + conserved(1)*primitive(2)*primitive(3)
+           yflux(i,j,k,3) = yflux(i,j,k,3) + conserved(1)*primitive(3)**2+primitive(6)
+           yflux(i,j,k,4) = yflux(i,j,k,4) + conserved(1)*primitive(4)*primitive(3)
 
-           yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
-
-           ! if((j+1 .eq. hi(2)) .and. (i .eq. 0) .and. (k .eq. 0)) then
-
-           !         print *, "FLUX POST: ", yflux(0,hi(2),0,5), primitive(3), conserved(5), primitive(6)
-           ! endif
+           yflux(i,j,k,5) = yflux(i,j,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
 
          end do
        end do
@@ -402,12 +381,12 @@ contains
 
      !z flux
      
-     do k = lo(3)-1,hi(3)
+     do k = lo(3),hi(3)+1
        do j = lo(2),hi(2)
          do i = lo(1),hi(1)
 
            do l = 2,nprimvars 
-             primitive(l) = wgt1*(prim(i,j,k+1,l)+prim(i,j,k,l)) -wgt2*(prim(i,j,k-1,l)+prim(i,j,k+2,l))
+             primitive(l) = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) -wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l))
            enddo
 
            temp = primitive(5)
@@ -423,11 +402,11 @@ contains
 
            conserved(5) = intenergy + 0.5*rho*vsqr
 
-           zflux(i,j,k+1,1) = zflux(i,j,k+1,1) + conserved(1)*primitive(4)
-           zflux(i,j,k+1,2) = zflux(i,j,k+1,2) + conserved(1)*primitive(2)*primitive(4)
-           zflux(i,j,k+1,3) = zflux(i,j,k+1,3) + conserved(1)*primitive(3)*primitive(4)
-           zflux(i,j,k+1,4) = zflux(i,j,k+1,4) + conserved(1)*primitive(4)**2+primitive(6)
-           zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
+           zflux(i,j,k,1) = zflux(i,j,k,1) + conserved(1)*primitive(4)
+           zflux(i,j,k,2) = zflux(i,j,k,2) + conserved(1)*primitive(2)*primitive(4)
+           zflux(i,j,k,3) = zflux(i,j,k,3) + conserved(1)*primitive(3)*primitive(4)
+           zflux(i,j,k,4) = zflux(i,j,k,4) + conserved(1)*primitive(4)**2+primitive(6)
+           zflux(i,j,k,5) = zflux(i,j,k,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
 
          end do
        end do
@@ -1305,34 +1284,34 @@ contains
       do k = lo(3),hi(3)+1
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)
+             
+             fluxz(i,j,k,4) = fluxz(i,j,k,4) - &
+                  0.25d0*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k))
 
-            fluxz(i,j,k,4) = fluxz(i,j,k,4) - &
-               0.25d0*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k))
+             fluxz(i,j,k,4) = fluxz(i,j,k,4) + .25d0*   &
+                  (cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  + &
+                  cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))
 
-            fluxz(i,j,k,4) = fluxz(i,j,k,4) + .25d0*   &
-               (cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  + &
-               cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))
+             fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25d0*   &
+                  (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))
 
-            fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25d0*   &
-               (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))
+             fluxz(i,j,k,3) = fluxz(i,j,k,3) - .25d0*   &
+                  (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) 
 
-            fluxz(i,j,k,3) = fluxz(i,j,k,3) - .25d0*   &
-               (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) 
+             phiflx = 0.25d0*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k) &
+                  -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  + &
+                  cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *  &
+                  (prim(i,j,k-1,4)+prim(i,j,k,4))
 
-            phiflx = 0.25d0*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k) &
-               -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  + &
-               cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) *  &
-               (prim(i,j,k-1,4)+prim(i,j,k,4))
+             phiflx = phiflx + .25d0*   &
+                  (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))* &
+                  (prim(i,j,k-1,2)+prim(i,j,k,2))
 
-            phiflx = phiflx + .25d0*   &
-               (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))* &
-               (prim(i,j,k-1,2)+prim(i,j,k,2))
+             phiflx = phiflx + .25d0*   &
+                  (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) * &
+                  (prim(i,j,k-1,3)+prim(i,j,k,3))
 
-            phiflx = phiflx + .25d0*   &
-               (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) * &
-               (prim(i,j,k-1,3)+prim(i,j,k,3))
-
-            fluxz(i,j,k,5) = fluxz(i,j,k,5)-0.5d0*phiflx
+             fluxz(i,j,k,5) = fluxz(i,j,k,5)-0.5d0*phiflx
 
           end do
         end do
