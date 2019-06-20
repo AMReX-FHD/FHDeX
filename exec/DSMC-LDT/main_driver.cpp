@@ -389,7 +389,7 @@ void main_driver(const char* argv)
 
         if(move_tog==1)
         {
-            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount);
+            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
             particles.Redistribute();
 
             particles.ReBin();
