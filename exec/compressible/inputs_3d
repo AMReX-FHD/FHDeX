@@ -2,64 +2,74 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  ! prob_hi(1:3) = 2.5e-4 1.24e-6 1.25e-6       ! physical hi coordinate
-  prob_hi(1:3) = 2.5e-4 2.5e-4 2.5e-4      ! physical hi coordinate
+  ! prob_hi(1:3) = 2.56e-4 2.56e-4 2.56e-4      ! physical hi coordinate
+  prob_hi(1:3) = 5.12e-4 5.12e-4 5.12e-4      ! physical hi coordinate
+
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
-  ngc = 2 2 2     
+  ngc = 2 2 2
   nvars = 9
   nprimvars = 10
-    
+
   ! number of cells in domain
-  n_cells(1:3) = 8 8 8
+  n_cells(1:3) = 64 64 64
   ! max number of cells in a box
-  max_grid_size(1:3) = 8 8 8
+  max_grid_size(1:3) = 8 16 16
+
 
   ! Time-step control
-  fixed_dt = 1e-12
+  fixed_dt = 5e-11
 
   ! Controls for number of steps between actions
-  max_step = 100
-  plot_int = 10
 
-  ! Viscous friction L phi operator
-  ! if abs(visc_type) = 1, L = div beta grad
-  ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-  ! if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+  max_step = 500000
+  plot_int = 10000
+  max_step = 250000
+  plot_int = 250000
+
+  ! Viscous tensor form
+  ! if abs(visc_type) = 1, L = not-symmetric (bulk viscosity = 0)
+  ! if abs(visc_type) = 2, L = symmetric (bulk viscosity = 0)
+  ! if abs(visc_type) = 3, L = symmetric + bulk viscosity
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
   !visc_coef = 1.
   visc_coef = 1e-2
-  visc_type = 1
+  visc_type = 3
 
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
   runiv = 8.314462175e7
-  T_init(1) = 400
-  rho0 = 1.78e-3
+  T_init(1) = 300
+  rho0 = 4.83e-4
+
 
   struct_fact_int = 1
-  n_steps_skip = 0
+  n_steps_skip = 10000
+
+  struct_fact_int = 250
+  n_steps_skip = 25000
+
 
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  ! bc_lo(1:3) = 2 -1 -1
-  ! bc_hi(1:3) = 2 -1 -1
   bc_lo(1:3) = -1 -1 -1
   bc_hi(1:3) = -1 -1 -1
 
-  membrane_cell = 40
-  cross_cell = 19
+
+  membrane_cell = -40
+
+  membrane_cell = -1
+
+  cross_cell = 0
   transmission = 0.0
 
   ! Temperature if thermal BC specified
-  ! t_lo(1:3) = 277.57 300 300
-  ! t_hi(1:3) = 509.905 400 400
   t_lo(1:3) = 300 300 300
-  t_hi(1:3) = 400 400 400
+  t_hi(1:3) = 600 600 600
 
   !Kinetic species info
   !--------------

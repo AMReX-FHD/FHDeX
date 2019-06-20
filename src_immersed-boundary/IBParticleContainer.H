@@ -23,9 +23,7 @@ class IBCore;
 
 //TODO: Check members lables with "Audit"
 
-// IBP => Immmersed Boundary Particle: fairly simple immersed boundaries
-// (analogous to MFIX Particles)
-
+// IBP => Immmersed Boundary Particle
 struct IBP_realData {
     //Analogous to particle realData (p.m_data)
     // TODO: orientation?
@@ -116,7 +114,7 @@ public:
     // Get number of particles
     int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size();};
 
-    IBParticleContainer(amrex::AmrCore * amr_core, int n_nbhd);
+    IBParticleContainer(AmrCore * amr_core, int n_nbhd);
     IBParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
                         const BoxArray & ba, int n_nbhd);
 
@@ -126,7 +124,7 @@ public:
 
 
     /****************************************************************************
-    * Aux data types                                                            *
+    * Auxiliary data types                                                      *
     ****************************************************************************/
 
     // Used by PICMultiDeposition when iterating over particles (TODO: Audit)
@@ -138,10 +136,11 @@ public:
     //using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     // using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
 
-    // (ID, init CPU) tuple: unique to each particle
+    // (ID, initial CPU) tuple: unique to each particle
     using ParticleIndex = std::pair<int, int>;
+    using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
 
-    // Particle Position, Velocity, and Radius
+    // Particle Position, Velocity, and Radius (abbriated particle info struct)
     using PPVR = struct {
         RealVect pos;
         RealVect vel;
@@ -168,6 +167,17 @@ public:
         // Do not use std::map::operator[] as this would discard the const qualifier
         return marker_positions[lev].at(pindex);
     };
+
+    const Vector<RealVect> & MarkerVelocities(int lev, const ParticleIndex & pindex) const {
+        // Do not use std::map::operator[] as this would discard the const qualifier
+        return marker_velocities[lev].at(pindex);
+    };
+
+    const Vector<RealVect> & MarkerForces(int lev, const ParticleIndex & pindex) const {
+        // Do not use std::map::operator[] as this would discard the const qualifier
+        return marker_forces[lev].at(pindex);
+    };
+
 
     void FillMarkerPositions(int lev, int n_marker);
 
@@ -212,28 +222,11 @@ public:
         );
 
 
-    // TODO: do we still need this?
-    void AllocData();
-    // TODO: do we still need this?
-    void AllocateArrays(int lev, int nghost);
-
-
-
-    /****************************************************************************
-    * Data Regrid / Data Transfer                                               *
-    ****************************************************************************/
-
-    //void RegridArrays(int lev, BoxArray& new_grids, DistributionMapping& new_dmap);
-    // TODO: do we still need this?
-    void CopyFluidData(int lev, const mfix_level & mf_lev);
-
-    int get_nghost() const {return nghost;};
-
-
-
     /****************************************************************************
      * Output particle data                                                     *
      ***************************************************************************/
+
+    int get_nghost() const {return nghost;};
 
     void PrintParticleData(int lev);
 
@@ -241,16 +234,21 @@ public:
                              bool unique = false) const;
     Vector<IBP_info> LocalIBParticleInfo(int lev, PairIndex index,
                                          bool unique = false) const;
+    Vector<IBP_info> LocalIBParticleInfo(int lev, bool unique = false) const;
+
 
     void NeighborIBParticleInfo(Vector<IBP_info> & npart_info, int lev, PairIndex index,
                                 bool unique = false) const ;
     Vector<IBP_info> NeighborIBParticleInfo(int lev, PairIndex index,
                                             bool unique = false) const;
+    Vector<IBP_info> NeighborIBParticleInfo(int lev, bool unique = false) const;
+
 
     void IBParticleInfo(Vector<IBP_info> & part_info, int lev, PairIndex index,
                         bool unique = false) const;
     Vector<IBP_info> IBParticleInfo(int lev, PairIndex index,
                                     bool unique = false) const;
+    Vector<IBP_info> IBParticleInfo(int lev, bool unique = false) const;
 
 
 
@@ -278,10 +276,14 @@ private:
      *                                                                         *
      **************************************************************************/
 
+
     // Marker positions per particle and level
-    Vector<std::map<ParticleIndex, Vector<RealVect>>> marker_positions;
+    Vector<IBMarkerMap> marker_positions;
+    Vector<IBMarkerMap> marker_velocities;
+    Vector<IBMarkerMap> marker_forces;
+
     // Posotions on faces
-    Vector<std::array<MultiFab, AMREX_SPACEDIM>>      face_coords;
+    Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
 
     static bool use_neighbor_list;
@@ -293,7 +295,7 @@ private:
 
 
     // TODO: this might bto be used anymore:
-    amrex::AmrCore * m_amr_core;
+    AmrCore * m_amr_core;
     int nghost;
 };
 

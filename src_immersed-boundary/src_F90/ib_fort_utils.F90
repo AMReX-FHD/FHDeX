@@ -4,7 +4,9 @@ module ib_fort_utils
 
     implicit none
 
-    public particle_info_t, particle_t
+
+    public particle_info_t, particle_t, marker_info_t, marker_t
+
 
     type, bind(C) :: particle_info_t
         ! Same types an order as struct IBP_info in IBParticleInfo.H
@@ -16,6 +18,7 @@ module ib_fort_utils
         integer(c_int)     :: cpu       !< CPU at time of initialization
         integer(c_int)     :: real      !< Particle is real (not a neighbor)
     end type particle_info_t
+
 
     ! Fortran analoque to the particle data structure. This _must_ have the same order as:
     ! ( pos(1), pos(2), pos(3), {IBP_realData}, id, cpu, {IBP_intData} )
@@ -42,6 +45,45 @@ module ib_fort_utils
         integer(c_int)     :: state
     end type particle_t
 
+
+    type, bind(C) :: marker_info_t
+       ! Same types an order as struct IBM_info in IBParticleInfo.H
+       real(amrex_real)   :: pos(3)    !< Position
+       real(amrex_real)   :: vel(3)    !< Velocity
+       real(amrex_real)   :: force(3)  !< Force
+       integer(c_int)     :: id        !< Unique index
+       integer(c_int)     :: cpu       !< CPU at time of initialization
+       integer(c_int)     :: real      !< Particle is real (not a neighbor)
+    end type marker_info_t
+
+
+    ! Fortran analoque to the marker data structure. This _must_ have the same order as:
+    ! ( pos(1), pos(2), pos(3), {IBM_realData}, id, cpu, {IBM_intData} )
+    ! ... as defined in the IBMarkerContainer.
+    type, bind(C) :: marker_t
+        real(amrex_real)   :: pos(3)        !< Position
+        real(amrex_real)   :: velx          !< Velocity x
+        real(amrex_real)   :: vely          !< Velocity y
+        real(amrex_real)   :: velz          !< Velocity z
+        real(amrex_real)   :: forcex        !< Force x
+        real(amrex_real)   :: forcey        !< Force y
+        real(amrex_real)   :: forcez        !< Force z
+        real(amrex_real)   :: pred_posx     !< Predictor position x
+        real(amrex_real)   :: pred_posy     !< Predictor position y
+        real(amrex_real)   :: pred_posz     !< Predictor position z
+        real(amrex_real)   :: pred_velx     !< Predictor position x
+        real(amrex_real)   :: pred_vely     !< Predictor position y
+        real(amrex_real)   :: pred_velz     !< Predictor position z
+        real(amrex_real)   :: pred_forcex   !< Predictor force x
+        real(amrex_real)   :: pred_forcey   !< Predictor force y
+        real(amrex_real)   :: pred_forcez   !< Predictor force z
+        integer(c_int)     :: id            !< Unique index
+        integer(c_int)     :: cpu           !< CPU at time of initialization
+        integer(c_int)     :: id_0          !< ID of neighbor 0
+        integer(c_int)     :: cpu_0         !< CPU (at time of init) of neighbor 0
+        integer(c_int)     :: id_1          !< ID of neighbor 1
+        integer(c_int)     :: cpu_1         !< CPU (at time of init) of neighbor 1
+    end type marker_t
 
 contains
 
@@ -1124,14 +1166,16 @@ contains
         ! i, j, k   => face-centered indices
         integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
         ! ll        => loop counter over AMREX_SPACEDIM
-        integer :: ll
+        integer :: ll, ct_face
         ! invvol    => 1/dx^AMREX_SPACEDIM
         ! weight    => kernel weight function
-        real(amrex_real) :: invvol, weight
+        real(amrex_real) :: invvol, weight, w_threshold
         ! pos_grid  => (pos - (cell position))/dx
         ! invdx     => 1/dx
-        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx, v_scaled
 
+
+        w_threshold = 1e-4
 
         !________________________________________________________________________
         ! compute geometric quantities : 1/dx and 1/dx^AMREX_SPACEDIM
@@ -1155,6 +1199,8 @@ contains
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1) + 1
+
+        ct_face = 0
         do k = klo, khi
             do j = jlo, jhi
                 do i = ilo, ihi
@@ -1167,8 +1213,30 @@ contains
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    if (weight .gt. 0) then
-                        mf_x(i, j, k) = mf_x(i, j, k) + v_spread(1) / weight / 6
+                    if (weight .gt. w_threshold) then
+                        ct_face = ct_face + 1
+                    end if
+
+                end do
+            end do
+        end do
+
+        v_scaled(1) = v_spread(1)/ct_face
+
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_x(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. w_threshold) then
+                        mf_x(i, j, k) = mf_x(i, j, k) + v_scaled(1) / weight
                     end if
 
                 end do
@@ -1181,6 +1249,8 @@ contains
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
+
+        ct_face = 0
         do k = klo, khi
             do j = jlo, jhi
                 do i = ilo, ihi
@@ -1193,8 +1263,30 @@ contains
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    if (weight .gt. 0) then
-                        mf_y(i, j, k) = mf_y(i, j, k) + v_spread(2) / weight / 6
+                    if (weight .gt. w_threshold) then
+                        ct_face = ct_face + 1
+                    end if
+
+                end do
+            end do
+        end do
+
+        v_scaled(2) = v_spread(2)/ct_face
+
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_y(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. w_threshold) then
+                        mf_y(i, j, k) = mf_y(i, j, k) + v_scaled(2) / weight
                     end if
 
                 end do
@@ -1202,11 +1294,13 @@ contains
         end do
 
 
+
         !________________________________________________________________________
         ! z-components
         ! do k = lo(3), hi(3) + 1
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
+        ct_face = 0
         do k = klo, khi
             do j = jlo, jhi
                 do i = ilo, ihi
@@ -1219,13 +1313,36 @@ contains
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    if (weight .gt. 0) then
-                        mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) / weight
+                    if (weight .gt. w_threshold) then
+                        ct_face = ct_face + 1
                     end if
 
                 end do
             end do
         end do
+
+        v_scaled(3) = v_spread(3)/ct_face
+
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords_z(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_6p(pos_grid(ll));
+                    end do
+
+                    if (weight .gt. w_threshold) then
+                        mf_z(i, j, k) = mf_z(i, j, k) + v_scaled(3) / weight
+                    end if
+
+                end do
+            end do
+        end do
+
 
     end subroutine inv_interpolate_kernel
 
@@ -1374,33 +1491,51 @@ contains
         ! i,    j,    k    => face-centered indices
         integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
         ! ll               => loop counter over AMREX_SPACEDIM
-        integer :: ll
+        integer :: ll, ct_face
         ! weight           => kernel weight function
         ! wfrac            => weight/total_weight (weight_{x,y,z})
-        real(amrex_real) :: weight, wfrac
+        real(amrex_real) :: weight, wfrac, invvol, w_threshold
         ! pos_grid         => (pos - (cell position))/dx
         ! invdx            => 1/dx
-        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx, interp_scaled
+
+
+        w_threshold = 1e-4
 
 
         !________________________________________________________________________
         ! compute geometric quantity 1/dx
         invdx(:) = 1d0/dx(:)
-
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
+        invvol = 1d0
+        do ll = 1, AMREX_SPACEDIM
+            invvol = invvol * invdx(ll)
+        end do
 
 
+        ! ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
+        ! ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
+        ! jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
+        ! jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
+        ! klo = max(lo(3), int(pos(3) * invdx(3) - 3))
+        ! khi = min(hi(3), int(pos(3) * invdx(3) + 3))
+        ilo = int(pos(1) * invdx(1) - 3)
+        ihi = int(pos(1) * invdx(1) + 3)
+        jlo = int(pos(2) * invdx(2) - 3)
+        jhi = int(pos(2) * invdx(2) + 3)
+        klo = int(pos(3) * invdx(3) - 3)
+        khi = int(pos(3) * invdx(3) + 3)
+
+
+
+        interp_scaled(:) = 0
 
         !________________________________________________________________________
         ! x-components
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1) + 1
+
+        ct_face = 0
         do k = klo, khi
             do j = jlo, jhi
                 do i = ilo, ihi
@@ -1414,19 +1549,23 @@ contains
                     end do
 
                     if (weight .gt. 0) then
-                        v_interp(1) = v_interp(1) + mf_x(i, j, k) / weight / 6
+                        interp_scaled(1) = interp_scaled(1) + mf_x(i, j, k) / weight / invvol
+                        ct_face = ct_face + 1
                     end if
 
                 end do
             end do
         end do
 
+        v_interp(1) = v_interp(1) + interp_scaled(1)/ct_face
 
         !________________________________________________________________________
         ! y-components
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
+
+        ct_face = 0
         do k = klo, khi
             do j = jlo, jhi
                 do i = ilo, ihi
@@ -1440,19 +1579,23 @@ contains
                     end do
 
                     if (weight .gt. 0) then
-                        v_interp(2) = v_interp(2) + mf_y(i, j, k) / weight / 6
+                        interp_scaled(2) = interp_scaled(2) + mf_y(i, j, k) / weight / invvol
+                        ct_face = ct_face + 1
                     end if
 
                 end do
             end do
         end do
 
+        v_interp(2) = v_interp(2) + interp_scaled(2)/ct_face
 
         !________________________________________________________________________
         ! z-components
         ! do k = lo(3), hi(3) + 1
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
+
+        ct_face = 0;
         do k = klo, khi
             do j = jlo, jhi
                 do i = ilo, ihi
@@ -1466,12 +1609,16 @@ contains
                     end do
 
                     if (weight .gt. 0) then
-                        v_interp(3) = v_interp(3) + mf_z(i, j, k) / weight / 6
+                        interp_scaled(3) = interp_scaled(3) + mf_z(i, j, k) / weight / invvol
+                        ct_face = ct_face + 1
                     end if
 
                 end do
             end do
         end do
+
+        v_interp(3) = v_interp(3) + interp_scaled(3)/ct_face
+
 
     end subroutine inv_spread_kernel
 

@@ -1,0 +1,62 @@
+Active Code (Code needed to run simulations)
+
+
+
+*Header files*
+
+AmrCoreAdv.H         - header for c++ functions
+
+AmrCoreAdv_F.H       - header for fortran subroutines
+
+*C++ files*
+
+AmrCoreAdv.cpp       - file that contains all necessary c++ functions, this is where MFIX and AmrCoreAdv are linked,
+                       relies on Adv_2d.f90, Adv_3d.f90, ptsource_fill_2d.f90, ptsource_fill_3d.f90, PhiGrad_2d.f90,
+                       PhiGrad_3d.f90, Tagging_nd.f90, bc_fill_nd.F90
+
+*Fortran files*
+
+Adv_2d.f90           - Advances 2D solution one time step forward, relies on compute_flux_2d.f90
+
+Adv_3d.f90           - Advances 3D solution one time step forward, relies on compute_flux_3d.f90
+
+compute_flux_2d.f90  - Uses Godonov Scheme to find fluxes for 2d solution, relies on slope_2d.f90 
+
+compute_flux_3d.f90  - Uses Godonov Scheme to find fluxes for 3d solution, relies on slope_3d.f90
+
+slope_2d.f90         - Computes slopes for Godonov Scheme in 2d
+
+slope_3d.f90         - Computes slopes for Gononov Scheme in 3d
+
+Prob.f90             - Gives initial multifab, here we set phi = 0 
+
+ptsource_fill_2d.f90 - Fills pt source multifab using the tagged cell interface multifab for 2d
+
+ptsource_fill_3d.f90 - Fills pt source multifab using the tagged cell interface multifab for 3d
+
+PhiGrad_2d.f90       - Computes 2d gradient of phi, extra code commented out that gives vector in cylindrical coordinates
+
+PhiGrad_3d.f90       - Computes 3d gradient of phi, extra code commented out that gives vector in spherical coordinates
+
+Tagging_nd.f90       - Tag high error cells based on the state
+
+bc_fill_nd.F90       - Used to fill a multifab 
+
+
+
+Inactive code (Code not needed to run simulations but could still be useful later on)
+
+
+
+main.cpp             - does the time stepping and set up for original code, could be used to debug code later on
+
+face_velocity_2d.f90 - fills a multifab with prescribed 2d velocity
+
+face_velocity_3d/f90 - fills a multifab with prescribed 3d velocity 
+
+ 
+
+
+
+
+

@@ -72,6 +72,9 @@ contains
       end do
       end do
 
+      ! print*, "box lo & hi: ", lo, hi
+      ! stop
+
     end subroutine multifab_fill_random
 
 #endif

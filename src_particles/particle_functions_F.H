@@ -30,10 +30,14 @@ extern "C"
                         const amrex_real* phi,
                         const amrex_real* dx);
 
+                void amrex_compute_p3m_sr_correction_nl(void* particles, const int* np,
+                        const void* ghosts,    const int* nn,
+                        const int* neighbor_list, const int* size, amrex_real* rcount, const amrex_real* charge, const int* chargelo,
+                        const int* chargehi, const amrex_real* coords, const int* coordslo, const int* coordshi, const int* lo, const int* hi, const amrex_real* dx);
+
                 void amrex_compute_forces_nl(void* particles, const int* np,
                         const void* ghosts,    const int* nn,
                         const int* neighbor_list, const int* size, amrex_real* rcount);
-
 
   	        void move_particles_dry(void* particles,
                         const int *np,
@@ -142,6 +146,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                          const amrex_real* efz, const int* efzlo, const int* efzhi,
 #endif
+                         const amrex_real* charge, const int* chargelo, const int* chargehi,
                          const amrex_real* coordsx, const int* coordsxlo, const int* coordsxhi,
                          const amrex_real* coordsy, const int* coordsylo, const int* coordsyhi,
 #if (AMREX_SPACEDIM == 3)

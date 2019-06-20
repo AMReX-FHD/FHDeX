@@ -14,6 +14,7 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    MultiFab& visccorn,
                    MultiFab& rancorn,
                    const amrex::Geometry geom,
+		   const amrex::Vector< amrex::Real >& stoch_weights,
 	           const amrex::Real* dx, const amrex::Real dt);
 
 void calculateTransportCoeffs(const MultiFab& prim, MultiFab& eta, MultiFab& zeta, MultiFab& kappa);
