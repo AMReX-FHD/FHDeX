@@ -233,8 +233,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // TODO: Update forces between markers
     //
     //
-
-
     ib_mc.clearNeighbors();
     ib_mc.fillNeighbors(); // Does ghost cells
 
@@ -274,7 +272,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
             
-            std::cout << "my id = " << part.id() << std::endl;
+            // std::cout << "my id = " << part.id() << std::endl;
 
             int nn = nbhd[nbhd_index];
             nbhd_index ++; // pointing at first neighbor
@@ -282,37 +280,49 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // Loops over neighbor list
             for (int j=0; j < nn; ++j){
                 int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing
-                std::cout << "neighbor list index " << ni << std::endl;
+                // std::cout << "neighbor list index " << ni << std::endl;
+
+                ParticleType * npart; 
 
                 if (ni >= np) {
                     ni = ni - np;
-                    ParticleType & npart = nbhd_data[ni];
-                    std::cout << "neighbor = " << npart.pos(1) << std::endl;
-                    std::cout << "neighbor id = " << npart.id() << std::endl;
+                    npart = & nbhd_data[ni];
+                    // std::cout << "neighbor = " << npart->pos(1) << std::endl;
+                    // std::cout << "neighbor id = " << npart->id() << std::endl;
                 } else {
-                    ParticleType & npart = particles[ni];
-                    std::cout << "particle = " << npart.pos(1) << std::endl;
-                    std::cout << "particle id = " << npart.id() << std::endl;
+                    npart = & particles[ni];
+                    // std::cout << "particle = " << npart->pos(1) << std::endl;
+                    // std::cout << "particle id = " << npart->id() << std::endl;
                 }
                 
                 //check if the neighbor candidate(s) is the actual neighbor to apply force. 
                 //If so, compute and update forces for both current particle and its interacting neighbor
-                if (npart.id()==part.idata(IBM_intData::id_0) && npart.cpu()==part.idata(IBM_intData::cpu_0)) {
-                    part.rdata(IBM_realData::pred_forcex) += spr_k * ((part.rdata(IBM_realData::pred_velx)-npart.rdata(IBM_realData::pred_velx) - init_dx);
-                    part.rdata(IBM_realData::pred_forcey) += spr_k * ((part.rdata(IBM_realData::pred_vely)-npart.rdata(IBM_realData::pred_vely) - init_dy);
-                    part.rdata(IBM_realData::pred_forcez) += spr_k * ((part.rdata(IBM_realData::pred_velz)-npart.rdata(IBM_realData::pred_velz) - init_dz);
+                if ((npart->id()==part.idata(IBM_intData::id_0)) && (npart->cpu()==part.idata(IBM_intData::cpu_0))) {
+                    
+                    // add on differential changes in forces using velocities
+                    // part.rdata(IBM_realData::pred_forcex) += spr_k * dt * (part.rdata(IBM_realData::pred_velx)-npart->rdata(IBM_realData::pred_velx));
+                    // part.rdata(IBM_realData::pred_forcey) += spr_k * dt * (part.rdata(IBM_realData::pred_vely)-npart->rdata(IBM_realData::pred_vely));
+                    // part.rdata(IBM_realData::pred_forcez) += spr_k * dt * (part.rdata(IBM_realData::pred_velz)-npart->rdata(IBM_realData::pred_velz));
+ 
+                    // npart->rdata(IBM_realData::pred_forcex) += spr_k * dt * (part.rdata(IBM_realData::pred_velx)-npart->rdata(IBM_realData::pred_velx));
+                    // npart->rdata(IBM_realData::pred_forcey) += spr_k * dt * (part.rdata(IBM_realData::pred_vely)-npart->rdata(IBM_realData::pred_vely));
+                    // npart->rdata(IBM_realData::pred_forcez) += spr_k * dt * (part.rdata(IBM_realData::pred_velz)-npart->rdata(IBM_realData::pred_velz));
 
-                    npart.rdata(IBM_realData::pred_forcex) += part.rdata(IBM_realData::pred_forcex);
-                    npart.rdata(IBM_realData::pred_forcey) += part.rdata(IBM_realData::pred_forcey);
-                    npart.rdata(IBM_realData::pred_forcez) += part.rdata(IBM_realData::pred_forcez);                     
+                    // Alternatively one can use position changes for calculating forces, but need to set all forces to zero earlier before updating 
+                    part.rdata(IBM_realData::pred_forcex) -= spr_k * ((part.rdata(IBM_realData::pred_posx)-npart->rdata(IBM_realData::pred_posx) - init_dx));
+                    part.rdata(IBM_realData::pred_forcey) -= spr_k * ((part.rdata(IBM_realData::pred_posy)-npart->rdata(IBM_realData::pred_posy) - init_dy));
+                    part.rdata(IBM_realData::pred_forcez) -= spr_k * ((part.rdata(IBM_realData::pred_posz)-npart->rdata(IBM_realData::pred_posz) - init_dz));
+                    
+                    // action and reaction. add same forces back to the neighbor particle.
+                    npart->rdata(IBM_realData::pred_forcex) += part.rdata(IBM_realData::pred_forcex);
+                    npart->rdata(IBM_realData::pred_forcey) += part.rdata(IBM_realData::pred_forcey);
+                    npart->rdata(IBM_realData::pred_forcez) += part.rdata(IBM_realData::pred_forcez);                     
                 }
                 nbhd_index ++;
             }
 
          }
     }
-
-    Abort();
 
 
     //___________________________________________________________________________
@@ -415,6 +425,87 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // TODO: Update forces between markers
     //
     //
+    ib_mc.clearNeighbors();
+    ib_mc.fillNeighbors(); // Does ghost cells
+
+    ib_mc.buildNeighborList(ib_mc.CheckPair);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = ib_mc.GetParticles(ib_lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        ParticleType * nbhd_data = ib_mc.get_neighbors(ib_lev, index);
+
+        const Vector<int> & nbhd = ib_mc.get_neighbor_list(ib_lev, index);
+        int nbhd_index = 0;
+
+
+        //// Set all forces to zero. Get ready for updating ////////
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            part.rdata(IBM_realData::forcex) = 0.;
+            part.rdata(IBM_realData::forcey) = 0.;
+            part.rdata(IBM_realData::forcez) = 0.;       
+        }
+
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+            
+            // std::cout << "my id = " << part.id() << std::endl;
+
+            int nn = nbhd[nbhd_index];
+            nbhd_index ++; // pointing at first neighbor
+
+            // Loops over neighbor list
+            for (int j=0; j < nn; ++j){
+                int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing
+                // std::cout << "neighbor list index " << ni << std::endl;
+
+                ParticleType * npart; 
+
+                if (ni >= np) {
+                    ni = ni - np;
+                    npart = & nbhd_data[ni];
+                    // std::cout << "neighbor = " << npart->pos(1) << std::endl;
+                    // std::cout << "neighbor id = " << npart->id() << std::endl;
+                } else {
+                    npart = & particles[ni];
+                    // std::cout << "particle = " << npart->pos(1) << std::endl;
+                    // std::cout << "particle id = " << npart->id() << std::endl;
+                }
+                
+                //check if the neighbor candidate(s) is the actual neighbor to apply force. 
+                //If so, compute and update forces for both current particle and its interacting neighbor
+                if ((npart->id()==part.idata(IBM_intData::id_0)) && (npart->cpu()==part.idata(IBM_intData::cpu_0))) {
+                    
+                    // add on differential changes in forces using velocities
+                    // part.rdata(IBM_realData::pred_forcex) += spr_k * dt * (part.rdata(IBM_realData::pred_velx)-npart->rdata(IBM_realData::pred_velx));
+                    // part.rdata(IBM_realData::pred_forcey) += spr_k * dt * (part.rdata(IBM_realData::pred_vely)-npart->rdata(IBM_realData::pred_vely));
+                    // part.rdata(IBM_realData::pred_forcez) += spr_k * dt * (part.rdata(IBM_realData::pred_velz)-npart->rdata(IBM_realData::pred_velz));
+ 
+                    // npart->rdata(IBM_realData::pred_forcex) += spr_k * dt * (part.rdata(IBM_realData::pred_velx)-npart->rdata(IBM_realData::pred_velx));
+                    // npart->rdata(IBM_realData::pred_forcey) += spr_k * dt * (part.rdata(IBM_realData::pred_vely)-npart->rdata(IBM_realData::pred_vely));
+                    // npart->rdata(IBM_realData::pred_forcez) += spr_k * dt * (part.rdata(IBM_realData::pred_velz)-npart->rdata(IBM_realData::pred_velz));
+
+                    // Alternatively one can use position changes for calculating forces, but need to set all forces to zero earlier before updating 
+                    part.rdata(IBM_realData::forcex) -= spr_k * ((part.pos(0)-npart->pos(0) - init_dx));
+                    part.rdata(IBM_realData::forcey) -= spr_k * ((part.pos(1)-npart->pos(1) - init_dy));
+                    part.rdata(IBM_realData::forcez) -= spr_k * ((part.pos(2)-npart->pos(2) - init_dz));
+                    
+                    // action and reaction. add same forces back to the neighbor particle.
+                    npart->rdata(IBM_realData::forcex) += part.rdata(IBM_realData::forcex);
+                    npart->rdata(IBM_realData::forcey) += part.rdata(IBM_realData::forcey);
+                    npart->rdata(IBM_realData::forcez) += part.rdata(IBM_realData::forcez);                     
+                }
+
+                nbhd_index ++;
+            }
+
+         }
+    }
 
 
     

@@ -121,6 +121,12 @@ void IBMarkerContainer::InitList(int lev,
                 p_new.rdata(IBM_realData::pred_forcey) = 0.;
                 p_new.rdata(IBM_realData::pred_forcez) = 0.;
 
+                ////////// Added predictor postions back ////////
+                p_new.rdata(IBM_realData::pred_posx) = 0.;
+                p_new.rdata(IBM_realData::pred_posy) = 0.;
+                p_new.rdata(IBM_realData::pred_posz) = 0.;
+
+
                 p_new.idata(IBM_intData::id_0)    = prev_id;
                 p_new.idata(IBM_intData::cpu_0)   = prev_cpu;
 

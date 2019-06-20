@@ -21,7 +21,7 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 20
+  max_step = 60
   plot_int = 10
 
   ! Viscous friction L phi operator
@@ -32,9 +32,9 @@
   ! negative = assume spatially-varying coefficients
 
   visc_coef = 1.
-  ! visc_coef = 1e-3
+  !visc_coef = 1e-3  
 
-  visc_type = 2
+  visc_type = 1
 
   ! Stochastic parameters
   variance_coef_mom = 1.
