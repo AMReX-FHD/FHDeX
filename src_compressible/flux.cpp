@@ -24,40 +24,6 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                  flux[1].setVal(0);,
                  flux[2].setVal(0););
 
-    ///////////////////////////////////////////////////////////
-    // Perform weighting
-    
-    // temp. stoch. fluxes
-    std::array< MultiFab, AMREX_SPACEDIM > stochFlux_temp;
-    AMREX_D_TERM(stochFlux_temp[0].define(stochFlux[0].boxArray(), stochFlux[0].DistributionMap(), nvars, 0);,
-                 stochFlux_temp[1].define(stochFlux[1].boxArray(), stochFlux[1].DistributionMap(), nvars, 0);,
-                 stochFlux_temp[2].define(stochFlux[2].boxArray(), stochFlux[2].DistributionMap(), nvars, 0););
-
-    AMREX_D_TERM(stochFlux_temp[0].setVal(0.0);,
-                 stochFlux_temp[1].setVal(0.0);,
-                 stochFlux_temp[2].setVal(0.0););
-
-    MultiFab rancorn_temp;
-    rancorn_temp.define(rancorn.boxArray(), rancorn.DistributionMap(), 1, 0);
-    rancorn_temp.setVal(0.0);
-
-    // fill random and apply weights
-    for(int d=0;d<AMREX_SPACEDIM;d++)
-      {
-    	for(int i=1;i<5;i++)
-    	  {
-    	    MultiFABFillRandom(stochFlux[d]     , i, stoch_weights[0]*stoch_weights[0], geom);
-	    MultiFABFillRandom(stochFlux_temp[d], i, stoch_weights[1]*stoch_weights[1], geom);
-	  }
-	MultiFab::Add(stochFlux[d], stochFlux_temp[d], 0, 0, 5, 0);
-      }
-
-    MultiFABFillRandom(rancorn     , 0, stoch_weights[0]*stoch_weights[0], geom);
-    MultiFABFillRandom(rancorn_temp, 0, stoch_weights[1]*stoch_weights[1], geom);
-    MultiFab::Add(rancorn, rancorn_temp, 0, 0, 1, 0);
-
-    ///////////////////////////////////////////////////////////
-
     // Loop over boxes
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi)
     {

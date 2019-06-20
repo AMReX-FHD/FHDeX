@@ -454,7 +454,7 @@ contains
       enddo
     enddo
 
-        print *, "total current density: ", avcurrent/cellcount
+        !print *, "total current density: ", avcurrent/cellcount
         
   end subroutine evaluate_means
 

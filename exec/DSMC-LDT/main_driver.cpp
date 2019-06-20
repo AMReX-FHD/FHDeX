@@ -31,9 +31,9 @@ using namespace std;
 void main_driver(const char* argv)
 {
     // store the current time so we can later compute total run time.
-
     Real strt_time = ParallelDescriptor::second();
 
+    //get inputs
     std::string inputs_file = argv;
 
     // read in parameters from inputs file into F90 modules
@@ -45,9 +45,6 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-
-    const int n_rngs = 1;
-
 //    int fhdSeed = ParallelDescriptor::MyProc() + 1;
 //    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
 //    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
@@ -55,6 +52,7 @@ void main_driver(const char* argv)
 //    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
 //    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
+    //set rng seeds
     int fhdSeed = 0;
     int particleSeed = 0;
     int selectorSeed = 0;
@@ -74,7 +72,6 @@ void main_driver(const char* argv)
     }
 
     // make BoxArray and Geometry
-
     BoxArray ba;
     Geometry geom;
     
@@ -113,12 +110,14 @@ void main_driver(const char* argv)
     cellVols.setVal(dx[0]*dx[1]*dx[2]);
 #endif
 
-    getCellVols(cellVols, geom, 1000);
+    // Compute cell volume correction in the case that the grid doesn't align with the
+    // domain boundary
+    //getCellVols(cellVols, geom, 1000);
 
     const RealBox& realDomain = geom.ProbDomain();
 
     Real dt = fixed_dt;
-    Real dtinv = 1.0/dt;
+    //Real dtinv = 1.0/dt;
 
     ifstream surfaceFile("surfaces.dat");
     int surfaceCount;
@@ -373,6 +372,8 @@ void main_driver(const char* argv)
 
     //create particles
     particles.InitParticles(dsmcParticle);
+    particles.Redistribute();
+    particles.ReBin();
 
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
     particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
@@ -382,6 +383,10 @@ void main_driver(const char* argv)
 
     int statsCount = 1;
     double time = 0;
+
+    //Make plot file with the initial configuration
+    WritePlotFile(0,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
+
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
     {
@@ -422,7 +427,7 @@ void main_driver(const char* argv)
             WritePlotFile(step,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
         }
 
-        if(step%1 == 0)
+        if(step% (max_step/10) == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
