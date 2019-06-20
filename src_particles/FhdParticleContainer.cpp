@@ -150,12 +150,14 @@ BL_PROFILE_VAR_STOP(particle_move);
         
 
 
-void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount)
+void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount, double time)
 {
-    
-    UpdateCellVectors();
 
-    const int lev = 0;
+  // Print() << "HERE MoveParticlesDSMC" << std::endline
+  
+    UpdateCellVectors();
+    int i;
+    const int  lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
@@ -186,7 +188,7 @@ BL_PROFILE_VAR_START(particle_move);
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                        ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
-                       surfaceList, &surfaceCount);
+			    surfaceList, &surfaceCount, &time);
 
         // resize particle vectors after call to move_particles
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -196,6 +198,20 @@ BL_PROFILE_VAR_START(particle_move);
             pvec.resize(new_size);
         }
     }
+
+    std::ofstream outfile;
+    
+    if(graphene_tog==1)
+      {
+  outfile.open("out.txt", std::ios_base::app);
+  for (i=0;i<100;i++)
+	  {
+	    outfile << surfaceList[5].dbesslist[i] << ", ";
+	  }
+	outfile<<"\n";
+	  outfile.close();
+      }
+	    
 
 BL_PROFILE_VAR_STOP(particle_move);
 

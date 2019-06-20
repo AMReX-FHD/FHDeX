@@ -1,6 +1,7 @@
 #include "INS_functions.H"
 #include <iostream>
 #include <fstream>
+#include<stdio.h>
 
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -31,6 +32,8 @@ using namespace std;
 void main_driver(const char* argv)
 {
     // store the current time so we can later compute total run time.
+  
+  remove("out.txt");
 
     Real strt_time = ParallelDescriptor::second();
 
@@ -55,12 +58,12 @@ void main_driver(const char* argv)
 //    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
 //    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+    int fhdSeed = 1;
+    int particleSeed = 1;
+    int selectorSeed = 1;
+    int thetaSeed = 1;
+    int phiSeed = 1;
+    int generalSeed = 1;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -389,7 +392,7 @@ void main_driver(const char* argv)
 
         if(move_tog==1)
         {
-            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount);
+	  particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
             particles.Redistribute();
 
             particles.ReBin();
