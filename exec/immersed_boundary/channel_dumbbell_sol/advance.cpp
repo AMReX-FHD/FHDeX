@@ -314,9 +314,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     part.rdata(IBM_realData::pred_forcez) -= spr_k * ((part.rdata(IBM_realData::pred_posz)-npart->rdata(IBM_realData::pred_posz) - init_dz));
                     
                     // action and reaction. add same forces back to the neighbor particle.
-                    npart->rdata(IBM_realData::pred_forcex) += part.rdata(IBM_realData::pred_forcex);
-                    npart->rdata(IBM_realData::pred_forcey) += part.rdata(IBM_realData::pred_forcey);
-                    npart->rdata(IBM_realData::pred_forcez) += part.rdata(IBM_realData::pred_forcez);                     
+                    npart->rdata(IBM_realData::pred_forcex) -= part.rdata(IBM_realData::pred_forcex);
+                    npart->rdata(IBM_realData::pred_forcey) -= part.rdata(IBM_realData::pred_forcey);
+                    npart->rdata(IBM_realData::pred_forcez) -= part.rdata(IBM_realData::pred_forcez);                     
                 }
                 nbhd_index ++;
             }
@@ -496,9 +496,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     part.rdata(IBM_realData::forcez) -= spr_k * ((part.pos(2)-npart->pos(2) - init_dz));
                     
                     // action and reaction. add same forces back to the neighbor particle.
-                    npart->rdata(IBM_realData::forcex) += part.rdata(IBM_realData::forcex);
-                    npart->rdata(IBM_realData::forcey) += part.rdata(IBM_realData::forcey);
-                    npart->rdata(IBM_realData::forcez) += part.rdata(IBM_realData::forcez);                     
+                    npart->rdata(IBM_realData::forcex) -= part.rdata(IBM_realData::forcex);
+                    npart->rdata(IBM_realData::forcey) -= part.rdata(IBM_realData::forcey);
+                    npart->rdata(IBM_realData::forcez) -= part.rdata(IBM_realData::forcez);                     
                 }
 
                 nbhd_index ++;
@@ -509,22 +509,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     
-
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = ib_mc.GetParticles(ib_lev).at(index);
-        long np = particle_data.size();
-
-        AoS & particles = particle_data.GetArrayOfStructs();
-        for (int i = 0; i < np; ++i) {
-            ParticleType & part = particles[i];
-
-            part.rdata(IBM_realData::forcex) = 0.;
-            part.rdata(IBM_realData::forcey) = 1e-1;
-            part.rdata(IBM_realData::forcez) = 0.;
-        }
-    }
 
 
     //___________________________________________________________________________
