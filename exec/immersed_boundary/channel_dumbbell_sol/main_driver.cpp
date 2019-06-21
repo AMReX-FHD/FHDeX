@@ -1,6 +1,6 @@
 
-#include "hydro_test_functions.H"
-#include "hydro_test_functions_F.H"
+#include "main_driver.H"
+#include "main_driver_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
@@ -397,9 +397,8 @@ void main_driver(const char * argv) {
     MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
 
     int step = 0;
     Real time = 0.;
@@ -408,7 +407,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres);
+        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
     }
 
 
@@ -418,21 +417,6 @@ void main_driver(const char * argv) {
      * Advance Time Steps                                                       *
      *                                                                          *
      ***************************************************************************/
-
-    //___________________________________________________________________________
-    // FFT test
-    // if (struct_fact_int > 0) {
-    //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-    //     mf_cc[0].define(ba, dmap, 1, 0);
-    //     mf_cc[1].define(ba, dmap, 1, 0);
-    //     mf_cc[2].define(ba, dmap, 1, 0);
-    //     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-    //         const Box& bx = mfi.validbox();
-    //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-    //     }
-    // }
 
     for(step = 1; step <= max_step; ++step) {
 
@@ -476,7 +460,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-          WritePlotFile(step,time,geom,umac,tracer,pres);
+          WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
         }
     }
 
