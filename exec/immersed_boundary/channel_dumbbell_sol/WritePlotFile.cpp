@@ -85,6 +85,11 @@ void WritePlotFile(int step,
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 
+    // add immersed boundary markers data to plot file
+    ib_pc.WritePlotFile(plotfilename, "immbdy_markers",
+                        IBM_realData::names(), IBM_intData::names());
+
+
     // staggered velocity
     const std::string plotfilenamex = Concatenate("stagx",step,7);
     const std::string plotfilenamey = Concatenate("stagy",step,7);
