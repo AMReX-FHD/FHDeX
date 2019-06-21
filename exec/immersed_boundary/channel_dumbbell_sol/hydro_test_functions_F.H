@@ -1,20 +1,20 @@
-#ifndef _hydro_test_functions_F_H_
-#define _hydro_test_functions_F_H_
+#ifndef _main_driver_H_
+#define _main_driver_H_
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    // these are interfaces to fortran subroutines
+// these are interfaces to fortran subroutines
 
 ///////////////////////////
 // in init_s_vel.F90
 
-void init_s_vel(const int* lo, const int* hi,
-		const amrex_real* vel, const int* vello, const int* velhi,
-		const amrex_real* dx,
-		const amrex_real* reallo, const amrex_real* realhi);
+void init_s_vel(const int * lo, const int * hi,
+                const amrex_real * vel, const int * vello, const int * velhi,
+                const amrex_real * dx,
+                const amrex_real * reallo, const amrex_real * realhi);
 
 ///////////////////////////
 
