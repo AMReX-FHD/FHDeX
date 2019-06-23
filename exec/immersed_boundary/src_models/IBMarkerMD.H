@@ -15,6 +15,10 @@ struct Vertex {
     RealVect f;
     int  name;
     bool fixed;
+
+    Vertex(const RealVect & r_in);
+
+    void Clear();
 };
 
 
@@ -28,12 +32,18 @@ public:
 
     void Update();
 
-    Vertex & start() const {return m_start;};
-    Vertex & end() const {return m_end;};
+    // Do not let vertices be mutable because changes to Vertex::r can affect
+    // Edge's internals
+    const Vertex & start() const {return m_start;};
+    const Vertex & end() const {return m_end;};
     const RealVect & link() const {return m_link;};
     const RealVect & normal() const {return m_normal;};
     Real length() const {return m_length;};
     Real length_0() const {return m_length_0;};
+
+    // Vertex forces are mutable because they do not affect Edge's internals
+    RealVect & start_f() const {return m_start.f;};
+    RealVect & end_f() const {return m_end.f;};
 
 private:
 
@@ -56,12 +66,10 @@ private:
 
 
 
-void assign_bending_forces(Edge & e_ref, Edge & e, Real k,
-                           Real cos_theta_0, Real cos_theta);
+void assign_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0);
 
 
 
-void assign_bending_forces(Edge & e_ref, Edge & e, Real k);
 
 
 #endif

@@ -3,6 +3,20 @@
 
 
 
+Vertex::Vertex(const RealVect & r_in) : r(r_in) {
+
+    Clear();
+}
+
+
+
+void Vertex::Clear() {
+
+    f = RealVect{AMREX_D_DECL(0., 0., 0.)};
+}
+
+
+
 Edge::Edge(Vertex & v1, Vertex & v2, Real length_0)
     : m_start(v1), m_end(v2), m_length_0(length_0) {
 
@@ -38,12 +52,12 @@ void Edge::Update() {
 
 
 
-void assign_bending_forces(Edge & e_ref, Edge & e,
-                           Real k, Real cos_theta_0, Real cos_theta) {
+void assign_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
 
 
     //___________________________________________________________________________
     // edge lengths (and squares)
+
     Real l_ref = e_ref.length();
     Real l_e   = e.length();
 
@@ -66,6 +80,13 @@ void assign_bending_forces(Edge & e_ref, Edge & e,
     // vcpy(& r_m, & r);
     // vmuladd_ip(&r_m, -e_ref->length, &(e_ref->normal));
     const RealVect & r_m = e_ref.start().r;
+
+
+
+    //___________________________________________________________________________
+    // angle between two edges
+
+    Real cos_theta = e_ref.normal().dotProduct(e.normal());
 
 
     //___________________________________________________________________________
@@ -172,8 +193,7 @@ void assign_bending_forces(Edge & e_ref, Edge & e,
     // vadd_ip(&(e->end->f), &f_p);
     // vadd_ip(&(e_ref->start->f), &f_m);
 
-    e.start().f     += f;
-    e.end().f       += f_p;
-    e_ref.start().f += f_m;
-
+    e.start_f()     += f;
+    e.end_f()       += f_p;
+    e_ref.start_f() += f_m;
 }
