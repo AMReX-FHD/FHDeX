@@ -1,3 +1,6 @@
+#include <AMReX.H>
+#include <AMReX_Print.H>
+
 #include <IBMarkerMD.H>
 
 
@@ -29,9 +32,9 @@ Edge::Edge(Vertex & v1, Vertex & v2, Real length_0)
 Edge::Edge(Vertex & v1, Vertex & v2) : m_start(v1), m_end (v2) {
 
     RealVect link_init = m_end.r - m_start.r;
-    Real length_init = link_init.vectorLength();
+    m_length_0 = link_init.vectorLength();
 
-    Edge(v1, v2, length_init);
+    Update();
 }
 
 
