@@ -29,11 +29,13 @@
 #include <AMReX_MultiFabUtil.H>
 
 #include <IBMarkerContainer.H>
+#include <IBMarkerMD.H>
 
 
 using namespace amrex;
 using namespace common;
 using namespace gmres;
+using namespace immbdy_md;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -347,18 +349,14 @@ void main_driver(const char * argv) {
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+
+        // initialize velocity
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            init_vel(BL_TO_FORTRAN_BOX(bx),
+                     BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
+                     geom.ProbLo(), geom.ProbHi(), & d,
+                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
 
         // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
@@ -402,6 +400,31 @@ void main_driver(const char * argv) {
 
     int step = 0;
     Real time = 0.;
+
+
+    //___________________________________________________________________________
+    // Example of how to call bending force calculation
+    // note the namespace: immbdy_md declared above
+    // also note the order of the arguments: r_m -> r -> r_p (m=>minus, p=>plus)
+
+    RealVect f, f_p, f_m;
+    RealVect r, r_p, r_m;
+
+    r_p = RealVect{0.6, 0.5, 0.5};
+    r   = RealVect{0.5, 0.51, 0.5};
+    r_m = RealVect{0.4, 0.5, 0.5};
+
+
+    f_p = RealVect{0., 0., 0.};
+    f   = RealVect{0., 0., 0.};
+    f_m = RealVect{0., 0., 0.};
+
+
+    bending_f(f, f_p, f_m, r, r_p, r_m, 10, 1.);
+
+    Print() << "f= " << f_p << std::endl;
+    Print() << "f= " << f << std::endl;
+    Print() << "f= " << f_m << std::endl;
 
 
     //___________________________________________________________________________
