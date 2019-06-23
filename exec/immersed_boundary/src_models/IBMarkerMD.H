@@ -20,13 +20,16 @@ struct Vertex {
 
 
 class Edge {
+
+public:
+
     Edge(Vertex & v1, Vertex & v2, Real length_0);
     Edge(Vertex & v1, Vertex & v2);
 
     void Update();
 
-    const Vertex & start() const {return m_start;};
-    const Vertex & end() const {return m_end;};
+    Vertex & start() const {return m_start;};
+    Vertex & end() const {return m_end;};
     const RealVect & link() const {return m_link;};
     const RealVect & normal() const {return m_normal;};
     Real length() const {return m_length;};
