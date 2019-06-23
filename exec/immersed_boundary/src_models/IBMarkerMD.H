@@ -9,6 +9,7 @@
 using namespace amrex;
 
 
+namespace immbdy_geom{
 
 struct Vertex {
     RealVect r;
@@ -64,7 +65,12 @@ private:
 //  int capacity;
 // };
 
+};
 
+
+namespace immbdy_md {
+
+using namespace immbdy_geom;
 
 void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0);
 
@@ -72,8 +78,6 @@ void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                Real k, Real cos_theta_0);
 
-
-
-
+}
 
 #endif

@@ -2,6 +2,7 @@
 
 
 
+namespace immbdy_geom {
 
 Vertex::Vertex(const RealVect & r_in) : r(r_in) {
 
@@ -49,7 +50,13 @@ void Edge::Update() {
         m_normal *= 1./m_length;
 }
 
+};
 
+
+
+namespace immbdy_md {
+
+using namespace immbdy_geom;
 
 
 void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
@@ -204,14 +211,20 @@ void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                Real k, Real cos_theta_0) {
 
+    // Construct vertices (note that Vertex::f == 0 due to constructor)
     Vertex v(r), v_p(r_p), v_m(r_m);
 
-    Edge e_ref(v_m, v);
-    Edge e(v, v_p);
+    // Set up topology
+    Edge e_ref(v_m, v), e(v, v_p);
 
+    // Add bending forces to vertices
     add_bending_forces(e_ref, e, k, cos_theta_0);
 
+
+    // Add result to bending forces to output variables
     f   += e.start().f;
     f_p += e.end().f;
     f_m += e_ref.start().f;
 }
+
+};
