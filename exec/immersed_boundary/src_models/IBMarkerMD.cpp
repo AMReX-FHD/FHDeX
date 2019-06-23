@@ -52,7 +52,7 @@ void Edge::Update() {
 
 
 
-void assign_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
+void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
 
 
     //___________________________________________________________________________
@@ -196,4 +196,22 @@ void assign_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
     e.start_f()     += f;
     e.end_f()       += f_p;
     e_ref.start_f() += f_m;
+}
+
+
+
+void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
+               const RealVect & r, const RealVect & r_p, const RealVect & r_m,
+               Real k, Real cos_theta_0) {
+
+    Vertex v(r), v_p(r_p), v_m(r_m);
+
+    Edge e_ref(v_m, v);
+    Edge e(v, v_p);
+
+    add_bending_forces(e_ref, e, k, cos_theta_0);
+
+    f   += e.start().f;
+    f_p += e.end().f;
+    f_m += e_ref.start().f;
 }

@@ -66,7 +66,11 @@ private:
 
 
 
-void assign_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0);
+void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0);
+
+void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
+               const RealVect & r, const RealVect & r_p, const RealVect & r_m,
+               Real k, Real cos_theta_0);
 
 
 
