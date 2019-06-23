@@ -54,18 +54,18 @@ void assign_bending_forces(Edge & e_ref, Edge & e,
     //___________________________________________________________________________
     // r, r_p, r_m <= vectors representing the central, previous (m) and next (p)
     //                vertex positions
-    RealVect r, r_p, r_m;
+    // RealVect r, r_p, r_m;
 
     // vcpy(& r, & e->start->r);
-    r = e.start().r;
+    const RealVect & r = e.start().r;
 
     // vcpy(& r_p, & r);
     // vmuladd_ip(&r_p, e->length, &(e->normal));
-    r_p = e.end().r;
+    const RealVect & r_p = e.end().r;
 
     // vcpy(& r_m, & r);
     // vmuladd_ip(&r_m, -e_ref->length, &(e_ref->normal));
-    r_m = e_ref.start().r;
+    const RealVect & r_m = e_ref.start().r;
 
 
     //___________________________________________________________________________
