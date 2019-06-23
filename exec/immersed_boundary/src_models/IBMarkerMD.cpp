@@ -78,19 +78,10 @@ void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
     //___________________________________________________________________________
     // r, r_p, r_m <= vectors representing the central, previous (m) and next (p)
     //                vertex positions
-    // RealVect r, r_p, r_m;
 
-    // vcpy(& r, & e->start->r);
     const RealVect & r = e.start().r;
-
-    // vcpy(& r_p, & r);
-    // vmuladd_ip(&r_p, e->length, &(e->normal));
     const RealVect & r_p = e.end().r;
-
-    // vcpy(& r_m, & r);
-    // vmuladd_ip(&r_m, -e_ref->length, &(e_ref->normal));
     const RealVect & r_m = e_ref.start().r;
-
 
 
     //___________________________________________________________________________
@@ -112,17 +103,7 @@ void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
 
 
     //___________________________________________________________________________
-    // compute bending forces
-
-    // Real fx2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(x - xM))/l2M
-    //         + (cos_theta*(x - xP))/l2P - (-2*x + xM + xP)/(sqrt(l2M)*sqrt(l2P)));
-
-    // Real fPx2 = -2*(-cos_theta + cos_theta_0)*((-x + xM)/(sqrt(l2M)*sqrt(l2P))
-    //         + (cos_theta*(-x + xP))/l2P);
-
-    // Real fMx2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(-x + xM))/l2M
-    //         + (-x + xP)/(sqrt(l2M)*sqrt(l2P)));
-
+    // compute bending forces analytically
 
     Real fx2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(x - xM))/l2M
             + (cos_theta*(x - xP))/l2P - (-2*x + xM + xP)/(l_ref*l_e));
@@ -135,15 +116,6 @@ void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
 
 
 #if (AMREX_SPACEDIM > 1)
-    // Real fy2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(y - yM))/l2M
-    //         + (cos_theta*(y - yP))/l2P - (-2*y + yM + yP)/(sqrt(l2M)*sqrt(l2P)));
-
-    // Real fPy2 = -2*(-cos_theta + cos_theta_0)*((-y + yM)/(sqrt(l2M)*sqrt(l2P))
-    //         + (cos_theta*(-y + yP))/l2P);
-
-    // Real fMy2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(-y + yM))/l2M
-    //         + (-y + yP)/(sqrt(l2M)*sqrt(l2P)));
-
     Real fy2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(y - yM))/l2M
             + (cos_theta*(y - yP))/l2P - (-2*y + yM + yP)/(l_ref*l_e));
 
@@ -155,15 +127,6 @@ void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
 #endif
 
 #if (AMREX_SPACEDIM > 2)
-    // Real fz2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(z - zM))/l2M
-    //         + (cos_theta*(z - zP))/l2P - (-2*z + zM + zP)/(sqrt(l2M)*sqrt(l2P)));
-
-    // Real fPz2 = -2*(-cos_theta + cos_theta_0)*((-z + zM)/(sqrt(l2M)*sqrt(l2P))
-    //         + (cos_theta*(-z + zP))/l2P);
-
-    // Real fMz2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(-z + zM))/l2M
-    //         + (-z + zP)/(sqrt(l2M)*sqrt(l2P)));
-
     Real fz2 = -2*(-cos_theta + cos_theta_0)*((cos_theta*(z - zM))/l2M
             + (cos_theta*(z - zP))/l2P - (-2*z + zM + zP)/(l_ref*l_e));
 
@@ -175,33 +138,12 @@ void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
 #endif
 
 
-    // apply bending stiffness
+    //___________________________________________________________________________
+    // Add bending forces to the vertex data
 
     RealVect f   = RealVect(AMREX_D_DECL(k*fx2/2,  k*fy2/2,  k*fz2/2));
     RealVect f_p = RealVect(AMREX_D_DECL(k*fPx2/2, k*fPy2/2, k*fPz2/2));
     RealVect f_m = RealVect(AMREX_D_DECL(k*fMx2/2, k*fMy2/2, k*fMz2/2));
-
-    // RealVect f, f_p, f_m;
-
-    // f.x = k*fx2/2;
-    // f_p.x = k*fPx2/2;
-    // f_m.x = k*fMx2/2;
-
-    // f.y = k*fy2/2;
-    // f_p.y = k*fPy2/2;
-    // f_m.y = k*fMy2/2;
-
-    // f.z = k*fz2/2;
-    // f_p.z = k*fPz2/2;
-    // f_m.z = k*fMz2/2;
-
-
-    //___________________________________________________________________________
-    // Add bending forces to the vertex data
-
-    // vadd_ip(&(e->start->f), &f);
-    // vadd_ip(&(e->end->f), &f_p);
-    // vadd_ip(&(e_ref->start->f), &f_m);
 
     e.start_f()     += f;
     e.end_f()       += f_p;
