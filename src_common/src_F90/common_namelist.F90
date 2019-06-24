@@ -124,7 +124,8 @@ module common_namelist_module
   integer,            save :: dry_move_tog
   integer,            save :: sr_tog
   integer,            save :: graphene_tog
-  integer,            save :: crange  
+  integer,            save :: crange
+  integer,            save :: thermostat_tog
 
   integer,            save :: images
   double precision,   save :: eamp(3)
@@ -301,6 +302,7 @@ module common_namelist_module
   namelist /common/ sr_tog
   namelist /common/ graphene_tog
   namelist /common/ crange
+  namelist /common/ thermostat_tog
 
 
   namelist /common/ images

@@ -137,7 +137,7 @@ public:
 
     // (ID, initial CPU) tuple: unique to each particle
     using ParticleIndex = std::pair<int, int>;
-    using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
+    using IBMarkerMap   = std::map<ParticleIndex, Vector<RealVect>>;
 
     // Particle Position, Velocity, and Radius (abbriated particle info struct)
     using PPVR = struct {
