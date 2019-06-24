@@ -11,6 +11,7 @@
 #include <AMReX_NeighborParticles.H>
 #include <MFUtil.H>
 #include <IBParticleInfo.H>
+#include <IBMarkerContainer.H>
 #include <IBCore.H>
 
 
@@ -127,13 +128,10 @@ public:
     * Auxiliary data types                                                      *
     ****************************************************************************/
 
-    // Used by PICMultiDeposition when iterating over particles (TODO: Audit)
-    //using MyConstParIter = ParConstIter<IBP_realData::count, IBP_intData::count, 0, 0>;
-
     // Data types representing slightly different representations of particle
     // data (for convenience and avoiding auto &).
-    //using RealType      = typename ParticleType::RealType;
-    //using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
+    // using RealType      = typename ParticleType::RealType;
+    // using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     // using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
 
     // (ID, initial CPU) tuple: unique to each particle
