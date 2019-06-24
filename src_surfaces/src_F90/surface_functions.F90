@@ -211,8 +211,13 @@
     type(particle_t), intent(inout) :: part
 
     real(amrex_real) dotprod, srt, time, dt
-    real(amrex_real) :: normvel(3), j(3)
-    
+    real(amrex_real) :: normvel(3), j(3), oldvel(3)
+
+    if(surf%boundary .eq. 6)then
+       oldvel=part%vel
+        write(*,*) "old", oldvel(3), part%id
+      ! print*, part%id, part%vel(3)
+    endif
     
     if(intside .eq. 1) then
    
@@ -403,7 +408,7 @@
    if(graphene_tog .eq. 1) then
    if(surf%boundary .eq. 6) then
       ! call test(part, surf, intside)
-      call surf_velocity(surf, part, time)
+      call surf_velocity(surf, part, time, oldvel)
    endif
    endif
         
@@ -455,7 +460,7 @@
     
 end subroutine test
   
-subroutine surf_velocity(surf, part, time)
+subroutine surf_velocity(surf, part, time, oldvel)
   
  use iso_c_binding, only: c_int
  use amrex_fort_module, only: amrex_real, amrex_particle_real
@@ -471,13 +476,14 @@ subroutine surf_velocity(surf, part, time)
  type(surface_t) :: surf 
  integer(c_int)  i, count, step, ii
  real(amrex_real) surfvel, r, f_x, a, r2, r3, time, bessj0, dbessj0, k, rho, tau, omega, dt, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius
+  real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
     r=sqrt(part%pos(1)**2+part%pos(2)**2)
     c=4266599003
     alpha=10**8
     pi=3.1415926535897932
-    a=10e-30
+    a=(part%vel(3)+oldvel(3))*part%mass
     !parabola
     ! f_x=-a*r*r+a*d*r+100000
     bessj0=0
@@ -504,15 +510,15 @@ subroutine surf_velocity(surf, part, time)
            surf%grac=sqrt(xvec**2+yvec**2)
            surf%graphi=atan2(yvec, xvec)
         enddo
-        print*, surf%velz
+       ! print*, surf%velz
       surf%velz=dbessj0*cos((time*omega)+surf%graphi)
       part%vel(3)=part%vel(3)+surf%velz
       step=time/fixed_dt
    
    !  if(step .eq. 300)then
-     ! write(*,*) "surf vel", surf%velz
-     ! write(*,*) "c", surf%grac
-      !write(*,*) "phi", surf%graphi
+    ! write(*,*) a
+    ! write(*,*) "old", oldvel(3), part%id
+     write(*,*) "new", part%vel(3)
    !  endif
   end subroutine surf_velocity
 

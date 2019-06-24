@@ -394,11 +394,10 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
     surf%fxright = 0
     surf%fyright = 0
-    surf%fzright = 0
+    surf%fzright = 0 
 
   enddo
       
-  
   intcount = 0
 
   do k = lo(3), hi(3)
@@ -418,6 +417,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
             !  endif
               part => particles(cell_parts(p))
+
+               ! print*, part%id, part%vel(3)
 
               runtime = dt
              
@@ -544,7 +545,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   
                 surf%velz=dbessj0*cos((time*omega)+surf%graphi)
 
-                 print*,'position',part%pos
+                ! print*,'position',part%pos
                ! print*,'vel',part%vel
                ! print*,'surf vel', surf%velz
                 !print*, 'c', surf%grac
