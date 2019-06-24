@@ -39,7 +39,8 @@ subroutine get_congrad_3d( lo, hi, &
 
 
 
-           if (iface(i,j,k) .lt. 2) then
+!           if (iface(i,j,k) .lt. 2) then
+           if (iface(i,j,k) .eq. 1) then
 
            ! one sided and centered difference of con
            con_xp=(con(i+1,j,k)-con(i,j,k))/dx(1)
@@ -55,7 +56,7 @@ subroutine get_congrad_3d( lo, hi, &
            con_zc=(con_zp+con_zm)/2
 
            ! if one side is interior to IB then use other one sided derivative  
-              if (iface(i,j,k) .eq. 1) then
+!              if (iface(i,j,k) .eq. 1) then
                  if (iface(i+1,j,k) .eq. 2)then
                  con_x(i,j,k)=con_xm 
                  else if (iface(i-1,j,k) .eq. 2) then
@@ -79,11 +80,11 @@ subroutine get_congrad_3d( lo, hi, &
                  else
                  con_z(i,j,k)=con_zc
                  end if
-              else
-              con_x(i,j,k)=con_xc !con_x*n1+con_y*n2+con_z*n3
-              con_y(i,j,k)=con_yc !con_x*t_t1+con_y*t_t2+con_z*t_t3
-              con_z(i,j,k)=con_zc
-               end if
+!              else
+!              con_x(i,j,k)=con_xc !con_x*n1+con_y*n2+con_z*n3
+!              con_y(i,j,k)=con_yc !con_x*t_t1+con_y*t_t2+con_z*t_t3
+!              con_z(i,j,k)=con_zc
+!               end if
 !              else
 !              n1=x/(sqrt(x**2+y**2+z**2))
 !              n2=y/(sqrt(x**2+y**2+z**2))
