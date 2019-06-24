@@ -1,4 +1,8 @@
 #include <AMReX.H>
+#include <AMReX_AmrCore.H>
+#include <AMReX_AmrParGDB.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_Particles.H>
 #include <AMReX_NeighborParticles.H>
 
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
@@ -26,6 +30,18 @@ IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
     : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
             geom, dmap, ba, n_nbhd
         ),
+    nghost(n_nbhd)
+{
+    InitInternals(n_nbhd);
+}
+
+
+
+IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
+    : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
+            amr_core->GetParGDB(), n_nbhd
+        ),
+    m_amr_core(amr_core),
     nghost(n_nbhd)
 {
     InitInternals(n_nbhd);

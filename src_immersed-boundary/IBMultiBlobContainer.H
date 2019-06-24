@@ -116,7 +116,6 @@ private:
     static bool sort_neighbor_list;
 
     void InitInternals(int ngrow);
-
     void ReadStaticParameters();
 
 
