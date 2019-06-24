@@ -2085,7 +2085,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies, move_tog
   use rng_functions_module
   use surfaces_module
   
@@ -2216,75 +2216,69 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                                 part, ks, dxf, boundflag, midpoint, rejected)
 
-              !mid point time stepping - First step 1/2 a time step then interpolate velocity field
+              if(move_tog .eq. 2) then !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
-              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
+                posold = part%pos
+                runtime = dt*0.5
 
-              if(speed .gt. maxspeed) then
-                maxspeed = speed
-              endif
+                do while (runtime .gt. 0)
 
-              posold = part%pos
+                  !check 
 
-              runtime = dt*0.5
+                  call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
-              do while (runtime .gt. 0)
-
-                !check 
-
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-
-                posalt(1) = inttime*part%vel(1)*adjalt
-                posalt(2) = inttime*part%vel(2)*adjalt
+                  posalt(1) = inttime*part%vel(1)*adjalt
+                  posalt(2) = inttime*part%vel(2)*adjalt
 #if (BL_SPACEDIM == 3)
-                posalt(3) = inttime*part%vel(3)*adjalt
+                  posalt(3) = inttime*part%vel(3)*adjalt
 #endif
 
-                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+                  ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+                  part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+                  part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+                  part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
-                runtime = runtime - inttime
+                  runtime = runtime - inttime
 
-                if(intsurf .gt. 0) then
+                  if(intsurf .gt. 0) then
 
-                  surf => surfaces(intsurf)
+                    surf => surfaces(intsurf)
 
-                  call apply_bc(surf, part, intside, domsize, push, 1, 1)
+                    call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
-                    if(push .eq. 1) then
+                      if(push .eq. 1) then
+                        
+                        part%pos(1) = part%pos(1) + posalt(1)
+                        part%pos(2) = part%pos(2) + posalt(2)
+#if (BL_SPACEDIM == 3)
+                        part%pos(3) = part%pos(3) + posalt(3)
+#endif
+                      endif
                       
-                      part%pos(1) = part%pos(1) + posalt(1)
-                      part%pos(2) = part%pos(2) + posalt(2)
+                  endif
+
+                end do
+
+                midpoint = 1
+                moves = moves + 1
+
+                call get_weights(dxf, dxfinv, weights, indicies, &
+                                coordsx, coordsxlo, coordsxhi, &
+                                coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
-                      part%pos(3) = part%pos(3) + posalt(3)
+                                coordsz, coordszlo, coordszhi, &
 #endif
-                    endif
-                    
-                endif
+                                part, ks, plof)
 
-              end do
-
-              midpoint = 1
-              moves = moves + 1
-
-              call get_weights(dxf, dxfinv, weights, indicies, &
-                              coordsx, coordsxlo, coordsxhi, &
-                              coordsy, coordsylo, coordsyhi, &
+                call inter_op(weights, indicies, &
+                                  velx, velxlo, velxhi, &
+                                  vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
-                              coordsz, coordszlo, coordszhi, &
+                                  velz, velzlo, velzhi, &
 #endif
-                              part, ks, plof)
-
-              call inter_op(weights, indicies, &
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
-#endif
-                                part, ks, dxf, boundflag, midpoint, rejected)
+                                  part, ks, dxf, boundflag, midpoint, rejected)
+              endif
 
               part%pos = posold
               runtime = dt
@@ -2313,9 +2307,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !  print *, "dry: ", dry_terms
               endif
 
-              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
-
-              
+              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2              
 
               if(speed .gt. maxspeed) then
                 maxspeed = speed
@@ -2411,7 +2403,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
-  print *, "Fraction of midpoint moves rejected: ", rejected/moves
+  if(move_tog .eq. 2) then
+    print *, "Fraction of midpoint moves rejected: ", rejected/moves
+  endif
   print *, "Maximum observed speed: ", sqrt(maxspeed)
   print *, "Maximum observed displacement (fraction of radius): ", maxdist
   print *, "Average diffusion coeffcient: ", diffinst/np

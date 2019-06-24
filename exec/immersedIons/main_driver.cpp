@@ -474,10 +474,13 @@ void main_driver(const char* argv)
     // mflux divergence, staggered in x,y,z
 
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
-    // Define mfluxdiv predictor multifabs
+    std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdivC;
+    // Define mfluxdiv predictor/corrector multifabs
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
         stochMfluxdiv[d].setVal(0.0);
+        stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        stochMfluxdivC[d].setVal(0.0);
     }
 
     Vector< amrex::Real > weights;
@@ -497,8 +500,10 @@ void main_driver(const char* argv)
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
+    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
 
 
@@ -509,6 +514,10 @@ void main_driver(const char* argv)
         umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
         umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
+
+    // tracer - get rid of this.
+    MultiFab tracer(ba, dmap, 1,1);
+    tracer.setVal(0.);
 
 
     ///////////////////////////////////////////
@@ -752,17 +761,26 @@ void main_driver(const char* argv)
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        if((variance_coef_mom != 0.0) && fluid_tog == 1) {
+        if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
           sMflux.fillMStochastic();
 //          // compute stochastic momentum force
           sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+
+          if(fluid_tog ==2)
+          {
+             sMflux.stochMforce(stochMfluxdivC,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+          }
+
         }
 
-  	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+        if(fluid_tog ==2)
+        {
+            advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
+        }
 
-
-        if(move_tog==1)
+        if(move_tog != 0)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
