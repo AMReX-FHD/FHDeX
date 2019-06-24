@@ -16,13 +16,14 @@
 
 
 using namespace amrex;
-// using namespace std;
 
 class mfix_level;
 class IBCore;
 
 
+
 //TODO: Check members lables with "Audit"
+
 
 // IBP => Immmersed Boundary Particle
 struct IBP_realData {
@@ -92,7 +93,7 @@ struct IBP_intData {
 
 
 
-class IBParIter final 
+class IBParIter final
     : public amrex::ParIter<IBP_realData::count, IBP_intData::count, 0, 0>
 {
 
@@ -280,7 +281,7 @@ private:
     Vector<IBMarkerMap> marker_velocities;
     Vector<IBMarkerMap> marker_forces;
 
-    // Posotions on faces
+    // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
 
