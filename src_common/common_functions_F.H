@@ -60,7 +60,7 @@ extern "C"
                                      amrex::Real* eepsilon, amrex::Real* sigma, int* poisson_verbose, int* poisson_bottom_verbose,
                                      int* poisson_max_iter, amrex::Real* poisson_rel_tol,
                                      amrex::Real* particle_grid_refine, amrex::Real* es_grid_refine, amrex::Real* diff, int* fluid_tog, int* es_tog, int* drag_tog,
-                                     int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog, int* crange, int* images, amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase, int* plot_ascii, int* solve_chem, amrex::Real* diffcoeff, int* regrid_int, int* do_reflux, int* particle_motion);
+                                     int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog, int* graphene_tog, int* crange, int* images, amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase, int* plot_ascii, int* solve_chem, amrex::Real* diffcoeff, int* regrid_int, int* do_reflux, int* particle_motion);
 ///////////////////////////
 
 ///////////////////////////
@@ -187,19 +187,6 @@ extern "C"
                     amrex_real* fabOut, const int* outlo, const int* outhi,
                     const int* xCheck, const int* yCheck, const int* zCheck);
 ///////////////////////////
-
-///////////////////////////
-// in multifab_fill_random.F90
-
-    void multifab_fill_random(const int* lo, const int* hi,
-			      const amrex_real* mf,
-			      const int* mflo, const int* mfhi,
-			      const int* ncomp, const int* comp);
-
-    void multifab_fill_random_hack(const int* lo, const int* hi,
-			      const amrex_real* mf,
-			      const int* mflo, const int* mfhi,
-			      const int* ncomp, const int* comp, const double* mytop, const double* mybottom);
 
 ///////////////////////////
 // in compute_basic_stats.F90

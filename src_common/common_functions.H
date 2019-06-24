@@ -63,14 +63,6 @@ void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & va
                 const int incomp, const int outcomp, const int steps);
 
 ///////////////////////////
-// in MultiFABFillRandom.cpp
-
-void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom);
-
-void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance, const Geometry& geom);
-
-
-///////////////////////////
 // in MultiFABPhysBC.cpp
 
 /********************************************************************************

@@ -328,6 +328,10 @@ void main_driver(const char * argv) {
 
     Vector<RealVect> marker_positions(1);
     marker_positions[0] = RealVect{0.5, 0.5, 0.5};
+//    marker_positions[1] = RealVect{0.5, 1.0, 0.5};
+
+    //define spring constant between adjacent markers
+//    Real spr_k = 1;
 
     ib_mc.InitList(0, marker_positions);
 

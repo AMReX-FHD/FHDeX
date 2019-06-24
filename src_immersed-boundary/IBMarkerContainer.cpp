@@ -117,19 +117,26 @@ void IBMarkerContainer::InitList(int lev,
                 p_new.rdata(IBM_realData::forcey) = 0.;
                 p_new.rdata(IBM_realData::forcez) = 0.;
 
+                p_new.rdata(IBM_realData::pred_posx)   = 0.;
+                p_new.rdata(IBM_realData::pred_posy)   = 0.;
+                p_new.rdata(IBM_realData::pred_posz)   = 0.;
+
+                p_new.rdata(IBM_realData::pred_velx)   = 0.;
+                p_new.rdata(IBM_realData::pred_vely)   = 0.;
+                p_new.rdata(IBM_realData::pred_velz)   = 0.;
+
                 p_new.rdata(IBM_realData::pred_forcex) = 0.;
                 p_new.rdata(IBM_realData::pred_forcey) = 0.;
                 p_new.rdata(IBM_realData::pred_forcez) = 0.;
 
-                p_new.idata(IBM_intData::id_0)    = prev_id;
-                p_new.idata(IBM_intData::cpu_0)   = prev_cpu;
+                p_new.idata(IBM_intData::id_0)  = prev_id;
+                p_new.idata(IBM_intData::cpu_0) = prev_cpu;
 
-                p_new.idata(IBM_intData::id_1)    = -1;
-                p_new.idata(IBM_intData::cpu_1)   = -1;
+                p_new.idata(IBM_intData::id_1)  = -1;
+                p_new.idata(IBM_intData::cpu_1) = -1;
 
                 // Add to the data structure
                 particles.push_back(p_new);
-
 
                 prev_id  = p_new.id();
                 prev_cpu = p_new.cpu();
@@ -614,7 +621,8 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 
 void IBMarkerContainer::InterpolateMarkers(int lev,
-        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
+                                           Vector<RealVect> & f_out,
+                                           const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
 
     //___________________________________________________________________________
     // We don't need these spreading weights => create a dummy MF

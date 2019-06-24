@@ -390,9 +390,9 @@ void main_driver(const char * argv) {
     int step = 0;
     Real time = 0.;
 
-   // Initialize Chemical fields
+    // Initialize Chemical fields
 
-//   AmrCoreAdv amr_core_adv;
+    //   AmrCoreAdv amr_core_adv;
 
 
     /****************************************************************************
@@ -430,7 +430,7 @@ void main_driver(const char * argv) {
         pp.addarr("n_cell", n_cells);
     }
 
-//    AmrCoreAdv amr_core_adv;
+    // AmrCoreAdv amr_core_adv;
 
 
     IBCore ib_core;
@@ -443,6 +443,7 @@ void main_driver(const char * argv) {
         force_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         force_ibm[d].setVal(0.);
     }
+
     //__________________________________________________________________________
     // Build AmrCore and initialize chemical multifabs
     std:: cout << "Diff Coeff Maindriver"<< diffcoeff << std::endl;
@@ -454,13 +455,13 @@ void main_driver(const char * argv) {
 
     Print() << "distribution mapping after init = " << dmap << std::endl;
 
- // Need to have only one level for now
-int lev =0;
-//    if (solve_chem==1)
-//    {
-//      amr_core_adv.InitData();
-//        amrex::Print()<< "Solving for chemical fields"<< std::endl;
-//    }
+    // Need to have only one level for now
+    int lev =0;
+    // if (solve_chem==1)
+    // {
+    //   amr_core_adv.InitData();
+    //     amrex::Print()<< "Solving for chemical fields"<< std::endl;
+    // }
 
 
     /****************************************************************************
@@ -472,10 +473,11 @@ int lev =0;
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc,  amr_core_adv, lev );
+        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc,
+                      amr_core_adv, lev);
     }
 
-    std::cout<< "Write Plot File Success "<<std::endl;
+    Print() << "Write Plot File Success "<<std::endl;
 
     //___________________________________________________________________________
     // FFT test
@@ -550,9 +552,11 @@ int lev =0;
         // Advance umac
 
         advance(amr_core_adv,
-		umac, umacNew, pres, tracer, force_ibm, marker_force_0,
+                umac, umacNew, pres, tracer,
+                force_ibm, marker_force_0,
                 mfluxdiv_predict, mfluxdiv_correct,
-                alpha_fc, beta, gamma, beta_ed, ib_pc, ib_core, geom, dt, time);
+                alpha_fc, beta, gamma, beta_ed,
+                ib_pc, ib_core, geom, dt, time);
 
 
         // Empty force data
@@ -585,9 +589,10 @@ int lev =0;
                 && struct_fact_int > 0
                 && (step-n_steps_skip-1)%struct_fact_int == 0
             ) {
-            for(int d=0; d<AMREX_SPACEDIM; d++) {
+
+            for(int d=0; d<AMREX_SPACEDIM; d++)
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-            }
+
             structFact.FortStructure(struct_in_cc,geom);
         }
 

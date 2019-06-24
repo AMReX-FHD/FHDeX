@@ -213,24 +213,26 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     Real spring_coefficient = 1e4;
 
-   int nstep=0;
+    int nstep=0;
 
-   std::cout<<" Diff Coeff advance "<< diffcoeff<<std::endl;
+    Print() << " Diff Coeff advance " << diffcoeff <<std::endl;
 
 
-   if (solve_chem) {
+    if (solve_chem) {
 
-        // We get a pointer to the interface tag multifab to pass into advection
-        // diffuision (AD) code
+        // We get a pointer to the interface tag multifab to pass into
+        // advection diffuision (AD) code
         const iMultiFab & iface = ib_core.get_TagInterface();
 
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem( umac, iface, ibpc_lev, nstep,dt, time, diffcoeff);
+        amr_core_adv.EvolveChem(umac, iface, ibpc_lev, nstep,dt, time, diffcoeff);
         amrex::Print() << "After Solving AD Eqn" << std::endl;
   
     }
- //___________________________________________________________________________
+
+
+    //___________________________________________________________________________
     // Collect data on the immersed boundaries interacting with this rank
 
     Vector<IBP_info> ibp_info = ib_pc.IBParticleInfo(0, true);

@@ -346,13 +346,14 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 end subroutine amrex_compute_forces_nl
 
 subroutine move_particles_dsmc(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns) &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns, time) &
      bind(c,name="move_particles_dsmc")
   
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
   use surfaces_module
+  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog
   
   implicit none
 
@@ -364,15 +365,17 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
-  real(amrex_real), intent(in) :: dt
+  real(amrex_real), intent(in) :: dt, time
   
-  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount
+  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii
   integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx
+  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, r, r2
 
+  !print*,'HERE entering move_particles_dsmc'
+  
   adj = 0.9999999
   adjalt = 2d0*(1d0 - adj)
 
@@ -446,6 +449,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 #endif
                 runtime = runtime - inttime
 
+      
+
                 !  if(intsurf .eq.  5) then
                 !     write(*,*) "5", part%pos(1), part%pos(2), part%pos(3)
                 !     count5=count5+1
@@ -458,7 +463,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                    surf => surfaces(intsurf)
 
 
-                  call apply_bc(surf, part, intside, domsize, push)
+                  call apply_bc(surf, part, intside, domsize, push, time, dt)
 
                     if(push .eq. 1) then
                       
@@ -522,7 +527,33 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
     surf%fyright = surf%fyright*inv_dt
     surf%fzright = surf%fzright*inv_dt
 
-  enddo  
+ enddo
+          if(graphene_tog .eq. 1) then
+               interval=prob_hi(1)/100
+               radius=0
+               omega=sqrt((4266599003*(2.4048**2))/(prob_hi(1)**2)+10**8)/(3.141592653589793**2)
+               surf=>surfaces(6)
+               do ii=1, 100
+                 radius=interval*ii
+                 radius=radius*2.4048/prob_hi(1)
+                 bessj0 =10e-30*surf%grac*bessel_jn(0,radius)*sin((time*omega)+surf%graphi)
+                 surf%besslist(ii)=bessj0
+                 dbessj0=10e-30*surf%grac*bessel_jn(0, radius)*omega*cos((time*omega)+surf%graphi)
+                 surf%dbesslist(ii)=dbessj0
+              enddo
+  
+                surf%velz=dbessj0*cos((time*omega)+surf%graphi)
+
+                 print*,'position',part%pos
+               ! print*,'vel',part%vel
+               ! print*,'surf vel', surf%velz
+                !print*, 'c', surf%grac
+               !print*, sin((time*omega))
+              ! print*, surf%velz
+             ! print*, 'velocity',part%vel
+                ! print*, "hack"
+             endif
+             
   
 end subroutine move_particles_dsmc
 
@@ -990,7 +1021,7 @@ subroutine move_particles_dry(particles, np, lo, hi, &
 
                   surf => surfaces(intsurf)
 
-                  call apply_bc(surf, part, intside, domsize, push)
+                  call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
                     if(push .eq. 1) then
                       
@@ -2054,7 +2085,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies
+  use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies, move_tog
   use rng_functions_module
   use surfaces_module
   
@@ -2185,75 +2216,69 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                                 part, ks, dxf, boundflag, midpoint, rejected)
 
-              !mid point time stepping - First step 1/2 a time step then interpolate velocity field
+              if(move_tog .eq. 2) then !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
-              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
+                posold = part%pos
+                runtime = dt*0.5
 
-              if(speed .gt. maxspeed) then
-                maxspeed = speed
-              endif
+                do while (runtime .gt. 0)
 
-              posold = part%pos
+                  !check 
 
-              runtime = dt*0.5
+                  call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
 
-              do while (runtime .gt. 0)
-
-                !check 
-
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-
-                posalt(1) = inttime*part%vel(1)*adjalt
-                posalt(2) = inttime*part%vel(2)*adjalt
+                  posalt(1) = inttime*part%vel(1)*adjalt
+                  posalt(2) = inttime*part%vel(2)*adjalt
 #if (BL_SPACEDIM == 3)
-                posalt(3) = inttime*part%vel(3)*adjalt
+                  posalt(3) = inttime*part%vel(3)*adjalt
 #endif
 
-                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
+                  ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
+                  part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
+                  part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
 #if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
+                  part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
-                runtime = runtime - inttime
+                  runtime = runtime - inttime
 
-                if(intsurf .gt. 0) then
+                  if(intsurf .gt. 0) then
 
-                  surf => surfaces(intsurf)
+                    surf => surfaces(intsurf)
 
-                  call apply_bc(surf, part, intside, domsize, push)
+                    call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
-                    if(push .eq. 1) then
+                      if(push .eq. 1) then
+                        
+                        part%pos(1) = part%pos(1) + posalt(1)
+                        part%pos(2) = part%pos(2) + posalt(2)
+#if (BL_SPACEDIM == 3)
+                        part%pos(3) = part%pos(3) + posalt(3)
+#endif
+                      endif
                       
-                      part%pos(1) = part%pos(1) + posalt(1)
-                      part%pos(2) = part%pos(2) + posalt(2)
+                  endif
+
+                end do
+
+                midpoint = 1
+                moves = moves + 1
+
+                call get_weights(dxf, dxfinv, weights, indicies, &
+                                coordsx, coordsxlo, coordsxhi, &
+                                coordsy, coordsylo, coordsyhi, &
 #if (BL_SPACEDIM == 3)
-                      part%pos(3) = part%pos(3) + posalt(3)
+                                coordsz, coordszlo, coordszhi, &
 #endif
-                    endif
-                    
-                endif
+                                part, ks, plof)
 
-              end do
-
-              midpoint = 1
-              moves = moves + 1
-
-              call get_weights(dxf, dxfinv, weights, indicies, &
-                              coordsx, coordsxlo, coordsxhi, &
-                              coordsy, coordsylo, coordsyhi, &
+                call inter_op(weights, indicies, &
+                                  velx, velxlo, velxhi, &
+                                  vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
-                              coordsz, coordszlo, coordszhi, &
+                                  velz, velzlo, velzhi, &
 #endif
-                              part, ks, plof)
-
-              call inter_op(weights, indicies, &
-                                velx, velxlo, velxhi, &
-                                vely, velylo, velyhi, &
-#if (BL_SPACEDIM == 3)
-                                velz, velzlo, velzhi, &
-#endif
-                                part, ks, dxf, boundflag, midpoint, rejected)
+                                  part, ks, dxf, boundflag, midpoint, rejected)
+              endif
 
               part%pos = posold
               runtime = dt
@@ -2282,9 +2307,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               !  print *, "dry: ", dry_terms
               endif
 
-              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2
-
-              
+              speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2              
 
               if(speed .gt. maxspeed) then
                 maxspeed = speed
@@ -2315,7 +2338,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
                   surf => surfaces(intsurf)
 
-                  call apply_bc(surf, part, intside, domsize, push)
+                  call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
                     if(push .eq. 1) then
                       
@@ -2380,7 +2403,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
-  print *, "Fraction of midpoint moves rejected: ", rejected/moves
+  if(move_tog .eq. 2) then
+    print *, "Fraction of midpoint moves rejected: ", rejected/moves
+  endif
   print *, "Maximum observed speed: ", sqrt(maxspeed)
   print *, "Maximum observed displacement (fraction of radius): ", maxdist
   print *, "Average diffusion coeffcient: ", diffinst/np

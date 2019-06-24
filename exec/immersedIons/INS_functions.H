@@ -52,13 +52,13 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       const Geometry geom, const Real& dt);
 
 void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	       MultiFab& pres,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& stochMfluxdiv,
-	       std::array< MultiFab, AMREX_SPACEDIM >& sourceTerms,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       MultiFab& beta,
-               MultiFab& gamma,
-	       std::array< MultiFab, NUM_EDGE >& beta_ed,
+	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
+	       MultiFab& pres, MultiFab& tracer,
+	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
+	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+	       const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+	       const MultiFab& beta, const MultiFab& gamma,
+	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
 	       const Geometry geom, const Real& dt);
 
 

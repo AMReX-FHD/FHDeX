@@ -9,14 +9,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
     const Geometry& geom = Geom(lev);
     const Real* dx = geom.CellSize();
     const Real* plo = geom.ProbLo();
-    const Real* phi = geom.ProbHi();
+    const Real* phi = geom.ProbHi(); 
+        double rad;
 
-    int qcount = 0;
-
-    double cosTheta, sinTheta, cosPhi, sinPhi;    
-
-    int pcount = 0;
-    double rad;    
+    int pcount = 0;  
         
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -40,7 +36,12 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
 
-                
+               
+//                p.pos(0) = plo[0] + get_uniform_func()*(phi[0]-plo[0]);
+//                p.pos(1) = plo[1] + get_uniform_func()*(phi[1]-plo[1]);
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = plo[2] + get_uniform_func()*(phi[2]-plo[2]);
+//#endif
                 rad = 1;
                 while(rad > 0.99*(2.5e-5))
                 {                

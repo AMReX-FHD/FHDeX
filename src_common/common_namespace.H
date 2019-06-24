@@ -187,6 +187,7 @@ namespace common {
     extern int                        rfd_tog;
     extern int                        dry_move_tog;
     extern int                        sr_tog;
+    extern int                        graphene_tog;
     extern int                        crange;
 
     extern int                        images;
