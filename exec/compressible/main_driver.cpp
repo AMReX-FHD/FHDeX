@@ -1,27 +1,18 @@
 
-//#include "hydro_functions.H"
-//#include "hydro_functions_F.H"
-
+#include "rng_functions.H"
 #include "rng_functions_F.H"
 
 #include "common_functions.H"
 #include "common_functions_F.H"
 
-#include "gmres_functions.H"
-#include "gmres_functions_F.H"
-
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
-
-#include "gmres_namespace.H"
-#include "gmres_namespace_declarations.H"
 
 #include "compressible_functions.H"
 #include "compressible_functions_F.H"
 
 #include "exec_functions.H"
 
-//#include "StochMFlux.H"
 #include "StructFact.H"
 
 #include <AMReX_VisMF.H>
@@ -34,7 +25,6 @@
 
 using namespace amrex;
 using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -48,11 +38,11 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
+    // read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    InitializeGmresNamespace();
+    // InitializeGmresNamespace();
 
     //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
     get_hc_gas();

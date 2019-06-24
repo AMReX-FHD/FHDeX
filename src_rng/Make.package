@@ -1,2 +1,6 @@
 CEXE_sources += bl_random_c.cpp
 CEXE_headers += bl_random_c.H
+
+CEXE_sources += MultiFABFillRandom.cpp
+CEXE_headers += rng_functions.H
+CEXE_headers += rng_functions_F.H
