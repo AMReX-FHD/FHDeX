@@ -397,8 +397,9 @@ void main_driver(const char* argv)
 
     //create particles
     particles.InitParticlesDSMC(dsmcParticle, pL, pR, tL, tR);
-    particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
-    //particles.InitParticles(dsmcParticle);
+    if (thermostat_tog == 1) {
+        particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+    }
     
 
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
@@ -412,6 +413,15 @@ void main_driver(const char* argv)
 
     //Make plot file with the initial configuration
     WritePlotFile(0,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
+
+    //create plot file to output fluxes
+    std::ofstream outfile;
+    outfile.open("fluxes.txt", std::ios_base::out);
+    outfile << dt << '\n';
+    outfile << pL << ' ' << pR << '\n';
+    outfile << tL << ' ' << tR << '\n';
+    outfile.close();
+
 
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
@@ -434,7 +444,10 @@ void main_driver(const char* argv)
         }
 
         //thermostatting
-        particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+        if(thermostat_tog == 1)
+        {
+            particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+        }
 
         //Start collecting statistics after step n_steps_skip
         if(step == n_steps_skip)
