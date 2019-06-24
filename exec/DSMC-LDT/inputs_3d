@@ -27,6 +27,7 @@
   ! Toggles 0=off, 1=on
   move_tog = 1 ! Particle move
   sr_tog = 0 ! Particle collisions
+  thermostat_tog = 1 ! Set each cell to given temp
 
  
 

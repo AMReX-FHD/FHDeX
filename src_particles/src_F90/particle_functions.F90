@@ -438,6 +438,10 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                 !    write(*,*) "YAY"
                    
                 ! endif
+
+                ! if(intsurf .ne. -1) then
+                !   print *, intsurf
+                ! endif
                 
                 
                 
