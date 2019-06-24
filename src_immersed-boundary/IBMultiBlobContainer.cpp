@@ -118,9 +118,9 @@ void IBMultiBlobContainer::InitList(int lev,
                 p_new.rdata(IBMB_realData::dragy)  = 0.;
                 p_new.rdata(IBMB_realData::dragz)  = 0.;
 
-                // TODO: AuditMB
-                p_new.idata(IBMB_intData::phase)     = -1;
-                p_new.idata(IBMB_intData::state)     = -1;
+                // TODO: Audit
+                p_new.idata(IBMB_intData::phase) = -1;
+                p_new.idata(IBMB_intData::state) = -1;
 
                 // Add to the data structure
                 particles.push_back(p_new);

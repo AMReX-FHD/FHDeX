@@ -92,6 +92,7 @@ public:
 
     // (ID, initial CPU) tuple: unique to each particle
     using ParticleIndex = std::pair<int, int>;
+    using IBMarkerMap   = std::map<ParticleIndex, Vector<RealVect>>;
 
 
     // Get number of particles
@@ -110,6 +111,10 @@ private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
+
+    // IB marker reference data
+    Vector<IBMarkerMap> marker_ref_pos;
+
 
 
     static bool use_neighbor_list;
