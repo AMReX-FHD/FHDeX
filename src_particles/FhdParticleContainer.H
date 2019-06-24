@@ -162,6 +162,11 @@ public:
 
     int numWrongCell();
 
+    //Anthony Stuff
+    void InitParticlesDSMC(species* particleInfo, int pL, int pR, Real tL, Real tR);
+    void ApplyThermostat(species* particleInfo, MultiFab& cellVols, surface* surfaces, 
+                          const int ns, const Real tL, const Real tR);
+
 protected:
     
     void UpdateFortranStructures();
