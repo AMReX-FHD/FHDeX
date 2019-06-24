@@ -189,19 +189,6 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in multifab_fill_random.F90
-
-    void multifab_fill_random(const int* lo, const int* hi,
-			      const amrex_real* mf,
-			      const int* mflo, const int* mfhi,
-			      const int* ncomp, const int* comp);
-
-    void multifab_fill_random_hack(const int* lo, const int* hi,
-			      const amrex_real* mf,
-			      const int* mflo, const int* mfhi,
-			      const int* ncomp, const int* comp, const double* mytop, const double* mybottom);
-
-///////////////////////////
 // in compute_basic_stats.F90
 
     void compute_means(const amrex_real* inst, const int* inlo, const int* inhi, const int* insize,
