@@ -7,7 +7,7 @@
   ! number of cells in domain
   n_cells(1:3) = 2 1 1
   ! max number of cells in a box
-  max_grid_size(1:3) = 1 1 1
+  max_grid_size(1:3) = 2 1 1
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
@@ -15,18 +15,18 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-10
+  fixed_dt = 1e-5
 
   ! Controls for number of steps between actions
-  max_step = 10000
-  plot_int = 1000
+  max_step = 200
+  plot_int = 1
   plot_ascii = 0
   struct_fact_int = 0
   n_steps_skip = 10
 
   ! Toggles 0=off, 1=on
   move_tog = 1 ! Particle move
-  sr_tog = 1 ! Particle collisions
+  sr_tog = 0 ! Particle collisions
 
  
 
@@ -55,22 +55,21 @@
   !Species info
   !--------------
   nspecies = 1
-  mass = 4e-23
+  mass = 4e-26 !was 23 changed to 26
   diameter = 2.488e-8
 
   ! Stochastic parameters
-  k_B = 1.38064852e-16
+  k_B = 1.38064852e-23 !was 16, changed to 23
   T_init(1) = 295.00
-  T_init(2) = 300.00
   variance_coef_mom = 0
    
 
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:
-  ! -1 = periodic, 2 = no slip stationary
-  bc_lo(1:3) = 2 2 2
-  bc_hi(1:3) = 2 2 2
+  ! -1 = periodic, 2 = no slip stationary, 3 = specular no slip
+  bc_lo(1:3) = 3 -1 -1
+  bc_hi(1:3) = 3 -1 -1
 
   !wallspeed_lo(1:3) = 0 0 0 !Not implemented yet.
   !wallspeed_hi(1:3) = 0 0 0 !Not implemented yet.

@@ -41,4 +41,24 @@ extern "C"
 }
 #endif
 
+
+///////////////////////////
+// in thermostat.F90
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+    void thermostat(
+                    void* particles,
+                    const int* lo, const int* hi,
+                    int** c_vectors, int* sizes, const int* clo, const int* chi,
+                    amrex_real* cellVols, const int* cvlo, const int* cvhi,
+                    const amrex_real* neff, const int* np,
+                    const surface* surfaceList, const int* surfaceCount,
+                    const Real* tL, const Real* tR);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
