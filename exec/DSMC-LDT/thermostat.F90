@@ -99,10 +99,6 @@ contains
 
     !mid = (hi(1)-lo(1))/2 !does not set correctly - fix later
     mid = 1.0
-    pL = 0
-    pR = 0
-    vL = 0
-    vR = 0
     !print *, "mid = ", mid
 
     !get average velocities on left and right
@@ -134,7 +130,7 @@ contains
       enddo
     enddo
 
-  print *, "pops, vels:", pL, pR, vL, vR
+  !print *, "pops, vels:", pL, pR, vL, vR
 
   end subroutine getVelocity
 
@@ -169,8 +165,6 @@ contains
 
     !mid = (hi(1)-lo(1))/2 !does not set correctly - fix later
     mid = 1.0
-    varL = 0
-    varR = 0
     !print *, "mid = ", mid
    
     !get the temperature on left and right through the velocity sample variance
@@ -189,7 +183,7 @@ contains
             if(part%pos(1) < mid) then
               varL = varL + (1d0/part%R) * (meanL-part%vel(1))**2
             else
-              varR = varL + (1d0/part%R) * (meanR-part%vel(1))**2
+              varR = varR + (1d0/part%R) * (meanR-part%vel(1))**2
             endif
 
           enddo

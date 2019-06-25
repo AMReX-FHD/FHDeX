@@ -450,11 +450,12 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     const Real Neff = particleInfo->Neff; 
 
     //declare storage for variables going to fortran
-    Real vL, vR;
-    int  pL, pR;
-    Real varL, varR;
+    Real vL = 0, vR = 0;
+    int  pL = 0, pR = 0;
+    Real varL = 0, varR = 0;
     Real meanL = 0; Real meanR = 0;
 
+    //get the total particle number and velocity on each side
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
@@ -463,9 +464,6 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& parts = particle_tile.GetArrayOfStructs();
         const int Np = parts.numParticles();
-
-        pL = 0; pR = 0;
-        vL = 0; vR = 0;
 
         getVelocity(parts.data(),
                     ARLIM_3D(tile_box.loVect()),
@@ -486,11 +484,11 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     ParallelDescriptor::ReduceIntSum(pL);
     ParallelDescriptor::ReduceIntSum(pR);
 
+    //get mean velocities per side
     meanL = vL / pL;
     meanR = vR / pR;
 
-    printf("pops, vels: %d %d %f %f\n", pL, pR, vL, vR);
-
+    //get temperature on each side via velocity variance
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
@@ -499,8 +497,6 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& parts = particle_tile.GetArrayOfStructs();
         const int Np = parts.numParticles();
-
-        varL = 0; varR = 0;
 
         getTemp(parts.data(),
                 ARLIM_3D(tile_box.loVect()),
@@ -522,6 +518,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     Real lC = sqrt(tL/varL); 
     Real rC = sqrt(tR/varR);
 
+    //apply correction factors
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
