@@ -2,8 +2,7 @@ module flux_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type
-  use conv_module, only : get_temperature, get_pressure_gas, get_temperature_gas, get_energy, get_density_gas, get_energy_gas, get_hc_gas
-  use multispec_module, only : get_enthalpies
+  use conv_module, only : get_temperature, get_pressure_gas, get_energy, get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
 
   implicit none
 
@@ -292,9 +291,9 @@ contains
       real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       real(amrex_real), intent(in   ) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
 
-      real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, massvec(nspecies), fracvec(nspecies), rho, temp, pt
+      real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, specden(nspecies), Yk(nspecies), rho, temp, pt
 
-      integer :: i,j,k,l
+      integer :: i,j,k,l,n
 
       wgt2 = 1.0/12.0 !fourth order interpolation
       wgt1 = 0.5 + wgt2 
@@ -309,26 +308,34 @@ contains
       !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
       !x flux
-
-    !print *, "flux: ", cons(1,0,0,1), cons(0,0,0,1), cons(-2,0,0,1), cons(-1,0,0,1)
-     
+      
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)+1
 
 
-            do l = 2,nprimvars             
+            do l = 1,nprimvars             
                primitive(l) = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) -wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l))  
             enddo
 
             temp = primitive(5)
             pt = primitive(6)
+            rho = primitive(1)
             
-            call get_density_gas(pt,rho, temp)
+            ! call get_density_gas(pt,rho, temp)
+            ! conserved(1) = rho
+            
+            !  want sum of specden == rho
+            do n=1,nspecies
+               specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i-1,j,k,5+n))                 &
+                           -wgt2*(cons(i-2,j,k,5+n)+cons(i+1,j,k,5+n))
 
-            conserved(1) = rho
+               Yk(n) = specden(n)/rho
 
-            call get_energy_gas(pt, intenergy)
+            enddo
+
+            call get_energy(intenergy, Yk, temp)
+            ! call get_energy_gas(pt, intenergy)
 
             vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
@@ -341,6 +348,10 @@ contains
 
             xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
  
+            do n=1,nspecies
+               xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
+            enddo
+
           end do
         end do
       end do
@@ -352,18 +363,28 @@ contains
        do j = lo(2),hi(2)+1
          do i = lo(1),hi(1)
 
-           do l = 2,nprimvars 
+           do l = 1,nprimvars 
              primitive(l) = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) -wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l))
            enddo
 
            temp = primitive(5)
            pt = primitive(6)
+           rho = primitive(1)
 
-           call get_density_gas(pt,rho, temp)
+           ! call get_density_gas(pt,rho, temp)
+           ! conserved(1) = rho
+           
+           !  want sum of specden == rho
+           do n=1,nspecies
+              specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j-1,k,5+n))                 &
+                          -wgt2*(cons(i,j-2,k,5+n)+cons(i,j+1,k,5+n))
 
-           conserved(1) = rho
+              Yk(n) = specden(n)/rho
 
-           call get_energy_gas(pt, intenergy)
+           enddo
+           
+           call get_energy(intenergy, Yk, temp)
+           ! call get_energy_gas(pt, intenergy)
 
            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
@@ -375,6 +396,10 @@ contains
            yflux(i,j,k,4) = yflux(i,j,k,4) + conserved(1)*primitive(4)*primitive(3)
 
            yflux(i,j,k,5) = yflux(i,j,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
+           
+           do n=1,nspecies
+              yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + specden(n)*primitive(3)
+           enddo
 
          end do
        end do
@@ -386,18 +411,28 @@ contains
        do j = lo(2),hi(2)
          do i = lo(1),hi(1)
 
-           do l = 2,nprimvars 
+           do l = 1,nprimvars 
              primitive(l) = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) -wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l))
            enddo
 
            temp = primitive(5)
            pt = primitive(6)
+           rho = primitive(1)
 
-           call get_density_gas(pt,rho, temp)
+           ! call get_density_gas(pt,rho, temp)
+           ! conserved(1) = rho
+           
+           !  want sum of specden == rho
+           do n=1,nspecies
+              specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j,k-1,5+n))                 &
+                          -wgt2*(cons(i,j,k-2,5+n)+cons(i,j,k+1,5+n))
 
-           conserved(1) = rho
+              Yk(n) = specden(n)/rho
 
-           call get_energy_gas(pt, intenergy)
+           enddo
+           
+           call get_energy(intenergy, Yk, temp)
+           ! call get_energy_gas(pt, intenergy)
 
            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
@@ -408,6 +443,10 @@ contains
            zflux(i,j,k,3) = zflux(i,j,k,3) + conserved(1)*primitive(3)*primitive(4)
            zflux(i,j,k,4) = zflux(i,j,k,4) + conserved(1)*primitive(4)**2+primitive(6)
            zflux(i,j,k,5) = zflux(i,j,k,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
+           
+           do n=1,nspecies
+              zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + specden(n)*primitive(4)
+           enddo
 
          end do
        end do
