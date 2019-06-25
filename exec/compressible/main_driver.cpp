@@ -122,8 +122,8 @@ void main_driver(const char* argv)
     MultiFab eta  (ba,dmap,1,ngc);
     MultiFab zeta (ba,dmap,1,ngc);
     MultiFab kappa(ba,dmap,1,ngc);
-    MultiFab chi(ba,dmap,1,ngc);
-    MultiFab D(ba,dmap,1,ngc);
+    MultiFab chi(ba,dmap,nspecies,ngc);
+    MultiFab D(ba,dmap,nspecies*nspecies,ngc);
 
     //conserved quantaties
     MultiFab cu  (ba,dmap,nvars,ngc);
@@ -301,7 +301,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
-        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
+        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
         if(step == n_steps_skip)
         {

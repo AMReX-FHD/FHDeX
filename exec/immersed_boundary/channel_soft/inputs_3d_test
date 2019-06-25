@@ -55,8 +55,8 @@
   bc_lo(1:3) = 2 -2 -1
   bc_hi(1:3) = 2 -2 -1
 
-  p_lo(1:3)  = 0 -10  0
-  p_hi(1:3)  = 0  10  0
+  p_lo(1:3)  = 0 -1  0
+  p_hi(1:3)  = 0  1  0
 
 !  Chemical solver parameters
   solve_chem       = 1
