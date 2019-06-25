@@ -1,8 +1,10 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, membrane_cell, visc_type
-  use conv_module, only : get_temperature, get_pressure_gas, get_temperature_gas, get_energy, get_density_gas, get_energy_gas
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type
+  use conv_module, only : get_temperature, get_pressure_gas, get_temperature_gas, get_energy, get_density_gas, get_energy_gas, get_hc_gas
+  use multispec_module, only : get_enthalpies
+
   implicit none
 
   private
@@ -113,12 +115,11 @@ contains
             v = 0.5*(prim(i+1,j,k,3) + prim(i,j,k,3))
             w = 0.5*(prim(i+1,j,k,4) + prim(i,j,k,4))            
 
-
             !print *, "tau: ", taux, tauy, tauz
             !print *, "vel: ", u, v, w
             !energy flux
             xflux(i+1,j,k,5) = xflux(i+1,j,k,5) - (u*taux + v*tauy + w*tauz) - kappaf*(dtx + dty + dtz)
-
+            
           end do
         end do
       end do
@@ -1021,18 +1022,24 @@ contains
 
     end subroutine stoch_flux_bounds
 
-  subroutine diff_flux_sym(lo,hi, cons, prim, eta, zeta, kappa, fluxx, fluxy, &
+  subroutine diff_flux_sym(lo,hi, cons, prim, & 
+                           eta, zeta, kappa, & 
+                           chi, Dij, &
+                           fluxx, fluxy, &
 #if (AMREX_SPACEDIM == 3)
-                        fluxz, &
+                           fluxz, &
 #endif
-                        cornux, cornvx, cornwx, cornuy, cornvy, cornwy, cornuz, cornvz, cornwz, visccorn, dx) bind(C,name="diff_flux_sym")
+                           cornux, cornvx, cornwx, & 
+                           cornuy, cornvy, cornwy, & 
+                           cornuz, cornvz, cornwz, & 
+                           visccorn, dx) bind(C,name="diff_flux_sym")
 
       integer         , intent(in   ) :: lo(3),hi(3)
       real(amrex_real), intent(in   ) :: dx(3)
-      real(amrex_real), intent(inout) :: fluxx(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(inout) :: fluxy(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: fluxx(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3),nvars)
+      real(amrex_real), intent(inout) :: fluxy(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3),nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(inout) :: fluxz(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+      real(amrex_real), intent(inout) :: fluxz(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1,nvars)
 #endif
 
       real(amrex_real), intent(inout) :: cornux(lo(1):hi(1)+1,lo(2):hi(2)+1,lo(3):hi(3)+1)
@@ -1049,22 +1056,33 @@ contains
 
       real(amrex_real), intent(inout) :: visccorn(lo(1):hi(1)+1,lo(2):hi(2)+1,lo(3):hi(3)+1)
 
-      real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-      real(amrex_real), intent(in   ) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
+      real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in   ) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nprimvars)
 
       real(amrex_real), intent(in   ) :: eta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
       real(amrex_real), intent(in   ) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
       real(amrex_real), intent(in   ) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
 
+      real(amrex_real), intent(in   ) :: chi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
+      real(amrex_real), intent(in   ) :: Dij(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
+
       integer :: i,j,k 
-      real(amrex_real) :: half, dxinv(3), twothirds, muxp, kxp, tauxxp, tauyxp, tauzxp, divxp, phiflx, muyp, kyp, tauxyp, tauyyp, tauzyp, divyp, zetaxp, onetwelfth
+      real(amrex_real) :: half, two, dxinv(3), twothirds, muxp, kxp, tauxxp, tauyxp, tauzxp, divxp, phiflx, muyp, kyp, tauxyp, tauyyp, tauzyp, divyp, zetaxp, onetwelfth
 #if (AMREX_SPACEDIM == 3)
       real(amrex_real) :: muzp, kzp, tauxzp, tauyzp, tauzzp, divzp
 #endif
+      
+      ! Multispecies local
+      real(amrex_real) :: term1, term2, Q5
+      real(amrex_real) :: dk(nspecies), Fk(nspecies), hk(nspecies), soret(nspecies), meanXk(nspecies), meanYk(nspecies)
+      real(amrex_real) :: meanT, meanP
+      integer :: ns, kk, ll
 
       dxinv = 1d0/dx
-      twothirds = 2d0/3d0
+      
+      two = 2.d0
       half = 0.5d0
+      twothirds = 2d0/3d0
       onetwelfth = 1d0/12d0
 
       !x flux
@@ -1090,7 +1108,48 @@ contains
                fluxx(i,j,k,4) = fluxx(i,j,k,4) - tauzxp
                fluxx(i,j,k,5) = fluxx(i,j,k,5) - (half*phiflx                  &
                     &                      + kxp*(prim(i,j,k,5)-prim(i-1,j,k,5))/dx(1))
+               
+               meanT = 0.5d0*(prim(i-1,j,k,5)+prim(i,j,k,5))
+               meanP = 0.5d0*(prim(i-1,j,k,6)+prim(i,j,k,6))
 
+               ! if(.not.single_component) then
+
+                  ! compute dk
+                  do ns = 1, nspecies
+                     term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/dx(1)
+                     meanXk(ns) = 0.5d0*(prim(i-1,j,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns))
+                     meanYk(ns) = 0.5d0*(prim(i-1,j,k,6+ns)+prim(i,j,k,6+ns))
+                     term2 = (meanXk(ns)-meanYk(ns))*(prim(i,j,k,6)-prim(i-1,j,k,6))/dx(1)/meanP
+                     dk(ns) = term1 + term2 
+                     soret(ns) = 0.5d0*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))  &
+                          *(prim(i,j,k,5)-prim(i-1,j,k,5))/dx(1)/meanT
+                  enddo
+
+                  ! compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
+                  Fk = 0.0d0 
+                  do kk = 1, nspecies
+                     do ll = 1, nspecies
+                        Fk(kk) = Fk(kk) - half*(Dij(i-1,j,k,kk,ll)+Dij(i,j,k,kk,ll))*( dk(ll) +soret(ll))
+                     enddo
+                  enddo
+
+                  ! compute Q (based on Eqn. 2.5.25, Giovangigli's book)
+                  call get_enthalpies(meanT, hk)
+
+                  Q5 = 0.0d0
+                  do ns = 1, nspecies
+                     Q5 = Q5 + (hk(ns) + 0.5d0 * Runiv*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass(ns))*Fk(ns)  
+                  enddo
+                  ! heat conduction already included in flux(5)       
+
+
+                  fluxx(i,j,k,5) = fluxx(i,j,k,5) + Q5
+
+                  do ns = 1, nspecies  
+                     fluxx(i,j,k,5+ns) = fluxx(i,j,k,5+ns) + Fk(ns)
+                  enddo
+
+               ! end if
 
             end do
          end do
@@ -1121,6 +1180,48 @@ contains
              fluxy(i,j,k,5) = fluxy(i,j,k,5) - (half*phiflx                  &
                   &                      + kyp*(prim(i,j,k,5)-prim(i,j-1,k,5))/dx(2))
 
+             meanT = 0.5d0*(prim(i,j-1,k,5)+prim(i,j,k,5))
+             meanP = 0.5d0*(prim(i,j-1,k,6)+prim(i,j,k,6))
+
+             ! if(.not.single_component) then
+                ! compute dk  
+
+                do ns = 1, nspecies
+                   term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j-1,k,6+nspecies+ns))/dx(2)
+                   meanXk(ns) = 0.5d0*(prim(i,j-1,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns))
+                   meanYk(ns) = 0.5d0*(prim(i,j-1,k,6+ns)+prim(i,j,k,6+ns))
+                   term2 = (meanXk(ns)-meanYk(ns))*(prim(i,j,k,6)-prim(i,j-1,k,6))/dx(2)/meanP
+                   dk(ns) = term1 + term2 
+                   soret(ns) = 0.5d0*(chi(i,j-1,k,ns)*prim(i,j-1,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))  &
+                        *(prim(i,j,k,5)-prim(i,j-1,k,5))/dx(2)/meanT
+                enddo
+
+                ! compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
+                Fk = 0.0d0
+                do kk = 1, nspecies
+                   do ll = 1, nspecies
+                      Fk(kk) = Fk(kk) - half*(Dij(i,j-1,k,kk,ll)+Dij(i,j,k,kk,ll))*( dk(ll) +soret(ll))
+                   enddo
+                enddo
+
+                ! compute Q (based on Eqn. 2.5.25, Giovangigli's book)
+                call get_enthalpies(meanT, hk)
+
+                Q5 = 0.0d0
+                do ns = 1, nspecies
+                   Q5 = Q5 + (hk(ns) + 0.5d0 * Runiv*meanT*(chi(i,j-1,k,ns)+chi(i,j,k,ns))/molmass(ns))*Fk(ns)  
+                enddo
+
+                ! heat conduction already included in flux(5)
+
+                fluxy(i,j,k,5) = fluxy(i,j,k,5) + Q5
+
+                do ns = 1, nspecies
+                   fluxy(i,j,k,5+ns) = fluxy(i,j,k,5+ns) + Fk(ns)
+                enddo
+
+             ! end if
+
           end do
         end do
       end do
@@ -1150,6 +1251,48 @@ contains
                fluxz(i,j,k,4) = fluxz(i,j,k,4) - (tauzzp+divzp)
                fluxz(i,j,k,5) = fluxz(i,j,k,5) - (half*phiflx                  &
                     &                      +kzp*(prim(i,j,k,5)-prim(i,j,k-1,5))/dx(3))
+               
+               meanT = 0.5d0*(prim(i,j,k-1,5)+prim(i,j,k,5))
+               meanP = 0.5d0*(prim(i,j,k-1,6)+prim(i,j,k,6))
+
+               ! if(.not.single_component) then
+                  ! compute dk  
+
+                  do ns = 1, nspecies
+                     term1 = (prim(i,j,k,6+nspecies+ns)-prim(i,j,k-1,6+nspecies+ns))/dx(3)
+                     meanXk(ns) = 0.5d0*(prim(i,j,k-1,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns))
+                     meanYk(ns) = 0.5d0*(prim(i,j,k-1,6+ns)+prim(i,j,k,6+ns))
+                     term2 = (meanXk(ns)-meanYk(ns))*(prim(i,j,k,6)-prim(i,j,k-1,6))/dx(3)/meanP
+                     dk(ns) = term1 + term2 
+                     soret(ns) = 0.5d0*(chi(i,j,k,ns)*prim(i,j,k-1,6+nspecies+ns)+chi(i,j,k+1,ns)*prim(i,j,k,6+nspecies+ns))  &
+                          *(prim(i,j,k,5)-prim(i,j,k-1,5))/dx(3)/meanT
+                  enddo
+
+                  ! compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
+                  Fk = 0.0d0
+                  do kk = 1, nspecies
+                     do ll = 1, nspecies
+                        Fk(kk) = Fk(kk) - half*(Dij(i,j,k-1,kk,ll)+Dij(i,j,k,kk,ll))*( dk(ll) +soret(ll))
+                     enddo
+                  enddo
+
+                  ! compute Q (based on Eqn. 2.5.25, Giovangigli's book)
+                  call get_enthalpies(meanT, hk)
+
+                  Q5 = 0.0d0
+                  do ns = 1, nspecies
+                     Q5 = Q5 + (hk(ns) + 0.5d0 * Runiv*meanT*(chi(i,j,k,ns)+chi(i,j,k,ns))/molmass(ns))*Fk(ns)  
+                  enddo
+
+                  ! heat conduction already included in flux(5)
+
+                  fluxz(i,j,k,5) = fluxz(i,j,k,5) + Q5
+
+                  do ns = 1, nspecies
+                     fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk(ns)
+                  enddo
+
+               ! end if
 
             end do
          end do
