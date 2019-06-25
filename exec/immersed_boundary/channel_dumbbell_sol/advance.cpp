@@ -281,15 +281,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         f_p = RealVect{0., 0., 0.};
         f   = RealVect{0., 0., 0.};
         f_m = RealVect{0., 0., 0.};
- 
+
 
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
 
             // position vector for the current particle
             r = RealVect{part.rdata(IBM_realData::pred_posx), part.rdata(IBM_realData::pred_posy), part.rdata(IBM_realData::pred_posz)};
-
-            // std::cout << "my id = " << part.id() << std::endl;
 
             int nn = nbhd[nbhd_index];
             nbhd_index ++; // pointing at first neighbor
@@ -298,29 +296,24 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             bool found_npart_m = false;
 
             // Loops over neighbor list
-            for (int j=0; j < nn; ++j){
+            for (int j=0; j < nn; ++j) {
                 int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing
-                // std::cout << "neighbor list index " << ni << std::endl;
 
-                ParticleType * npart; 
+                ParticleType * npart;
                 ParticleType * npart_m; // for pointing to the minus particle if found
 
                 if (ni >= np) {
                     ni = ni - np;
                     npart = & nbhd_data[ni];
-                    // std::cout << "neighbor = " << npart->pos(1) << std::endl;
-                    // std::cout << "neighbor id = " << npart->id() << std::endl;
                 } else {
                     npart = & particles[ni];
-                    // std::cout << "particle = " << npart->ipos(1) << std::endl;
-                    // std::cout << "particle id = " << npart->id() << std::endl;
                 }
 
                 //check if the neighbor candidate is the previous/minus neighbor created.
                 //If so, compute and update spring forces for both current particle and its previous neighbor
                 if ((npart->id()==part.idata(IBM_intData::id_0)) && (npart->cpu()==part.idata(IBM_intData::cpu_0))) {
 
-                    // add on differential changes in spring forces 
+                    // add on differential changes in spring forces
                     part.rdata(IBM_realData::pred_forcex) -= spr_k * ((part.rdata(IBM_realData::pred_posx)-npart->rdata(IBM_realData::pred_posx) - init_dx));
                     part.rdata(IBM_realData::pred_forcey) -= spr_k * ((part.rdata(IBM_realData::pred_posy)-npart->rdata(IBM_realData::pred_posy) - init_dy));
                     part.rdata(IBM_realData::pred_forcez) -= spr_k * ((part.rdata(IBM_realData::pred_posz)-npart->rdata(IBM_realData::pred_posz) - init_dz));
@@ -342,20 +335,20 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     // position vector for the next/plus neighbor particle
                     //ParticleType * npart_p = npart; //npart is the plus particle
                     r_p = RealVect{npart->rdata(IBM_realData::pred_posx),npart->rdata(IBM_realData::pred_posy), npart->rdata(IBM_realData::pred_posz)};
-                    
+
                     // make sure the current particle has a minus neighbor as well
                     if (found_npart_m) {
                     //calling the bending force calculation
                     bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
-                    
+
                     Print() << "f= " << f_p << std::endl;
                     Print() << "f= " << f << std::endl;
                     Print() << "f= " << f_m << std::endl;
-                    
-                    // updating the force on the minus, current, and plus particles. 
-                    part.rdata(IBM_realData::pred_forcex) += f[0]; 
-                    part.rdata(IBM_realData::pred_forcey) += f[1];   
-                    part.rdata(IBM_realData::pred_forcez) += f[2];              
+
+                    // updating the force on the minus, current, and plus particles.
+                    part.rdata(IBM_realData::pred_forcex) += f[0];
+                    part.rdata(IBM_realData::pred_forcey) += f[1];
+                    part.rdata(IBM_realData::pred_forcez) += f[2];
 
                     npart_m->rdata(IBM_realData::pred_forcex) += f_m[0];
                     npart_m->rdata(IBM_realData::pred_forcey) += f_m[1];
@@ -368,8 +361,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 }
                 nbhd_index ++;
             }
-            
-            
          }
     }
 
