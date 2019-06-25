@@ -228,7 +228,6 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         amr_core_adv.EvolveChem(umac, iface, ibpc_lev, nstep,dt, time, diffcoeff);
         amrex::Print() << "After Solving AD Eqn" << std::endl;
-  
     }
 
 
@@ -290,18 +289,24 @@ void advance(AmrCoreAdv & amr_core_adv,
     std::array<MultiFab, AMREX_SPACEDIM> force_1;
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        force_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        force_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        force_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, umac[d].nGrow());
+        force_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, umac[d].nGrow());
     }
 
 
     //___________________________________________________________________________
     // Predictor step: advect immersed boundary markers
+    std::array<MultiFab, AMREX_SPACEDIM> umac_buffer;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        umac_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
+        umac_buffer[d].FillBoundary(geom.periodicity());
+    }
 
     for (const auto & pindex : part_indices) {
         auto & vel = marker_vel.at(pindex);
 
-        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umac);
+        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umac_buffer);
     }
 
     for (const auto & pindex : part_indices) {
@@ -353,8 +358,8 @@ void advance(AmrCoreAdv & amr_core_adv,
     std::array<MultiFab, AMREX_SPACEDIM> umac_1;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        umac_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        umac_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, umac[d].nGrow());
+        umac_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, umac[d].nGrow());
     }
 
 
@@ -415,8 +420,8 @@ void advance(AmrCoreAdv & amr_core_adv,
     // Set up initial condtions for predictor (0) and corrector (1)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Copy(umac_0[d],       umac[d], 0, 0, 1, 1);
-        MultiFab::Copy(umac_1[d],       umac[d], 0, 0, 1, 1);
+        MultiFab::Copy(umac_0[d], umac[d], 0, 0, 1, umac[d].nGrow());
+        MultiFab::Copy(umac_1[d], umac[d], 0, 0, 1, umac[d].nGrow());
         MultiFab::Add(force_0[d], force_ibm[d], 0, 0, 1, 1);
         MultiFab::Add(force_1[d], force_ibm[d], 0, 0, 1, 1);
     }
@@ -453,7 +458,6 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     //___________________________________________________________________________
     // Call GMRES to compute predictor
-
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_0,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
@@ -520,15 +524,19 @@ void advance(AmrCoreAdv & amr_core_adv,
 
 
     //___________________________________________________________________________
-    // Predictor step: advect immersed boundary markers
+    // Corrector step: advect immersed boundary markers
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        force_1[d].setVal(0);
+    std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        umacNew_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umacNew[d].nGrow());
+        umacNew_buffer[d].FillBoundary(geom.periodicity());
+    }
 
     for (const auto & pindex : part_indices) {
         auto & vel = marker_vel.at(pindex);
 
-        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umacNew);
+        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umacNew_buffer);
     }
 
     for (const auto & pindex : part_indices) {
@@ -553,6 +561,9 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     //___________________________________________________________________________
     // Add immersed-boundary forces to predictor's RHS
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        force_1[d].setVal(0);
 
     for (const auto & pindex : part_indices) {
         const auto & force = marker_force_1.at(pindex);
@@ -594,7 +605,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     //_______________________________________________________________________
     // call GMRES to compute corrector
-
+    gmres_rhs_p.setVal(0.);
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);

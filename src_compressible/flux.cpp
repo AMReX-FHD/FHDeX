@@ -8,6 +8,7 @@ using namespace common;
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
+                   const MultiFab& chi, const MultiFab& D,
                    std::array<MultiFab, AMREX_SPACEDIM>& flux,
                    std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornx,
@@ -58,6 +59,8 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 			eta[mfi].dataPtr(),  
 			zeta[mfi].dataPtr(),  
 			kappa[mfi].dataPtr(),  
+			chi[mfi].dataPtr(),  
+			D[mfi].dataPtr(),  
 			flux[0][mfi].dataPtr(),
 			flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
