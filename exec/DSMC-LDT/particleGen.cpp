@@ -447,8 +447,15 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     //compute the cell temperatures as variance of velocity. Re-scale to given values
 
     const int lev = 0;
-    const Real Neff = particleInfo->Neff;   
+    const Real Neff = particleInfo->Neff; 
 
+    //declare storage for variables going to fortran
+    Real vL = 0, vR = 0;
+    int  pL = 0, pR = 0;
+    Real varL = 0, varR = 0;
+    Real meanL = 0; Real meanR = 0;
+
+    //get the total particle number and velocity on each side
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
@@ -458,6 +465,70 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         auto& parts = particle_tile.GetArrayOfStructs();
         const int Np = parts.numParticles();
 
+        getVelocity(parts.data(),
+                    ARLIM_3D(tile_box.loVect()),
+                    ARLIM_3D(tile_box.hiVect()),
+                    m_vector_ptrs[grid_id].dataPtr(),
+                    m_vector_size[grid_id].dataPtr(),
+                    ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                    ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                    BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
+                    surfaces, &ns, &pL, &pR, &vL, &vR);
+
+
+    }
+
+    //perform reductions
+    ParallelDescriptor::ReduceRealSum(vL);
+    ParallelDescriptor::ReduceRealSum(vR);
+    ParallelDescriptor::ReduceIntSum(pL);
+    ParallelDescriptor::ReduceIntSum(pR);
+
+    //get mean velocities per side
+    meanL = vL / pL;
+    meanR = vR / pR;
+
+    //get temperature on each side via velocity variance
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& parts = particle_tile.GetArrayOfStructs();
+        const int Np = parts.numParticles();
+
+        getTemp(parts.data(),
+                ARLIM_3D(tile_box.loVect()),
+                ARLIM_3D(tile_box.hiVect()),
+                m_vector_ptrs[grid_id].dataPtr(),
+                m_vector_size[grid_id].dataPtr(),
+                ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
+                surfaces, &ns, &meanL, &meanR, &varL, &varR);
+
+    }
+
+    //perform reductions, get variance by scaling by population
+    ParallelDescriptor::ReduceRealSum(varL); varL = varL/pL;
+    ParallelDescriptor::ReduceRealSum(varR); varR = varR/pR;
+
+    //compute correction factors
+    Real lC = sqrt(tL/varL); 
+    Real rC = sqrt(tR/varR);
+
+    //apply correction factors
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& parts = particle_tile.GetArrayOfStructs();
+        const int Np = parts.numParticles();
+
+
         thermostat(parts.data(),
                     ARLIM_3D(tile_box.loVect()),
                     ARLIM_3D(tile_box.hiVect()),
@@ -466,7 +537,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                     ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                     ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                     BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                    surfaces, &ns, &tL, &tR);
+                    surfaces, &ns, &meanL, &meanR, &lC, &rC);
 
     }
 }

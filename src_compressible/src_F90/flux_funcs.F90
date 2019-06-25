@@ -339,7 +339,7 @@ contains
 
             vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
-            conserved(5) = intenergy + 0.5*rho*vsqr
+            conserved(5) = rho*intenergy + 0.5*rho*vsqr
 
             xflux(i,j,k,1) = xflux(i,j,k,1) + conserved(1)*primitive(2)
             xflux(i,j,k,2) = xflux(i,j,k,2) + conserved(1)*(primitive(2)**2)+primitive(6)
