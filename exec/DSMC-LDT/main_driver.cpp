@@ -94,6 +94,7 @@ void main_driver(const char* argv)
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     // note we are converting "Vector<int> max_grid_size" to an IntVect
     ba.maxSize(IntVect(max_grid_size));
+    int num_boxes = ba.size();
 
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
@@ -396,7 +397,7 @@ void main_driver(const char* argv)
     FhdParticleContainer particles(geom, dmap, ba, crange);
 
     //create particles
-    particles.InitParticlesDSMC(dsmcParticle, pL, pR, tL, tR);
+    particles.InitParticlesDSMCtest(dsmcParticle, num_boxes, pL, pR, tL, tR);
     if (thermostat_tog == 1) {
         particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
     }
