@@ -415,10 +415,12 @@ void advance(AmrCoreAdv & amr_core_adv,
     // Set up initial condtions for predictor (0) and corrector (1)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Copy(umac_0[d],      umac[d], 0, 0, 1, umac[d].nGrow());
-        MultiFab::Copy(umac_1[d],      umac[d], 0, 0, 1, umac[d].nGrow());
-        MultiFab::Add(force_0[d], force_ibm[d], 0, 0, 1, umac[d].nGrow());
-        MultiFab::Add(force_1[d], force_ibm[d], 0, 0, 1, umac[d].nGrow());
+        MultiFab::Copy(umac_0[d],  umac[d], 0, 0, 1, umac[d].nGrow());
+        MultiFab::Copy(umac_1[d],  umac[d], 0, 0, 1, umac[d].nGrow());
+        // MultiFab::Add(force_0[d], force_ibm[d], 0, 0, 1, umac[d].nGrow());
+        // MultiFab::Add(force_1[d], force_ibm[d], 0, 0, 1, umac[d].nGrow());
+        MultiFab::Add(force_0[d], force_ibm[d], 0, 0, 1, 1);
+        MultiFab::Add(force_1[d], force_ibm[d], 0, 0, 1, 1);
     }
 
     MultiFab::Copy(p_0, pres, 0, 0, 1, 1);
@@ -453,7 +455,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     //___________________________________________________________________________
     // Call GMRES to compute predictor
-
+    gmres_rhs_p.setVal(0.);
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_0,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
@@ -594,7 +596,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     //_______________________________________________________________________
     // call GMRES to compute corrector
-
+    gmres_rhs_p.setVal(0.);
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
