@@ -423,14 +423,13 @@ void main_driver(const char* argv)
     outfile << tL << ' ' << tR << '\n';
     outfile.close();
 
-
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
     {
 
         //perform particle updates
         //ballistic movement
-        if(move_tog==1)
+        if(move_tog == 1)
         {
             particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
             particles.Redistribute();
@@ -439,7 +438,7 @@ void main_driver(const char* argv)
         }
 
         //particle collisions
-        if(sr_tog==1)
+        if(sr_tog == 1)
         {
             particles.CollideParticles(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
         }

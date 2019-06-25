@@ -82,14 +82,14 @@ contains
     Lmembersinv = (1d0)/Lmembersinv
     Rmembersinv = (1d0)/Rmembersinv
 
-    !print *, Lmembersinv, Rmembersinv
+    print *, Lmembersinv, Rmembersinv
 
 
     !average velocities
     vLx = vLx * Lmembersinv
     vRx = vRx * Rmembersinv
 
-    !print *, vLx, vRx
+    print *, vLx, vRx
    
     !get the temperature on left and right through the velocity sample variance
     do k = lo(3), hi(3)
