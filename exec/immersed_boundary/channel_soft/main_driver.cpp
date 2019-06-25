@@ -283,10 +283,10 @@ void main_driver(const char * argv) {
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    defineFC(umac, ba, dmap, 4);
+    defineFC(umac, ba, dmap, 1);
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    defineFC(umacNew, ba, dmap, 4);
+    defineFC(umacNew, ba, dmap, 1);
 
 
     //___________________________________________________________________________
