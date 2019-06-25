@@ -120,10 +120,16 @@ public:
 
 
 
-
-
     // Get number of particles
     int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().size();};
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Marker Spreading and Interpolation                                       *
+     *                                                                          *
+     ***************************************************************************/
 
 
     //___________________________________________________________________________
@@ -188,23 +194,42 @@ public:
 
 
 
-
     /****************************************************************************
-     * Physics                                                                   *
-     ****************************************************************************/
+     *                                                                          *
+     * Physics                                                                  *
+     *                                                                          *
+     ***************************************************************************/
+
 
     void MoveMarkers(int lev, Real dt);
     void MovePredictor(int lev, Real dt);
     void ResetMarkers(int lev);
     void ResetPredictor(int lev);
 
-    const IntVector & get_neighbor_list(int lev, const PairIndex & index) {
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Access marker (amrex particle) data                                      *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    const IntVector & get_neighbor_list(int lev, const PairIndex & index) const {
         return neighbor_list[lev].at(index);
     };
 
-    ParticleType * get_neighbors(int lev, const PairIndex & index) {
+    ParticleType * get_neighbors(int lev, const PairIndex & index) const {
         return (ParticleType *) neighbors[lev].at(index).dataPtr();
-    }
+    };
+
+    int FindConnectedMarkers(      AoS & particles,
+                             const ParticleType & part,
+                                   ParticleVector & nbhd_data,
+                             const Vector<int> & nbhd,
+                             int nbhd_index,
+                             ParticleType * prev_marker,
+                             ParticleType * next_marker) const;
 
 
 

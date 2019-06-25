@@ -56,23 +56,21 @@ contains
               specavkappa = specavkappa + prim(i,j,k,6+l)*tconst(l)
             enddo
 
-            ! rootT = sqrt(prim(i,j,k,5))
-            rootT = sqrt(300.d0)
+            rootT = sqrt(prim(i,j,k,5))
 
             zeta(i,j,k) = 0 !no bulk viscosity for now
 
             eta(i,j,k) = rootT*specaveta
             kappa(i,j,k) = rootT*specavkappa
             
-            ! if((i.eq.0).and.(j.eq.0)) then
-            !    print *, "Hack = ", i, j, k, specaveta, specavkappa, rootT, prim(i,j,k,5)
+            ! if((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+            !    print *, "transcoef: Hack = ", i, j, k, specaveta, specavkappa, rootT, prim(i,j,k,5)
             ! endif
 
             if(kappa(i,j,k) .ne. kappa(i,j,k)) then
                print *, "NAN! kappa ", i, j, k, prim(i,j,k,5)
                call exit()
             endif
-            !print *, eta(i,j,k), kappa(i,j,k)
 
           enddo
         enddo

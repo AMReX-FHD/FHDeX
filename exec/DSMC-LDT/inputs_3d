@@ -18,14 +18,14 @@
   fixed_dt = 1e-5
 
   ! Controls for number of steps between actions
-  max_step = 10
-  plot_int = 1
+  max_step = 100
+  plot_int = 10
   plot_ascii = 0
   struct_fact_int = 0
   n_steps_skip = 10
 
   ! Toggles 0=off, 1=on
-  move_tog = 0 ! Particle move
+  move_tog = 1 ! Particle move
   sr_tog = 0 ! Particle collisions
   thermostat_tog = 1 ! Set each cell to given temp
 

@@ -421,8 +421,9 @@ void main_driver(const char* argv)
     outfile << dt << '\n';
     outfile << pL << ' ' << pR << '\n';
     outfile << tL << ' ' << tR << '\n';
-    outfile.close();
 
+    //make fluxes storage
+    int flux[2]; flux[0] = 0; flux[1] = 0;
 
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
@@ -430,16 +431,17 @@ void main_driver(const char* argv)
 
         //perform particle updates
         //ballistic movement
-        if(move_tog==1)
+        if(move_tog == 1)
         {
-            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
+            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time, flux);
+            outfile << flux[0] << ' ' << flux[1] << '\n';
             particles.Redistribute();
 
             particles.ReBin();
         }
 
         //particle collisions
-        if(sr_tog==1)
+        if(sr_tog == 1)
         {
             particles.CollideParticles(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
         }
@@ -483,4 +485,7 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    //close the outfile
+    outfile.close();
 }
