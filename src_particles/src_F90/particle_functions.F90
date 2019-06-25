@@ -464,7 +464,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                    surf => surfaces(intsurf)
 
 
-                  call apply_bc(surf, part, intside, domsize, push, time, dt)
+                  call apply_bc(surf, part, intside, domsize, push, time, inttime)
 
                     if(push .eq. 1) then
                       

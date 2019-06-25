@@ -190,10 +190,11 @@
     enddo
 
 #endif
+    surf%coltime=tval
         
   end subroutine find_intersect
 
-  subroutine apply_bc(surf, part, intside, domsize, push, time, dt)
+  subroutine apply_bc(surf, part, intside, domsize, push, time, inttime)
     
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
@@ -210,12 +211,12 @@
     type(surface_t),  intent(inout) :: surf
     type(particle_t), intent(inout) :: part
 
-    real(amrex_real) dotprod, srt, time, dt
+    real(amrex_real) dotprod, srt, time, inttime
     real(amrex_real) :: normvel(3), j(3), oldvel(3)
 
     if(surf%boundary .eq. 6)then
        oldvel=part%vel
-        write(*,*) "old", oldvel(3), part%id
+       ! write(*,*) "old", oldvel(3), part%id
       ! print*, part%id, part%vel(3)
     endif
     
@@ -408,7 +409,7 @@
    if(graphene_tog .eq. 1) then
    if(surf%boundary .eq. 6) then
       ! call test(part, surf, intside)
-      call surf_velocity(surf, part, time, oldvel)
+      call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
         
@@ -460,7 +461,7 @@
     
 end subroutine test
   
-subroutine surf_velocity(surf, part, time, oldvel)
+subroutine surf_velocity(surf, part, time, oldvel, inttime)
   
  use iso_c_binding, only: c_int
  use amrex_fort_module, only: amrex_real, amrex_particle_real
@@ -475,18 +476,19 @@ subroutine surf_velocity(surf, part, time, oldvel)
  type(particle_t), intent(inout) :: part
  type(surface_t) :: surf 
  integer(c_int)  i, count, step, ii
- real(amrex_real) surfvel, r, f_x, a, r2, r3, time, bessj0, dbessj0, k, rho, tau, omega, dt, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius
+ real(amrex_real) surfvel, r, f_x, a, r2, r3, time, bessj0, dbessj0, k, rho, tau, omega, dt, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
   real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
     r=sqrt(part%pos(1)**2+part%pos(2)**2)
-    c=4266599003
-    alpha=10**8
+    c=91.4468
+    alpha=0
     pi=3.1415926535897932
     a=(part%vel(3)+oldvel(3))*part%mass
     !parabola
     ! f_x=-a*r*r+a*d*r+100000
     bessj0=0
+    t=time+inttime
         do i=1,1
            if(i .eq. 1)then
               k=2.4048
@@ -501,9 +503,9 @@ subroutine surf_velocity(surf, part, time, oldvel)
            endif
            r2=r*k/prob_hi(1)
            omega=sqrt(((c*(k**2))/prob_hi(1)**2)+alpha)/(3.141592653589793**2)
-           bessj0 =a*surf%grac*bessel_jn(0,r2)*sin((time*omega)+surf%graphi)
+           bessj0 =a*surf%grac*bessel_jn(0,r2)*sin((t*omega)+surf%graphi)
            dbessj0=a*surf%grac*bessel_jn(0, r2)*omega
-           graphi=omega*time
+           graphi=omega*t
            grac=(c**2/(pi*prob_hi(1)**2))*bessel_jn(0,r2)/((bessel_jn(1, k)**2)*omega)
            xvec=surf%grac*cos(surf%graphi)+grac*cos(graphi)
            yvec=surf%grac*sin(surf%graphi)+grac*sin(graphi)
@@ -511,14 +513,14 @@ subroutine surf_velocity(surf, part, time, oldvel)
            surf%graphi=atan2(yvec, xvec)
         enddo
        ! print*, surf%velz
-      surf%velz=dbessj0*cos((time*omega)+surf%graphi)
+      surf%velz=dbessj0*cos((t*omega)+surf%graphi)
       part%vel(3)=part%vel(3)+surf%velz
       step=time/fixed_dt
    
    !  if(step .eq. 300)then
     ! write(*,*) a
     ! write(*,*) "old", oldvel(3), part%id
-     write(*,*) "new", part%vel(3)
+    ! write(*,*) "new", part%vel(3)
    !  endif
   end subroutine surf_velocity
 
