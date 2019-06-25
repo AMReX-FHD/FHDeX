@@ -23,8 +23,7 @@ using namespace gmres;
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
 	       MultiFab& pres, MultiFab& tracer,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	       const MultiFab& beta, const MultiFab& gamma,
 	       const std::array< MultiFab, NUM_EDGE >& beta_ed,
@@ -208,7 +207,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     
     gmres_rhs_u[d].mult(dtinv, 0);
 
-    MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
+    MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], Lumac[d], 0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d], 0, 0, 1, 0);
 
@@ -249,16 +248,12 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     advFluxdivPred[d].mult(0.5, 1);
   }
 
-  // crank-nicolson terms
-  StagApplyOp(beta_negwtd,gamma_negwtd,beta_ed_negwtd,
-	      umac,Lumac,alpha_fc_0,dx,theta_alpha);
-
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
   
     gmres_rhs_u[d].mult(dtinv);
   
-    MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d],  0, 0, 1, 0);
+    MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d],    0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], Lumac[d],             0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],        0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],    0, 0, 1, 0);
