@@ -32,8 +32,9 @@ extern "C"
 			      const amrex::Real* prim,
 			      const amrex::Real* eta,
 			      const amrex::Real* zeta,
-			      const amrex::Real* zappa,
-
+			      const amrex::Real* kappa,
+			      const amrex::Real* chi,
+			      const amrex::Real* Dij,
 			      amrex::Real* xflux,
 			      amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)

@@ -346,14 +346,14 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 end subroutine amrex_compute_forces_nl
 
 subroutine move_particles_dsmc(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns, time) &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns, time, flux) &
      bind(c,name="move_particles_dsmc")
   
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
   use surfaces_module
-  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog
+  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog
   
   implicit none
 
@@ -366,8 +366,9 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
   real(amrex_real), intent(in) :: dt, time
+  integer(c_int), intent(inout) :: flux(2)
   
-  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii
+  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR
   integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
@@ -378,6 +379,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   
   adj = 0.9999999
   adjalt = 2d0*(1d0 - adj)
+  fluxL = 0
+  fluxR = 0
 
   inv_dx = 1.d0/dx
   inv_dt = 1.d0/dt
@@ -439,9 +442,14 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                    
                 ! endif
 
-                ! if(intsurf .ne. -1) then
-                !   print *, intsurf
-                ! endif
+                if(intsurf .eq. 7) then
+                  if(part%vel(1) .lt. 0) then
+                    fluxL = fluxL + 1
+                  else
+                    fluxR = fluxR + 1
+                  endif
+                endif
+
                 
                 
                 
@@ -516,7 +524,6 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
      end do
   end do
 
-
   !print *, "intcount: ", intcount
 
   do p = 1, ns
@@ -532,6 +539,16 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
     surf%fzright = surf%fzright*inv_dt
 
  enddo
+
+  flux(1) = fluxL
+  flux(2) = fluxR
+
+  ! if (thermostat_tog .eq. 1) then
+  !   open(13, file="fluxes.txt", status="old", position="append", action="write")
+  !   write(13,*) step, fluxL, fluxR
+  !   close(13)
+  ! endif
+
           if(graphene_tog .eq. 1) then
                interval=prob_hi(1)/100
                radius=0

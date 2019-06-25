@@ -6,7 +6,7 @@ module conv_module
 
   private
 
-  public :: cons_to_prim, get_temperature, get_energy, get_hc_gas, get_pressure_gas, get_density_gas, get_temperature_gas, get_energy_gas
+  public :: cons_to_prim, get_temperature, get_energy, get_molfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, get_temperature_gas, get_energy_gas
 
 contains
 
@@ -17,9 +17,9 @@ contains
       real(amrex_real), intent(inout) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
       real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
 
-      integer :: i,j,k
+      integer :: i,j,k,ns
 
-      real(amrex_real) :: vsqr, massvec(nspecies), intenergy
+      real(amrex_real) :: vsqr, sumYk, Yk(nspecies), Yk_fixed(nspecies), Xk(nspecies), intenergy
 
       do k = lo(3),hi(3)
         do j = lo(2),hi(2)
@@ -31,22 +31,38 @@ contains
             prim(i,j,k,4) = cons(i,j,k,4)/cons(i,j,k,1)
 
             vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
+            intenergy = cons(i,j,k,5)/cons(i,j,k,1) - 0.5*vsqr
+            
+            sumYk = 0.d0
+            do ns = 1, nspecies
+               Yk(ns) = cons(i,j,k,5+ns)/cons(i,j,k,1)
+               Yk_fixed(ns) = max(0.d0,min(1.d0,Yk(ns)))
+               sumYk = sumYk + Yk_fixed(ns)
+               
+               ! if((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+               !    print *, "massfrac: Hack = ", i, j, k, ns, Yk(ns), Yk_fixed(ns)
+               ! endif
+            enddo
 
-            intenergy = cons(i,j,k,5) - 0.5*vsqr*cons(i,j,k,1)
+            Yk_fixed(:) = Yk_fixed(:)/sumYk
 
-            massvec = cons(i,j,k,6:nvars)*cons(i,j,k,1)
+            ! Yk_fixed(:) = Yk(:)
+            
+            ! update temperature in-place using internal energy
+            call get_temperature(intenergy, Yk_fixed, prim(i,j,k,5))
+            
+            ! compute mole fractions from mass fractions
+            call get_molfrac(Yk, Xk)
 
-            call get_temperature(intenergy, massvec, prim(i,j,k,5))
+            ! mass fractions
+            do ns = 1, nspecies
+               prim(i,j,k,6+ns) = Yk(ns)
+               prim(i,j,k,6+nspecies+ns) = Xk(ns)
+            enddo
 
-            !call get_pressure_gas(prim(i,j,k,6), cons(i,j,k,6:nvars), prim(i,j,k,1), prim(i,j,k,5))
+            call get_pressure_gas(prim(i,j,k,6), Yk, prim(i,j,k,1), prim(i,j,k,5))
 
-            prim(i,j,k,6) = 2.0*intenergy/3.0
-
-!            if((i .eq. 36) .and. (j .eq. 0) .and. (k .eq. 0)) then
-
-              !print *, "primcalc: ", i,j,k, " energy: ", cons(i,j,k,5), " temp: ", prim(i,j,k,5)
-
-!            endif
+            ! prim(i,j,k,6) = 2.0*intenergy/3.0
 
           enddo
         enddo
@@ -62,16 +78,16 @@ contains
     real(amrex_real), intent(in   ) :: energy, massvec(nspecies)
 
     integer :: i
-    real(amrex_real) :: cvmix
+    real(amrex_real) :: cvmix, e0
 
-    cvmix = 0.0d0
+    cvmix = 0.0d0; e0 = 0.0d0
 
     do i = 1, nspecies
       cvmix = cvmix + massvec(i)*hcv(i)
-
+       ! e0 = e0 + massvec(i)*e0ref(i)
     enddo
 
-    temp = (energy)/cvmix 
+    temp = (energy-e0)/cvmix 
 
   end subroutine
 
@@ -83,18 +99,52 @@ contains
     real(amrex_real), intent(inout) :: energy, massvec(nspecies)
 
     integer :: i
-    real(amrex_real) :: cvmix
+    real(amrex_real) :: cvmix, e0
 
-    cvmix = 0.0d0
+    cvmix = 0.0d0; e0 = 0.0d0
 
     do i = 1, nspecies
       cvmix = cvmix + massvec(i)*hcv(i)
-
+      ! e0 = e0 + massvec(i)*e0ref(i)
     enddo
 
-    energy = temp*cvmix 
+    energy = e0 + temp*cvmix 
 
   end subroutine
+
+  subroutine get_molfrac(Yk, Xk)
+    
+    real(amrex_real), intent(inout) :: Xk(nspecies)
+    real(amrex_real), intent(in   ) :: Yk(nspecies)
+    
+    integer :: ns
+    real(amrex_real) :: molmix
+
+    molmix = 0.0d0
+    do ns = 1, nspecies
+       molmix = molmix + Yk(ns)/molmass(ns)
+    enddo
+    do ns = 1, nspecies
+       Xk(ns) = Yk(ns)/(molmix*molmass(ns))
+    enddo
+
+  end subroutine get_molfrac
+
+  subroutine get_enthalpies(T, hk) bind(C,name="get_enthalpies")
+
+    real(amrex_real), intent(inout) :: hk(1:nspecies)
+    real(amrex_real), intent(in   ) :: T
+    
+    integer :: ns
+
+    !! FIXME: should have enthalpy reference eventually
+
+    do ns = 1, nspecies 
+       ! hk(ns) = h0ref(ns) + hcp(ns)*T
+       hk(ns) = 0.0 + hcp(ns)*T
+    enddo
+
+  end subroutine get_enthalpies
 
   subroutine get_pressure_gas(pressure, fracvec, density, temp)  bind(C,name="get_pressure_gas")    
 
@@ -102,16 +152,15 @@ contains
     real(amrex_real), intent(inout) :: pressure
 
     integer :: i
-    real(amrex_real) :: avm
+    real(amrex_real) :: molmix
 
-    avm = 0.0d0
-
+    molmix = 0.0d0
     do i = 1, nspecies
-      avm = avm + fracvec(i)*molmass(i)
-
+      molmix = molmix + fracvec(i)/molmass(i)
     enddo
+    molmix = 1.0d0/molmix
 
-    pressure = temp*runiv*density/avm 
+    pressure = density*(runiv/molmix)*temp 
 
   end subroutine
 
@@ -119,7 +168,8 @@ contains
 
     real(amrex_real), intent(in   ) :: pressure
     real(amrex_real), intent(inout) :: intenergy
-
+    
+    ! FIXME: this energy not scaled by density
     intenergy = pressure*3d0/2d0
 
   end subroutine

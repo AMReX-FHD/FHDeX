@@ -276,10 +276,10 @@ void main_driver(const char * argv) {
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    defineFC(umac, ba, dmap, 1);
+    defineFC(umac, ba, dmap, 4);
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    defineFC(umacNew, ba, dmap, 1);
+    defineFC(umacNew, ba, dmap, 4);
 
 
     //___________________________________________________________________________
@@ -328,9 +328,10 @@ void main_driver(const char * argv) {
     // Initialize velocities (fluid and tracers)
     IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
-    Vector<RealVect> marker_positions(2);
-    marker_positions[0] = RealVect{0.5, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.5, 0.51, 0.5};
+    Vector<RealVect> marker_positions(3);
+    marker_positions[0] = RealVect{0.25, 0.5, 0.5};
+    marker_positions[1] = RealVect{0.26, 0.5, 0.5};
+    marker_positions[2] = RealVect{0.27, 0.5, 0.5};
 
     Vector<Real> marker_radii = {.2, .2};
 
@@ -407,24 +408,24 @@ void main_driver(const char * argv) {
     // note the namespace: immbdy_md declared above
     // also note the order of the arguments: r_m -> r -> r_p (m=>minus, p=>plus)
 
-    RealVect f, f_p, f_m;
-    RealVect r, r_p, r_m;
+    //RealVect f, f_p, f_m;
+    //RealVect r, r_p, r_m;
 
-    r_p = RealVect{0.6, 0.5, 0.5};
-    r   = RealVect{0.5, 0.51, 0.5};
-    r_m = RealVect{0.4, 0.5, 0.5};
-
-
-    f_p = RealVect{0., 0., 0.};
-    f   = RealVect{0., 0., 0.};
-    f_m = RealVect{0., 0., 0.};
+    //r_p = RealVect{0.6, 0.5, 0.5};
+    //r   = RealVect{0.5, 0.51, 0.5};
+    //r_m = RealVect{0.4, 0.5, 0.5};
 
 
-    bending_f(f, f_p, f_m, r, r_p, r_m, 10, 1.);
+    //f_p = RealVect{0., 0., 0.};
+    //f   = RealVect{0., 0., 0.};
+    //f_m = RealVect{0., 0., 0.};
 
-    Print() << "f= " << f_p << std::endl;
-    Print() << "f= " << f << std::endl;
-    Print() << "f= " << f_m << std::endl;
+
+    //bending_f(f, f_p, f_m, r, r_p, r_m, 10, 1.);
+
+    //Print() << "f= " << f_p << std::endl;
+    //Print() << "f= " << f << std::endl;
+    //Print() << "f= " << f_m << std::endl;
 
 
     //___________________________________________________________________________

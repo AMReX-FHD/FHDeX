@@ -122,8 +122,8 @@ void main_driver(const char* argv)
     MultiFab eta  (ba,dmap,1,ngc);
     MultiFab zeta (ba,dmap,1,ngc);
     MultiFab kappa(ba,dmap,1,ngc);
-    MultiFab chi(ba,dmap,1,ngc);
-    MultiFab D(ba,dmap,1,ngc);
+    MultiFab chi(ba,dmap,nspecies,ngc);
+    MultiFab D(ba,dmap,nspecies*nspecies,ngc);
 
     //conserved quantaties
     MultiFab cu  (ba,dmap,nvars,ngc);
@@ -198,9 +198,9 @@ void main_driver(const char* argv)
     for(int i=0;i<nspecies;i++)
     {
         prim.setVal(rhobar[i],6+i,1,ngc);
-        cu.setVal(rhobar[i],5+i,1,ngc);
+        cu.setVal(rho0*rhobar[i],5+i,1,ngc);
 
-        massvec[i] = rhobar[i]*rho0;
+        massvec[i] = rhobar[i];
     }
 
     get_energy(&intEnergy, massvec, &T0);
@@ -209,7 +209,7 @@ void main_driver(const char* argv)
     cu.setVal(0,1,1,ngc);
     cu.setVal(0,2,1,ngc);
     cu.setVal(0,3,1,ngc);
-    cu.setVal(intEnergy,4,1,ngc);
+    cu.setVal(rho0*intEnergy,4,1,ngc);
 
     //Print() << intEnergy << "\n";
 
@@ -301,7 +301,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
-        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
+        RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
         if(step == n_steps_skip)
         {
@@ -360,10 +360,10 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        if(step%100 == 0)
-        {    
+        // if(step%100 == 0)
+        // {    
 	amrex::Print() << "Advanced step " << step << "\n";
-        }
+        // }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {

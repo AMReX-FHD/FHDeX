@@ -129,7 +129,7 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount);
 
-  void MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount,Real time);
+  void MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount,Real time, int* flux);
 
     void MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
@@ -164,6 +164,8 @@ public:
 
     //Anthony Stuff
     void InitParticlesDSMC(species* particleInfo, int pL, int pR, Real tL, Real tR);
+    void InitParticlesDSMCtest(species* particleInfo, int num_boxes, int pL, int pR, Real tL, Real tR);
+    void getParticleMapping(std::map<int,int>& particleMap, int xCells, int num_boxes, int pL, int pR);
     void ApplyThermostat(species* particleInfo, MultiFab& cellVols, surface* surfaces, 
                           const int ns, const Real tL, const Real tR);
 

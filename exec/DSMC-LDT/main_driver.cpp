@@ -94,6 +94,7 @@ void main_driver(const char* argv)
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     // note we are converting "Vector<int> max_grid_size" to an IntVect
     ba.maxSize(IntVect(max_grid_size));
+    int num_boxes = ba.size();
 
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
@@ -396,9 +397,10 @@ void main_driver(const char* argv)
     FhdParticleContainer particles(geom, dmap, ba, crange);
 
     //create particles
-    particles.InitParticlesDSMC(dsmcParticle, pL, pR, tL, tR);
-    particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
-    //particles.InitParticles(dsmcParticle);
+    particles.InitParticlesDSMCtest(dsmcParticle, num_boxes, pL, pR, tL, tR);
+    if (thermostat_tog == 1) {
+        particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+    }
     
 
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
@@ -413,28 +415,42 @@ void main_driver(const char* argv)
     //Make plot file with the initial configuration
     WritePlotFile(0,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
 
+    //create plot file to output fluxes
+    std::ofstream outfile;
+    outfile.open("fluxes.txt", std::ios_base::out);
+    outfile << dt << '\n';
+    outfile << pL << ' ' << pR << '\n';
+    outfile << tL << ' ' << tR << '\n';
+
+    //make fluxes storage
+    int flux[2]; flux[0] = 0; flux[1] = 0;
+
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
     {
 
         //perform particle updates
         //ballistic movement
-        if(move_tog==1)
+        if(move_tog == 1)
         {
-            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
+            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time, flux);
+            outfile << flux[0] << ' ' << flux[1] << '\n';
             particles.Redistribute();
 
             particles.ReBin();
         }
 
         //particle collisions
-        if(sr_tog==1)
+        if(sr_tog == 1)
         {
             particles.CollideParticles(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
         }
 
         //thermostatting
-        particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+        if(thermostat_tog == 1)
+        {
+            particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+        }
 
         //Start collecting statistics after step n_steps_skip
         if(step == n_steps_skip)
@@ -469,4 +485,7 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    //close the outfile
+    outfile.close();
 }
