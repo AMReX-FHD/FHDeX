@@ -78,8 +78,9 @@ extern "C"
                         const amrex_real* dx,
                         const amrex_real* dt,
                         const void* surfaces,
-			     const int* ns,
-			     amrex_real* time);
+			      const int* ns,
+			      amrex_real* time,
+                        int* flux);
 
     void move_ions_fhd(void* particles,
                         const int *np,

@@ -346,7 +346,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 end subroutine amrex_compute_forces_nl
 
 subroutine move_particles_dsmc(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns, time) &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns, time, flux) &
      bind(c,name="move_particles_dsmc")
   
   use amrex_fort_module, only: amrex_real
@@ -366,6 +366,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
   real(amrex_real), intent(in) :: dt, time
+  integer(c_int), intent(inout) :: flux(2)
   
   integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR
   integer :: cell(3)
@@ -539,12 +540,14 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
  enddo
 
+  flux(1) = fluxL
+  flux(2) = fluxR
 
-  if (thermostat_tog .eq. 1) then
-    open(13, file="fluxes.txt", status="old", position="append", action="write")
-    write(13,*) fluxL, fluxR
-    close(13)
-  endif
+  ! if (thermostat_tog .eq. 1) then
+  !   open(13, file="fluxes.txt", status="old", position="append", action="write")
+  !   write(13,*) step, fluxL, fluxR
+  !   close(13)
+  ! endif
 
           if(graphene_tog .eq. 1) then
                interval=prob_hi(1)/100
