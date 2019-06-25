@@ -35,6 +35,7 @@ public:
     void EvolveChem(
             std::array<MultiFab, AMREX_SPACEDIM> & umac, 
             const iMultiFab & iface,
+            const MultiFab & LevelSet,
             int lev, int step, Real dt_fluid, Real time, Real diffcoeff);
 
     // initializes multilevel data
@@ -167,9 +168,13 @@ private:
    Vector< std::unique_ptr<MultiFab> >  Dcon_x;
    Vector< std::unique_ptr<MultiFab> >  Dcon_y;
    Vector< std::unique_ptr<MultiFab> >  Dcon_z;
+   Vector< std::unique_ptr<MultiFab> >  DP_gradC_normLs;
+
 
    Vector< std::unique_ptr<MultiFab> >  wface;
    std::unique_ptr<iMultiFab>           source_loc;
+   std::unique_ptr<MultiFab>            levset;
+
     // condition types at the lo/hi walls in each direction
     //BCRec bcs;
    amrex::Vector<BCRec> bcs; 

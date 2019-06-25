@@ -223,10 +223,10 @@ void advance(AmrCoreAdv & amr_core_adv,
         // We get a pointer to the interface tag multifab to pass into
         // advection diffuision (AD) code
         const iMultiFab & iface = ib_core.get_TagInterface();
-
+        const MultiFab  & LevelSet=ib_core.get_LevelSet();
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem(umac, iface, ibpc_lev, nstep,dt, time, diffcoeff);
+        amr_core_adv.EvolveChem(umac, iface, LevelSet, ibpc_lev, nstep,dt, time, diffcoeff);
         amrex::Print() << "After Solving AD Eqn" << std::endl;
     }
 

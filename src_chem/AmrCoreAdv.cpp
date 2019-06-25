@@ -44,6 +44,7 @@ void AmrCoreAdv::Initialize( )
     Dcon_x.resize(nlevs_max);
     Dcon_y.resize(nlevs_max);
     Dcon_z.resize(nlevs_max);
+    DP_gradC_normLs.resize(nlevs_max);
 
     bcs.resize(1);
     
@@ -100,7 +101,7 @@ void AmrCoreAdv::Initialize( )
 
 void AmrCoreAdv::EvolveChem(
         std::array<MultiFab, AMREX_SPACEDIM> & umac, 
-        const iMultiFab & iface, int lev, int nstep,
+        const iMultiFab & iface, const MultiFab & LevelSet, int lev, int nstep,
         Real dt_fluid, Real time, Real dc)
 {
    diffcoeff=dc;
@@ -163,6 +164,11 @@ void AmrCoreAdv::EvolveChem(
     source_loc->copy(iface, 0, 0, 1, 0, 0);
     source_loc->FillBoundary(geom[0].periodicity());
 
+    levset.reset(new MultiFab(conba, condm, 1, 1));
+    levset->setVal(0.);
+    levset->copy(LevelSet, 0, 0, 1, 0, 0);
+    levset->FillBoundary(geom[0].periodicity());
+    std::cout << "EvolveChem max Ls"<< (*levset).max(0)<<std::endl;
 
     /***************************************************************************
      * Evolve chemical field by integrating time step                          *
@@ -256,10 +262,13 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 0));
        Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 0));
        Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 0));
+       DP_gradC_normLs[lev].reset(new MultiFab(ba, dm, 1, 0));
 
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
        Dcon_z[lev]->setVal(0.);
+       DP_gradC_normLs[lev]->setVal(0.);
+
 //       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
 
    }
@@ -861,7 +870,11 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab &  sx_mf       = * Dcon_x[lev];
     MultiFab &  sy_mf       = * Dcon_y[lev];
     MultiFab &  sz_mf       = * Dcon_z[lev];
-
+    MultiFab &  sd_mf       = * DP_gradC_normLs[lev];
+    MultiFab &  ls_mf       = * levset;
+    std::cout << "Advance max Ls 1 "<< (*levset).max(0)<<std::endl;
+    std::cout << "Advance max Ls 2 "<< ls_mf.max(0)<<std::endl;
+    
     // con_new including 1 ghost cell
     MultiFab S_new_fill(grids[lev], dmap[lev], S_new.nComp(), 1);
 //    std::cout << "max con 4 "<< (*con_new[lev]).max(0) <<std::endl;
@@ -882,6 +895,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
             FArrayBox & stateout      =   S_new_fill[mfi];
             IArrayBox & fabsl         =      sloc_mf[mfi];
+            FArrayBox & fabsls        =      ls_mf[mfi];
+            FArrayBox & fabsd         =      sd_mf[mfi];
+
             FArrayBox & fabsx         =        sx_mf[mfi];
             FArrayBox & fabsy         =        sy_mf[mfi];
             FArrayBox & fabsz         =        sz_mf[mfi];
@@ -896,17 +912,27 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 & Sphere_cent_x, & Sphere_cent_y,
                                 dx, AMREX_ZFILL(prob_lo));
             } else {
+                std::cout << "Advance max Ls 3 "<< fabsls.max()<<std::endl;
+ 
                 get_congrad_3d( bx.loVect(), bx.hiVect(),
                                 BL_TO_FORTRAN_3D(stateout),
                                 BL_TO_FORTRAN_3D(fabsx),
                                 BL_TO_FORTRAN_3D(fabsy),
                                 BL_TO_FORTRAN_3D(fabsz),
+                                BL_TO_FORTRAN_3D(fabsd),
                                 BL_TO_FORTRAN_3D(fabsl),
+                                BL_TO_FORTRAN_3D(fabsls),
                                 & Sphere_cent_x, & Sphere_cent_y,
                                 & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
+                std::cout << "Advance max Ls 4 "<< fabsls.max()<<std::endl;
+
             }
         }
     }
+    std::cout << "Advance max Ls 5 "<< ls_mf.max(0)<<std::endl;
+    
+
+    std::cout << "Advance max Ls 6 "<< (*levset).max(0)<<std::endl;
 
     amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;
@@ -981,6 +1007,11 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
+    else if (indicator==4){
+	 MF[lev]->copy(* DP_gradC_normLs[lev], 0, 0,1, 0, 0);
+ //       std::cout<< "Indicator " << indicator<< std::endl;}
+    }
+
     else amrex::Abort( "Incorrect indicator for copying information from AmrCoreAdv to Mfix" );
 }
 

@@ -29,6 +29,8 @@ void WritePlotFile(int step,
     Vector< std::unique_ptr<MultiFab> > DconNew_x;
     Vector< std::unique_ptr<MultiFab> > DconNew_y;
     Vector< std::unique_ptr<MultiFab> > DconNew_z;
+    Vector< std::unique_ptr<MultiFab> > dp_gradCon_normLS;
+
     Vector< std::unique_ptr<MultiFab> > mf(lev+1);
 
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -43,7 +45,7 @@ void WritePlotFile(int step,
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 4*AMREX_SPACEDIM+3+4*(lev+1);
+    int nPlot = 4*AMREX_SPACEDIM+3+4*(lev+2);
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -77,6 +79,7 @@ void WritePlotFile(int step,
     varNames[cnt++] = "dCdx";
     varNames[cnt++] = "dCdy";
     varNames[cnt++] = "dCdz";
+    varNames[cnt++] = "dp_dCnLs";
 
     for (int i=0; i<nPlot; ++i) {
         std::cout<<" i= "<< varNames[i]<<std::endl ;
@@ -133,6 +136,10 @@ void WritePlotFile(int step,
     cnt++;
 
     amr_core_adv.con_new_copy(lev, mf, 3);
+    MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
+    cnt++;
+    
+    amr_core_adv.con_new_copy(lev, mf, 4);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
 
