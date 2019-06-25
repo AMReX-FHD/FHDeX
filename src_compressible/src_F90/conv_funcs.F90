@@ -31,16 +31,22 @@ contains
             prim(i,j,k,4) = cons(i,j,k,4)/cons(i,j,k,1)
 
             vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
-            intenergy = cons(i,j,k,5) - 0.5*vsqr*cons(i,j,k,1)
+            intenergy = cons(i,j,k,5)/cons(i,j,k,1) - 0.5*vsqr
             
             sumYk = 0.d0
             do ns = 1, nspecies
                Yk(ns) = cons(i,j,k,5+ns)/cons(i,j,k,1)
                Yk_fixed(ns) = max(0.d0,min(1.d0,Yk(ns)))
                sumYk = sumYk + Yk_fixed(ns)
+               
+               ! if((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+               !    print *, "massfrac: Hack = ", i, j, k, ns, Yk(ns), Yk_fixed(ns)
+               ! endif
             enddo
 
             Yk_fixed(:) = Yk_fixed(:)/sumYk
+
+            ! Yk_fixed(:) = Yk(:)
             
             ! update temperature in-place using internal energy
             call get_temperature(intenergy, Yk_fixed, prim(i,j,k,5))
@@ -54,9 +60,9 @@ contains
                prim(i,j,k,6+nspecies+ns) = Xk(ns)
             enddo
 
-            !call get_pressure_gas(prim(i,j,k,6), cons(i,j,k,6:nvars), prim(i,j,k,1), prim(i,j,k,5))
+            call get_pressure_gas(prim(i,j,k,6), Yk, prim(i,j,k,1), prim(i,j,k,5))
 
-            prim(i,j,k,6) = 2.0*intenergy/3.0
+            ! prim(i,j,k,6) = 2.0*intenergy/3.0
 
           enddo
         enddo
@@ -152,8 +158,9 @@ contains
     do i = 1, nspecies
       molmix = molmix + fracvec(i)/molmass(i)
     enddo
+    molmix = 1.0d0/molmix
 
-    pressure = density*(runiv*molmix)*temp 
+    pressure = density*(runiv/molmix)*temp 
 
   end subroutine
 
@@ -161,7 +168,8 @@ contains
 
     real(amrex_real), intent(in   ) :: pressure
     real(amrex_real), intent(inout) :: intenergy
-
+    
+    ! FIXME: this energy not scaled by density
     intenergy = pressure*3d0/2d0
 
   end subroutine

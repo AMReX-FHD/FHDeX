@@ -170,11 +170,11 @@ contains
                   prim(lo(1)-i,j,k,6+l) = prim(lo(1)-1+i,j,k,6+l)
                 enddo
 
-                !rho = prim(lo(1)-i,j,k,1)
+                rho = prim(lo(1)-i,j,k,1)
                 temp = prim(lo(1)-i,j,k,5)
                 pt = prim(lo(1)-i,j,k,6)
 
-                fracvec = cons(lo(1)-i,j,k,6:nvars)
+                fracvec = cons(lo(1)-i,j,k,6:nvars)/rho
                 !massvec = fracvec*rho
 
                 !call get_pressure_gas(pt, fracvec, rho, temp)
@@ -189,10 +189,10 @@ contains
                 cons(lo(1)-i,j,k,3) = rho*prim(lo(1)-i,j,k,3)
                 cons(lo(1)-i,j,k,4) = rho*prim(lo(1)-i,j,k,4)
 
-                !call get_energy(intenergy, massvec, temp)
-                call get_energy_gas(pt, intenergy)
+                call get_energy(intenergy, fracvec, temp)
+                ! call get_energy_gas(pt, intenergy)
 
-                cons(lo(1)-i,j,k,5) = intenergy + 0.5*cons(lo(1)-i,j,k,1)*(prim(lo(1)-i,j,k,2)**2 + prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
+                cons(lo(1)-i,j,k,5) = cons(lo(1)-i,j,k,1)*intenergy + 0.5*cons(lo(1)-i,j,k,1)*(prim(lo(1)-i,j,k,2)**2 + prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
 
                 !call get_trans_coeff(temp, fracvec, eta(lo(1)-i,j,k), zeta(lo(1)-i,j,k), kappa(lo(1)-i,j,k))
 
@@ -267,11 +267,11 @@ contains
                   prim(hi(1)+i,j,k,6+l) = prim(hi(1)+1-i,j,k,6+l)
                 enddo
 
-                !rho = prim(hi(1)+i,j,k,1)
+                rho = prim(hi(1)+i,j,k,1)
                 temp = prim(hi(1)+i,j,k,5)
                 pt = prim(hi(1)+i,j,k,6)
 
-                fracvec = cons(hi(1)+i,j,k,6:nvars)
+                fracvec = cons(hi(1)+i,j,k,6:nvars)/rho
                 !massvec = fracvec*rho
 
                 !call get_pressure_gas(pt, fracvec, rho, temp)
@@ -287,10 +287,10 @@ contains
                 cons(hi(1)+i,j,k,4) = rho*prim(hi(1)+i,j,k,4)
 
 
-                !call get_energy(intenergy, massvec, temp)
-                call get_energy_gas(pt, intenergy) 
+                call get_energy(intenergy, fracvec, temp)
+                ! call get_energy_gas(pt, intenergy) 
 
-                cons(hi(1)+i,j,k,5) = intenergy + 0.5*cons(hi(1)+i,j,k,1)*(prim(hi(1)+i,j,k,2)**2 + prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
+                cons(hi(1)+i,j,k,5) = cons(hi(1)+i,j,k,1)*intenergy + 0.5*cons(hi(1)+i,j,k,1)*(prim(hi(1)+i,j,k,2)**2 + prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
 
                 !call get_trans_coeff(temp, fracvec, eta(hi(1)+i,j,k), zeta(hi(1)+i,j,k), kappa(hi(1)+i,j,k))
 
@@ -373,14 +373,14 @@ contains
                 cons(i,lo(2)-j,k,3) = rho*prim(i,lo(2)-j,k,3)
                 cons(i,lo(2)-j,k,4) = rho*prim(i,lo(2)-j,k,4)
 
-                fracvec = cons(i,lo(2)-j,k,6:nvars)
+                fracvec = cons(i,lo(2)-j,k,6:nvars)/rho
                 massvec = fracvec*cons(i,lo(2)-j,k,1)
 
                 call get_pressure_gas(prim(i,lo(2)-j,k,6), fracvec, rho, temp)
 
-                call get_energy(intenergy, massvec, temp)
+                call get_energy(intenergy, fracvec, temp)
 
-                cons(i,lo(2)-j,k,5) = intenergy + 0.5*cons(i,lo(2)-j,k,1)*(prim(i,lo(2)-j,k,2)**2 + prim(i,lo(2)-j,k,3)**2 + prim(i,lo(2)-j,k,4)**2)
+                cons(i,lo(2)-j,k,5) = cons(i,lo(2)-j,k,1)*intenergy + 0.5*cons(i,lo(2)-j,k,1)*(prim(i,lo(2)-j,k,2)**2 + prim(i,lo(2)-j,k,3)**2 + prim(i,lo(2)-j,k,4)**2)
 
                 !print *, "lo: ", cons(i,lo(2)-j,k,1:5)
 
@@ -460,14 +460,14 @@ contains
                 cons(i,hi(2)+j,k,3) = rho*prim(i,hi(2)+j,k,3)
                 cons(i,hi(2)+j,k,4) = rho*prim(i,hi(2)+j,k,4)
 
-                fracvec = cons(i,hi(2)+j,k,6:nvars)
+                fracvec = cons(i,hi(2)+j,k,6:nvars)/rho
                 massvec = fracvec*cons(i,hi(2)+j,k,1)
 
                 call get_pressure_gas(prim(i,hi(2)+j,k,6), fracvec, rho, temp)
 
-                call get_energy(intenergy, massvec, temp)
+                call get_energy(intenergy, fracvec, temp)
 
-                cons(i,hi(2)+j,k,5) = intenergy + 0.5*cons(i,hi(2)+j,k,1)*(prim(i,hi(2)+j,k,2)**2 + prim(i,hi(2)+j,k,3)**2 + prim(i,hi(2)+j,k,4)**2)
+                cons(i,hi(2)+j,k,5) = cons(i,hi(2)+j,k,1)*intenergy + 0.5*cons(i,hi(2)+j,k,1)*(prim(i,hi(2)+j,k,2)**2 + prim(i,hi(2)+j,k,3)**2 + prim(i,hi(2)+j,k,4)**2)
 
                 !print *, "hi: ", cons(i,hi(2)+j,k,1:5)
 
@@ -547,14 +547,14 @@ contains
                 cons(i,j,lo(3)-k,3) = rho*prim(i,j,lo(3)-k,3)
                 cons(i,j,lo(3)-k,4) = rho*prim(i,j,lo(3)-k,4)
 
-                fracvec = cons(i,j,lo(3)-k,6:nvars)
+                fracvec = cons(i,j,lo(3)-k,6:nvars)/rho
                 massvec = fracvec*cons(i,j,lo(3)-k,1)
 
                 call get_pressure_gas(prim(i,j,lo(3)-k,6), fracvec, rho, temp)
 
-                call get_energy(intenergy, massvec, temp)
+                call get_energy(intenergy, fracvec, temp)
 
-                cons(i,j,lo(3)-k,5) = intenergy + 0.5*cons(i,j,lo(3)-k,1)*(prim(i,j,lo(3)-k,2)**2 + prim(i,j,lo(3)-k,3)**2 + prim(i,j,lo(3)-k,4)**2)
+                cons(i,j,lo(3)-k,5) = cons(i,j,lo(3)-k,1)*intenergy + 0.5*cons(i,j,lo(3)-k,1)*(prim(i,j,lo(3)-k,2)**2 + prim(i,j,lo(3)-k,3)**2 + prim(i,j,lo(3)-k,4)**2)
 
               enddo
             enddo
@@ -632,14 +632,14 @@ contains
                 cons(i,j,hi(3)+k,3) = rho*prim(i,j,hi(3)+k,3)
                 cons(i,j,hi(3)+k,4) = rho*prim(i,j,hi(3)+k,4)
 
-                fracvec = cons(i,j,hi(3)+k,6:nvars)
+                fracvec = cons(i,j,hi(3)+k,6:nvars)/rho
                 massvec = fracvec*cons(i,j,hi(3)+k,1)
 
                 call get_pressure_gas(prim(i,j,hi(3)+k,6), fracvec, rho, temp)
 
-                call get_energy(intenergy, massvec, temp)
+                call get_energy(intenergy, fracvec, temp)
 
-                cons(i,j,hi(3)+k,5) = intenergy + 0.5*cons(i,j,hi(3)+k,1)*(prim(i,j,hi(3)+k,2)**2 + prim(i,j,hi(3)+k,3)**2 + prim(i,j,hi(3)+k,4)**2)
+                cons(i,j,hi(3)+k,5) = cons(i,j,hi(3)+k,1)*intenergy + 0.5*cons(i,j,hi(3)+k,1)*(prim(i,j,hi(3)+k,2)**2 + prim(i,j,hi(3)+k,3)**2 + prim(i,j,hi(3)+k,4)**2)
               enddo
             enddo
           enddo
