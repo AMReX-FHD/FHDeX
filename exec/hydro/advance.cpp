@@ -118,7 +118,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // cell-centered gamma_wtd
   MultiFab gamma_wtd(ba, dmap, 1, 1);
   MultiFab::Copy(gamma_wtd, gamma, 0, 0, 1, 1);
-  gamma_wtd.mult(-0.5, 1);
+  gamma_wtd.mult(0.5, 1);
 
   // Scaled by -1/2:
   // beta_negwtd cell centered
