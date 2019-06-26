@@ -291,19 +291,20 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
 
 
+
         for (int i=0; i<np; ++i) {
 
             ParticleType & mark = markers[i];
 
 
             // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker;
-            ParticleType * prev_marker;
+            ParticleType * next_marker = NULL;
+            ParticleType * prev_marker = NULL;
 
             int status = ib_mc.FindConnectedMarkers(markers, mark,
                                                     nbhd_data, nbhd,
                                                     nbhd_index,
-                                                    next_marker, prev_marker);
+                                                    prev_marker, next_marker);
 
 
             if (status == 1) {        // has next, has no prev
@@ -443,8 +444,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
 
-Abort();
-
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
@@ -479,13 +478,13 @@ Abort();
 
 
             // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker;
-            ParticleType * prev_marker;
+            ParticleType * next_marker = NULL;
+            ParticleType * prev_marker = NULL;
 
             int status = ib_mc.FindConnectedMarkers(markers, mark,
                                                     nbhd_data, nbhd,
                                                     nbhd_index,
-                                                    next_marker, prev_marker);
+                                                    prev_marker, next_marker);
 
 
             if (status == 1) {        // has next, has no prev
