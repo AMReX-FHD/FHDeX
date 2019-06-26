@@ -88,6 +88,7 @@ void WritePlotFileHydro(int step,
 
     // compute divergence and store result in plotfile
     ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
+    cnt++;
 
     // average staggered means to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
