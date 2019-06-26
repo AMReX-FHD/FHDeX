@@ -42,7 +42,7 @@ extern "C"
 
   void  inc_phi0 ( const int* step );
 
-  void  inc_phi0_Adapt ( amrex::Real* Expec,amrex::Real* MAD,amrex::Real* r1);
+  void  inc_phi0_Adapt ( amrex::Real* Expec,amrex::Real* MAD,amrex::Real* r1, int* Shift_Flag);
 
 
   void  initphi (const int* lo, const int* hi,

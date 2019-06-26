@@ -177,6 +177,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     }
     std::sort(Avg_collect, Avg_collect+L);
     MAD=Avg_collect[L/2];
+    Expec=median;
     amrex::Print() << " Average of Phi in umbrella  is " << Expec << "\n";
     amrex::Print() << "MAD of Umbrella is " << MAD << "\n";
 
@@ -186,6 +187,7 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
 {   
     int sucessful_iter;
     int sucessful_iter_prev;
+    int Shift_Flag=0;
 
     if(sucessful_compare)
     {
@@ -204,11 +206,18 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         Umbrella_Adjust(&sucessful_iter,&alpha,&umbrella_size,&sucessful_iter_prev);
         amrex::Print() << "Overlap occured "  << "\n";
 
-    }else{
-        sucessful_compare=false;
+    }else if (Expec2-r2*MAD2 > Expec + r2*MAD)
+    {
         sucessful_iter=0;
         Umbrella_Adjust (&sucessful_iter,&alpha ,&umbrella_size,&sucessful_iter_prev);
         amrex::Print() << "Overlap did not occur"  << "\n";
-
    }
+   else if (Expec2+r2*MAD2 > Expec + r2*MAD)
+    {
+        sucessful_compare=false;
+        Shift_Flag=1;
+        amrex::Print() << "New Phi_0 resulted in lower average"  << "\n";
+        amrex::Print() << "Increasing Phi_0"  << "\n";
+        inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
+    }
 }

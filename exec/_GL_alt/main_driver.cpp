@@ -38,7 +38,7 @@ void main_driver(const char* argv)
     amrex::Real alpha=2;
     amrex::Real r1=1.0;
     amrex::Real r2=1.0;
-    int N_Burn=1000*8;
+    int N_Burn=1000*35;
     int L=30;
     int umbrella_size=0;
     amrex::Real Expec=0.0;
@@ -48,7 +48,7 @@ void main_driver(const char* argv)
     amrex::Real Expec_Tep=0.0;
     amrex::Real umbrella_out=0.0;
     bool sucessful_compare=false;
-
+    int Shift_Flag=0;
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -157,7 +157,7 @@ void main_driver(const char* argv)
 
     Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
                alpha,r1,r2,N_Burn,L,Expec,MAD,max_step);
-    inc_phi0_Adapt(&Expec,&MAD,&r1);
+    inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
     Make_PltFiles = false;
 
     while((Expec+r1*MAD) <1)
@@ -185,7 +185,7 @@ void main_driver(const char* argv)
         Make_PltFiles = true;
         Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
                 alpha,r1,r2,N_Burn,L,Expec,MAD,max_step);
-        inc_phi0_Adapt(&Expec,&MAD,&r1);
+        inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
         umbrella_size=0;
         Make_PltFiles = false;
     }

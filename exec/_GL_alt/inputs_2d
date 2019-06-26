@@ -40,7 +40,7 @@
 
  diff_coef = 1.
  noise_coef = .010
- umbrella = 200.0
+ umbrella = 50.0
  ! umbrella = 00.
 
  !phi0 = .5

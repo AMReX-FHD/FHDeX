@@ -177,11 +177,16 @@ contains
 
 
 
-  subroutine inc_phi0_Adapt ( Expec,MAD,r1 ) bind(C,name="inc_phi0_Adapt")
+  subroutine inc_phi0_Adapt ( Expec,MAD,r1,Shift_Flag ) bind(C,name="inc_phi0_Adapt")
 
     real(amrex_real), intent(inout  ) :: Expec,MAD,r1
+    integer, intent(inout ) :: Shift_Flag
     write(6,*)" phi0 is",phi0 
-    phi0 =(Expec+r1*MAD)
+    if(Shift_Flag .NE. 1) then
+      phi0 =(Expec+r1*MAD)
+    else 
+      phi0=phi0+r1*MAD
+    end if
     write(6,*)" phi0 changed to ",phi0 
 
 
@@ -192,7 +197,7 @@ contains
     real(amrex_real), intent(in  ) :: alpha
     integer, intent(inout ) :: sucessful_iter,umbrella_size,sucessful_iter_prev
 
-    if (umbrella <=150) then
+    if (umbrella <=50) then
       umbrella_size=1
     end if
     !! check previous step, current step, and umbrella_size. This section must account for all positbiltities
