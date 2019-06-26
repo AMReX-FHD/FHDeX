@@ -66,8 +66,6 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 
     /////////////////////////////////////////////////////
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
-
     conservedToPrimitive(prim, cu);
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
