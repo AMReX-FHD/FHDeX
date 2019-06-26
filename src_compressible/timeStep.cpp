@@ -54,7 +54,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     // Fill random (only momentum and energy)
     for(int d=0;d<AMREX_SPACEDIM;d++)
       {
-    	for(int i=1;i<5;i++)
+    	for(int i=1;i<nvars;i++)
     	  {
     	    MultiFABFillRandom(stochFlux_A[d], i, 1.0, geom);
 	    MultiFABFillRandom(stochFlux_B[d], i, 1.0, geom);
@@ -98,7 +98,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, 4, 0);
+			  1, nvars-1, 0);
 
       }
 
@@ -158,7 +158,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, 4, 0);
+			  1, nvars-1, 0);
 
       }
 
@@ -219,7 +219,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, 4, 0);
+			  1, nvars-1, 0);
 
       }
 

@@ -649,6 +649,10 @@ contains
                            fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
                            weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxx(i,j,k,5+ll)
 
+                           ! if ((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+                           !    print*, "Hack = ", ll, ns, MWmix, volinv, Runiv, dt, sqD(ns,ll)
+                           ! endif
+
                         enddo
 
                         ! if(lbc(1) == -1)then
@@ -681,6 +685,10 @@ contains
 
 
                         fluxx(i,j,k,5+ns) = weiner(5+ns)
+
+                        ! if ((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+                        !    print*, "Hack, massflux in x = ", weiner(5+ns), ns
+                        ! endif
 
                      enddo
 
