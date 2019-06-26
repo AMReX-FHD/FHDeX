@@ -174,9 +174,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
    ee = 1.d0/(permitivitty*4*3.142) 
    dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
   
-   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
-   allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
-        
+
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
 
