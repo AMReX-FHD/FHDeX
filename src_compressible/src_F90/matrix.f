@@ -5,7 +5,7 @@
       integer ip(ndim)
       real*8 eps,eps2,amult,apm,apn
       integer n,nm1,i,ip1,k,j,l
-      data eps,eps2 /1.d-30,1.d-60/
+      data eps,eps2 /1.d-40,1.d-60/
       nm1=neq-1
       do 10 n=1,neq
   10  ip(n)=n
