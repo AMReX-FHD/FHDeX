@@ -53,48 +53,48 @@ subroutine get_congrad_3d( lo, hi, &
            if (iface(i,j,k) .eq. 1) then
 
            ! one sided and centered difference of con
-           con_xp=(con(i+1,j,k)-con(i,j,k))/dx(1)
-           con_xm=(con(i,j,k)-con(i-1,j,k))/dx(1)
-           con_xc=(con_xp+con_xm)/2
+           con_x=(con(i+1,j,k)-con(i,j,k))/dx(1)
+!           con_xm=(con(i,j,k)-con(i-1,j,k))/dx(1)
+!           con_xc=(con_xp+con_xm)/2
 
-           con_yp=(con(i,j+1,k)-con(i,j,k))/dx(2)
-           con_ym=(con(i,j,k)-con(i,j-1,k))/dx(2)
-           con_yc=(con_yp+con_ym)/2
+           con_y=(con(i,j+1,k)-con(i,j,k))/dx(2)
+!           con_ym=(con(i,j,k)-con(i,j-1,k))/dx(2)
+!           con_yc=(con_yp+con_ym)/2
 
-           con_zp=(con(i,j,k+1)-con(i,j,k))/dx(3)
-           con_zm=(con(i,j,k)-con(i,j,k-1))/dx(3)
-           con_zc=(con_zp+con_zm)/2
+           con_z=(con(i,j,k+1)-con(i,j,k))/dx(3)
+!           con_zm=(con(i,j,k)-con(i,j,k-1))/dx(3)
+!           con_zc=(con_zp+con_zm)/2
 
-           ls_x=(ls(i+1,j,k)-ls(i-1,j,k))/(2*dx(1))
-           ls_y=(ls(i,j+1,k)-ls(i,j-1,k))/(2*dx(2))
-           ls_z=(ls(i,j,k+1)-ls(i,j,k-1))/(2*dx(3))
+           ls_x=(ls(i+1,j,k)-ls(i,j,k))/(dx(1))
+           ls_y=(ls(i,j+1,k)-ls(i,j,k))/(dx(2))
+           ls_z=(ls(i,j,k+1)-ls(i,j,k))/(dx(3))
 
            
            ! if one side is interior to IB then use other one sided derivative  
 !              if (iface(i,j,k) .eq. 1) then
-                 if (iface(i+1,j,k) .eq. 2)then
-                 con_x=con_xm 
-                 else if (iface(i-1,j,k) .eq. 2) then
-                 con_x=con_xp
-                 else
-                 con_x=con_xc
-                 end if
-                 
-                 if (iface(i,j+1,k) .eq. 2)then
-                 con_y=con_ym 
-                 else if (iface(i,j-1,k) .eq. 2) then
-                 con_y=con_yp
-                 else
-                 con_y=con_yc
-                 end if
-
-                 if (iface(i,j,k+1) .eq. 2)then
-                 con_z=con_zm
-                 else if (iface(i,j,k-1) .eq. 2) then
-                 con_z=con_zp
-                 else
-                 con_z=con_zc
-                 end if
+!                 if (iface(i+1,j,k) .eq. 2)then
+!                 con_x=con_xm 
+!                 else if (iface(i-1,j,k) .eq. 2) then
+!                 con_x=con_xp
+!                 else
+!                 con_x=con_xc
+!                 end if
+!                 
+!                 if (iface(i,j+1,k) .eq. 2)then
+!                 con_y=con_ym 
+!                 else if (iface(i,j-1,k) .eq. 2) then
+!                 con_y=con_yp
+!                 else
+!                 con_y=con_yc
+!                 end if
+!
+!                if (iface(i,j,k+1) .eq. 2)then
+!                 con_z=con_zm
+!                 else if (iface(i,j,k-1) .eq. 2) then
+!                 con_z=con_zp
+!                 else
+!                 con_z=con_zc
+!                 end if
 !              else
 !              con_x(i,j,k)=con_xc !con_x*n1+con_y*n2+con_z*n3
 !              con_y(i,j,k)=con_yc !con_x*t_t1+con_y*t_t2+con_z*t_t3
