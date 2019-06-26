@@ -247,15 +247,41 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     int ib_lev = 0;
 
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = ib_mc.GetParticles(ib_lev).at(index);
-        AoS & particles = particle_data.GetArrayOfStructs();
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        // Get neighbor particle data (from neighboring threads)
         ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
                                                         pti.LocalTileIndex());
 
-        long np = particle_data.size();
+
+        // Get neighbor list (for collision checking)
+        const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
+                                                         pti.LocalTileIndex());
+
+        long np = markers.size();
+        int nbhd_index = 0;
+
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
 
 
+            // Get previous and next markers connected to current marker (if they exist)
+            ParticleType * next_marker;
+            ParticleType * prev_marker;
+
+            int status = ib_mc.FindConnectedMarkers(markers, mark,
+                                                    nbhd_data, nbhd,
+                                                    nbhd_index,
+                                                    next_marker, prev_marker);
+
+            // Increment neighbor list
+            int nn      = nbhd[nbhd_index];
+            nbhd_index += nn;
+        }
     }
 
 
