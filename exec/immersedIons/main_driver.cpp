@@ -647,7 +647,7 @@ void main_driver(const char* argv)
 
     //create particles
 
-    particles.InitParticles(ionParticle);
+    particles.InitParticles(ionParticle, dxp);
 
     //----------------------    
     // Electrostatic setup
@@ -820,7 +820,7 @@ void main_driver(const char* argv)
 
         if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
 	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
-	      structFact.FortStructure(struct_in_cc,geom);
+	      structFact.FortStructure(struct_in_cc,geomP);
         }
 
         if (plot_int > 0 && step%plot_int == 0)
@@ -860,7 +860,7 @@ void main_driver(const char* argv)
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
       structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
+      structFact.WritePlotFile(step,time,geomP);
 
     }
 

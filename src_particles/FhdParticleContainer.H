@@ -87,7 +87,7 @@ public:
                                   const BoxArray            & ba,
                                   int ncells);
 
-    void InitParticles(species* particleInfo);
+    void InitParticles(species* particleInfo, const Real* dxp);
     void InitParticlesBrownian(species particleInfo);
     //void InitParticles(const IntVect& a_num_particles_per_cell);
 

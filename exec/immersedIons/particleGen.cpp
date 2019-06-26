@@ -2,7 +2,7 @@
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
 
-void FhdParticleContainer::InitParticles(species* particleInfo)
+void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
     
     const int lev = 0;
@@ -118,7 +118,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 		p.rdata(RealData::potential) = 0;                 
 		// SPC: temporary hack--set distance for which we do direct coulomb force calculation
 		//      to be same as that of the SR leonard jones
-		p.rdata(RealData::coulombRadiusFactor) = 6.5*dx[0]*es_grid_refine;                 
+		p.rdata(RealData::coulombRadiusFactor) = 6.5*dxp[0];                 
                 particle_tile.push_back(p);
 
                 pcount++;
