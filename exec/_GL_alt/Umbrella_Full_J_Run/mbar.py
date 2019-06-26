@@ -65,7 +65,7 @@ mbar = pymbar.MBAR(u_kn, N_k, verbose = True)
 
 results  = mbar.getFreeEnergyDifferences(compute_uncertainty=True, uncertainty_method=None, warning_cutoff=1e-10, return_theta=True)
 Delta_f=results[0] # Exract free energy differences from results tuple
-Final_Dimless_Energy=Delta_f[998,:] #This extracts the free energy difference between the the first state and the rest of the states only
+Final_Dimless_Energy=Delta_f[0,:] #This extracts the free energy difference between the the first state and the rest of the states only
 
 f= open("FE.txt","w+")
 for i in range(0,N-1):

@@ -16,7 +16,12 @@ extern "C"
                               amrex::Real* energy,
                               amrex::Real* teng,
                               const amrex::Real* dx,
-                              const amrex::Real* dt);
+                              const amrex::Real* dt,
+                              amrex::Real* phi_avg,
+                              amrex::Real* phi_sq_avg);
+
+
+                              
 
   void rk2_stage2(const int* lo, const int* hi,
 			      amrex::Real* phi,
@@ -33,14 +38,23 @@ extern "C"
                               const amrex::Real* dx,
                               amrex::Real* integral);
 
-   void  setdt ( const amrex::Real* dx, amrex::Real* dt );
+  void  setdt ( const amrex::Real* dx, amrex::Real* dt );
 
-   void  inc_phi0 ( const int* step );
+  void  inc_phi0 ( const int* step );
 
-   void  initphi (const int* lo, const int* hi,
+  void  inc_phi0_Adapt ( amrex::Real* Expec,amrex::Real* MAD,amrex::Real* r1);
+
+
+  void  initphi (const int* lo, const int* hi,
                               amrex::Real* phi,
                               const amrex::Real* dx);
+  void Stat_Quant(const int* lo, const int* hi,
+			                        amrex::Real* phi,
+                              amrex::Real* phi_avg,
+                              amrex::Real* phi_sq_avg);
 
+
+  void Umbrella_Adjust ( int* sucessful_iter, amrex::Real* alpha, int* umbrella_size , int* sucessful_iter_prev);
 
 #ifdef __cplusplus
 }

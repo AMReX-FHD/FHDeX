@@ -34,6 +34,20 @@ using namespace common;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
+    bool Make_PltFiles = false;
+    amrex::Real alpha=2;
+    amrex::Real r1=1.0;
+    amrex::Real r2=1.0;
+    int N_Burn=1000*8;
+    int L=30;
+    int umbrella_size=0;
+    amrex::Real Expec=0.0;
+    amrex::Real MAD=0.0;
+    amrex::Real Expec2=0.0;
+    amrex::Real MAD2=0.0;
+    amrex::Real Expec_Tep=0.0;
+    amrex::Real umbrella_out=0.0;
+    bool sucessful_compare=false;
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -139,36 +153,44 @@ void main_driver(const char* argv)
     amrex::Real integral;
 
     //Time stepping loop
-    for(step=1;step<=max_step;++step)
+    Make_PltFiles = true;
+
+    Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+               alpha,r1,r2,N_Burn,L,Expec,MAD,max_step);
+    inc_phi0_Adapt(&Expec,&MAD,&r1);
+    Make_PltFiles = false;
+
+    while((Expec+r1*MAD) <1)
     {
-
-        RK2step(phi, phin, rannums, geom, dx, dt, integral, step);
-
-//        if(step == n_steps_skip)
-//     {
-//     on the fly statistics setup?
-//      }
-
-//        evaluateStats(phi, dx);
-
-//        statsCount++;
-
-        inc_phi0(&step);
-
-        if(step%500 == 0)
-        {    
-                amrex::Print() << "Integral " << integral << "\n";
-                amrex::Print() << "Advanced step " << step << "\n";
-        }
-
-        if (plot_int > 0 && step > n_steps_skip && step%plot_int == 0)
+        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                alpha,r1,r2,N_Burn,L,Expec2,MAD2,max_step);
+        Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size);
+        if(sucessful_compare)
         {
-
-           WritePlotFile(step, time, geom, phi);
+            while(sucessful_compare and umbrella_size!=1 )
+            {
+                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                    alpha,r1,r2,N_Burn,L,Expec2,MAD2,max_step);
+                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size);
+            }
+        }else
+        {
+            while(!sucessful_compare)
+            {
+                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                    alpha,r1,r2,N_Burn,L,Expec2,MAD2,max_step);
+                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size);
+            }
         }
-
-        time = time + dt;
+        Make_PltFiles = true;
+        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                alpha,r1,r2,N_Burn,L,Expec,MAD,max_step);
+        inc_phi0_Adapt(&Expec,&MAD,&r1);
+        umbrella_size=0;
+        Make_PltFiles = false;
     }
+
+
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
