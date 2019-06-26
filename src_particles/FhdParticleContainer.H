@@ -57,7 +57,7 @@ struct RealData
         sigma,
         eepsilon,
         potential,
-	coulombRadiusFactor,
+	p3m_radius,
         ncomps
     };
 };
