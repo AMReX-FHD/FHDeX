@@ -325,11 +325,13 @@ void main_driver(const char * argv) {
     // Initialize velocities (fluid and tracers)
     IBMarkerContainer ib_mc(geom, dmap, ba, 1);
 
-    Vector<RealVect> marker_positions(1);
+    Vector<RealVect> marker_positions(2);
     marker_positions[0] = RealVect{0.5, 0.5, 0.5};
+    marker_positions[1] = RealVect{0.5, 0.51, 0.5};
 
-    Vector<Real> marker_radii(1);
+    Vector<Real> marker_radii(2);
     marker_radii[0] = {0.02};
+    marker_radii[1] = {0.02};
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 

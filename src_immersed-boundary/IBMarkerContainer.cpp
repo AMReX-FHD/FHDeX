@@ -84,7 +84,7 @@ void IBMarkerContainer::InitList(int lev,
 
         for(int i = 0; i < pos.size(); i++) {
             // IntVect representing particle's position in the tile_box grid.
-            RealVect pos_grid = pos[i];
+            RealVect pos_grid = pos[0]; // Important: need to initialize on same CPU
             pos_grid *= inv_dx;
             IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
                                                    (int) pos_grid[1],

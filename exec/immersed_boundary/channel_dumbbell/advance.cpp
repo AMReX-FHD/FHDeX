@@ -246,6 +246,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     int ib_lev = 0;
 
+    // Parameters for spring force calculation
+    Real spr_k = 100.0 ; // spring constant
+    Real init_dx = 0.01, init_dy = 0., init_dz = 0.; //initial distance btw markers. Need to update depending on initial coordinates.
+
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
@@ -264,6 +268,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         long np = markers.size();
         int nbhd_index = 0;
 
+        // Zero-out forces
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & part = markers[i];
+            part.rdata(IBM_realData::pred_forcex) = 0.;
+            part.rdata(IBM_realData::pred_forcey) = 0.;
+            part.rdata(IBM_realData::pred_forcez) = 0.;
+        }
+
         for (int i=0; i<np; ++i) {
 
             ParticleType & mark = markers[i];
@@ -278,12 +291,16 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     next_marker, prev_marker);
 
+            std::cout << "status = " << status << std::endl;
+
             // Increment neighbor list
             int nn      = nbhd[nbhd_index];
-            nbhd_index += nn;
+            nbhd_index += nn + 1; // +1 <= because the first fild contains nn
         }
     }
 
+
+    Abort();
 
 
 
