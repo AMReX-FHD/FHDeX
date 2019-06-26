@@ -21,7 +21,10 @@ contains
       real(amrex_real), intent(inout) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
       real(amrex_real), intent(inout) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
 
-      integer :: i,j,k,l 
+      ! real(amrex_real), intent(inout) :: chi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
+      ! real(amrex_real), intent(inout) :: Dij(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
+
+      integer :: i,j,k,l
       real(amrex_real) :: mgrams(MAX_SPECIES)
       real(amrex_real) :: vconst(nspecies), tconst(nspecies), R(nspecies), gamma1, gamma2, rootT, specaveta, specavkappa
 

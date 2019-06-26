@@ -70,7 +70,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
@@ -131,7 +131,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     cup.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
@@ -192,7 +192,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     cup2.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());

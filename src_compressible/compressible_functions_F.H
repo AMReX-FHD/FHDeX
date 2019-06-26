@@ -84,11 +84,18 @@ extern "C"
 		              const amrex::Real* dx, const amrex::Real* dt);
 
   void trans_coeffs(const int* lo, const int* hi,
-			      const amrex::Real* prim,
-			      amrex::Real* eta,
-			      amrex::Real* zeta,
-			      amrex::Real* zappa);
+		    const amrex::Real* prim,
+		    amrex::Real* eta,
+		    amrex::Real* zeta,
+		    amrex::Real* kappa);
 
+  void makecoef(const int* lo, const int* hi,
+		const amrex::Real* prim,
+		amrex::Real* eta,
+		amrex::Real* zeta,
+		amrex::Real* kappa,
+		amrex::Real* chi,
+		amrex::Real* Dij);
 
   void rk3_stage1(const int* lo, const int* hi,
 			      amrex::Real* cu,
