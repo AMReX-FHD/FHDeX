@@ -49,6 +49,8 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                        eta[mfi].dataPtr(),  
                        zeta[mfi].dataPtr(),  
                        kappa[mfi].dataPtr(),
+		       chi[mfi].dataPtr(),  
+		       D[mfi].dataPtr(),  
 		       ZFILL(dx), &dt);
 
 	if (abs(visc_type) > 1) {

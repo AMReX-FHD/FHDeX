@@ -44,7 +44,7 @@ void AmrCoreAdv::Initialize( )
     Dcon_x.resize(nlevs_max);
     Dcon_y.resize(nlevs_max);
     Dcon_z.resize(nlevs_max);
-    DP_gradC_normLs.resize(nlevs_max);
+    MagDcon.resize(nlevs_max);
 
     bcs.resize(1);
     
@@ -262,12 +262,12 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 0));
        Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 0));
        Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 0));
-       DP_gradC_normLs[lev].reset(new MultiFab(ba, dm, 1, 0));
+       MagDcon[lev].reset(new MultiFab(ba, dm, 1, 0));
 
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
        Dcon_z[lev]->setVal(0.);
-       DP_gradC_normLs[lev]->setVal(0.);
+       MagDcon[lev]->setVal(0.);
 
 //       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
 
@@ -870,7 +870,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab &  sx_mf       = * Dcon_x[lev];
     MultiFab &  sy_mf       = * Dcon_y[lev];
     MultiFab &  sz_mf       = * Dcon_z[lev];
-    MultiFab &  sd_mf       = * DP_gradC_normLs[lev];
+    MultiFab &  sd_mf       = * MagDcon[lev];
     MultiFab &  ls_mf       = * levset;
     std::cout << "Advance max Ls 1 "<< (*levset).max(0)<<std::endl;
     std::cout << "Advance max Ls 2 "<< ls_mf.max(0)<<std::endl;
@@ -1008,7 +1008,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==4){
-	 MF[lev]->copy(* DP_gradC_normLs[lev], 0, 0,1, 0, 0);
+	 MF[lev]->copy(* MagDcon[lev], 0, 0,1, 0, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
 
