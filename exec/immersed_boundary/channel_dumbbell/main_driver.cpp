@@ -1,6 +1,5 @@
-
-#include "hydro_test_functions.H"
-#include "hydro_test_functions_F.H"
+#include "main_driver.H"
+#include "main_driver_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
@@ -326,14 +325,15 @@ void main_driver(const char * argv) {
     // Initialize velocities (fluid and tracers)
     IBMarkerContainer ib_mc(geom, dmap, ba, 1);
 
-    Vector<RealVect> marker_positions(1);
+    Vector<RealVect> marker_positions(2);
     marker_positions[0] = RealVect{0.5, 0.5, 0.5};
-//    marker_positions[1] = RealVect{0.5, 1.0, 0.5};
+    marker_positions[1] = RealVect{0.5, 0.51, 0.5};
 
-    //define spring constant between adjacent markers
-//    Real spr_k = 1;
+    Vector<Real> marker_radii(2);
+    marker_radii[0] = {0.02};
+    marker_radii[1] = {0.02};
 
-    ib_mc.InitList(0, marker_positions);
+    ib_mc.InitList(0, marker_radii, marker_positions);
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);

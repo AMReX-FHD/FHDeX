@@ -84,7 +84,7 @@ void IBMarkerContainer::InitList(int lev,
 
         for(int i = 0; i < pos.size(); i++) {
             // IntVect representing particle's position in the tile_box grid.
-            RealVect pos_grid = pos[i];
+            RealVect pos_grid = pos[0]; // Important: need to initialize on same CPU
             pos_grid *= inv_dx;
             IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
                                                    (int) pos_grid[1],
@@ -870,6 +870,67 @@ void IBMarkerContainer::InterpolatePredictor(int lev,
         }
 
         // TODO: sync neighbors?
+    }
+}
+
+
+
+int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
+                                            const ParticleType & part,
+                                                  ParticleVector & nbhd_data,
+                                            const Vector<int> & nbhd,
+                                            int nbhd_index,
+                                            ParticleType * prev_marker,
+                                            ParticleType * next_marker) const {
+
+    long np = particles.size();
+    int nn  = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
+    nbhd_index ++; // pointing at first neighbor
+
+
+    bool prev_set = false;
+    bool next_set = false;
+
+
+    // Loops over neighbor list
+    for (int j=0; j < nn; ++j) {
+        int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing
+
+        ParticleType * npart;
+        if (ni >= np) {
+            ni = ni - np;
+            npart = & nbhd_data[ni];
+        } else {
+            npart = & particles[ni];
+        }
+
+        // Check if the neighbor candidate is the previous/minus neighbor
+        if (        (npart->id() == part.idata(IBM_intData::id_0))
+                && (npart->cpu() == part.idata(IBM_intData::cpu_0)) ) {
+
+            prev_marker = npart;
+            prev_set = true;
+        }
+
+        // Check if the neighbor candidate is the next/plus neighbor
+        if (        (part.id() == npart->idata(IBM_intData::id_0))
+                && (part.cpu() == npart->idata(IBM_intData::cpu_0)) ) {
+
+            next_marker = npart;
+            next_set = true;
+        }
+
+        nbhd_index ++;
+    }
+
+    if (prev_set && next_set) {
+        return 0;
+    } else if (! prev_set &&   next_set ) {
+        return 1;
+    } else if (  prev_set && ! next_set)  {
+        return 2;
+    } else {
+        return -1;
     }
 }
 

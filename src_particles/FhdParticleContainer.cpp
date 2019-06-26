@@ -150,13 +150,13 @@ BL_PROFILE_VAR_STOP(particle_move);
         
 
 
-void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount, double time)
+void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount, Real time, int* flux)
 {
 
   // Print() << "HERE MoveParticlesDSMC" << std::endline
   
     UpdateCellVectors();
-    int i;
+    int i; int lFlux = 0; int rFlux = 0;
     const int  lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
@@ -188,7 +188,9 @@ BL_PROFILE_VAR_START(particle_move);
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                        ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
-                       surfaceList, &surfaceCount, &time);
+                       surfaceList, &surfaceCount, &time, flux);
+
+        lFlux += flux[0]; rFlux += flux[1];
 
         // resize particle vectors after call to move_particles
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -198,6 +200,13 @@ BL_PROFILE_VAR_START(particle_move);
             pvec.resize(new_size);
         }
     }
+
+    //reduce flux
+    ParallelDescriptor::ReduceIntSum(lFlux);
+    ParallelDescriptor::ReduceIntSum(rFlux);
+
+    //reset flux
+    flux[0] = lFlux; flux[1] = rFlux;
 
     std::ofstream outfile;
     

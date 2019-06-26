@@ -54,7 +54,9 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(con_x),
                 BL_FORT_FAB_ARG_3D(con_y),
                 BL_FORT_FAB_ARG_3D(con_z),
+                BL_FORT_FAB_ARG_3D(dp),
                 int* iface, const int* if_lo, const int* if_hi,
+                const BL_FORT_FAB_ARG_3D(ls),
                 const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
                 const amrex_real* ib_cen_z, 
                 const amrex_real* dx, const amrex_real* prob_lo);

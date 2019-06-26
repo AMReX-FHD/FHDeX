@@ -174,9 +174,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
    ee = 1.d0/(permitivitty*4*3.142) 
    dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
   
-   allocate(weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3))
-   allocate(indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3))
-        
+
     particles(    1:np) = rparticles
     particles(np+1:   ) = neighbors
 
@@ -346,7 +344,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 end subroutine amrex_compute_forces_nl
 
 subroutine move_particles_dsmc(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns, time) &
+     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, surfaces, ns, time, flux) &
      bind(c,name="move_particles_dsmc")
   
   use amrex_fort_module, only: amrex_real
@@ -366,6 +364,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
   real(amrex_real), intent(in) :: dt, time
+  integer(c_int), intent(inout) :: flux(2)
   
   integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR
   integer :: cell(3)
@@ -539,12 +538,14 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
  enddo
 
+  flux(1) = fluxL
+  flux(2) = fluxR
 
-  if (thermostat_tog .eq. 1) then
-    open(13, file="fluxes.txt", status="old", position="append", action="write")
-    write(13,*) fluxL, fluxR
-    close(13)
-  endif
+  ! if (thermostat_tog .eq. 1) then
+  !   open(13, file="fluxes.txt", status="old", position="append", action="write")
+  !   write(13,*) step, fluxL, fluxR
+  !   close(13)
+  ! endif
 
           if(graphene_tog .eq. 1) then
                interval=prob_hi(1)/100
@@ -2209,7 +2210,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
            do while (p <= new_np)
 
-              runtime = dt
+              
               part => particles(cell_parts(p))
 
               !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
@@ -2237,6 +2238,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
               if(move_tog .eq. 2) then !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
                 posold = part%pos
+
                 runtime = dt*0.5
 
                 do while (runtime .gt. 0)
@@ -2296,9 +2298,10 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                                   velz, velzlo, velzhi, &
 #endif
                                   part, ks, dxf, boundflag, midpoint, rejected)
+
+                part%pos = posold
               endif
 
-              part%pos = posold
               runtime = dt
 
               if (dry_move_tog .eq. 1) then
@@ -2373,9 +2376,11 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
 !!!!!!!!!! Mean square displacement measurer.
 
-              !print *, part%pos(1)
+              !print *, "Before: ", part%abspos
 
               part%abspos = part%abspos + dt*part%vel
+
+              !print *, "After: ", part%abspos
 
               dist = sqrt(dot_product(dt*part%vel,dt*part%vel))/part%radius
 
@@ -2388,6 +2393,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 !              distav = distav + dt*sqrt(part%vel(1)**2+part%vel(2)**2+part%vel(3)**2)
 
               part%travel_time = part%travel_time + dt
+
+              !print *, "tt: ", part%travel_time
 
               norm = part%abspos
 

@@ -34,7 +34,7 @@ void main_driver(const char* argv)
 
     //hard coded variables - make into input later
     //number of particles left/right - set to -1 to assign by density
-    int pL = 200; int pR = 800;
+    int pL = 15; int pR = 5;
     //temperature on left/right
     Real tL = 290; Real tR = 275;
 
@@ -421,7 +421,9 @@ void main_driver(const char* argv)
     outfile << dt << '\n';
     outfile << pL << ' ' << pR << '\n';
     outfile << tL << ' ' << tR << '\n';
-    outfile.close();
+
+    //make fluxes storage
+    int flux[2]; flux[0] = 0; flux[1] = 0;
 
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
@@ -431,7 +433,8 @@ void main_driver(const char* argv)
         //ballistic movement
         if(move_tog == 1)
         {
-            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
+            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time, flux);
+            outfile << flux[0] << ' ' << flux[1] << '\n';
             particles.Redistribute();
 
             particles.ReBin();
@@ -482,4 +485,7 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    //close the outfile
+    outfile.close();
 }

@@ -1,5 +1,10 @@
 #include "AMReX_PlotFileUtil.H"
 
+#include "common_functions.H"
+#include "common_namespace.H"
+
+using namespace common;
+
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
@@ -9,38 +14,94 @@ void WritePlotFile(int step,
 	           const amrex::MultiFab& prim,
 	           const amrex::MultiFab& primMeans,
 	           const amrex::MultiFab& primVars,
-	           const amrex::MultiFab& spatialCross, const amrex::MultiFab& etaMeanAv, const amrex::MultiFab& kappaMeanAv) 
+	           const amrex::MultiFab& spatialCross, 
+		   const amrex::MultiFab& etaMeanAv, 
+		   const amrex::MultiFab& kappaMeanAv) 
 {
 
-
+    int cnt, numvars, i = 0;
+    int nplot = 3*5 + 4*6 + 2*1 + 3*nspecies;
 
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
-    amrex::MultiFab plotfile(ba, dmap, 40, 0);
+    amrex::MultiFab plotfile(ba, dmap, nplot, 0);
 
-    amrex::MultiFab::Copy(plotfile,cuMeans,0,0,5,0);
-    amrex::MultiFab::Copy(plotfile,primMeans,0,5,6,0);
-
-    amrex::MultiFab::Copy(plotfile,cu,0,11,5,0);
-
-    amrex::MultiFab::Copy(plotfile,prim,0,16,6,0);
-
-    amrex::MultiFab::Copy(plotfile,cuVars,0,22,5,0);
-
-    amrex::MultiFab::Copy(plotfile,primVars,0,27,5,0);
-
-    amrex::MultiFab::Copy(plotfile,spatialCross,0,32,6,0);
-
-    amrex::MultiFab::Copy(plotfile,etaMeanAv,0,38,1,0);
-    amrex::MultiFab::Copy(plotfile,kappaMeanAv,0,39,1,0);
-
-
+    std::string x;
     std::string plotfilename = amrex::Concatenate("plt",step,9);
+    amrex::Vector<std::string> varNames(nplot);
 
-    amrex::Vector<std::string> varNames(40);
+    // Load into plotfile MF
+    
+    cnt = 0;
 
-    int cnt = 0;
+    numvars = 5+nspecies;
+    amrex::MultiFab::Copy(plotfile,cu,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 6+2*nspecies;
+    amrex::MultiFab::Copy(plotfile,prim,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 5;
+    amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 6;
+    amrex::MultiFab::Copy(plotfile,primMeans,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 5;
+    amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 6;
+    amrex::MultiFab::Copy(plotfile,primVars,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 6;
+    amrex::MultiFab::Copy(plotfile,spatialCross,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 1;
+    amrex::MultiFab::Copy(plotfile,etaMeanAv,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    numvars = 1;
+    amrex::MultiFab::Copy(plotfile,kappaMeanAv,0,cnt,numvars,0);
+    cnt+=numvars;
+
+    // Set variable names
+
+    cnt = 0;
+
+    varNames[cnt++] = "rhoInstant";
+    varNames[cnt++] = "jxInstant";
+    varNames[cnt++] = "jyInstant";
+    varNames[cnt++] = "jzInstant";
+    varNames[cnt++] = "eInstant";
+    x = "rhoYkInstant_";
+    for (i=0; i<nspecies; i++) {
+        varNames[cnt] = x;
+        varNames[cnt++] += 48+i;
+    }
+
+    varNames[cnt++] = "rhoInstant";
+    varNames[cnt++] = "uxInstant";
+    varNames[cnt++] = "uyInstant";
+    varNames[cnt++] = "uzInstant";
+    varNames[cnt++] = "tInstant";
+    varNames[cnt++] = "pInstant";
+    x = "YkInstant_";
+    for (i=0; i<nspecies; i++) {
+        varNames[cnt] = x;
+        varNames[cnt++] += 48+i;
+    }
+    x = "XkInstant_";
+    for (i=0; i<nspecies; i++) {
+        varNames[cnt] = x;
+        varNames[cnt++] += 48+i;
+    }
 
     varNames[cnt++] = "rhoMean";
     varNames[cnt++] = "jxMean";
@@ -54,19 +115,6 @@ void WritePlotFile(int step,
     varNames[cnt++] = "uzMean";
     varNames[cnt++] = "tMean";
     varNames[cnt++] = "pMean";
-
-    varNames[cnt++] = "rhoInstant";
-    varNames[cnt++] = "jxInstant";
-    varNames[cnt++] = "jyInstant";
-    varNames[cnt++] = "jzInstant";
-    varNames[cnt++] = "eInstant";
-
-    varNames[cnt++] = "rhoInstant";
-    varNames[cnt++] = "uxInstant";
-    varNames[cnt++] = "uyInstant";
-    varNames[cnt++] = "uzInstant";
-    varNames[cnt++] = "tInstant";
-    varNames[cnt++] = "pInstant";
 
     varNames[cnt++] = "rhoVar";
     varNames[cnt++] = "jxVar";
