@@ -34,7 +34,7 @@ void main_driver(const char* argv)
 
     //hard coded variables - make into input later
     //number of particles left/right - set to -1 to assign by density
-    int pL = 200; int pR = 800;
+    int pL = 15; int pR = 5;
     //temperature on left/right
     Real tL = 290; Real tR = 275;
 
