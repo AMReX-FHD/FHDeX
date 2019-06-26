@@ -168,7 +168,7 @@ private:
    Vector< std::unique_ptr<MultiFab> >  Dcon_x;
    Vector< std::unique_ptr<MultiFab> >  Dcon_y;
    Vector< std::unique_ptr<MultiFab> >  Dcon_z;
-   Vector< std::unique_ptr<MultiFab> >  DP_gradC_normLs;
+   Vector< std::unique_ptr<MultiFab> >  MagDcon;
 
 
    Vector< std::unique_ptr<MultiFab> >  wface;
