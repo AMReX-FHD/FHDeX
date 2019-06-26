@@ -79,6 +79,8 @@ extern "C"
                               const amrex::Real* eta,
 			      const amrex::Real* zeta,
 			      const amrex::Real* zappa,
+		              const amrex::Real* chi,
+			      const amrex::Real* Dij,
 		              const amrex::Real* dx, const amrex::Real* dt);
 
   void trans_coeffs(const int* lo, const int* hi,
