@@ -1,21 +1,18 @@
-#include "hydro_test_functions.H"
-
+#include "main_driver.H"
 #include "AMReX_PlotFileUtil.H"
-
 #include "AMReX_MultiFab.H"
 
 #include "common_functions.H"
-
 #include "common_namespace.H"
 
 using namespace common;
 
 void WritePlotFile(int step,
-                   const amrex::Real time,
-                   const amrex::Geometry geom,
+                   const Real time,
+                   const Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& tracer,
-		   const MultiFab& pres)
+                   const MultiFab& tracer,
+                   const MultiFab& pres)
 {
 
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
