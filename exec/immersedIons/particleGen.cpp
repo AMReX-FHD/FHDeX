@@ -2,7 +2,7 @@
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
 
-void FhdParticleContainer::InitParticles(species* particleInfo)
+void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
     
     const int lev = 0;
@@ -116,9 +116,11 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
                 p.idata(IntData::species) = i_spec +1;
 		p.rdata(RealData::potential) = 0;                 
+
 		// set distance for which we do direct, short range coulomb force calculation
 		// in p3m to be 6.5*dx_poisson_grid
-		p.rdata(RealData::p3m_radius) = 6.5*dx[0]*es_grid_refine;                 
+		p.rdata(RealData::p3m_radius) = 6.5*dxp[0];   
+
                 particle_tile.push_back(p);
 
                 pcount++;
