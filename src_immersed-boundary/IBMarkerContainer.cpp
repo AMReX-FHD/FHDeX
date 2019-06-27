@@ -173,11 +173,6 @@ void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
             part.pos(0) += dt * part.rdata(IBM_realData::velx);
             part.pos(1) += dt * part.rdata(IBM_realData::vely);
             part.pos(2) += dt * part.rdata(IBM_realData::velz);
-
-            // update predictor to match the position
-            part.rdata(IBM_realData::pred_posx) = part.pos(0);
-            part.rdata(IBM_realData::pred_posy) = part.pos(1);
-            part.rdata(IBM_realData::pred_posz) = part.pos(2);
         }
     }
 }
@@ -195,7 +190,11 @@ void IBMarkerContainer::MovePredictor(int lev, Real dt) {
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            MarkerIndex pindex(part.id(), part.cpu());
+
+            // update predictor to match the position
+            part.rdata(IBM_realData::pred_posx) = part.pos(0);
+            part.rdata(IBM_realData::pred_posy) = part.pos(1);
+            part.rdata(IBM_realData::pred_posz) = part.pos(2);
 
             part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
             part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
@@ -242,7 +241,6 @@ void IBMarkerContainer::ResetPredictor(int lev) {
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            MarkerIndex pindex(part.id(), part.cpu());
 
             part.rdata(IBM_realData::pred_velx) = 0.;
             part.rdata(IBM_realData::pred_vely) = 0.;

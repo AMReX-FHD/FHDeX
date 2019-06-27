@@ -326,8 +326,8 @@ void main_driver(const char * argv) {
     IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
     Vector<RealVect> marker_positions(2);
-    marker_positions[0] = RealVect{0.5,  0.5, 0.5};
-    marker_positions[1] = RealVect{0.51, 0.5, 0.5};
+    marker_positions[0] = RealVect{0.1,  0.5, 0.5};
+    marker_positions[1] = RealVect{0.11, 0.5, 0.5};
 
     Vector<Real> marker_radii(2);
     marker_radii[0] = {0.02};
