@@ -246,8 +246,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Interpolate immersed boundary predictor
+    std::array<MultiFab, AMREX_SPACEDIM> umac_buffer;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        umac_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
+        umac_buffer[d].FillBoundary(geom.periodicity());
+    }
+
     ib_mc.ResetPredictor(0);
-    ib_mc.InterpolatePredictor(0, umac);
+    ib_mc.InterpolatePredictor(0, umac_buffer);
 
 
     //___________________________________________________________________________
@@ -426,8 +433,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Interpolate immersed boundary
+    std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        umacNew_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umac[d].nGrow());
+        umacNew_buffer[d].FillBoundary(geom.periodicity());
+    }
+
     ib_mc.ResetMarkers(0);
-    ib_mc.InterpolateMarkers(0, umacNew);
+    ib_mc.InterpolateMarkers(0, umacNew_buffer);
 
     //___________________________________________________________________________
     // Move markers according to velocity
