@@ -285,19 +285,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
                                                          pti.LocalTileIndex());
 
+
         long np = markers.size();
         int nbhd_index = 0;
-
-        // Zero-out forces
-        for (int i=0; i<np; ++i) {
-
-            ParticleType & mark = markers[i];
-            mark.rdata(IBM_realData::pred_forcex) = 0.;
-            mark.rdata(IBM_realData::pred_forcey) = 0.;
-            mark.rdata(IBM_realData::pred_forcez) = 0.;
-        }
-
-
 
         for (int i=0; i<np; ++i) {
 
@@ -313,6 +303,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
 
+            std::cout << "status = " << status << std::endl;
 
             if (status == 1) {        // has next, has no prev
 
@@ -323,13 +314,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real rz = next_marker->rdata(IBM_realData::pred_posz)
                         - mark.rdata(IBM_realData::pred_posz);
 
-                mark.rdata(IBM_realData::pred_forcex) += spr_k * (rx - init_dx);
-                mark.rdata(IBM_realData::pred_forcey) += spr_k * (ry - init_dy);
-                mark.rdata(IBM_realData::pred_forcez) += spr_k * (rz - init_dz);
+                std::cout << "1 pr = " << rx << ", " << ry << ", " << rz << std::endl;
 
-                next_marker->rdata(IBM_realData::pred_forcex) -= spr_k * (rx - init_dx);
-                next_marker->rdata(IBM_realData::pred_forcey) -= spr_k * (ry - init_dy);
-                next_marker->rdata(IBM_realData::pred_forcez) -= spr_k * (rz - init_dz);
+                mark.rdata(IBM_realData::pred_forcex) = spr_k * (rx - init_dx);
+                mark.rdata(IBM_realData::pred_forcey) = spr_k * (ry - init_dy);
+                mark.rdata(IBM_realData::pred_forcez) = spr_k * (rz - init_dz);
+
+                next_marker->rdata(IBM_realData::pred_forcex) = - spr_k * (rx - init_dx);
+                next_marker->rdata(IBM_realData::pred_forcey) = - spr_k * (ry - init_dy);
+                next_marker->rdata(IBM_realData::pred_forcez) = - spr_k * (rz - init_dz);
 
             } else if (status == 2) { // has prev, has no next
 
@@ -340,18 +333,20 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real rz = mark.rdata(IBM_realData::pred_posz)
                         - prev_marker->rdata(IBM_realData::pred_posz);
 
-                mark.rdata(IBM_realData::pred_forcex) -= spr_k * (rx - init_dx);
-                mark.rdata(IBM_realData::pred_forcey) -= spr_k * (ry - init_dy);
-                mark.rdata(IBM_realData::pred_forcez) -= spr_k * (rz - init_dz);
+                std::cout << "2 pr = " << rx << ", " << ry << ", " << rz << std::endl;
 
-                prev_marker->rdata(IBM_realData::pred_forcex) += spr_k * (rx - init_dx);
-                prev_marker->rdata(IBM_realData::pred_forcey) += spr_k * (ry - init_dy);
-                prev_marker->rdata(IBM_realData::pred_forcez) += spr_k * (rz - init_dz);
+                mark.rdata(IBM_realData::pred_forcex) = - spr_k * (rx - init_dx);
+                mark.rdata(IBM_realData::pred_forcey) = - spr_k * (ry - init_dy);
+                mark.rdata(IBM_realData::pred_forcez) = - spr_k * (rz - init_dz);
+
+                prev_marker->rdata(IBM_realData::pred_forcex) = spr_k * (rx - init_dx);
+                prev_marker->rdata(IBM_realData::pred_forcey) = spr_k * (ry - init_dy);
+                prev_marker->rdata(IBM_realData::pred_forcez) = spr_k * (rz - init_dz);
             }
 
             // Increment neighbor list
             int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first fild contains nn
+            nbhd_index += nn + 1; // +1 <= because the first field contains nn
         }
     }
 
@@ -482,18 +477,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
                                                          pti.LocalTileIndex());
 
+
         long np = markers.size();
         int nbhd_index = 0;
-
-        // Zero-out forces
-        for (int i=0; i<np; ++i) {
-
-            ParticleType & mark = markers[i];
-            mark.rdata(IBM_realData::forcex) = 0.;
-            mark.rdata(IBM_realData::forcey) = 0.;
-            mark.rdata(IBM_realData::forcez) = 0.;
-        }
-
 
         for (int i=0; i<np; ++i) {
 
@@ -509,6 +495,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
 
+            std::cout << "status = " << status << std::endl;
 
             if (status == 1) {        // has next, has no prev
 
@@ -516,13 +503,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real ry = next_marker->pos(1) - mark.pos(1);
                 Real rz = next_marker->pos(2) - mark.pos(2);
 
-                mark.rdata(IBM_realData::forcex) += spr_k * (rx - init_dx);
-                mark.rdata(IBM_realData::forcey) += spr_k * (ry - init_dy);
-                mark.rdata(IBM_realData::forcez) += spr_k * (rz - init_dz);
+                std::cout << "1 cr = " << rx << ", " << ry << ", " << rz << std::endl;
 
-                next_marker->rdata(IBM_realData::forcex) -= spr_k * (rx - init_dx);
-                next_marker->rdata(IBM_realData::forcey) -= spr_k * (ry - init_dy);
-                next_marker->rdata(IBM_realData::forcez) -= spr_k * (rz - init_dz);
+                mark.rdata(IBM_realData::forcex) = spr_k * (rx - init_dx);
+                mark.rdata(IBM_realData::forcey) = spr_k * (ry - init_dy);
+                mark.rdata(IBM_realData::forcez) = spr_k * (rz - init_dz);
+
+                next_marker->rdata(IBM_realData::forcex) = - spr_k * (rx - init_dx);
+                next_marker->rdata(IBM_realData::forcey) = - spr_k * (ry - init_dy);
+                next_marker->rdata(IBM_realData::forcez) = - spr_k * (rz - init_dz);
 
             } else if (status == 2) { // has prev, has no next
 
@@ -530,18 +519,20 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real ry = mark.pos(1) - prev_marker->pos(1);
                 Real rz = mark.pos(2) - prev_marker->pos(2);
 
-                mark.rdata(IBM_realData::forcex) -= spr_k * (rx - init_dx);
-                mark.rdata(IBM_realData::forcey) -= spr_k * (ry - init_dy);
-                mark.rdata(IBM_realData::forcez) -= spr_k * (rz - init_dz);
+                std::cout << "2 cr = " << rx << ", " << ry << ", " << rz << std::endl;
 
-                prev_marker->rdata(IBM_realData::forcex) += spr_k * (rx - init_dx);
-                prev_marker->rdata(IBM_realData::forcey) += spr_k * (ry - init_dy);
-                prev_marker->rdata(IBM_realData::forcez) += spr_k * (rz - init_dz);
+                mark.rdata(IBM_realData::forcex) = - spr_k * (rx - init_dx);
+                mark.rdata(IBM_realData::forcey) = - spr_k * (ry - init_dy);
+                mark.rdata(IBM_realData::forcez) = - spr_k * (rz - init_dz);
+
+                prev_marker->rdata(IBM_realData::forcex) = spr_k * (rx - init_dx);
+                prev_marker->rdata(IBM_realData::forcey) = spr_k * (ry - init_dy);
+                prev_marker->rdata(IBM_realData::forcez) = spr_k * (rz - init_dz);
             }
 
             // Increment neighbor list
             int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first fild contains nn
+            nbhd_index += nn + 1; // +1 <= because the first field contains nn
         }
     }
 

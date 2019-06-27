@@ -173,6 +173,11 @@ void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
             part.pos(0) += dt * part.rdata(IBM_realData::velx);
             part.pos(1) += dt * part.rdata(IBM_realData::vely);
             part.pos(2) += dt * part.rdata(IBM_realData::velz);
+
+            // update predictor to match the position
+            part.rdata(IBM_realData::pred_posx) = part.pos(0);
+            part.rdata(IBM_realData::pred_posy) = part.pos(1);
+            part.rdata(IBM_realData::pred_posz) = part.pos(2);
         }
     }
 }
@@ -216,6 +221,10 @@ void IBMarkerContainer::ResetMarkers(int lev) {
             part.rdata(IBM_realData::velx) = 0.;
             part.rdata(IBM_realData::vely) = 0.;
             part.rdata(IBM_realData::velz) = 0.;
+
+            part.rdata(IBM_realData::forcex) = 0.;
+            part.rdata(IBM_realData::forcey) = 0.;
+            part.rdata(IBM_realData::forcez) = 0.;
         }
     }
 }
@@ -238,6 +247,10 @@ void IBMarkerContainer::ResetPredictor(int lev) {
             part.rdata(IBM_realData::pred_velx) = 0.;
             part.rdata(IBM_realData::pred_vely) = 0.;
             part.rdata(IBM_realData::pred_velz) = 0.;
+
+            part.rdata(IBM_realData::pred_forcex) = 0.;
+            part.rdata(IBM_realData::pred_forcey) = 0.;
+            part.rdata(IBM_realData::pred_forcez) = 0.;
         }
     }
 }

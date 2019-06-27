@@ -420,21 +420,6 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
-    //___________________________________________________________________________
-    // FFT test
-    // if (struct_fact_int > 0) {
-    //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-    //     mf_cc[0].define(ba, dmap, 1, 0);
-    //     mf_cc[1].define(ba, dmap, 1, 0);
-    //     mf_cc[2].define(ba, dmap, 1, 0);
-    //     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-    //         const Box& bx = mfi.validbox();
-    //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-    //     }
-    // }
-
     for(step = 1; step <= max_step; ++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
