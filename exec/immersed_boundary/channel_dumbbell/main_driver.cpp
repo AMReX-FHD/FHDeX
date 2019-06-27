@@ -323,7 +323,8 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+    // Make sure that the nghost (last argument) is big enough!
+    IBMarkerContainer ib_mc(geom, dmap, ba, 20);
 
     Vector<RealVect> marker_positions(2);
     marker_positions[0] = RealVect{0.1,  0.5, 0.5};
