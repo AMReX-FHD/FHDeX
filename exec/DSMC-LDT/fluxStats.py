@@ -66,11 +66,11 @@ def makeHist(flux):
 
   return
 
-def getAverageFlux(N):
+def getAverageFlux(N, ts):
   #plot the average flux as a function of timestep
 
-  #construct storage for data
-  cumFlux = []
+  #construct storage for data - first element is 0
+  cumFlux = [0.0 for _ in range(ts+1)]
 
   #base for data location
   base = "samples/fluxes"
@@ -83,10 +83,79 @@ def getAverageFlux(N):
 
     #compute a cumulative sum of netFlux
     cs = np.cumsum(netFlux)
-    print cs
+    cs = np.insert(cs,0,0) #append a zero as the first element
+    
+    #add the cumsum to cumFlux
+    cumFlux = np.add(cumFlux, cs)
 
-  return 0
+  #divide cumFlux by number of samples
+  Ninv = 1.0 / N
+  #cumFlux.astype(float)
+  cumFlux[:] = [x * Ninv for x in cumFlux]
 
+  return cumFlux, dt
+
+def plotAverageFlux(avgFlux, N, ts, dt, eBarFlag):
+  #plot the average flux
+
+  if (eBarFlag == 1):
+    eBars = []
+
+    #get error bars every 500th time step
+    for i in xrange(0,ts+1):
+      if (i % 500 == 0):
+        eBars.append(getErrorBar(N, i))
+        print "Got error bar at ", i
+      else:
+        eBars.append(0)
+
+
+
+    #plot the data
+    t = xrange(0,ts+1)
+    plt.errorbar(t, avgFlux, eBars, errorevery = 500)
+    plt.title('Average Flux over time')
+    plt.xlabel('Time Step')
+    plt.ylabel('Flux')
+    plt.show()
+  else:
+    #plot the data
+    t = xrange(0,ts+1)
+    plt.plot(t, avgFlux)
+    plt.title('Average Flux over time')
+    plt.xlabel('Time Step')
+    plt.ylabel('Flux')
+    plt.show()
+
+    return
+
+def getErrorBar(N, time):
+  #get error bar on average flux at time step = time
+
+  #construct storage for data - first element is 0
+  cumFlux = [0.0 for _ in range(ts+1)]
+
+  #base for data location
+  base = "samples/fluxes"
+
+  #hold all cumFLuxes at given time step
+  measurements = []
+
+  #loop over all the data
+  for i in xrange(0,N):
+    #get the data
+    loc = base + str(i) + ".txt"
+    dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData(loc)
+
+    #compute cumsum
+    cs = np.cumsum(netFlux)
+    cs = np.insert(cs,0,0) #append a zero as the first element
+
+    measurements.append(cs[time]);
+
+  eBar = np.std(measurements)
+
+  return eBar
 
 
 
@@ -96,17 +165,19 @@ def getAverageFlux(N):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) != 2:
-        print("Usage: python fluxStats.py <fluxfile>")
+    if len(sys.argv) != 4:
+        print("Usage: python fluxStats.py <numSamples> <numTimeSteps> <plotEbar>")
 
-    data = sys.argv[1]
+    N = int(sys.argv[1])
+    ts = int(sys.argv[2])
+    eBarFlag = int(sys.argv[3])
 
-    #extract the data from file
-    dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData(data)
+    #get the average flux as a function of timestep
+    print "Getting average flux"
+    avgFlux, dt = getAverageFlux(N, ts)
+    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag)
 
-    #make a histogram
-    #makeHist(netFlux)
-    getAverageFlux(20)
+
 
 
 
