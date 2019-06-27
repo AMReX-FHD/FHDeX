@@ -261,7 +261,10 @@ void FhdParticleContainer::getParticleMapping(std::map<int,int>& particleMap, in
     int remL = pL % box_per_side; int remR = pR % box_per_side; //remainder per side
     int countL = 0; int countR = 0; //count how many boxes considered on each side
 
-    //deal with random distribution of the remainder
+    //printf("%d %d\n", pL, pR);
+    //printf("%d %d %d %d\n", ppbL, ppbR, remL, remR);
+
+    //deal with random distribution of the remainder - overcounts for many processes
     std::vector<int> boxL; std::vector<int> boxR;
     for (int i = 0; i < box_per_side; i++) {
         boxL.push_back(i); boxR.push_back(i);
@@ -303,8 +306,9 @@ void FhdParticleContainer::getParticleMapping(std::map<int,int>& particleMap, in
             countR++;
         }
 
-
     }
+
+    //for (int i = 0; i < 8; i++) printf("%d %d\n", i, particleMap[i]);
 }
 
 void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_boxes, int pL, int pR, Real tL, Real tR) {
@@ -327,7 +331,8 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
     int pcount = 0;  
     std::map<int,int> particleMap;
     getParticleMapping(particleMap, xCells, num_boxes, pL, pR);
-    MPI_Barrier(MPI_COMM_WORLD);
+    //MPI_Barrier(MPI_COMM_WORLD);
+    ParallelDescriptor::Barrier();
         
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -357,7 +362,6 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
         {
             for (int i_part=0; i_part<particleMap[grid_id];i_part++)
             {
-
                 //set coefficients based on if this particle is going in left or right box
                 if (smallEnd[0] < xCells / 2) {
                     temp = tL;
@@ -372,12 +376,11 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
                 p.idata(IntData::sorted) = 0;
 
                 p.pos(0) = xMin + get_uniform_func()*xRange;
-                printf("%d %f\n", i_part,p.pos(0));
                 p.pos(1) = yMin + get_uniform_func()*yRange;
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = zMin + get_uniform_func()*zRange;
 #endif
-                
+                printf("%d %f %f\n", i_part,p.pos(0), p.pos(1));
                 
                 p.rdata(RealData::q) = 0;
 
@@ -448,6 +451,8 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
 
     const int lev = 0;
     const Real Neff = particleInfo->Neff; 
+    Real vFix; //generate new velocities if 0 variance
+    Real varTol = 1e-5; //tolerance for variance to be 0
 
     //declare storage for variables going to fortran
     Real vL = 0, vR = 0;
@@ -484,9 +489,17 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     ParallelDescriptor::ReduceIntSum(pL);
     ParallelDescriptor::ReduceIntSum(pR);
 
+    if (pL <= 1 || pR <= 1) {
+        printf("Particle counts: %d %d\n", pL, pR);
+    }
+
     //get mean velocities per side
     meanL = vL / pL;
     meanR = vR / pR;
+
+    if (pL <= 2 || pR <= 2) {
+        //printf("avg velocities: %f %f\n", vL, vR);
+    }
 
     //get temperature on each side via velocity variance
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
@@ -514,31 +527,87 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     ParallelDescriptor::ReduceRealSum(varL); varL = varL/pL;
     ParallelDescriptor::ReduceRealSum(varR); varR = varR/pR;
 
-    //compute correction factors
-    Real lC = sqrt(tL/varL); 
-    Real rC = sqrt(tR/varR);
+    if (pL <= 2 || pR <= 2) {
+        //printf("Vars: %f %f\n", varL, varR);
+    }
 
-    //apply correction factors
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
+    //if the variance is 0, regenerate those velocities and re-thermostat
+    if (varL < varTol) {
+        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const int grid_id = pti.index();
+            const int tile_id = pti.LocalTileIndex();
+            const Box& tile_box  = pti.tilebox();
 
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+            auto& parts = particle_tile.GetArrayOfStructs();
+            const int Np = parts.numParticles();
+
+            for (int i = 0; i < Np; i++) {
+                if (parts[i].pos(0) < 1) {
+                    vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
+                    parts[i].rdata(RealData::vx) = vFix;
+                }
+            }
+        }
+
+        ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
+        return;
+    }
+    if (varR < varTol) {
+        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const int grid_id = pti.index();
+            const int tile_id = pti.LocalTileIndex();
+            const Box& tile_box  = pti.tilebox();
+
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+            auto& parts = particle_tile.GetArrayOfStructs();
+            const int Np = parts.numParticles();
+
+            for (int i = 0; i < Np; i++) {
+                if (parts[i].pos(0) > 1) {
+                    vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
+                    parts[i].rdata(RealData::vx) = vFix;
+                }
+            }
+        }
+        //abort();
+        ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
+        return;
+
+    }
+
+    //only apply corrections if variance is nonzero
+    if (varL > varTol || varR > varTol) {
+        //compute correction factors
+
+        //printf("Vars after conditional: %f %f\n", varL, varR);
+        Real lC = sqrt(tL/varL); 
+        Real rC = sqrt(tR/varR);
+
+        //printf("corrections: %f %f\n", lC, rC);
+
+        //apply correction factors
+        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+            const int grid_id = pti.index();
+            const int tile_id = pti.LocalTileIndex();
+            const Box& tile_box  = pti.tilebox();
+
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+            auto& parts = particle_tile.GetArrayOfStructs();
+            const int Np = parts.numParticles();
 
 
-        thermostat(parts.data(),
-                    ARLIM_3D(tile_box.loVect()),
-                    ARLIM_3D(tile_box.hiVect()),
-                    m_vector_ptrs[grid_id].dataPtr(),
-                    m_vector_size[grid_id].dataPtr(),
-                    ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                    ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                    BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                    surfaces, &ns, &meanL, &meanR, &lC, &rC);
+            thermostat(parts.data(),
+                        ARLIM_3D(tile_box.loVect()),
+                        ARLIM_3D(tile_box.hiVect()),
+                        m_vector_ptrs[grid_id].dataPtr(),
+                        m_vector_size[grid_id].dataPtr(),
+                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                        BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
+                        surfaces, &ns, &meanL, &meanR, &lC, &rC);
 
+        }
     }
 }
 
