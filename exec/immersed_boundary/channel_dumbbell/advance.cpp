@@ -322,9 +322,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                         - mark.rdata(IBM_realData::pred_posy);
                 Real rz = next_marker->rdata(IBM_realData::pred_posz)
                         - mark.rdata(IBM_realData::pred_posz);
+
                 mark.rdata(IBM_realData::pred_forcex) += spr_k * (rx - init_dx);
                 mark.rdata(IBM_realData::pred_forcey) += spr_k * (ry - init_dy);
                 mark.rdata(IBM_realData::pred_forcez) += spr_k * (rz - init_dz);
+
+                next_marker->rdata(IBM_realData::pred_forcex) -= spr_k * (rx - init_dx);
+                next_marker->rdata(IBM_realData::pred_forcey) -= spr_k * (ry - init_dy);
+                next_marker->rdata(IBM_realData::pred_forcez) -= spr_k * (rz - init_dz);
 
             } else if (status == 2) { // has prev, has no next
 
@@ -334,10 +339,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                         - prev_marker->rdata(IBM_realData::pred_posy);
                 Real rz = mark.rdata(IBM_realData::pred_posz)
                         - prev_marker->rdata(IBM_realData::pred_posz);
+
                 mark.rdata(IBM_realData::pred_forcex) -= spr_k * (rx - init_dx);
                 mark.rdata(IBM_realData::pred_forcey) -= spr_k * (ry - init_dy);
                 mark.rdata(IBM_realData::pred_forcez) -= spr_k * (rz - init_dz);
 
+                prev_marker->rdata(IBM_realData::pred_forcex) += spr_k * (rx - init_dx);
+                prev_marker->rdata(IBM_realData::pred_forcey) += spr_k * (ry - init_dy);
+                prev_marker->rdata(IBM_realData::pred_forcez) += spr_k * (rz - init_dz);
             }
 
             // Increment neighbor list
@@ -506,19 +515,28 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real rx = next_marker->pos(0) - mark.pos(0);
                 Real ry = next_marker->pos(1) - mark.pos(1);
                 Real rz = next_marker->pos(2) - mark.pos(2);
+
                 mark.rdata(IBM_realData::forcex) += spr_k * (rx - init_dx);
                 mark.rdata(IBM_realData::forcey) += spr_k * (ry - init_dy);
                 mark.rdata(IBM_realData::forcez) += spr_k * (rz - init_dz);
+
+                next_marker->rdata(IBM_realData::forcex) -= spr_k * (rx - init_dx);
+                next_marker->rdata(IBM_realData::forcey) -= spr_k * (ry - init_dy);
+                next_marker->rdata(IBM_realData::forcez) -= spr_k * (rz - init_dz);
 
             } else if (status == 2) { // has prev, has no next
 
                 Real rx = mark.pos(0) - prev_marker->pos(0);
                 Real ry = mark.pos(1) - prev_marker->pos(1);
                 Real rz = mark.pos(2) - prev_marker->pos(2);
-                mark.rdata(IBM_realData::pred_forcex) -= spr_k * (rx - init_dx);
-                mark.rdata(IBM_realData::pred_forcey) -= spr_k * (ry - init_dy);
-                mark.rdata(IBM_realData::pred_forcez) -= spr_k * (rz - init_dz);
 
+                mark.rdata(IBM_realData::forcex) -= spr_k * (rx - init_dx);
+                mark.rdata(IBM_realData::forcey) -= spr_k * (ry - init_dy);
+                mark.rdata(IBM_realData::forcez) -= spr_k * (rz - init_dz);
+
+                prev_marker->rdata(IBM_realData::forcex) += spr_k * (rx - init_dx);
+                prev_marker->rdata(IBM_realData::forcey) += spr_k * (ry - init_dy);
+                prev_marker->rdata(IBM_realData::forcez) += spr_k * (rz - init_dz);
             }
 
             // Increment neighbor list

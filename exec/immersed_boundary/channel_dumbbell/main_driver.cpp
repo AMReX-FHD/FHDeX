@@ -323,7 +323,7 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
-    IBMarkerContainer ib_mc(geom, dmap, ba, 1);
+    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
     Vector<RealVect> marker_positions(2);
     marker_positions[0] = RealVect{0.5,  0.5, 0.5};
