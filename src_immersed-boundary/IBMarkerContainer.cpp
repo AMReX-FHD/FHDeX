@@ -163,12 +163,24 @@ void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
     for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
-        long np = particle_data.size();
 
-        AoS & particles = particle_data.GetArrayOfStructs();
-        for (int i = 0; i < np; ++i) {
+        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
+
+            part.pos(0) += dt * part.rdata(IBM_realData::velx);
+            part.pos(1) += dt * part.rdata(IBM_realData::vely);
+            part.pos(2) += dt * part.rdata(IBM_realData::velz);
+        }
+
+
+        ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
+        long nn = nbhd.size();
+
+        for (int i=0; i<nn; ++i) {
+            ParticleType & part = nbhd[i];
 
             part.pos(0) += dt * part.rdata(IBM_realData::velx);
             part.pos(1) += dt * part.rdata(IBM_realData::vely);
@@ -184,13 +196,33 @@ void IBMarkerContainer::MovePredictor(int lev, Real dt) {
     for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
-        long np = particle_data.size();
 
-        AoS & particles = particle_data.GetArrayOfStructs();
+        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            MarkerIndex pindex(part.id(), part.cpu());
+
+            // update predictor to match the position
+            part.rdata(IBM_realData::pred_posx) = part.pos(0);
+            part.rdata(IBM_realData::pred_posy) = part.pos(1);
+            part.rdata(IBM_realData::pred_posz) = part.pos(2);
+
+            part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
+            part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
+            part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
+        }
+
+
+        ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
+        long nn = nbhd.size();
+
+        for (int i=0; i<nn; ++i) {
+            ParticleType & part = nbhd[i];
+
+            part.rdata(IBM_realData::pred_posx) = part.pos(0);
+            part.rdata(IBM_realData::pred_posy) = part.pos(1);
+            part.rdata(IBM_realData::pred_posz) = part.pos(2);
 
             part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
             part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
@@ -216,6 +248,10 @@ void IBMarkerContainer::ResetMarkers(int lev) {
             part.rdata(IBM_realData::velx) = 0.;
             part.rdata(IBM_realData::vely) = 0.;
             part.rdata(IBM_realData::velz) = 0.;
+
+            part.rdata(IBM_realData::forcex) = 0.;
+            part.rdata(IBM_realData::forcey) = 0.;
+            part.rdata(IBM_realData::forcez) = 0.;
         }
     }
 }
@@ -233,11 +269,14 @@ void IBMarkerContainer::ResetPredictor(int lev) {
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            MarkerIndex pindex(part.id(), part.cpu());
 
             part.rdata(IBM_realData::pred_velx) = 0.;
             part.rdata(IBM_realData::pred_vely) = 0.;
             part.rdata(IBM_realData::pred_velz) = 0.;
+
+            part.rdata(IBM_realData::pred_forcex) = 0.;
+            part.rdata(IBM_realData::pred_forcey) = 0.;
+            part.rdata(IBM_realData::pred_forcez) = 0.;
         }
     }
 }
@@ -1132,13 +1171,9 @@ void IBMarkerContainer::NeighborIBMarkerInfo(Vector<IBM_info> & info,
                                              int lev, PairIndex index,
                                              bool unique) const {
 
-    RealVect inv_dx = RealVect(
-            AMREX_D_DECL(
-                Geom(lev).InvCellSize(0),
-                Geom(lev).InvCellSize(1),
-                Geom(lev).InvCellSize(2)
-            )
-        );
+    RealVect inv_dx = RealVect(AMREX_D_DECL(Geom(lev).InvCellSize(0),
+                                            Geom(lev).InvCellSize(1),
+                                            Geom(lev).InvCellSize(2)  ));
 
     int ng = neighbors[lev].at(index).size();
 
@@ -1317,18 +1352,22 @@ void IBMarkerContainer::InitInternals(int ngrow) {
     // Turn off certain components for ghost particle communication
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
     //      => 3 corresponds to the start of IBM_realData
-    setRealCommComp(4,  true);  // IBM_realData.velx
-    setRealCommComp(5,  true);  // IBM_realData.vely
-    setRealCommComp(6,  true);  // IBM_realData.velz
-    setRealCommComp(7,  true);  // IBM_realData.forcex
-    setRealCommComp(8,  true);  // IBM_realData.forcey
-    setRealCommComp(9,  true);  // IBM_realData.forcez
-    setRealCommComp(10, true);  // IBM_realData.pred_posx
-    setRealCommComp(11, true);  // IBM_realData.pred_posy
-    setRealCommComp(12, true);  // IBM_realData.pred_posz
-    setRealCommComp(13, true);  // IBM_realData.pred_forcex
-    setRealCommComp(14, true);  // IBM_realData.pred_forcey
-    setRealCommComp(15, true);  // IBM_realData.pred_forcez
+    setRealCommComp(4,  true);  // IBM_realData.radius;
+    setRealCommComp(5,  true);  // IBM_realData.velx
+    setRealCommComp(6,  true);  // IBM_realData.vely
+    setRealCommComp(7,  true);  // IBM_realData.velz
+    setRealCommComp(8,  true);  // IBM_realData.forcex
+    setRealCommComp(9,  true);  // IBM_realData.forcey
+    setRealCommComp(10, true);  // IBM_realData.forcez
+    setRealCommComp(11, true);  // IBM_realData.pred_posx
+    setRealCommComp(12, true);  // IBM_realData.pred_posy
+    setRealCommComp(13, true);  // IBM_realData.pred_posz
+    setRealCommComp(14, true);  // IBM_realData.pred_velx
+    setRealCommComp(15, true);  // IBM_realData.pred_vely
+    setRealCommComp(16, true);  // IBM_realData.pred_velz
+    setRealCommComp(17, true);  // IBM_realData.pred_forcex
+    setRealCommComp(18, true);  // IBM_realData.pred_forcey
+    setRealCommComp(19, true);  // IBM_realData.pred_forcez
 
     // Field numbers: {0, 1} => {ID, CPU}
     //      => 2 corresponds to the start of IBM_intData

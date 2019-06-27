@@ -31,6 +31,7 @@ contains
     integer :: idiag,ising
 
     small_number = 0.d0
+    sum1 = 0.d0
 
     ! NOTE: For idiag=1, please refer to original LLNS code
     idiag = 0
@@ -134,14 +135,14 @@ contains
 
   subroutine ideal_mixture_transport(density,temperature,pressure,Yk,Xk,eta,kappa,zeta,diff_ij,chitil) bind(C,name="ideal_mixture_transport")  
 
-    real(amrex_real), intent(in) :: density,temperature,pressure
-    real(amrex_real), intent(in) :: Yk(nspecies),Xk(nspecies)
-    real(amrex_real), intent(out) :: eta,kappa,zeta
+    real(amrex_real), intent(in   ) :: density,temperature,pressure
+    real(amrex_real), intent(in   ) :: Yk(nspecies),Xk(nspecies)
+    real(amrex_real), intent(inout) :: eta,kappa,zeta
 
-    real(amrex_real), intent(out) :: diff_ij(nspecies,nspecies)
+    real(amrex_real), intent(inout) :: diff_ij(nspecies,nspecies)
     real(amrex_real) :: old_diff_ij(nspecies,nspecies)
     real(amrex_real) :: gam_matrix(nspecies)
-    real(amrex_real), intent(out) :: chitil(nspecies)
+    real(amrex_real), intent(inout) :: chitil(nspecies)
     real(amrex_real) :: ptc
     real(amrex_real) :: tdv(nspecies)
     real(amrex_real) :: Dbin(nspecies,nspecies)
@@ -180,7 +181,7 @@ contains
 
     real(amrex_real) :: Dbinbar(nspecies,nspecies),omega11bar(nspecies,nspecies),sigma11bar(nspecies,nspecies),diamat(nspecies,nspecies)
     real(amrex_real) :: amat1bar(nspecies,nspecies),amat2bar(nspecies,nspecies),alphabar(nspecies,nspecies)
-    real(amrex_real) :: fact1, mu, Fijstar, Fij
+    real(amrex_real) :: mu, Fijstar, Fij
 
     integer :: iwrk
     integer :: old
@@ -217,31 +218,30 @@ contains
           ! These matrices are computed in init_chemistry in FluctHydro code
 
           diamat(i,j) = 0.5d0*(diameter(i) + diameter(j))
+          mu = molmass(i)*molmass(j)/(molmass(i) + molmass(j))
+          Fij = (6.0d0*molmass(i)*molmass(i) + 13.0d0/5.0d0*molmass(j)*molmass(j) +   &
+               16.0d0/5.0d0*molmass(i)*molmass(j))/((molmass(i)+molmass(j))**2.0d0)
 
           !!
 
-          fact1 = molmass(i)*molmass(j)/(molmass(i)+molmass(j))
-          alphabar(i,j) = 8.0d0/(3.0d0*k_b)*fact1*fact1*   &
-               (-.5d0*sigma11bar(i,j))
-
+          omega11bar(i,j) = sqrt(pi*k_b/(2.0d0*mu))*diamat(i,j)**2.0d0
+          
           !!
 
           Dbinbar(i,j) = 3.0d0/16.0d0*sqrt(2.0d0*pi*k_b**3.d00    &   
                *(molmass(i)+molmass(j))/molmass(i)/molmass(j))/(pi*diamat(i,j)**2.0d0)
 
           !!
-          
-          mu = molmass(i)*molmass(j)/(molmass(i) + molmass(j))
-          omega11bar(i,j) = sqrt(pi*k_b/(2.0d0*mu))*diamat(i,j)**2.0d0
-          
-          !!
 
           sigma11bar(i,j) = sqrt( k_b/(2.0d0*pi*mu) )*pi*(diamat(i,j)**2.0d0)
           
           !!
 
-          Fij = (6.0d0*molmass(i)*molmass(i) + 13.0d0/5.0d0*molmass(j)*molmass(j) +   &
-               16.0d0/5.0d0*molmass(i)*molmass(j))/((molmass(i)+molmass(j))**2.0d0)
+          alphabar(i,j) = 8.0d0/(3.0d0*k_b)*mu*mu*   &
+               (-.5d0*sigma11bar(i,j))
+
+          !!
+
           amat1bar(i,j) = 5.0d0/(k_b)*molmass(i)*molmass(j)/    &
                (molmass(i)+molmass(j))*Fij*sigma11bar(i,j)
           amat2bar(i,j) = 5.0d0/(k_b)*molmass(i)*molmass(j)*molmass(i)*molmass(j)/    &
@@ -258,7 +258,7 @@ contains
        enddo
     enddo
 
-    print*, "Hack (imt): ", omega11bar
+    ! print*, "Hack (imt): ", omega11bar
 
     call visc_lin(omega11,yytr,temperature,density,molmass,eta)
    
@@ -327,15 +327,18 @@ contains
        bsonine(ii) = -1.0d0
     enddo
 
-    print*, "Hack (visc_lin): QoR = ", QoR
+    ! print*, "Hack (visc_lin): original QoR = ", QoR
 
-    QoR = 1.0d24*QoR
-    bsonine = 1.0d24*bsonine
+    ! QoR = 1.0d24*QoR
+    ! bsonine = 1.0d24*bsonine
 
-    print*, "Hack (visc_lin): scaled QoR = ", QoR
+    ! print*, "Hack (visc_lin): scaled QoR = ", QoR
         
     call decomp(nspecies,nspecies,QoR,ip)
     call solve(nspecies,nspecies,QoR,bsonine,ip)
+
+    ! print*, "Hack (visc_lin): factored QoR = ", QoR
+    ! stop
 
     sum1 = 0.0d0
     do ii = 1, nspecies
@@ -438,11 +441,15 @@ contains
        aSonine(i+nspecies) = -(15.0d0/4.0d0)*nk(i)*beta(i)
     enddo
 
+    print*, "Hack (lambda_lin) predecomp: ", QQ, aSonine
+
     ! NOTE: the minus sign below; see HCB p 488
     call decomp(2*nspecies,2*nspecies,QQ,ip)
     call solve(2*nspecies,2*nspecies,QQ,aSonine,ip)
 
-
+    print*, "Hack (lambda_lin) postdecomp: ", QQ, aSonine
+    stop
+    
     do i = 1, nspecies           
        ! HCB 7.4-9
        D_T(i) = 0.5d0*nk(i)*beta(i)*mk(i)*aSonine(i)
@@ -469,6 +476,12 @@ contains
 
 
     lammix = lamdaprime - 0.5d0*k_b/nTotal * sum1  ! HCB 7.4-65
+
+    ! print*, "Hack (lambda_lin): ", D_T, nk, beta, mk, aSonine
+    ! print*, "Hack (lambda_lin): ", sum1, nk, Dbin, D_T, mk
+    ! print*, "Hack (lambda_lin): ", lammix, lamdaprime, nTotal, sum1
+    ! print*, "Hack (lambda_lin) inputs: ", Dbin,omega11,Ykp,T,rho,mk,lammix
+    ! stop
 
   end subroutine lambda_lin
   !-------------------------------------------------------------------------
@@ -657,7 +670,6 @@ contains
     !          call solve(nspecies,nspecies,Aij,AA,ip)
     call decompnp(nspecies,nspecies,Aij)
     call solvenp(nspecies,nspecies,Aij,AA)
-
 
     do i = 1, nspecies
        do j = 1, nspecies

@@ -347,6 +347,9 @@ contains
             xflux(i,j,k,3) = xflux(i,j,k,3) + conserved(1)*primitive(2)*primitive(3)
             xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
 
+            ! print*, "Hack (hyp_flux): flux = ", xflux(i,j,k,5)
+            ! stop
+
             xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
  
             do n=1,nspecies
@@ -598,6 +601,9 @@ contains
                   phiflx =  - 0.5d0*phiflx
 
                   fluxx(i,j,k,5) = fluxx(i,j,k,5) - phiflx
+
+                  print*, "Hack 1, (stochflux) in x = ", fluxx(i,j,k,5), fweights(5), kxp
+                  stop
                   
                   ! if(.not.single_component) then
 
@@ -701,6 +707,9 @@ contains
                              *0.5d0*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner(5+ns)
                      enddo
                      fluxx(i,j,k,5) = fluxx(i,j,k,5) +  soret
+
+                     ! print*, "Hack 2, (stochflux) in x = ", fluxx(i,j,k,5), soret
+                     ! stop
 
                   ! end if
 
@@ -1508,6 +1517,14 @@ contains
                   do ns = 1, nspecies  
                      fluxx(i,j,k,5+ns) = fluxx(i,j,k,5+ns) + Fk(ns)
                   enddo
+                  
+                  ! print*, "Hack: loc = ", i,j,k
+                  ! print*, "Hack: chi = ", chi(i,j,k,:)
+                  ! print*, "Hack: chim = ", chi(i-1,j,k,:)
+                  ! print*, "Hack: Dij = ", Dij(i,j,k,:,:)
+                  ! print*, "Hack: Dijm = ", Dij(i-1,j,k,:,:)
+                  ! print*, "Hack: flux = ", fluxx(i,j,k,:)
+                  ! stop
 
                ! end if
 

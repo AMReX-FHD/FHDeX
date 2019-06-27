@@ -323,11 +323,12 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
-    IBMarkerContainer ib_mc(geom, dmap, ba, 1);
+    // Make sure that the nghost (last argument) is big enough!
+    IBMarkerContainer ib_mc(geom, dmap, ba, 20);
 
     Vector<RealVect> marker_positions(2);
-    marker_positions[0] = RealVect{0.5,  0.5, 0.5};
-    marker_positions[1] = RealVect{0.51, 0.5, 0.5};
+    marker_positions[0] = RealVect{0.1,  0.5, 0.5};
+    marker_positions[1] = RealVect{0.11, 0.5, 0.5};
 
     Vector<Real> marker_radii(2);
     marker_radii[0] = {0.02};
@@ -419,21 +420,6 @@ void main_driver(const char * argv) {
      * Advance Time Steps                                                       *
      *                                                                          *
      ***************************************************************************/
-
-    //___________________________________________________________________________
-    // FFT test
-    // if (struct_fact_int > 0) {
-    //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-    //     mf_cc[0].define(ba, dmap, 1, 0);
-    //     mf_cc[1].define(ba, dmap, 1, 0);
-    //     mf_cc[2].define(ba, dmap, 1, 0);
-    //     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-    //         const Box& bx = mfi.validbox();
-    //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-    //     }
-    // }
 
     for(step = 1; step <= max_step; ++step) {
 
