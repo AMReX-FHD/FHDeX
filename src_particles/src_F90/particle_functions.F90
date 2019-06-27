@@ -230,7 +230,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           !print *, "cr: ", r_cell
           !print *, "r_cell_frac: ", r_cell_frac
 
-         if (r .lt. (particles(i)%coulombRadiusFactor)) then 
+         if (r .lt. (particles(i)%p3m_radius)) then 
 
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Do local (short range) coulomb interaction within coulombRadiusFactor
