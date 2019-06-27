@@ -10,7 +10,9 @@ subroutine get_congrad_3d( lo, hi, &
      &            dx, prob_lo) bind(C, name="get_congrad_3d")
   
 
+  use amrex_eb_levelset_module, only : amrex_eb_normal_levelset
   implicit none
+ 
 
   integer, intent(in) :: lo(3), hi(3)
   double precision, intent(in) :: dx(3), prob_lo(3), ib_cen_x, ib_cen_y, ib_cen_z
@@ -31,11 +33,16 @@ subroutine get_congrad_3d( lo, hi, &
   integer, intent(in) :: iface(if_lo(1):if_hi(1),if_lo(2):if_hi(2),if_lo(3):if_hi(3))
   double precision, intent(in) :: ls(ls_lo(1):ls_hi(1),ls_lo(2):ls_hi(2),ls_lo(3):ls_hi(3))
 
+  double precision  :: norm(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
+
   integer :: i, j, k
   double precision :: con_xp, con_xm, con_xc, con_x,  con_yp, con_ym, con_yc, con_y, con_zp, con_zm, con_zc, con_z, nDcon, ls_x, ls_y, ls_z, x, y, z, psi, theta
   double precision ::  n1, n2, n3, t1, t2, t3, t_t1, t_t2, t_t3, t_p1, t_p2, t_p3
+           print *, " low ", lo, " high ", hi
+           print *, " Con low ", p_lo, " Con high ", p_hi
 
-           print *, "ConGrad_3D max ls ", maxval(abs(ls)), " min ls ", minval(abs(ls))
+           print *, " Cons_y low ", py_lo, " Cons_y high ", py_hi
+           print *, " Cons_x low ", px_lo, " Cons_x high ", px_hi
 
   ! Do a conservative update
   do       k = lo(3), hi(3)
