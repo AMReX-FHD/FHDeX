@@ -75,9 +75,11 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+    chi.FillBoundary(geom.periodicity());
+    D.FillBoundary(geom.periodicity());
     
     // Impose membrane BCs
-    setBC(prim, cu, eta, zeta, kappa);
+    // setBC(prim, cu, eta, zeta, kappa);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -127,6 +129,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
       	           ZFILL(dx), &dt);   
     }
 
+    cup.FillBoundary(geom.periodicity());
+
     conservedToPrimitive(prim, cup);
     cup.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
@@ -136,8 +140,10 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+    chi.FillBoundary(geom.periodicity());
+    D.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup, eta, zeta, kappa);
+    // setBC(prim, cup, eta, zeta, kappa);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -187,7 +193,9 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 #endif
       	           ZFILL(dx), &dt);
     }
-
+    
+    cup2.FillBoundary(geom.periodicity());
+    
     conservedToPrimitive(prim, cup2);
     cup2.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
@@ -197,8 +205,10 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+    chi.FillBoundary(geom.periodicity());
+    D.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup2, eta, zeta, kappa);
+    // setBC(prim, cup2, eta, zeta, kappa);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields

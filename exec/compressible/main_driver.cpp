@@ -294,6 +294,26 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     //Initialize everything
+    
+    // chi.setVal(0.0);
+    // D.setVal(0.0);
+    // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+
+    // conservedToPrimitive(prim, cu);
+    // cu.FillBoundary(geom.periodicity());
+    // prim.FillBoundary(geom.periodicity());
+
+    // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
+
+    // eta.FillBoundary(geom.periodicity());
+    // zeta.FillBoundary(geom.periodicity());
+    // kappa.FillBoundary(geom.periodicity());
+    // chi.FillBoundary(geom.periodicity());
+    // D.FillBoundary(geom.periodicity());
+
+    // setBC(prim, cu, eta, zeta, kappa);
+
+    // calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
     statsCount = 1;
 
