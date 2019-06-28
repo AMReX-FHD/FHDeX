@@ -22,9 +22,7 @@
 
   plot_int = 10
 
-  max_step = 4000
-  plot_int = 0
->>>>>>> 949c74e0e13d028cbe3fa22253737bcb72da5411
+  
   plot_ascii = 0
   struct_fact_int = 0
   n_steps_skip = 10
