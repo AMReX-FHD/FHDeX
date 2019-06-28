@@ -9,8 +9,7 @@
 void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
 	     amrex::MultiFab& pres, amrex::MultiFab& tracer,
-	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	     const amrex::MultiFab& beta, const amrex::MultiFab& gamma,
 # if (AMREX_SPACEDIM == 2)

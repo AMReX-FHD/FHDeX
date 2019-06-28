@@ -3,6 +3,7 @@ module flux_module
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type
   use conv_module, only : get_temperature, get_pressure_gas, get_energy, get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
+  use multispec_module, only : cholesky_decomp
 
   implicit none
 
@@ -321,9 +322,9 @@ contains
             temp = primitive(5)
             pt = primitive(6)
             rho = primitive(1)
-            
             ! call get_density_gas(pt,rho, temp)
-            ! conserved(1) = rho
+
+            conserved(1) = rho
             
             !  want sum of specden == rho
             do n=1,nspecies
@@ -346,11 +347,22 @@ contains
             xflux(i,j,k,3) = xflux(i,j,k,3) + conserved(1)*primitive(2)*primitive(3)
             xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
 
+            ! print*, "Hack (hyp_flux): flux = ", xflux(i,j,k,5)
+            ! stop
+
             xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
  
             do n=1,nspecies
                xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
             enddo
+
+            do l = 1, nvars
+               if ( isnan(xflux(i,j,k,l)) ) then
+                  print*, "Hack 1, (hyp_flux) in x = ", i,j,k, xflux(i,j,k,:)
+                  print*, "Hack 2, (hyp_flux): ", conserved(1)
+                  stop
+               end if
+            end do
 
           end do
         end do
@@ -370,9 +382,9 @@ contains
            temp = primitive(5)
            pt = primitive(6)
            rho = primitive(1)
-
            ! call get_density_gas(pt,rho, temp)
-           ! conserved(1) = rho
+
+           conserved(1) = rho
            
            !  want sum of specden == rho
            do n=1,nspecies
@@ -418,9 +430,9 @@ contains
            temp = primitive(5)
            pt = primitive(6)
            rho = primitive(1)
-
            ! call get_density_gas(pt,rho, temp)
-           ! conserved(1) = rho
+           
+           conserved(1) = rho
            
            !  want sum of specden == rho
            do n=1,nspecies
@@ -463,7 +475,10 @@ contains
 #if (AMREX_SPACEDIM == 3)
                         ranfluxz, &
 #endif
-                        rancorn, eta, zeta, kappa, dx, dt) bind(C,name="stoch_flux")
+                        rancorn, & 
+                        eta, zeta, kappa, &
+                        chi, Dij, & 
+                        dx, dt) bind(C,name="stoch_flux")
 
       integer         , intent(in   ) :: lo(3),hi(3)
       real(amrex_real), intent(in   ) :: dx(3), dt
@@ -488,9 +503,18 @@ contains
       real(amrex_real), intent(in   ) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
       real(amrex_real), intent(in   ) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
 
-      real(amrex_real) ::etatF, kappattF, dtinv, volinv, sFac, qFac, velu, velv, velw, wgt1, wgt2, muxp, kxp, weiner(5), fweights(5), nweight, muzepp, muzemp, muzepm, muzemm, phiflx, muyp, muzp, kyp, kzp
+      real(amrex_real), intent(in   ) :: chi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
+      real(amrex_real), intent(in   ) :: Dij(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
+
+      real(amrex_real) ::etatF, kappattF, dtinv, volinv, sFac, qFac, velu, velv, velw, wgt1, wgt2, weiner(5+nspecies), fweights(5+nspecies), nweight, muzepp, muzemp, muzepm, muzemm, phiflx, muxp, muyp, muzp, kxp, kyp, kzp, meanT
+
+      real(amrex_real) :: hk(nspecies), yy(nspecies), yyp(nspecies), sumy, sumyp, DijY_edge(nspecies,nspecies), sqD(nspecies,nspecies), soret, MWmix
 
       integer :: i,j,k,l
+      integer :: ll, ns
+
+      !! FIXME: Should be placed in the namespace
+      integer :: single_component = 0
 
       dtinv = 1d0/dt
 #if (AMREX_SPACEDIM == 3)
@@ -503,7 +527,7 @@ contains
 
       sFac = 2d0*4d0*k_b*volinv*dtinv/3d0
       qFac = 2d0*k_b*volinv*dtinv
-
+      
       if (abs(visc_type) .gt. 1) then
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!! JB's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -516,11 +540,15 @@ contains
                   
                   muxp = (eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5))
                   kxp = (kappa(i,j,k)*prim(i,j,k,5)**2 + kappa(i-1,j,k)*prim(i-1,j,k,5)**2)
+                
+                  !! Look into: zeta*p is not used in this function (original FluctHydro)
                   ! if (abs(visc_type) .eq. 3) then 
                   !    zetaxp = (zeta(i,j,k)*prim(i,j,k,5) + zeta(i-1,j,k)*prim(i-1,j,k,5))
                   ! else
                   !    zetaxp = 0.0
                   ! endif
+                  
+                  meanT = 0.5d0*(prim(i,j,k,5)+prim(i-1,j,k,5))
 
                   ! Weights for facial fluxes:
                   fweights(1) = 0 ! No mass flux
@@ -585,9 +613,127 @@ contains
 
                   fluxx(i,j,k,5) = fluxx(i,j,k,5) - phiflx
 
+                  ! print*, "Hack 1, (stochflux) in x = ", fluxx(i,j,k,5), fweights(5), kxp
+                  ! stop
+                  
+                  if(single_component.eq.0) then
+
+                     weiner(6:5+nspecies) = 0.0d0
+
+                     do ns = 1,nspecies
+
+                        yy(ns) = max(0.d0,min(1.d0,prim(i-1,j,k,6+ns)))
+                        yyp(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
+
+                     enddo
+                     sumy = sum(yy(:))
+                     sumyp = sum(yyp(:))
+                     yy(:) = yy(:)/sumy
+                     yyp(:) = yyp(:)/sumyp
+
+                     MWmix = 0.d0
+
+                     do ns = 1, nspecies
+
+                        MWmix = MWmix + 0.5d0*(yy(ns)+yyp(ns))/molmass(ns)
+
+                        do ll = 1, nspecies
+
+                           DijY_edge(ns,ll) = 0.5d0*(Dij(i-1,j,k,ns,ll)*yy(ll) + &
+                                Dij(i,j,k,ns,ll)*yyp(ll) &
+                                + (Dij(i-1,j,k,ll,ns)*yy(ns) + &
+                                Dij(i,j,k,ll,ns)*yyp(ns) ))
+
+                        enddo
+
+                     enddo
+
+                     do ns=1,nspecies
+                        if(abs(yy(ns)) + abs(yyp(ns)) .le. 1.d-12)then
+                           DijY_edge(ns,1:nspecies)=0.d0
+                           DijY_edge(1:nspecies,ns)=0.d0
+                        endif
+                     enddo
+
+                     MWmix = 1.d0 / MWmix
+
+                     call cholesky_decomp(DijY_edge,nspecies,sqD)
+
+                     do ns = 1, nspecies
+
+                        do ll = 1, ns
+
+                           fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
+                           weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxx(i,j,k,5+ll)
+
+                           ! if ((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+                           !    print*, "Hack = ", ll, ns, MWmix, volinv, Runiv, dt, sqD(ns,ll)
+                           ! endif
+
+                        enddo
+
+                        ! if(lbc(1) == -1)then
+
+                        !    if(i == lb(1)-1)then
+                        !       weiner(5+ns)=0.d0
+                        !    endif
+
+                        ! elseif (lbc(1) == -2)then
+
+                        !    if(i == lb(1)-1)then
+                        !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
+                        !    endif
+
+                        ! endif
+
+                        ! if(ubc(1) == -1)then
+
+                        !    if(i == ub(1))then
+                        !       weiner(5+ns)=0.d0
+                        !    endif
+
+                        ! elseif (ubc(1) == -2)then
+
+                        !    if(i == ub(1))then
+                        !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
+                        !    endif
+
+                        ! endif
+
+
+                        fluxx(i,j,k,5+ns) = weiner(5+ns)
+
+                        ! if ((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+                        !    print*, "Hack, massflux in x = ", weiner(5+ns), ns
+                        ! endif
+
+                     enddo
+
+                     call get_enthalpies(meanT, hk)
+
+                     soret = 0.d0
+
+                     do ns = 1, nspecies
+                        soret = soret + (hk(ns) + Runiv*meanT/molmass(ns) & 
+                             *0.5d0*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner(5+ns)
+                     enddo
+                     fluxx(i,j,k,5) = fluxx(i,j,k,5) +  soret
+
+                  end if
+                  
+                  do ll = 1, nvars
+                     if ( isnan(fluxx(i,j,k,ll)) ) then
+                        print*, "Hack 1, (stochflux) in x = ", i,j,k, fluxx(i,j,k,:), fweights
+                        print*, "Hack 2, (stochflux): ", k_b,muxp,volinv,dtinv
+                        stop
+                     end if
+                  end do
+
                end do
             end do
          end do
+
+         ! print*, "Hack: got here (end) stochflux"
 
          !!!!!!!!!!!!!!!!!!! y-flux !!!!!!!!!!!!!!!!!!!
 
@@ -597,11 +743,15 @@ contains
                   
                   muyp = eta(i,j,k)*prim(i,j,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5)
                   kyp = kappa(i,j,k)*prim(i,j,k,5)**2 + kappa(i,j-1,k)*prim(i,j-1,k,5)**2
+
+                  !! Look into: zeta*p is not used in this function (original FluctHydro)
                   ! if (abs(visc_type) .eq. 3) then 
                   !    zetayp = (zeta(i,j,k)*prim(i,j,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5))
                   ! else
                   !    zetayp = 0.0
                   ! endif
+
+                  meanT = 0.5d0*(prim(i,j,k,5)+prim(i,j-1,k,5))
                   
                   ! Weights for facial fluxes:
                   fweights(1)=0 ! No mass flux
@@ -673,6 +823,103 @@ contains
 
                   fluxy(i,j,k,5) = fluxy(i,j,k,5) - phiflx
 
+                  if(single_component.eq.0) then
+   
+                     weiner(6:5+nspecies) = 0.0d0
+
+                     do ns = 1,nspecies
+
+                        yy(ns) = max(0.d0,min(1.d0,prim(i,j-1,k,6+ns)))
+                        yyp(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
+
+                     enddo
+                     sumy = sum(yy(:))
+                     sumyp = sum(yyp(:))
+                     yy(:) = yy(:)/sumy
+                     yyp(:) = yyp(:)/sumyp
+
+                     MWmix = 0.d0
+
+                     do ns = 1, nspecies
+
+                        MWmix = MWmix + 0.5d0*(yy(ns)+yyp(ns))/molmass(ns)
+
+                        do ll = 1, nspecies
+
+                           DijY_edge(ns,ll) = 0.5d0*(Dij(i,j-1,k,ns,ll)*yy(ll) + &
+                                Dij(i,j,k,ns,ll)*yyp(ll) &
+                                + (Dij(i,j-1,k,ll,ns)*yy(ns) + &
+                                Dij(i,j,k,ll,ns)*yyp(ns) ))
+
+                        enddo
+
+                     enddo
+
+                     do ns=1,nspecies
+                        if(abs(yy(ns)) + abs(yyp(ns)) .le. 1.d-12)then
+                           DijY_edge(ns,1:nspecies)=0.d0
+                           DijY_edge(1:nspecies,ns)=0.d0
+                        endif
+                     enddo
+
+                     MWmix = 1.d0 / MWmix
+
+                     call cholesky_decomp(DijY_edge,nspecies,sqD)
+
+                     do ns = 1, nspecies
+
+                        do ll = 1, ns
+
+                           fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
+                           weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxy(i,j,k,5+ll)
+
+                        enddo
+
+                        ! if(lbc(2) == -1)then
+
+                        !    if(i == lb(2)-1)then
+                        !       weiner(5+ns)=0.d0
+                        !    endif
+
+                        ! elseif (lbc(2) == -2)then
+
+                        !    if(i == lb(2)-1)then
+                        !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
+                        !    endif
+
+                        ! endif
+
+                        ! if(ubc(2) == -1)then
+
+                        !    if(i == ub(2))then
+                        !       weiner(5+ns)=0.d0
+                        !    endif
+
+                        ! elseif (ubc(2) == -2)then
+
+                        !    if(i == ub(2))then
+                        !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
+                        !    endif
+
+                        ! endif
+
+
+                        fluxy(i,j,k,5+ns) = weiner(5+ns)
+
+                     enddo
+
+                     call get_enthalpies(meanT, hk)
+
+                     soret = 0.d0
+
+                     do ns = 1, nspecies
+                        soret = soret + (hk(ns) + Runiv*meanT/molmass(ns) & 
+                             *0.5d0*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*weiner(5+ns)
+                     enddo
+                     fluxy(i,j,k,5) = fluxy(i,j,k,5) +  soret
+
+                  end if
+
                end do
             end do
          end do
@@ -685,11 +932,15 @@ contains
                   
                   muzp = eta(i,j,k)*prim(i,j,k,5) + eta(i,j,k-1)*prim(i,j,k-1,5)
                   kzp = kappa(i,j,k)*prim(i,j,k,5)**2 + kappa(i,j,k-1)*prim(i,j,k-1,5)**2
+
+                  !! Look into: zeta*p is not used in this function (original FluctHydro)
                   ! if (abs(visc_type) .eq. 3) then 
                   !    zetazp = (zeta(i,j,k)*prim(i,j,k,5) + zeta(i,j,k-1)*prim(i,j,k-1,5))
                   ! else
                   !    zetazp = 0.0
                   ! endif
+
+                  meanT = 0.5d0*(prim(i,j,k,5)+prim(i,j,k-1,5))
 
                   ! Weights for facial fluxes:
                   fweights(1)=0 ! No mass flux
@@ -759,6 +1010,103 @@ contains
                   phiflx =  - 0.5d0*phiflx
 
                   fluxz(i,j,k,5) = fluxz(i,j,k,5) - phiflx
+
+                  if(single_component.eq.0) then
+
+                     weiner(6:5+nspecies) = 0.0d0
+
+                     do ns = 1,nspecies
+
+                        yy(ns) = max(0.d0,min(1.d0,prim(i,j,k-1,6+ns)))
+                        yyp(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
+
+                     enddo
+                     sumy = sum(yy(:))
+                     sumyp = sum(yyp(:))
+                     yy(:) = yy(:)/sumy
+                     yyp(:) = yyp(:)/sumyp
+
+                     MWmix = 0.d0
+
+                     do ns = 1, nspecies
+
+                        MWmix = MWmix + 0.5d0*(yy(ns)+yyp(ns))/molmass(ns)
+
+                        do ll = 1, nspecies
+
+                           DijY_edge(ns,ll) = 0.5d0*(Dij(i,j,k-1,ns,ll)*yy(ll) + &
+                                Dij(i,j,k,ns,ll)*yyp(ll) &
+                                + (Dij(i,j,k-1,ll,ns)*yy(ns) + &
+                                Dij(i,j,k,ll,ns)*yyp(ns) ))
+
+                        enddo
+
+                     enddo
+
+                     do ns=1,nspecies
+                        if(abs(yy(ns)) + abs(yyp(ns)) .le. 1.d-12)then
+                           DijY_edge(ns,1:nspecies)=0.d0
+                           DijY_edge(1:nspecies,ns)=0.d0
+                        endif
+                     enddo
+
+                     MWmix = 1.d0 / MWmix
+
+                     call cholesky_decomp(DijY_edge,nspecies,sqD)
+
+                     do ns = 1, nspecies
+
+                        do ll = 1, ns
+
+                           fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
+                           weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxz(i,j,k,5+ll)
+
+                        enddo
+
+                        ! if(lbc(2) == -1)then
+
+                        !    if(i == lb(2)-1)then
+                        !       weiner(5+ns)=0.d0
+                        !    endif
+
+                        ! elseif (lbc(2) == -2)then
+
+                        !    if(i == lb(2)-1)then
+                        !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
+                        !    endif
+
+                        ! endif
+
+                        ! if(ubc(2) == -1)then
+
+                        !    if(i == ub(2))then
+                        !       weiner(5+ns)=0.d0
+                        !    endif
+
+                        ! elseif (ubc(2) == -2)then
+
+                        !    if(i == ub(2))then
+                        !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
+                        !    endif
+
+                        ! endif
+
+
+                        fluxz(i,j,k,5+ns) = weiner(5+ns)
+
+                     enddo
+
+                     call get_enthalpies(meanT, hk)
+
+                     soret = 0.d0
+
+                     do ns = 1, nspecies
+                        soret = soret + (hk(ns) + Runiv*meanT/molmass(ns) & 
+                             *0.5d0*(chi(i,j,k-1,ns)+chi(i,j,k,ns)))*weiner(5+ns)
+                     enddo
+                     fluxz(i,j,k,5) = fluxz(i,j,k,5) +  soret
+
+                  end if
 
                end do
             end do
@@ -1117,6 +1465,9 @@ contains
       real(amrex_real) :: meanT, meanP
       integer :: ns, kk, ll
 
+      !! FIXME: Should be in namespace
+      integer :: single_component=0
+
       dxinv = 1d0/dx
       
       two = 2.d0
@@ -1151,7 +1502,7 @@ contains
                meanT = 0.5d0*(prim(i-1,j,k,5)+prim(i,j,k,5))
                meanP = 0.5d0*(prim(i-1,j,k,6)+prim(i,j,k,6))
 
-               ! if(.not.single_component) then
+               if(single_component.eq.0) then
 
                   ! compute dk
                   do ns = 1, nspecies
@@ -1188,7 +1539,22 @@ contains
                      fluxx(i,j,k,5+ns) = fluxx(i,j,k,5+ns) + Fk(ns)
                   enddo
 
-               ! end if
+                  do ll = 1, nvars
+                     if ( isnan(fluxx(i,j,k,ll)) ) then
+                        print*, "Hack 1, (diff_flux) in x = ", i,j,k, fluxx(i,j,k,:)
+                        stop
+                     end if
+                  end do
+                  
+                  ! print*, "Hack: loc = ", i,j,k
+                  ! print*, "Hack: chi = ", chi(i,j,k,:)
+                  ! print*, "Hack: chim = ", chi(i-1,j,k,:)
+                  ! print*, "Hack: Dij = ", Dij(i,j,k,:,:)
+                  ! print*, "Hack: Dijm = ", Dij(i-1,j,k,:,:)
+                  ! print*, "Hack: flux = ", fluxx(i,j,k,:)
+                  ! stop
+
+               end if
 
             end do
          end do
@@ -1222,7 +1588,7 @@ contains
              meanT = 0.5d0*(prim(i,j-1,k,5)+prim(i,j,k,5))
              meanP = 0.5d0*(prim(i,j-1,k,6)+prim(i,j,k,6))
 
-             ! if(.not.single_component) then
+             if(single_component.eq.0) then
                 ! compute dk  
 
                 do ns = 1, nspecies
@@ -1259,7 +1625,7 @@ contains
                    fluxy(i,j,k,5+ns) = fluxy(i,j,k,5+ns) + Fk(ns)
                 enddo
 
-             ! end if
+             end if
 
           end do
         end do
@@ -1294,7 +1660,7 @@ contains
                meanT = 0.5d0*(prim(i,j,k-1,5)+prim(i,j,k,5))
                meanP = 0.5d0*(prim(i,j,k-1,6)+prim(i,j,k,6))
 
-               ! if(.not.single_component) then
+               if(single_component.eq.0) then
                   ! compute dk  
 
                   do ns = 1, nspecies
@@ -1331,7 +1697,7 @@ contains
                      fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk(ns)
                   enddo
 
-               ! end if
+               end if
 
             end do
          end do
@@ -1346,12 +1712,12 @@ contains
              ! Corner viscosity
              muxp = 0.125d0*(eta(i,j-1,k-1) + eta(i-1,j-1,k-1) + eta(i,j,k-1) + eta(i-1,j,k-1)+ &
                   eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k))
-             ! if (abs(visc_type) .eq. 3) then
-             !    zetaxp = 0.125d0*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+ &
-             !         zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k))
-             ! else
-             !    zetaxp = 0.0
-             ! endif
+             if (abs(visc_type) .eq. 3) then
+                zetaxp = 0.125d0*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+ &
+                     zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k))
+             else
+                zetaxp = 0.0
+             endif
              
              cornux(i,j,k) = 0.25d0*muxp*(prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i-1,j,k-1,2)+ &
                   prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1)

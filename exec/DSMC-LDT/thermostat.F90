@@ -130,6 +130,10 @@ contains
       enddo
     enddo
 
+    ! if (pR .lt. 10) then
+    !   print *, pR, pL
+    ! endif
+
   !print *, "pops, vels:", pL, pR, vL, vR
 
   end subroutine getVelocity

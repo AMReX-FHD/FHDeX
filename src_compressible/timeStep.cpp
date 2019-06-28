@@ -54,7 +54,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     // Fill random (only momentum and energy)
     for(int d=0;d<AMREX_SPACEDIM;d++)
       {
-    	for(int i=1;i<5;i++)
+    	for(int i=1;i<nvars;i++)
     	  {
     	    MultiFABFillRandom(stochFlux_A[d], i, 1.0, geom);
 	    MultiFABFillRandom(stochFlux_B[d], i, 1.0, geom);
@@ -66,20 +66,20 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 
     /////////////////////////////////////////////////////
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
-
     conservedToPrimitive(prim, cu);
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+    chi.FillBoundary(geom.periodicity());
+    D.FillBoundary(geom.periodicity());
     
     // Impose membrane BCs
-    setBC(prim, cu, eta, zeta, kappa);
+    // setBC(prim, cu, eta, zeta, kappa);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -100,7 +100,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, 4, 0);
+			  1, nvars-1, 0);
 
       }
 
@@ -129,17 +129,21 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
       	           ZFILL(dx), &dt);   
     }
 
+    cup.FillBoundary(geom.periodicity());
+
     conservedToPrimitive(prim, cup);
     cup.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+    chi.FillBoundary(geom.periodicity());
+    D.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup, eta, zeta, kappa);
+    // setBC(prim, cup, eta, zeta, kappa);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -160,7 +164,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, 4, 0);
+			  1, nvars-1, 0);
 
       }
 
@@ -189,18 +193,22 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 #endif
       	           ZFILL(dx), &dt);
     }
-
+    
+    cup2.FillBoundary(geom.periodicity());
+    
     conservedToPrimitive(prim, cup2);
     cup2.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa);
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
+    chi.FillBoundary(geom.periodicity());
+    D.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup2, eta, zeta, kappa);
+    // setBC(prim, cup2, eta, zeta, kappa);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -221,7 +229,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
-			  1, 4, 0);
+			  1, nvars-1, 0);
 
       }
 

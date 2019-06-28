@@ -24,12 +24,12 @@ using AoS          = IBMarkerContainer::AoS;
 
 void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
              std::array< MultiFab, AMREX_SPACEDIM > & umacNew,
-             MultiFab & pres, MultiFab & tracer,
+             MultiFab& pres, MultiFab & tracer,
              IBMarkerContainer & ib_mc,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_correct,
              const std::array< MultiFab, AMREX_SPACEDIM > & alpha_fc,
-             const MultiFab& beta, const MultiFab & gamma,
+             const MultiFab & beta, const MultiFab & gamma,
 # if (AMREX_SPACEDIM == 2)
              const std::array< MultiFab, 1 > & beta_ed,
 # endif
@@ -50,9 +50,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
 void WritePlotFile(const int step,
                    const Real time,
                    const Geometry geom,
-                   std::array< MultiFab, AMREX_SPACEDIM > & umac,
-                   const MultiFab & tracer,
-                   const MultiFab & pres,
+                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                   const MultiFab& tracer,
+                   const MultiFab& pres,
                    const IBMarkerContainer & ib_pc);
+
+///////////////////////////
 
 #endif

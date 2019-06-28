@@ -34,9 +34,9 @@ void main_driver(const char* argv)
 
     //hard coded variables - make into input later
     //number of particles left/right - set to -1 to assign by density
-    int pL = 200; int pR = 800;
+    int pL = 16; int pR = 4;
     //temperature on left/right
-    Real tL = 290; Real tR = 275;
+    Real tL = 300; Real tR = 250;
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -412,8 +412,8 @@ void main_driver(const char* argv)
     int statsCount = 1;
     double time = 0;
 
-    //Make plot file with the initial configuration
-    WritePlotFile(0,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
+    //Make plot file with the initial configuration - only use if init fields is working
+    //WritePlotFile(0,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
 
     //create plot file to output fluxes
     std::ofstream outfile;
