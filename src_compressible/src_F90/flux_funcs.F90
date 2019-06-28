@@ -322,9 +322,9 @@ contains
             temp = primitive(5)
             pt = primitive(6)
             rho = primitive(1)
-            
             ! call get_density_gas(pt,rho, temp)
-            ! conserved(1) = rho
+
+            conserved(1) = rho
             
             !  want sum of specden == rho
             do n=1,nspecies
@@ -347,11 +347,22 @@ contains
             xflux(i,j,k,3) = xflux(i,j,k,3) + conserved(1)*primitive(2)*primitive(3)
             xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
 
+            ! print*, "Hack (hyp_flux): flux = ", xflux(i,j,k,5)
+            ! stop
+
             xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
  
             do n=1,nspecies
                xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
             enddo
+
+            do l = 1, nvars
+               if ( isnan(xflux(i,j,k,l)) ) then
+                  print*, "Hack 1, (hyp_flux) in x = ", i,j,k, xflux(i,j,k,:)
+                  print*, "Hack 2, (hyp_flux): ", conserved(1)
+                  stop
+               end if
+            end do
 
           end do
         end do
@@ -371,9 +382,9 @@ contains
            temp = primitive(5)
            pt = primitive(6)
            rho = primitive(1)
-
            ! call get_density_gas(pt,rho, temp)
-           ! conserved(1) = rho
+
+           conserved(1) = rho
            
            !  want sum of specden == rho
            do n=1,nspecies
@@ -419,9 +430,9 @@ contains
            temp = primitive(5)
            pt = primitive(6)
            rho = primitive(1)
-
            ! call get_density_gas(pt,rho, temp)
-           ! conserved(1) = rho
+           
+           conserved(1) = rho
            
            !  want sum of specden == rho
            do n=1,nspecies
@@ -502,6 +513,9 @@ contains
       integer :: i,j,k,l
       integer :: ll, ns
 
+      !! FIXME: Should be placed in the namespace
+      integer :: single_component = 0
+
       dtinv = 1d0/dt
 #if (AMREX_SPACEDIM == 3)
       volinv = 1d0/(dx(1)*dx(2)*dx(3))
@@ -513,7 +527,7 @@ contains
 
       sFac = 2d0*4d0*k_b*volinv*dtinv/3d0
       qFac = 2d0*k_b*volinv*dtinv
-
+      
       if (abs(visc_type) .gt. 1) then
 
       !!!!!!!!!!!!!!!!!!!!!!!!!!!!! JB's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -598,8 +612,11 @@ contains
                   phiflx =  - 0.5d0*phiflx
 
                   fluxx(i,j,k,5) = fluxx(i,j,k,5) - phiflx
+
+                  ! print*, "Hack 1, (stochflux) in x = ", fluxx(i,j,k,5), fweights(5), kxp
+                  ! stop
                   
-                  ! if(.not.single_component) then
+                  if(single_component.eq.0) then
 
                      weiner(6:5+nspecies) = 0.0d0
 
@@ -702,11 +719,21 @@ contains
                      enddo
                      fluxx(i,j,k,5) = fluxx(i,j,k,5) +  soret
 
-                  ! end if
+                  end if
+                  
+                  do ll = 1, nvars
+                     if ( isnan(fluxx(i,j,k,ll)) ) then
+                        print*, "Hack 1, (stochflux) in x = ", i,j,k, fluxx(i,j,k,:), fweights
+                        print*, "Hack 2, (stochflux): ", k_b,muxp,volinv,dtinv
+                        stop
+                     end if
+                  end do
 
                end do
             end do
          end do
+
+         ! print*, "Hack: got here (end) stochflux"
 
          !!!!!!!!!!!!!!!!!!! y-flux !!!!!!!!!!!!!!!!!!!
 
@@ -796,8 +823,8 @@ contains
 
                   fluxy(i,j,k,5) = fluxy(i,j,k,5) - phiflx
 
-                  ! if(.not.single_component) then
-
+                  if(single_component.eq.0) then
+   
                      weiner(6:5+nspecies) = 0.0d0
 
                      do ns = 1,nspecies
@@ -891,7 +918,7 @@ contains
                      enddo
                      fluxy(i,j,k,5) = fluxy(i,j,k,5) +  soret
 
-                  ! end if
+                  end if
 
                end do
             end do
@@ -984,7 +1011,7 @@ contains
 
                   fluxz(i,j,k,5) = fluxz(i,j,k,5) - phiflx
 
-                 ! if(.not.single_component) then
+                  if(single_component.eq.0) then
 
                      weiner(6:5+nspecies) = 0.0d0
 
@@ -1079,7 +1106,7 @@ contains
                      enddo
                      fluxz(i,j,k,5) = fluxz(i,j,k,5) +  soret
 
-                  ! end if
+                  end if
 
                end do
             end do
@@ -1438,6 +1465,9 @@ contains
       real(amrex_real) :: meanT, meanP
       integer :: ns, kk, ll
 
+      !! FIXME: Should be in namespace
+      integer :: single_component=0
+
       dxinv = 1d0/dx
       
       two = 2.d0
@@ -1472,7 +1502,7 @@ contains
                meanT = 0.5d0*(prim(i-1,j,k,5)+prim(i,j,k,5))
                meanP = 0.5d0*(prim(i-1,j,k,6)+prim(i,j,k,6))
 
-               ! if(.not.single_component) then
+               if(single_component.eq.0) then
 
                   ! compute dk
                   do ns = 1, nspecies
@@ -1509,7 +1539,22 @@ contains
                      fluxx(i,j,k,5+ns) = fluxx(i,j,k,5+ns) + Fk(ns)
                   enddo
 
-               ! end if
+                  do ll = 1, nvars
+                     if ( isnan(fluxx(i,j,k,ll)) ) then
+                        print*, "Hack 1, (diff_flux) in x = ", i,j,k, fluxx(i,j,k,:)
+                        stop
+                     end if
+                  end do
+                  
+                  ! print*, "Hack: loc = ", i,j,k
+                  ! print*, "Hack: chi = ", chi(i,j,k,:)
+                  ! print*, "Hack: chim = ", chi(i-1,j,k,:)
+                  ! print*, "Hack: Dij = ", Dij(i,j,k,:,:)
+                  ! print*, "Hack: Dijm = ", Dij(i-1,j,k,:,:)
+                  ! print*, "Hack: flux = ", fluxx(i,j,k,:)
+                  ! stop
+
+               end if
 
             end do
          end do
@@ -1543,7 +1588,7 @@ contains
              meanT = 0.5d0*(prim(i,j-1,k,5)+prim(i,j,k,5))
              meanP = 0.5d0*(prim(i,j-1,k,6)+prim(i,j,k,6))
 
-             ! if(.not.single_component) then
+             if(single_component.eq.0) then
                 ! compute dk  
 
                 do ns = 1, nspecies
@@ -1580,7 +1625,7 @@ contains
                    fluxy(i,j,k,5+ns) = fluxy(i,j,k,5+ns) + Fk(ns)
                 enddo
 
-             ! end if
+             end if
 
           end do
         end do
@@ -1615,7 +1660,7 @@ contains
                meanT = 0.5d0*(prim(i,j,k-1,5)+prim(i,j,k,5))
                meanP = 0.5d0*(prim(i,j,k-1,6)+prim(i,j,k,6))
 
-               ! if(.not.single_component) then
+               if(single_component.eq.0) then
                   ! compute dk  
 
                   do ns = 1, nspecies
@@ -1652,7 +1697,7 @@ contains
                      fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk(ns)
                   enddo
 
-               ! end if
+               end if
 
             end do
          end do

@@ -228,8 +228,8 @@ public:
                                    ParticleVector & nbhd_data,
                              const Vector<int> & nbhd,
                              int nbhd_index,
-                             ParticleType * prev_marker,
-                             ParticleType * next_marker) const;
+                             ParticleType *& prev_marker,
+                             ParticleType *& next_marker) const;
 
 
 

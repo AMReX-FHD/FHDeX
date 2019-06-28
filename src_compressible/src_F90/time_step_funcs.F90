@@ -52,35 +52,40 @@ contains
         enddo
       enddo
 
-!     print *, "Flo1: ", xflux(lo(1),0,0,1:5)
-!     print *, "Flo1+1: ", xflux(lo(1)+1,0,0,1:5)
-!     print *, "Fhi1: ", xflux(hi(1)+1,0,0,1:5)
-!     print *, "Fhi1-1: ", xflux(hi(1),0,0,1:5)
+    ! print *, "Flo1: ", xflux(lo(1),0,0,1:nvars)
+    ! print *, "Flo1+1: ", xflux(lo(1)+1,0,0,1:nvars)
+    ! print *, "Fhi1: ", xflux(hi(1)+1,0,0,1:nvars)
+    ! print *, "Fhi1-1: ", xflux(hi(1),0,0,1:nvars)
 
-!     print *, "Cslo1: ", cu(lo(1),0,0,1:5)
-!     print *, "Cslo1+1: ", cu(lo(1)+1,0,0,1:5)
-!     print *, "Cshi1: ", cu(hi(1),0,0,1:5)
-!     print *, "Cshi1-1: ", cu(hi(1)-1,0,0,1:5)
+    ! print *, "Flo1: ", xflux(lo(1),0,0,1:nvars)
+    ! print *, "Flo1+1: ", xflux(lo(1)+1,0,0,1:nvars)
+    ! print *, "Fhi1: ", xflux(hi(1)+1,0,0,1:nvars)
+    ! print *, "Fhi1-1: ", xflux(hi(1),0,0,1:nvars)
 
-!     print *, "Cflo1: ", cup(lo(1),0,0,1:5)
-!     print *, "Cflo1+1: ", cup(lo(1)+1,0,0,1:5)
-!     print *, "Cfhi1: ", cup(hi(1),0,0,1:5)
-!     print *, "Cfhi1-1: ", cup(hi(1)-1,0,0,1:5)
+    ! print *, "Cslo1: ", cu(lo(1),0,0,1:nvars)
+    ! print *, "Cslo1+1: ", cu(lo(1)+1,0,0,1:nvars)
+    ! print *, "Cshi1: ", cu(hi(1),0,0,1:nvars)
+    ! print *, "Cshi1-1: ", cu(hi(1)-1,0,0,1:nvars)
 
-!     print *, "Flo1: ", yflux(0,lo(2),0,1:5)
-!     print *, "Flo1+1: ", yflux(0,lo(2)+1,0,1:5)
-!     print *, "Fhi1: ", yflux(0,hi(2)+1,0,1:5)
-!     print *, "Fhi1-1: ", yflux(0,hi(2),0,1:5)
+    ! print *, "Cflo1: ", cup(lo(1),0,0,1:nvars)
+    ! print *, "Cflo1+1: ", cup(lo(1)+1,0,0,1:nvars)
+    ! print *, "Cfhi1: ", cup(hi(1),0,0,1:nvars)
+    ! print *, "Cfhi1-1: ", cup(hi(1)-1,0,0,1:nvars)
 
-!     print *, "Cslo1: ", cu(0,lo(2),0,1:5)
-!     print *, "Cslo1+1: ", cu(0,lo(2)+1,0,1:5)
-!     print *, "Cshi1: ", cu(0,hi(2),0,1:5)
-!     print *, "Cshi1-1: ", cu(0,hi(2)-1,0,1:5)
+    ! print *, "Flo1: ", yflux(0,lo(2),0,1:nvars)
+    ! print *, "Flo1+1: ", yflux(0,lo(2)+1,0,1:nvars)
+    ! print *, "Fhi1: ", yflux(0,hi(2)+1,0,1:nvars)
+    ! print *, "Fhi1-1: ", yflux(0,hi(2),0,1:nvars)
 
-!     print *, "Cflo1: ", cup(0,lo(2),0,1:5)
-!     print *, "Cflo1+1: ", cup(0,lo(2)+1,0,1:5)
-!     print *, "Cfhi1: ", cup(0,hi(2),0,1:5)
-!     print *, "Cfhi1-1: ", cup(0,hi(2)-1,0,1:5)
+    ! print *, "Cslo1: ", cu(0,lo(2),0,1:nvars)
+    ! print *, "Cslo1+1: ", cu(0,lo(2)+1,0,1:nvars)
+    ! print *, "Cshi1: ", cu(0,hi(2),0,1:nvars)
+    ! print *, "Cshi1-1: ", cu(0,hi(2)-1,0,1:nvars)
+
+    ! print *, "Cflo1: ", cup(0,lo(2),0,1:nvars)
+    ! print *, "Cflo1+1: ", cup(0,lo(2)+1,0,1:nvars)
+    ! print *, "Cfhi1: ", cup(0,hi(2),0,1:nvars)
+    ! print *, "Cfhi1-1: ", cup(0,hi(2)-1,0,1:nvars)
 
      !call exit()
 
@@ -130,35 +135,35 @@ contains
         enddo
       enddo
 
-!     print *, "Flo2: ", xflux(lo(1),0,0,1:5)
-!     print *, "Flo2+1: ", xflux(lo(1)+1,0,0,1:5)
-!     print *, "Fhi2: ", xflux(hi(1)+1,0,0,1:5)
-!     print *, "Fhi2-1: ", xflux(hi(1),0,0,1:5)
+    ! print *, "Flo2: ", xflux(lo(1),0,0,1:nvars)
+    ! print *, "Flo2+1: ", xflux(lo(1)+1,0,0,1:nvars)
+    ! print *, "Fhi2: ", xflux(hi(1)+1,0,0,1:nvars)
+    ! print *, "Fhi2-1: ", xflux(hi(1),0,0,1:nvars)
 
-!     print *, "Cslo2: ", cup(lo(1),0,0,1:5)
-!     print *, "Cslo2+1: ", cup(lo(1)+1,0,0,1:5)
-!     print *, "Cshi2: ", cup(hi(1),0,0,1:5)
-!     print *, "Cshi2-1: ", cup(hi(1)-1,0,0,1:5)
+    ! print *, "Cslo2: ", cup(lo(1),0,0,1:nvars)
+    ! print *, "Cslo2+1: ", cup(lo(1)+1,0,0,1:nvars)
+    ! print *, "Cshi2: ", cup(hi(1),0,0,1:nvars)
+    ! print *, "Cshi2-1: ", cup(hi(1)-1,0,0,1:nvars)
 
-!     print *, "Cflo2: ", cup2(lo(1),0,0,1:5)
-!     print *, "Cflo2+1: ", cup2(lo(1)+1,0,0,1:5)
-!     print *, "Cfhi2: ", cup2(hi(1),0,0,1:5)
-!     print *, "Cfhi2-1: ", cup2(hi(1)-1,0,0,1:5)
+    ! print *, "Cflo2: ", cup2(lo(1),0,0,1:nvars)
+    ! print *, "Cflo2+1: ", cup2(lo(1)+1,0,0,1:nvars)
+    ! print *, "Cfhi2: ", cup2(hi(1),0,0,1:nvars)
+    ! print *, "Cfhi2-1: ", cup2(hi(1)-1,0,0,1:nvars)
 
-!     print *, "Flo2: ", yflux(0,lo(2),0,1:5)
-!     print *, "Flo2+1: ", yflux(0,lo(2)+1,0,1:5)
-!     print *, "Fhi2: ", yflux(0,hi(2)+1,0,1:5)
-!     print *, "Fhi2-1: ", yflux(0,hi(2),0,1:5)
+    ! print *, "Flo2: ", yflux(0,lo(2),0,1:nvars)
+    ! print *, "Flo2+1: ", yflux(0,lo(2)+1,0,1:nvars)
+    ! print *, "Fhi2: ", yflux(0,hi(2)+1,0,1:nvars)
+    ! print *, "Fhi2-1: ", yflux(0,hi(2),0,1:nvars)
 
-!     print *, "Cslo2: ", cup(0,lo(2),0,1:5)
-!     print *, "Cslo2+1: ", cup(0,lo(2)+1,0,1:5)
-!     print *, "Cshi2: ", cup(0,hi(2),0,1:5)
-!     print *, "Cshi2-1: ", cup(0,hi(2)-1,0,1:5)
+    ! print *, "Cslo2: ", cup(0,lo(2),0,1:nvars)
+    ! print *, "Cslo2+1: ", cup(0,lo(2)+1,0,1:nvars)
+    ! print *, "Cshi2: ", cup(0,hi(2),0,1:nvars)
+    ! print *, "Cshi2-1: ", cup(0,hi(2)-1,0,1:nvars)
 
-!     print *, "Cflo2: ", cup2(0,lo(2),0,1:5)
-!     print *, "Cflo2+1: ", cup2(0,lo(2)+1,0,1:5)
-!     print *, "Cfhi2: ", cup2(0,hi(2),0,1:5)
-!     print *, "Cfhi2-1: ", cup2(0,hi(2)-1,0,1:5)
+    ! print *, "Cflo2: ", cup2(0,lo(2),0,1:nvars)
+    ! print *, "Cflo2+1: ", cup2(0,lo(2)+1,0,1:nvars)
+    ! print *, "Cfhi2: ", cup2(0,hi(2),0,1:nvars)
+    ! print *, "Cfhi2-1: ", cup2(0,hi(2)-1,0,1:nvars)
 
 
   end subroutine rk3_stage2
@@ -207,15 +212,15 @@ contains
         enddo
       enddo
 
-!     print *, "lo3: ", xflux(lo(1),0,0,1:5)
-!     print *, "lo3+1: ", xflux(lo(1)+1,0,0,1:5)
-!     print *, "hi3: ", xflux(hi(1)+1,0,0,1:5)
-!     print *, "hi3-1: ", xflux(hi(1),0,0,1:5)
+!     print *, "lo3: ", xflux(lo(1),0,0,1:nvars)
+!     print *, "lo3+1: ", xflux(lo(1)+1,0,0,1:nvars)
+!     print *, "hi3: ", xflux(hi(1)+1,0,0,1:nvars)
+!     print *, "hi3-1: ", xflux(hi(1),0,0,1:nvars)
 
-!     print *, "lo3: ", yflux(0,lo(2),0,1:5)
-!     print *, "lo3+1: ", yflux(0,lo(2)+1,0,1:5)
-!     print *, "hi3: ", yflux(0,hi(2)+1,0,1:5)
-!     print *, "hi3-1: ", yflux(0,hi(2),0,1:5)
+!     print *, "lo3: ", yflux(0,lo(2),0,1:nvars)
+!     print *, "lo3+1: ", yflux(0,lo(2)+1,0,1:nvars)
+!     print *, "hi3: ", yflux(0,hi(2)+1,0,1:nvars)
+!     print *, "hi3-1: ", yflux(0,hi(2),0,1:nvars)
 
   end subroutine rk3_stage3
 
