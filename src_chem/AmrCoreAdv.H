@@ -166,6 +166,8 @@ private:
 
    Vector< std::unique_ptr<MultiFab> >  uface;
    Vector< std::unique_ptr<MultiFab> >  vface;
+   Vector< std::unique_ptr<MultiFab> >  wface;
+  
    Vector< std::unique_ptr<MultiFab> >  Dcon_x;
    Vector< std::unique_ptr<MultiFab> >  Dcon_y;
    Vector< std::unique_ptr<MultiFab> >  Dcon_z;
@@ -173,8 +175,6 @@ private:
    Vector< std::unique_ptr<MultiFab> >  xface;
    Vector< std::unique_ptr<MultiFab> >  yface;
    Vector< std::unique_ptr<MultiFab> >  zface;
-
-   Vector< std::unique_ptr<MultiFab> >  wface;
    std::unique_ptr<iMultiFab>           source_loc;
    std::unique_ptr<MultiFab>            levset;
 
