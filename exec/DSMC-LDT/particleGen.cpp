@@ -439,8 +439,6 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         //printf("Vars: %f %f\n", varL, varR);
     }
 
-    printf("Vars: %f %f\n", varL, varR);
-
     //if the variance is 0, regenerate those velocities and re-thermostat
     if (varL < varTol) {
         for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
