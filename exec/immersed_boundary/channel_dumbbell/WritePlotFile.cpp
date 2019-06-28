@@ -12,7 +12,8 @@ void WritePlotFile(int step,
                    const Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
                    const MultiFab& tracer,
-                   const MultiFab& pres)
+                   const MultiFab& pres,
+                   const IBMarkerContainer & ib_pc)
 {
 
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
@@ -80,6 +81,11 @@ void WritePlotFile(int step,
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
+
+    // add immersed boundary markers data to plot file
+    ib_pc.WritePlotFile(plotfilename, "immbdy_markers",
+                        IBM_realData::names(), IBM_intData::names());
+
 
     // staggered velocity
     const std::string plotfilenamex = Concatenate("stagx",step,7);

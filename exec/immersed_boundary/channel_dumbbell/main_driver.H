@@ -52,7 +52,8 @@ void WritePlotFile(const int step,
                    const Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
                    const MultiFab& tracer,
-                   const MultiFab& pres);
+                   const MultiFab& pres,
+                   const IBMarkerContainer & ib_pc);
 
 ///////////////////////////
 
