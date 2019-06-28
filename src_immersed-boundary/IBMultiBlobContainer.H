@@ -124,7 +124,7 @@ private:
     void ReadStaticParameters();
 
 
-    // TODO: this might bto be used anymore:
+    // TODO: this might not be used anymore:
     AmrCore * m_amr_core;
     int nghost;
 
