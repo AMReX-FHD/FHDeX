@@ -48,13 +48,13 @@ void AmrCoreAdv::Initialize( )
     MagDcon.resize(nlevs_max);
 
     bcs.resize(1);
-    uface.resize(nlevs_max );
-    vface.resize(nlevs_max);
-    wface.resize(nlevs_max);
-
-    xface.resize(nlevs_max);
-    yface.resize(nlevs_max);
-    zface.resize(nlevs_max);
+//    uface.resize(nlevs_max );
+//    vface.resize(nlevs_max);
+//    wface.resize(nlevs_max);
+//
+//    xface.resize(nlevs_max);
+//    yface.resize(nlevs_max);
+//    zface.resize(nlevs_max);
    
     // periodic boundaries
     int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
@@ -122,13 +122,13 @@ void AmrCoreAdv::EvolveChem(
     // initialize copies of velocities u_g, v_g, w_g and first derivatives of
     // con Dcon_x, Dcon_y, Dcon_z
    std::cout << " max_level " << max_level+1 << std::endl;
- //  uface.resize(max_level + 1);
- //  vface.resize(max_level + 1);
-//   wface.resize(max_level + 1);
-//
-//   xface.resize(max_level + 1);
-//   yface.resize(max_level + 1);
-//   zface.resize(max_level + 1);
+   uface.resize(max_level + 1);
+   vface.resize(max_level + 1);
+   wface.resize(max_level + 1);
+
+   xface.resize(max_level + 1);
+   yface.resize(max_level + 1);
+   zface.resize(max_level + 1);
 
 
     DistributionMapping condm = con_new[lev]->DistributionMap();
@@ -143,18 +143,10 @@ void AmrCoreAdv::EvolveChem(
   //  z_face_ba.surroundingNodes(2);
 
     for (lev = 0; lev <= finest_level; ++lev) {
-    std::cout<< "In For Loop"<<std::endl;
-
-    std::cout<< " size wface "<< wface.size() <<std::endl;
         
-        if (uface[lev]) std::cout << "uface isn't empty" << '\n';
-        else std::cout << "uface is empty\n"; 
         uface[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
-        if (vface[lev]) std::cout << "vface isn't empty" << '\n';
-        else std::cout << "vface is empty\n"; 
-
         vface[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
-        if (wface[lev]){ std::cout << "wface isn't empty" << '\n';
+        if (wface[lev]){ std::cout << "wface i`sn't empty" << '\n';
         std::cout<< " wface  ghost cells " << (*wface[lev]).nGrow() << std::endl;
 
         std::cout<< "Num comp wface " << (*wface[lev]).nComp() << std::endl;}
@@ -165,39 +157,37 @@ void AmrCoreAdv::EvolveChem(
         std::cout << "lev " << lev <<std::endl;
         
         wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
+        std::cout << " after wface " <<std::endl;
 
-        std:: cout << " After wface "<< '\n';
-        int mac_ncomp= (face_coords[lev])[0].nComp();
-        std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
+        int mac_ncompx= (face_coords[lev])[0].nComp();
+        int mac_ncompy= (face_coords[lev])[1].nComp();
+        int mac_ncompz= (face_coords[lev])[2].nComp();
+        int mac_ngrowx= (face_coords[lev])[0].nGrow();
+        int mac_ngrowy= (face_coords[lev])[1].nGrow();
+        int mac_ngrowz= (face_coords[lev])[2].nGrow();
+
+        std::cout << " Number of components in a MAC grid x= " << mac_ncompx << " y= "<< mac_ncompy<< " z= "<< mac_ncompz << std::endl;
+        std::cout << " Number of ghost cells in a MAC grid x= " << mac_ngrowx << " y= "<< mac_ngrowy<< " z= "<< mac_ngrowz << std::endl;
+
         if (xface[lev]) std::cout << "xface isn't empty" << '\n';
         else std::cout << "xface is empty\n"; 
         
-        xface[lev].reset(new MultiFab(x_face_ba, condm, mac_ncomp, 0));
-        if (yface[lev]) std::cout << "xface isn't empty" << '\n';
-        else std::cout << "xface is empty\n"; 
+        xface[lev].reset(new MultiFab(x_face_ba, condm, mac_ncompx, 0));
+        if (yface[lev]) std::cout << "yface isn't empty" << '\n';
+        else std::cout << "yface is empty\n"; 
 
-        yface[lev].reset(new MultiFab(y_face_ba, condm, mac_ncomp, 0));
-        if (zface[lev]) std::cout << "xface isn't empty" << '\n';
-        else std::cout << "xface is empty\n"; 
-        zface[lev].reset(new MultiFab(z_face_ba, condm, mac_ncomp, 0));
-        //std::cout << " max xface " <<(*xface[lev]).max(1)<< " max yface " << (*yface[lev]).max(1)<< " max zface "<< (*zface[lev]).max(1) << std::endl;
-
-        std::cout << " max xface " <<((face_coords[0])[lev]).max(0) << std::endl;
-        std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
+        yface[lev].reset(new MultiFab(y_face_ba, condm, mac_ncompy, 0));
+        if (zface[lev]) std::cout << " zface isn't empty" << '\n';
+        else std::cout << " zface is empty\n"; 
+        zface[lev].reset(new MultiFab(z_face_ba, condm, mac_ncompz, 0));
 
         uface[lev]->setVal(0.);
         vface[lev]->setVal(0.);
         wface[lev]->setVal(0.);
-        std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
         
         xface[lev]->setVal(0.);
         yface[lev]->setVal(0.);
         zface[lev]->setVal(0.);
-       // std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
-
-       // Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 0));
-       // Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 0));
-       // Dcon_z[lev].reset(new MultiFab(z_face_ba, condm, 1, 0));
 
         Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 0));
         Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 0));
@@ -207,19 +197,13 @@ void AmrCoreAdv::EvolveChem(
         Dcon_y[lev]->setVal(0.);
         Dcon_z[lev]->setVal(0.);
 
-       uface[lev]->copy(umac[0], 0, 0, 1, 0, 0);
-       vface[lev]->copy(umac[1], 0, 0, 1, 0, 0);
-       wface[lev]->copy(umac[2], 0, 0, 1, 0, 0);
-        std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
-       
-       xface[lev]->copy((face_coords[lev])[0], 0, 2, 3, 0, 0);
-        std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
-
-       yface[lev]->copy((face_coords[lev])[1], 0, 2, 3, 0, 0);
-       std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
-  
-        zface[lev]->copy((face_coords[lev])[2], 0, 2, 3, 0, 0);
-        std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
+       uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
+       vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
+       wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
+              
+        xface[lev]->copy((face_coords[lev])[0], 0, 0, mac_ncompx , 0, 0);
+        yface[lev]->copy((face_coords[lev])[1], 0, 0, mac_ncompy , 0, 0);
+        zface[lev]->copy((face_coords[lev])[2], 0, 0, mac_ncompz , 0, 0);
 
 //       std::cout<<(*uface[lev]).max(0) << std::endl; 
 //       std::cout<<(*vface[lev]).max(0) << std::endl; 
@@ -241,26 +225,13 @@ void AmrCoreAdv::EvolveChem(
     source_loc.reset(new iMultiFab(conba, condm, 1, 1));
     source_loc->copy(iface, 0, 0, 1, 0, 1 );
     source_loc->FillBoundary(geom[0].periodicity());
-    std:: cout << " 1 " << std::endl; 
+
     DistributionMapping lsdm = LevelSet.DistributionMap();
     BoxArray lsba            = LevelSet.boxArray();
-    //levset.reset(new MultiFab(lsba, lsdm, 1, 1));
-//    std::cout << IntVec::TheCellVector()<<std::endl;
-   // BoxArray lsba_new=amrex::convert(lsba,       IntVect::TheCellVector());
-    //std::cout << amrex::IntVec::TheCellVector()<<std::endl;
-
     levset.reset(new MultiFab(lsba, lsdm, 1, 1));
-    std:: cout << " 2 " << std::endl; 
     levset->setVal(0.);
-    std:: cout << " 3 " << std::endl;
-    std:: cout << " LS n grow "<< ls_gst << std::endl;
-    std:: cout << " LS n comp "<< ls_nc << std::endl;
-     
     levset->copy(LevelSet, 0, ls_nc-1, ls_nc, ls_gst, 1);
-
-    std:: cout << " 4 " << std::endl; 
     levset->FillBoundary(geom[0].periodicity());
-    std::cout << "EvolveChem max Ls"<< (*levset).max(0)<<std::endl;
 
     /***************************************************************************
      * Evolve chemical field by integrating time step                          *

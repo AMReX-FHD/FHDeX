@@ -16,7 +16,6 @@
 #include "ib_functions.H"
 
 #include "IBCore.H"
-#include "IBMarkerContainer.H"
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
