@@ -55,7 +55,10 @@ extern "C"
                     amrex_real* cellVols, const int* cvlo, const int* cvhi,
                     const amrex_real* neff, const int* np,
                     const surface* surfaceList, const int* surfaceCount,
-                    const Real* meanL, const Real* meanR, const Real* lC, const Real* rC);
+                    const Real* meanLx, const Real* meanRx,
+                    const Real* meanLy, const Real* meanRy,
+                    const Real* meanLz, const Real* meanRz,
+                    const Real* lC, const Real* rC);
    void getVelocity(
                     void* particles,
                     const int* lo, const int* hi,
@@ -63,7 +66,8 @@ extern "C"
                     amrex_real* cellVols, const int* cvlo, const int* cvhi,
                     const amrex_real* neff, const int* np,
                     const surface* surfaceList, const int* surfaceCount,
-                    int* pL, int* pR, Real* vL, Real* vR);
+                    int* pL, int* pR, Real* vLx, Real* vRx, Real* vLy, Real* vRy,
+                    Real* vLz, Real* vRz);
        void getTemp(
                     void* particles,
                     const int* lo, const int* hi,
@@ -71,7 +75,10 @@ extern "C"
                     amrex_real* cellVols, const int* cvlo, const int* cvhi,
                     const amrex_real* neff, const int* np,
                     const surface* surfaceList, const int* surfaceCount,
-                    const Real* meanL, const Real* meanR, Real* varL, Real* varR);
+                    const Real* meanLx, const Real* meanRx,
+                    const Real* meanLy, const Real* meanRy,
+                    const Real* meanLz, const Real* meanRz,
+                    Real* varL, Real* varR);
 
 #ifdef __cplusplus
 }
