@@ -121,42 +121,31 @@ void AmrCoreAdv::EvolveChem(
 
     // initialize copies of velocities u_g, v_g, w_g and first derivatives of
     // con Dcon_x, Dcon_y, Dcon_z
-//    uface.resize(max_level + 1);
-//    vface.resize(max_level + 1);
-//    wface.resize(max_level + 1);
+   std::cout << " max_level " << max_level+1 << std::endl;
+ //  uface.resize(max_level + 1);
+ //  vface.resize(max_level + 1);
+//   wface.resize(max_level + 1);
 //
-//    xface.resize(max_level + 1);
-//    yface.resize(max_level + 1);
-//    zface.resize(max_level + 1);
+//   xface.resize(max_level + 1);
+//   yface.resize(max_level + 1);
+//   zface.resize(max_level + 1);
 
 
     DistributionMapping condm = con_new[lev]->DistributionMap();
     BoxArray conba            = con_new[lev]->boxArray();
 
-    BoxArray x_face_ba = conba;
-    BoxArray y_face_ba = conba;
-    BoxArray z_face_ba = conba;
+    BoxArray x_face_ba = umac[0].boxArray();//conba;
+    BoxArray y_face_ba = umac[1].boxArray(); //conba;
+    BoxArray z_face_ba = umac[2].boxArray();//conba;
 
-    x_face_ba.surroundingNodes(0);
-    y_face_ba.surroundingNodes(1);
-    z_face_ba.surroundingNodes(2);
-    std::cout<< "Before For Loop"<<std::endl;
-        uface[0].reset();
-    std::cout<< "After uface reset"<<std::endl;
-        vface[0].reset();
-    std::cout<< "After vface reset"<<std::endl;
-        wface[0].release();
-    std::cout<< "After wface reset"<<std::endl;
+  //  x_face_ba.surroundingNodes(0);
+  //  y_face_ba.surroundingNodes(1);
+  //  z_face_ba.surroundingNodes(2);
 
     for (lev = 0; lev <= finest_level; ++lev) {
     std::cout<< "In For Loop"<<std::endl;
 
- //       uface[lev].reset();
- //   std::cout<< "After uface reset"<<std::endl;
- //       vface[lev].reset();
- //   std::cout<< "After vface reset"<<std::endl;
- //       wface[lev].reset();
- //   std::cout<< "After wface reset"<<std::endl;
+    std::cout<< " size wface "<< wface.size() <<std::endl;
         
         if (uface[lev]) std::cout << "uface isn't empty" << '\n';
         else std::cout << "uface is empty\n"; 
@@ -170,25 +159,26 @@ void AmrCoreAdv::EvolveChem(
 
         std::cout<< "Num comp wface " << (*wface[lev]).nComp() << std::endl;}
         else std::cout << "wface is empty\n"; 
-        if (xface[lev]) std::cout << "xface isn't empty" << '\n';
-        else std::cout << "xface is empty\n";
         std::cout<< z_face_ba << std::endl;
         std::cout<< condm <<std::endl;
+        std::cout << "wface size " << wface.size()<<std::endl;
+        std::cout << "lev " << lev <<std::endl;
         
         wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
 
-       // wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
-        //if (face_coords[lev]) std::cout << "facecoords isn't empty" << '\n';
-        //else std::cout << "facecoords is empty\n"; 
         std:: cout << " After wface "<< '\n';
-         int mac_ncomp =3;
-        //int mac_ncomp= (face_coords[lev])[0].nComp();
+        int mac_ncomp= (face_coords[lev])[0].nComp();
         std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
         if (xface[lev]) std::cout << "xface isn't empty" << '\n';
         else std::cout << "xface is empty\n"; 
         
         xface[lev].reset(new MultiFab(x_face_ba, condm, mac_ncomp, 0));
+        if (yface[lev]) std::cout << "xface isn't empty" << '\n';
+        else std::cout << "xface is empty\n"; 
+
         yface[lev].reset(new MultiFab(y_face_ba, condm, mac_ncomp, 0));
+        if (zface[lev]) std::cout << "xface isn't empty" << '\n';
+        else std::cout << "xface is empty\n"; 
         zface[lev].reset(new MultiFab(z_face_ba, condm, mac_ncomp, 0));
         //std::cout << " max xface " <<(*xface[lev]).max(1)<< " max yface " << (*yface[lev]).max(1)<< " max zface "<< (*zface[lev]).max(1) << std::endl;
 
@@ -235,14 +225,14 @@ void AmrCoreAdv::EvolveChem(
 //       std::cout<<(*vface[lev]).max(0) << std::endl; 
 //       std::cout<<(*wface[lev]).max(0) << std::endl; 
 
-       uface[lev]->FillBoundary(geom[lev].periodicity());
-       vface[lev]->FillBoundary(geom[lev].periodicity());
-       wface[lev]->FillBoundary(geom[lev].periodicity());
-
-       xface[lev]->FillBoundary(geom[lev].periodicity());
-       yface[lev]->FillBoundary(geom[lev].periodicity());
-       zface[lev]->FillBoundary(geom[lev].periodicity());
-        std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
+//       uface[lev]->FillBoundary(geom[lev].periodicity());
+//       vface[lev]->FillBoundary(geom[lev].periodicity());
+//       wface[lev]->FillBoundary(geom[lev].periodicity());
+//
+//       xface[lev]->FillBoundary(geom[lev].periodicity());
+//       yface[lev]->FillBoundary(geom[lev].periodicity());
+//       zface[lev]->FillBoundary(geom[lev].periodicity());
+ //       std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
 
     }
     int ls_gst= LevelSet.nGrow();
