@@ -481,10 +481,11 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  character (len=90) :: filename
 
     r=sqrt(part%pos(1)**2+part%pos(2)**2)
-    c=91.4468
+    c=914.4681
     alpha=0
     pi=3.1415926535897932
-    a=(part%vel(3)+oldvel(3))*part%mass
+     write(*,*) "old part: ", part%vel(3)
+    a=(part%vel(3)-oldvel(3))*part%mass
     !parabola
     ! f_x=-a*r*r+a*d*r+100000
     bessj0=0
@@ -502,25 +503,26 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
               k=14.9309
            endif
            r2=r*k/prob_hi(1)
-           omega=sqrt(((c*(k**2))/prob_hi(1)**2)+alpha)/(3.141592653589793**2)
-           bessj0 =a*surf%grac*bessel_jn(0,r2)*sin((t*omega)+surf%graphi)
-           dbessj0=a*surf%grac*bessel_jn(0, r2)*omega
-           graphi=omega*t
-           grac=(c**2/(pi*prob_hi(1)**2))*bessel_jn(0,r2)/((bessel_jn(1, k)**2)*omega)
+           omega=14*(10**6)*pi*2
+           bessj0 =surf%grac*bessel_jn(0,r2)*sin((t*omega)+surf%graphi)
+           dbessj0=surf%grac*bessel_jn(0, r2)
+          ! graphi=-omega*t
+          ! print*, surf%graphi
+           grac=a*(c**2/(pi*prob_hi(1)**2))*bessel_jn(0,r2)/((bessel_jn(1, k)**2))
            xvec=surf%grac*cos(surf%graphi)+grac*cos(graphi)
            yvec=surf%grac*sin(surf%graphi)+grac*sin(graphi)
            surf%grac=sqrt(xvec**2+yvec**2)
            surf%graphi=atan2(yvec, xvec)
         enddo
-       ! print*, surf%velz
+        print*, a
       surf%velz=dbessj0*cos((t*omega)+surf%graphi)
       part%vel(3)=part%vel(3)+surf%velz
       step=time/fixed_dt
    
    !  if(step .eq. 300)then
-    ! write(*,*) a
-    ! write(*,*) "old", oldvel(3), part%id
-    ! write(*,*) "new", part%vel(3)
+     write(*,*) surf%velz
+   ! write(*,*) "old", oldvel(3), part%id
+    write(*,*) "new part: ", part%vel(3)
    !  endif
   end subroutine surf_velocity
 

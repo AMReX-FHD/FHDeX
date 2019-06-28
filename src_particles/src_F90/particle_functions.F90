@@ -553,14 +553,14 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
           if(graphene_tog .eq. 1) then
                interval=prob_hi(1)/100
                radius=0
-               omega=sqrt((4266599003*(2.4048**2))/(prob_hi(1)**2)+10**8)/(3.141592653589793**2)
+               omega=14*10**6*2*3.14159265
                surf=>surfaces(6)
                do ii=1, 100
                  radius=interval*ii
                  radius=radius*2.4048/prob_hi(1)
-                 bessj0 =10e-30*surf%grac*bessel_jn(0,radius)*sin((time*omega)+surf%graphi)
+                 bessj0 =surf%grac*bessel_jn(0,radius)*sin((time*omega)+surf%graphi)
                  surf%besslist(ii)=bessj0
-                 dbessj0=10e-30*surf%grac*bessel_jn(0, radius)*omega*cos((time*omega)+surf%graphi)
+                 dbessj0=surf%grac*bessel_jn(0, interval)*cos((time*omega)+surf%graphi)
                  surf%dbesslist(ii)=dbessj0
               enddo
   
@@ -568,7 +568,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
                 ! print*,'position',part%pos
                ! print*,'vel',part%vel
-               ! print*,'surf vel', surf%velz
+                print*,'surf vel', surf%velz
                 !print*, 'c', surf%grac
                !print*, sin((time*omega))
               ! print*, surf%velz
