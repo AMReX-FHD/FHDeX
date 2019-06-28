@@ -115,7 +115,7 @@ contains
 
              call get_molfrac(Yk_fixed, Xk_fixed)
 
-             call ideal_mixture_transport(prim(i,j,k,1), prim(i,j,k,5),prim(i,j,k,6), &
+             call ideal_mixture_transport(prim(i,j,k,1), prim(i,j,k,5), prim(i,j,k,6), &
                   Yk_fixed,Xk_fixed, &
                   eta(i,j,k), kappa(i,j,k), zeta(i,j,k), Dij(i,j,k,1:nspecies,1:nspecies),chi(i,j,k,1:nspecies))
 
@@ -123,6 +123,12 @@ contains
              do kk = 1,nspecies
                 do ll = 1,nspecies
                    Dij(i,j,k,kk,ll) = Dij(i,j,k,kk,ll)*prim(i,j,k,1)
+
+                   if ( isnan(Dij(i,j,k,kk,ll)) ) then
+                      print*, "Hack 1, (makecoef) ", i,j,k, Dij(i,j,k,:,:)
+                      stop
+                   end if
+
                 enddo
              enddo
 
@@ -192,7 +198,9 @@ contains
 
     ! mole fractions correction - EGLIB
     do ii = 1, nspecies
+       ! GM: Why this factor of 1E-15???
        xxtr(ii) = Xk(ii) + (1.0d-15)*(sum(Xk(:))/dble(nspecies)-Xk(ii))
+       ! xxtr(ii) = Xk(ii) + (1.0)*(sum(Xk(:))/dble(nspecies)-Xk(ii))
     enddo
 
     ! molecular weight of mixture - EGLIB
@@ -212,6 +220,7 @@ contains
     ! find binary diffusion coefficients  
     ! HCB 8.2-9   
     sqrtT = dsqrt(temperature)
+
     do i = 1, nspecies
        do j = 1, nspecies
 
@@ -260,19 +269,36 @@ contains
 
     ! print*, "Hack (imt): ", omega11bar
 
-    call visc_lin(omega11,yytr,temperature,density,molmass,eta)
+    ! call visc_lin(omega11,yytr,temperature,density,molmass,eta)
+    ! eta = 0.0d0
    
-    ! ! Why hard-coded in? from original LLNS
+    ! ! GCM: Why hard-coded in? from original LLNS
     ! zeta = 0.d0
-
-    call lambda_lin(Dbin,omega11,yytr,temperature,density,molmass,kappa)
+    
+    ! call lambda_lin(Dbin,omega11,yytr,temperature,density,molmass,kappa)
+    ! kappa = 0.d0
 
     call D_GIOVANGIGLI(Dbin,yytr,xxtr,diff_ij)
+    ! diff_ij = 0.0d0
 
     call thermalDiff(sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molmass,chitil)
+    ! chitil = 0.0d0
 
-    ! ! What is this?
+    ! ! GCM: What is this?
     ! chitil = chitil*fake_soret_factor
+    
+    do i = 1, nspecies
+       do j = 1, nspecies
+          if ( isnan(diff_ij(i,j)) ) then
+             print*, "Hack 1, (imt) ", &
+                  ! diff_ij, &
+                  ! omega11,yytr,temperature,density,molmass,eta, &
+                  ! Dbin
+                  sigma11,sqrtT,chitil,temperature
+             stop
+          end if
+       enddo
+    enddo
 
   end subroutine ideal_mixture_transport
 
@@ -296,7 +322,8 @@ contains
        nk(ii) = rho*Ykp(ii)/mk(ii)
     enddo
 
-    ! print*, "Hack (visc_lin): nk = ", nk
+    ! print*, "Hack (visc_lin): T = ", T
+    ! stop
 
     do  ii = 1, nspecies
        diag(ii) = 0.d0
@@ -348,6 +375,9 @@ contains
 
 
     etaMix = 0.5d0*k_b*T*sum1
+
+    ! print*, "Hack (visc_lin): etaMix = ", etaMix
+    ! stop
 
   end subroutine visc_lin
 
@@ -441,13 +471,13 @@ contains
        aSonine(i+nspecies) = -(15.0d0/4.0d0)*nk(i)*beta(i)
     enddo
 
-    print*, "Hack (lambda_lin) predecomp: ", QQ, aSonine
+    print*, "Hack (lambda_lin) predecomp: ", aSonine
 
     ! NOTE: the minus sign below; see HCB p 488
     call decomp(2*nspecies,2*nspecies,QQ,ip)
     call solve(2*nspecies,2*nspecies,QQ,aSonine,ip)
 
-    print*, "Hack (lambda_lin) postdecomp: ", QQ, aSonine
+    print*, "Hack (lambda_lin) postdecomp: ", QQ
     stop
     
     do i = 1, nspecies           

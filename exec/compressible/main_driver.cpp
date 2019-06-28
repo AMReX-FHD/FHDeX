@@ -211,6 +211,10 @@ void main_driver(const char* argv)
     cu.setVal(0,3,1,ngc);
     cu.setVal(rho0*intEnergy,4,1,ngc);
 
+    cup.setVal(rho0,0,1,ngc);
+    cup2.setVal(rho0,0,1,ngc);
+    cup3.setVal(rho0,0,1,ngc);
+    
     //Print() << intEnergy << "\n";
 
     //while(true);
