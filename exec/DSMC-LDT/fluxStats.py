@@ -204,6 +204,7 @@ def estimateRatesAll(N):
   #loop over all the data
   for i in xrange(0,N):
     #get the data
+    print i
     loc = base + str(i) + ".txt"
     dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData(loc)
 
