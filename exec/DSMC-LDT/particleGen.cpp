@@ -89,8 +89,8 @@ void FhdParticleContainer::InitParticlesDSMC(species* particleInfo, int pL, int 
 #endif
 
                 p.rdata(RealData::vx) = sqrt(particleInfo[i_spec].R*temp)*get_particle_normal_func();
-                p.rdata(RealData::vy) = sqrt(particleInfo[i_spec].R*0)*get_particle_normal_func();
-                p.rdata(RealData::vz) = sqrt(particleInfo[i_spec].R*0)*get_particle_normal_func();
+                p.rdata(RealData::vy) = sqrt(particleInfo[i_spec].R*temp)*get_particle_normal_func();
+                p.rdata(RealData::vz) = sqrt(particleInfo[i_spec].R*temp)*get_particle_normal_func();
 
                 p.rdata(RealData::fx) = 0;
                 p.rdata(RealData::fy) = 0;
@@ -286,8 +286,8 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
 #endif
 
                 p.rdata(RealData::vx) = sqrt(particleInfo[i_spec].R*temp)*get_particle_normal_func();
-                p.rdata(RealData::vy) = sqrt(particleInfo[i_spec].R*0)*get_particle_normal_func();
-                p.rdata(RealData::vz) = sqrt(particleInfo[i_spec].R*0)*get_particle_normal_func();
+                p.rdata(RealData::vy) = sqrt(particleInfo[i_spec].R*temp)*get_particle_normal_func();
+                p.rdata(RealData::vz) = sqrt(particleInfo[i_spec].R*temp)*get_particle_normal_func();
 
                 p.rdata(RealData::fx) = 0;
                 p.rdata(RealData::fy) = 0;
@@ -349,10 +349,14 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     Real varTol = 1e-5; //tolerance for variance to be 0
 
     //declare storage for variables going to fortran
-    Real vL = 0, vR = 0;
     int  pL = 0, pR = 0;
     Real varL = 0, varR = 0;
-    Real meanL = 0; Real meanR = 0;
+    Real vLx = 0, vRx = 0;
+    Real vLy = 0, vRy = 0;
+    Real vLz = 0, vRz = 0;
+    Real meanLx = 0; Real meanRx = 0;
+    Real meanLy = 0; Real meanRy = 0;
+    Real meanLz = 0; Real meanRz = 0;
 
     //get the total particle number and velocity on each side
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
@@ -372,14 +376,19 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                     ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                     ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                     BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                    surfaces, &ns, &pL, &pR, &vL, &vR);
+                    surfaces, &ns, &pL, &pR, &vLx, &vRx, &vLy, &vRy,
+                    &vLz, &vRz);
 
 
     }
 
     //perform reductions
-    ParallelDescriptor::ReduceRealSum(vL);
-    ParallelDescriptor::ReduceRealSum(vR);
+    ParallelDescriptor::ReduceRealSum(vLx);
+    ParallelDescriptor::ReduceRealSum(vRx);
+    ParallelDescriptor::ReduceRealSum(vLy);
+    ParallelDescriptor::ReduceRealSum(vRy);
+    ParallelDescriptor::ReduceRealSum(vLz);
+    ParallelDescriptor::ReduceRealSum(vRz);
     ParallelDescriptor::ReduceIntSum(pL);
     ParallelDescriptor::ReduceIntSum(pR);
 
@@ -388,8 +397,12 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     }
 
     //get mean velocities per side
-    meanL = vL / pL;
-    meanR = vR / pR;
+    meanLx = vLx / pL;
+    meanRx = vRx / pR;
+    meanLy = vLy / pL;
+    meanRy = vRy / pR;
+    meanLz = vLz / pL;
+    meanRz = vRz / pR;
 
     if (pL <= 2 || pR <= 2) {
         //printf("avg velocities: %f %f\n", vL, vR);
@@ -413,17 +426,20 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                 ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                 ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                 BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                surfaces, &ns, &meanL, &meanR, &varL, &varR);
+                surfaces, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
+                &meanLz, &meanRz, &varL, &varR);
 
     }
 
     //perform reductions, get variance by scaling by population
-    ParallelDescriptor::ReduceRealSum(varL); varL = varL/pL;
-    ParallelDescriptor::ReduceRealSum(varR); varR = varR/pR;
+    ParallelDescriptor::ReduceRealSum(varL); varL = varL/(3*pL);
+    ParallelDescriptor::ReduceRealSum(varR); varR = varR/(3*pR);
 
     if (pL <= 2 || pR <= 2) {
         //printf("Vars: %f %f\n", varL, varR);
     }
+
+    printf("Vars: %f %f\n", varL, varR);
 
     //if the variance is 0, regenerate those velocities and re-thermostat
     if (varL < varTol) {
@@ -440,6 +456,10 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                 if (parts[i].pos(0) < 1) {
                     vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
                     parts[i].rdata(RealData::vx) = vFix;
+                    vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
+                    parts[i].rdata(RealData::vy) = vFix;
+                    vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
+                    parts[i].rdata(RealData::vz) = vFix;
                 }
             }
         }
@@ -461,6 +481,10 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                 if (parts[i].pos(0) > 1) {
                     vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
                     parts[i].rdata(RealData::vx) = vFix;
+                    vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
+                    parts[i].rdata(RealData::vy) = vFix;
+                    vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
+                    parts[i].rdata(RealData::vz) = vFix;
                 }
             }
         }
@@ -499,7 +523,8 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                         BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                        surfaces, &ns, &meanL, &meanR, &lC, &rC);
+                        surfaces, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
+                        &meanLz, &meanRz, &lC, &rC);
 
         }
     }
