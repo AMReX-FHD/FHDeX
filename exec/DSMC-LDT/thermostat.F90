@@ -9,7 +9,8 @@ module thermostat_module
 contains        
 
   subroutine thermostat(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-    cellvols, cvlo, cvhi, neff, np, surfaces, ns, meanL, meanR, lC, rC)bind(c,name="thermostat")
+    cellvols, cvlo, cvhi, neff, np, surfaces, ns, meanLx, meanRx, meanLy, meanRy, &
+    meanLz, meanRz, lC, rC)bind(c,name="thermostat")
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -30,7 +31,7 @@ contains
 
     type(surface_t), intent(in), target :: surfaces(ns)
     integer(c_int), intent(in) :: ns
-    double precision, intent(in) :: lC, rC, meanL, meanR
+    double precision, intent(in) :: lC, rC, meanLx, meanRx, meanLy, meanRy, meanLz, meanRz
 
 
     integer i,j,k,p,cell_np
@@ -55,10 +56,14 @@ contains
             !correct the velocities
             if(part%pos(1) < mid) then
               !part%vel(1) = part%vel(1)*sqrt(1d0/part%R)*lC
-              part%vel(1) = (part%vel(1)-meanL)*lC
+              part%vel(1) = (part%vel(1)-meanLx)*lC
+              part%vel(2) = (part%vel(2)-meanLy)*lC
+              part%vel(3) = (part%vel(3)-meanLz)*lC
             else
               !part%vel(1) = part%vel(1)*sqrt(1d0/part%R)*rC
-              part%vel(1) = (part%vel(1)-meanR)*rC
+              part%vel(1) = (part%vel(1)-meanRx)*rC
+              part%vel(2) = (part%vel(2)-meanRy)*rC
+              part%vel(3) = (part%vel(3)-meanRz)*rC
             endif
 
           enddo
@@ -70,7 +75,8 @@ contains
   end subroutine thermostat
 
   subroutine getVelocity(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-    cellvols, cvlo, cvhi, neff, np, surfaces, ns, pL, pR, vL, vR)bind(c,name="getVelocity")
+    cellvols, cvlo, cvhi, neff, np, surfaces, ns, pL, pR, vLx, vRx, vLy, vRy, &
+    vLz, vRz)bind(c,name="getVelocity")
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -92,7 +98,7 @@ contains
     type(surface_t), intent(in), target :: surfaces(ns)
     integer(c_int), intent(in) :: ns
     integer(c_int), intent(inout) :: pL, pR
-    double precision, intent(inout) :: vL, vR
+    double precision, intent(inout) :: vLx, vRx, vLy, vRy, vLz, vRz
 
     integer i,j,k,p,cell_np
     double precision mid
@@ -114,13 +120,18 @@ contains
             part => particles(cell_parts(p))
 
             !print *, "Position, velocity : ", part%pos(1), part%vel(1)
+            !print *, part%vel(1), part%vel(2), part%vel(3)
 
             !increment the total velocity and member count
             if(part%pos(1) < mid) then
-              vL = vL + part%vel(1)
+              vLx = vLx + part%vel(1)
+              vLy = vLy + part%vel(2)
+              vLz = vLz + part%vel(3)
               pL = pL + 1
             else
-              vR = vR + part%vel(1)
+              vRx = vRx + part%vel(1)
+              vRy = vRy + part%vel(2)
+              vRz = vRz + part%vel(3)
               pR = pR + 1
             endif
 
@@ -139,7 +150,8 @@ contains
   end subroutine getVelocity
 
   subroutine getTemp(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-    cellvols, cvlo, cvhi, neff, np, surfaces, ns, meanL, meanR, varL, varR)bind(c,name="getTemp")
+    cellvols, cvlo, cvhi, neff, np, surfaces, ns, meanLx, meanRx, meanLy, meanRy, &
+    meanLz, meanRz, varL, varR)bind(c,name="getTemp")
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -160,7 +172,7 @@ contains
 
     type(surface_t), intent(in), target :: surfaces(ns)
     integer(c_int), intent(in) :: ns
-    double precision, intent(in) :: meanL, meanR
+    double precision, intent(in) :: meanLx, meanRx, meanLy, meanRy, meanLz, meanRz
     double precision, intent(inout) :: varL, varR
 
 
@@ -185,9 +197,9 @@ contains
 
             !measure temp through velocity sample variance
             if(part%pos(1) < mid) then
-              varL = varL + (1d0/part%R) * (meanL-part%vel(1))**2
+              varL = varL + (1d0/part%R) * ((meanLx-part%vel(1))**2 + (meanLy-part%vel(2))**2 + (meanLz-part%vel(3))**2)
             else
-              varR = varR + (1d0/part%R) * (meanR-part%vel(1))**2
+              varR = varR + (1d0/part%R) * ((meanRx-part%vel(1))**2 + (meanRy-part%vel(2))**2 + (meanRz-part%vel(3))**2)
             endif
 
           enddo
