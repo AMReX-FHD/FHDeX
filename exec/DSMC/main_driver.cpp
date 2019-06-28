@@ -259,6 +259,8 @@ void main_driver(const char* argv)
     //Species type defined in species.H
     //array of length nspecies
 
+    int flux[2];
+
     species dsmcParticle[nspecies];
 
     double realParticles = 0;
@@ -392,7 +394,7 @@ void main_driver(const char* argv)
 
         if(move_tog==1)
         {
-	  particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
+	  particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time, flux);
             particles.Redistribute();
 
             particles.ReBin();

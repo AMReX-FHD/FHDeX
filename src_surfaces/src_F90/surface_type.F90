@@ -49,6 +49,7 @@ module surfaces_module
      real(amrex_particle_real) :: c0
      real(amrex_particle_real) :: graphi
      real(amrex_particle_real) :: grac
+     real(amrex_particle_real) :: coltime
 
      real(amrex_particle_real) :: besslist(100);
      real(amrex_particle_real) :: dbesslist(100);

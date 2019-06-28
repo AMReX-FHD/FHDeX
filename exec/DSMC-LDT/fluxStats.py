@@ -22,13 +22,13 @@ def getData(data):
     entries = line.split()
 
     if counter == 0:
-      dt = entries[0]
+      dt = float(entries[0])
     elif counter == 1:
-      lN = entries[0]
-      rN = entries[1]
+      lN = int(entries[0])
+      rN = int(entries[1])
     elif counter == 2:
-      lT = entries[0]
-      rT = entries[1]
+      lT = int(entries[0])
+      rT = int(entries[1])
     else:
       lFlux.append(int(entries[0]))
       rFlux.append(int(entries[1]))
@@ -93,10 +93,14 @@ def getAverageFlux(N, ts):
   #cumFlux.astype(float)
   cumFlux[:] = [x * Ninv for x in cumFlux]
 
-  return cumFlux, dt
+  return cumFlux
 
-def plotAverageFlux(avgFlux, N, ts, dt, eBarFlag):
+def plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory):
   #plot the average flux
+
+  #get the theory curve
+  t = xrange(0,ts+1)
+  Th = np.ones(ts+1)*theory
 
   if (eBarFlag == 1):
     eBars = []
@@ -109,25 +113,20 @@ def plotAverageFlux(avgFlux, N, ts, dt, eBarFlag):
       else:
         eBars.append(0)
 
-
-
     #plot the data
-    t = xrange(0,ts+1)
     plt.errorbar(t, avgFlux, eBars, errorevery = 500)
-    plt.title('Average Flux over time')
-    plt.xlabel('Time Step')
-    plt.ylabel('Flux')
-    plt.show()
   else:
     #plot the data
-    t = xrange(0,ts+1)
     plt.plot(t, avgFlux)
-    plt.title('Average Flux over time')
-    plt.xlabel('Time Step')
-    plt.ylabel('Flux')
-    plt.show()
 
-    return
+  plt.plot(t,Th)
+  plt.title('Average Flux over time')
+  plt.xlabel('Time Step')
+  plt.ylabel('Flux')
+  plt.legend(['DSMC', 'Theory Average'])
+  plt.show()
+
+  return
 
 def getErrorBar(N, time):
   #get error bar on average flux at time step = time
@@ -157,6 +156,69 @@ def getErrorBar(N, time):
 
   return eBar
 
+def estimateRates(lFlux, rFlux, netFlux, lN, rN, dt):
+  #estimate a rate of crossing using data
+  #A->B is rFlux, B->A is lFLux. N is original amount
+
+  #create number of particles in each reservoir as fn of time
+  lcount = lN
+  rcount = rN
+  lP = []
+  rP = []
+  lP.append(lcount)
+  rP.append(rcount)
+  ts = len(netFlux)
+  for i in xrange(0,ts):
+    lcount = lcount - netFlux[i]
+    rcount = rcount + netFlux[i]
+    lP.append(lcount)
+    rP.append(rcount)
+
+  #get rates
+  lrate = []
+  rrate = []
+  ltime = 0
+  rtime = 0
+  for i in xrange(1000,ts):
+    ltime = ltime + 1
+    rtime = rtime + 1
+    if rFlux[i] > 0:
+      #print rP[i-1], rP[i], rP[i+1]
+      rrate.append((float(rFlux[i])/lP[i])/(rtime*dt))
+      rtime = 0
+    if lFlux[i] > 0:
+      lrate.append((float(lFlux[i])/rP[i])/(ltime*dt))
+      ltime = 0
+
+  return lrate, rrate
+
+def estimateRatesAll(N):
+  #estimate the rates using every trial
+
+  lrates = []
+  rrates = []
+
+  #base for data location
+  base = "samples/fluxes"
+
+  #loop over all the data
+  for i in xrange(0,N):
+    #get the data
+    loc = base + str(i) + ".txt"
+    dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData(loc)
+
+    lrate, rrate = estimateRates(lFlux, rFlux, netFlux, lN, rN, dt)
+    lsample = np.mean(lrate)
+    rsample = np.mean(rrate)
+
+    lrates.append(lsample)
+    rrates.append(rsample)
+
+  return lrates, rrates
+
+
+
+
 
 
 
@@ -168,14 +230,44 @@ if __name__ == "__main__":
     if len(sys.argv) != 4:
         print("Usage: python fluxStats.py <numSamples> <numTimeSteps> <plotEbar>")
 
+    #store inputs
     N = int(sys.argv[1])
     ts = int(sys.argv[2])
     eBarFlag = int(sys.argv[3])
 
+    #get an example run for parameters
+    dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData("samples/fluxes5.txt")
+    print "Temperatures: ", lT, rT
+
+    #estimate rates
+    #lrate, rrate = estimateRates(lFlux, rFlux, netFlux, lN, rN, dt)
+
+    lrates, rrates = estimateRatesAll(N)
+    #makeHist(lrates)
+    #makeHist(rrates)
+    lm = np.mean(lrates)
+    rm = np.mean(rrates)
+    print lm, rm
+
+    #compute expected flux from theory using temperatures
+    theory = np.sqrt(lT)/(np.sqrt(lT)+np.sqrt(rT)) * (lN+rN) - rN
+    #theory = np.power(float(lT),0.95)/(np.power(lT,0.95)+np.power(rT,0.95)) * (lN+rN) - rN
+    #theory = rm/(lm+rm) * (lN+rN) - rN
+    print theory
+
     #get the average flux as a function of timestep
-    print "Getting average flux"
-    avgFlux, dt = getAverageFlux(N, ts)
-    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag)
+    print "Getting Average Flux..."
+    avgFlux = getAverageFlux(N, ts)
+    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
+
+    #estimate rates
+    #lrate, rrate = estimateRates(lFlux, rFlux, netFlux, lN, rN, dt)
+
+    #lrates, rrates = estimateRatesAll(N)
+    #makeHist(lrates)
+    #makeHist(rrates)
+
+
 
 
 

@@ -22,11 +22,11 @@ void calculateTransportCoeffs(const MultiFab& prim,
 		 chi[mfi].dataPtr(),
 		 D[mfi].dataPtr());
 
-        // trans_coeffs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-	// 	     prim[mfi].dataPtr(),  
-	// 	     eta[mfi].dataPtr(),  
-	// 	     zeta[mfi].dataPtr(),  
-	// 	     kappa[mfi].dataPtr());
+        trans_coeffs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
+		     prim[mfi].dataPtr(),  
+		     eta[mfi].dataPtr(),  
+		     zeta[mfi].dataPtr(),  
+		     kappa[mfi].dataPtr());
     }
 
 }

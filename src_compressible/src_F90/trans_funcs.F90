@@ -75,6 +75,9 @@ contains
                call exit()
             endif
 
+            ! print*, "Hack (trans_coeffs): eta = ", eta(i,j,k)
+            ! stop
+
           enddo
         enddo
       enddo
