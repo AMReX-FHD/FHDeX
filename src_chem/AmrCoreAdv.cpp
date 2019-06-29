@@ -189,9 +189,9 @@ void AmrCoreAdv::EvolveChem(
         yface[lev]->setVal(0.);
         zface[lev]->setVal(0.);
 
-        Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 0));
-        Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 0));
-        Dcon_z[lev].reset(new MultiFab(z_face_ba, condm, 1, 0));
+        Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
+        Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
+        Dcon_z[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
 
         Dcon_x[lev]->setVal(0.);
         Dcon_y[lev]->setVal(0.);
@@ -322,10 +322,10 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 //       con_new[lev]->setVal(0.);
 //       con_old[lev]->setVal(0.);
        
-       Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 0));
-       Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 0));
-       Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 0));
-       MagDcon[lev].reset(new MultiFab(ba, dm, 1, 0));
+       Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 1));
+       MagDcon[lev].reset(new MultiFab(ba, dm, 1, 1));
 
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
@@ -935,9 +935,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab &  sz_mf       = * Dcon_z[lev];
     MultiFab &  sd_mf       = * MagDcon[lev];
     MultiFab &  ls_mf       = * levset;
-  //  MultiFab &  xf_mf       = * xface[lev];
-  //  MultiFab &  yf_mf       = * yface[lev];
-  //  MultiFab &  zf_mf       = * zface[lev];
+    MultiFab &  xf_mf       = * xface[lev];
+    MultiFab &  yf_mf       = * yface[lev];
+    MultiFab &  zf_mf       = * zface[lev];
     
     std::cout << "Advance max Ls 1 "<< (*levset).max(0)<<std::endl;
     std::cout << "Advance max Ls 2 "<< ls_mf.max(0)<<std::endl;
@@ -969,9 +969,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & fabsy         =        sy_mf[mfi];
             FArrayBox & fabsz         =        sz_mf[mfi];
             
-           // FArrayBox & fabxf         =        xf_mf[mfi];
-           // FArrayBox & fabyf         =        yf_mf[mfi];
-           // FArrayBox & fabzf         =        zf_mf[mfi];
+            FArrayBox & fabxf         =        xf_mf[mfi];
+            FArrayBox & fabyf         =        yf_mf[mfi];
+            FArrayBox & fabzf         =        zf_mf[mfi];
 
             // compute velocities on faces (prescribed function of space and time)
             if (BL_SPACEDIM==2) {
@@ -991,6 +991,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabsd),
                                 BL_TO_FORTRAN_3D(fabsl),
                                 BL_TO_FORTRAN_3D(fabsls),
+                                BL_TO_FORTRAN_3D(fabxf),
+                                BL_TO_FORTRAN_3D(fabyf),
+                                BL_TO_FORTRAN_3D(fabzf),
                                 & Sphere_cent_x, & Sphere_cent_y,
                                 & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
                 std::cout << "Advance max Ls 4 "<< fabsls.max()<<std::endl;
@@ -1050,7 +1053,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>> & MF, int indicator) {
     // indicator gives which quantity is being copied into MF
    // mf[lev].reset(new MultiFab(grids[lev], dmap[lev], ncomp, ngrow));
-//    std::cout << "con_new_copy "<< con_new[lev]->DistributionMap <<std::endl;
+    //std::cout << "con_new_copy "<< con_new[lev]->DistributionMap <<std::endl;
 
     DistributionMapping condm = con_new[lev]->DistributionMap();
     BoxArray conba            = con_new[lev]->boxArray();
@@ -1080,7 +1083,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
     MF[lev]->setVal(0.);
 
-        MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 0, 0);
+        MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 1, 0);
 //        std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==2){
@@ -1092,7 +1095,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
     MF[lev]->setVal(0.);
 
-	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 0, 0);
+	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 1, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==3){
@@ -1102,7 +1105,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     MF[lev].reset(new MultiFab(zconba, zcondm, 1, 0));
 
     MF[lev]->setVal(0.);
-	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 0, 0);
+	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 1, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==4){
