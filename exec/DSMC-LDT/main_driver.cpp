@@ -34,7 +34,7 @@ void main_driver(const char* argv)
 
     //hard coded variables - make into input later
     //number of particles left/right - set to -1 to assign by density
-    int pL = 12; int pR = 4;
+    int pL = 12; int pR = 2;
     //temperature on left/right
     Real tL = 300; Real tR = 200;
 
@@ -395,17 +395,12 @@ void main_driver(const char* argv)
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geom, dmap, ba, crange);
-    printf("before particle init\n");
     //create particles
     particles.InitParticlesDSMCtest(dsmcParticle, num_boxes, pL, pR, tL, tR);
-    printf("Particle init\n");
     if (thermostat_tog == 1) {
         particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
     }
-
-    printf("Particle thermostatted\n");
     
-
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
     //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
 
@@ -428,7 +423,6 @@ void main_driver(const char* argv)
     //make fluxes storage
     int flux[2]; flux[0] = 0; flux[1] = 0;
 
-    printf("loop start\n");
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
     {
