@@ -275,11 +275,11 @@ contains
 
   end subroutine diff_flux
   
-  subroutine hyp_flux(lo,hi, cons, prim, xflux, yflux, &
+  subroutine hyp_flux_prim(lo,hi, cons, prim, xflux, yflux, &
 #if (AMREX_SPACEDIM == 3)
                         zflux, &
 #endif
-                        dx) bind(C,name="hyp_flux")
+                        dx) bind(C,name="hyp_flux_prim")
 
       integer         , intent(in   ) :: lo(3),hi(3)
       real(amrex_real), intent(in   ) :: dx(3)
@@ -299,11 +299,12 @@ contains
       wgt2 = 1.0/12.0 !fourth order interpolation
       wgt1 = 0.5 + wgt2 
 
-      !wgt2 = 0
-      !wgt1 = 0.5 + wgt2 !second order
+      ! wgt2 = 0
+      ! wgt1 = 0.5 + wgt2 !second order
 
-      !wgt2 = (sqrt(7d0)-1d0)/4d0 !adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
-      !wgt1 = (sqrt(7d0)+1d0)/4d0
+      ! ! adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
+      ! wgt2 = (sqrt(7d0)-1d0)/4d0
+      ! wgt1 = (sqrt(7d0)+1d0)/4d0
 
 
       !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
@@ -314,10 +315,10 @@ contains
         do j = lo(2),hi(2)
           do i = lo(1),hi(1)+1
 
-
-            do l = 1,nprimvars             
-               primitive(l) = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) -wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l))  
-            enddo
+             do l = 1,nprimvars             
+                primitive(l) = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) & 
+                     -wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l))  
+             enddo
 
             temp = primitive(5)
             pt = primitive(6)
@@ -465,7 +466,201 @@ contains
      end do
 
 
-  end subroutine hyp_flux
+  end subroutine hyp_flux_prim
+
+  subroutine hyp_flux_cons(lo,hi, cons, prim, xflux, yflux, &
+#if (AMREX_SPACEDIM == 3)
+                        zflux, &
+#endif
+                        dx) bind(C,name="hyp_flux_cons")
+
+      integer         , intent(in   ) :: lo(3),hi(3)
+      real(amrex_real), intent(in   ) :: dx(3)
+      real(amrex_real), intent(inout) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+#if (AMREX_SPACEDIM == 3)
+      real(amrex_real), intent(inout) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+#endif
+
+      real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
+      real(amrex_real), intent(in   ) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
+
+      real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, specden(nspecies), Yk(nspecies), rho, temp, pt
+
+      integer :: i,j,k,l,n
+
+      wgt2 = 1.0/12.0 !fourth order interpolation
+      wgt1 = 0.5 + wgt2 
+
+      ! wgt2 = 0
+      ! wgt1 = 0.5 + wgt2 !second order
+
+      ! ! adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
+      ! wgt2 = (sqrt(7d0)-1d0)/4d0
+      ! wgt1 = (sqrt(7d0)+1d0)/4d0
+
+
+      !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
+
+      !x flux
+      
+      do k = lo(3),hi(3)
+        do j = lo(2),hi(2)
+          do i = lo(1),hi(1)+1
+
+             do l = 1,nvars             
+                conserved(l) = wgt1*(cons(i,j,k,l)+cons(i-1,j,k,l)) & 
+                     -wgt2*(cons(i-2,j,k,l)+cons(i+1,j,k,l))  
+             enddo
+
+             rho = conserved(1)
+             
+             ! compute velocities
+             do l = 2,4             
+                primitive(l) = conserved(l)/conserved(1)
+             enddo
+            
+            !  want sum of specden == rho
+            do n=1,nspecies
+               specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i-1,j,k,5+n))                 &
+                           -wgt2*(cons(i-2,j,k,5+n)+cons(i+1,j,k,5+n))
+
+               Yk(n) = specden(n)/rho
+
+            enddo
+            
+            ! compute temperature
+            vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+            intenergy = conserved(5)/rho - 0.5*vsqr
+            call get_temperature(intenergy, Yk, primitive(5))
+            
+            ! compute pressure
+            call get_pressure_gas(primitive(6), Yk, conserved(1), primitive(5))
+
+            xflux(i,j,k,1) = xflux(i,j,k,1) + conserved(1)*primitive(2)
+            xflux(i,j,k,2) = xflux(i,j,k,2) + conserved(1)*(primitive(2)**2)+primitive(6)
+            xflux(i,j,k,3) = xflux(i,j,k,3) + conserved(1)*primitive(2)*primitive(3)
+            xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
+
+            ! print*, "Hack (hyp_flux): flux = ", xflux(i,j,k,5)
+            ! stop
+
+            xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
+ 
+            do n=1,nspecies
+               xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
+            enddo
+
+            do l = 1, nvars
+               if ( isnan(xflux(i,j,k,l)) ) then
+                  print*, "Hack 1, (hyp_flux) in x = ", i,j,k, xflux(i,j,k,:)
+                  print*, "Hack 2, (hyp_flux): ", conserved(1)
+                  stop
+               end if
+            end do
+
+          end do
+        end do
+      end do
+
+
+     !y flux
+    
+     do k = lo(3),hi(3)
+       do j = lo(2),hi(2)+1
+         do i = lo(1),hi(1)
+
+           do l = 1,nprimvars 
+             primitive(l) = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) -wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l))
+           enddo
+
+           temp = primitive(5)
+           pt = primitive(6)
+           rho = primitive(1)
+           ! call get_density_gas(pt,rho, temp)
+
+           conserved(1) = rho
+           
+           !  want sum of specden == rho
+           do n=1,nspecies
+              specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j-1,k,5+n))                 &
+                          -wgt2*(cons(i,j-2,k,5+n)+cons(i,j+1,k,5+n))
+
+              Yk(n) = specden(n)/rho
+
+           enddo
+           
+           call get_energy(intenergy, Yk, temp)
+           ! call get_energy_gas(pt, intenergy)
+
+           vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+
+           conserved(5) = intenergy + 0.5*rho*vsqr
+
+           yflux(i,j,k,1) = yflux(i,j,k,1) + conserved(1)*primitive(3)
+           yflux(i,j,k,2) = yflux(i,j,k,2) + conserved(1)*primitive(2)*primitive(3)
+           yflux(i,j,k,3) = yflux(i,j,k,3) + conserved(1)*primitive(3)**2+primitive(6)
+           yflux(i,j,k,4) = yflux(i,j,k,4) + conserved(1)*primitive(4)*primitive(3)
+
+           yflux(i,j,k,5) = yflux(i,j,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
+           
+           do n=1,nspecies
+              yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + specden(n)*primitive(3)
+           enddo
+
+         end do
+       end do
+     end do
+
+     !z flux
+     
+     do k = lo(3),hi(3)+1
+       do j = lo(2),hi(2)
+         do i = lo(1),hi(1)
+
+           do l = 1,nprimvars 
+             primitive(l) = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) -wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l))
+           enddo
+
+           temp = primitive(5)
+           pt = primitive(6)
+           rho = primitive(1)
+           ! call get_density_gas(pt,rho, temp)
+           
+           conserved(1) = rho
+           
+           !  want sum of specden == rho
+           do n=1,nspecies
+              specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j,k-1,5+n))                 &
+                          -wgt2*(cons(i,j,k-2,5+n)+cons(i,j,k+1,5+n))
+
+              Yk(n) = specden(n)/rho
+
+           enddo
+           
+           call get_energy(intenergy, Yk, temp)
+           ! call get_energy_gas(pt, intenergy)
+
+           vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
+
+           conserved(5) = intenergy + 0.5*rho*vsqr
+
+           zflux(i,j,k,1) = zflux(i,j,k,1) + conserved(1)*primitive(4)
+           zflux(i,j,k,2) = zflux(i,j,k,2) + conserved(1)*primitive(2)*primitive(4)
+           zflux(i,j,k,3) = zflux(i,j,k,3) + conserved(1)*primitive(3)*primitive(4)
+           zflux(i,j,k,4) = zflux(i,j,k,4) + conserved(1)*primitive(4)**2+primitive(6)
+           zflux(i,j,k,5) = zflux(i,j,k,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
+           
+           do n=1,nspecies
+              zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + specden(n)*primitive(4)
+           enddo
+
+         end do
+       end do
+     end do
+
+
+  end subroutine hyp_flux_cons
 
   subroutine stoch_flux(lo,hi, cons, prim, fluxx, fluxy, &
 #if (AMREX_SPACEDIM == 3)

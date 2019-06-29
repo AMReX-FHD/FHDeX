@@ -294,14 +294,15 @@ contains
     ! ! GCM: What is this?
     ! chitil = chitil*fake_soret_factor
     
+    ! print*, "Hack, (imt): eta, kappa = ", eta, kappa
+    ! print*, "Hack, (imt): Dij = ", diff_ij
+    ! print*, "Hack, (imt): chi = ", chitil
+    ! stop
+    
     do i = 1, nspecies
        do j = 1, nspecies
           if ( isnan(diff_ij(i,j)) ) then
-             print*, "Hack 1, (imt) ", &
-                  ! diff_ij, &
-                  ! omega11,yytr,temperature,density,molecular_mass,eta, &
-                  ! Dbin
-                  sigma11,sqrtT,chitil,temperature
+             print*, "Hack 1, (imt) ", diff_ij
              stop
           end if
        enddo

@@ -51,6 +51,9 @@ contains
             ! update temperature in-place using internal energy
             call get_temperature(intenergy, Yk_fixed, prim(i,j,k,5))
             
+            ! HACK: OVERRIDE
+            ! prim(i,j,k,6) = 2.0*cons(i,j,k,1)*intenergy/3.0
+            
             ! compute mole fractions from mass fractions
             call get_molfrac(Yk, Xk)
 
@@ -61,8 +64,6 @@ contains
             enddo
 
             call get_pressure_gas(prim(i,j,k,6), Yk, prim(i,j,k,1), prim(i,j,k,5))
-
-            ! prim(i,j,k,6) = 2.0*intenergy/3.0
 
           enddo
         enddo
