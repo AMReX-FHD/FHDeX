@@ -97,15 +97,15 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 
 	}
 
-        hyp_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                       cons[mfi].dataPtr(),  
-                       prim[mfi].dataPtr(),    
-        		       flux[0][mfi].dataPtr(),
-        		       flux[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-        		       flux[2][mfi].dataPtr(),
-#endif
-    			       ZFILL(dx));
+//         hyp_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+//                        cons[mfi].dataPtr(),  
+//                        prim[mfi].dataPtr(),    
+//         		       flux[0][mfi].dataPtr(),
+//         		       flux[1][mfi].dataPtr(),
+// #if (AMREX_SPACEDIM == 3)
+//         		       flux[2][mfi].dataPtr(),
+// #endif
+//     			       ZFILL(dx));
    
     }
 

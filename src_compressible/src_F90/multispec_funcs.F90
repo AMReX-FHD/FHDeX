@@ -1,7 +1,7 @@
 module multispec_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, k_b, nprimvars, nspecies, molmass, diameter, hcp, hcv
+  use common_namelist_module, only : ngc, k_b, Runiv, nprimvars, nspecies, molmass, diameter, hcp, hcv
   use conv_module, only : get_molfrac
 
   implicit none
@@ -179,7 +179,7 @@ contains
     real(amrex_real) :: dd(nspecies,nspecies)
     real(amrex_real) :: Cv(nspecies)
 
-    real(amrex_real) :: xxtr(nspecies), yytr(nspecies)
+    real(amrex_real) :: xxtr(nspecies), yytr(nspecies), molecular_mass(nspecies)
     real(amrex_real) :: cpk  (nspecies)
 
     real(amrex_real) :: rwrk
@@ -195,12 +195,16 @@ contains
     real(amrex_real), PARAMETER :: pi= 3.1415926535897932d0
 
     !====================================================
+    
+    ! compute molecular masses by dividing by Avogadro's
+    do ii = 1, nspecies
+       molecular_mass(ii) = molmass(ii)*(k_B/Runiv)
+    enddo
 
     ! mole fractions correction - EGLIB
     do ii = 1, nspecies
        ! GM: Why this factor of 1E-15???
        xxtr(ii) = Xk(ii) + (1.0d-15)*(sum(Xk(:))/dble(nspecies)-Xk(ii))
-       ! xxtr(ii) = Xk(ii) + (1.0)*(sum(Xk(:))/dble(nspecies)-Xk(ii))
     enddo
 
     ! molecular weight of mixture - EGLIB
@@ -221,15 +225,18 @@ contains
     ! HCB 8.2-9   
     sqrtT = dsqrt(temperature)
 
+    ! print*, "Hack (imt): ", xxtr, yytr
+    ! stop
+
     do i = 1, nspecies
        do j = 1, nspecies
 
           ! These matrices are computed in init_chemistry in FluctHydro code
 
           diamat(i,j) = 0.5d0*(diameter(i) + diameter(j))
-          mu = molmass(i)*molmass(j)/(molmass(i) + molmass(j))
-          Fij = (6.0d0*molmass(i)*molmass(i) + 13.0d0/5.0d0*molmass(j)*molmass(j) +   &
-               16.0d0/5.0d0*molmass(i)*molmass(j))/((molmass(i)+molmass(j))**2.0d0)
+          mu = molecular_mass(i)*molecular_mass(j)/(molecular_mass(i) + molecular_mass(j))
+          Fij = (6.0d0*molecular_mass(i)*molecular_mass(i) + 13.0d0/5.0d0*molecular_mass(j)*molecular_mass(j) +   &
+               16.0d0/5.0d0*molecular_mass(i)*molecular_mass(j))/((molecular_mass(i)+molecular_mass(j))**2.0d0)
 
           !!
 
@@ -238,7 +245,7 @@ contains
           !!
 
           Dbinbar(i,j) = 3.0d0/16.0d0*sqrt(2.0d0*pi*k_b**3.d00    &   
-               *(molmass(i)+molmass(j))/molmass(i)/molmass(j))/(pi*diamat(i,j)**2.0d0)
+               *(molecular_mass(i)+molecular_mass(j))/molecular_mass(i)/molecular_mass(j))/(pi*diamat(i,j)**2.0d0)
 
           !!
 
@@ -251,10 +258,10 @@ contains
 
           !!
 
-          amat1bar(i,j) = 5.0d0/(k_b)*molmass(i)*molmass(j)/    &
-               (molmass(i)+molmass(j))*Fij*sigma11bar(i,j)
-          amat2bar(i,j) = 5.0d0/(k_b)*molmass(i)*molmass(j)*molmass(i)*molmass(j)/    &
-               ((molmass(i)+molmass(j))**3.0d0)*Fijstar*sigma11bar(i,j)
+          amat1bar(i,j) = 5.0d0/(k_b)*molecular_mass(i)*molecular_mass(j)/    &
+               (molecular_mass(i)+molecular_mass(j))*Fij*sigma11bar(i,j)
+          amat2bar(i,j) = 5.0d0/(k_b)*molecular_mass(i)*molecular_mass(j)*molecular_mass(i)*molecular_mass(j)/    &
+               ((molecular_mass(i)+molecular_mass(j))**3.0d0)*Fijstar*sigma11bar(i,j)
 
           !!!!
 
@@ -269,32 +276,33 @@ contains
 
     ! print*, "Hack (imt): ", omega11bar
 
-    ! call visc_lin(omega11,yytr,temperature,density,molmass,eta)
+    call visc_lin(omega11,yytr,temperature,density,molecular_mass,eta)
     ! eta = 0.0d0
    
     ! ! GCM: Why hard-coded in? from original LLNS
-    ! zeta = 0.d0
+    zeta = 0.d0
     
-    ! call lambda_lin(Dbin,omega11,yytr,temperature,density,molmass,kappa)
+    call lambda_lin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa)
     ! kappa = 0.d0
 
     call D_GIOVANGIGLI(Dbin,yytr,xxtr,diff_ij)
     ! diff_ij = 0.0d0
 
-    call thermalDiff(sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molmass,chitil)
+    call thermalDiff(sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,chitil)
     ! chitil = 0.0d0
 
     ! ! GCM: What is this?
     ! chitil = chitil*fake_soret_factor
     
+    ! print*, "Hack, (imt): eta, kappa = ", eta, kappa
+    ! print*, "Hack, (imt): Dij = ", diff_ij
+    ! print*, "Hack, (imt): chi = ", chitil
+    ! stop
+    
     do i = 1, nspecies
        do j = 1, nspecies
           if ( isnan(diff_ij(i,j)) ) then
-             print*, "Hack 1, (imt) ", &
-                  ! diff_ij, &
-                  ! omega11,yytr,temperature,density,molmass,eta, &
-                  ! Dbin
-                  sigma11,sqrtT,chitil,temperature
+             print*, "Hack 1, (imt) ", diff_ij
              stop
           end if
        enddo
@@ -335,9 +343,8 @@ contains
        enddo
     enddo
 
-    ! print*, "Hack (visc_lin): ", mk
-    ! print*, "Hack (visc_lin): ", omega11
-    ! print*, "Hack (visc_lin): diag = ", diag
+    ! print*, "Hack (visc_lin): ", mk, nk, Ykp
+    ! stop
 
     do  ii = 1, nspecies
        do jj = 1, nspecies
@@ -376,7 +383,7 @@ contains
 
     etaMix = 0.5d0*k_b*T*sum1
 
-    ! print*, "Hack (visc_lin): etaMix = ", etaMix
+    ! print*, "Hack (visc_lin): etaMix = ", etaMix, T
     ! stop
 
   end subroutine visc_lin
@@ -471,14 +478,14 @@ contains
        aSonine(i+nspecies) = -(15.0d0/4.0d0)*nk(i)*beta(i)
     enddo
 
-    print*, "Hack (lambda_lin) predecomp: ", aSonine
+    ! print*, "Hack (lambda_lin) predecomp: ", QQ
 
     ! NOTE: the minus sign below; see HCB p 488
     call decomp(2*nspecies,2*nspecies,QQ,ip)
     call solve(2*nspecies,2*nspecies,QQ,aSonine,ip)
 
-    print*, "Hack (lambda_lin) postdecomp: ", QQ
-    stop
+    ! print*, "Hack (lambda_lin) postdecomp: ", QQ
+    ! stop
     
     do i = 1, nspecies           
        ! HCB 7.4-9
