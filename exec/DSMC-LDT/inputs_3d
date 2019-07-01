@@ -19,8 +19,10 @@
 
   ! Controls for number of steps between actions
 
+
   max_step = 4000
   plot_int = 0
+
 
 
   plot_ascii = 0

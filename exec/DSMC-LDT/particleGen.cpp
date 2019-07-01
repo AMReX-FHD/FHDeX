@@ -393,6 +393,9 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     ParallelDescriptor::ReduceIntSum(pR);
 
     if (pL <= 1 || pR <= 1) {
+        //printf("Particle counts: %d %d\n", pL, pR);
+    }
+    if (pL < 1 || pR < 1) {
         printf("Particle counts: %d %d\n", pL, pR);
     }
 
@@ -439,56 +442,142 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         //printf("Vars: %f %f\n", varL, varR);
     }
 
+    if (pL <= 1 || pR <= 1) {
+        //printf("Vars: %f %f\n", varL, varR);
+    }
+
     //if the variance is 0, regenerate those velocities and re-thermostat
     if (varL < varTol) {
-        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
-            const int grid_id = pti.index();
-            const int tile_id = pti.LocalTileIndex();
-            const Box& tile_box  = pti.tilebox();
+        if (pL > 1) {
+            for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+                const int grid_id = pti.index();
+                const int tile_id = pti.LocalTileIndex();
+                const Box& tile_box  = pti.tilebox();
 
-            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-            auto& parts = particle_tile.GetArrayOfStructs();
-            const int Np = parts.numParticles();
+                auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                auto& parts = particle_tile.GetArrayOfStructs();
+                const int Np = parts.numParticles();
 
-            for (int i = 0; i < Np; i++) {
-                if (parts[i].pos(0) < 1) {
-                    vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
-                    parts[i].rdata(RealData::vx) = vFix;
-                    vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
-                    parts[i].rdata(RealData::vy) = vFix;
-                    vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
-                    parts[i].rdata(RealData::vz) = vFix;
+                for (int i = 0; i < Np; i++) {
+                    if (parts[i].pos(0) < 1) {
+                        vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
+                        parts[i].rdata(RealData::vx) = vFix;
+                        vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
+                        parts[i].rdata(RealData::vy) = vFix;
+                        vFix = sqrt(particleInfo[0].R*tL)*get_particle_normal_func();
+                        parts[i].rdata(RealData::vz) = vFix;
+                    }
                 }
             }
-        }
 
-        ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
-        return;
+            ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
+            return;
+        }
+        else {//only 1 particle, set velocity by energy E=1/2mv^2=3/2kT
+            for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+                const int grid_id = pti.index();
+                const int tile_id = pti.LocalTileIndex();
+                const Box& tile_box  = pti.tilebox();
+
+                auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                auto& parts = particle_tile.GetArrayOfStructs();
+                const int Np = parts.numParticles();
+
+                for (int i = 0; i < Np; i++) {
+                    if (parts[i].pos(0) < 1) {
+                        Real v2 = parts[i].rdata(RealData::vx)*parts[i].rdata(RealData::vx)+
+                                  parts[i].rdata(RealData::vy)*parts[i].rdata(RealData::vy)+
+                                  parts[i].rdata(RealData::vz)*parts[i].rdata(RealData::vz);
+                        Real C = sqrt(3*particleInfo[0].R*tL/v2); //correction factor
+                        parts[i].rdata(RealData::vx) /= C;
+                        parts[i].rdata(RealData::vy) /= C;
+                        parts[i].rdata(RealData::vz) /= C;
+                    }
+                }
+                Real rC = sqrt(tR/varR); 
+                Real lC = 1.0;
+                Real mean0 = 0;
+
+                thermostat(parts.data(),
+                        ARLIM_3D(tile_box.loVect()),
+                        ARLIM_3D(tile_box.hiVect()),
+                        m_vector_ptrs[grid_id].dataPtr(),
+                        m_vector_size[grid_id].dataPtr(),
+                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                        BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
+                        surfaces, &ns, &mean0, &meanRx, &mean0, &meanRy,
+                        &mean0, &meanRz, &lC, &rC);
+            }
+            return;
+        }
     }
     if (varR < varTol) {
-        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
-            const int grid_id = pti.index();
-            const int tile_id = pti.LocalTileIndex();
-            const Box& tile_box  = pti.tilebox();
+        if (pR > 1) {
+            for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+                const int grid_id = pti.index();
+                const int tile_id = pti.LocalTileIndex();
+                const Box& tile_box  = pti.tilebox();
 
-            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-            auto& parts = particle_tile.GetArrayOfStructs();
-            const int Np = parts.numParticles();
+                auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                auto& parts = particle_tile.GetArrayOfStructs();
+                const int Np = parts.numParticles();
 
-            for (int i = 0; i < Np; i++) {
-                if (parts[i].pos(0) > 1) {
-                    vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
-                    parts[i].rdata(RealData::vx) = vFix;
-                    vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
-                    parts[i].rdata(RealData::vy) = vFix;
-                    vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
-                    parts[i].rdata(RealData::vz) = vFix;
+                for (int i = 0; i < Np; i++) {
+                    if (parts[i].pos(0) > 1) {
+                        vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
+                        parts[i].rdata(RealData::vx) = vFix;
+                        vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
+                        parts[i].rdata(RealData::vy) = vFix;
+                        vFix = sqrt(particleInfo[0].R*tR)*get_particle_normal_func();
+                        parts[i].rdata(RealData::vz) = vFix;
+                    }
                 }
             }
+            //abort();
+            ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
+            return;
         }
-        //abort();
-        ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
-        return;
+        else {//only 1 particle, set velocity by energy E=1/2mv^2=3/2kT
+            for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+                const int grid_id = pti.index();
+                const int tile_id = pti.LocalTileIndex();
+                const Box& tile_box  = pti.tilebox();
+
+                auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+                auto& parts = particle_tile.GetArrayOfStructs();
+                const int Np = parts.numParticles();
+
+                for (int i = 0; i < Np; i++) {
+                    if (parts[i].pos(0) > 1) {
+                        Real v2 = parts[i].rdata(RealData::vx)*parts[i].rdata(RealData::vx)+
+                                  parts[i].rdata(RealData::vy)*parts[i].rdata(RealData::vy)+
+                                  parts[i].rdata(RealData::vz)*parts[i].rdata(RealData::vz);
+                        Real C = sqrt(3*particleInfo[0].R*tR/v2); //correction factor
+                        
+                        parts[i].rdata(RealData::vx) /= C;
+                        parts[i].rdata(RealData::vy) /= C;
+                        parts[i].rdata(RealData::vz) /= C;
+                    }
+                }
+
+                Real lC = sqrt(tL/varL); 
+                Real rC = 1.0;
+                Real mean0 = 0;
+
+                thermostat(parts.data(),
+                        ARLIM_3D(tile_box.loVect()),
+                        ARLIM_3D(tile_box.hiVect()),
+                        m_vector_ptrs[grid_id].dataPtr(),
+                        m_vector_size[grid_id].dataPtr(),
+                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                        BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
+                        surfaces, &ns, &meanLx, &mean0, &meanLy, &mean0, 
+                        &meanLz, &mean0, &lC, &rC);
+            }
+            return;
+        }
 
     }
 

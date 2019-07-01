@@ -120,6 +120,7 @@
 
     flag = 0    
     call precheck(part, surfaces, ns, delt, flag, phi, plo)
+
     
 #if (BL_SPACEDIM == 3)
 
@@ -129,7 +130,6 @@
 
         surf => surfaces(s)
 
-        !print *, "s: ", s, " vtop: ", surf%vtop, " utop ", surf%utop
 
         denominv = 1d0/(part%vel(3)*surf%uy*surf%vx - part%vel(2)*surf%uz*surf%vx - part%vel(3)*surf%ux*surf%vy + part%vel(1)*surf%uz*surf%vy + part%vel(2)*surf%ux*surf%vz - part%vel(1)*surf%uy*surf%vz)
 
@@ -138,6 +138,7 @@
         vval = (-part%vel(3)*part%pos(2)*surf%ux + part%vel(2)*part%pos(3)*surf%ux + part%vel(3)*surf%y0*surf%ux - part%vel(2)*surf%z0*surf%ux + part%vel(3)*part%pos(1)*surf%uy - part%vel(1)*part%pos(3)*surf%uy - part%vel(3)*surf%x0*surf%uy + part%vel(1)*surf%z0*surf%uy - part%vel(2)*part%pos(1)*surf%uz + part%vel(1)*part%pos(2)*surf%uz + part%vel(2)*surf%x0*surf%uz - part%vel(1)*surf%y0*surf%uz)*denominv
 
         tval = (-part%pos(3)*surf%uy*surf%vx + surf%z0*surf%uy*surf%vx + part%pos(2)*surf%uz*surf%vx - surf%y0*surf%uz*surf%vx + part%pos(3)*surf%ux*surf%vy - surf%z0*surf%ux*surf%vy - part%pos(1)*surf%uz*surf%vy + surf%x0*surf%uz*surf%vy - part%pos(2)*surf%ux*surf%vz + surf%y0*surf%ux*surf%vz + part%pos(1)*surf%uy*surf%vz - surf%x0*surf%uy*surf%vz)*denominv
+
 
         if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.   ((vval .gt. 0) .and. (vval .lt. surf%vtop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))   ) then
 
@@ -216,8 +217,8 @@
 
     if(surf%boundary .eq. 6)then
        oldvel=part%vel
-       ! write(*,*) "old", oldvel(3), part%id
-      ! print*, part%id, part%vel(3)
+     !   write(*,*) "old", oldvel(3), part%id
+     !  print*, part%id, part%vel(3)
     endif
     
     if(intside .eq. 1) then
@@ -408,7 +409,7 @@
    endif
    if(graphene_tog .eq. 1) then
    if(surf%boundary .eq. 6) then
-      ! call test(part, surf, intside)
+       call test(part, surf, intside)
       call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
@@ -508,6 +509,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     bJ1 = bessel_jn(1,k)
     p=(part%vel(3)-oldvel(3))*part%mass
 
+
     prefact = c*c/(a*a*pi*bJ1**2)
 
     surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*t)
@@ -517,6 +519,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  surf%velz=prefact*bessel_jn(0, point)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
  part%vel(3)=part%vel(3)+surf%velz
     
+
     !parabola
     ! f_x=-a*r*r+a*d*r+100000
 !    bessj0=0
@@ -551,9 +554,9 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
 !      step=time/fixed_dt
    
    !  if(step .eq. 300)then
-     write(*,*) surf%velz
+!     write(*,*) surf%velz
    ! write(*,*) "old", oldvel(3), part%id
-    write(*,*) "new part: ", part%vel(3)
+!    write(*,*) "new part: ", part%vel(3)
    !  endif
   end subroutine surf_velocity
 

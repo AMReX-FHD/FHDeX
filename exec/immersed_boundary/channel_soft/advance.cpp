@@ -16,7 +16,6 @@
 #include "ib_functions.H"
 
 #include "IBCore.H"
-
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -222,13 +221,16 @@ void advance(AmrCoreAdv & amr_core_adv,
         Vector< std::unique_ptr<MultiFab> > Dc_x(ibpc_lev+1);
         Vector< std::unique_ptr<MultiFab> > Dc_y(ibpc_lev+1);
         Vector< std::unique_ptr<MultiFab> > Dc_z(ibpc_lev+1);
-
+        
+        //IBMarkerContainer ib_marker;
         // advection diffuision (AD) code
         const iMultiFab & iface = ib_core.get_TagInterface();
         const MultiFab  & LevelSet=ib_core.get_LevelSet();
+        const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & FaceCoords=ib_pc.get_face_coords();
+
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem(umac, iface, LevelSet, ibpc_lev, nstep,dt, time, diffcoeff);
+        amr_core_adv.EvolveChem(umac, iface, LevelSet, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords);
 
          amr_core_adv.con_new_copy(ibpc_lev, Dc_x, 1);
          amr_core_adv.con_new_copy(ibpc_lev, Dc_y, 2);

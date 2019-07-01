@@ -280,6 +280,10 @@ public:
             }
     } CheckPair;
 
+    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
+        return  face_coords;
+    }
+ 
 
 private:
 

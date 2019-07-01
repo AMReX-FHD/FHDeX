@@ -2176,7 +2176,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   domsize = phi - plo
 
-  adj = 0.999999999
+  adj = 0.9999
   adjalt = 2d0*(1d0 - adj)
 
   dxinv = 1.d0/dx
@@ -2242,6 +2242,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
                 runtime = dt*0.5
 
+
+
+
                 do while (runtime .gt. 0)
 
                   !check 
@@ -2262,9 +2265,14 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                   runtime = runtime - inttime
 
+
+
+
                   if(intsurf .gt. 0) then
 
                     surf => surfaces(intsurf)
+
+  
 
                     call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
@@ -2325,8 +2333,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                ! print *, "wet: ", part%vel
 
                 part%vel = part%vel + dry_terms
-
-              !  print *, "dry: ", dry_terms
               endif
 
               speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2              
@@ -2354,7 +2360,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                 runtime = runtime - inttime
 
-                
 
                 if(intsurf .gt. 0) then
 
