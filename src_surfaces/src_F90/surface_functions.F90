@@ -409,7 +409,7 @@
    endif
    if(graphene_tog .eq. 1) then
    if(surf%boundary .eq. 6) then
-       call test(part, surf, intside)
+      ! call test(part, surf, intside)
       call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
