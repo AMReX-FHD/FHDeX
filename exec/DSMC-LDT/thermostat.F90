@@ -119,8 +119,8 @@ contains
 
             part => particles(cell_parts(p))
 
-            !print *, "Position, velocity : ", part%pos(1), part%vel(1)
-            !print *, part%vel(1), part%vel(2), part%vel(3)
+            !print *, "Position, velocity : ",p, part%pos(1), part%vel(1)
+            !print *,p,part%pos(1), part%vel(1), part%vel(2), part%vel(3)
 
             !increment the total velocity and member count
             if(part%pos(1) < mid) then

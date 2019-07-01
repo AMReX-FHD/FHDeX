@@ -179,7 +179,7 @@ def estimateRates(lFlux, rFlux, netFlux, lN, rN, dt):
   rrate = []
   ltime = 0
   rtime = 0
-  for i in xrange(1000,ts):
+  for i in xrange(0,ts):
     ltime = ltime + 1
     rtime = rtime + 1
     if rFlux[i] > 0:
@@ -204,7 +204,6 @@ def estimateRatesAll(N):
   #loop over all the data
   for i in xrange(0,N):
     #get the data
-    print i
     loc = base + str(i) + ".txt"
     dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData(loc)
 
@@ -254,12 +253,12 @@ if __name__ == "__main__":
     theory = np.sqrt(lT)/(np.sqrt(lT)+np.sqrt(rT)) * (lN+rN) - rN
     #theory = np.power(float(lT),0.95)/(np.power(lT,0.95)+np.power(rT,0.95)) * (lN+rN) - rN
     #theory = rm/(lm+rm) * (lN+rN) - rN
-    print theory
+    print theory/2.0
 
     #get the average flux as a function of timestep
     print "Getting Average Flux..."
     avgFlux = getAverageFlux(N, ts)
-    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
+    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory/2.0)
 
     #estimate rates
     #lrate, rrate = estimateRates(lFlux, rFlux, netFlux, lN, rN, dt)
