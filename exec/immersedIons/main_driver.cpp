@@ -543,7 +543,7 @@ void main_driver(const char* argv)
 //      s_pairB[d] = d;
 //    }
 
-    StructFact structFact(bp,dmap,var_names);
+ //   StructFact structFact(bp,dmap,var_names);
 
 
 
@@ -818,10 +818,10 @@ void main_driver(const char* argv)
 
 
 
-        if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
-	      structFact.FortStructure(struct_in_cc,geomP);
-        }
+       // if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+//	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
+//	      structFact.FortStructure(struct_in_cc,geomP);
+  //      }
 
         if (plot_int > 0 && step%plot_int == 0)
         {
@@ -859,8 +859,8 @@ void main_driver(const char* argv)
       // SFscale = 1.0;
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geomP);
+    //  structFact.Finalize(SFscale);
+    //  structFact.WritePlotFile(step,time,geomP);
 
     }
 
