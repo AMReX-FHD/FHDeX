@@ -368,6 +368,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         auto& parts = particle_tile.GetArrayOfStructs();
         const int Np = parts.numParticles();
 
+        //printf("Get velocity, np = %d\n", Np);
         getVelocity(parts.data(),
                     ARLIM_3D(tile_box.loVect()),
                     ARLIM_3D(tile_box.hiVect()),
@@ -396,8 +397,11 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
         //printf("Particle counts: %d %d\n", pL, pR);
     }
     if (pL < 1 || pR < 1) {
-        printf("Particle counts: %d %d\n", pL, pR);
+        //printf("Particle counts: %d %d\n", pL, pR);
     }
+
+    printf("Particle counts: %d %d\n", pL, pR);
+
 
     //get mean velocities per side
     meanLx = vLx / pL;
@@ -406,6 +410,8 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     meanRy = vRy / pR;
     meanLz = vLz / pL;
     meanRz = vRz / pR;
+
+    //printf("%f %f %f %f %f %f\n", meanLx, meanRx, meanLy, meanRy, meanLz, meanRz);
 
     if (pL <= 2 || pR <= 2) {
         //printf("avg velocities: %f %f\n", vL, vR);
@@ -438,13 +444,21 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     ParallelDescriptor::ReduceRealSum(varL); varL = varL/(3*pL);
     ParallelDescriptor::ReduceRealSum(varR); varR = varR/(3*pR);
 
+    //make variances 0 in case of no particles
+    varL *= (pL>0);
+    varR *= (pR>0);
+
+
     if (pL <= 2 || pR <= 2) {
         //printf("Vars: %f %f\n", varL, varR);
     }
 
+
     if (pL <= 1 || pR <= 1) {
         //printf("Vars: %f %f\n", varL, varR);
     }
+
+    //printf("Vars: %f %f\n", varL, varR);
 
     //if the variance is 0, regenerate those velocities and re-thermostat
     if (varL < varTol) {
@@ -489,9 +503,9 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                                   parts[i].rdata(RealData::vy)*parts[i].rdata(RealData::vy)+
                                   parts[i].rdata(RealData::vz)*parts[i].rdata(RealData::vz);
                         Real C = sqrt(3*particleInfo[0].R*tL/v2); //correction factor
-                        parts[i].rdata(RealData::vx) /= C;
-                        parts[i].rdata(RealData::vy) /= C;
-                        parts[i].rdata(RealData::vz) /= C;
+                        parts[i].rdata(RealData::vx) *= C;
+                        parts[i].rdata(RealData::vy) *= C;
+                        parts[i].rdata(RealData::vz) *= C;
                     }
                 }
                 Real rC = sqrt(tR/varR); 
@@ -538,7 +552,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
             ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
             return;
         }
-        else {//only 1 particle, set velocity by energy E=1/2mv^2=3/2kT
+        else {//only 1 particle in right, set velocity by energy E=1/2mv^2=3/2kT
             for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
                 const int grid_id = pti.index();
                 const int tile_id = pti.LocalTileIndex();
@@ -555,9 +569,9 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                                   parts[i].rdata(RealData::vz)*parts[i].rdata(RealData::vz);
                         Real C = sqrt(3*particleInfo[0].R*tR/v2); //correction factor
                         
-                        parts[i].rdata(RealData::vx) /= C;
-                        parts[i].rdata(RealData::vy) /= C;
-                        parts[i].rdata(RealData::vz) /= C;
+                        parts[i].rdata(RealData::vx) *= C;
+                        parts[i].rdata(RealData::vy) *= C;
+                        parts[i].rdata(RealData::vz) *= C;
                     }
                 }
 
@@ -582,7 +596,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     }
 
     //only apply corrections if variance is nonzero
-    if (varL > varTol || varR > varTol) {
+    if (varL > varTol && varR > varTol) {
         //compute correction factors
 
         //printf("Vars after conditional: %f %f\n", varL, varR);
