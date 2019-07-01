@@ -120,6 +120,7 @@
 
     flag = 0    
     call precheck(part, surfaces, ns, delt, flag, phi, plo)
+
     
 #if (BL_SPACEDIM == 3)
 
@@ -129,7 +130,6 @@
 
         surf => surfaces(s)
 
-        !print *, "s: ", s, " vtop: ", surf%vtop, " utop ", surf%utop
 
         denominv = 1d0/(part%vel(3)*surf%uy*surf%vx - part%vel(2)*surf%uz*surf%vx - part%vel(3)*surf%ux*surf%vy + part%vel(1)*surf%uz*surf%vy + part%vel(2)*surf%ux*surf%vz - part%vel(1)*surf%uy*surf%vz)
 
@@ -138,6 +138,7 @@
         vval = (-part%vel(3)*part%pos(2)*surf%ux + part%vel(2)*part%pos(3)*surf%ux + part%vel(3)*surf%y0*surf%ux - part%vel(2)*surf%z0*surf%ux + part%vel(3)*part%pos(1)*surf%uy - part%vel(1)*part%pos(3)*surf%uy - part%vel(3)*surf%x0*surf%uy + part%vel(1)*surf%z0*surf%uy - part%vel(2)*part%pos(1)*surf%uz + part%vel(1)*part%pos(2)*surf%uz + part%vel(2)*surf%x0*surf%uz - part%vel(1)*surf%y0*surf%uz)*denominv
 
         tval = (-part%pos(3)*surf%uy*surf%vx + surf%z0*surf%uy*surf%vx + part%pos(2)*surf%uz*surf%vx - surf%y0*surf%uz*surf%vx + part%pos(3)*surf%ux*surf%vy - surf%z0*surf%ux*surf%vy - part%pos(1)*surf%uz*surf%vy + surf%x0*surf%uz*surf%vy - part%pos(2)*surf%ux*surf%vz + surf%y0*surf%ux*surf%vz + part%pos(1)*surf%uy*surf%vz - surf%x0*surf%uy*surf%vz)*denominv
+
 
         if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.   ((vval .gt. 0) .and. (vval .lt. surf%vtop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))   ) then
 
@@ -214,11 +215,11 @@
     real(amrex_real) dotprod, srt, time, inttime
     real(amrex_real) :: normvel(3), j(3), oldvel(3)
 
-    if(surf%boundary .eq. 6)then
-       oldvel=part%vel
+!    if(surf%boundary .eq. 6)then
+!       oldvel=part%vel
        ! write(*,*) "old", oldvel(3), part%id
       ! print*, part%id, part%vel(3)
-    endif
+!    endif
     
     if(intside .eq. 1) then
    
@@ -406,12 +407,12 @@
       endif
  
    endif
-   if(graphene_tog .eq. 1) then
-   if(surf%boundary .eq. 6) then
+!   if(graphene_tog .eq. 1) then
+!   if(surf%boundary .eq. 6) then
       ! call test(part, surf, intside)
-      call surf_velocity(surf, part, time, oldvel, inttime)
-   endif
-   endif
+!      call surf_velocity(surf, part, time, oldvel, inttime)
+!   endif
+   !endif
         
   end subroutine apply_bc
 

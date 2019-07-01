@@ -36,7 +36,7 @@ void main_driver(const char* argv)
     //number of particles left/right - set to -1 to assign by density
     int pL = 12; int pR = 4;
     //temperature on left/right
-    Real tL = 300; Real tR = 200;
+    Real tL = 500; Real tR = 50;
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
