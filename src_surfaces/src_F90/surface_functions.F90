@@ -480,21 +480,43 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
   real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
+ write(*,*) "old part: ", part%vel(3)
+ 
     pi=3.1415926535897932
     rho=sqrt(part%pos(1)**2+part%pos(2)**2)
     c=9144
     a=prob_hi(1)
-    k0 = 2.4048
-    lambda = rho*k0/a
+     do i=1,1
+          if(i .eq. 1)then
+             k=2.4048
+          elseif(i .eq. 2)then
+             k=5.5201
+          elseif(i .eq. 3)then
+             k=8.6537
+          elseif(i .eq. 4)then
+             k=11.7915
+          else
+             k=14.9309
+          endif
+     
+    lambda = rho*k/a
+    omega=14*(10**6)*pi*2
+    t=time+inttime
+    point=0*k/a
 
     bJ0 = bessel_jn(0,lambda)
     bJ1 = bessel_jn(1,k)
-
-
-    prefact = c*c/(a*a*pi*bJ1)
-
-    !write(*,*) "old part: ", part%vel(3)
     p=(part%vel(3)-oldvel(3))*part%mass
+
+    prefact = c*c/(a*a*pi*bJ1**2)
+
+    surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*t)
+    surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
+ enddo
+
+ surf%velz=prefact*bessel_jn(0, point)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+ part%vel(3)=part%vel(3)+surf%velz
+    
     !parabola
     ! f_x=-a*r*r+a*d*r+100000
 !    bessj0=0

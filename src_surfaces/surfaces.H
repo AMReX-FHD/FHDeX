@@ -49,8 +49,8 @@ typedef struct {
     double velz;
 
     double c0;
-    double graPhi;
-    double graC;
+    double agraph;
+    double bgraph;
   double coltime;
 
     double besslist[100];
