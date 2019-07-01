@@ -477,7 +477,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  type(particle_t), intent(inout) :: part
  type(surface_t) :: surf 
  integer(c_int)  i, count, step, ii
- real(amrex_real) surfvel, r, f_x, a, r2, r3, time, bessj0, dbessj0, k, rho, tau, omega, dt, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
+ real(amrex_real) surfvel, p, f_x, a, point, lambda, time, bessj0, dbessj0, k, rho, prefact, omega, bJ0, bJ1, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
   real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
@@ -516,7 +516,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
  enddo
 
- surf%velz=prefact*bessel_jn(0, point)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+ surf%velz=prefact*bessel_jn(0, lambda)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
  part%vel(3)=part%vel(3)+surf%velz
     
 
@@ -554,9 +554,9 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
 !      step=time/fixed_dt
    
    !  if(step .eq. 300)then
-!     write(*,*) surf%velz
+    ! write(*,*) surf%velz
    ! write(*,*) "old", oldvel(3), part%id
-!    write(*,*) "new part: ", part%vel(3)
+    ! write(*,*) "new part: ", part%vel(3)
    !  endif
   end subroutine surf_velocity
 
