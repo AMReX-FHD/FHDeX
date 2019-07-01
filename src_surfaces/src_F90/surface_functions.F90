@@ -215,11 +215,11 @@
     real(amrex_real) dotprod, srt, time, inttime
     real(amrex_real) :: normvel(3), j(3), oldvel(3)
 
-!    if(surf%boundary .eq. 6)then
-!       oldvel=part%vel
-       ! write(*,*) "old", oldvel(3), part%id
-      ! print*, part%id, part%vel(3)
-!    endif
+    if(surf%boundary .eq. 6)then
+       oldvel=part%vel
+     !   write(*,*) "old", oldvel(3), part%id
+     !  print*, part%id, part%vel(3)
+    endif
     
     if(intside .eq. 1) then
    
@@ -407,12 +407,12 @@
       endif
  
    endif
-!   if(graphene_tog .eq. 1) then
-!   if(surf%boundary .eq. 6) then
-      ! call test(part, surf, intside)
-!      call surf_velocity(surf, part, time, oldvel, inttime)
-!   endif
-   !endif
+   if(graphene_tog .eq. 1) then
+   if(surf%boundary .eq. 6) then
+       call test(part, surf, intside)
+      call surf_velocity(surf, part, time, oldvel, inttime)
+   endif
+   endif
         
   end subroutine apply_bc
 
