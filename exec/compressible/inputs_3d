@@ -42,8 +42,8 @@
   T_init(1) = 300
   rho0 = 4.83e-4
 
-  struct_fact_int = 0
-  n_steps_skip = 10000
+  struct_fact_int = 1
+  n_steps_skip = 0
 
   ! Boundary conditions
   ! ----------------------
