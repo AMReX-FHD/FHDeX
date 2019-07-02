@@ -5,9 +5,9 @@
   prob_hi(1:3) = 2 1 1     ! physical hi coordinate
     
   ! number of cells in domain
-  n_cells(1:3) = 4 1 1
+  n_cells(1:3) = 2 1 1
   ! max number of cells in a box
-  max_grid_size(1:3) = 2 1 1 ! x must be at least half of n_cells x
+  max_grid_size(1:3) = 1 1 1 ! x must be at least half of n_cells x
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
@@ -62,7 +62,7 @@
 
   ! Stochastic parameters
   k_B = 1.38064852e-23 !was 16, changed to 23
-  T_init(1) = 295.00
+  T_init(1) = 300.00
   variance_coef_mom = 0
    
 
