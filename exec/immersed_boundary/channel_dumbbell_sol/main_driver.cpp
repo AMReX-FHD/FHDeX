@@ -1,4 +1,3 @@
-
 #include "main_driver.H"
 #include "main_driver_F.H"
 
@@ -326,14 +325,15 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+    // Make sure that the nghost (last argument) is big enough!
+    IBMarkerContainer ib_mc(geom, dmap, ba, 20);
 
     Vector<RealVect> marker_positions(3);
-    marker_positions[0] = RealVect{0.25, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.26, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.27, 0.5, 0.5};
+    marker_positions[0] = RealVect{0.25, 0.8, 0.5};
+    marker_positions[1] = RealVect{0.26, 0.8, 0.5};
+    marker_positions[2] = RealVect{0.27, 0.8, 0.5};
 
-    Vector<Real> marker_radii = {.2, .2};
+    Vector<Real> marker_radii = {.02, .02};
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 
