@@ -22,49 +22,55 @@ using namespace common;
 
 class StructFact {
 
-  int NVAR = 1;        // Number of variable
-  int NVARU = NVAR;    // Number of unique variables
-  int NCOV = 1;        // Number of covariances (lower diagonal of matrix - by default)
+    int NVAR = 1;        // Number of variable
+    int NVARU = NVAR;    // Number of unique variables
+    int NCOV = 1;        // Number of covariances (lower diagonal of matrix - by default)
 
-  int verbosity = 0;
+    int verbosity = 0;
 
-  // Total number of states to average over, updated by FortStructure()
-  int nsamples = 0;
+    // Total number of states to average over, updated by FortStructure()
+    int nsamples = 0;
 
-  // Vector containing running sums of real and imaginary components 
-  // of inner products (covariances) of DFTs
-  MultiFab cov_real;
-  MultiFab cov_imag;
+    // Vector containing running sums of real and imaginary components 
+    // of inner products (covariances) of DFTs
+    MultiFab cov_real;
+    MultiFab cov_imag;
 
-  // Vector of MultiFabs containing final magnitude of covariances
-  MultiFab cov_mag;
+    // Vector of MultiFabs containing final magnitude of covariances
+    MultiFab cov_mag;
 
-  // Vector containing names of covariances
-  amrex::Vector< std::string > cov_names;
+    // Vector containing covariance scaling
+    Vector< Real > scaling;
 
-  // 2 vectors containing structure factor pairs
-  amrex::Vector< int > s_pairA;
-  amrex::Vector< int > s_pairB;
+    // Vector containing names of covariances
+    amrex::Vector< std::string > cov_names;
 
-  // Define vector of unique selected variables
-  amrex::Vector< int > var_u;
+    // 2 vectors containing structure factor pairs
+    amrex::Vector< int > s_pairA;
+    amrex::Vector< int > s_pairB;
+
+    // Define vector of unique selected variables
+    amrex::Vector< int > var_u;
 
 public:
 
-  StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
-  	                const amrex::Vector< std::string >&,
-			const amrex::Vector< int >&, const amrex::Vector< int >&, 
-  			const int verbosity=0);
-  StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
-  	                const amrex::Vector< std::string >&, const int verbosity=0);
-  void FortStructure(   const amrex::MultiFab&, const amrex::Geometry);
-  void Finalize(        const amrex::Real scale=1.0);
-  void WritePlotFile(   const int, const amrex::Real, const amrex::Geometry);
-  void StructOut(       amrex::MultiFab&);
-  void ComputeFFT(      const amrex::MultiFab&, amrex::MultiFab&,
-			amrex::MultiFab&, const amrex::Geometry);
-  void ShiftFFT(        amrex::MultiFab&);
-  void SqrtMF(          amrex::MultiFab&);
+    StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
+			  const amrex::Vector< std::string >&,
+			  const amrex::Vector< amrex::Real >&,
+			  const amrex::Vector< int >&, const amrex::Vector< int >&, 
+			  const int verbosity=0);
+    StructFact(           const amrex::BoxArray, const amrex::DistributionMapping, 
+			  const amrex::Vector< std::string >&,
+			  const amrex::Vector< amrex::Real >&,
+			  const int verbosity=0);
+    void FortStructure(   const amrex::MultiFab&, const amrex::Geometry);
+    void Finalize(        amrex::MultiFab&, amrex::MultiFab&);
+    void WritePlotFile(   const int, const amrex::Real, const amrex::Geometry);
+    void StructOut(       amrex::MultiFab&);
+    void ComputeFFT(      const amrex::MultiFab&, amrex::MultiFab&,
+			  amrex::MultiFab&, const amrex::Geometry);
+    void ShiftFFT(        amrex::MultiFab&);
+    void SqrtMF(          amrex::MultiFab&);
 
 };
 

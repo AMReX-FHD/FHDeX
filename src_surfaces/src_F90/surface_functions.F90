@@ -409,7 +409,7 @@
    endif
    if(graphene_tog .eq. 1) then
    if(surf%boundary .eq. 6) then
-       call test(part, surf, intside)
+      ! call test(part, surf, intside)
       call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
@@ -477,25 +477,49 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  type(particle_t), intent(inout) :: part
  type(surface_t) :: surf 
  integer(c_int)  i, count, step, ii
- real(amrex_real) surfvel, r, f_x, a, r2, r3, time, bessj0, dbessj0, k, rho, tau, omega, dt, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
+ real(amrex_real) surfvel, p, f_x, a, point, lambda, time, bessj0, dbessj0, k, rho, prefact, omega, bJ0, bJ1, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
   real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
-!    pi=3.1415926535897932
-!    rho=sqrt(part%pos(1)**2+part%pos(2)**2)
-!    c=9144
-!    a=prob_hi(1)
-!    k0 = 2.4048
-!    lambda = rho*k0/a
+ write(*,*) "old part: ", part%vel(3)
+ 
+    pi=3.1415926535897932
+    rho=sqrt(part%pos(1)**2+part%pos(2)**2)
+    c=9144
+    a=prob_hi(1)
+     do i=1,1
+          if(i .eq. 1)then
+             k=2.4048
+          elseif(i .eq. 2)then
+             k=5.5201
+          elseif(i .eq. 3)then
+             k=8.6537
+          elseif(i .eq. 4)then
+             k=11.7915
+          else
+             k=14.9309
+          endif
+     
+    lambda = rho*k/a
+    omega=14*(10**6)*pi*2
+    t=time+inttime
+    point=0*k/a
 
-!    bJ0 = bessel_jn(0,lambda)
-!    bJ1 = bessel_jn(1,k)
+    bJ0 = bessel_jn(0,lambda)
+    bJ1 = bessel_jn(1,k)
+    p=(part%vel(3)-oldvel(3))*part%mass
 
 
-!    prefact = c*c/(a*a*pi*bJ1)
+    prefact = c*c/(a*a*pi*bJ1**2)
 
-    !write(*,*) "old part: ", part%vel(3)
-!    p=(part%vel(3)-oldvel(3))*part%mass
+    surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*t)
+    surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
+ enddo
+
+ surf%velz=prefact*bessel_jn(0, lambda)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+ part%vel(3)=part%vel(3)+surf%velz
+    
+
     !parabola
     ! f_x=-a*r*r+a*d*r+100000
 !    bessj0=0
@@ -530,9 +554,9 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
 !      step=time/fixed_dt
    
    !  if(step .eq. 300)then
-!     write(*,*) surf%velz
+    ! write(*,*) surf%velz
    ! write(*,*) "old", oldvel(3), part%id
-!    write(*,*) "new part: ", part%vel(3)
+    ! write(*,*) "new part: ", part%vel(3)
    !  endif
   end subroutine surf_velocity
 

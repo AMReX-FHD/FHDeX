@@ -265,12 +265,112 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
+    
+    Real molmix;
+    Real P_bar;
+    Real dVol = dx[0]*dx[1];
+    Real c_v;
+    int tot_n_cells = n_cells[0]*n_cells[1];
+    // calc eqm pressure
+    molmix = 0.0;
+    for(int i=0; i<nspecies; i++) {
+	molmix += rhobar[i]/molmass[i];
+    }
+    molmix = 1.0/molmix;
+    P_bar = rho0*(Runiv/molmix)*T_init[0];
+    c_v = 1.5*Runiv/molmix;
+    // calc cell volume
+    if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+    } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+	tot_n_cells = n_cells[2]*tot_n_cells;
+    }
+    // calc momentum variance
+    Real Jeqvar = rho0*k_B*T_init[0]/dVol;
 
-    Vector< std::string > var_names;
-    int nvar_sf = AMREX_SPACEDIM+2;
-    // int nvar_sf = AMREX_SPACEDIM;
-    var_names.resize(nvar_sf);
+    // setup covariance eqm. variance matrix
     int cnt = 0;
+    int nvar_sf = nvars;
+    int ncov_sf = nvar_sf*(nvar_sf+1)/2;
+    int nb_sf = 4;
+    int nbcov_sf = nb_sf*(nb_sf+1)/2;
+
+    // struct. fact. eqm. variances
+    Vector< Real > eqmvars(ncov_sf);
+    Vector< Real > beqmvars(nbcov_sf);
+    Vector< int > blocks(nb_sf);
+
+    // layout of covariance matrix:
+    //
+    // <cons_i,cons_j> =
+    // | <rho,rho>         ...      ...       ...            ...      ... |
+    // | <Jx,rho>       <Jx,Jx>     ...       ...            ...      ... |
+    // |    ...            ...      ...       ...            ...      ... |
+    // | <rhoE,rho>     <rhoE,Jx>   ...   <rhoE,rhoE>        ...      ... |
+    // | <rho1,rho>     <rho1,Jx>   ...   <rho1,rhoE>    <rho1,rho1>  ... |
+    // |    ...            ...      ...       ...            ...      ... |
+
+    // covariance matrix block sizes
+    cnt = 0;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = AMREX_SPACEDIM;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = nspecies;
+
+    // covariance matrix block scaling
+    cnt = 0;
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;                      // rho,rho      - not scaled by mass fracs
+    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;                // J_i,rho      - dimensionless only
+    beqmvars[cnt++] = sqrt(rho0/P_bar*T_init[0]*c_v)*Jeqvar;  // rhoE,rho     - dimensionless only
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;                      // rho_k,rho    - not scaled by mass fracs
+    beqmvars[cnt++] = Jeqvar;                                 // J_i,J_j
+    beqmvars[cnt++] = sqrt(T_init[0]*c_v)*Jeqvar;             // rhoE,J_j     - dimensionless only
+    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;                // rho_k,J_j    - dimensionless only
+    beqmvars[cnt++] = T_init[0]*c_v*Jeqvar;                   // rhoE,rhoE
+    beqmvars[cnt++] = sqrt(rho0/P_bar*T_init[0]*c_v)*Jeqvar;  // rho_k,rhoE   - not scaled by mass fracs
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;                      // rho_k,rho_l  - not scaled by mass fracs
+
+    // for (int d=0; d<nbcov_sf; d++) {
+    //   beqmvars[d] = 1.0;
+    // }
+
+    cnt = 0;
+    int bcnt = 0;
+    int ig, jg = 0;
+    // loop over matrix blocks
+    for(int jb=0; jb<nb_sf; jb++) {
+      ig = jg;
+      for(int ib=jb; ib<nb_sf; ib++) {
+	// loop within blocks
+	for(int j=0; j<blocks[jb]; j++) {
+	  int low_ind;
+	  if(ib==jb){      // if block lies on diagonal...
+	    low_ind=j;
+	  } else {
+	    low_ind=0;
+	  }
+	  for(int i=low_ind; i<blocks[ib]; i++) {
+	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
+	    eqmvars[cnt] = beqmvars[bcnt];
+	    // Print() << "Hack: " << ig+i << " " << jg+j << " " << cnt << " " << eqmvars[cnt] << std::endl;
+	  }
+	}
+	bcnt++;
+	ig += blocks[ib];
+      }
+      jg += blocks[jb];
+    }
+    
+    // for (int d=0; d<ncov_sf; d++) {
+    //   Print() << "Hack: scaling = " << eqmvars[d] << " " << d << std::endl;
+    // }
+    // exit(0);
+
+    // set variable names
+    cnt = 0;
+    Vector< std::string > var_names;
+    var_names.resize(nvar_sf);
     std::string x;
     var_names[cnt++] = "rho";
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -278,7 +378,12 @@ void main_driver(const char* argv)
       x += (120+d);
       var_names[cnt++] = x;
     }
-    var_names[cnt++] = "E";
+    var_names[cnt++] = "rhoE";
+    for (int d=0; d<nspecies; d++) {
+      x = "rho";
+      x += (49+d);
+      var_names[cnt++] = x;
+    }
 
     MultiFab struct_in_cc;
     struct_in_cc.define(ba, dmap, nvar_sf, 0);
@@ -292,8 +397,8 @@ void main_driver(const char* argv)
       s_pairB[d] = d;
     }
 
-    StructFact structFact(ba,dmap,var_names);
-    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
+    StructFact structFact(ba,dmap,var_names,eqmvars);
+    // StructFact structFact(ba,dmap,var_names,eqmvars,s_pairA,s_pairB);
 
     ///////////////////////////////////////////
 
@@ -377,7 +482,6 @@ void main_driver(const char* argv)
 	///////////////////////////////////////////
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
 	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-	  // MultiFab::Copy(struct_in_cc, cu, 1, 0, nvar_sf, 0);
 	  structFact.FortStructure(struct_in_cc,geom);
         }
 	///////////////////////////////////////////
@@ -396,30 +500,12 @@ void main_driver(const char* argv)
            // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
 
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
+	   if (struct_fact_int > 0) {
+	       structFact.WritePlotFile(step,time,geom);
+	   }
         }
 
         time = time + dt;
-    }
-
-    if (struct_fact_int > 0) {
-
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-
-      // let rho = 1
-      Real SFscale = dVol/(rho0*k_B*T_init[0]);
-      // SFscale = 1.0;
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
-
     }
 
 
