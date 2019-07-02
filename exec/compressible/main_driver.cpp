@@ -265,15 +265,20 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
-
-    Real P_bar = 0.0;
+    
+    Real molmix;
+    Real P_bar;
     Real dVol = dx[0]*dx[1];
+    Real c_v;
     int tot_n_cells = n_cells[0]*n_cells[1];
     // calc eqm pressure
+    molmix = 0.0;
     for(int i=0; i<nspecies; i++) {
-	P_bar += rhobar[i]/molmass[i];
+	molmix += rhobar[i]/molmass[i];
     }
-    P_bar *= rho0*Runiv*T_init[0];
+    molmix = 1.0/molmix;
+    P_bar = rho0*(Runiv/molmix)*T_init[0];
+    c_v = 1.5*Runiv/molmix;
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
 	dVol *= cell_depth;
@@ -282,39 +287,19 @@ void main_driver(const char* argv)
 	tot_n_cells = n_cells[2]*tot_n_cells;
     }
     // calc momentum variance
-    Real Jscale = rho0*k_B*T_init[0]/dVol;
+    Real Jeqvar = rho0*k_B*T_init[0]/dVol;
 
     // setup covariance eqm. variance matrix
     int cnt = 0;
     int nvar_sf = nvars;
     int ncov_sf = nvar_sf*(nvar_sf+1)/2;
     int nb_sf = 4;
-    int nbcov_sf = nb_sf*(nb_sf+1)/2;;
+    int nbcov_sf = nb_sf*(nb_sf+1)/2;
 
     // struct. fact. eqm. variances
     Vector< Real > eqmvars(ncov_sf);
     Vector< Real > beqmvars(nbcov_sf);
     Vector< int > blocks(nb_sf);
-
-    // covariance matrix block sizes
-    cnt = 0;
-    blocks[cnt++] = 1;
-    blocks[cnt++] = AMREX_SPACEDIM;
-    blocks[cnt++] = 1;
-    blocks[cnt++] = nspecies;
-
-    // covariance matrix block scaling
-    cnt = 0;
-    beqmvars[cnt++] = rho0/P_bar*Jscale;                  // rho,rho
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jscale;            // J_i,rho - using dimensions only
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*T_init[0]*Jscale;  // rhoE,rho - using dimensions only
-    beqmvars[cnt++] = rho0/P_bar*Jscale;                  // rho_k,rho - not scaled by mass fractions
-    beqmvars[cnt++] = Jscale;                            // J_i,J_j
-    beqmvars[cnt++] = T_init[0]*Jscale;                  // rhoE,J_j - using dimensions only
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jscale;            // rho_k,J_j - using dimensions only
-    beqmvars[cnt++] = T_init[0]*T_init[0]*Jscale;        // rhoE,rhoE
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*T_init[0]*Jscale;  // rho_k,rhoE - not scaled by mass fractions
-    beqmvars[cnt++] = rho0/P_bar*Jscale;                  // rho_k,rho_l - not scaled by mass fractions
 
     // layout of covariance matrix:
     //
@@ -326,28 +311,61 @@ void main_driver(const char* argv)
     // | <rho1,rho>     <rho1,Jx>   ...   <rho1,rhoE>    <rho1,rho1>  ... |
     // |    ...            ...      ...       ...            ...      ... |
 
+    // covariance matrix block sizes
+    cnt = 0;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = AMREX_SPACEDIM;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = nspecies;
+
+    // covariance matrix block scaling
+    cnt = 0;
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;                      // rho,rho      - not scaled by mass fracs
+    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;                // J_i,rho      - dimensionless only
+    beqmvars[cnt++] = sqrt(rho0/P_bar*T_init[0]*c_v)*Jeqvar;  // rhoE,rho     - dimensionless only
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;                      // rho_k,rho    - not scaled by mass fracs
+    beqmvars[cnt++] = Jeqvar;                                 // J_i,J_j
+    beqmvars[cnt++] = sqrt(T_init[0]*c_v)*Jeqvar;             // rhoE,J_j     - dimensionless only
+    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;                // rho_k,J_j    - dimensionless only
+    beqmvars[cnt++] = T_init[0]*c_v*Jeqvar;                   // rhoE,rhoE
+    beqmvars[cnt++] = sqrt(rho0/P_bar*T_init[0]*c_v)*Jeqvar;  // rho_k,rhoE   - not scaled by mass fracs
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;                      // rho_k,rho_l  - not scaled by mass fracs
+
+    // for (int d=0; d<nbcov_sf; d++) {
+    //   beqmvars[d] = 1.0;
+    // }
+
     cnt = 0;
     int bcnt = 0;
+    int ig, jg = 0;
     // loop over matrix blocks
     for(int jb=0; jb<nb_sf; jb++) {
-	for(int ib=jb; ib<nb_sf; ib++) {
-
-	    // loop within blocks
-	    for(int j=0; j<blocks[jb]; j++) {
-		int low_ind;
-		if(ib==jb){      // if block lies on diagonal...
-		    low_ind=j;
-		} else {
-		    low_ind=0;
-		}
-		for(int i=low_ind; i<blocks[ib]; i++) {
-		    eqmvars[cnt++] = beqmvars[bcnt];
-		}
-	    }
-
-	    bcnt++;
+      ig = jg;
+      for(int ib=jb; ib<nb_sf; ib++) {
+	// loop within blocks
+	for(int j=0; j<blocks[jb]; j++) {
+	  int low_ind;
+	  if(ib==jb){      // if block lies on diagonal...
+	    low_ind=j;
+	  } else {
+	    low_ind=0;
+	  }
+	  for(int i=low_ind; i<blocks[ib]; i++) {
+	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
+	    eqmvars[cnt] = beqmvars[bcnt];
+	    // Print() << "Hack: " << ig+i << " " << jg+j << " " << cnt << " " << eqmvars[cnt] << std::endl;
+	  }
 	}
+	bcnt++;
+	ig += blocks[ib];
+      }
+      jg += blocks[jb];
     }
+    
+    // for (int d=0; d<ncov_sf; d++) {
+    //   Print() << "Hack: scaling = " << eqmvars[d] << " " << d << std::endl;
+    // }
+    // exit(0);
 
     // set variable names
     cnt = 0;
@@ -360,8 +378,8 @@ void main_driver(const char* argv)
       x += (120+d);
       var_names[cnt++] = x;
     }
-    var_names[cnt++] = "E";
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
+    var_names[cnt++] = "rhoE";
+    for (int d=0; d<nspecies; d++) {
       x = "rho";
       x += (49+d);
       var_names[cnt++] = x;

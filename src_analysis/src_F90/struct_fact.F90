@@ -39,6 +39,9 @@ contains
 
       do n = 1,ncomp
 
+         ! set k=0 cell to zero
+         dft(lo(1),lo(2),n) = 0.0d0
+
          dft_temp(dftlo(1):dfthi(1),dftlo(2):dfthi(2)) = &
               dft(dftlo(1):dfthi(1),dftlo(2):dfthi(2),n)
 
@@ -90,6 +93,9 @@ contains
       nzh = (nz+1)/2
 
       do n = 1,ncomp
+
+         ! set k=0 cell to zero
+         dft(lo(1),lo(2),lo(3),n) = 0.0d0
 
          dft_temp(dftlo(1):dfthi(1),dftlo(2):dfthi(2),dftlo(3):dfthi(3)) = &
               dft(dftlo(1):dfthi(1),dftlo(2):dfthi(2),dftlo(3):dfthi(3),n)

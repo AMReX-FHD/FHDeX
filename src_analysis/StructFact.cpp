@@ -452,7 +452,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   MultiFab cov_real_temp(ba, dm, NCOV, 0);
   MultiFab cov_imag_temp(ba, dm, NCOV, 0);
   MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
-  MultiFab::Copy(cov_real_temp, cov_imag, 0, 0, NCOV, 0);
+  MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
 
   // Finalize covariances - scale & compute magnitude
   Finalize(cov_real_temp, cov_imag_temp);
