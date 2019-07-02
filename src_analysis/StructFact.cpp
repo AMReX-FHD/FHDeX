@@ -1,6 +1,6 @@
 
 #include "common_functions.H"
-#include "analysis_functions_F.H"
+#include "StructFact_F.H"
 #include "StructFact.H"
 
 #include <AMReX_MultiFabUtil.H>
@@ -438,7 +438,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 }
 
-void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom) {
+void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom,
+			       const int zero_avg) {
   
   BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
 
@@ -455,12 +456,12 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
 
   // Finalize covariances - scale & compute magnitude
-  Finalize(cov_real_temp, cov_imag_temp);
+  Finalize(cov_real_temp, cov_imag_temp, zero_avg);
 
   //////////////////////////////////////////////////////////////////////////////////
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename1 = "plt_structure_factor_mag";
+  const std::string plotfilename1 = amrex::Concatenate("plt_structure_factor_mag_",step,9);
   nPlot = NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
@@ -478,7 +479,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename2 = "plt_structure_factor_real_imag";
+  const std::string plotfilename2 = amrex::Concatenate("plt_structure_factor_real_imag_",step,9);
   nPlot = 2*NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
@@ -518,12 +519,12 @@ void StructFact::StructOut(MultiFab& struct_out) {
   }
 }
 
-void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in) {
+void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int zero_avg) {
   
   Real nsamples_inv = 1.0/(Real)nsamples;
   
-  ShiftFFT(cov_real_in);
-  ShiftFFT(cov_imag_in);
+  ShiftFFT(cov_real_in,zero_avg);
+  ShiftFFT(cov_imag_in,zero_avg);
 
   cov_real_in.mult(nsamples_inv);
   for (int d=0; d<NCOV; d++) {
@@ -543,7 +544,7 @@ void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in) {
 
 }
 
-void StructFact::ShiftFFT(MultiFab& dft_out) {
+void StructFact::ShiftFFT(MultiFab& dft_out, const int zero_avg) {
 
   BoxArray ba_onegrid;
   {
@@ -568,7 +569,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out) {
       // Note: Make sure that multifab is cell-centered
       const Box& validBox = mfi.validbox();
       fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		BL_TO_FORTRAN_FAB(dft_onegrid[mfi]));
+		BL_TO_FORTRAN_FAB(dft_onegrid[mfi]), &zero_avg);
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);
