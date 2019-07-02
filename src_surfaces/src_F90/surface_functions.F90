@@ -120,6 +120,7 @@
 
     flag = 0    
     call precheck(part, surfaces, ns, delt, flag, phi, plo)
+
     
 #if (BL_SPACEDIM == 3)
 
@@ -129,7 +130,6 @@
 
         surf => surfaces(s)
 
-        !print *, "s: ", s, " vtop: ", surf%vtop, " utop ", surf%utop
 
         denominv = 1d0/(part%vel(3)*surf%uy*surf%vx - part%vel(2)*surf%uz*surf%vx - part%vel(3)*surf%ux*surf%vy + part%vel(1)*surf%uz*surf%vy + part%vel(2)*surf%ux*surf%vz - part%vel(1)*surf%uy*surf%vz)
 
@@ -138,6 +138,7 @@
         vval = (-part%vel(3)*part%pos(2)*surf%ux + part%vel(2)*part%pos(3)*surf%ux + part%vel(3)*surf%y0*surf%ux - part%vel(2)*surf%z0*surf%ux + part%vel(3)*part%pos(1)*surf%uy - part%vel(1)*part%pos(3)*surf%uy - part%vel(3)*surf%x0*surf%uy + part%vel(1)*surf%z0*surf%uy - part%vel(2)*part%pos(1)*surf%uz + part%vel(1)*part%pos(2)*surf%uz + part%vel(2)*surf%x0*surf%uz - part%vel(1)*surf%y0*surf%uz)*denominv
 
         tval = (-part%pos(3)*surf%uy*surf%vx + surf%z0*surf%uy*surf%vx + part%pos(2)*surf%uz*surf%vx - surf%y0*surf%uz*surf%vx + part%pos(3)*surf%ux*surf%vy - surf%z0*surf%ux*surf%vy - part%pos(1)*surf%uz*surf%vy + surf%x0*surf%uz*surf%vy - part%pos(2)*surf%ux*surf%vz + surf%y0*surf%ux*surf%vz + part%pos(1)*surf%uy*surf%vz - surf%x0*surf%uy*surf%vz)*denominv
+
 
         if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.   ((vval .gt. 0) .and. (vval .lt. surf%vtop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))   ) then
 
@@ -216,8 +217,8 @@
 
     if(surf%boundary .eq. 6)then
        oldvel=part%vel
-       ! write(*,*) "old", oldvel(3), part%id
-      ! print*, part%id, part%vel(3)
+     !   write(*,*) "old", oldvel(3), part%id
+     !  print*, part%id, part%vel(3)
     endif
     
     if(intside .eq. 1) then
@@ -476,53 +477,86 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  type(particle_t), intent(inout) :: part
  type(surface_t) :: surf 
  integer(c_int)  i, count, step, ii
- real(amrex_real) surfvel, r, f_x, a, r2, r3, time, bessj0, dbessj0, k, rho, tau, omega, dt, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
+ real(amrex_real) surfvel, p, f_x, a, point, lambda, time, bessj0, dbessj0, k, rho, prefact, omega, bJ0, bJ1, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
   real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
-    r=sqrt(part%pos(1)**2+part%pos(2)**2)
-    c=914.4681
-    alpha=0
+ write(*,*) "old part: ", part%vel(3)
+ 
     pi=3.1415926535897932
-     write(*,*) "old part: ", part%vel(3)
-    a=(part%vel(3)-oldvel(3))*part%mass
+    rho=sqrt(part%pos(1)**2+part%pos(2)**2)
+    c=9144
+    a=prob_hi(1)
+     do i=1,1
+          if(i .eq. 1)then
+             k=2.4048
+          elseif(i .eq. 2)then
+             k=5.5201
+          elseif(i .eq. 3)then
+             k=8.6537
+          elseif(i .eq. 4)then
+             k=11.7915
+          else
+             k=14.9309
+          endif
+     
+    lambda = rho*k/a
+    omega=14*(10**6)*pi*2
+    t=time+inttime
+    point=0*k/a
+
+    bJ0 = bessel_jn(0,lambda)
+    bJ1 = bessel_jn(1,k)
+    p=(part%vel(3)-oldvel(3))*part%mass
+
+
+    prefact = c*c/(a*a*pi*bJ1**2)
+
+    surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*t)
+    surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
+ enddo
+
+ surf%velz=prefact*bessel_jn(0, lambda)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+ part%vel(3)=part%vel(3)+surf%velz
+    
+
     !parabola
     ! f_x=-a*r*r+a*d*r+100000
-    bessj0=0
-    t=time+inttime
-        do i=1,1
-           if(i .eq. 1)then
-              k=2.4048
-           elseif(i .eq. 2)then
-              k=5.5201
-           elseif(i .eq. 3)then
-              k=8.6537
-           elseif(i .eq. 4)then
-              k=11.7915
-           else
-              k=14.9309
-           endif
-           r2=r*k/prob_hi(1)
-           omega=14*(10**6)*pi*2
-           bessj0 =surf%grac*bessel_jn(0,r2)*sin((t*omega)+surf%graphi)
-           dbessj0=surf%grac*bessel_jn(0, r2)
-          ! graphi=-omega*t
-          ! print*, surf%graphi
-           grac=a*(c**2/(pi*prob_hi(1)**2))*bessel_jn(0,r2)/((bessel_jn(1, k)**2))
-           xvec=surf%grac*cos(surf%graphi)+grac*cos(graphi)
-           yvec=surf%grac*sin(surf%graphi)+grac*sin(graphi)
-           surf%grac=sqrt(xvec**2+yvec**2)
-           surf%graphi=atan2(yvec, xvec)
-        enddo
-        print*, a
-      surf%velz=dbessj0*cos((t*omega)+surf%graphi)
-      part%vel(3)=part%vel(3)+surf%velz
-      step=time/fixed_dt
+!    bessj0=0
+!    t=time+inttime
+!        do i=1,1
+!           if(i .eq. 1)then
+!              k=2.4048
+!           elseif(i .eq. 2)then
+!              k=5.5201
+!           elseif(i .eq. 3)then
+!              k=8.6537
+!           elseif(i .eq. 4)then
+!              k=11.7915
+!           else
+!              k=14.9309
+!           endif
+!           r2=r*k/prob_hi(1)
+!           omega=14*(10**6)*pi*2
+!           bessj0 =surf%grac*bessel_jn(0,r2)*sin((t*omega)+surf%graphi)
+!           dbessj0=surf%grac*bessel_jn(0, r2)
+!          ! graphi=-omega*t
+!          ! print*, surf%graphi
+!           grac=a*(c**2/(pi*prob_hi(1)**2))*bessel_jn(0,r2)/((bessel_jn(1, k)**2))
+!           xvec=surf%grac*cos(surf%graphi)+grac*cos(graphi)
+!           yvec=surf%grac*sin(surf%graphi)+grac*sin(graphi)
+!           surf%grac=sqrt(xvec**2+yvec**2)
+!           surf%graphi=atan2(yvec, xvec)
+!        enddo
+!        print*, a
+!      surf%velz=dbessj0*cos((t*omega)+surf%graphi)
+!      part%vel(3)=part%vel(3)+surf%velz
+!      step=time/fixed_dt
    
    !  if(step .eq. 300)then
-     write(*,*) surf%velz
+    ! write(*,*) surf%velz
    ! write(*,*) "old", oldvel(3), part%id
-    write(*,*) "new part: ", part%vel(3)
+    ! write(*,*) "new part: ", part%vel(3)
    !  endif
   end subroutine surf_velocity
 

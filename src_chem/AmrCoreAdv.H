@@ -36,7 +36,8 @@ public:
             std::array<MultiFab, AMREX_SPACEDIM> & umac, 
             const iMultiFab & iface,
             const MultiFab & LevelSet,
-            int lev, int step, Real dt_fluid, Real time, Real diffcoeff);
+            int lev, int step, Real dt_fluid, Real time, Real diffcoeff,
+            const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords);
 
     // initializes multilevel data
     void InitData ( amrex::BoxArray & ba, amrex::DistributionMapping & dm);
@@ -165,13 +166,17 @@ private:
 
    Vector< std::unique_ptr<MultiFab> >  uface;
    Vector< std::unique_ptr<MultiFab> >  vface;
+   Vector< std::unique_ptr<MultiFab> >  wface;
+  
    Vector< std::unique_ptr<MultiFab> >  Dcon_x;
    Vector< std::unique_ptr<MultiFab> >  Dcon_y;
    Vector< std::unique_ptr<MultiFab> >  Dcon_z;
    Vector< std::unique_ptr<MultiFab> >  MagDcon;
 
+   Vector< std::unique_ptr<MultiFab> >  xface;
+   Vector< std::unique_ptr<MultiFab> >  yface;
+   Vector< std::unique_ptr<MultiFab> >  zface;
 
-   Vector< std::unique_ptr<MultiFab> >  wface;
    std::unique_ptr<iMultiFab>           source_loc;
    std::unique_ptr<MultiFab>            levset;
 
