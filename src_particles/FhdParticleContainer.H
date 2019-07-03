@@ -168,6 +168,7 @@ public:
     void getParticleMapping(std::map<int,int>& particleMap, int xCells, int num_boxes, int pL, int pR);
     void ApplyThermostat(species* particleInfo, MultiFab& cellVols, surface* surfaces, 
                           const int ns, const Real tL, const Real tR);
+    void Resample(species* particleInfo, Real tL, Real tR);
 
 protected:
     

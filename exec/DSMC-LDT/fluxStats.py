@@ -253,12 +253,12 @@ if __name__ == "__main__":
     theory = np.sqrt(lT)/(np.sqrt(lT)+np.sqrt(rT)) * (lN+rN) - rN
     #theory = np.power(float(lT),0.95)/(np.power(lT,0.95)+np.power(rT,0.95)) * (lN+rN) - rN
     #theory = rm/(lm+rm) * (lN+rN) - rN
-    print theory/2.0
+    print theory
 
     #get the average flux as a function of timestep
     print "Getting Average Flux..."
     avgFlux = getAverageFlux(N, ts)
-    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory/2.0)
+    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
 
     #estimate rates
     #lrate, rrate = estimateRates(lFlux, rFlux, netFlux, lN, rN, dt)
