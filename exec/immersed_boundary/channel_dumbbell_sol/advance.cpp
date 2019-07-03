@@ -164,14 +164,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     int ib_lev = 0;
 
     // Parameters for spring force calculation
-    Real spr_k = 100000.0 ; // spring constant
+    Real spr_k = 10000.0 ; // spring constant
 
     // initial distance btw markers. TODO: Need to update depending on initial
     // coordinates.
     Real l_db = 0.01;
 
     // Parameters for calling bending force calculation
-    Real bend_k = 100000.0; //bending stiffness
+    Real bend_k = 10000.0; //bending stiffness
     Real cos_theta0 = 1.0; //initial cos_theta value
     int mark1_id, mark1_cpu;
 
@@ -249,7 +249,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // crank-nicolson terms
     StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
-
     //___________________________________________________________________________
     // Interpolate immersed boundary predictor
     std::array<MultiFab, AMREX_SPACEDIM> umac_buffer;
@@ -262,6 +261,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.ResetPredictor(0);
     ib_mc.InterpolatePredictor(0, umac_buffer);
 
+    //Print() << "This is right before the predictor force particle loop" << std::endl;
+
 
     // // To simulate a beam bent by perpendicular flow, set the velocity of the FIRST TWO markers to zero
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
@@ -270,7 +271,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
-        long np = markers.size();
+       long np = markers.size();
+
+      // Print() << " # of particles np = " << np << std::endl;
+
 
         // search for the first marker created and set its velocity to zero
         for (int i = 0; i < np; ++i) {
@@ -280,6 +284,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             mark.rdata(IBM_realData::pred_forcex) = 0.;
             mark.rdata(IBM_realData::pred_forcey) = 0.;
             mark.rdata(IBM_realData::pred_forcez) = 0.;
+
+            //Print() << " set pred_forcex = " << mark.rdata(IBM_realData::pred_forcex) << std::endl;
+            //Print() << " set pred_forcey = " << mark.rdata(IBM_realData::pred_forcey) << std::endl;
+            //Print() << " set pred_forcez = " << mark.rdata(IBM_realData::pred_forcez) << std::endl;
+
 
             if (mark.idata(IBM_intData::id_0) == -1 && mark.idata(IBM_intData::cpu_0 == -1)) {
                mark.rdata(IBM_realData::pred_velx) = 0.;
@@ -362,6 +371,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_data, nbhd,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
+            
+            Print() << "force Particle #" << i+1 << "," << "force Neighbor Status = " << status << std::endl;
+            Print() << "force current particle neighbor list:"<< nbhd[nbhd_index] << std::endl;
+            // Print() << "force current particle ID and CPU:"<<mark.id()<<" and "<<mark.cpu()<<std::endl;
+            //Print() << "force current particle ID_0 and CPU_0:"<<mark.idata(IBM_intData::id_0)<<" and "<<mark.idata(IBM_intData::cpu_0)<<std::endl; 
 
             if (status == 2 || status == 0) { // has prev, only update spring forces for current and prev/minus markers
 
@@ -375,6 +389,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real l2 = rx*rx + ry*ry + rz*rz;
                 Real lp = std::sqrt(l2);
 
+                Print() << "This is right before updating predictor force" << std::endl;
+
+                Print() << " pred_forcex = " << mark.rdata(IBM_realData::pred_forcex) << std::endl;
+                Print() << " pred_forcey = " << mark.rdata(IBM_realData::pred_forcey) << std::endl;
+                Print() << " pred_forcez = " << mark.rdata(IBM_realData::pred_forcez) << std::endl;
+
+
                 mark.rdata(IBM_realData::pred_forcex) -= spr_k * rx/lp*(lp-l_db);
                 mark.rdata(IBM_realData::pred_forcey) -= spr_k * ry/lp*(lp-l_db);
                 mark.rdata(IBM_realData::pred_forcez) -= spr_k * rz/lp*(lp-l_db);
@@ -382,6 +403,17 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 prev_marker->rdata(IBM_realData::pred_forcex) += spr_k * rx/lp*(lp-l_db);
                 prev_marker->rdata(IBM_realData::pred_forcey) += spr_k * ry/lp*(lp-l_db);
                 prev_marker->rdata(IBM_realData::pred_forcez) += spr_k * rz/lp*(lp-l_db);
+  
+                Print() << " spring forcex = " << spr_k * rx*(lp-l_db)/lp << std::endl;
+                Print() << " spring forcey = " << spr_k * ry*(lp-l_db)/lp << std::endl;
+                Print() << " spring forcez = " << spr_k * rz*(lp-l_db)/lp << std::endl;
+
+                Print() << "This is right after updating predictor force" << std::endl;
+
+                Print() << " pred_forcex = " << mark.rdata(IBM_realData::pred_forcex) << std::endl;
+                Print() << " pred_forcey = " << mark.rdata(IBM_realData::pred_forcey) << std::endl;
+                Print() << " pred_forcez = " << mark.rdata(IBM_realData::pred_forcez) << std::endl;
+
 
             } 
 	    
@@ -415,6 +447,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 next_marker->rdata(IBM_realData::pred_forcex) += f_p[0];
                 next_marker->rdata(IBM_realData::pred_forcey) += f_p[1];
                 next_marker->rdata(IBM_realData::pred_forcez) += f_p[2];
+           
+                Print() << " pred bending force f = " << f << std::endl;
+                Print() << " pred bending force f_m  = " << f_m << std::endl;
+                Print() << " pred bending force f_p = " << f_p << std::endl;
+
             } 
             
             // Increment neighbor list
@@ -521,6 +558,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     ib_mc.ResetMarkers(0);
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
+
+
+    //Print() << "This is right before the predictor force particle loop" << std::endl;
 
 
     // // To simulate a beam bent by perpendicular flow, set the velocity of the FIRST TWO markers to zero
@@ -643,6 +683,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 prev_marker->rdata(IBM_realData::forcey) += spr_k * ry/lp*(lp-l_db);
                 prev_marker->rdata(IBM_realData::forcez) += spr_k * rz/lp*(lp-l_db);
 
+                Print() << " corr forcex = " << mark.rdata(IBM_realData::forcex) << std::endl;
+                Print() << " corr forcey = " << mark.rdata(IBM_realData::forcey) << std::endl;
+                Print() << " corr forcez = " << mark.rdata(IBM_realData::forcez) << std::endl;
+
             } 
 
 	    if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
@@ -667,6 +711,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 next_marker->rdata(IBM_realData::forcex) += f_p[0];
                 next_marker->rdata(IBM_realData::forcey) += f_p[1];
                 next_marker->rdata(IBM_realData::forcez) += f_p[2];
+
+                Print() << " corr bending force f = " << f << std::endl;
+                Print() << " corr bending force f_m  = " << f_m << std::endl;
+                Print() << " corr bending force f_p = " << f_p << std::endl;
+
+                Print() << " corr TOTAL force fx = " << mark.rdata(IBM_realData::forcex) << std::endl;
+                Print() << " corr TOTAL force fy = " << mark.rdata(IBM_realData::forcey) << std::endl;
+                Print() << " corr TOTAL force fz = " << mark.rdata(IBM_realData::forcez) << std::endl;
+ 
+                Print() << " corr TOTAL force f_mx = " << prev_marker->rdata(IBM_realData::forcex) << std::endl;
+                Print() << " corr TOTAL force f_my = " << prev_marker->rdata(IBM_realData::forcey) << std::endl;
+                Print() << " corr TOTAL force f_mz = " << prev_marker->rdata(IBM_realData::forcez) << std::endl;
+
+                Print() << " corr TOTAL force f_px = " << next_marker->rdata(IBM_realData::forcex) << std::endl;
+                Print() << " corr TOTAL force f_py = " << next_marker->rdata(IBM_realData::forcey) << std::endl;
+                Print() << " corr TOTAL force f_pz = " << next_marker->rdata(IBM_realData::forcez) << std::endl;
+
             }
 
             // Increment neighbor list
