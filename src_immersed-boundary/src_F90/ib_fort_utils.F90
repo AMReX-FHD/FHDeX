@@ -627,7 +627,7 @@ contains
         !         do i = lo(1), hi(1) + 1
         do k = klo, khi
             do j = jlo, jhi
-                do i = ilo, ihi
+                do i = ilo, ihi + 1
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -651,7 +651,7 @@ contains
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
         do k = klo, khi
-            do j = jlo, jhi
+            do j = jlo, jhi + 1
                 do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
@@ -675,7 +675,7 @@ contains
         ! do k = lo(3), hi(3) + 1
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
-        do k = klo, khi
+        do k = klo, khi + 1
             do j = jlo, jhi
                 do i = ilo, ihi
 
@@ -699,6 +699,7 @@ contains
 
 
     subroutine spread_markers(lo,         hi,                  &
+            &                 tile_lo,    tile_hi,             &
             &                 mf_x,       mfx_lo,   mfx_hi,    &
             &                 mf_y,       mfy_lo,   mfy_hi,    &
             &                 mf_z,       mfz_lo,   mfz_hi,    &
@@ -714,7 +715,7 @@ contains
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
 
         ! ** OUT: vector quantity `v_marker` is spread to (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -786,7 +787,19 @@ contains
 
 
         do i =  1, n_marker
+
             pos = pos_marker(:, i)
+
+            ! skip marker if outside tile box (prevent double-counting)
+            if (pos(1) .lt. tile_lo(1)*dx(1) ) cycle
+            if (pos(1) .gt. (tile_hi(1)+1)*dx(1) ) cycle
+
+            if (pos(2) .lt. tile_lo(2)*dx(2) ) cycle
+            if (pos(2) .gt. (tile_hi(2)+1)*dx(2) ) cycle
+
+            if (pos(3) .lt. tile_lo(3)*dx(3) ) cycle
+            if (pos(3) .gt. (tile_hi(3)+1)*dx(3) ) cycle
+
             v_spread = v_marker(:, i)
 
             call spread_kernel(lo,       hi,               &
@@ -913,7 +926,7 @@ contains
         !         do i = lo(1), hi(1) + 1
         do k = klo, khi
             do j = jlo, jhi
-                do i = ilo, ihi
+                do i = ilo, ihi + 1
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -942,7 +955,7 @@ contains
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
         do k = klo, khi
-            do j = jlo, jhi
+            do j = jlo, jhi + 1
                 do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
@@ -971,7 +984,7 @@ contains
         ! do k = lo(3), hi(3) + 1
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
-        do k = klo, khi
+        do k = klo, khi + 1
             do j = jlo, jhi
                 do i = ilo, ihi
 
@@ -1000,6 +1013,7 @@ contains
 
 
     subroutine interpolate_markers(lo,         hi,                  &
+            &                      tile_lo,    tile_hi,             &
             &                      mf_x,       mfx_lo,   mfx_hi,    &
             &                      mf_y,       mfy_lo,   mfy_hi,    &
             &                      mf_z,       mfz_lo,   mfz_hi,    &
@@ -1015,7 +1029,7 @@ contains
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
 
         ! ** IN:  vector quantity `v_marker` is interpolated from (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -1088,7 +1102,20 @@ contains
 
         do i =  1, n_marker
             pos = pos_marker(:, i)
+
+            ! skip marker if outside tile box (prevent double-counting)
+            if (pos(1) .lt. tile_lo(1)*dx(1) ) cycle
+            if (pos(1) .gt. (tile_hi(1)+1)*dx(1) ) cycle
+
+            if (pos(2) .lt. tile_lo(2)*dx(2) ) cycle
+            if (pos(2) .gt. (tile_hi(2)+1)*dx(2) ) cycle
+
+            if (pos(3) .lt. tile_lo(3)*dx(3) ) cycle
+            if (pos(3) .gt. (tile_hi(3)+1)*dx(3) ) cycle
+
+
             v_spread = (/0d0, 0d0, 0d0/) ! v_marker(:, i)
+
 
             call interpolate_kernel(lo,       hi,               &
                 &                   mf_x,     mfx_lo,   mfx_hi, &
@@ -1199,11 +1226,10 @@ contains
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1) + 1
-
         ct_face = 0
         do k = klo, khi
             do j = jlo, jhi
-                do i = ilo, ihi
+                do i = ilo, ihi + 1
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -1225,7 +1251,7 @@ contains
 
         do k = klo, khi
             do j = jlo, jhi
-                do i = ilo, ihi
+                do i = ilo, ihi + 1
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -1249,10 +1275,9 @@ contains
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
-
         ct_face = 0
         do k = klo, khi
-            do j = jlo, jhi
+            do j = jlo, jhi + 1
                 do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
@@ -1274,7 +1299,7 @@ contains
         v_scaled(2) = v_spread(2)/ct_face
 
         do k = klo, khi
-            do j = jlo, jhi
+            do j = jlo, jhi + 1
                 do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
@@ -1301,7 +1326,7 @@ contains
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
         ct_face = 0
-        do k = klo, khi
+        do k = klo, khi + 1
             do j = jlo, jhi
                 do i = ilo, ihi
 
@@ -1323,7 +1348,7 @@ contains
 
         v_scaled(3) = v_spread(3)/ct_face
 
-        do k = klo, khi
+        do k = klo, khi + 1
             do j = jlo, jhi
                 do i = ilo, ihi
 
@@ -1349,6 +1374,7 @@ contains
 
 
     subroutine inv_interpolate_markers(lo,         hi,                  &
+            &                          tile_lo,    tile_hi,             &
             &                          mf_x,       mfx_lo,   mfx_hi,    &
             &                          mf_y,       mfy_lo,   mfy_hi,    &
             &                          mf_z,       mfz_lo,   mfz_hi,    &
@@ -1361,7 +1387,7 @@ contains
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
 
         ! ** OUT: vector quantity `v_marker` is spread to (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -1534,11 +1560,10 @@ contains
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1) + 1
-
         ct_face = 0
         do k = klo, khi
             do j = jlo, jhi
-                do i = ilo, ihi
+                do i = ilo, ihi + 1
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -1564,10 +1589,9 @@ contains
         ! do k = lo(3), hi(3)
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
-
         ct_face = 0
         do k = klo, khi
-            do j = jlo, jhi
+            do j = jlo, jhi + 1
                 do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
@@ -1594,9 +1618,8 @@ contains
         ! do k = lo(3), hi(3) + 1
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
-
         ct_face = 0;
-        do k = klo, khi
+        do k = klo, khi + 1
             do j = jlo, jhi
                 do i = ilo, ihi
 
@@ -1625,6 +1648,7 @@ contains
 
 
     subroutine inv_spread_markers(lo,         hi,                  &
+            &                     tile_lo,    tile_hi,             &
             &                     mf_x,       mfx_lo,   mfx_hi,    &
             &                     mf_y,       mfy_lo,   mfy_hi,    &
             &                     mf_z,       mfz_lo,   mfz_hi,    &
@@ -1637,7 +1661,7 @@ contains
 
         !________________________________________________________________________
         ! ** work region
-        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi, tile_lo, tile_hi
 
         ! ** IN:  vector quantity `v_marker` is interpolated from (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi

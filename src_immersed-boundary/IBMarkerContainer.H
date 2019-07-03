@@ -105,6 +105,9 @@ public:
     using NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
         ::NeighborParticleContainer;
 
+    using MyConstParIter = ParConstIter<IBM_realData::count, IBM_intData::count, 0, 0>;
+
+
     IBMarkerContainer(AmrCore * amr_core, int n_nbhd);
     IBMarkerContainer(const Geometry & geom, const DistributionMapping & dmap,
                       const BoxArray & ba, int n_nbhd);
@@ -271,19 +274,18 @@ public:
 
 
     struct {
-        bool operator()(const ParticleType & p1, const ParticleType & p2) const
-            {
-                return AMREX_D_TERM((p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
-                                     + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-                                     + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-                    <= 4.0*p1.rdata(0)*p1.rdata(0);
-            }
+        bool operator()(const ParticleType & p1, const ParticleType & p2) const {
+            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
+                                 + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                 + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                <= 4.0*p1.rdata(0)*p1.rdata(0);
+        }
     } CheckPair;
 
     const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
         return  face_coords;
     }
- 
+
 
 private:
 
