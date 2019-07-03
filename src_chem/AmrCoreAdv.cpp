@@ -721,7 +721,7 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 //        if (lev < max_level && istep[lev] > last_regrid_step[lev]) {
 //            if (istep[lev] % regrid_int == 0) {
 //
-                // regrid could add newly refine levels (if finest_level < max_level)
+               // regrid could add newly refine levels (if finest_level < max_level)
                 // so we save the previous finest level index
 //                int old_finest = finest_level;
 //                regrid(lev, time);
@@ -930,10 +930,14 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 //    std::cout << "max con 3 "<< (*con_new[lev]).max(0) <<std::endl;
 
     // After updating con_new we compute the first derivatives
-    MultiFab &  sx_mf       = * Dcon_x[lev];
-    MultiFab &  sy_mf       = * Dcon_y[lev];
-    MultiFab &  sz_mf       = * Dcon_z[lev];
-    MultiFab &  sd_mf       = * MagDcon[lev];
+    MultiFab &  sxf_mf       = * Dcon_x[lev];
+    MultiFab &  syf_mf       = * Dcon_y[lev];
+    MultiFab &  szf_mf       = * Dcon_z[lev];
+
+//    MultiFab &  sxc_mf       = * Dcon_x[lev];
+//    MultiFab &  syc_mf       = * Dcon_y[lev];
+//    MultiFab &  szc_mf       = * Dcon_z[lev];
+       
     MultiFab &  ls_mf       = * levset;
     MultiFab &  xf_mf       = * xface[lev];
     MultiFab &  yf_mf       = * yface[lev];
@@ -965,15 +969,14 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & stateout      =   S_new_fill[mfi];
             IArrayBox & fabsl         =      sloc_mf[mfi];
             FArrayBox & fabsls        =      ls_mf[mfi];
-            FArrayBox & fabsd         =      sd_mf[mfi];
             
             FArrayBox & fabx         =        x_mf[mfi];
             FArrayBox & faby         =        y_mf[mfi];
             FArrayBox & fabz         =        z_mf[mfi];
 
-            FArrayBox & fabsx         =        sx_mf[mfi];
-            FArrayBox & fabsy         =        sy_mf[mfi];
-            FArrayBox & fabsz         =        sz_mf[mfi];
+            FArrayBox & fabsx         =        sxf_mf[mfi];
+            FArrayBox & fabsy         =        syf_mf[mfi];
+            FArrayBox & fabsz         =        szf_mf[mfi];
             
             FArrayBox & fabxf         =        xf_mf[mfi];
             FArrayBox & fabyf         =        yf_mf[mfi];
@@ -997,26 +1000,131 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabsl),
                                 & Sphere_cent_x, & Sphere_cent_y,
                                 & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
-                std::cout << "Advance max Ls 4 "<< fabsls.max()<<std::endl;
-                get_surfgrad_3d( bx.loVect(), bx.hiVect(),
+                std::cout <<" get congrad 3d  dx= "<< *dx<<std::endl;
+
+            }
+        }
+    }
+    // Avergage face centered grad C to cell centered  
+    MultiFab  sxc_mf(badp,dmdp,1,1);
+    MultiFab  syc_mf(badp,dmdp,1,1);
+    MultiFab  szc_mf(badp,dmdp,1,1);
+    MultiFab  s_mf(badp,dmdp,1,1);
+    MultiFab &  sd_mf       = * MagDcon[lev];
+
+    AverageFaceToCC(sxf_mf, 0, sxc_mf, 0, 1);
+    AverageFaceToCC(syf_mf, 0, syc_mf, 0, 1);
+    AverageFaceToCC(szf_mf, 0, szc_mf, 0, 1);
+ 
+    sxc_mf.FillBoundary(geom[lev].periodicity());
+    syc_mf.FillBoundary(geom[lev].periodicity());
+    szc_mf.FillBoundary(geom[lev].periodicity());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+    {
+        for (MFIter mfi(S_new_fill, true); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.tilebox();
+
+            FArrayBox & fabsls        =      ls_mf[mfi];
+            FArrayBox & fabsd         =      sd_mf[mfi];
+            FArrayBox & fabS          =      s_mf[mfi];
+  
+            FArrayBox & fabx         =        x_mf[mfi];
+            FArrayBox & faby         =        y_mf[mfi];
+            FArrayBox & fabz         =        z_mf[mfi];
+
+            FArrayBox & fabsx         =        sxc_mf[mfi];
+            FArrayBox & fabsy         =        syc_mf[mfi];
+            FArrayBox & fabsz         =        szc_mf[mfi];
+            
+            FArrayBox & fabxf         =        xf_mf[mfi];
+            FArrayBox & fabyf         =        yf_mf[mfi];
+            FArrayBox & fabzf         =        zf_mf[mfi];
+
+            // compute velocities on faces (prescribed function of space and time)
+            if (BL_SPACEDIM==2) {
+            std::cout << "No support for 2D yet" << std::endl;
+             } else {
+                get_gradCdotncc_3d( bx.loVect(), bx.hiVect(),
                                 BL_TO_FORTRAN_3D(fabx),
                                 BL_TO_FORTRAN_3D(faby),
                                 BL_TO_FORTRAN_3D(fabz),
-                                BL_TO_FORTRAN_3D(fabsx),
-                                BL_TO_FORTRAN_3D(fabsy),
-                                BL_TO_FORTRAN_3D(fabsz),
+                                BL_TO_FORTRAN_3D(fabS),
                                 BL_TO_FORTRAN_3D(fabsd),
                                 BL_TO_FORTRAN_3D(fabsls),
                                 BL_TO_FORTRAN_3D(fabxf),
                                 BL_TO_FORTRAN_3D(fabyf),
                                 BL_TO_FORTRAN_3D(fabzf),
-                                & Sphere_cent_x, & Sphere_cent_y,
-                                & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
-
+                                dx, AMREX_ZFILL(prob_lo));
+ 
             }
         }
     }
-    std::cout << "Advance max Ls 5 "<< ls_mf.max(0)<<std::endl;
+    std::array< MultiFab, AMREX_SPACEDIM > Sface_array;
+    Sface_array[0].define(badpx, dmdpx, 1, 1);
+    Sface_array[1].define(badpy, dmdpy, 1, 1);
+    Sface_array[2].define(badpz, dmdpz, 1, 1);
+
+    Sface_array[0].FillBoundary(geom[lev].periodicity());
+    Sface_array[1].FillBoundary(geom[lev].periodicity());
+    Sface_array[2].FillBoundary(geom[lev].periodicity());
+ 
+   s_mf.FillBoundary(geom[lev].periodicity());
+ 
+   AverageCCToFace(s_mf, 0, Sface_array,0,1);
+   MultiFab & Sxf_mf= (Sface_array[0]);
+   MultiFab & Syf_mf= (Sface_array[1]);
+   MultiFab & Szf_mf= (Sface_array[2]);
+
+    {
+        for (MFIter mfi(S_new_fill, true); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.tilebox();
+
+            FArrayBox & fabsls        =      ls_mf[mfi];
+  
+            FArrayBox & fabx         =        x_mf[mfi];
+            FArrayBox & faby         =        y_mf[mfi];
+            FArrayBox & fabz         =        z_mf[mfi];
+            
+            FArrayBox & fabSx         =        Sxf_mf[mfi];
+            FArrayBox & fabSy         =        Syf_mf[mfi];
+            FArrayBox & fabSz         =        Szf_mf[mfi];
+
+            FArrayBox & fabsx         =        sxf_mf[mfi];
+            FArrayBox & fabsy         =        syf_mf[mfi];
+            FArrayBox & fabsz         =        szf_mf[mfi];
+            
+            FArrayBox & fabxf         =        xf_mf[mfi];
+            FArrayBox & fabyf         =        yf_mf[mfi];
+            FArrayBox & fabzf         =        zf_mf[mfi];
+
+            // compute velocities on faces (prescribed function of space and time)
+            if (BL_SPACEDIM==2) {
+            std::cout << "No support for 2D yet" << std::endl;
+             } else {
+            std::cout << " dx " << *dx <<std::endl;
+        //        get_surfgrad_3d( bx.loVect(), bx.hiVect(),
+        //                        BL_TO_FORTRAN_3D(fabx),
+        //                        BL_TO_FORTRAN_3D(faby),
+        //                        BL_TO_FORTRAN_3D(fabz),
+        //                        BL_TO_FORTRAN_3D(fabSx),
+        //                        BL_TO_FORTRAN_3D(fabSy),
+        //                        BL_TO_FORTRAN_3D(fabSz),
+        //                        BL_TO_FORTRAN_3D(fabsx),
+        //                        BL_TO_FORTRAN_3D(fabsy),
+        //                        BL_TO_FORTRAN_3D(fabsz),
+        //                        BL_TO_FORTRAN_3D(fabsls),
+        //                        BL_TO_FORTRAN_3D(fabxf),
+        //                        BL_TO_FORTRAN_3D(fabyf),
+        //                        BL_TO_FORTRAN_3D(fabzf),
+        //                        dx, AMREX_ZFILL(prob_lo));
+ 
+           }
+    }
+}
+   std::cout << "Advance max Ls 5 "<< ls_mf.max(0)<<std::endl;
     
 
     std::cout << "Advance max Ls 6 "<< (*levset).max(0)<<std::endl;

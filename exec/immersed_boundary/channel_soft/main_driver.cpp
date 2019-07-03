@@ -4,7 +4,6 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
-#include "analysis_functions_F.H"
 #include "StochMFlux.H"
 #include "StructFact.H"
 
@@ -320,7 +319,7 @@ void main_driver(const char * argv) {
     s_pairB[2] = 2;
 #endif
 
-    StructFact structFact(ba, dmap, var_names);
+    //StructFact structFact(ba, dmap, var_names);
     // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
 
 
@@ -594,7 +593,7 @@ void main_driver(const char * argv) {
             for(int d=0; d<AMREX_SPACEDIM; d++)
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
 
-            structFact.FortStructure(struct_in_cc,geom);
+          //  structFact.FortStructure(struct_in_cc,geom);
         }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
@@ -625,8 +624,8 @@ void main_driver(const char * argv) {
         Real SFscale = dVol/(k_B*temp_const);
         // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-        structFact.Finalize(SFscale);
-        structFact.WritePlotFile(step,time,geom);
+        //structFact.Finalize(SFscale);
+       // structFact.WritePlotFile(step,time,geom);
     }
 
     // Call the timer again and compute the maximum difference between the start
