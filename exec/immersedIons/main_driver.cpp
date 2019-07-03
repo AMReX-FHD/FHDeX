@@ -737,6 +737,7 @@ void main_driver(const char* argv)
 
         if(sr_tog==1 || es_tog==3)
         {
+                particles.Redistribute();
                 particles.clearNeighbors();
 
                 particles.fillNeighbors();
