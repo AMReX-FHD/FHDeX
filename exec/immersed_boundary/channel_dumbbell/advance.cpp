@@ -305,12 +305,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             if (status == 1) {        // has next, has no prev
 
-                Real rx = next_marker->rdata(IBM_realData::pred_posx)
-                        - mark.rdata(IBM_realData::pred_posx);
-                Real ry = next_marker->rdata(IBM_realData::pred_posy)
-                        - mark.rdata(IBM_realData::pred_posy);
-                Real rz = next_marker->rdata(IBM_realData::pred_posz)
-                        - mark.rdata(IBM_realData::pred_posz);
+                Real rx = next_marker->pos(0) + next_marker->rdata(IBM_realData::pred_posx)
+                        - (mark.pos(0) + mark.rdata(IBM_realData::pred_posx));
+                Real ry = next_marker->pos(1) + next_marker->rdata(IBM_realData::pred_posy)
+                        - (mark.pos(1) + mark.rdata(IBM_realData::pred_posy));
+                Real rz = next_marker->pos(2) + next_marker->rdata(IBM_realData::pred_posz)
+                        - (mark.pos(2) + mark.rdata(IBM_realData::pred_posz));
 
                 Real l2 = rx*rx + ry*ry + rz*rz;
                 Real lp = std::sqrt(l2);
@@ -325,12 +325,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             } else if (status == 2) { // has prev, has no next
 
-                Real rx = mark.rdata(IBM_realData::pred_posx)
-                        - prev_marker->rdata(IBM_realData::pred_posx);
-                Real ry = mark.rdata(IBM_realData::pred_posy)
-                        - prev_marker->rdata(IBM_realData::pred_posy);
-                Real rz = mark.rdata(IBM_realData::pred_posz)
-                        - prev_marker->rdata(IBM_realData::pred_posz);
+                Real rx = mark.pos(0) + mark.rdata(IBM_realData::pred_posx)
+                        - (prev_marker->pos(0) + prev_marker->rdata(IBM_realData::pred_posx));
+                Real ry = mark.pos(1) + mark.rdata(IBM_realData::pred_posy)
+                        - (prev_marker->pos(1) + prev_marker->rdata(IBM_realData::pred_posy));
+                Real rz = mark.pos(2) + mark.rdata(IBM_realData::pred_posz)
+                        - (prev_marker->pos(2) + prev_marker->rdata(IBM_realData::pred_posz));
 
                 Real l2 = rx*rx + ry*ry + rz*rz;
                 Real lp = std::sqrt(l2);
@@ -355,16 +355,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Spread forces to predictor
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
-           fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-           fc_force_pred[d].setVal(0.);
+        fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        fc_force_pred[d].setVal(0.);
     }
 
 
     // Spread predictor forces
-    ib_mc.fillNeighbors(); // this might be redundant
     ib_mc.SpreadPredictor(0, fc_force_pred);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
-        fc_force_pred[d].FillBoundary(geom.periodicity());
+        fc_force_pred[d].SumBoundary(geom.periodicity());
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -440,7 +439,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umacNew_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-        MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umac[d].nGrow());
+        MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umacNew[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
     }
 
@@ -495,6 +494,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
 
+
             if (status == 1) {        // has next, has no prev
 
                 Real rx = next_marker->pos(0) - mark.pos(0);
@@ -541,15 +541,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Spread forces to corrector
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
-        fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
+        fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
         fc_force_corr[d].setVal(0.);
     }
 
     // Spread to the `fc_force` multifab
-    ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles
     ib_mc.SpreadMarkers(0, fc_force_corr);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
-        fc_force_corr[d].FillBoundary(geom.periodicity());
+        fc_force_corr[d].SumBoundary(geom.periodicity());
 
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
