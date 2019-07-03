@@ -131,14 +131,15 @@ void main_driver(const char* argv)
     MultiFab cup2(ba,dmap,nvars,ngc);
     MultiFab cup3(ba,dmap,nvars,ngc);
 
+    //primative quantaties
+    MultiFab prim(ba,dmap,nprimvars,ngc);
+
+    //statistics
     MultiFab cuMeans(ba,dmap,nvars,ngc);
     MultiFab cuVars(ba,dmap,nvars,ngc);
 
     MultiFab cuMeansAv(ba,dmap,nvars,ngc);
     MultiFab cuVarsAv(ba,dmap,nvars,ngc);
-
-    //primative quantaties
-    MultiFab prim(ba,dmap,nprimvars,ngc);
 
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
     MultiFab primVars(ba,dmap,nprimvars + 5,ngc);
@@ -152,6 +153,8 @@ void main_driver(const char* argv)
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
 
+    MultiFab spatialCross(ba,dmap,6,ngc);
+    MultiFab spatialCrossAv(ba,dmap,6,ngc);
 
     Real delHolder1[n_cells[1]*n_cells[2]];
     Real delHolder2[n_cells[1]*n_cells[2]];
@@ -159,10 +162,6 @@ void main_driver(const char* argv)
     Real delHolder4[n_cells[1]*n_cells[2]];
     Real delHolder5[n_cells[1]*n_cells[2]];
     Real delHolder6[n_cells[1]*n_cells[2]];
-
-    MultiFab spatialCross(ba,dmap,6,ngc);
-
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -187,8 +186,6 @@ void main_driver(const char* argv)
     prim.setVal(0,2,1,ngc);
     prim.setVal(0,3,1,ngc);
     prim.setVal(T_init[0],4,1,ngc);
-
-    // amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
 
     double massvec[nspecies];
     double intEnergy, T0;
@@ -265,15 +262,20 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
-
-    Real P_bar = 0.0;
+    
+    Real molmix;
+    Real P_bar;
     Real dVol = dx[0]*dx[1];
+    Real c_v;
     int tot_n_cells = n_cells[0]*n_cells[1];
     // calc eqm pressure
+    molmix = 0.0;
     for(int i=0; i<nspecies; i++) {
-	P_bar += rhobar[i]/molmass[i];
+	molmix += rhobar[i]/molmass[i];
     }
-    P_bar *= rho0*Runiv*T_init[0];
+    molmix = 1.0/molmix;
+    P_bar = rho0*(Runiv/molmix)*T0;
+    c_v = 1.5*Runiv/molmix;
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
 	dVol *= cell_depth;
@@ -282,39 +284,19 @@ void main_driver(const char* argv)
 	tot_n_cells = n_cells[2]*tot_n_cells;
     }
     // calc momentum variance
-    Real Jscale = rho0*k_B*T_init[0]/dVol;
+    Real Jeqvar = rho0*k_B*T0/dVol;
 
     // setup covariance eqm. variance matrix
     int cnt = 0;
     int nvar_sf = nvars;
     int ncov_sf = nvar_sf*(nvar_sf+1)/2;
     int nb_sf = 4;
-    int nbcov_sf = nb_sf*(nb_sf+1)/2;;
+    int nbcov_sf = nb_sf*(nb_sf+1)/2;
 
     // struct. fact. eqm. variances
     Vector< Real > eqmvars(ncov_sf);
     Vector< Real > beqmvars(nbcov_sf);
     Vector< int > blocks(nb_sf);
-
-    // covariance matrix block sizes
-    cnt = 0;
-    blocks[cnt++] = 1;
-    blocks[cnt++] = AMREX_SPACEDIM;
-    blocks[cnt++] = 1;
-    blocks[cnt++] = nspecies;
-
-    // covariance matrix block scaling
-    cnt = 0;
-    beqmvars[cnt++] = rho0/P_bar*Jscale;                  // rho,rho
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jscale;            // J_i,rho - using dimensions only
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*T_init[0]*Jscale;  // rhoE,rho - using dimensions only
-    beqmvars[cnt++] = rho0/P_bar*Jscale;                  // rho_k,rho - not scaled by mass fractions
-    beqmvars[cnt++] = Jscale;                            // J_i,J_j
-    beqmvars[cnt++] = T_init[0]*Jscale;                  // rhoE,J_j - using dimensions only
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jscale;            // rho_k,J_j - using dimensions only
-    beqmvars[cnt++] = T_init[0]*T_init[0]*Jscale;        // rhoE,rhoE
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*T_init[0]*Jscale;  // rho_k,rhoE - not scaled by mass fractions
-    beqmvars[cnt++] = rho0/P_bar*Jscale;                  // rho_k,rho_l - not scaled by mass fractions
 
     // layout of covariance matrix:
     //
@@ -326,28 +308,61 @@ void main_driver(const char* argv)
     // | <rho1,rho>     <rho1,Jx>   ...   <rho1,rhoE>    <rho1,rho1>  ... |
     // |    ...            ...      ...       ...            ...      ... |
 
+    // covariance matrix block sizes
+    cnt = 0;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = AMREX_SPACEDIM;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = nspecies;
+
+    // covariance matrix block scaling
+    cnt = 0;
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;               // rho,rho      - not scaled by mass fracs
+    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;         // J_i,rho      - dimensionless only
+    beqmvars[cnt++] = sqrt(rho0/P_bar*T0*c_v)*Jeqvar;  // rhoE,rho     - dimensionless only
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;               // rho_k,rho    - not scaled by mass fracs
+    beqmvars[cnt++] = Jeqvar;                          // J_i,J_j
+    beqmvars[cnt++] = sqrt(T0*c_v)*Jeqvar;             // rhoE,J_j     - dimensionless only
+    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;         // rho_k,J_j    - dimensionless only
+    beqmvars[cnt++] = T0*c_v*Jeqvar;                   // rhoE,rhoE
+    beqmvars[cnt++] = sqrt(rho0/P_bar*T0*c_v)*Jeqvar;  // rho_k,rhoE   - not scaled by mass fracs
+    beqmvars[cnt++] = rho0/P_bar*Jeqvar;               // rho_k,rho_l  - not scaled by mass fracs
+
+    // for (int d=0; d<nbcov_sf; d++) {
+    //   beqmvars[d] = 1.0;
+    // }
+
     cnt = 0;
     int bcnt = 0;
+    int ig, jg = 0;
     // loop over matrix blocks
     for(int jb=0; jb<nb_sf; jb++) {
-	for(int ib=jb; ib<nb_sf; ib++) {
-
-	    // loop within blocks
-	    for(int j=0; j<blocks[jb]; j++) {
-		int low_ind;
-		if(ib==jb){      // if block lies on diagonal...
-		    low_ind=j;
-		} else {
-		    low_ind=0;
-		}
-		for(int i=low_ind; i<blocks[ib]; i++) {
-		    eqmvars[cnt++] = beqmvars[bcnt];
-		}
-	    }
-
-	    bcnt++;
+      ig = jg;
+      for(int ib=jb; ib<nb_sf; ib++) {
+	// loop within blocks
+	for(int j=0; j<blocks[jb]; j++) {
+	  int low_ind;
+	  if(ib==jb){      // if block lies on diagonal...
+	    low_ind=j;
+	  } else {
+	    low_ind=0;
+	  }
+	  for(int i=low_ind; i<blocks[ib]; i++) {
+	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
+	    eqmvars[cnt] = beqmvars[bcnt];
+	    // Print() << "Hack: " << ig+i << " " << jg+j << " " << cnt << " " << eqmvars[cnt] << std::endl;
+	  }
 	}
+	bcnt++;
+	ig += blocks[ib];
+      }
+      jg += blocks[jb];
     }
+    
+    // for (int d=0; d<ncov_sf; d++) {
+    //   Print() << "Hack: scaling = " << eqmvars[d] << " " << d << std::endl;
+    // }
+    // exit(0);
 
     // set variable names
     cnt = 0;
@@ -356,12 +371,12 @@ void main_driver(const char* argv)
     std::string x;
     var_names[cnt++] = "rho";
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "mom";
+      x = "J";
       x += (120+d);
       var_names[cnt++] = x;
     }
-    var_names[cnt++] = "E";
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
+    var_names[cnt++] = "rhoE";
+    for (int d=0; d<nspecies; d++) {
       x = "rho";
       x += (49+d);
       var_names[cnt++] = x;
@@ -385,7 +400,18 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
 
     //Initialize everything
-    
+
+    // for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+    //   const Box& bx = mfi.validbox();
+
+    //   init_consvar(BL_TO_FORTRAN_BOX(bx),
+    // 	       BL_TO_FORTRAN_FAB(cu[mfi]),
+    // 	       dx, 
+    // 	       // geom.ProbLo(), geom.ProbHi(),
+    // 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+    // }
+	    
     // chi.setVal(0.0);
     // D.setVal(0.0);
     // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -425,36 +451,8 @@ void main_driver(const char* argv)
             spatialCross.setVal(0.0);
 
             statsCount = 1;
-
-            //dt = 2.0*dt;
         }
 
-//        if(step == (int)floor((double)n_steps_skip/2.0))
-//        {
-//            cuMeans.setVal(0.0);
-//            cuVars.setVal(0.0);
-
-//            primMeans.setVal(0.0);
-//            primVars.setVal(0.0);
-
-//            spatialCross.setVal(0.0);
-
-//            statsCount = 1;
-
-//            dt = 2.0*dt;
-//        }
-
-	// for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-	//   const Box& bx = mfi.validbox();
-
-	//   init_consvar(BL_TO_FORTRAN_BOX(bx),
-	// 	       BL_TO_FORTRAN_FAB(cu[mfi]),
-	// 	       dx, 
-	// 	       // geom.ProbLo(), geom.ProbHi(),
-	// 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
-	// }
-	
 	if (step > n_steps_skip) {
 	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
 	}
@@ -462,7 +460,7 @@ void main_driver(const char* argv)
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
 	  structFact.FortStructure(struct_in_cc,geom);
         }
@@ -470,10 +468,7 @@ void main_driver(const char* argv)
 
         statsCount++;
 
-        // if(step%100 == 0)
-        // {    
 	amrex::Print() << "Advanced step " << step << "\n";
-        // }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {
@@ -482,20 +477,17 @@ void main_driver(const char* argv)
            // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
 
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
-	   if (struct_fact_int > 0) {
+	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int)
 	       structFact.WritePlotFile(step,time,geom);
-	   }
         }
 
         time = time + dt;
     }
 
-
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
 
-    // amrex::Abort();
     // amrex::Finalize();
 
 }
