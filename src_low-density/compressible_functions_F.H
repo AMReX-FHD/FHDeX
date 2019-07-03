@@ -38,29 +38,9 @@ extern "C"
 		 amrex::Real* visccorn,
 		 const amrex::Real* dx);
 
-    void hyp_flux_prim(const int* lo, const int* hi,
-		       const amrex::Real* cons,
-		       const amrex::Real* prim,
-		       amrex::Real* xflux,
-		       amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-		       amrex::Real* zflux,
-#endif
-		       const amrex::Real* dx);
-
-    void hyp_flux_cons(const int* lo, const int* hi,
-		       const amrex::Real* cons,
-		       const amrex::Real* prim,
-		       amrex::Real* xflux,
-		       amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-		       amrex::Real* zflux,
-#endif
-		       const amrex::Real* dx);
 
     void stoch_flux(const int* lo, const int* hi,
 		    const amrex::Real* cons,
-		    const amrex::Real* prim,
 		    amrex::Real* xflux,
 		    amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)
@@ -71,12 +51,6 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
 		    amrex::Real* zsflux,
 #endif
-		    const amrex::Real* rancorn,
-		    const amrex::Real* eta,
-		    const amrex::Real* zeta,
-		    const amrex::Real* zappa,
-		    const amrex::Real* chi,
-		    const amrex::Real* Dij,
 		    const amrex::Real* dx, const amrex::Real* dt);
 
   void trans_coeffs(const int* lo, const int* hi,
@@ -96,7 +70,6 @@ extern "C"
   void rk3_stage1(const int* lo, const int* hi,
 			      amrex::Real* cu,
 			      amrex::Real* cup,
-			      const amrex::Real* source,
 			      const amrex::Real* xflux,
 			      const amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)
@@ -109,7 +82,6 @@ extern "C"
 			      const amrex::Real* cu,
 			      amrex::Real* cup,
 			      const amrex::Real* cup2,
-			      const amrex::Real* source,
 			      const amrex::Real* xflux,
 			      const amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)
@@ -122,7 +94,6 @@ extern "C"
 			      amrex::Real* cu,
 			      const amrex::Real* cup,
 			      const amrex::Real* cup2,
-			      const amrex::Real* source,
 			      const amrex::Real* xflux,
 			      const amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)

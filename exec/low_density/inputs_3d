@@ -9,7 +9,7 @@
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
   ngc = 2 2 2
-  nvars = 9
+  nvars = 1
   nprimvars = 14
 
   ! number of cells in domain
