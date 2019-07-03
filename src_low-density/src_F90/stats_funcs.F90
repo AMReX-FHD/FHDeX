@@ -2,7 +2,6 @@ module stats_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, hcv, cross_cell
-  use conv_module
   implicit none
 
   private
@@ -50,13 +49,6 @@ contains
             primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv
             primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv
             primmeans(i,j,k,4) = cumeans(i,j,k,4)*densitymeaninv
-
-            !print *, "Density: ", cu(i,j,k,1)
-
-            call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
-            call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
-
-            totalmass = totalmass + cu(i,j,k,1)
 
 
           enddo

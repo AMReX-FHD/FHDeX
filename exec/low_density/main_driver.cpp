@@ -21,7 +21,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFab.H>
 
-#include "compressible_test_functions_F.H"
 
 using namespace amrex;
 using namespace common;
@@ -44,8 +43,6 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     // InitializeGmresNamespace();
 
-    //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
-    get_hc_gas();
   
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
