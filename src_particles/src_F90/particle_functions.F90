@@ -373,7 +373,6 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   type(surface_t), pointer :: surf
   real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact
 
-  !print*,'HERE entering move_particles_dsmc'
   
   adj = 0.9999999
   adjalt = 2d0*(1d0 - adj)
@@ -567,7 +566,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
                 ! print*,'position',part%pos
                ! print*,'vel',part%vel
-                print*,'surf vel', surf%velz
+                print*,'fortran move', surf%velz, part%id
                 !print*, 'c', surf%grac
                !print*, sin((time*omega))
               ! print*, surf%velz

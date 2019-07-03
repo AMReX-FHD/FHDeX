@@ -39,6 +39,7 @@ extern "C"
 
     void spread_markers(
             const int * lo,             const int * hi,
+            const int * tile_lo,        const int * tile_hi,
                   amrex_real * mf_x,    const int * mfx_lo, const int * mfx_hi,
                   amrex_real * mf_y,    const int * mfy_lo, const int * mfy_hi,
                   amrex_real * mf_z,    const int * mfz_lo, const int * mfz_hi,
@@ -56,6 +57,7 @@ extern "C"
 
     void inv_interpolate_markers(
             const int * lo,             const int * hi,
+            const int * tile_lo,        const int * tile_hi,
                   amrex_real * mf_x,    const int * mfx_lo, const int * mfx_hi,
                   amrex_real * mf_y,    const int * mfy_lo, const int * mfy_hi,
                   amrex_real * mf_z,    const int * mfz_lo, const int * mfz_hi,
@@ -70,6 +72,7 @@ extern "C"
 
     void interpolate_markers(
             const int * lo,             const int * hi,
+            const int * tile_lo,        const int * tile_hi,
             const amrex_real * mf_x,    const int * mfx_lo, const int * mfx_hi,
             const amrex_real * mf_y,    const int * mfy_lo, const int * mfy_hi,
             const amrex_real * mf_z,    const int * mfz_lo, const int * mfz_hi,
@@ -87,6 +90,7 @@ extern "C"
 
     void inv_spread_markers(
             const int * lo,             const int * hi,
+            const int * tile_lo,        const int * tile_hi,
             const amrex_real * mf_x,    const int * mfx_lo, const int * mfx_hi,
             const amrex_real * mf_y,    const int * mfy_lo, const int * mfy_hi,
             const amrex_real * mf_z,    const int * mfz_lo, const int * mfz_hi,
