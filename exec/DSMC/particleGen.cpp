@@ -2,7 +2,7 @@
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
 
-void FhdParticleContainer::InitParticles(species* particleInfo)
+void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
     
     const int lev = 0;

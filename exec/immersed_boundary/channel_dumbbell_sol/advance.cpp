@@ -164,14 +164,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     int ib_lev = 0;
 
     // Parameters for spring force calculation
-    Real spr_k = 100.0 ; // spring constant
+    Real spr_k = 100000.0 ; // spring constant
 
     // initial distance btw markers. TODO: Need to update depending on initial
     // coordinates.
     Real l_db = 0.01;
 
     // Parameters for calling bending force calculation
-    Real bend_k = 100.0; //bending stiffness
+    Real bend_k = 100000.0; //bending stiffness
     Real cos_theta0 = 1.0; //initial cos_theta value
     int mark1_id, mark1_cpu;
 
@@ -262,6 +262,47 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.ResetPredictor(0);
     ib_mc.InterpolatePredictor(0, umac_buffer);
 
+
+    // // To simulate a beam bent by perpendicular flow, set the velocity of the FIRST TWO markers to zero
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        // search for the first marker created and set its velocity to zero
+        for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];              
+           
+            /////Set all forces to zero. Get ready for updating //////// 
+            mark.rdata(IBM_realData::pred_forcex) = 0.;
+            mark.rdata(IBM_realData::pred_forcey) = 0.;
+            mark.rdata(IBM_realData::pred_forcez) = 0.;
+
+            if (mark.idata(IBM_intData::id_0) == -1 && mark.idata(IBM_intData::cpu_0 == -1)) {
+               mark.rdata(IBM_realData::pred_velx) = 0.;
+               mark.rdata(IBM_realData::pred_vely) = 0.;
+               mark.rdata(IBM_realData::pred_velz) = 0.;
+
+               mark1_id  = mark.id();  // used below for searching for second particle created
+               mark1_cpu = mark.cpu();
+            }
+        }
+
+        // search for the second marker created and set its velocity to zero.
+        for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];
+            if (mark.idata(IBM_intData::id_0) == mark1_id && mark.idata(IBM_intData::cpu_0) == mark1_cpu) {
+               mark.rdata(IBM_realData::pred_velx) = 0.;
+               mark.rdata(IBM_realData::pred_vely) = 0.;
+               mark.rdata(IBM_realData::pred_velz) = 0.;
+            }
+        }
+    }
+
+
     //___________________________________________________________________________
     // Move markers according to predictor velocity
     ib_mc.MovePredictor(0, dt);
@@ -290,39 +331,16 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         // Get neighbor list (for collision checking)
         const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
-
                                                          pti.LocalTileIndex());
         long np = markers.size();
  
-
         /////Set all forces to zero. Get ready for updating ////////
-        for (int i = 0; i < np; ++i) {
-            ParticleType & mark = markers[i];
-            mark.rdata(IBM_realData::pred_forcex) = 0.;
-            mark.rdata(IBM_realData::pred_forcey) = 0.;
-            mark.rdata(IBM_realData::pred_forcez) = 0.;
-            
-        // To simulate a beam bent by perpendicular flow, set the velocity of the FIRST TWO markers to zero
-        // search for the first marker created and set its velocity to zero
-            if (mark.idata(IBM_intData::id_0) == -1 && mark.idata(IBM_intData::cpu_0 == -1)) {
-               mark.rdata(IBM_realData::pred_velx) = 0.; 
-               mark.rdata(IBM_realData::pred_vely) = 0.;
-               mark.rdata(IBM_realData::pred_velz) = 0.;
-
-               mark1_id  = mark.id();  // used below for searching for second particle created
-               mark1_cpu = mark.cpu();
-            }
-        }
-
-        // search for the second marker created and set its velocity to zero.
-        for (int i = 0; i < np; ++i) {
-            ParticleType & mark = markers[i];
-            if (mark.idata(IBM_intData::id_0) == mark1_id && mark.idata(IBM_intData::cpu_0) == mark1_cpu) {
-               mark.rdata(IBM_realData::pred_velx) = 0.;
-               mark.rdata(IBM_realData::pred_vely) = 0.;
-               mark.rdata(IBM_realData::pred_velz) = 0.;
-           }
-        }
+        //for (int i = 0; i < np; ++i) {
+        //    ParticleType & mark = markers[i];
+        //    mark.rdata(IBM_realData::pred_forcex) = 0.;
+        //    mark.rdata(IBM_realData::pred_forcey) = 0.;
+        //    mark.rdata(IBM_realData::pred_forcez) = 0.;
+        //}
 
         // Set bending forces to zero
         f_p = RealVect{0., 0., 0.};
@@ -365,7 +383,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 prev_marker->rdata(IBM_realData::pred_forcey) += spr_k * ry/lp*(lp-l_db);
                 prev_marker->rdata(IBM_realData::pred_forcez) += spr_k * rz/lp*(lp-l_db);
 
-            } else if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
+            } 
+	    
+            if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
                 
                 // position vectors
                 RealVect r = RealVect{mark.rdata(IBM_realData::pred_posx),
@@ -503,6 +523,45 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
 
 
+    // // To simulate a beam bent by perpendicular flow, set the velocity of the FIRST TWO markers to zero
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        // search for the first marker created and set its velocity to zero
+        for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];
+
+            mark.rdata(IBM_realData::forcex) = 0.;
+            mark.rdata(IBM_realData::forcey) = 0.;
+            mark.rdata(IBM_realData::forcez) = 0.;
+
+            if (mark.idata(IBM_intData::id_0) == -1 && mark.idata(IBM_intData::cpu_0 == -1)) {
+               mark.rdata(IBM_realData::velx) = 0.;
+               mark.rdata(IBM_realData::vely) = 0.;
+               mark.rdata(IBM_realData::velz) = 0.;
+
+               mark1_id  = mark.id();  // used below for searching for second particle created
+               mark1_cpu = mark.cpu();
+            }
+        }
+
+        // search for the second marker created and set its velocity to zero.
+        for (int i = 0; i < np; ++i) {
+            ParticleType & mark = markers[i];
+            if (mark.idata(IBM_intData::id_0) == mark1_id && mark.idata(IBM_intData::cpu_0) == mark1_cpu) {
+               mark.rdata(IBM_realData::velx) = 0.;
+               mark.rdata(IBM_realData::vely) = 0.;
+               mark.rdata(IBM_realData::velz) = 0.;
+            }
+        }
+    }
+
+
     //___________________________________________________________________________
     // Move markers according to velocity
     ib_mc.MoveMarkers(0, dt);
@@ -540,33 +599,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
         //// Set all forces to zero. Get ready for updating ////////
-        for (int i = 0; i < np; ++i) {
-            ParticleType & mark = markers[i];
-            mark.rdata(IBM_realData::forcex) = 0.;
-            mark.rdata(IBM_realData::forcey) = 0.;
-            mark.rdata(IBM_realData::forcez) = 0.;
- 
-        // To simulate a beam bent by perpendicular flow, set the velocity of the FIRST TWO markers to zero
-            // search for the first marker created and set its velocity to zero
-            if (mark.idata(IBM_intData::id_0) == -1 && mark.idata(IBM_intData::cpu_0) == -1) {
-               mark.rdata(IBM_realData::velx)   = 0.;
-               mark.rdata(IBM_realData::vely)   = 0.;
-               mark.rdata(IBM_realData::velz)   = 0.;
-
-               mark1_id  = mark.id();  // used below for searching for second particle created
-               mark1_cpu = mark.cpu();
-            }
-        }
-
-        // search for the second marker created and set its velocity to zero.
-        for (int i = 0; i < np; ++i) {
-            ParticleType & mark = markers[i];
-            if (mark.idata(IBM_intData::id_0) == mark1_id && mark.idata(IBM_intData::cpu_0) == mark1_cpu) {
-               mark.rdata(IBM_realData::velx) = 0.;
-               mark.rdata(IBM_realData::vely) = 0.;
-               mark.rdata(IBM_realData::velz) = 0.;
-            }
-        }
+        //for (int i = 0; i < np; ++i) {
+        //    ParticleType & mark = markers[i];
+        //    mark.rdata(IBM_realData::forcex) = 0.;
+        //    mark.rdata(IBM_realData::forcey) = 0.;
+        //    mark.rdata(IBM_realData::forcez) = 0.;
+       // }
 
         // Set bending forces to zero
         f_p = RealVect{0., 0., 0.};
@@ -605,7 +643,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 prev_marker->rdata(IBM_realData::forcey) += spr_k * ry/lp*(lp-l_db);
                 prev_marker->rdata(IBM_realData::forcez) += spr_k * rz/lp*(lp-l_db);
 
-            } else if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
+            } 
+
+	    if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
 
                 // position vectors
                 RealVect r   = RealVect{mark.pos(0),mark.pos(1),mark.pos(2)};

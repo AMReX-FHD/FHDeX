@@ -31,6 +31,7 @@ contains
             prim(i,j,k,4) = cons(i,j,k,4)/cons(i,j,k,1)
 
             vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
+            ! FIXME: why just vsqr??
             intenergy = cons(i,j,k,5)/cons(i,j,k,1) - 0.5*vsqr
             
             sumYk = 0.d0

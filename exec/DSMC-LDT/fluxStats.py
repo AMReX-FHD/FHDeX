@@ -179,7 +179,7 @@ def estimateRates(lFlux, rFlux, netFlux, lN, rN, dt):
   rrate = []
   ltime = 0
   rtime = 0
-  for i in xrange(1000,ts):
+  for i in xrange(0,ts):
     ltime = ltime + 1
     rtime = rtime + 1
     if rFlux[i] > 0:
@@ -204,7 +204,6 @@ def estimateRatesAll(N):
   #loop over all the data
   for i in xrange(0,N):
     #get the data
-    print i
     loc = base + str(i) + ".txt"
     dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData(loc)
 

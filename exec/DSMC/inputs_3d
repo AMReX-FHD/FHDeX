@@ -15,10 +15,10 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-11
+  fixed_dt = 5e-11
 
   ! Controls for number of steps between actions
-  max_step = 400
+  max_step = 500
   plot_int = 10
   plot_ascii = 0
   struct_fact_int = 1
@@ -46,7 +46,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 1
+  particle_count = 1000
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive

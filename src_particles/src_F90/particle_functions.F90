@@ -371,9 +371,8 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, r, r2
+  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact
 
-  !print*,'HERE entering move_particles_dsmc'
   
   adj = 0.9999999
   adjalt = 2d0*(1d0 - adj)
@@ -551,22 +550,23 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
           if(graphene_tog .eq. 1) then
                interval=prob_hi(1)/100
                radius=0
+               bJ1 = bessel_jn(1,2.4048)
+               prefact = 9104**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
                omega=14*10**6*2*3.14159265
                surf=>surfaces(6)
                do ii=1, 100
                  radius=interval*ii
                  radius=radius*2.4048/prob_hi(1)
-                 bessj0 =surf%grac*bessel_jn(0,radius)*sin((time*omega)+surf%graphi)
-                 surf%besslist(ii)=bessj0
-                 dbessj0=surf%grac*bessel_jn(0, interval)*cos((time*omega)+surf%graphi)
+                 !bessj0 =surf%grac*bessel_jn(0,radius)*sin((time*omega)+surf%graphi)
+                 !surf%besslist(ii)=bessj0
+                 surf%velz=prefact*bessel_jn(0, interval*2.4048/prob_hi(1))*(surf%agraph*sin(omega*time)+surf%bgraph*cos(time*omega))
                  surf%dbesslist(ii)=dbessj0
               enddo
   
-                surf%velz=dbessj0*cos((time*omega)+surf%graphi)
 
                 ! print*,'position',part%pos
                ! print*,'vel',part%vel
-                print*,'surf vel', surf%velz
+                print*,'fortran move', surf%velz, part%id
                 !print*, 'c', surf%grac
                !print*, sin((time*omega))
               ! print*, surf%velz
@@ -2176,7 +2176,7 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   domsize = phi - plo
 
-  adj = 0.999999999
+  adj = 0.9999
   adjalt = 2d0*(1d0 - adj)
 
   dxinv = 1.d0/dx
@@ -2242,6 +2242,9 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
                 runtime = dt*0.5
 
+
+
+
                 do while (runtime .gt. 0)
 
                   !check 
@@ -2262,9 +2265,14 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                   runtime = runtime - inttime
 
+
+
+
                   if(intsurf .gt. 0) then
 
                     surf => surfaces(intsurf)
+
+  
 
                     call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
@@ -2325,8 +2333,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
                ! print *, "wet: ", part%vel
 
                 part%vel = part%vel + dry_terms
-
-              !  print *, "dry: ", dry_terms
               endif
 
               speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2              
@@ -2354,7 +2360,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 #endif
                 runtime = runtime - inttime
 
-                
 
                 if(intsurf .gt. 0) then
 

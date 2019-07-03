@@ -18,7 +18,8 @@
 #include "species.H"
 #include "surfaces.H"
 
-#include "analysis_functions_F.H"
+//#include "analysis_functions_F.H"
+#include "StructFact_F.H"
 #include "StochMFlux.H"
 #include "StructFact.H"
 
@@ -60,19 +61,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+//    int fhdSeed = 0;
+//    int particleSeed = 0;
+//    int selectorSeed = 0;
+//    int thetaSeed = 0;
+//    int phiSeed = 0;
+//    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -543,7 +544,7 @@ void main_driver(const char* argv)
 //      s_pairB[d] = d;
 //    }
 
-    StructFact structFact(bp,dmap,var_names);
+ //   StructFact structFact(bp,dmap,var_names);
 
 
 
@@ -818,10 +819,10 @@ void main_driver(const char* argv)
 
 
 
-        if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
-	      structFact.FortStructure(struct_in_cc,geomP);
-        }
+       // if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+//	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
+//	      structFact.FortStructure(struct_in_cc,geomP);
+  //      }
 
         if (plot_int > 0 && step%plot_int == 0)
         {
@@ -859,8 +860,8 @@ void main_driver(const char* argv)
       // SFscale = 1.0;
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geomP);
+    //  structFact.Finalize(SFscale);
+    //  structFact.WritePlotFile(step,time,geomP);
 
     }
 
@@ -869,4 +870,5 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
 }
