@@ -26,15 +26,21 @@
   max_step = 10
   plot_int = 1
 
+  ! Multispecies toggle
+  ! if algorithm_type = 1, single component
+  ! if algorithm_type = 2, multispecies
+  algorithm_type = 2
+
   ! Viscous tensor form
-  ! if abs(visc_type) = 1, L = not-symmetric (bulk viscosity = 0)
-  ! if abs(visc_type) = 2, L = symmetric (bulk viscosity = 0)
-  ! if abs(visc_type) = 3, L = symmetric + bulk viscosity
-  ! positive = assume constant coefficients
-  ! negative = assume spatially-varying coefficients
-  !visc_coef = 1.
-  visc_coef = 1e-2
+  ! if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
+  ! if visc_type = 2, L = symmetric (bulk viscosity = 0)
+  ! if visc_type = 3, L = symmetric + bulk viscosity
   visc_type = 2
+
+  ! Advection method
+  ! if advection_type = 1, interpolate primitive quantities
+  ! if advection_type = 2, interpolate conserved quantities
+  advection_type = 2
 
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
