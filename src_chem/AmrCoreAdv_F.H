@@ -54,12 +54,23 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(con_x),
                 BL_FORT_FAB_ARG_3D(con_y),
                 BL_FORT_FAB_ARG_3D(con_z),
-                BL_FORT_FAB_ARG_3D(dp),
                 int* iface, const int* if_lo, const int* if_hi,
+                const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
+                const amrex_real* ib_cen_z, 
+                const amrex_real* dx, const amrex_real* prob_lo);
+
+    void get_surfgrad_3d( const int* lo, const int* hi,
+                const BL_FORT_FAB_ARG_3D(conx),
+                const BL_FORT_FAB_ARG_3D(cony),
+                const BL_FORT_FAB_ARG_3D(conz),
+                BL_FORT_FAB_ARG_3D(cons_x),
+                BL_FORT_FAB_ARG_3D(cons_y),
+                BL_FORT_FAB_ARG_3D(cons_z),
+                const BL_FORT_FAB_ARG_3D(MagDCon),
                 const BL_FORT_FAB_ARG_3D(ls),
-                const BL_FORT_FAB_ARG_3D(xp),
-                const BL_FORT_FAB_ARG_3D(yp),
-                const BL_FORT_FAB_ARG_3D(zp),
+                const BL_FORT_FAB_ARG_3D(xfc),
+                const BL_FORT_FAB_ARG_3D(yfc),
+                const BL_FORT_FAB_ARG_3D(zfc),
                 const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
                 const amrex_real* ib_cen_z, 
                 const amrex_real* dx, const amrex_real* prob_lo);
@@ -94,6 +105,7 @@ extern "C"
 		  const int* dlo, const int* dhi,
 		  const amrex_real* dx, const amrex_real* glo, 
 		  const amrex_real* time, const int* bc);
+
 
 #ifdef __cplusplus
 }

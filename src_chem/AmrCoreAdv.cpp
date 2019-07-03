@@ -13,7 +13,7 @@
 #endif
 #include <AmrCoreAdv_F.H>
 #include <AmrCoreAdv.H>
-
+#include <common_functions.H>
 using namespace amrex;
 
 
@@ -938,20 +938,22 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab &  xf_mf       = * xface[lev];
     MultiFab &  yf_mf       = * yface[lev];
     MultiFab &  zf_mf       = * zface[lev];
+   
+    const BoxArray & badpx            = Dcon_x[lev]->boxArray();
+    const DistributionMapping & dmdpx = Dcon_x[lev]->DistributionMap();
+    MultiFab x_mf(badpx,dmdpx,1,0);
     
-    std::cout << "Advance max Ls 1 "<< (*levset).max(0)<<std::endl;
-    std::cout << "Advance max Ls 2 "<< ls_mf.max(0)<<std::endl;
-    
-    // con_new including 1 ghost cell
-    MultiFab S_new_fill(grids[lev], dmap[lev], S_new.nComp(), 1);
-//    std::cout << "max con 4 "<< (*con_new[lev]).max(0) <<std::endl;
+    const BoxArray & badpy            = Dcon_y[lev]->boxArray();
+    const DistributionMapping & dmdpy = Dcon_y[lev]->DistributionMap();
+    MultiFab y_mf(badpy,dmdpy,1,0);
+ 
+    const BoxArray & badpz            = Dcon_z[lev]->boxArray();
+    const DistributionMapping & dmdpz = Dcon_z[lev]->DistributionMap();
+    MultiFab z_mf(badpz,dmdpz,1,0);
 
-    S_new_fill.copy(S_new, 0, 0,1, 0, 1);
-//    std::cout << "max con 5 "<< (*con_new[lev]).max(0) <<std::endl;
-
-    S_new_fill.FillBoundary(geom[lev].periodicity());
-//    std::cout << "max con 6 "<< (*con_new[lev]).max(0) <<std::endl;
-
+    MultiFab S_new_fill(badp,dmdp, S_new.nComp(), 1);
+    S_new_fill.setVal(0.);
+    FillPatch(lev, time, S_new_fill, 0, S_new_fill.nComp());
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -964,6 +966,10 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             IArrayBox & fabsl         =      sloc_mf[mfi];
             FArrayBox & fabsls        =      ls_mf[mfi];
             FArrayBox & fabsd         =      sd_mf[mfi];
+            
+            FArrayBox & fabx         =        x_mf[mfi];
+            FArrayBox & faby         =        y_mf[mfi];
+            FArrayBox & fabz         =        z_mf[mfi];
 
             FArrayBox & fabsx         =        sx_mf[mfi];
             FArrayBox & fabsy         =        sy_mf[mfi];
@@ -985,18 +991,27 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             } else {
                 get_congrad_3d( bx.loVect(), bx.hiVect(),
                                 BL_TO_FORTRAN_3D(stateout),
+                                BL_TO_FORTRAN_3D(fabx),
+                                BL_TO_FORTRAN_3D(faby),
+                                BL_TO_FORTRAN_3D(fabz),
+                                BL_TO_FORTRAN_3D(fabsl),
+                                & Sphere_cent_x, & Sphere_cent_y,
+                                & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
+                std::cout << "Advance max Ls 4 "<< fabsls.max()<<std::endl;
+                get_surfgrad_3d( bx.loVect(), bx.hiVect(),
+                                BL_TO_FORTRAN_3D(fabx),
+                                BL_TO_FORTRAN_3D(faby),
+                                BL_TO_FORTRAN_3D(fabz),
                                 BL_TO_FORTRAN_3D(fabsx),
                                 BL_TO_FORTRAN_3D(fabsy),
                                 BL_TO_FORTRAN_3D(fabsz),
                                 BL_TO_FORTRAN_3D(fabsd),
-                                BL_TO_FORTRAN_3D(fabsl),
                                 BL_TO_FORTRAN_3D(fabsls),
                                 BL_TO_FORTRAN_3D(fabxf),
                                 BL_TO_FORTRAN_3D(fabyf),
                                 BL_TO_FORTRAN_3D(fabzf),
                                 & Sphere_cent_x, & Sphere_cent_y,
                                 & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
-                std::cout << "Advance max Ls 4 "<< fabsls.max()<<std::endl;
 
             }
         }
