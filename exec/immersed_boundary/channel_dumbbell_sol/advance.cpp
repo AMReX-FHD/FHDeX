@@ -641,14 +641,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         long np = markers.size();
 
 
-        //// Set all forces to zero. Get ready for updating ////////
-        //for (int i = 0; i < np; ++i) {
-        //    ParticleType & mark = markers[i];
-        //    mark.rdata(IBM_realData::forcex) = 0.;
-        //    mark.rdata(IBM_realData::forcey) = 0.;
-        //    mark.rdata(IBM_realData::forcez) = 0.;
-        //}
-
         // Set bending forces to zero
         f_p = RealVect{0., 0., 0.};
         f   = RealVect{0., 0., 0.};
@@ -669,55 +661,53 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
 
-            if (status == 2 || status == 0) { // has prev, only update spring forces for current and prev/minus markers
+            // update spring forces
+            if (status == 0) { // has next (p) and prev (m)
 
-                Real rx = mark.pos(0) - prev_marker->pos(0);
-                Real ry = mark.pos(1) - prev_marker->pos(1);
-                Real rz = mark.pos(2) - prev_marker->pos(2);
+                RealVect r_p, r_m;
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    r_m[d] = mark.pos(d) - prev_marker->pos(d);
 
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
+                    r_p[d] = next_marker->pos(d) - mark.pos(d);
+                }
 
-                mark.rdata(IBM_realData::forcex) -= spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::forcey) -= spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::forcez) -= spr_k * rz/lp*(lp-l_db);
+                Real lp_m = r_m.vectorLength(),       lp_p = r_p.vectorLength();
+                Real fm_0 = spr_k * (lp_m-l_db)/lp_m, fp_0 = spr_k * (lp_p-l_db)/lp_p;
 
-                prev_marker->rdata(IBM_realData::forcex) += spr_k * rx/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::forcey) += spr_k * ry/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::forcez) += spr_k * rz/lp*(lp-l_db);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(IBM_realData::forcex + d) += fm_0 * r_m[d];
+                    mark.rdata(IBM_realData::forcex + d)         -= fm_0 * r_m[d];
 
-                Print() << " corr forcex = " << mark.rdata(IBM_realData::forcex) << std::endl;
-                Print() << " corr forcey = " << mark.rdata(IBM_realData::forcey) << std::endl;
-                Print() << " corr forcez = " << mark.rdata(IBM_realData::forcez) << std::endl;
-
+                    mark.rdata(IBM_realData::forcex + d)         += fp_0 * r_p[d];
+                    next_marker->rdata(IBM_realData::forcex + d) -= fp_0 * r_p[d];
+                }
             }
 
-	    if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
+            // update bending forces for curent, minus/prev, and next/plus
+            if (status == 0) { // has next (p) and prev (m)
 
                 // position vectors
-                RealVect r   = RealVect{mark.pos(0),mark.pos(1),mark.pos(2)};
-                RealVect r_m = RealVect{prev_marker->pos(0),prev_marker->pos(1),prev_marker->pos(2)};
-                RealVect r_p = RealVect{next_marker->pos(0),next_marker->pos(1),next_marker->pos(2)};
+                RealVect r, r_m, r_p;
+                for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                    r[d]   = mark.pos(d);
+                    r_m[d] = prev_marker->pos(d);
+                    r_p[d] = next_marker->pos(d);
+                }
 
-                //calling the bending force calculation
+
+                // calling the bending force calculation
                 bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
 
-                // updating the force on the minus, current, and plus markers.
-                mark.rdata(IBM_realData::forcex) += f[0];
-                mark.rdata(IBM_realData::forcey) += f[1];
-                mark.rdata(IBM_realData::forcez) += f[2];
+                // updating the force on the minus, current, and plus particles.
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(IBM_realData::forcex + d) += f_m[d];
+                    mark.rdata(IBM_realData::forcex + d)         +=   f[d];
+                    next_marker->rdata(IBM_realData::forcex + d) += f_p[d];
+                }
 
-                prev_marker->rdata(IBM_realData::forcex) += f_m[0];
-                prev_marker->rdata(IBM_realData::forcey) += f_m[1];
-                prev_marker->rdata(IBM_realData::forcez) += f_m[2];
-
-                next_marker->rdata(IBM_realData::forcex) += f_p[0];
-                next_marker->rdata(IBM_realData::forcey) += f_p[1];
-                next_marker->rdata(IBM_realData::forcez) += f_p[2];
-
-                Print() << " corr bending force f = " << f << std::endl;
+                Print() << " corr bending force f = "    << f   << std::endl;
                 Print() << " corr bending force f_m  = " << f_m << std::endl;
-                Print() << " corr bending force f_p = " << f_p << std::endl;
+                Print() << " corr bending force f_p = "  << f_p << std::endl;
 
                 Print() << " corr TOTAL force fx = " << mark.rdata(IBM_realData::forcex) << std::endl;
                 Print() << " corr TOTAL force fy = " << mark.rdata(IBM_realData::forcey) << std::endl;
