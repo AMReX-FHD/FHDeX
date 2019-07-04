@@ -363,13 +363,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                          pti.LocalTileIndex());
         long np = markers.size();
 
-        /////Set all forces to zero. Get ready for updating ////////
-        //for (int i = 0; i < np; ++i) {
-        //    ParticleType & mark = markers[i];
-        //    mark.rdata(IBM_realData::pred_forcex) = 0.;
-        //    mark.rdata(IBM_realData::pred_forcey) = 0.;
-        //    mark.rdata(IBM_realData::pred_forcez) = 0.;
-        //}
 
         // Set bending forces to zero
         f_p = RealVect{0., 0., 0.};
@@ -394,6 +387,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             Print() << "force Particle #" << i+1 << "," << "force Neighbor Status = " << status << std::endl;
             Print() << "force current particle neighbor list:"<< nbhd[nbhd_index] << std::endl;
+
             // Print() << "force current particle ID and CPU:"<<mark.id()<<" and "<<mark.cpu()<<std::endl;
             // Print() << "force current particle ID_0 and CPU_0:"<<mark.idata(IBM_intData::id_0)<<" and "<<mark.idata(IBM_intData::cpu_0)<<std::endl; 
 
@@ -465,7 +459,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             }
 
 
-
             if (status == 2 || status == 0) { // has prev, only update spring forces for current and prev/minus markers
 
                 Real rx = mark.pos(0) + mark.rdata(IBM_realData::pred_posx)
@@ -515,9 +508,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                         prev_marker->rdata(IBM_realData::pred_posy),
                                         prev_marker->rdata(IBM_realData::pred_posz)};
 
-                RealVect r_p = RealVect{next_marker->rdata(IBM_realData::pred_posx),
-                                        next_marker->rdata(IBM_realData::pred_posy),
-                                        next_marker->rdata(IBM_realData::pred_posz)};
+                RealVect r_p = RealVect{next_marker->pos(0) + next_marker->rdata(IBM_realData::pred_posx),
+                                        next_marker->pos(1) + next_marker->rdata(IBM_realData::pred_posy),
+                                        next_marker->pos(2) + next_marker->rdata(IBM_realData::pred_posz)};
 
                 //calling the bending force calculation
                 bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
@@ -559,7 +552,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Spread predictor forces
     //ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles. This may be redundant
-    
+
     ib_mc.SpreadPredictor(0, fc_force_pred);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_pred[d].SumBoundary(geom.periodicity());
@@ -767,7 +760,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Print() << " corr forcey = " << mark.rdata(IBM_realData::forcey) << std::endl;
                 Print() << " corr forcez = " << mark.rdata(IBM_realData::forcez) << std::endl;
 
-            } 
+            }
 
 	    if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
 
@@ -799,7 +792,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Print() << " corr TOTAL force fx = " << mark.rdata(IBM_realData::forcex) << std::endl;
                 Print() << " corr TOTAL force fy = " << mark.rdata(IBM_realData::forcey) << std::endl;
                 Print() << " corr TOTAL force fz = " << mark.rdata(IBM_realData::forcez) << std::endl;
- 
+
                 Print() << " corr TOTAL force f_mx = " << prev_marker->rdata(IBM_realData::forcex) << std::endl;
                 Print() << " corr TOTAL force f_my = " << prev_marker->rdata(IBM_realData::forcey) << std::endl;
                 Print() << " corr TOTAL force f_mz = " << prev_marker->rdata(IBM_realData::forcez) << std::endl;
@@ -828,7 +821,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Spread to the `fc_force` multifab
     //ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles
-    
+
     ib_mc.SpreadMarkers(0, fc_force_corr);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_corr[d].SumBoundary(geom.periodicity());
