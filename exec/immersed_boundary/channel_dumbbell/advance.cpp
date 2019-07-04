@@ -305,43 +305,34 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             if (status == 1) {        // has next, has no prev
 
-                Real rx = next_marker->pos(0) + next_marker->rdata(IBM_realData::pred_posx)
-                        - (mark.pos(0) + mark.rdata(IBM_realData::pred_posx));
-                Real ry = next_marker->pos(1) + next_marker->rdata(IBM_realData::pred_posy)
-                        - (mark.pos(1) + mark.rdata(IBM_realData::pred_posy));
-                Real rz = next_marker->pos(2) + next_marker->rdata(IBM_realData::pred_posz)
-                        - (mark.pos(2) + mark.rdata(IBM_realData::pred_posz));
+                RealVect r;
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    r[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d)
+                         - (mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d));
 
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
+                Real lp  = r.vectorLength();
+                Real f_0 = spr_k * (lp-l_db)/lp;
 
-                mark.rdata(IBM_realData::pred_forcex) = spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcey) = spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcez) = spr_k * rz/lp*(lp-l_db);
-
-                next_marker->rdata(IBM_realData::pred_forcex) = - spr_k * rx/lp*(lp-l_db);
-                next_marker->rdata(IBM_realData::pred_forcey) = - spr_k * ry/lp*(lp-l_db);
-                next_marker->rdata(IBM_realData::pred_forcez) = - spr_k * rz/lp*(lp-l_db);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    mark.rdata(IBM_realData::pred_forcex + d)         =   f_0 * r[d];
+                    next_marker->rdata(IBM_realData::pred_forcex + d) = - f_0 * r[d];
+                }
 
             } else if (status == 2) { // has prev, has no next
 
-                Real rx = mark.pos(0) + mark.rdata(IBM_realData::pred_posx)
-                        - (prev_marker->pos(0) + prev_marker->rdata(IBM_realData::pred_posx));
-                Real ry = mark.pos(1) + mark.rdata(IBM_realData::pred_posy)
-                        - (prev_marker->pos(1) + prev_marker->rdata(IBM_realData::pred_posy));
-                Real rz = mark.pos(2) + mark.rdata(IBM_realData::pred_posz)
-                        - (prev_marker->pos(2) + prev_marker->rdata(IBM_realData::pred_posz));
+                RealVect r;
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    r[d] = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d)
+                         - (prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d));
 
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
 
-                mark.rdata(IBM_realData::pred_forcex) = - spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcey) = - spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcez) = - spr_k * rz/lp*(lp-l_db);
+                Real lp  = r.vectorLength();
+                Real f_0 = spr_k * (lp-l_db)/lp;
 
-                prev_marker->rdata(IBM_realData::pred_forcex) = spr_k * rx/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::pred_forcey) = spr_k * ry/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::pred_forcez) = spr_k * rz/lp*(lp-l_db);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    mark.rdata(IBM_realData::pred_forcex + d)         = - f_0 * r[d];
+                    prev_marker->rdata(IBM_realData::pred_forcex + d) =   f_0 * r[d];
+                }
             }
 
             // Increment neighbor list
@@ -494,40 +485,33 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
 
-
             if (status == 1) {        // has next, has no prev
 
-                Real rx = next_marker->pos(0) - mark.pos(0);
-                Real ry = next_marker->pos(1) - mark.pos(1);
-                Real rz = next_marker->pos(2) - mark.pos(2);
+                RealVect r;
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    r[d] = next_marker->pos(d) - mark.pos(d);
 
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
+                Real lp  = r.vectorLength();
+                Real f_0 = spr_k * (lp-l_db)/lp;
 
-                mark.rdata(IBM_realData::forcex) = spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::forcey) = spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::forcez) = spr_k * rz/lp*(lp-l_db);
-
-                next_marker->rdata(IBM_realData::forcex) = - spr_k * rx/lp*(lp-l_db);
-                next_marker->rdata(IBM_realData::forcey) = - spr_k * ry/lp*(lp-l_db);
-                next_marker->rdata(IBM_realData::forcez) = - spr_k * rz/lp*(lp-l_db);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    mark.rdata(IBM_realData::forcex + d)         =   f_0 * r[d];
+                    next_marker->rdata(IBM_realData::forcex + d) = - f_0 * r[d];
+                }
 
             } else if (status == 2) { // has prev, has no next
 
-                Real rx = mark.pos(0) - prev_marker->pos(0);
-                Real ry = mark.pos(1) - prev_marker->pos(1);
-                Real rz = mark.pos(2) - prev_marker->pos(2);
+                RealVect r;
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    r[d] = mark.pos(d) - prev_marker->pos(d);
 
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
+                Real lp  = r.vectorLength();
+                Real f_0 = spr_k * (lp-l_db)/lp;
 
-                mark.rdata(IBM_realData::forcex) = - spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::forcey) = - spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::forcez) = - spr_k * rz/lp*(lp-l_db);
-
-                prev_marker->rdata(IBM_realData::forcex) = spr_k * rx/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::forcey) = spr_k * ry/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::forcez) = spr_k * rz/lp*(lp-l_db);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    mark.rdata(IBM_realData::forcex + d)         = - f_0 * r[d];
+                    prev_marker->rdata(IBM_realData::forcex + d) =   f_0 * r[d];
+                }
             }
 
             // Increment neighbor list
