@@ -391,147 +391,55 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // Print() << "force current particle ID and CPU:"<<mark.id()<<" and "<<mark.cpu()<<std::endl;
             // Print() << "force current particle ID_0 and CPU_0:"<<mark.idata(IBM_intData::id_0)<<" and "<<mark.idata(IBM_intData::cpu_0)<<std::endl; 
 
+            // update spring forces
+            if (status == 0) { // has next (p) and prev (m)
 
-            // Compute spring forces:
-            if (status == 1) {        // has next, has no prev
+                RealVect r_p, r_m;
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    r_m[d] = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d)
+                         - (prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d));
 
-                Real rx = next_marker->pos(0) + next_marker->rdata(IBM_realData::pred_posx)
-                        - (mark.pos(0) + mark.rdata(IBM_realData::pred_posx));
-                Real ry = next_marker->pos(1) + next_marker->rdata(IBM_realData::pred_posy)
-                        - (mark.pos(1) + mark.rdata(IBM_realData::pred_posy));
-                Real rz = next_marker->pos(2) + next_marker->rdata(IBM_realData::pred_posz)
-                        - (mark.pos(2) + mark.rdata(IBM_realData::pred_posz));
+                    r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d)
+                         - (mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d));
+                }
 
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
+                Real lp_m = r_m.vectorLength(),       lp_p = r_p.vectorLength();
+                Real fm_0 = spr_k * (lp_m-l_db)/lp_m, fp_0 = spr_k * (lp_p-l_db)/lp_p;
 
-                mark.rdata(IBM_realData::pred_forcex) += spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcey) += spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcez) += spr_k * rz/lp*(lp-l_db);
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(IBM_realData::pred_forcex + d) += fm_0 * r_m[d];
+                    mark.rdata(IBM_realData::pred_forcex + d)         -= fm_0 * r_m[d];
 
-                next_marker->rdata(IBM_realData::pred_forcex) -= spr_k * rx/lp*(lp-l_db);
-                next_marker->rdata(IBM_realData::pred_forcey) -= spr_k * ry/lp*(lp-l_db);
-                next_marker->rdata(IBM_realData::pred_forcez) -= spr_k * rz/lp*(lp-l_db);
-
-            } else if (status == 2) { // has prev, has no next
-
-                Real rx = mark.pos(0) + mark.rdata(IBM_realData::pred_posx)
-                        - (prev_marker->pos(0) + prev_marker->rdata(IBM_realData::pred_posx));
-                Real ry = mark.pos(1) + mark.rdata(IBM_realData::pred_posy)
-                        - (prev_marker->pos(1) + prev_marker->rdata(IBM_realData::pred_posy));
-                Real rz = mark.pos(2) + mark.rdata(IBM_realData::pred_posz)
-                        - (prev_marker->pos(2) + prev_marker->rdata(IBM_realData::pred_posz));
-
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
-
-                mark.rdata(IBM_realData::pred_forcex) -= spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcey) -= spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcez) -= spr_k * rz/lp*(lp-l_db);
-
-                prev_marker->rdata(IBM_realData::pred_forcex) += spr_k * rx/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::pred_forcey) += spr_k * ry/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::pred_forcez) += spr_k * rz/lp*(lp-l_db);
-
-            } else if (status == 0){
-
-                Real rx_p = next_marker->pos(0) + next_marker->rdata(IBM_realData::pred_posx)
-                        - (mark.pos(0) + mark.rdata(IBM_realData::pred_posx));
-                Real ry_p = next_marker->pos(1) + next_marker->rdata(IBM_realData::pred_posy)
-                        - (mark.pos(1) + mark.rdata(IBM_realData::pred_posy));
-                Real rz_p = next_marker->pos(2) + next_marker->rdata(IBM_realData::pred_posz)
-                        - (mark.pos(2) + mark.rdata(IBM_realData::pred_posz));
-
-                Real l2_p = rx_p*rx_p + ry_p*ry_p + rz_p*rz_p;
-                Real lp_p = std::sqrt(l2_p);
-
-                Real rx = mark.pos(0) + mark.rdata(IBM_realData::pred_posx)
-                        - (prev_marker->pos(0) + prev_marker->rdata(IBM_realData::pred_posx));
-                Real ry = mark.pos(1) + mark.rdata(IBM_realData::pred_posy)
-                        - (prev_marker->pos(1) + prev_marker->rdata(IBM_realData::pred_posy));
-                Real rz = mark.pos(2) + mark.rdata(IBM_realData::pred_posz)
-                        - (prev_marker->pos(2) + prev_marker->rdata(IBM_realData::pred_posz));
-
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
-
-
+                    mark.rdata(IBM_realData::pred_forcex + d)         += fp_0 * r_p[d];
+                    next_marker->rdata(IBM_realData::pred_forcex + d) -= fp_0 * r_p[d];
+                }
             }
 
-
-            if (status == 2 || status == 0) { // has prev, only update spring forces for current and prev/minus markers
-
-                Real rx = mark.pos(0) + mark.rdata(IBM_realData::pred_posx)
-                        - (prev_marker->pos(0) + prev_marker->rdata(IBM_realData::pred_posx));
-                Real ry = mark.pos(1) + mark.rdata(IBM_realData::pred_posy)
-                        - (prev_marker->pos(1) + prev_marker->rdata(IBM_realData::pred_posy));
-                Real rz = mark.pos(2) + mark.rdata(IBM_realData::pred_posz)
-                        - (prev_marker->pos(2) + prev_marker->rdata(IBM_realData::pred_posz));
-
-                Real l2 = rx*rx + ry*ry + rz*rz;
-                Real lp = std::sqrt(l2);
-
-                Print() << "This is right before updating predictor force" << std::endl;
-
-                Print() << " pred_forcex = " << mark.rdata(IBM_realData::pred_forcex) << std::endl;
-                Print() << " pred_forcey = " << mark.rdata(IBM_realData::pred_forcey) << std::endl;
-                Print() << " pred_forcez = " << mark.rdata(IBM_realData::pred_forcez) << std::endl;
-
-
-                mark.rdata(IBM_realData::pred_forcex) -= spr_k * rx/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcey) -= spr_k * ry/lp*(lp-l_db);
-                mark.rdata(IBM_realData::pred_forcez) -= spr_k * rz/lp*(lp-l_db);
-
-                prev_marker->rdata(IBM_realData::pred_forcex) += spr_k * rx/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::pred_forcey) += spr_k * ry/lp*(lp-l_db);
-                prev_marker->rdata(IBM_realData::pred_forcez) += spr_k * rz/lp*(lp-l_db);
-
-                Print() << " spring forcex = " << spr_k * rx*(lp-l_db)/lp << std::endl;
-                Print() << " spring forcey = " << spr_k * ry*(lp-l_db)/lp << std::endl;
-                Print() << " spring forcez = " << spr_k * rz*(lp-l_db)/lp << std::endl;
-
-                Print() << "This is right after updating predictor force" << std::endl;
-
-                Print() << " pred_forcex = " << mark.rdata(IBM_realData::pred_forcex) << std::endl;
-                Print() << " pred_forcey = " << mark.rdata(IBM_realData::pred_forcey) << std::endl;
-                Print() << " pred_forcez = " << mark.rdata(IBM_realData::pred_forcez) << std::endl;
-            }
-
-            if (status == 0) { // has both prev and next, update bending forces for curent, minus/prev, and next/plus markers
+            // update bending forces for curent, minus/prev, and next/plus
+            if (status == 0) { // has next (p) and prev (m)
 
                 // position vectors
-                RealVect r = RealVect{mark.rdata(IBM_realData::pred_posx),
-                                      mark.rdata(IBM_realData::pred_posy),
-                                      mark.rdata(IBM_realData::pred_posz)};
+                RealVect r, r_m, r_p;
+                for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                    r[d]   = mark.rdata(IBM_realData::pred_posx + d);
+                    r_m[d] = prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d);
+                    r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d);
+                }
 
-                RealVect r_m = RealVect{prev_marker->rdata(IBM_realData::pred_posx),
-                                        prev_marker->rdata(IBM_realData::pred_posy),
-                                        prev_marker->rdata(IBM_realData::pred_posz)};
 
-                RealVect r_p = RealVect{next_marker->pos(0) + next_marker->rdata(IBM_realData::pred_posx),
-                                        next_marker->pos(1) + next_marker->rdata(IBM_realData::pred_posy),
-                                        next_marker->pos(2) + next_marker->rdata(IBM_realData::pred_posz)};
-
-                //calling the bending force calculation
+                // calling the bending force calculation
                 bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
 
                 // updating the force on the minus, current, and plus particles.
-                mark.rdata(IBM_realData::pred_forcex) += f[0];
-                mark.rdata(IBM_realData::pred_forcey) += f[1];
-                mark.rdata(IBM_realData::pred_forcez) += f[2];
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(IBM_realData::pred_forcex + d) += f_m[d];
+                    mark.rdata(IBM_realData::pred_forcex + d)         +=   f[d];
+                    next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
+                }
 
-                prev_marker->rdata(IBM_realData::pred_forcex) += f_m[0];
-                prev_marker->rdata(IBM_realData::pred_forcey) += f_m[1];
-                prev_marker->rdata(IBM_realData::pred_forcez) += f_m[2];
-
-                next_marker->rdata(IBM_realData::pred_forcex) += f_p[0];
-                next_marker->rdata(IBM_realData::pred_forcey) += f_p[1];
-                next_marker->rdata(IBM_realData::pred_forcez) += f_p[2];
-
-                Print() << " pred bending force f = " << f << std::endl;
+                Print() << " pred bending force f = "    << f   << std::endl;
                 Print() << " pred bending force f_m  = " << f_m << std::endl;
-                Print() << " pred bending force f_p = " << f_p << std::endl;
-
+                Print() << " pred bending force f_p = "  << f_p << std::endl;
             }
 
             // Increment neighbor list
