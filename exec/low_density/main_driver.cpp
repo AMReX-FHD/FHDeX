@@ -130,7 +130,7 @@ void main_driver(const char* argv)
     cuVars.setVal(0.0);
 
     //Initialize physical parameters from input vals
-
+    //TODO - set varying density in different regions
     cu.setVal(rho0);
 
 
@@ -146,6 +146,7 @@ void main_driver(const char* argv)
                  stochFlux[1].define(convert(ba,nodal_flag_y), dmap, nvars, 0);,
                  stochFlux[2].define(convert(ba,nodal_flag_z), dmap, nvars, 0););
 
+    //zero out stoch fluxes
     AMREX_D_TERM(stochFlux[0].setVal(0.0);,
                  stochFlux[1].setVal(0.0);,
                  stochFlux[2].setVal(0.0););

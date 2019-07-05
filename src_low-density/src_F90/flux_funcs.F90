@@ -7,7 +7,7 @@ module flux_module
 
   private
 
-  public :: stoch_flux, stoch_flux_BC
+  public :: stoch_flux, stoch_flux_BC, rejection_sampler
 
 contains
 
@@ -39,32 +39,47 @@ contains
     real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
 
 
-    real(amrex_real) :: volinv, dtinv
+    real(amrex_real) :: volinv, dtinv, vol, A, B, P, birth, death
 
-
+    real(amrex_real) :: rFracs(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
     integer :: i,j,k,l
     integer :: ll, ns
 
     dtinv = 1d0/dt
 #if (AMREX_SPACEDIM == 3)
-    volinv = 1d0/(dx(1)*dx(2)*dx(3))
+    vol = dx(1)*dx(2)*dx(3)
+    volinv = 1d0/(vol)
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-    volinv = 1d0/(dx(1)*dx(2)*cell_depth)
+    vol = dx(1)*dx(2)*cell_depth
+    volinv = 1d0/(vol)
 #endif
 
     if (abs(visc_type) .gt. 1) then
+
+        !get uniform random fraction of the density that goes right
+        CALL RANDOM_NUMBER(rFracs)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!! JB's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!!!!!! x-flux !!!!!!!!!!!!!!!!!!!
 
+! currently storing all fractions going right. optimize later
+
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
-             do i = lo(1),hi(1)+1
+            !fix ghost cell values - hack for now
+            rFracs(lo(1)-1,j,k,1) = rFracs(hi(1),j,k,1)
+            rFracs(hi(1)+1,j,k,1) = rFracs(lo(1),j,k,1)
+            do i = lo(1),hi(1)+1
 
+                !effective number of particles on lleft and right
+                A = cons(i-1,j,k,1)*vol*rFracs(i-1,j,k,1)
+                B = cons(i,j,k,1)*vol*(1-rFracs(i,j,k,1))
+                P = A+B
 
+                !draw from distribution
 
 
              end do
@@ -294,7 +309,22 @@ contains
 
   end subroutine stoch_flux_BC
 
+  subroutine rejection_sampler(b,d,N,P,x)
+
+    real(amrex_real), intent(in   ) :: b,d,N,P
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: mean, variance, M, proposal
+    integer :: trials
+    
+    !get the mean and variance of a proposal Gaussian
+    mean = (b*P)/(b+d)-N
+    variance = b*d*P/(b+d)**2
+
+  end subroutine rejection_sampler
+
 end module flux_module
+
 
 
 
