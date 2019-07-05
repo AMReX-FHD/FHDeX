@@ -130,6 +130,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     umb_Num="umbrella"+ s;
     umb_Num=umb_Num+".txt";
     std::ofstream ofs;
+    std::ofstream ofs2;
  if(ParallelDescriptor::MyProc() == 0  and Make_PltFiles)                    
  {
     ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);
@@ -168,6 +169,10 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
                     {
                         if(ParallelDescriptor::MyProc() == 0 )
                         {
+                            ofs2.open("AVG_DATA.txt", std::ofstream::out | std::ofstream::app);
+                            ofs2 << Phi_Avg<< "\n";
+                            ofs2.close();
+
                             ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);
                             ofs << Phi_Avg<< "\n";
                             ofs.close();
@@ -195,7 +200,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     MAD=Avg_collect[L/2];
     amrex::Print() << "Average of Phi in umbrella is " << Expec << "\n";
     amrex::Print() << "MAD of Umbrella is " << MAD << "\n";
-    Expec=median; // using median instead of average for comparison
+    //Expec=median; // using median instead of average for comparison
     if(Make_PltFiles)
     {
         umbrella_number=umbrella_number+1;
