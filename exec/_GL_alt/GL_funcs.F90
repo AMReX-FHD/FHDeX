@@ -7,16 +7,28 @@ module time_step_module
 
   private
 
-  public :: rk2_stage1, rk2_stage2, initphi, integrate, setdt, Stat_Quant, inc_phi0_Adapt, Umbrella_Adjust
+  public :: rk2_stage1, rk2_stage2, initphi, integrate, setdt, Stat_Quant, inc_phi0_Adapt, Umbrella_Adjust, Param_Output,umbrella_reset,set_inputs
 
 contains
 
-  subroutine rk2_stage1(lo,hi, phi, phin, rannums, integral, energy, teng, dx, dt,phi_avg,phi_sq_avg) bind(C,name="rk2_stage1")
+  subroutine set_inputs(Plot_Skip_out,Number_of_Samples_out,Equil_out,alpha_out,r1_out,r2_out) bind(C,name="set_inputs")
+    integer,    intent(inout)   :: Plot_Skip_out, Number_of_Samples_out,Equil_out
+    real(amrex_real), intent(inout) :: alpha_out,r1_out,r2_out
+
+    Plot_Skip_out=Plot_Skip
+    Number_of_Samples_out=Number_of_Samples
+    Equil_out=Equil
+    alpha_out=alpha
+    r1_out=r1
+    r2_out=r2
+  end subroutine set_inputs
+
+  subroutine rk2_stage1(lo,hi, phi, phin, rannums, integral, energy, teng, dx, dt,phi_avg) bind(C,name="rk2_stage1")
 
       integer         , intent(in   ) :: lo(2),hi(2)
       real(amrex_real), intent(in   ) :: dx(2), dt
       real(amrex_real), intent(inout) :: energy, teng
-      real(amrex_real), intent(inout) :: phi_avg, phi_sq_avg
+      real(amrex_real), intent(inout) :: phi_avg
 
 
       real(amrex_real), intent(inout) :: phi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2))
@@ -63,8 +75,7 @@ contains
           enddo
         enddo
         phi_avg=0.0d0
-        phi_sq_avg=0.0d0
-      call Stat_Quant(lo,hi, phi,phi_avg,phi_sq_avg)
+        call Stat_Quant(lo,hi, phi,phi_avg)
   end subroutine rk2_stage1
 
   subroutine rk2_stage2(lo,hi, phi, phin, rannums, integral, dx, dt) bind(C,name="rk2_stage2")
@@ -167,7 +178,7 @@ contains
   if(mod(step,n_inc_phi) .eq. 0)then
 
      phi0 = phi0 + phi_inc
-     write(6,*)" phi0 changed to ",phi0 ," at step ", step
+     write(6,*)"phi0 changed to ",phi0 ," at step ", step
 
   endif
 
@@ -197,28 +208,54 @@ contains
     real(amrex_real), intent(in  ) :: alpha
     integer, intent(inout ) :: sucessful_iter,umbrella_size,sucessful_iter_prev
 
-    if (umbrella <=50) then
+    if (umbrella <=umbrella_min) then
       umbrella_size=1
+    else if (umbrella .GE. umbrella_max .AND. sucessful_iter==0 ) then 
+      write(6,*)"Umbrella is large, and we have no overlap. Umbrella is ",umbrella 
+      write(6,*)"Shifting down phi_0 "
+      umbrella_size=2 
     end if
     !! check previous step, current step, and umbrella_size. This section must account for all positbiltities
     write(6,*)"umbrella is",umbrella 
 
-    if (sucessful_iter_prev==1 .AND. sucessful_iter==1 .AND. umbrella_size==0) then 
-         umbrella=umbrella/alpha
-    else if(sucessful_iter_prev==1 .AND. sucessful_iter==1 .AND. umbrella_size==1) then
-         umbrella=umbrella
-    else if(sucessful_iter_prev==0 .AND. sucessful_iter==1) then
-         umbrella=umbrella
-    else if(sucessful_iter_prev==0 .AND. sucessful_iter==0) then
-         umbrella=umbrella*alpha
-    else if(sucessful_iter_prev==1 .AND. sucessful_iter==0) then
-         umbrella=umbrella*alpha
-         umbrella_size=1
-    end if
+      if (sucessful_iter_prev==1 .AND. sucessful_iter==1 .AND. umbrella_size==0) then 
+          umbrella=umbrella/alpha
+      else if(sucessful_iter_prev==1 .AND. sucessful_iter==1 .AND. umbrella_size==1) then
+          umbrella=umbrella
+      else if(sucessful_iter_prev==0 .AND. sucessful_iter==1) then
+          umbrella=umbrella
+      else if(sucessful_iter_prev==0 .AND. sucessful_iter==0) then
+          umbrella=umbrella*alpha
+      else if(sucessful_iter_prev==1 .AND. sucessful_iter==0) then
+          umbrella=umbrella*alpha
+          umbrella_size=1
+      end if
 
-    write(6,*)" umbrella changed to ",umbrella 
+      if (umbrella .LE. 2500 .AND. sucessful_iter .NE. 0 ) then
+        write(6,*)"Umbrella changed to ",umbrella 
+      end if 
 
   end subroutine Umbrella_Adjust
+
+
+
+  subroutine Param_Output ( umbrella_output,phi0_output) bind(C,name="Param_Output")
+    real(amrex_real), intent(out  ) :: umbrella_output,phi0_output
+
+    umbrella_output=umbrella
+    phi0_output=phi0
+
+  end subroutine Param_Output
+
+  subroutine umbrella_reset ( umbrella_input) bind(C,name="umbrella_reset")
+    real(amrex_real), intent(in  ) :: umbrella_input
+    umbrella=umbrella_input
+    write(6,*)"Umbrella is set to",umbrella
+
+
+  end subroutine umbrella_reset
+
+
 
 
   subroutine setdt (  dx, dt ) bind(C,name="setdt")
@@ -236,12 +273,11 @@ contains
 
 
 
-  subroutine Stat_Quant(lo,hi, phi,phi_avg,phi_sq_avg) bind(C,name="Stat_Quant")
+  subroutine Stat_Quant(lo,hi, phi,phi_avg) bind(C,name="Stat_Quant")
 
     integer         , intent(in   ) :: lo(2),hi(2)
     real(amrex_real), intent(in   ) :: phi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2))
     real(amrex_real), intent(inout  ) :: phi_avg
-    real(amrex_real), intent(inout  ) :: phi_sq_avg
     integer :: i,j
   
       phi_avg = 0.d0
@@ -253,18 +289,7 @@ contains
         enddo
       enddo
       phi_avg = phi_avg/(n_cells(2)*n_cells(1))
-  
-  
-      phi_sq_avg = 0.d0
-      do  j=lo(2),hi(2)
-        do  i=lo(1),hi(1)
-  
-          phi_sq_avg = phi_sq_avg + phi(i,j)*phi(i,j)
-  
-       enddo
-     enddo
-  
-     phi_sq_avg = phi_sq_avg/(n_cells(2)*n_cells(1))
+
   
   end subroutine Stat_Quant
 

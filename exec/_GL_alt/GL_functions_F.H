@@ -8,6 +8,9 @@ extern "C"
 {
 #endif
 
+
+
+  void set_inputs(const int* Plot_Skip_out,const int* Number_of_Samples_out, const int* Equil,amrex::Real* alpha,amrex::Real* r1,amrex::Real* r2);
   void rk2_stage1(const int* lo, const int* hi,
 			      amrex::Real* phi,
 			      amrex::Real* phin,
@@ -17,8 +20,7 @@ extern "C"
                               amrex::Real* teng,
                               const amrex::Real* dx,
                               const amrex::Real* dt,
-                              amrex::Real* phi_avg,
-                              amrex::Real* phi_sq_avg);
+                              amrex::Real* phi_avg);
 
 
                               
@@ -55,6 +57,9 @@ extern "C"
 
 
   void Umbrella_Adjust ( int* sucessful_iter, amrex::Real* alpha, int* umbrella_size , int* sucessful_iter_prev);
+
+  void Param_Output (amrex::Real*  umbrella_output, amrex::Real*  phi0_output);
+  void umbrella_reset( amrex::Real*  umbrella_input );
 
 #ifdef __cplusplus
 }

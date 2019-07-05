@@ -14,6 +14,21 @@ module GL_namelist_module
   double precision,   save :: phi_inc
   double precision,   save :: rad
   integer,            save :: n_inc_phi
+  integer,            save :: Plot_Skip
+  integer,            save :: Number_of_Samples
+  integer,            save :: Equil
+  double precision,   save :: alpha
+  double precision,   save :: r1
+  double precision,   save :: r2
+  double precision,   save :: umbrella_max
+  double precision,   save :: umbrella_min
+
+
+
+
+
+
+  
 
 
   ! Problem specification
@@ -28,6 +43,20 @@ module GL_namelist_module
   namelist /GL_params/ phi_inc
   namelist /GL_params/ n_inc_phi
   namelist /GL_params/ rad
+  namelist /GL_params/ Plot_Skip
+  namelist /GL_params/ Number_of_Samples
+  namelist /GL_params/ Equil
+  namelist /GL_params/ alpha
+  namelist /GL_params/ r1
+  namelist /GL_params/ r2
+  namelist /GL_params/ umbrella_max
+  namelist /GL_params/ umbrella_min
+
+
+  
+
+  
+
 
 contains
 
