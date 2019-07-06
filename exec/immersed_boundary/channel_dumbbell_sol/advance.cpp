@@ -412,37 +412,37 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 }
             }
 
-            // // update bending forces for curent, minus/prev, and next/plus
-            // if (status == 0) { // has next (p) and prev (m)
+            // update bending forces for curent, minus/prev, and next/plus
+            if (status == 0) { // has next (p) and prev (m)
 
-            //     // position vectors
-            //     RealVect r, r_m, r_p;
-            //     for(int d=0; d<AMREX_SPACEDIM; ++d) {
-            //         r[d]   = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d);
-            //         r_m[d] = prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d);
-            //         r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d);
-            //     }
+                // position vectors
+                RealVect r, r_m, r_p;
+                for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                    r[d]   = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d);
+                    r_m[d] = prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d);
+                    r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d);
+                }
 
 
-            //     // Set bending forces to zero
-            //     RealVect f_p = RealVect{0., 0., 0.};
-            //     RealVect f   = RealVect{0., 0., 0.};
-            //     RealVect f_m = RealVect{0., 0., 0.};
+                // Set bending forces to zero
+                RealVect f_p = RealVect{0., 0., 0.};
+                RealVect f   = RealVect{0., 0., 0.};
+                RealVect f_m = RealVect{0., 0., 0.};
 
-            //     // calling the bending force calculation
-            //     bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
+                // calling the bending force calculation
+                bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
 
-            //     // updating the force on the minus, current, and plus particles.
-            //     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            //         prev_marker->rdata(IBM_realData::pred_forcex + d) += f_m[d];
-            //         mark.rdata(IBM_realData::pred_forcex + d)         +=   f[d];
-            //         next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
-            //     }
+                // updating the force on the minus, current, and plus particles.
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(IBM_realData::pred_forcex + d) += f_m[d];
+                    mark.rdata(IBM_realData::pred_forcex + d)         +=   f[d];
+                    next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
+                }
 
-            //     Print() << " pred bending force f = "    << f   << std::endl;
-            //     Print() << " pred bending force f_m  = " << f_m << std::endl;
-            //     Print() << " pred bending force f_p = "  << f_p << std::endl;
-            // }
+                Print() << " pred bending force f = "    << f   << std::endl;
+                Print() << " pred bending force f_m  = " << f_m << std::endl;
+                Print() << " pred bending force f_p = "  << f_p << std::endl;
+            }
 
             // Increment neighbor list
             int nn      = nbhd[nbhd_index];
@@ -724,32 +724,32 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // update bending forces for curent, minus/prev, and next/plus
             if (status == 0) { // has next (p) and prev (m)
 
-            //     // position vectors
-            //     RealVect r, r_m, r_p;
-            //     for(int d=0; d<AMREX_SPACEDIM; ++d) {
-            //         r[d]   = mark.pos(d);
-            //         r_m[d] = prev_marker->pos(d);
-            //         r_p[d] = next_marker->pos(d);
-            //     }
+                 // position vectors
+                 RealVect r, r_m, r_p;
+                 for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                     r[d]   = mark.pos(d);
+                     r_m[d] = prev_marker->pos(d);
+                     r_p[d] = next_marker->pos(d);
+                 }
 
-            //     // Set bending forces to zero
-            //     RealVect f_p = RealVect{0., 0., 0.};
-            //     RealVect f   = RealVect{0., 0., 0.};
-            //     RealVect f_m = RealVect{0., 0., 0.};
+                 // Set bending forces to zero
+                 RealVect f_p = RealVect{0., 0., 0.};
+                 RealVect f   = RealVect{0., 0., 0.};
+                 RealVect f_m = RealVect{0., 0., 0.};
 
-            //     // calling the bending force calculation
-            //     bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
+                 // calling the bending force calculation
+                 bending_f(f, f_p, f_m, r, r_p, r_m, bend_k, cos_theta0);
 
-            //     // updating the force on the minus, current, and plus particles.
-            //     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            //         prev_marker->rdata(IBM_realData::forcex + d) -= f_m[d];
-            //         mark.rdata(IBM_realData::forcex + d)         -=   f[d];
-            //         next_marker->rdata(IBM_realData::forcex + d) -= f_p[d];
-            //     }
+                 // updating the force on the minus, current, and plus particles.
+                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                     prev_marker->rdata(IBM_realData::forcex + d) -= f_m[d];
+                     mark.rdata(IBM_realData::forcex + d)         -=   f[d];
+                     next_marker->rdata(IBM_realData::forcex + d) -= f_p[d];
+                 }
 
-            //     Print() << " corr bending force f = "    << f   << std::endl;
-            //     Print() << " corr bending force f_m  = " << f_m << std::endl;
-            //     Print() << " corr bending force f_p = "  << f_p << std::endl;
+                 Print() << " corr bending force f = "    << f   << std::endl;
+                 Print() << " corr bending force f_m  = " << f_m << std::endl;
+                 Print() << " corr bending force f_p = "  << f_p << std::endl;
 
                  Print() << " corr TOTAL force fx = " << mark.rdata(IBM_realData::forcex) << std::endl;
                  Print() << " corr TOTAL force fy = " << mark.rdata(IBM_realData::forcey) << std::endl;
