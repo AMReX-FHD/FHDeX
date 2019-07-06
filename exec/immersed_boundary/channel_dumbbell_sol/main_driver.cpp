@@ -331,9 +331,9 @@ void main_driver(const char * argv) {
     Vector<RealVect> marker_positions(3);
     marker_positions[0] = RealVect{0.25, 0.5, 0.5};
     marker_positions[1] = RealVect{0.26, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.27, 0.5, 0.5};
+    marker_positions[2] = RealVect{0.271, 0.5, 0.5};
 
-    Vector<Real> marker_radii = {.02, .02, .02};
+    Vector<Real> marker_radii = {.04, .04, .04};
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 
