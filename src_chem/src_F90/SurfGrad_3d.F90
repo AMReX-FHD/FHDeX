@@ -9,9 +9,9 @@ subroutine get_surfgrad_3d( lo, hi, &
      &            cons_y, csy_lo, csy_hi,&
      &            cons_z, csz_lo, csz_hi,&
      &            ls,    ls_lo, ls_hi, &
-     &            xfc, xfc_lo, xfc_hi, xfc_nc,&
-     &            yfc, yfc_lo, yfc_hi, yfc_nc,&
-     &            zfc, zfc_lo, zfc_hi, zfc_nc,&
+     &            xfc, xfc_lo, xfc_hi, &
+     &            yfc, yfc_lo, yfc_hi, &
+     &            zfc, zfc_lo, zfc_hi, &
      &            dx, prob_lo) bind(C, name="get_surfgrad_3d")
   
 
@@ -35,9 +35,9 @@ subroutine get_surfgrad_3d( lo, hi, &
   integer, intent(in) :: sz_lo(3), sz_hi(3)
   
   integer, intent(in) :: ls_lo(3), ls_hi(3)
-  integer, intent(in) :: xfc_lo(3), xfc_hi(3), xfc_nc
-  integer, intent(in) :: yfc_lo(3), yfc_hi(3), yfc_nc
-  integer, intent(in) :: zfc_lo(3), zfc_hi(3), zfc_nc
+  integer, intent(in) :: xfc_lo(3), xfc_hi(3) 
+  integer, intent(in) :: yfc_lo(3), yfc_hi(3) 
+  integer, intent(in) :: zfc_lo(3), zfc_hi(3)
   
 double precision, intent(in   ) :: conx(cx_lo(1):cx_hi(1),cx_lo(2):cx_hi(2),cx_lo(3):cx_hi(3))
   double precision, intent(in   ) :: cony(cy_lo(1):cy_hi(1),cy_lo(2):cy_hi(2),cy_lo(3):cy_hi(3))
@@ -52,30 +52,26 @@ double precision, intent(in   ) :: conx(cx_lo(1):cx_hi(1),cx_lo(2):cx_hi(2),cx_l
   double precision, intent(out) :: cons_z(csz_lo(1):csz_hi(1),csz_lo(2):csz_hi(2),csz_lo(3):csz_hi(3))
   
   double precision, intent(in) :: ls(ls_lo(1):ls_hi(1),ls_lo(2):ls_hi(2),ls_lo(3):ls_hi(3))
-  double precision, intent(in) :: xfc(xfc_lo(1):xfc_hi(1),xfc_lo(2):xfc_hi(2),xfc_lo(3):xfc_hi(3),xfc_nc)
-  double precision, intent(in) :: yfc(yfc_lo(1):yfc_hi(1),yfc_lo(2):yfc_hi(2),yfc_lo(3):yfc_hi(3),yfc_nc)
-  double precision, intent(in) :: zfc(zfc_lo(1):zfc_hi(1),zfc_lo(2):zfc_hi(2),zfc_lo(3):zfc_hi(3),zfc_nc)
+  double precision, intent(in) :: xfc(xfc_lo(1):xfc_hi(1),xfc_lo(2):xfc_hi(2),xfc_lo(3):xfc_hi(3),3)
+  double precision, intent(in) :: yfc(yfc_lo(1):yfc_hi(1),yfc_lo(2):yfc_hi(2),yfc_lo(3):yfc_hi(3),3)
+  double precision, intent(in) :: zfc(zfc_lo(1):zfc_hi(1),zfc_lo(2):zfc_hi(2),zfc_lo(3):zfc_hi(3),3)
 
   double precision  :: norm(3)
   integer :: i, j, k
   double precision ::  pos(3), x, y, z
-   print *, " Average Face to CC dx= ", dx
   ! Do a conservative update
 do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           print *, "X i= ", i, " j= ", j, " k= ", k, " dx= ", dx  
            call amrex_eb_normal_levelset(xfc(i,j,k,:), prob_lo,  1, &
                                              ls, ls_lo,  ls_hi,     &
                                              dx,  norm )
           cons_x(i,j,k)=conx(i,j,k)-norm(1)*sx(i,j,k)
-           print *, "X i= ", i, " j= ", j, " k= ", k, " dx= ", dx  
 
            call amrex_eb_normal_levelset(yfc(i,j,k,:), prob_lo,  1, &
                                              ls, ls_lo,  ls_hi,     &
                                              dx,  norm )
            cons_y(i,j,k)=cony(i,j,k)-norm(2)*sy(i,j,k)
-           print *, "X i= ", i, " j= ", j, " k= ", k, " dx= ", dx  
  
            call amrex_eb_normal_levelset(zfc(i,j,k,:), prob_lo,  1, &
                                              ls, ls_lo,  ls_hi,     &
