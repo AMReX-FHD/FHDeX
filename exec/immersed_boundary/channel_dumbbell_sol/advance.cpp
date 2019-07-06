@@ -291,9 +291,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             if ((mark.idata(IBM_intData::id_0) == -1)
                     && (mark.idata(IBM_intData::cpu_0) == -1)) {
 
-                // for (int d=0; d<AMREX_SPACEDIM; ++d)
-                //     mark.rdata(IBM_realData::pred_velx + d) = 0.;
-
                 // Zero x and y-velocity only
                 mark.rdata(IBM_realData::pred_velx) = 0.;
                 mark.rdata(IBM_realData::pred_vely) = 0.;
@@ -742,9 +739,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                  // updating the force on the minus, current, and plus particles.
                  for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                     prev_marker->rdata(IBM_realData::forcex + d) -= f_m[d];
-                     mark.rdata(IBM_realData::forcex + d)         -=   f[d];
-                     next_marker->rdata(IBM_realData::forcex + d) -= f_p[d];
+                     prev_marker->rdata(IBM_realData::forcex + d) += f_m[d];
+                     mark.rdata(IBM_realData::forcex + d)         +=   f[d];
+                     next_marker->rdata(IBM_realData::forcex + d) += f_p[d];
                  }
 
                  Print() << " corr bending force f = "    << f   << std::endl;

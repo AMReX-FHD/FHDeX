@@ -21,7 +21,7 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 400
+  max_step = 800
   plot_int = 20
 
   ! Viscous friction L phi operator
@@ -52,8 +52,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no-slip wall, -2 = periodic pressure
-  bc_lo(1:3) = 2 -2 -1
-  bc_hi(1:3) = 2 -2 -1
+  bc_lo(1:3) = 2 -1 -1
+  bc_hi(1:3) = 2 -1 -1
 
   p_lo(1:3)  = 0 -1  0
   p_hi(1:3)  = 0  1  0
