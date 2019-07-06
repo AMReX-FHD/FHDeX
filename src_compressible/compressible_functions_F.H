@@ -140,11 +140,13 @@ extern "C"
 			      const amrex::Real* prim);
 
   void set_bc(const int* lo, const int* hi,
-			      amrex::Real* cons,
-			      amrex::Real* prim,
-	  	      amrex::Real* eta,
-  		      amrex::Real* zeta,
-			      amrex::Real* zappa);
+	      amrex::Real* cons,
+	      amrex::Real* prim,
+	      amrex::Real* eta,
+	      amrex::Real* zeta,
+	      amrex::Real* kappa,
+	      amrex::Real* chi,
+	      amrex::Real* Dij);
 
   void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 

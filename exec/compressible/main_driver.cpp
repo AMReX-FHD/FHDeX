@@ -260,31 +260,36 @@ void main_driver(const char* argv)
     int step, statsCount;
 
     ///////////////////////////////////////////
-    // structure factor:
+    // Structure factor:
     ///////////////////////////////////////////
     
-    Real molmix;
+    ////////////////////////////////
+    // create equilibrium covariance matrix
+    Real molmix, avgmolmass;
     Real P_bar;
+    Real c_v, c_v2;
     Real dVol = dx[0]*dx[1];
-    Real c_v;
-    int tot_n_cells = n_cells[0]*n_cells[1];
-    // calc eqm pressure
     molmix = 0.0;
+    avgmolmass = 0.0;
     for(int i=0; i<nspecies; i++) {
-	molmix += rhobar[i]/molmass[i];
+	molmix     += rhobar[i]/molmass[i];
+	avgmolmass += rhobar[i]*molmass[i];
     }
-    molmix = 1.0/molmix;
-    P_bar = rho0*(Runiv/molmix)*T0;
-    c_v = 1.5*Runiv/molmix;
+    molmix = 1.0/molmix;                // molar mass of mixture
+    P_bar = rho0*(Runiv/molmix)*T0;     // eqm pressure
+    c_v  = 1.5*(Runiv/molmix);          // Assuming all gases are monoatomic (dof=3)
+    c_v2 = c_v*c_v;                         
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
 	dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
 	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
     }
     // calc momentum variance
-    Real Jeqvar = rho0*k_B*T0/dVol;
+    Real Jeqmvar = rho0*k_B*T0/dVol;
+    Real Meqmvar = (rho0/P_bar)*Jeqmvar;
+    Real Eeqmvar = (c_v2*T0*T0)*Meqmvar + (c_v*T0)*Jeqmvar;
+    Real MEeqmcovar = (rho0/P_bar)*(c_v*T0)*Jeqmvar;
 
     // setup covariance eqm. variance matrix
     int cnt = 0;
@@ -317,21 +322,25 @@ void main_driver(const char* argv)
 
     // covariance matrix block scaling
     cnt = 0;
-    beqmvars[cnt++] = rho0/P_bar*Jeqvar;               // rho,rho      - not scaled by mass fracs
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;         // J_i,rho      - dimensionless only
-    beqmvars[cnt++] = sqrt(rho0/P_bar*T0*c_v)*Jeqvar;  // rhoE,rho     - dimensionless only
-    beqmvars[cnt++] = rho0/P_bar*Jeqvar;               // rho_k,rho    - not scaled by mass fracs
-    beqmvars[cnt++] = Jeqvar;                          // J_i,J_j
-    beqmvars[cnt++] = sqrt(T0*c_v)*Jeqvar;             // rhoE,J_j     - dimensionless only
-    beqmvars[cnt++] = sqrt(rho0/P_bar)*Jeqvar;         // rho_k,J_j    - dimensionless only
-    beqmvars[cnt++] = T0*c_v*Jeqvar;                   // rhoE,rhoE
-    beqmvars[cnt++] = sqrt(rho0/P_bar*T0*c_v)*Jeqvar;  // rho_k,rhoE   - not scaled by mass fracs
-    beqmvars[cnt++] = rho0/P_bar*Jeqvar;               // rho_k,rho_l  - not scaled by mass fracs
+    beqmvars[cnt++] = Meqmvar*avgmolmass/molmix;  // rho,rho
+    beqmvars[cnt++] = sqrt(Meqmvar*Jeqmvar);      // J_i,rho      - cheat scale
+    beqmvars[cnt++] = MEeqmcovar;                 // rhoE,rho
+    beqmvars[cnt++] = Meqmvar;                    // rho_k,rho    - scaled by mass fracs later
+    beqmvars[cnt++] = Jeqmvar;                    // J_i,J_j
+    beqmvars[cnt++] = sqrt(Eeqmvar*Jeqmvar);      // rhoE,J_j     - cheat scale
+    beqmvars[cnt++] = sqrt(Meqmvar*Jeqmvar);      // rho_k,J_j    - cheat scale
+    beqmvars[cnt++] = Eeqmvar;                    // rhoE,rhoE
+    beqmvars[cnt++] = MEeqmcovar;                 // rho_k,rhoE   - scaled by mass fracs later
+    beqmvars[cnt++] = Meqmvar;                    // rho_k,rho_l  - scaled by mass fracs later
 
     // for (int d=0; d<nbcov_sf; d++) {
+    //   Print() << "Hack: " << beqmvars[d] << std::endl;
     //   beqmvars[d] = 1.0;
     // }
-
+    // Print() << "Hack: " << avgmolmass/molmix << std::endl;
+    // exit(0);
+    
+    // loop over lower triangular block matrix
     cnt = 0;
     int bcnt = 0;
     int ig, jg = 0;
@@ -350,6 +359,28 @@ void main_driver(const char* argv)
 	  for(int i=low_ind; i<blocks[ib]; i++) {
 	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
 	    eqmvars[cnt] = beqmvars[bcnt];
+
+	    // fix scale for individual species
+	    if(ib != 2 && jb != 2) { // not for energy
+
+	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
+	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
+	    	eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
+	      } else if (blocks[ib]==nspecies) {
+	    	eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
+	      } else if (blocks[jb]==nspecies) {
+	    	eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
+	      }
+
+	    } else {
+	      
+	      // if rho_k & energy, only scale by Yk
+	      if(blocks[ib]==nspecies && jb==2) {
+	    	eqmvars[cnt] *= rhobar[i];
+	      }
+	      
+	    }
+
 	    // Print() << "Hack: " << ig+i << " " << jg+j << " " << cnt << " " << eqmvars[cnt] << std::endl;
 	  }
 	}
@@ -363,6 +394,8 @@ void main_driver(const char* argv)
     //   Print() << "Hack: scaling = " << eqmvars[d] << " " << d << std::endl;
     // }
     // exit(0);
+
+    ////////////////////////////////
 
     // set variable names
     cnt = 0;
@@ -428,7 +461,7 @@ void main_driver(const char* argv)
     // chi.FillBoundary(geom.periodicity());
     // D.FillBoundary(geom.periodicity());
 
-    // setBC(prim, cu, eta, zeta, kappa);
+    // setBC(prim, cu, eta, zeta, kappa, chi, D);
 
     // calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 

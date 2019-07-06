@@ -989,21 +989,28 @@ contains
        do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-
-                xflux(0,j,k,l) = 0        
+                
+                if(l.eq.2) then
+                   xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+                else 
+                   xflux(0,j,k,l) = 0
+                endif
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and specular
     if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
-                xflux(hi(1)+1,j,k,l) = 0           
+                if(l.eq.2) then
+                   xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)
+                else 
+                   xflux(hi(1)+1,j,k,l) = 0
+                endif     
 
              end do
           end do
@@ -1022,7 +1029,6 @@ contains
           end do
        end do
     endif
-
     !if on upper bound and diff
     if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
        do l = 2,nvars
@@ -1043,22 +1049,29 @@ contains
        do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-
-                yflux(i,0,k,l) = 0        
+                
+                if(l.eq.3) then
+                   yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+                else
+                   yflux(i,0,k,l) = 0
+                endif
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and specular
     if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-
-                yflux(i,hi(2)+1,k,l) = 0           
-
+                
+                if(l.eq.3) then
+                   yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)
+                else
+                   yflux(i,hi(2)+1,k,l) = 0
+                endif
+                
              end do
           end do
        end do
@@ -1076,7 +1089,6 @@ contains
           end do
        end do
     endif
-
     !if on upper bound and diff
     if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
        do l = 2,nvars
@@ -1098,21 +1110,28 @@ contains
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
-                zflux(i,j,0,l) = 0
+                if(l.eq.4) then
+                   zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
+                else
+                   zflux(i,j,0,l) = 0
+                endif
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and specular
     if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 1)) then
        do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-
-                zflux(i,j,hi(3)+1,l) = 0           
-
+                
+                if(l.eq.4) then
+                   zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)
+                else
+                   zflux(i,j,hi(3)+1,l) = 0
+                endif
+                
              end do
           end do
        end do
@@ -1130,7 +1149,6 @@ contains
           end do
        end do
     endif
-
     !if on upper bound and diff
     if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 2)) then
        do l = 2,nvars

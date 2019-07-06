@@ -9,7 +9,7 @@
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
   ngc = 2 2 2
-  nvars = 9
+  nvars = 1
   nprimvars = 14
 
   ! number of cells in domain
@@ -24,7 +24,7 @@
   ! Controls for number of steps between actions
 
   max_step = 10
-  plot_int = 1
+  plot_int = 0
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
