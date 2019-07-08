@@ -168,7 +168,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // initial distance btw markers. TODO: Need to update depending on initial
     // coordinates.
-    Real l_db = 0.01;
+    Real l_db = 0.05;
 
     // Parameters for calling bending force calculation
     Real bend_k = 10000.0; //bending stiffness
@@ -377,13 +377,16 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
 
-            Print() << "force Particle #" << i+1 << "," << "force Neighbor Status = " << status << std::endl;
-            Print() << "force current particle neighbor list:" << nbhd[nbhd_index] << std::endl;
+            // Print() << "force Particle #" << i+1 << "," << "force Neighbor Status = " << status << std::endl;
+            // Print() << "force current particle neighbor list:" << nbhd[nbhd_index] << std::endl;
 
-            Print() << "force current particle ID and CPU:" << mark.id() << " and " << mark.cpu() << std::endl;
-            Print() << "force current particle ID_0 and CPU_0:" << mark.idata(IBM_intData::id_0) << " and " << mark.idata(IBM_intData::cpu_0) << std::endl;
+            // Print() << "force current particle ID and CPU:" << mark.id() << " and " << mark.cpu() << std::endl;
+            // Print() << "force current particle ID_0 and CPU_0:" << mark.idata(IBM_intData::id_0) << " and " << mark.idata(IBM_intData::cpu_0) << std::endl;
 
-            std::cout << mark.pos(0) << " " << mark.pos(1) << " " << mark.pos(2) << std::endl;
+            // std::cout << mark.pos(0) << " " << mark.pos(1) << " " << mark.pos(2) << std::endl;
+
+
+            if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
 
             // update spring forces
             if (status == 0) { // has next (p) and prev (m)
@@ -436,9 +439,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
                 }
 
-                Print() << " pred bending force f = "    << f   << std::endl;
-                Print() << " pred bending force f_m  = " << f_m << std::endl;
-                Print() << " pred bending force f_p = "  << f_p << std::endl;
+                // Print() << " pred bending force f = "    << f   << std::endl;
+                // Print() << " pred bending force f_m  = " << f_m << std::endl;
+                // Print() << " pred bending force f_p = "  << f_p << std::endl;
             }
 
             // Increment neighbor list
@@ -693,6 +696,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
 
+            if (status == -1) Abort("status -1 particle detected in corrector!!! flee for your life!");
+
             // update spring forces
             if (status == 0) { // has next (p) and prev (m)
 
@@ -713,8 +718,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     mark.rdata(IBM_realData::forcex + d)         += fp_0 * r_p[d];
                     next_marker->rdata(IBM_realData::forcex + d) -= fp_0 * r_p[d];
 
-                    std::cout << "fm = " << fm_0 * r_m[d] << std::endl;
-                    std::cout << "fp = " << -fp_0 * r_p[d] << std::endl;
+                    // std::cout << "fm = " << fm_0 * r_m[d] << std::endl;
+                    // std::cout << "fp = " << -fp_0 * r_p[d] << std::endl;
                 }
             }
 
@@ -744,21 +749,21 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      next_marker->rdata(IBM_realData::forcex + d) += f_p[d];
                  }
 
-                 Print() << " corr bending force f = "    << f   << std::endl;
-                 Print() << " corr bending force f_m  = " << f_m << std::endl;
-                 Print() << " corr bending force f_p = "  << f_p << std::endl;
+                 // Print() << " corr bending force f = "    << f   << std::endl;
+                 // Print() << " corr bending force f_m  = " << f_m << std::endl;
+                 // Print() << " corr bending force f_p = "  << f_p << std::endl;
 
-                 Print() << " corr TOTAL force fx = " << mark.rdata(IBM_realData::forcex) << std::endl;
-                 Print() << " corr TOTAL force fy = " << mark.rdata(IBM_realData::forcey) << std::endl;
-                 Print() << " corr TOTAL force fz = " << mark.rdata(IBM_realData::forcez) << std::endl;
+                 // Print() << " corr TOTAL force fx = " << mark.rdata(IBM_realData::forcex) << std::endl;
+                 // Print() << " corr TOTAL force fy = " << mark.rdata(IBM_realData::forcey) << std::endl;
+                 // Print() << " corr TOTAL force fz = " << mark.rdata(IBM_realData::forcez) << std::endl;
 
-                 Print() << " corr TOTAL force f_mx = " << prev_marker->rdata(IBM_realData::forcex) << std::endl;
-                 Print() << " corr TOTAL force f_my = " << prev_marker->rdata(IBM_realData::forcey) << std::endl;
-                 Print() << " corr TOTAL force f_mz = " << prev_marker->rdata(IBM_realData::forcez) << std::endl;
+                 // Print() << " corr TOTAL force f_mx = " << prev_marker->rdata(IBM_realData::forcex) << std::endl;
+                 // Print() << " corr TOTAL force f_my = " << prev_marker->rdata(IBM_realData::forcey) << std::endl;
+                 // Print() << " corr TOTAL force f_mz = " << prev_marker->rdata(IBM_realData::forcez) << std::endl;
 
-                 Print() << " corr TOTAL force f_px = " << next_marker->rdata(IBM_realData::forcex) << std::endl;
-                 Print() << " corr TOTAL force f_py = " << next_marker->rdata(IBM_realData::forcey) << std::endl;
-                 Print() << " corr TOTAL force f_pz = " << next_marker->rdata(IBM_realData::forcez) << std::endl;
+                 // Print() << " corr TOTAL force f_px = " << next_marker->rdata(IBM_realData::forcex) << std::endl;
+                 // Print() << " corr TOTAL force f_py = " << next_marker->rdata(IBM_realData::forcey) << std::endl;
+                 // Print() << " corr TOTAL force f_pz = " << next_marker->rdata(IBM_realData::forcez) << std::endl;
 
             }
 
