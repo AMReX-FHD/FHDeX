@@ -203,9 +203,9 @@ void AmrCoreAdv::EvolveChem(
         Dcon_y[lev]->setVal(0.);
         Dcon_z[lev]->setVal(0.);
 
-        Dconc_x[lev].reset(new MultiFab(conba, condm, 1, 1));
-        Dconc_y[lev].reset(new MultiFab(conba, condm, 1, 1));
-        Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 1));
+        Dconc_x[lev].reset(new MultiFab(conba, condm, 1, 0));
+        Dconc_y[lev].reset(new MultiFab(conba, condm, 1, 0));
+        Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 0));
     std::cout<< " max Dconc_x C = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
 
@@ -985,11 +985,14 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     const BoxArray & badpz            = Dcon_z[lev]->boxArray();
     const DistributionMapping & dmdpz = Dcon_z[lev]->DistributionMap();
     MultiFab z_mf(badpz,dmdpz,1,0);
-
+   
     MultiFab S_new_fill(badp,dmdp, S_new.nComp(), 1);
     S_new_fill.setVal(0.);
     FillPatch(lev, time, S_new_fill, 0, S_new_fill.nComp());
 
+    x_mf.setVal(0.);
+    y_mf.setVal(0.);
+    z_mf.setVal(0.);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1024,6 +1027,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabx),
                                 BL_TO_FORTRAN_3D(faby),
                                 BL_TO_FORTRAN_3D(fabz),
+                                BL_TO_FORTRAN_3D(fabxf),
+                                BL_TO_FORTRAN_3D(fabyf),
+                                BL_TO_FORTRAN_3D(fabzf),
                                 BL_TO_FORTRAN_3D(fabsl),
                                 & Sphere_cent_x, & Sphere_cent_y,
                                 & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
@@ -1033,10 +1039,19 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     }
     // Avergage face centered grad C to cell centered  
     std::cout<< " max Dconc_x 4 = " << (*Dconc_x[lev]).max(0) <<std::endl;
-    MultiFab  s_mf(badp,dmdp,1,1);
-    MultiFab  xc_mf(badp,dmdp,1,1);
-    MultiFab  yc_mf(badp,dmdp,1,1);
-    MultiFab  zc_mf(badp,dmdp,1,1);
+    MultiFab  s_mf(badp,dmdp,1,0);
+    MultiFab  xc_mf(badp,dmdp,1,0);
+    MultiFab  yc_mf(badp,dmdp,1,0);
+    MultiFab  zc_mf(badp,dmdp,1,0);
+    xc_mf.setVal(0.);
+    yc_mf.setVal(0.);
+    zc_mf.setVal(0.);
+
+    s_mf.setVal(0.);
+
+    x_mf.FillBoundary(geom[lev].periodicity());
+    y_mf.FillBoundary(geom[lev].periodicity());
+    z_mf.FillBoundary(geom[lev].periodicity());
 
     MultiFab &  sd_mf       = * MagDcon[lev];
 
@@ -1080,13 +1095,16 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
         }
     }
     std::array< MultiFab, AMREX_SPACEDIM > Sface_array;
-    Sface_array[0].define(badpx, dmdpx, 1, 1);
-    Sface_array[1].define(badpy, dmdpy, 1, 1);
-    Sface_array[2].define(badpz, dmdpz, 1, 1);
-
-    Sface_array[0].FillBoundary(geom[lev].periodicity());
-    Sface_array[1].FillBoundary(geom[lev].periodicity());
-    Sface_array[2].FillBoundary(geom[lev].periodicity());
+    Sface_array[0].define(badpx, dmdpx, 1, 0);
+    Sface_array[1].define(badpy, dmdpy, 1, 0);
+    Sface_array[2].define(badpz, dmdpz, 1, 0);
+    Sface_array[0].setVal(0.);
+    Sface_array[1].setVal(0.);
+    Sface_array[2].setVal(0.);
+    
+//    Sface_array[0].FillBoundary(geom[lev].periodicity());
+//    Sface_array[1].FillBoundary(geom[lev].periodicity());
+//    Sface_array[2].FillBoundary(geom[lev].periodicity());
  
    s_mf.FillBoundary(geom[lev].periodicity());
  
@@ -1216,34 +1234,36 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     else if (indicator==1){
     DistributionMapping xcondm = Dcon_x[lev]->DistributionMap();
     BoxArray xconba            = Dcon_x[lev]->boxArray();
-
+    int xng=Dcon_x[lev]->nGrow();
     MF[lev].reset(new MultiFab(xconba, xcondm, 1, 0));
 
     MF[lev]->setVal(0.);
 
-        MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 1, 0);
+        MF[lev]->copy(* Dcon_x[lev], 0, 0,1, xng, 0);
 //        std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==2){
     DistributionMapping ycondm = Dcon_y[lev]->DistributionMap();
     BoxArray yconba            = Dcon_y[lev]->boxArray();
+    int yng=Dcon_y[lev]->nGrow();
 
 
     MF[lev].reset(new MultiFab(yconba, ycondm, 1, 0));
 
     MF[lev]->setVal(0.);
 
-	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 1, 0);
+	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, yng, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==3){
     DistributionMapping zcondm = Dcon_z[lev]->DistributionMap();
     BoxArray zconba            = Dcon_z[lev]->boxArray();
+    int zng=Dcon_z[lev]->nGrow();
 
     MF[lev].reset(new MultiFab(zconba, zcondm, 1, 0));
 
     MF[lev]->setVal(0.);
-	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 1, 0);
+	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, zng, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==4){
@@ -1257,34 +1277,37 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     else if (indicator==5){
     DistributionMapping condm = Dconc_x[lev]->DistributionMap();
     BoxArray conba            = Dconc_x[lev]->boxArray();
+    int xng=Dconc_x[lev]->nGrow();
 
     MF[lev].reset(new MultiFab(conba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 
-        MF[lev]->copy(* Dconc_x[lev], 0, 0,1, 1, 0);
+        MF[lev]->copy(* Dconc_x[lev], 0, 0,1, xng, 0);
 //        std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==6){
     DistributionMapping condm = Dconc_y[lev]->DistributionMap();
     BoxArray conba            = Dconc_y[lev]->boxArray();
+    int yng=Dconc_y[lev]->nGrow();
 
 
     MF[lev].reset(new MultiFab(conba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 
-	MF[lev]->copy(* Dconc_y[lev], 0, 0,1, 1, 0);
+	MF[lev]->copy(* Dconc_y[lev], 0, 0,1, yng, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==7){
     DistributionMapping condm = Dconc_z[lev]->DistributionMap();
     BoxArray conba            = Dconc_z[lev]->boxArray();
+    int zng=Dconc_z[lev]->nGrow();
 
     MF[lev].reset(new MultiFab(conba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
-	 MF[lev]->copy(* Dconc_z[lev], 0, 0,1, 1, 0);
+	 MF[lev]->copy(* Dconc_z[lev], 0, 0,1, zng, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
 

@@ -16,7 +16,7 @@
   max_grid_size(1:3) = 32 32 32 ! 16 16 16
 
   ! Time-step control
-  fixed_dt = 5e-5 !1e-4
+  fixed_dt = 5e-5 ! 1e-4
 
   ! Controls for number of steps between actions
   ! max_step = 200000
