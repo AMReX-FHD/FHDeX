@@ -52,9 +52,9 @@ def makeHist(flux, x, D):
   hist, bin_edges = np.histogram(flux)
 
   #plot some histograms
-  b = np.max(flux)-np.min(flux)
+  b = 50*np.max(flux)-np.min(flux)*50
   # An "interface" to matplotlib.axes.Axes.hist() method
-  n, bins, patches = plt.hist(x=flux, bins=b+1, color='#0504aa',
+  n, bins, patches = plt.hist(x=flux, bins=int(np.ceil(b+1)), color='#0504aa',
                               alpha=0.7, rwidth=0.85, density=1)
   plt.grid(axis='y', alpha=0.75)
   plt.xlabel('Value')
@@ -240,7 +240,7 @@ def fluxSamples(N,t):
     cs = np.cumsum(netFlux)
     cs = np.insert(cs,0,0) #append a zero as the first element
 
-    samples.append(cs[t])
+    samples.append(cs[t]/50.0)
 
   return samples
 
@@ -305,16 +305,16 @@ if __name__ == "__main__":
     print "The theoretical mean is: ", theory
 
     #get the average flux as a function of timestep
-    #print "Getting Average Flux..."
-    #avgFlux = getAverageFlux(N, ts)
-    #plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
+    print "Getting Average Flux..."
+    avgFlux = getAverageFlux(N, ts)
+    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
 
     #get a histogram of net flux at a chosen time
-    time = 500
+    time = 10000
     P = lN+rN
     print "Plotting histogram at time step ", time
     samples = fluxSamples(N, time)
-    x, D = theoryDistribution(100, 1.0, lN, rN, rT, lT)
+    x, D = theoryDistribution(100, 50, lN/50.0, rN/50.0, rT, lT)
     makeHist(samples, x, D)
 
 
