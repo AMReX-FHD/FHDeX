@@ -172,4 +172,82 @@ void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
     f_m += e_ref.start().f;
 }
 
+
+
+
+Real UW(RealVect r_m, RealVect r, RealVect r_p, RealVect u, Real theta) {
+
+
+    // Real x = r.x, y = r.y, z=r.z;
+    // Real xM = r_m.x, yM = r_m.y, zM = r_m.z;
+    // Real xP = r_p.x, yP = r_p.y, zP = r_p.z;
+
+    // Real ux = u.x, uy = u.y, uz = u.z;
+
+    Real x = r[0], xM = r_m[0], xP = r_p[0], ux = u[0];
+#if (AMREX_SPACEDIM > 1)
+    Real y = r[1], yM = r_m[1], yP = r_p[1], uy = u[1];
+#endif
+#if (AMREX_SPACEDIM > 2)
+    Real z = r[2], zM = r_m[2], zP = r_p[2], uz = u[2];
+#endif
+
+    Real cosTh = cos(theta);
+#if (AMREX_SPACEDIM > 2)
+    Real sinTh = sin(theta);
+#endif
+
+#if   (AMREX_SPACEDIM == 1)
+#error incompatible with DIM == 1
+#elif (AMREX_SPACEDIM == 2)
+
+    Real A1 = cosTh + (1 - cosTh)*ux*ux;
+    Real A2 = (1 - cosTh)*ux*uy;
+
+    Real B1 = (1 - cosTh)*ux*uy;
+    Real B2 = cosTh + (1 - cosTh)*uy*uy;
+
+
+    Real l_p = 1; //sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) ); //TODO: HACK!
+    Real l_m = 1; //sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) ); //TODO: HACK!
+
+    Real Y1 = (xP-x)/l_p - ( A1*(x-xM) + B1*(y-yM) )/l_m;
+    Real Y2 = (yP-y)/l_p - ( A2*(x-xM) + B2*(y-yM) )/l_m;
+
+
+#elif (AMREX_SPACEDIM == 3)
+
+    Real A1 = cosTh + (1 - cosTh)*ux*ux;
+    Real A2 = (1 - cosTh)*ux*uy + sinTh*uz;
+    Real A3 = -(sinTh*uy) + (1 - cosTh)*ux*uz;
+
+    Real B1 = (1 - cosTh)*ux*uy - sinTh*uz;
+    Real B2 = cosTh + (1 - cosTh)*uy*uy;
+    Real B3 = sinTh*ux + (1 - cosTh)*uy*uz;
+
+    Real C1 = sinTh*uy + (1 - cosTh)*ux*uz;
+    Real C2 = -(sinTh*ux) + (1 - cosTh)*uy*uz;
+    Real C3 = cosTh + (1 - cosTh)*uz*uz;
+
+    Real l_p = 1; //sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) + (zP-z)*(zP-z) ); //TODO: HACK!
+    Real l_m = 1; //sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) + (z-zM)*(z-zM) ); //TODO: HACK!
+
+    Real Y1 = (xP-x)/l_p - ( A1*(x-xM) + B1*(y-yM) + C1*(z-zM) )/l_m;
+    Real Y2 = (yP-y)/l_p - ( A2*(x-xM) + B2*(y-yM) + C2*(z-zM) )/l_m;
+    Real Y3 = (zP-z)/l_p - ( A3*(x-xM) + B3*(y-yM) + C3*(z-zM) )/l_m;
+
+#else
+#error incompatible with DIM > 3
+#endif
+
+
+#if   (AMREX_SPACEDIM > 1)
+    return (Y1*Y1 + Y2*Y2);
+#elif (AMREX_SPACEDIM > 2)
+    return (Y1*Y1 + Y2*Y2 + Y3*Y3);
+#endif
+}
+
+
+
 };

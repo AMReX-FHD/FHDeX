@@ -78,21 +78,29 @@ contains
             rFracs(hi(1)+1,j,k,1) = rFracs(lo(1),j,k,1)
             do i = lo(1),hi(1)+1
 
-                !effective number of particles on lleft and right
-                ! A = cons(i-1,j,k,1)*vol*rFracs(i-1,j,k,1)
-                ! B = cons(i,j,k,1)*vol*(1-rFracs(i,j,k,1))
-                A = cons(i-1,j,k,1)*rFracs(i-1,j,k,1)
-                B = cons(i,j,k,1)*(1-rFracs(i,j,k,1))
+                !effective number of particles on left and right
+                A = cons(i-1,j,k,1)*vol!*rFracs(i-1,j,k,1)
+                B = cons(i,j,k,1)*vol!*(1-rFracs(i,j,k,1))
+                !A = cons(i-1,j,k,1)*rFracs(i-1,j,k,1)
+                !B = cons(i,j,k,1)*(1-rFracs(i,j,k,1))
                 P = A+B
 
                 !draw from distribution
+                !print *, "Particles and volume:",A,B, P, vol
                 CALL rejection_sampler(birth,death,B,P,x)
-                print *, "dx = ", dx(1)
+                !print *, "dx = ", dx(1)
+                ranfluxx(i,j,k,1) = x*volinv
+                fluxx(i,j,k,1) = x*volinv
 
+            end do
+            ranfluxx(lo(1),j,k,1) = 0
+            fluxx(lo(1),j,k,1) = 0
+            ranfluxx(hi(1)+1,j,k,1) = 0
+            fluxx(hi(1)+1,j,k,1) = 0
 
-             end do
           end do
        end do
+
 
        ! print*, "Hack: got here (end) stochflux"
 
@@ -328,10 +336,10 @@ contains
     Gtrials = 500
     Utrials = 500
     trialCount = 0
-    M = 2  !might be big/small, experiment with this
+    M = 1  !might be big/small, experiment with this
 
     !get the mean and variance of a proposal Gaussian
-    print *, b,d,N,P
+    !print *, b,d,N,P
     mean = (b*P)/(b+d)-N
     !print *, mean
     variance = b*d*P/(b+d)**2
@@ -342,19 +350,29 @@ contains
     !sample from the proposal Gaussian distribution - accept/rejection
     do while (trialCount < Gtrials)
         trialCount = trialCount + 1
-        !proposal = get_fhd_normal_func() !make sure this is actually N(0,1)
-        !proposal = sqrt(variance)*proposal+mean
+
+        !!if using uniform proposal
         CALL RANDOM_NUMBER(proposal)
         proposal = P*proposal - N
-        print *, proposal, -N, P-N
+        G = 1
+
+        !!if using gaussian proposal
+        !proposal = get_fhd_normal_func() !make sure this is actually N(0,1)
+        !proposal = sqrt(variance)*proposal+mean
+        !CALL gaussian_density(mean, variance, proposal, G)
+        
+        !print *, "Proposal with bounds", proposal, -N, P-N
+
         CALL RANDOM_NUMBER(U)
         CALL eval_density(b,d,N,P,proposal,F)
-        CALL gaussian_density(mean, variance, proposal, G)
+
         !print *, 'ratio', F/G, F, G
+
         if (U < F/(M*G)) then
             x = proposal
             EXIT
         endif
+
     end do
 
 

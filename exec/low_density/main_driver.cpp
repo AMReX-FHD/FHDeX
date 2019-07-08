@@ -131,8 +131,15 @@ void main_driver(const char* argv)
 
     //Initialize physical parameters from input vals
     //TODO - set varying density in different regions
-    cu.setVal(rho0);
+    IntVect lo1(AMREX_D_DECL(0,0,0));
+    IntVect lo2(AMREX_D_DECL(1,0,0));
+    IntVect hi1(AMREX_D_DECL(1,1,1));
+    IntVect hi2(AMREX_D_DECL(2,1,1));
 
+    Box b1(lo1,hi1);
+    Box b2(lo2,hi2);
+    cu.setVal(7,b1,0,1);
+    cu.setVal(23,b2,0,1);
 
     //fluxes - not using for now but keep
     std::array< MultiFab, AMREX_SPACEDIM > flux;
@@ -161,7 +168,8 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
-        RK3step(cu, cup, cup2, cup3, flux, stochFlux, geom, dx, dt);
+        eulerStep(cu, flux, stochFlux, geom, dx, dt);
+        //RK3step(cu, cup, cup2, cup3, flux, stochFlux, geom, dx, dt);
 
         if(step == n_steps_skip)
         {

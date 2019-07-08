@@ -6,9 +6,53 @@ module time_step_module
 
   private
 
-  public :: rk3_stage1, rk3_stage2, rk3_stage3
+  public :: rk3_stage1, rk3_stage2, rk3_stage3, euler_step
 
 contains
+
+  subroutine euler_step(lo,hi, cu, xflux, yflux, &
+#if (AMREX_SPACEDIM == 3)
+                        zflux, &
+#endif
+                        dx, dt) bind(C,name="euler_step")
+
+      integer         , intent(in   ) :: lo(3),hi(3)
+      real(amrex_real), intent(in   ) :: dx(3), dt
+
+      real(amrex_real), intent(inout) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
+
+
+      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+#if (AMREX_SPACEDIM == 3)
+      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+#endif
+      integer :: i,j,k,l
+      real(amrex_real) :: dxinv(3)
+
+      dxinv = 1d0/dx
+
+      !print *, lo(1), hi(1), lo(2), hi(2), lo(3), hi(3)
+
+      do  l=1,nvars
+        do  k=lo(3),hi(3)
+         do  j=lo(2),hi(2)
+           do  i=lo(1),hi(1)
+
+                print *, "density before", cu(i,j,k,l)
+                 cu(i,j,k,l) = cu(i,j,k,l)                                      &
+                                - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
+                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
+#if (AMREX_SPACEDIM == 3)
+                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  
+#endif
+                                print *, "density after" ,cu(i,j,k,l)                     
+           enddo
+          enddo
+        enddo
+      enddo
+
+  end subroutine euler_step
 
   subroutine rk3_stage1(lo,hi, cu, cup, xflux, yflux, &
 #if (AMREX_SPACEDIM == 3)

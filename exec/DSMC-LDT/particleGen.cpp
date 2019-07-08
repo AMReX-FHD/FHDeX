@@ -215,6 +215,8 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
     const Real* plo = geom.ProbLo();
     const Real* phi = geom.ProbHi();  
 
+    //printf("%f \n", phi[0]);
+
     const int xCells = (int)(phi[0]/dx[0]);
 
     //constants used to randomly distribute particles in each box
@@ -274,7 +276,7 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = zMin + get_uniform_func()*zRange;
 #endif
-                //printf("%d %f %f\n", i_part,p.pos(0), p.pos(1));
+                printf("%d %f %f\n", i_part,p.pos(0), p.pos(1));
                 
                 p.rdata(RealData::q) = 0;
 
@@ -669,7 +671,7 @@ void FhdParticleContainer::Resample(species* particleInfo, Real tL, Real tR) {
 
         //loop over particles
         for (int i = 0; i < Np; i++) {
-            if (parts[i].pos(0) > 1) {
+            if (parts[i].pos(0) < 1) {
                 temp = tL;
             }
             else {

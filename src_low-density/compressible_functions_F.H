@@ -53,6 +53,16 @@ extern "C"
 #endif
 		    const amrex::Real* dx, const amrex::Real* dt);
 
+   void euler_step(const int* lo, const int* hi,
+			      amrex::Real* cu,
+			      const amrex::Real* xflux,
+			      const amrex::Real* yfluz,
+#if (AMREX_SPACEDIM == 3)
+			      const amrex::Real* zflux,
+#endif
+                              const amrex::Real* dx,
+                              const amrex::Real* dt);
+
   void rk3_stage1(const int* lo, const int* hi,
 			      amrex::Real* cu,
 			      amrex::Real* cup,
