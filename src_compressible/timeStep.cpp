@@ -79,7 +79,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     D.FillBoundary(geom.periodicity());
     
     // Impose membrane BCs
-    // setBC(prim, cu, eta, zeta, kappa);
+    setBC(prim, cu, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -143,7 +143,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     chi.FillBoundary(geom.periodicity());
     D.FillBoundary(geom.periodicity());
 
-    // setBC(prim, cup, eta, zeta, kappa);
+    setBC(prim, cup, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -208,7 +208,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     chi.FillBoundary(geom.periodicity());
     D.FillBoundary(geom.periodicity());
 
-    // setBC(prim, cup2, eta, zeta, kappa);
+    setBC(prim, cup2, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
