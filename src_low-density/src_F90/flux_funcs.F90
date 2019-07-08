@@ -78,7 +78,7 @@ contains
             rFracs(hi(1)+1,j,k,1) = rFracs(lo(1),j,k,1)
             do i = lo(1),hi(1)+1
 
-                !effective number of particles on lleft and right
+                !effective number of particles on left and right
                 A = cons(i-1,j,k,1)*vol*rFracs(i-1,j,k,1)
                 B = cons(i,j,k,1)*vol*(1-rFracs(i,j,k,1))
                 !A = cons(i-1,j,k,1)*rFracs(i-1,j,k,1)
@@ -346,7 +346,7 @@ contains
 
         !!if using uniform proposal
         CALL RANDOM_NUMBER(proposal)
-        proposal = P*proposal - N
+        proposal = (P-N)*proposal - N
         G = 1
 
         !!if using gaussian proposal
