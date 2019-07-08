@@ -361,7 +361,7 @@ void main_driver(const char* argv)
 	    eqmvars[cnt] = beqmvars[bcnt];
 
 	    // fix scale for individual species
-	    if(ib != 2 || jb != 2) { // not for energy
+	    if(ib != 2 && jb != 2) { // not for energy
 
 	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
 	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
@@ -374,9 +374,9 @@ void main_driver(const char* argv)
 
 	    } else {
 	      
-	      // if energy & rho_k, only scale by Yk
-	      if(blocks[ib]==nspecies && jb==2 ) {
-	    	eqmvars[cnt] *= rhobar[j];
+	      // if rho_k & energy, only scale by Yk
+	      if(blocks[ib]==nspecies && jb==2) {
+	    	eqmvars[cnt] *= rhobar[i];
 	      }
 	      
 	    }
@@ -461,7 +461,7 @@ void main_driver(const char* argv)
     // chi.FillBoundary(geom.periodicity());
     // D.FillBoundary(geom.periodicity());
 
-    // setBC(prim, cu, eta, zeta, kappa);
+    // setBC(prim, cu, eta, zeta, kappa, chi, D);
 
     // calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 

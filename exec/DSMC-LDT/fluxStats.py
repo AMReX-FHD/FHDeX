@@ -305,12 +305,12 @@ if __name__ == "__main__":
     print "The theoretical mean is: ", theory
 
     #get the average flux as a function of timestep
-    print "Getting Average Flux..."
-    avgFlux = getAverageFlux(N, ts)
-    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
+    #print "Getting Average Flux..."
+    #avgFlux = getAverageFlux(N, ts)
+    #plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
 
     #get a histogram of net flux at a chosen time
-    time = 400
+    time = 500
     P = lN+rN
     print "Plotting histogram at time step ", time
     samples = fluxSamples(N, time)

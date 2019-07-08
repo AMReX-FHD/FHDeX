@@ -2,12 +2,13 @@ module flux_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type, algorithm_type
+  use rng_functions_module
 
   implicit none
 
   private
 
-  public :: stoch_flux, stoch_flux_BC
+  public :: stoch_flux, stoch_flux_BC, rejection_sampler, eval_density, gaussian_density
 
 contains
 
@@ -39,32 +40,54 @@ contains
     real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
 
 
-    real(amrex_real) :: volinv, dtinv
+    real(amrex_real) :: volinv, dtinv, vol, A, B, P, birth, death, x
 
-
+    real(amrex_real) :: rFracs(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
     integer :: i,j,k,l
     integer :: ll, ns
 
+    birth = 1.0
+    death = 1.0
+
     dtinv = 1d0/dt
 #if (AMREX_SPACEDIM == 3)
-    volinv = 1d0/(dx(1)*dx(2)*dx(3))
+    vol = dx(1)*dx(2)*dx(3)
+    volinv = 1d0/(vol)
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-    volinv = 1d0/(dx(1)*dx(2)*cell_depth)
+    vol = dx(1)*dx(2)*cell_depth
+    volinv = 1d0/(vol)
 #endif
 
     if (abs(visc_type) .gt. 1) then
+
+        !get uniform random fraction of the density that goes right
+        CALL RANDOM_NUMBER(rFracs)
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!! JB's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!!!!!! x-flux !!!!!!!!!!!!!!!!!!!
 
+! currently storing all fractions going right. optimize later
+
        do k = lo(3),hi(3)
           do j = lo(2),hi(2)
-             do i = lo(1),hi(1)+1
+            !fix ghost cell values - hack for now
+            rFracs(lo(1)-1,j,k,1) = rFracs(hi(1),j,k,1)
+            rFracs(hi(1)+1,j,k,1) = rFracs(lo(1),j,k,1)
+            do i = lo(1),hi(1)+1
 
+                !effective number of particles on lleft and right
+                ! A = cons(i-1,j,k,1)*vol*rFracs(i-1,j,k,1)
+                ! B = cons(i,j,k,1)*vol*(1-rFracs(i,j,k,1))
+                A = cons(i-1,j,k,1)*rFracs(i-1,j,k,1)
+                B = cons(i,j,k,1)*(1-rFracs(i,j,k,1))
+                P = A+B
 
+                !draw from distribution
+                CALL rejection_sampler(birth,death,B,P,x)
+                print *, "dx = ", dx(1)
 
 
              end do
@@ -294,7 +317,88 @@ contains
 
   end subroutine stoch_flux_BC
 
+  subroutine rejection_sampler(b,d,N,P,x)
+
+    real(amrex_real), intent(in   ) :: b,d,N,P
+    real(amrex_real), intent(inout) :: x
+
+    real(amrex_real) :: mean, variance, M, U, proposal, F,G
+    integer :: Gtrials, Utrials, trialCount
+    
+    Gtrials = 500
+    Utrials = 500
+    trialCount = 0
+    M = 2  !might be big/small, experiment with this
+
+    !get the mean and variance of a proposal Gaussian
+    print *, b,d,N,P
+    mean = (b*P)/(b+d)-N
+    !print *, mean
+    variance = b*d*P/(b+d)**2
+    proposal = 0
+    F = 0
+    G = 0
+
+    !sample from the proposal Gaussian distribution - accept/rejection
+    do while (trialCount < Gtrials)
+        trialCount = trialCount + 1
+        !proposal = get_fhd_normal_func() !make sure this is actually N(0,1)
+        !proposal = sqrt(variance)*proposal+mean
+        CALL RANDOM_NUMBER(proposal)
+        proposal = P*proposal - N
+        print *, proposal, -N, P-N
+        CALL RANDOM_NUMBER(U)
+        CALL eval_density(b,d,N,P,proposal,F)
+        CALL gaussian_density(mean, variance, proposal, G)
+        !print *, 'ratio', F/G, F, G
+        if (U < F/(M*G)) then
+            x = proposal
+            EXIT
+        endif
+    end do
+
+
+
+  end subroutine rejection_sampler
+
+  subroutine eval_density(b,d,N,P,x,f)
+
+    real(amrex_real), intent(in   ) :: b,d,N,P,x
+    real(amrex_real), intent(inout) :: f
+
+    if (x .gt. -N .and. x .lt. P-N) then
+        f = (x+N)*log(d/b*(x+N)/(P-(x+N)))
+        !print *, f
+        f = f +P*log(P-(x+N))
+        !print *, f
+        f = f +P*log((b+d)/(d*P))
+        !print *,f
+        f = exp(-f)
+        !print *,f
+    else
+        f = 0
+        !print *, 'outside'
+    endif 
+
+  end subroutine eval_density
+
+  subroutine gaussian_density(mean,var,x,f)
+
+    real(amrex_real), intent(in   ) :: mean, var, x
+    real(amrex_real), intent(inout) :: f
+
+    real(amrex_real) :: pi
+
+    pi=4.D0*DATAN(1.D0)
+    !print *,pi, x-mean, var
+
+    !f = 1.0/sqrt(2*pi*var)*exp(-1.0/(2*var)*(x-mean)**2)
+    f = exp(-1.0/(2*var)*(x-mean)**2)
+
+  end subroutine gaussian_density
+
 end module flux_module
+
 
 
 
