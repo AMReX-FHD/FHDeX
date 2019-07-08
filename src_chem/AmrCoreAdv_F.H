@@ -82,9 +82,6 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(s),
                 BL_FORT_FAB_ARG_3D(MagDCon),
                 const BL_FORT_FAB_ARG_3D(ls),
-                const BL_FORT_FAB_ARG_3D(xfc),
-                const BL_FORT_FAB_ARG_3D(yfc),
-                const BL_FORT_FAB_ARG_3D(zfc),
                 const amrex_real* dx, const amrex_real* prob_lo);
 
 

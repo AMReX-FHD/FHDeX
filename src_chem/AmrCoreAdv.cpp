@@ -117,6 +117,7 @@ void AmrCoreAdv::EvolveChem(
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords)
 {
    diffcoeff=dc;
+    std::cout<< " max Dconc_x A = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
 //   std::cout << "EvolveChem diffcoeff"<< diffcoeff<<std::endl;
     
@@ -191,6 +192,8 @@ void AmrCoreAdv::EvolveChem(
         xface[lev]->setVal(0.);
         yface[lev]->setVal(0.);
         zface[lev]->setVal(0.);
+    std::cout<< " max Dconc_x B = " << (*Dconc_x[lev]).max(0) <<std::endl;
+
 
         Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
@@ -203,10 +206,12 @@ void AmrCoreAdv::EvolveChem(
         Dconc_x[lev].reset(new MultiFab(conba, condm, 1, 1));
         Dconc_y[lev].reset(new MultiFab(conba, condm, 1, 1));
         Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 1));
+    std::cout<< " max Dconc_x C = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
-        Dcon_x[lev]->setVal(0.);
-        Dcon_y[lev]->setVal(0.);
-        Dcon_z[lev]->setVal(0.);
+
+        Dconc_x[lev]->setVal(0.);
+        Dconc_y[lev]->setVal(0.);
+        Dconc_z[lev]->setVal(0.);
 
        uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
        vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
@@ -228,6 +233,7 @@ void AmrCoreAdv::EvolveChem(
 //       yface[lev]->FillBoundary(geom[lev].periodicity());
 //       zface[lev]->FillBoundary(geom[lev].periodicity());
  //       std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
+    std::cout<< " max Dconc_x 0 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     }
     int ls_gst= LevelSet.nGrow();
@@ -270,6 +276,7 @@ void AmrCoreAdv::EvolveChem(
         MemProfiler::report(ss.str());
     }
 #endif
+    std::cout<< " max Dconc_x 6 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     //	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
 
@@ -345,11 +352,13 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
        Dcon_z[lev]->setVal(0.);
+       
        Dconc_x[lev]->setVal(0.);
        Dconc_y[lev]->setVal(0.);
        Dconc_z[lev]->setVal(0.);
 
        MagDcon[lev]->setVal(0.);
+    std::cout<< " max Dconc_x 0 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
 //       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
 
@@ -757,6 +766,7 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 //        }
 //    }
 
+    std::cout<< " max Dconc_x 1 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     // advance a single level for a single time step, updates flux registers
     Advance(lev, time, dt[lev], iteration, nsubsteps[lev]);
@@ -793,6 +803,7 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle) {
 //    std::cout << "Advance"<<std::endl;
 //    std::cout << "max con 1 "<< (*con_new[lev]).max(0) <<std::endl;
+    std::cout<< " max Dconc_x 2 = " << (*Dconc_x[lev]).max(0) <<std::endl;
     
     constexpr int num_grow =3; // 3;
 
@@ -947,6 +958,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
         }
     }
 //    std::cout << "max con 3 "<< (*con_new[lev]).max(0) <<std::endl;
+    std::cout<< " max Dconc_x 3 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     // After updating con_new we compute the first derivatives
     MultiFab &  cxf_mf       = * Dcon_x[lev];
@@ -999,13 +1011,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
             // compute velocities on faces (prescribed function of space and time)
             if (BL_SPACEDIM==2) {
-                get_congrad_2d( bx.loVect(), bx.hiVect(),
-                                BL_TO_FORTRAN_3D(stateout),
-                                BL_TO_FORTRAN_3D(fabx),
-                                BL_TO_FORTRAN_3D(faby),
-                                BL_TO_FORTRAN_3D(fabsl),
-                                & Sphere_cent_x, & Sphere_cent_y,
-                                dx, AMREX_ZFILL(prob_lo));
+//                get_congrad_2d( bx.loVect(), bx.hiVect(),
+//                                BL_TO_FORTRAN_3D(stateout),
+//                                BL_TO_FORTRAN_3D(fabx),
+//                                BL_TO_FORTRAN_3D(faby),
+//                                BL_TO_FORTRAN_3D(fabsl),
+//                                & Sphere_cent_x, & Sphere_cent_y,
+//                                dx, AMREX_ZFILL(prob_lo));
             } else {
                 get_congrad_3d( bx.loVect(), bx.hiVect(),
                                 BL_TO_FORTRAN_3D(stateout),
@@ -1020,7 +1032,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
         }
     }
     // Avergage face centered grad C to cell centered  
-    std::cout<< " max Dconc_x 1 = " << (*Dconc_x[lev]).max(0) <<std::endl;
+    std::cout<< " max Dconc_x 4 = " << (*Dconc_x[lev]).max(0) <<std::endl;
     MultiFab  s_mf(badp,dmdp,1,1);
     MultiFab  xc_mf(badp,dmdp,1,1);
     MultiFab  yc_mf(badp,dmdp,1,1);
@@ -1051,10 +1063,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & fabyc         =        yc_mf[mfi];
             FArrayBox & fabzc         =        zc_mf[mfi];
             
-            FArrayBox & fabxf         =        xf_mf[mfi];
-            FArrayBox & fabyf         =        yf_mf[mfi];
-            FArrayBox & fabzf         =        zf_mf[mfi];
-
             // compute velocities on faces (prescribed function of space and time)
             if (BL_SPACEDIM==2) {
             std::cout << "No support for 2D yet" << std::endl;
@@ -1066,9 +1074,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabS),
                                 BL_TO_FORTRAN_3D(fabsd),
                                 BL_TO_FORTRAN_3D(fabsls),
-                                BL_TO_FORTRAN_3D(fabxf),
-                                BL_TO_FORTRAN_3D(fabyf),
-                                BL_TO_FORTRAN_3D(fabzf),
                                 dx, AMREX_ZFILL(prob_lo));
  
             }
@@ -1138,7 +1143,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     AverageFaceToCC(cyf_mf, 0, cyc_mf, 0, 1);
     AverageFaceToCC(czf_mf, 0, czc_mf, 0, 1);
 
-    std::cout<< " max Dconc_x 2 = " << (*Dconc_x[lev]).max(0) <<std::endl;
+    std::cout<< " max Dconc_x 5 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;
