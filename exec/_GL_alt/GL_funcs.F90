@@ -231,7 +231,7 @@ contains
           umbrella_size=1
       end if
 
-      if (umbrella .LE. 2500 .AND. sucessful_iter .NE. 0 ) then
+      if (umbrella .LE. umbrella_max .AND. sucessful_iter .NE. 0 ) then
         write(6,*)"Umbrella changed to ",umbrella 
       end if 
 

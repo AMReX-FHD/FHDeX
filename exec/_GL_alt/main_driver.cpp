@@ -161,6 +161,7 @@ void main_driver(const char* argv)
     int Shift_Flag=0;
     bool while_loop_comp=true;
     bool First_Loop_Step=true;
+    bool weak_phi=false;
     int Plot_Num=0;
     int umbrella_number=0;
 
@@ -172,17 +173,17 @@ void main_driver(const char* argv)
 
     while((Expec+r1*MAD) <1)
     {
-        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
-                N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
-        Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step);
-        First_Loop_Step=false;
-        if(sucessful_compare and  while_loop_comp)
+            Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                    N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+            Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+            First_Loop_Step=false;
+        if(sucessful_compare and  while_loop_comp and !weak_phi)
         {
-            while(sucessful_compare and  while_loop_comp )
+            while(sucessful_compare and  while_loop_comp and !weak_phi)
             {
                 Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
                     N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
-                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step);
+                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
             }
         }else
         {
@@ -190,18 +191,22 @@ void main_driver(const char* argv)
             {
                 Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
                     N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
-                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step);
+                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
             }
         }
-        Make_PltFiles = true;
-        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
-                N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
-        int Shift_Flag=1;
-        inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
-        umbrella_size=0;
-        Make_PltFiles = false;
-        while_loop_comp=true;
-        First_Loop_Step=true;
+        
+            Make_PltFiles = true;
+            Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                    N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+            Shift_Flag=1;
+            inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+            umbrella_size=0;
+            Make_PltFiles = false;
+            First_Loop_Step=true;
+            while_loop_comp=true;
+            weak_phi=false;
+            sucessful_compare=true;
+
     }
 }
 

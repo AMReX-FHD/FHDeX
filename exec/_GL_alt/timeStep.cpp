@@ -208,7 +208,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 
 }
 
-void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step)
+void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_phi)
 { 
       
     int sucessful_iter;
@@ -238,11 +238,18 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         Shift_Flag=0;
         Umbrella_Adjust(&sucessful_iter,&alpha,&umbrella_size,&sucessful_iter_prev);
         amrex::Print() << "Overlap occured "  << "\n";
-        if(std::abs((Expec2+r2*MAD2)-( Expec + r2*MAD))<0.1 && umbrella_size==1 &&  Umbrella_Size_Prev==1)
+        if(umbrella_size==1 &&  Umbrella_Size_Prev==1)
         {
-            amrex::Print() << "Next umbrella is too close with weak k, shifting phi0 up "  << "\n";
-            Shift_Flag=1;
-            inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
+        //    sucessful_compare=false;
+        //    sucessful_iter=0;
+        //    amrex::Print() << "Next umbrella is too close with weak k, shifting phi0 up "  << "\n";
+        //    Shift_Flag=1;
+        //    r_temp=0.5*r2;
+        //    inc_phi0_Adapt(&Expec,&MAD,&r_temp,&Shift_Flag);
+            weak_phi=true;
+        //    umbrella_reset_val=150.0;
+        //    umbrella_reset(&umbrella_reset_val);
+        //    umbrella_size=0;
         }
  
 
@@ -260,7 +267,7 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
             r2=-0.5*r2;
             inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
             r2=r_temp;  
-            umbrella_reset_val=300.0;
+            umbrella_reset_val=150.0;
             umbrella_reset(&umbrella_reset_val);
             umbrella_size=0;
         } 
@@ -276,5 +283,9 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
     if(sucessful_iter_prev==1 and sucessful_iter==0 and !First_Loop_Step) 
     {
         while_loop_comp=false;
+    }
+    if(sucessful_iter_prev==1 and sucessful_iter==1 and  umbrella_size==1)
+    {
+        weak_phi=true;
     }
 }
