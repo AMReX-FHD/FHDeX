@@ -79,21 +79,28 @@ contains
             do i = lo(1),hi(1)+1
 
                 !effective number of particles on left and right
-                A = cons(i-1,j,k,1)*vol*rFracs(i-1,j,k,1)
-                B = cons(i,j,k,1)*vol*(1-rFracs(i,j,k,1))
+                A = cons(i-1,j,k,1)*vol!*rFracs(i-1,j,k,1)
+                B = cons(i,j,k,1)*vol!*(1-rFracs(i,j,k,1))
                 !A = cons(i-1,j,k,1)*rFracs(i-1,j,k,1)
                 !B = cons(i,j,k,1)*(1-rFracs(i,j,k,1))
                 P = A+B
 
                 !draw from distribution
+                !print *, "Particles and volume:",A,B, P, vol
                 CALL rejection_sampler(birth,death,B,P,x)
                 !print *, "dx = ", dx(1)
+                ranfluxx(i,j,k,1) = x*volinv
+                fluxx(i,j,k,1) = x*volinv
 
-                ranfluxx(i,j,k,1) = x
+            end do
+            ranfluxx(lo(1),j,k,1) = 0
+            fluxx(lo(1),j,k,1) = 0
+            ranfluxx(hi(1)+1,j,k,1) = 0
+            fluxx(hi(1)+1,j,k,1) = 0
 
-             end do
           end do
        end do
+
 
        ! print*, "Hack: got here (end) stochflux"
 
@@ -346,7 +353,7 @@ contains
 
         !!if using uniform proposal
         CALL RANDOM_NUMBER(proposal)
-        proposal = (P-N)*proposal - N
+        proposal = P*proposal - N
         G = 1
 
         !!if using gaussian proposal
@@ -354,7 +361,7 @@ contains
         !proposal = sqrt(variance)*proposal+mean
         !CALL gaussian_density(mean, variance, proposal, G)
         
-        !print *, proposal, -N, P-N
+        !print *, "Proposal with bounds", proposal, -N, P-N
 
         CALL RANDOM_NUMBER(U)
         CALL eval_density(b,d,N,P,proposal,F)
