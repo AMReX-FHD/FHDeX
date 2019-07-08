@@ -326,14 +326,22 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
     // Make sure that the nghost (last argument) is big enough!
-    IBMarkerContainer ib_mc(geom, dmap, ba, 20);
+    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
-    Vector<RealVect> marker_positions(3);
-    marker_positions[0] = RealVect{0.25, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.26, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.27, 0.5, 0.5};
+    Vector<RealVect> marker_positions(10);
+    marker_positions[0] = RealVect{0.05, 0.5, 0.5};
+    marker_positions[1] = RealVect{0.10, 0.5, 0.5};
+    marker_positions[2] = RealVect{0.15, 0.5, 0.5};
+    marker_positions[3] = RealVect{0.20, 0.5, 0.5};
+    marker_positions[4] = RealVect{0.25, 0.5, 0.5};
+    marker_positions[5] = RealVect{0.30, 0.5, 0.5};
+    marker_positions[6] = RealVect{0.35, 0.5, 0.5};
+    marker_positions[7] = RealVect{0.40, 0.5, 0.5};
+    marker_positions[8] = RealVect{0.45, 0.5, 0.5};
+    marker_positions[9] = RealVect{0.50, 0.5, 0.5};
 
-    Vector<Real> marker_radii = {.02, .02, .02};
+    Vector<Real> marker_radii(10);
+    for (int i=0; i<10; ++i) marker_radii[i] = .10;
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 
