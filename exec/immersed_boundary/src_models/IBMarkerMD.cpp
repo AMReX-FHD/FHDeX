@@ -174,15 +174,8 @@ void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
 
 
 
-
-Real UW(RealVect r_m, RealVect r, RealVect r_p, RealVect u, Real theta) {
-
-
-    // Real x = r.x, y = r.y, z=r.z;
-    // Real xM = r_m.x, yM = r_m.y, zM = r_m.z;
-    // Real xP = r_p.x, yP = r_p.y, zP = r_p.z;
-
-    // Real ux = u.x, uy = u.y, uz = u.z;
+Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
+        const RealVect & u, Real theta) {
 
     Real x = r[0], xM = r_m[0], xP = r_p[0], ux = u[0];
 #if (AMREX_SPACEDIM > 1)
@@ -248,6 +241,51 @@ Real UW(RealVect r_m, RealVect r, RealVect r_p, RealVect u, Real theta) {
 #endif
 }
 
+
+Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
+           const RealVect & u, double theta,
+           NDERIV__coordinate arg, const RealVect & dx, double delta) {
+
+    RealVect r_dx;
+
+    if      (arg == ARG_r_m) r_dx = r_m + dx; //vadd(&r_dx, &r_m, &dx);
+    else if (arg == ARG_r)   r_dx = r   + dx; //vadd(&r_dx, &r, &dx);
+    else if (arg == ARG_r_p) r_dx = r_p + dx; //vadd(&r_dx, &r_p, &dx);
+
+    else {
+        exit(1);
+    }
+
+    double uw_r_dx_p;
+
+    if      (arg == ARG_r_m) uw_r_dx_p = UW(r_dx, r, r_p, u, theta);
+    else if (arg == ARG_r)   uw_r_dx_p = UW(r_m, r_dx, r_p, u, theta);
+    else if (arg == ARG_r_p) uw_r_dx_p = UW(r_m, r, r_dx, u, theta);
+
+    else {
+        exit(1);
+    }
+
+    if      (arg == ARG_r_m) r_dx = r_m - dx; //vsub(&r_dx, &r_m, &dx);
+    else if (arg == ARG_r)   r_dx = r   - dx; //vsub(&r_dx, &r, &dx);
+    else if (arg == ARG_r_p) r_dx = r_p - dx; //vsub(&r_dx, &r_p, &dx);
+
+    else {
+        exit(1);
+    }
+
+    double uw_r_dx_m;
+
+    if      (arg == ARG_r_m) uw_r_dx_m = UW(r_dx, r, r_p, u, theta);
+    else if (arg == ARG_r)   uw_r_dx_m = UW(r_m, r_dx, r_p, u, theta);
+    else if (arg == ARG_r_p) uw_r_dx_m = UW(r_m, r, r_dx, u, theta);
+
+    else {
+        exit(1);
+    }
+
+    return (uw_r_dx_p - uw_r_dx_m)/(2*delta);
+}
 
 
 };
