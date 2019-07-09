@@ -359,7 +359,6 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   implicit none
 
   type(particle_t), intent(inout), target :: particles(np)
-  type(particle_t) :: toppart
   type(surface_t), intent(in), target :: surfaces(ns)
   integer(c_int), intent(in) :: np, ns
   integer(c_int), intent(in) :: lo(3), hi(3)
@@ -552,12 +551,18 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   ! endif
 
           if(graphene_tog .eq. 1) then
+               surf=>surfaces(6)
+              numcoll=200
+             do count=1,  numcoll
+                 call topparticle(surf, time, inttime)
+            end do       
+
                interval=prob_hi(1)/100
                radius=0
                bJ1 = bessel_jn(1,2.4048)
                prefact = 9104**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
                omega=14*10**6*2*3.14159265
-               surf=>surfaces(6)
+
                do ii=1, 100
                  radius=interval*ii
                  radius=radius*2.4048/prob_hi(1)
@@ -567,12 +572,9 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                  surf%dbesslist(ii)=dbessj0
               enddo
               pi=3.1415926535897932
-              numcoll=200
+
               ! numcoll=pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1)))
-              do count=1,  numcoll
-                 call topparticle(surf, toppart, intside, domsize, push, time, inttime)
-            end do            
-  
+      
                 ! print*,'position',part%pos
                ! print*,'vel',part%vel
                 print*,'fortran move', surf%velz, part%id
