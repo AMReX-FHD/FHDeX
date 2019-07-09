@@ -194,7 +194,7 @@ void AmrCoreAdv::EvolveChem(
         zface[lev]->setVal(0.);
     std::cout<< " max Dconc_x B = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
-
+        
         Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
         Dcon_z[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
@@ -203,11 +203,12 @@ void AmrCoreAdv::EvolveChem(
         Dcon_y[lev]->setVal(0.);
         Dcon_z[lev]->setVal(0.);
 
-        Dconc_x[lev].reset(new MultiFab(conba, condm, 1, 0));
-        Dconc_y[lev].reset(new MultiFab(conba, condm, 1, 0));
-        Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 0));
+        Dconc_x[lev].reset(new MultiFab(conba, condm, 1, 1));
+        Dconc_y[lev].reset(new MultiFab(conba, condm, 1, 1));
+        Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 1));
     std::cout<< " max Dconc_x C = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
+        MagDcon[lev].reset(new MultiFab(conba, condm, 1, 0));
 
         Dconc_x[lev]->setVal(0.);
         Dconc_y[lev]->setVal(0.);
@@ -343,11 +344,12 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 1));
+      
        Dconc_x[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dconc_y[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dconc_z[lev].reset(new MultiFab(ba, dm, 1, 1));
 
-       MagDcon[lev].reset(new MultiFab(ba, dm, 1, 1));
+       MagDcon[lev].reset(new MultiFab(ba, dm, 1, 0));
 
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
@@ -989,6 +991,14 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     S_new_fill.setVal(0.);
     FillPatch(lev, time, S_new_fill, 0, S_new_fill.nComp());
 
+    txf_mf.setVal(0.);
+    tyf_mf.setVal(0.);
+    tzf_mf.setVal(0.);
+    
+    txc_mf.setVal(0.);
+    tyc_mf.setVal(0.);
+    tzc_mf.setVal(0.);
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -1028,6 +1038,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             }
         }
     }
+
+    txc_mf.FillBoundary(geom[lev].periodicity());
+    tyc_mf.FillBoundary(geom[lev].periodicity());
+    tzc_mf.FillBoundary(geom[lev].periodicity());
+
+    
     std::array< MultiFab, AMREX_SPACEDIM > Cxface_array;
     Cxface_array[0].define(badpx, dmdpx, 1, 0);
     Cxface_array[1].define(badpy, dmdpy, 1, 0);
@@ -1068,6 +1084,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
    txf_mf.copy(Cxface_array[0], 0, 0,1, 0, 0);
    tyf_mf.copy(Cyface_array[1], 0, 0,1, 0, 0);
    tzf_mf.copy(Czface_array[2], 0, 0,1, 0, 0);
+    txf_mf.FillBoundary(geom[lev].periodicity());
+    tyf_mf.FillBoundary(geom[lev].periodicity());
+    tzf_mf.FillBoundary(geom[lev].periodicity());
+
+    amrex::Print() << "Max Dconx face "<< (Dcon_x[lev]->max(0))<< std::endl;
+    amrex::Print() << "Max Dcony face "<< (Dcon_y[lev]->max(0))<< std::endl;
+    amrex::Print() << "Max Dconz face "<< (Dcon_z[lev]->max(0))<< std::endl;
 
 
     amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
