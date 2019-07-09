@@ -123,6 +123,7 @@ subroutine calculate_force(particles, np, lo, hi, &
   domsize = phi - plo
   
   !calculate N^2 interaction
+        print *, "SR!"
 
   part => particles(partno) !this defines one particle--we can access all the data by doing part%something
 
@@ -236,6 +237,8 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             ! Do local (short range) coulomb interaction within coulombRadiusFactor
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
+
+                !print *, "particle ", i, " force ", particles(i)%force
 
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Compute correction for fact that the above, sr coulomb interactions accounted for in poisson solve

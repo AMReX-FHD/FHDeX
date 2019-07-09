@@ -186,12 +186,25 @@ void WritePlotFile(int step,
         std::string asciiName3 = Concatenate("asciiEx",step,9);
         std::string asciiName4 = Concatenate("asciiEy",step,9);
         std::string asciiName5 = Concatenate("asciiEz",step,9);
+        //std::string asciiName6 = Concatenate("asciiIx",step,9);
+        //std::string asciiName7 = Concatenate("asciiIy",step,9);
+        //std::string asciiName8 = Concatenate("asciiIz",step,9);
 
         outputMFAscii(charge, asciiName1);
         outputMFAscii(potential, asciiName2);
         outputMFAscii(efield[0], asciiName3);
         outputMFAscii(efield[1], asciiName4);
         outputMFAscii(efield[2], asciiName5);
+
+        //MultiFab ix(cba, cdmap, 1, 0);
+       // MultiFab iy(cba, cdmap, 1, 0);
+       // MultiFab iz(cba, cdmap, 1, 0);
+
+       // amrex::MultiFab::Copy(ix,particleMeans,0,0,14,0);
+
+       // outputMFAscii(particleMeans[1], asciiName6);
+       // outputMFAscii(particleMeans[2], asciiName7);
+       // outputMFAscii(particleMeans[3], asciiName8);
 
         std::string asciiPName = Concatenate("asciiParticles",step,9);
         particles.WriteParticlesAscii(asciiPName);

@@ -27,8 +27,8 @@ def getData(data):
       lN = int(entries[0])
       rN = int(entries[1])
     elif counter == 2:
-      lT = int(entries[0])
-      rT = int(entries[1])
+      lT = float(entries[0])
+      rT = float(entries[1])
     else:
       lFlux.append(int(entries[0]))
       rFlux.append(int(entries[1]))
@@ -45,29 +45,36 @@ def getData(data):
 
   return dt, lN, rN, lT, rT, lFlux, rFlux, netFlux
 
-def makeHist(flux):
+def makeHist(flux, x, D):
   #make a histogram with the data in flux
 
   #make some histograms
   hist, bin_edges = np.histogram(flux)
 
   #plot some histograms
+  b = 50*np.max(flux)-np.min(flux)*50
   # An "interface" to matplotlib.axes.Axes.hist() method
-  n, bins, patches = plt.hist(x=flux, bins='auto', color='#0504aa',
-                              alpha=0.7, rwidth=0.85)
+  n, bins, patches = plt.hist(x=flux, bins=int(np.ceil(b+1)), color='#0504aa',
+                              alpha=0.7, rwidth=0.85, density=1)
   plt.grid(axis='y', alpha=0.75)
   plt.xlabel('Value')
   plt.ylabel('Frequency')
   plt.title('Flux Histogram')
   maxfreq = n.max()
+  print bins
   # Set a clean upper y-axis limit.
-  plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+  #plt.ylim(ymax=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
+
+  #plot the theoretical distribution
+  plt.plot(x,D)
+
+  #show plots on one axes
   plt.show()
 
   return
 
 def getAverageFlux(N, ts):
-  #plot the average flux as a function of timestep
+  #get the average flux as a function of timestep
 
   #construct storage for data - first element is 0
   cumFlux = [0.0 for _ in range(ts+1)]
@@ -216,7 +223,50 @@ def estimateRatesAll(N):
 
   return lrates, rrates
 
+def fluxSamples(N,t):
+  #get all flux samples at time t
 
+  samples = []
+
+  #base for data location
+  base = "samples/fluxes"
+
+  #loop over all the data
+  for i in xrange(0,N):
+    #get the data
+    loc = base + str(i) + ".txt"
+    dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData(loc)
+
+    cs = np.cumsum(netFlux)
+    cs = np.insert(cs,0,0) #append a zero as the first element
+
+    samples.append(cs[t]/50.0)
+
+  return samples
+
+def theoryDistribution(xpts, time, pL, pR, tL, tR):
+  #evaluate the theoretical distribution for given time and parameters
+
+  P = pL + pR                    #total number of particles
+  c = np.sqrt(float(tR)/tL)             #ratio of birth rate to death rate
+  x = np.linspace(-pR+0.01, P-pR-0.01, xpts)  #x domain
+  pDist = []
+  dx = x[1]-x[0]
+
+  #compute the distribution pointwise
+  Z = 0.0
+  for i in xrange(0,xpts):
+    xp = x[i]
+    phi = (xp+pR)*np.log(1/c*((xp+pR)/(P-(xp+pR))))+P*np.log(P-(xp+pR))+P*np.log((1+c)/P)
+    Zi = np.exp(-time*phi)
+    pDist.append(Zi)
+    Z = Z + Zi*dx
+
+  #normalize the distribution
+  for i in xrange(0,xpts):
+    pDist[i] = pDist[i]/Z
+
+  return x, pDist
 
 
 
@@ -237,28 +287,8 @@ if __name__ == "__main__":
 
     #get an example run for parameters
     dt, lN, rN, lT, rT, lFlux, rFlux, netFlux = getData("samples/fluxes5.txt")
-    print "Temperatures: ", lT, rT
-
-    #estimate rates
-    #lrate, rrate = estimateRates(lFlux, rFlux, netFlux, lN, rN, dt)
-
-    lrates, rrates = estimateRatesAll(N)
-    #makeHist(lrates)
-    #makeHist(rrates)
-    lm = np.mean(lrates)
-    rm = np.mean(rrates)
-    print lm, rm
-
-    #compute expected flux from theory using temperatures
-    theory = np.sqrt(lT)/(np.sqrt(lT)+np.sqrt(rT)) * (lN+rN) - rN
-    #theory = np.power(float(lT),0.95)/(np.power(lT,0.95)+np.power(rT,0.95)) * (lN+rN) - rN
-    #theory = rm/(lm+rm) * (lN+rN) - rN
-    print theory
-
-    #get the average flux as a function of timestep
-    print "Getting Average Flux..."
-    avgFlux = getAverageFlux(N, ts)
-    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
+    print "Temperatures:     ", lT, rT
+    print "Starting numbers: ", lN, rN
 
     #estimate rates
     #lrate, rrate = estimateRates(lFlux, rFlux, netFlux, lN, rN, dt)
@@ -266,7 +296,26 @@ if __name__ == "__main__":
     #lrates, rrates = estimateRatesAll(N)
     #makeHist(lrates)
     #makeHist(rrates)
+    #lm = np.mean(lrates)
+    #rm = np.mean(rrates)
+    #print lm, rm
 
+    #compute expected flux from theory using temperatures
+    theory = np.sqrt(lT)/(np.sqrt(lT)+np.sqrt(rT)) * (lN+rN) - rN
+    print "The theoretical mean is: ", theory
+
+    #get the average flux as a function of timestep
+    print "Getting Average Flux..."
+    avgFlux = getAverageFlux(N, ts)
+    plotAverageFlux(avgFlux, N, ts, dt, eBarFlag, theory)
+
+    #get a histogram of net flux at a chosen time
+    time = 10000
+    P = lN+rN
+    print "Plotting histogram at time step ", time
+    samples = fluxSamples(N, time)
+    x, D = theoryDistribution(100, 50, lN/50.0, rN/50.0, rT, lT)
+    makeHist(samples, x, D)
 
 
 

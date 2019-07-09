@@ -191,7 +191,7 @@
     enddo
 
 #endif
-    surf%coltime=tval
+    !surf%coltime=tval
         
   end subroutine find_intersect
 

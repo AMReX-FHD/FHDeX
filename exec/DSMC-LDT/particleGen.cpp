@@ -215,6 +215,8 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
     const Real* plo = geom.ProbLo();
     const Real* phi = geom.ProbHi();  
 
+    //printf("%f \n", phi[0]);
+
     const int xCells = (int)(phi[0]/dx[0]);
 
     //constants used to randomly distribute particles in each box
@@ -274,7 +276,7 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
 #if (BL_SPACEDIM == 3)
                 p.pos(2) = zMin + get_uniform_func()*zRange;
 #endif
-                //printf("%d %f %f\n", i_part,p.pos(0), p.pos(1));
+                printf("%d %f %f\n", i_part,p.pos(0), p.pos(1));
                 
                 p.rdata(RealData::q) = 0;
 
@@ -398,18 +400,24 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     //printf("Particle counts: %d %d\n", pL, pR);
 
     //get mean velocities per side
-    meanLx = vLx / pL;
-    meanRx = vRx / pR;
-    meanLy = vLy / pL;
-    meanRy = vRy / pR;
-    meanLz = vLz / pL;
-    meanRz = vRz / pR;
+    if (pL > 0) {
+        meanLx = vLx / pL;
+        meanLy = vLy / pL; 
+        meanLz = vLz / pL;
+    }
+    if (pR > 0) {
+        meanRx = vRx / pR;
+        meanRy = vRy / pR; 
+        meanRz = vRz / pR;
+    }
+    
 
     //debug line
     //printf("%f %f %f %f %f %f\n", meanLx, meanRx, meanLy, meanRy, meanLz, meanRz);
 
     Real netV = abs(meanLx) + abs(meanRx) + abs(meanLy) + abs(meanRy) + 
                 abs(meanLz) + abs(meanRz);
+
 
     //if netV is 0, no thermostatting is necc
     if (netV < varTol) {
@@ -445,8 +453,8 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     ParallelDescriptor::ReduceRealSum(varR); varR = varR/(3*pR);
 
     //make variances 0 in case of no particles
-    varL *= (pL>0);
-    varR *= (pR>0);
+    if (pL == 0) varL = 0;
+    if (pR == 0) varR = 0;
 
     //debug line
     //printf("Vars: %f %f\n", varL, varR);
@@ -663,7 +671,7 @@ void FhdParticleContainer::Resample(species* particleInfo, Real tL, Real tR) {
 
         //loop over particles
         for (int i = 0; i < Np; i++) {
-            if (parts[i].pos(0) > 1) {
+            if (parts[i].pos(0) < 1) {
                 temp = tL;
             }
             else {

@@ -449,9 +449,12 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
-        Box bx = mfi.growntilebox();
+        const Box & bx       = mfi.growntilebox();
+        //const Box & tile_box = mfi.tilebox();
+        const Box & tile_box = mfi.growntilebox(); // HACK, use tilebox going forward
 
         spread_markers(BL_TO_FORTRAN_BOX(bx),
+                       BL_TO_FORTRAN_BOX(tile_box),
                        BL_TO_FORTRAN_ANYD(f_out[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
                        BL_TO_FORTRAN_ANYD(f_out[1][mfi]),
@@ -532,9 +535,12 @@ void IBParticleContainer::InvInterpolateMarkers(int lev, const ParticleIndex & p
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
-        Box bx = mfi.growntilebox();
+        const Box & bx       = mfi.growntilebox();
+        // const Box & tile_box = mfi.tilebox();
+        const Box & tile_box = mfi.growntilebox(); // HACK, use tilebox going forward
 
         inv_interpolate_markers(BL_TO_FORTRAN_BOX(bx),
+                                BL_TO_FORTRAN_BOX(tile_box),
                                 BL_TO_FORTRAN_ANYD(f_out[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
                                 BL_TO_FORTRAN_ANYD(f_out[1][mfi]),
@@ -591,9 +597,11 @@ void IBParticleContainer::InterpolateMarkers(int lev, const ParticleIndex & pind
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
-        Box bx = mfi.growntilebox();
+        Box bx       = mfi.growntilebox();
+        Box tile_box = mfi.tilebox();
 
         interpolate_markers(BL_TO_FORTRAN_BOX(bx),
+                            BL_TO_FORTRAN_BOX(tile_box),
                             BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
                             BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
@@ -674,9 +682,12 @@ void IBParticleContainer::InvSpreadMarkers(int lev, const ParticleIndex & pindex
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
-        Box bx = mfi.growntilebox();
+        const Box & bx       = mfi.growntilebox();
+        // const Box & tile_box = mfi.tilebox();
+        const Box & tile_box = mfi.growntilebox(); // HACK, use tilebox going forward
 
         inv_spread_markers(BL_TO_FORTRAN_BOX(bx),
+                           BL_TO_FORTRAN_BOX(tile_box),
                            BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
                            BL_TO_FORTRAN_ANYD(f_in[1][mfi]),

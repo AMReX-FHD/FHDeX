@@ -1,7 +1,7 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type, algorithm_type
   use conv_module, only : get_temperature, get_pressure_gas, get_energy, get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
   use multispec_module, only : cholesky_decomp
 
@@ -86,19 +86,17 @@ contains
              xflux(i,j,k,3) = xflux(i,j,k,3) + conserved(1)*primitive(2)*primitive(3)
              xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
 
-             ! print*, "Hack (hyp_flux): flux = ", xflux(i,j,k,5)
-             ! stop
-
              xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
-
-             do n=1,nspecies
-                xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
-             enddo
+             
+             if(algorithm_type.eq.2) then ! Add advection of concentration
+                do n=1,nspecies
+                   xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
+                enddo
+             endif
 
              do l = 1, nvars
                 if ( isnan(xflux(i,j,k,l)) ) then
                    print*, "Hack 1, (hyp_flux) in x = ", i,j,k, xflux(i,j,k,:)
-                   print*, "Hack 2, (hyp_flux): ", conserved(1)
                    stop
                 end if
              end do
@@ -147,10 +145,12 @@ contains
              yflux(i,j,k,4) = yflux(i,j,k,4) + conserved(1)*primitive(4)*primitive(3)
 
              yflux(i,j,k,5) = yflux(i,j,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
-
-             do n=1,nspecies
-                yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + specden(n)*primitive(3)
-             enddo
+             
+             if(algorithm_type.eq.2) then ! Add advection of concentration
+                do n=1,nspecies
+                   yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + specden(n)*primitive(3)
+                enddo
+             endif
 
           end do
        end do
@@ -194,10 +194,12 @@ contains
              zflux(i,j,k,3) = zflux(i,j,k,3) + conserved(1)*primitive(3)*primitive(4)
              zflux(i,j,k,4) = zflux(i,j,k,4) + conserved(1)*primitive(4)**2+primitive(6)
              zflux(i,j,k,5) = zflux(i,j,k,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
-
-             do n=1,nspecies
-                zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + specden(n)*primitive(4)
-             enddo
+             
+             if(algorithm_type.eq.2) then ! Add advection of concentration
+                do n=1,nspecies
+                   zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + specden(n)*primitive(4)
+                enddo
+             endif
 
           end do
        end do
@@ -279,10 +281,12 @@ contains
              ! stop
 
              xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
-
-             do n=1,nspecies
-                xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + conserved(5+n)*primitive(2)
-             enddo
+             
+             if(algorithm_type.eq.2) then ! Add advection of concentration
+                do n=1,nspecies
+                   xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + conserved(5+n)*primitive(2)
+                enddo
+             endif
 
              do l = 1, nvars
                 if ( isnan(xflux(i,j,k,l)) ) then
@@ -332,10 +336,12 @@ contains
              yflux(i,j,k,4) = yflux(i,j,k,4) + conserved(1)*primitive(4)*primitive(3)
 
              yflux(i,j,k,5) = yflux(i,j,k,5) + primitive(3)*conserved(5) + primitive(6)*primitive(3)
-
-             do n=1,nspecies
-                yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + conserved(5+n)*primitive(3)
-             enddo
+             
+             if(algorithm_type.eq.2) then ! Add advection of concentration
+                do n=1,nspecies
+                   yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + conserved(5+n)*primitive(3)
+                enddo
+             endif
 
           end do
        end do
@@ -374,10 +380,12 @@ contains
              zflux(i,j,k,3) = zflux(i,j,k,3) + conserved(1)*primitive(3)*primitive(4)
              zflux(i,j,k,4) = zflux(i,j,k,4) + conserved(1)*primitive(4)**2+primitive(6)
              zflux(i,j,k,5) = zflux(i,j,k,5) + primitive(4)*conserved(5) + primitive(6)*primitive(4)
-
-             do n=1,nspecies
-                zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + conserved(5+n)*primitive(4)
-             enddo
+             
+             if(algorithm_type.eq.2) then ! Add advection of concentration
+                do n=1,nspecies
+                   zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + conserved(5+n)*primitive(4)
+                enddo
+             endif
 
           end do
        end do
@@ -431,9 +439,6 @@ contains
 
     integer :: i,j,k,l
     integer :: ll, ns
-
-    !! FIXME: Should be placed in the namespace
-    integer :: single_component = 0
 
     dtinv = 1d0/dt
 #if (AMREX_SPACEDIM == 3)
@@ -535,7 +540,7 @@ contains
                 ! print*, "Hack 1, (stochflux) in x = ", fluxx(i,j,k,5), fweights(5), kxp
                 ! stop
 
-                if(single_component.eq.0) then
+                if(algorithm_type.eq.2) then
 
                    weiner(6:5+nspecies) = 0.0d0
 
@@ -591,34 +596,6 @@ contains
 
                       enddo
 
-                      ! if(lbc(1) == -1)then
-
-                      !    if(i == lb(1)-1)then
-                      !       weiner(5+ns)=0.d0
-                      !    endif
-
-                      ! elseif (lbc(1) == -2)then
-
-                      !    if(i == lb(1)-1)then
-                      !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
-                      !    endif
-
-                      ! endif
-
-                      ! if(ubc(1) == -1)then
-
-                      !    if(i == ub(1))then
-                      !       weiner(5+ns)=0.d0
-                      !    endif
-
-                      ! elseif (ubc(1) == -2)then
-
-                      !    if(i == ub(1))then
-                      !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
-                      !    endif
-
-                      ! endif
-
 
                       fluxx(i,j,k,5+ns) = weiner(5+ns)
 
@@ -640,13 +617,12 @@ contains
 
                 end if
 
-                do ll = 1, nvars
-                   if ( isnan(fluxx(i,j,k,ll)) ) then
-                      print*, "Hack 1, (stochflux) in x = ", i,j,k, fluxx(i,j,k,:), fweights
-                      print*, "Hack 2, (stochflux): ", k_b,muxp,volinv,dtinv
-                      stop
-                   end if
-                end do
+                ! do ll = 1, nvars
+                !    if ( isnan(fluxx(i,j,k,ll)) ) then
+                !       print*, "Hack 1, (stochflux) in x = ", i,j,k, fluxx(i,j,k,:), fweights
+                !       stop
+                !    end if
+                ! end do
 
              end do
           end do
@@ -742,7 +718,7 @@ contains
 
                 fluxy(i,j,k,5) = fluxy(i,j,k,5) - phiflx
 
-                if(single_component.eq.0) then
+                if(algorithm_type.eq.2) then
 
                    weiner(6:5+nspecies) = 0.0d0
 
@@ -793,35 +769,6 @@ contains
                          weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxy(i,j,k,5+ll)
 
                       enddo
-
-                      ! if(lbc(2) == -1)then
-
-                      !    if(i == lb(2)-1)then
-                      !       weiner(5+ns)=0.d0
-                      !    endif
-
-                      ! elseif (lbc(2) == -2)then
-
-                      !    if(i == lb(2)-1)then
-                      !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
-                      !    endif
-
-                      ! endif
-
-                      ! if(ubc(2) == -1)then
-
-                      !    if(i == ub(2))then
-                      !       weiner(5+ns)=0.d0
-                      !    endif
-
-                      ! elseif (ubc(2) == -2)then
-
-                      !    if(i == ub(2))then
-                      !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
-                      !    endif
-
-                      ! endif
-
 
                       fluxy(i,j,k,5+ns) = weiner(5+ns)
 
@@ -930,7 +877,7 @@ contains
 
                 fluxz(i,j,k,5) = fluxz(i,j,k,5) - phiflx
 
-                if(single_component.eq.0) then
+                if(algorithm_type.eq.2) then
 
                    weiner(6:5+nspecies) = 0.0d0
 
@@ -982,35 +929,6 @@ contains
 
                       enddo
 
-                      ! if(lbc(2) == -1)then
-
-                      !    if(i == lb(2)-1)then
-                      !       weiner(5+ns)=0.d0
-                      !    endif
-
-                      ! elseif (lbc(2) == -2)then
-
-                      !    if(i == lb(2)-1)then
-                      !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
-                      !    endif
-
-                      ! endif
-
-                      ! if(ubc(2) == -1)then
-
-                      !    if(i == ub(2))then
-                      !       weiner(5+ns)=0.d0
-                      !    endif
-
-                      ! elseif (ubc(2) == -2)then
-
-                      !    if(i == ub(2))then
-                      !       weiner(5+ns)=weiner(5+ns)*sqrt(2.d0)
-                      !    endif
-
-                      ! endif
-
-
                       fluxz(i,j,k,5+ns) = weiner(5+ns)
 
                    enddo
@@ -1032,71 +950,6 @@ contains
        end do
 
     else
-
-       ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!! DL's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-       ! !!!!!!!!!!!!!!!!!!! x-flux !!!!!!!!!!!!!!!!!!!
-
-       ! do k = lo(3),hi(3)
-       !    do j = lo(2),hi(2)
-       !       do i = lo(1)-1,hi(1)
-
-       !          kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i+1,j,k)*prim(i+1,j,k,5)*prim(i+1,j,k,5))
-       !          etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i+1,j,k)*prim(i+1,j,k,5))
-       !          velu = 0.5*(prim(i,j,k,2)+prim(i+1,j,k,2))
-       !          velv = 0.5*(prim(i,j,k,3)+prim(i+1,j,k,3))
-       !          velw = 0.5*(prim(i,j,k,4)+prim(i+1,j,k,4))
-
-       !          do l = 2,4
-       !             xflux(i+1,j,k,l) = xflux(i+1,j,k,l) + sqrt(sFac*etatF)*xsflux(i+1,j,k,l)
-       !          end do
-       !          xflux(i+1,j,k,5) = xflux(i+1,j,k,5) + sqrt(qFac*kappattF)*xsflux(i+1,j,k,5) + velu*sqrt(sFac*etatF)*xsflux(i+1,j,k,2) + velv*sqrt(sFac*etatF)*xsflux(i+1,j,k,3) + velw*sqrt(sFac*etatF)*xsflux(i+1,j,k,4)
-
-       !       end do
-       !    end do
-       ! end do
-
-       ! !!!!!!!!!!!!!!!!!!! y-flux !!!!!!!!!!!!!!!!!!!
-
-       ! do k = lo(3),hi(3)
-       !    do j = lo(2)-1,hi(2)
-       !       do i = lo(1),hi(1)
-
-       !          kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j+1,k)*prim(i,j+1,k,5)*prim(i,j+1,k,5))
-       !          etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j+1,k)*prim(i,j+1,k,5))
-       !          velu = 0.5*(prim(i,j,k,2)+prim(i,j+1,k,2))            
-       !          velv = 0.5*(prim(i,j,k,3)+prim(i,j+1,k,3))
-       !          velw = 0.5*(prim(i,j,k,4)+prim(i,j+1,k,4))
-
-       !          do l = 2,4
-       !             yflux(i,j+1,k,l) = yflux(i,j+1,k,l) + sqrt(sFac*etatF)*ysflux(i,j+1,k,l)
-       !          end do
-       !          yflux(i,j+1,k,5) = yflux(i,j+1,k,5) + sqrt(qFac*kappattF)*ysflux(i,j+1,k,5) + velu*sqrt(sFac*etatF)*ysflux(i,j+1,k,2) + velv*sqrt(sFac*etatF)*ysflux(i,j+1,k,3) + velw*sqrt(sFac*etatF)*ysflux(i,j+1,k,4)
-
-       !       end do
-       !    end do
-       ! end do
-
-       ! !!!!!!!!!!!!!!!!!!! z-flux !!!!!!!!!!!!!!!!!!!
-
-       ! do k = lo(3)-1,hi(3)
-       !    do j = lo(2),hi(2)
-       !       do i = lo(1),hi(1)
-
-       !          kappattF = (kappa(i,j,k)*prim(i,j,k,5)*prim(i,j,k,5)+kappa(i,j,k+1)*prim(i,j,k+1,5)*prim(i,j,k+1,5))
-       !          etatF = (eta(i,j,k)*prim(i,j,k,5)+eta(i,j,k+1)*prim(i,j,k+1,5))
-       !          velu = 0.5*(prim(i,j,k,2)+prim(i,j,k+1,2))
-       !          velv = 0.5*(prim(i,j,k,3)+prim(i,j,k+1,3))
-       !          velw = 0.5*(prim(i,j,k,4)+prim(i,j,k+1,4))
-
-       !          do l = 2,4
-       !             zflux(i,j,k+1,l) = zflux(i,j,k+1,l) + sqrt(sFac*etatF)*zsflux(i,j,k+1,l)
-       !          end do
-       !          zflux(i,j,k+1,5) = zflux(i,j,k+1,5) + sqrt(qFac*kappattF)*zsflux(i,j,k+1,5) + velu*sqrt(sFac*etatF)*zsflux(i,j,k+1,2) + velv*sqrt(sFac*etatF)*zsflux(i,j,k+1,3) + velw*sqrt(sFac*etatF)*zsflux(i,j,k+1,4)
-
-       !       end do
-       !    end do
-       ! end do
 
     endif
 
@@ -1127,64 +980,37 @@ contains
 
     integer :: i,j,k,l
 
+    sqrtTwo = sqrt(2.0)
+
 !!!!!!!!!!!!!! x-flux BCs !!!!!!!!!!!!!!
-
-!!!!!!! GM: DL's work is insane in my membrane. Commenting for now... !!!!!!!
-
-    !       !wall cell - hard wired for specular adiabatic for now
-    !       if(lo(1) .eq. membrane_cell) then
-    !         do k = lo(3),hi(3)
-    !           do j = lo(2),hi(2)
-
-    !               xflux(membrane_cell,j,k,2) = 0        
-    !               xflux(membrane_cell,j,k,3) = 0 
-    !               xflux(membrane_cell,j,k,4) = 0 
-    !               xflux(membrane_cell,j,k,5) = 0
-
-    ! !              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
-    ! !              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
-
-    !           end do
-    !         end do
-    !       endif
-
-    !       !wall cell
-    !       if(hi(1) .eq. membrane_cell-1) then
-    !         do k = lo(3),hi(3)
-    !           do j = lo(2),hi(2)
-
-    !               xflux(membrane_cell,j,k,2) = 0  
-    !               xflux(membrane_cell,j,k,3) = 0  
-    !               xflux(membrane_cell,j,k,4) = 0  
-    !               xflux(membrane_cell,j,k,5) = 0
-
-    ! !              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
-    ! !              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
-
-    !           end do
-    !         end do
-    !       endif
 
     !if on lower bound and specular
     if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
-
-                xflux(0,j,k,l) = 0        
+                
+                if(l.eq.2) then
+                   xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+                else 
+                   xflux(0,j,k,l) = 0
+                endif
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and specular
     if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
-                xflux(hi(1)+1,j,k,l) = 0           
+                if(l.eq.2) then
+                   xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)
+                else 
+                   xflux(hi(1)+1,j,k,l) = 0
+                endif     
 
              end do
           end do
@@ -1193,24 +1019,23 @@ contains
 
     !if on lower bound and diff
     if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
-                xflux(0,j,k,l) = 1.4142*xflux(0,j,k,2)
+                xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and diff
     if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
 
-                xflux(hi(1)+1,j,k,l) = 1.4142*xflux(hi(1)+1,j,k,l)        
+                xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
 
              end do
           end do
@@ -1221,25 +1046,32 @@ contains
 
     !if on lower bound and specular
     if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-
-                yflux(i,0,k,l) = 0        
+                
+                if(l.eq.3) then
+                   yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+                else
+                   yflux(i,0,k,l) = 0
+                endif
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and specular
     if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
-
-                yflux(i,hi(2)+1,k,l) = 0           
-
+                
+                if(l.eq.3) then
+                   yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)
+                else
+                   yflux(i,hi(2)+1,k,l) = 0
+                endif
+                
              end do
           end do
        end do
@@ -1247,24 +1079,23 @@ contains
 
     !if on lower bound and diff
     if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
 
-                yflux(i,0,k,l) = 1.4142*yflux(i,0,k,4)
+                yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and diff
     if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
-       do l = 2,5
+       do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
 
-                yflux(i,hi(2)+1,k,l) = 1.4142*yflux(i,hi(2)+1,k,l)        
+                yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
 
              end do
           end do
@@ -1275,25 +1106,32 @@ contains
 
     !if on lower bound and specular
     if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 1)) then
-       do l = 2,5
+       do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
-                zflux(i,j,0,l) = 0
+                if(l.eq.4) then
+                   zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
+                else
+                   zflux(i,j,0,l) = 0
+                endif
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and specular
     if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 1)) then
-       do l = 2,5
+       do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
-
-                zflux(i,j,hi(3)+1,l) = 0           
-
+                
+                if(l.eq.4) then
+                   zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)
+                else
+                   zflux(i,j,hi(3)+1,l) = 0
+                endif
+                
              end do
           end do
        end do
@@ -1301,24 +1139,23 @@ contains
 
     !if on lower bound and diff
     if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 2)) then
-       do l = 2,5
+       do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
-                zflux(i,j,0,l) = 1.4142*zflux(i,j,0,5)
+                zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
 
              end do
           end do
        end do
     endif
-
     !if on upper bound and diff
     if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 2)) then
-       do l = 2,5
+       do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
 
-                zflux(i,j,hi(3)+1,l) = 1.4142*zflux(i,j,hi(3)+1,l)        
+                zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
 
              end do
           end do
@@ -1384,9 +1221,6 @@ contains
     real(amrex_real) :: meanT, meanP
     integer :: ns, kk, ll
 
-    !! FIXME: Should be in namespace
-    integer :: single_component=0
-
     dxinv = 1d0/dx
 
     two = 2.d0
@@ -1421,7 +1255,7 @@ contains
              meanT = 0.5d0*(prim(i-1,j,k,5)+prim(i,j,k,5))
              meanP = 0.5d0*(prim(i-1,j,k,6)+prim(i,j,k,6))
 
-             if(single_component.eq.0) then
+             if(algorithm_type.eq.2) then
 
                 ! compute dk
                 do ns = 1, nspecies
@@ -1507,7 +1341,7 @@ contains
              meanT = 0.5d0*(prim(i,j-1,k,5)+prim(i,j,k,5))
              meanP = 0.5d0*(prim(i,j-1,k,6)+prim(i,j,k,6))
 
-             if(single_component.eq.0) then
+             if(algorithm_type.eq.2) then
                 ! compute dk  
 
                 do ns = 1, nspecies
@@ -1579,7 +1413,7 @@ contains
              meanT = 0.5d0*(prim(i,j,k-1,5)+prim(i,j,k,5))
              meanP = 0.5d0*(prim(i,j,k-1,6)+prim(i,j,k,6))
 
-             if(single_component.eq.0) then
+             if(algorithm_type.eq.2) then
                 ! compute dk  
 
                 do ns = 1, nspecies

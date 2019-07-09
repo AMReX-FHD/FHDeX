@@ -35,9 +35,9 @@ void main_driver(const char* argv)
     //hard coded variables - make into input later
     //number of particles left/right - set to -1 to assign by density
     //int pL = 13; int pR = 9;
-    int pL = 15; int pR = 7;
+    int pL = 8; int pR = 3;
     //temperature on left/right
-    Real tL = 200; Real tR = 300;
+    Real tL = 300; Real tR = 200;
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -401,6 +401,7 @@ void main_driver(const char* argv)
     if (thermostat_tog == 1) {
         particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
     }
+
     
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
     //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
