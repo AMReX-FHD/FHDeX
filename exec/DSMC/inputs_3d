@@ -18,7 +18,7 @@
   fixed_dt = 5e-11
 
   ! Controls for number of steps between actions
-  max_step = 500
+  max_step = 1
   plot_int = 10
   plot_ascii = 0
   struct_fact_int = 1
@@ -46,11 +46,11 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 1000
+  particle_count = -1
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e17
+  particle_n0 = 6.02e12
 
   !Species info
   !--------------

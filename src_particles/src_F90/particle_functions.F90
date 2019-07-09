@@ -354,7 +354,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
   use surfaces_module
-  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog
+  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog, mass, k_b, particle_count, particle_n0, t_init
   
   implicit none
 
@@ -369,12 +369,12 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   real(amrex_real), intent(in) :: dt, time
   integer(c_int), intent(inout) :: flux(2)
   
-  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR
+  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR, count, numcoll
   integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact
+  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact, pi
 
   
   adj = 0.9999999
@@ -484,7 +484,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                       part%pos(2) = part%pos(2) + posalt(2)
 #if (BL_SPACEDIM == 3)
                       part%pos(3) = part%pos(3) + posalt(3)
-#endif
+#endif 
                    endif
                     
                 endif
@@ -551,12 +551,18 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   ! endif
 
           if(graphene_tog .eq. 1) then
+               surf=>surfaces(6)
+              numcoll=200
+             do count=1,  numcoll
+                 call topparticle(surf, time, inttime)
+            end do       
+
                interval=prob_hi(1)/100
                radius=0
                bJ1 = bessel_jn(1,2.4048)
                prefact = 9104**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
                omega=14*10**6*2*3.14159265
-               surf=>surfaces(6)
+
                do ii=1, 100
                  radius=interval*ii
                  radius=radius*2.4048/prob_hi(1)
@@ -565,8 +571,10 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                  surf%velz=prefact*bessel_jn(0, interval*2.4048/prob_hi(1))*(surf%agraph*sin(omega*time)+surf%bgraph*cos(time*omega))
                  surf%dbesslist(ii)=dbessj0
               enddo
-  
+              pi=3.1415926535897932
 
+              ! numcoll=pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1)))
+      
                 ! print*,'position',part%pos
                ! print*,'vel',part%vel
                 print*,'fortran move', surf%velz, part%id
