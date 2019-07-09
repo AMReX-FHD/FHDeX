@@ -263,11 +263,6 @@ public:
 
 
 
-    void InitInternals(int ngrow);
-
-    void ReadStaticParameters();
-
-
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
@@ -289,10 +284,11 @@ public:
 
 private:
 
-    // Posotions on faces
+    // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
-
+    void InitInternals(int ngrow);
+    void ReadStaticParameters();
 
     AmrCore * m_amr_core;
     int nghost;
