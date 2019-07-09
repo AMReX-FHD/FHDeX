@@ -5,6 +5,8 @@
 #include <AMReX_AmrCore.H>
 #include <AMReX_NeighborParticles.H>
 
+#include <IBMarkerContainer.H>
+
 
 using namespace amrex;
 
@@ -18,7 +20,8 @@ struct IBMB_realData {
     //Analogous to particle realData (p.m_data)
     // TODO: orientation?
     enum {
-        velx = 0,
+        radius = 0,
+        velx,
         vely,
         velz,
         omegax,
@@ -32,6 +35,7 @@ struct IBMB_realData {
 
     static Vector<std::string> names() {
         return Vector<std::string> {
+            "radius",
             "velx",
             "vely",
             "velz",
@@ -107,7 +111,54 @@ public:
                   const Vector<Real> & rho);
 
 
+    void FillMarkerPositions(int lev, int n_marker);
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Marker Spreading and Interpolation                                       *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    //___________________________________________________________________________
+    // Spreading operators applied to marker force fields
+    void SpreadMarkers(int lev,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+
+    void SpreadPredictor(int lev,
+                         std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+    //---------------------------------------------------------------------------
+
+    //___________________________________________________________________________
+    // Interpolation operators applied to marker force fields
+    void InterpolateMarkers(int lev,
+                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
+
+    void InterpolatePredictor(int lev,
+                              const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
+    //---------------------------------------------------------------------------
+
+
+
+    static bool use_neighbor_list;
+    static bool sort_neighbor_list;
+
+
+
+    struct {
+        bool operator()(const ParticleType & p1, const ParticleType & p2) const {
+            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
+                                 + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                 + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                <= 4.0*p1.rdata(0)*p1.rdata(0);
+
+        }
+    } CheckPair;
+
+
 private:
+
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
@@ -115,10 +166,10 @@ private:
     // IB marker reference data
     Vector<IBMarkerMap> marker_ref_pos;
 
+    // IB marker data
+    Vector<IBMarkerContainer> markers;
 
 
-    static bool use_neighbor_list;
-    static bool sort_neighbor_list;
 
     void InitInternals(int ngrow);
     void ReadStaticParameters();

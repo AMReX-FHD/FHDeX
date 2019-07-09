@@ -263,7 +263,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.InterpolatePredictor(0, umac_buffer);
 
 
-    // TODO: should we constrain it to move in the z = constant plane only?
+    // TODO: Constrain it to move in the z = constant plane only
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+                // Zero z-velocity only
+            mark.rdata(IBM_realData::pred_velz) = 0.;
+        }
+    }
+
 
 
     //___________________________________________________________________________
@@ -357,7 +373,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 // calling the active bending force calculation
                 Real theta = l_db*driv_amp*sin(driv_period*time
                              + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, driv_k, theta);
+                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
 
                 // updating the force on the minus, current, and plus particles.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -373,7 +389,24 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         }
     }
 
-    // TODO: should we constrain it to move in the z = constant plane only?
+    // TODO: Constrain it to move in the z = constant plane only
+    // Set the forces in the z direction to zero
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            // Zero z-force only
+            mark.rdata(IBM_realData::pred_forcez) = 0.;
+        }
+     }
+
+
 
 
     //___________________________________________________________________________
@@ -474,7 +507,22 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
 
 
-    // TODO: should we constrain it to move in the z = constant plane only?
+    // TODO: Constrain it to move in the z = constant plane only
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+                // Zero z-velocity only
+            mark.rdata(IBM_realData::velz) = 0.;
+        }
+    }
 
 
     //___________________________________________________________________________
@@ -565,7 +613,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  // calling the active bending force calculation
                  Real theta = l_db*driv_amp*sin(driv_period*time
                              + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
-                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, driv_k, theta);
+                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
 
                  // updating the force on the minus, current, and plus particles.
                  for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -581,7 +629,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
          }
     }
 
-    // TODO: should we constrain it to move in the z = constant plane only?
+
+    // TODO: Constrain it to move in the z = constant plane only
+    // Set the forces in the z direction to zero
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            // Zero z-force only
+            mark.rdata(IBM_realData::forcez) = 0.;
+        }
+     }
 
 
     //___________________________________________________________________________
