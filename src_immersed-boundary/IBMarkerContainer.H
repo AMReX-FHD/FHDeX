@@ -20,7 +20,7 @@ using namespace amrex;
 struct IBM_realData {
     //Analogous to particle realData (p.m_data)
     enum {
-        radius,
+        radius = 0,
         velx,
         vely,
         velz,
@@ -120,7 +120,7 @@ public:
 
 
     void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos);
-
+    void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
 
 
     // Get number of particles
@@ -263,11 +263,6 @@ public:
 
 
 
-    void InitInternals(int ngrow);
-
-    void ReadStaticParameters();
-
-
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
@@ -289,10 +284,11 @@ public:
 
 private:
 
-    // Posotions on faces
+    // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
-
+    void InitInternals(int ngrow);
+    void ReadStaticParameters();
 
     AmrCore * m_amr_core;
     int nghost;

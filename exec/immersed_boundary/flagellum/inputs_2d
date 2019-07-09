@@ -1,28 +1,30 @@
 &common
 
   ! Problem specification
-  prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 1.0 1.0 1.0      ! physical hi coordinate
+  prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
+  prob_hi(1:2) = 4.0 4.0       ! physical hi coordinate
+  cell_depth = 1.0e-7
+  !cell_depth = 0.015625
 
   ! if prob_type = 0, zero initial velocity
   ! if prob_type = 1, vortex
   ! if prob_type = 2, KH - sine
   ! if prob_type = 3, KH - smooth
-  prob_type = 0
-
+  prob_type = 3
+  
   ! number of cells in domain
-  n_cells(1:3) = 32 32 32
+  n_cells(1:2) = 256 256
   ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 16
+  max_grid_size(1:2) = 128 128
 
   ! Time-step control
-  fixed_dt = 1e-4
+  !fixed_dt = 0.8e-3
+  !fixed_dt = 3e-3
+  fixed_dt = 0.5e-2
 
   ! Controls for number of steps between actions
-  ! max_step = 200000
-  ! plot_int = 200000
-  max_step = 64000
-  plot_int = 160
+  max_step = 2000
+  plot_int = 10
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -31,8 +33,8 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
 
-  visc_coef = 1.
-  ! visc_coef = 1e-3
+  !visc_coef = 1.
+  visc_coef = 1e-3		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
 
   visc_type = 2
 
@@ -41,22 +43,17 @@
   initial_variance_mom = 0.
 
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
-  T_init(1) = 295.00	! [units: K]
+  T_init(1) = 295	! [units: K]
 
-  ! struct_fact_int = 100
-  ! n_steps_skip = 50000
   struct_fact_int = 0
   n_steps_skip = 0
 
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:
-  ! -1 = periodic, 2 = no-slip wall, -2 = periodic pressure
-  bc_lo(1:3) = 2 -2 -1
-  bc_hi(1:3) = 2 -2 -1
-
-  p_lo(1:3)  = 0 -.1  0
-  p_hi(1:3)  = 0  .1  0
+  ! -1 = periodic
+  bc_lo(1:2) = -1 -1
+  bc_hi(1:2) = -1 -1
 
 /
 
@@ -65,15 +62,15 @@
   mg_verbose = 0                  ! multigrid verbosity
 
   ! Staggered multigrid solver parameters
-  stag_mg_verbosity = 0           ! verbosity
+  stag_mg_verbosity = 0          ! verbosity
   stag_mg_max_vcycles = 1         ! max number of v-cycles
   stag_mg_minwidth = 2            ! length of box at coarsest multigrid level
   stag_mg_bottom_solver = 0       ! bottom solver type
-                                  ! 0 = smooths only, controlled by mg_nsmooths_bottom
-                                  ! 4 = Fancy bottom solve that coarsens additionally
-                                  !     and then applies stag_mg_nsmooths_bottom smooths
-  stag_mg_nsmooths_down = 2       ! number of smooths at each level on the way down
-  stag_mg_nsmooths_up = 2         ! number of smooths at each level on the way up
+  ! 0 = smooths only, controlled by mg_nsmooths_bottom
+  ! 4 = Fancy bottom solve that coarsens additionally
+  !     and then applies stag_mg_nsmooths_bottom smooths
+  stag_mg_nsmooths_down = 2  ! number of smooths at each level on the way down
+  stag_mg_nsmooths_up = 2    ! number of smooths at each level on the way up
   stag_mg_nsmooths_bottom = 8     ! number of smooths at the bottom
   stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
   stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient

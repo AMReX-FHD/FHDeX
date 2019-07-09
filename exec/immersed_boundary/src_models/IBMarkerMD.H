@@ -72,8 +72,8 @@ private:
 typedef enum {
 	ARG_r_m,
 	ARG_r,
-	ARG_r_p,
-	ARG_bn_m //,
+	ARG_r_p //,
+	// ARG_bn_m,
 	// ARG_bn_p,
 	// ARG_t_m,
 	// ARG_t,
@@ -92,7 +92,16 @@ void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                Real k, Real cos_theta_0);
 
 
-Real UW(RealVect r_m, RealVect r, RealVect r_p, RealVect u, Real theta);
+Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
+        const RealVect & u, Real theta);
+
+Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
+           const RealVect & u, Real theta,
+           NDERIV__coordinate arg, const RealVect & dx, Real delta);
+
+void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
+               const RealVect & r, const RealVect & r_p, const RealVect & r_m,
+               const RealVect & u, Real theta, Real k);
 
 }
 

@@ -211,7 +211,7 @@ BL_PROFILE_VAR_START(particle_move);
     std::ofstream outfile;
     
     if(graphene_tog==1)
-      {
+      { 
 	Print()<< surfaceList[5].velz<<"\n";
   outfile.open("out.txt", std::ios_base::app);
   for (i=0;i<100;i++)

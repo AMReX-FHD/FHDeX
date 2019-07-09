@@ -48,6 +48,7 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
+    
 
     const int n_rngs = 1;
 
@@ -292,6 +293,7 @@ void main_driver(const char* argv)
             dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
 
             Print() << "Species " << i << " n0 adjusted to " << dsmcParticle[i].n0 << "\n";
+            Print() << "Effective volume: " << effectiveVol << "\n";
         }
 
         Print() << "Species " << i << " particles per box: " <<  dsmcParticle[i].ppb << "\n";
