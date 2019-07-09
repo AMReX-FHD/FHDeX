@@ -93,7 +93,6 @@ void IBMarkerContainer::InitList(int lev,
 
             // Add particle at position pos iff it's vector index is contained
             // within tile_box.
-
             if(tile_box.contains(pos_ind)) {
                 pcount ++;
 
