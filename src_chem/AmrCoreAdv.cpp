@@ -1100,7 +1100,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     Sface_array[2].define(badpz, dmdpz, 1, 0);
     Sface_array[0].setVal(0.);
     Sface_array[1].setVal(0.);
-    Sface_array[2].setVal(0.);
+    Sface_array[0].setVal(0.);
     
 //    Sface_array[0].FillBoundary(geom[lev].periodicity());
 //    Sface_array[1].FillBoundary(geom[lev].periodicity());
