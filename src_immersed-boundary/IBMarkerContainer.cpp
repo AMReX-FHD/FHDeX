@@ -92,6 +92,8 @@ void IBMarkerContainer::InitList(int lev,
 
             // Add particle at position pos iff it's vector index is contained
             // within tile_box.
+
+            int p_seq = 0;
             if(tile_box.contains(pos_ind)) {
                 pcount ++;
 
@@ -132,7 +134,7 @@ void IBMarkerContainer::InitList(int lev,
                 p_new.idata(IBM_intData::id_0)  = prev_id;
                 p_new.idata(IBM_intData::cpu_0) = prev_cpu;
 
-                p_new.idata(IBM_intData::id_1)  = -1;
+                p_new.idata(IBM_intData::id_1)  = p_seq;
                 p_new.idata(IBM_intData::cpu_1) = -1;
 
                 // Add to the data structure
@@ -140,6 +142,8 @@ void IBMarkerContainer::InitList(int lev,
 
                 prev_id  = p_new.id();
                 prev_cpu = p_new.cpu();
+
+                p_seq ++;
             }
         }
 
