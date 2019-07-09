@@ -39,7 +39,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
              const MultiFab& beta, const MultiFab& gamma,
              const std::array< MultiFab, NUM_EDGE >& beta_ed,
-             const Geometry geom, const Real& dt)
+             const Geometry geom, const Real& dt, Real time)
 {
 
     BL_PROFILE_VAR("advance()",advance);
@@ -175,6 +175,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     RealVect driv_u = {0, 0, 1};
 
     Real driv_period = 0.01;
+    Real length_flagellum = 0.5;
+    Real driv_amp = 1;
+
 
     /****************************************************************************
      *                                                                          *
@@ -347,12 +350,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
                 // Set bending forces to zero
-                RealVect f_p = RealVect{0., 0., 0.};
-                RealVect f   = RealVect{0., 0., 0.};
-                RealVect f_m = RealVect{0., 0., 0.};
+                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
 
-                // calling the bending force calculation
-                Real theta = 0;
+                // calling the active bending force calculation
+                Real theta = l_db*driv_amp*sin(driv_period*time
+                             + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, driv_k, theta);
 
                 // updating the force on the minus, current, and plus particles.
@@ -558,8 +562,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                  RealVect f   = RealVect{0., 0., 0.};
                  RealVect f_m = RealVect{0., 0., 0.};
 
-                 // calling the bending force calculation
-                 Real theta = 0;
+                 // calling the active bending force calculation
+                 Real theta = l_db*driv_amp*sin(driv_period*time
+                             + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
                  driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, driv_k, theta);
 
                  // updating the force on the minus, current, and plus particles.

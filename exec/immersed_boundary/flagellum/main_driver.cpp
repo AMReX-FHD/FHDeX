@@ -412,31 +412,6 @@ void main_driver(const char * argv) {
 
 
     //___________________________________________________________________________
-    // Example of how to call bending force calculation
-    // note the namespace: immbdy_md declared above
-    // also note the order of the arguments: r_m -> r -> r_p (m=>minus, p=>plus)
-
-    //RealVect f, f_p, f_m;
-    //RealVect r, r_p, r_m;
-
-    //r_p = RealVect{0.6, 0.5, 0.5};
-    //r   = RealVect{0.5, 0.51, 0.5};
-    //r_m = RealVect{0.4, 0.5, 0.5};
-
-
-    //f_p = RealVect{0., 0., 0.};
-    //f   = RealVect{0., 0., 0.};
-    //f_m = RealVect{0., 0., 0.};
-
-
-    //bending_f(f, f_p, f_m, r, r_p, r_m, 10, 1.);
-
-    //Print() << "f= " << f_p << std::endl;
-    //Print() << "f= " << f << std::endl;
-    //Print() << "f= " << f_m << std::endl;
-
-
-    //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
         WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
@@ -469,7 +444,7 @@ void main_driver(const char * argv) {
         //___________________________________________________________________
         // Advance umac
         advance(umac, umacNew, pres, tracer, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
-                alpha_fc, beta, gamma, beta_ed, geom, dt);
+                alpha_fc, beta, gamma, beta_ed, geom, dt, time);
 
 
 
