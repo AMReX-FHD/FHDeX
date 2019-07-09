@@ -3,11 +3,7 @@ subroutine get_congrad_3d( lo, hi, &
      &            con_x, px_lo, px_hi, &
      &            con_y, py_lo, py_hi,&
      &            con_z, pz_lo, pz_hi,&
-     &            xface, x_lo, x_hi,&
-     &            yface, y_lo, y_hi,&
-     &            zface, z_lo, z_hi, &
      &            iface, if_lo, if_hi,&
-     &            ib_cen_x, ib_cen_y, ib_cen_z,&
      &            dx, prob_lo) bind(C, name="get_congrad_3d")
   
 
@@ -21,9 +17,6 @@ subroutine get_congrad_3d( lo, hi, &
   integer, intent(in) :: px_lo(3), px_hi(3)
   integer, intent(in) :: py_lo(3), py_hi(3)
   integer, intent(in) :: pz_lo(3), pz_hi(3)
-  integer, intent(in) :: x_lo(3), x_hi(3) 
-  integer, intent(in) :: y_lo(3), y_hi(3) 
-  integer, intent(in) :: z_lo(3), z_hi(3)
   integer, intent(in) :: if_lo(3), if_hi(3)
 
   double precision, intent(in   ) :: con (p_lo(1):p_hi(1),p_lo(2):p_hi(2),p_lo(3):p_hi(3))
@@ -32,10 +25,6 @@ subroutine get_congrad_3d( lo, hi, &
   double precision, intent(out) :: con_z(pz_lo(1):pz_hi(1),pz_lo(2):pz_hi(2),pz_lo(3):pz_hi(3))
 
 
-  double precision, intent(in) :: xface(x_lo(1):x_hi(1),x_lo(2):x_hi(2),x_lo(3):x_hi(3),3)
-  double precision, intent(in) :: yface(y_lo(1):y_hi(1),y_lo(2):y_hi(2),y_lo(3):y_hi(3),3)
-  double precision, intent(in) :: zface(z_lo(1):z_hi(1),z_lo(2):z_hi(2),z_lo(3):z_hi(3),3)
-  
  integer, intent(in) :: iface(if_lo(1):if_hi(1),if_lo(2):if_hi(2),if_lo(3):if_hi(3))
 
   double precision  ::pos(3),norm(3)! (lo(1):hi(1),lo(2):hi(2),lo(3):hi(3))
@@ -55,21 +44,23 @@ subroutine get_congrad_3d( lo, hi, &
 
           ! print*, "iface ", iface(i,j,k)
 
-           if ((iface(i,j,k) .eq. 2) .or. (iface(i-1,j,k).eq. 2))then
+           if ((iface(i,j,k) .eq. 2) .or. (iface(i,j,k).eq. 1))then
            con_x(i,j,k) =0.0
            else
-           con_x(i,j,k)=(con(i,j,k)-con(i-1,j,k))/dx(1)
+           con_x(i,j,k)=(con(i+1,j,k)-con(i-1,j,k))/(2*dx(1))
            end if
            
-            if ((iface(i,j,k) .eq. 2) .or. (iface(i,j-1,k).eq. 2))then
+            if ((iface(i,j,k) .eq. 2) .or. (iface(i,j,k).eq. 1))then
            con_y(i,j,k) =0.0
            else
-           con_y(i,j,k)=(con(i,j,k)-con(i,j-1,k))/dx(2)
+           con_y(i,j,k)=(con(i,j+1,k)-con(i,j-1,k))/(2*dx(2))
            end if
 
-           if ((iface(i,j,k) .eq. 2) .or. (iface(i,j,k-1).eq. 2))then
+           if ((iface(i,j,k) .eq. 2) .or. (iface(i,j,k).eq. 1))then
            con_z(i,j,k) =0.0
            else
+           con_z(i,j,k)=(con(i,j+1,k)-con(i,j-1,k))/(2*dx(3))
+
            end if
         enddo
      enddo
