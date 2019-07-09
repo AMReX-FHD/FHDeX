@@ -13,7 +13,7 @@
 #endif
 #include <AmrCoreAdv_F.H>
 #include <AmrCoreAdv.H>
-
+#include <common_functions.H>
 using namespace amrex;
 
 
@@ -46,6 +46,9 @@ void AmrCoreAdv::Initialize( )
     Dcon_y.resize(nlevs_max);
     Dcon_z.resize(nlevs_max);
     MagDcon.resize(nlevs_max);
+    Dconc_x.resize(nlevs_max);
+    Dconc_y.resize(nlevs_max);
+    Dconc_z.resize(nlevs_max);
 
     bcs.resize(1);
 //    uface.resize(nlevs_max );
@@ -114,6 +117,7 @@ void AmrCoreAdv::EvolveChem(
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords)
 {
    diffcoeff=dc;
+    std::cout<< " max Dconc_x A = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
 //   std::cout << "EvolveChem diffcoeff"<< diffcoeff<<std::endl;
     
@@ -188,6 +192,8 @@ void AmrCoreAdv::EvolveChem(
         xface[lev]->setVal(0.);
         yface[lev]->setVal(0.);
         zface[lev]->setVal(0.);
+    std::cout<< " max Dconc_x B = " << (*Dconc_x[lev]).max(0) <<std::endl;
+
 
         Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
@@ -196,6 +202,16 @@ void AmrCoreAdv::EvolveChem(
         Dcon_x[lev]->setVal(0.);
         Dcon_y[lev]->setVal(0.);
         Dcon_z[lev]->setVal(0.);
+
+        Dconc_x[lev].reset(new MultiFab(conba, condm, 1, 0));
+        Dconc_y[lev].reset(new MultiFab(conba, condm, 1, 0));
+        Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 0));
+    std::cout<< " max Dconc_x C = " << (*Dconc_x[lev]).max(0) <<std::endl;
+
+
+        Dconc_x[lev]->setVal(0.);
+        Dconc_y[lev]->setVal(0.);
+        Dconc_z[lev]->setVal(0.);
 
        uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
        vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
@@ -217,6 +233,7 @@ void AmrCoreAdv::EvolveChem(
 //       yface[lev]->FillBoundary(geom[lev].periodicity());
 //       zface[lev]->FillBoundary(geom[lev].periodicity());
  //       std::cout << " Number of components in a MAC grid " << mac_ncomp << std::endl;
+    std::cout<< " max Dconc_x 0 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     }
     int ls_gst= LevelSet.nGrow();
@@ -259,6 +276,7 @@ void AmrCoreAdv::EvolveChem(
         MemProfiler::report(ss.str());
     }
 #endif
+    std::cout<< " max Dconc_x 6 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     //	if (cur_time >= stop_time - 1.e-6*dt[0]) break;
 
@@ -325,12 +343,22 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dconc_x[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dconc_y[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dconc_z[lev].reset(new MultiFab(ba, dm, 1, 1));
+
        MagDcon[lev].reset(new MultiFab(ba, dm, 1, 1));
 
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
        Dcon_z[lev]->setVal(0.);
+       
+       Dconc_x[lev]->setVal(0.);
+       Dconc_y[lev]->setVal(0.);
+       Dconc_z[lev]->setVal(0.);
+
        MagDcon[lev]->setVal(0.);
+    std::cout<< " max Dconc_x 0 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
 //       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
 
@@ -721,7 +749,7 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 //        if (lev < max_level && istep[lev] > last_regrid_step[lev]) {
 //            if (istep[lev] % regrid_int == 0) {
 //
-                // regrid could add newly refine levels (if finest_level < max_level)
+               // regrid could add newly refine levels (if finest_level < max_level)
                 // so we save the previous finest level index
 //                int old_finest = finest_level;
 //                regrid(lev, time);
@@ -738,6 +766,7 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 //        }
 //    }
 
+    std::cout<< " max Dconc_x 1 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     // advance a single level for a single time step, updates flux registers
     Advance(lev, time, dt[lev], iteration, nsubsteps[lev]);
@@ -774,6 +803,7 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle) {
 //    std::cout << "Advance"<<std::endl;
 //    std::cout << "max con 1 "<< (*con_new[lev]).max(0) <<std::endl;
+    std::cout<< " max Dconc_x 2 = " << (*Dconc_x[lev]).max(0) <<std::endl;
     
     constexpr int num_grow =3; // 3;
 
@@ -928,31 +958,41 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
         }
     }
 //    std::cout << "max con 3 "<< (*con_new[lev]).max(0) <<std::endl;
+    std::cout<< " max Dconc_x 3 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     // After updating con_new we compute the first derivatives
-    MultiFab &  sx_mf       = * Dcon_x[lev];
-    MultiFab &  sy_mf       = * Dcon_y[lev];
-    MultiFab &  sz_mf       = * Dcon_z[lev];
-    MultiFab &  sd_mf       = * MagDcon[lev];
+    MultiFab &  cxf_mf       = * Dcon_x[lev];
+    MultiFab &  cyf_mf       = * Dcon_y[lev];
+    MultiFab &  czf_mf       = * Dcon_z[lev];
+
+    MultiFab &  cxc_mf       = * Dconc_x[lev];
+    MultiFab &  cyc_mf       = * Dconc_y[lev];
+    MultiFab &  czc_mf       = * Dconc_z[lev];
+       
     MultiFab &  ls_mf       = * levset;
     MultiFab &  xf_mf       = * xface[lev];
     MultiFab &  yf_mf       = * yface[lev];
     MultiFab &  zf_mf       = * zface[lev];
+   
+    const BoxArray & badpx            = Dcon_x[lev]->boxArray();
+    const DistributionMapping & dmdpx = Dcon_x[lev]->DistributionMap();
+    MultiFab x_mf(badpx,dmdpx,1,0);
     
-    std::cout << "Advance max Ls 1 "<< (*levset).max(0)<<std::endl;
-    std::cout << "Advance max Ls 2 "<< ls_mf.max(0)<<std::endl;
-    
-    // con_new including 1 ghost cell
-    MultiFab S_new_fill(grids[lev], dmap[lev], S_new.nComp(), 1);
-//    std::cout << "max con 4 "<< (*con_new[lev]).max(0) <<std::endl;
+    const BoxArray & badpy            = Dcon_y[lev]->boxArray();
+    const DistributionMapping & dmdpy = Dcon_y[lev]->DistributionMap();
+    MultiFab y_mf(badpy,dmdpy,1,0);
+ 
+    const BoxArray & badpz            = Dcon_z[lev]->boxArray();
+    const DistributionMapping & dmdpz = Dcon_z[lev]->DistributionMap();
+    MultiFab z_mf(badpz,dmdpz,1,0);
+   
+    MultiFab S_new_fill(badp,dmdp, S_new.nComp(), 1);
+    S_new_fill.setVal(0.);
+    FillPatch(lev, time, S_new_fill, 0, S_new_fill.nComp());
 
-    S_new_fill.copy(S_new, 0, 0,1, 0, 1);
-//    std::cout << "max con 5 "<< (*con_new[lev]).max(0) <<std::endl;
-
-    S_new_fill.FillBoundary(geom[lev].periodicity());
-//    std::cout << "max con 6 "<< (*con_new[lev]).max(0) <<std::endl;
-
-
+    x_mf.setVal(0.);
+    y_mf.setVal(0.);
+    z_mf.setVal(0.);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -963,48 +1003,165 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & stateout      =   S_new_fill[mfi];
             IArrayBox & fabsl         =      sloc_mf[mfi];
             FArrayBox & fabsls        =      ls_mf[mfi];
-            FArrayBox & fabsd         =      sd_mf[mfi];
-
-            FArrayBox & fabsx         =        sx_mf[mfi];
-            FArrayBox & fabsy         =        sy_mf[mfi];
-            FArrayBox & fabsz         =        sz_mf[mfi];
             
+            FArrayBox & fabx         =        x_mf[mfi];
+            FArrayBox & faby         =        y_mf[mfi];
+            FArrayBox & fabz         =        z_mf[mfi];
+
             FArrayBox & fabxf         =        xf_mf[mfi];
             FArrayBox & fabyf         =        yf_mf[mfi];
             FArrayBox & fabzf         =        zf_mf[mfi];
 
             // compute velocities on faces (prescribed function of space and time)
             if (BL_SPACEDIM==2) {
-                get_congrad_2d( bx.loVect(), bx.hiVect(),
-                                BL_TO_FORTRAN_3D(stateout),
-                                BL_TO_FORTRAN_3D(fabsx),
-                                BL_TO_FORTRAN_3D(fabsy),
-                                BL_TO_FORTRAN_3D(fabsl),
-                                & Sphere_cent_x, & Sphere_cent_y,
-                                dx, AMREX_ZFILL(prob_lo));
+//                get_congrad_2d( bx.loVect(), bx.hiVect(),
+//                                BL_TO_FORTRAN_3D(stateout),
+//                                BL_TO_FORTRAN_3D(fabx),
+//                                BL_TO_FORTRAN_3D(faby),
+//                                BL_TO_FORTRAN_3D(fabsl),
+//                                & Sphere_cent_x, & Sphere_cent_y,
+//                                dx, AMREX_ZFILL(prob_lo));
             } else {
                 get_congrad_3d( bx.loVect(), bx.hiVect(),
                                 BL_TO_FORTRAN_3D(stateout),
-                                BL_TO_FORTRAN_3D(fabsx),
-                                BL_TO_FORTRAN_3D(fabsy),
-                                BL_TO_FORTRAN_3D(fabsz),
-                                BL_TO_FORTRAN_3D(fabsd),
-                                BL_TO_FORTRAN_3D(fabsl),
-                                BL_TO_FORTRAN_3D(fabsls),
+                                BL_TO_FORTRAN_3D(fabx),
+                                BL_TO_FORTRAN_3D(faby),
+                                BL_TO_FORTRAN_3D(fabz),
                                 BL_TO_FORTRAN_3D(fabxf),
                                 BL_TO_FORTRAN_3D(fabyf),
                                 BL_TO_FORTRAN_3D(fabzf),
+                                BL_TO_FORTRAN_3D(fabsl),
                                 & Sphere_cent_x, & Sphere_cent_y,
                                 & Sphere_cent_z, dx, AMREX_ZFILL(prob_lo));
-                std::cout << "Advance max Ls 4 "<< fabsls.max()<<std::endl;
 
             }
         }
     }
-    std::cout << "Advance max Ls 5 "<< ls_mf.max(0)<<std::endl;
-    
+    // Avergage face centered grad C to cell centered  
+    std::cout<< " max Dconc_x 4 = " << (*Dconc_x[lev]).max(0) <<std::endl;
+    MultiFab  s_mf(badp,dmdp,1,0);
+    MultiFab  xc_mf(badp,dmdp,1,0);
+    MultiFab  yc_mf(badp,dmdp,1,0);
+    MultiFab  zc_mf(badp,dmdp,1,0);
+    xc_mf.setVal(0.);
+    yc_mf.setVal(0.);
+    zc_mf.setVal(0.);
 
-    std::cout << "Advance max Ls 6 "<< (*levset).max(0)<<std::endl;
+    s_mf.setVal(0.);
+
+    x_mf.FillBoundary(geom[lev].periodicity());
+    y_mf.FillBoundary(geom[lev].periodicity());
+    z_mf.FillBoundary(geom[lev].periodicity());
+
+    MultiFab &  sd_mf       = * MagDcon[lev];
+
+    AverageFaceToCC(x_mf, 0, xc_mf, 0, 1);
+    AverageFaceToCC(y_mf, 0, yc_mf, 0, 1);
+    AverageFaceToCC(z_mf, 0, zc_mf, 0, 1);
+ 
+    xc_mf.FillBoundary(geom[lev].periodicity());
+    yc_mf.FillBoundary(geom[lev].periodicity());
+    zc_mf.FillBoundary(geom[lev].periodicity());
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+    {
+        for (MFIter mfi(S_new_fill, true); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.tilebox();
+
+            FArrayBox & fabsls        =      ls_mf[mfi];
+            FArrayBox & fabsd         =      sd_mf[mfi];
+            FArrayBox & fabS          =      s_mf[mfi];
+  
+            FArrayBox & fabxc         =        xc_mf[mfi];
+            FArrayBox & fabyc         =        yc_mf[mfi];
+            FArrayBox & fabzc         =        zc_mf[mfi];
+            
+            // compute velocities on faces (prescribed function of space and time)
+            if (BL_SPACEDIM==2) {
+            std::cout << "No support for 2D yet" << std::endl;
+             } else {
+                get_gradCdotncc_3d( bx.loVect(), bx.hiVect(),
+                                BL_TO_FORTRAN_3D(fabxc),
+                                BL_TO_FORTRAN_3D(fabyc),
+                                BL_TO_FORTRAN_3D(fabzc),
+                                BL_TO_FORTRAN_3D(fabS),
+                                BL_TO_FORTRAN_3D(fabsd),
+                                BL_TO_FORTRAN_3D(fabsls),
+                                dx, AMREX_ZFILL(prob_lo));
+ 
+            }
+        }
+    }
+    std::array< MultiFab, AMREX_SPACEDIM > Sface_array;
+    Sface_array[0].define(badpx, dmdpx, 1, 0);
+    Sface_array[1].define(badpy, dmdpy, 1, 0);
+    Sface_array[2].define(badpz, dmdpz, 1, 0);
+    Sface_array[0].setVal(0.);
+    Sface_array[1].setVal(0.);
+    Sface_array[0].setVal(0.);
+    
+//    Sface_array[0].FillBoundary(geom[lev].periodicity());
+//    Sface_array[1].FillBoundary(geom[lev].periodicity());
+//    Sface_array[2].FillBoundary(geom[lev].periodicity());
+ 
+   s_mf.FillBoundary(geom[lev].periodicity());
+ 
+   AverageCCToFace(s_mf, 0, Sface_array,0,1);
+   MultiFab & Sxf_mf= (Sface_array[0]);
+   MultiFab & Syf_mf= (Sface_array[1]);
+   MultiFab & Szf_mf= (Sface_array[2]);
+
+    {
+        for (MFIter mfi(S_new_fill, true); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.tilebox();
+
+            FArrayBox & fabsls        =      ls_mf[mfi];
+  
+            FArrayBox & fabx         =        x_mf[mfi];
+            FArrayBox & faby         =        y_mf[mfi];
+            FArrayBox & fabz         =        z_mf[mfi];
+            
+            FArrayBox & fabxc         =        cxf_mf[mfi];
+            FArrayBox & fabyc         =        cyf_mf[mfi];
+            FArrayBox & fabzc         =        czf_mf[mfi];
+            
+            FArrayBox & fabSx         =        Sxf_mf[mfi];
+            FArrayBox & fabSy         =        Syf_mf[mfi];
+            FArrayBox & fabSz         =        Szf_mf[mfi];
+
+            FArrayBox & fabxf         =        xf_mf[mfi];
+            FArrayBox & fabyf         =        yf_mf[mfi];
+            FArrayBox & fabzf         =        zf_mf[mfi];
+
+            // compute velocities on faces (prescribed function of space and time)
+            if (BL_SPACEDIM==2) {
+             } else {
+                get_surfgrad_3d( bx.loVect(), bx.hiVect(),
+                                BL_TO_FORTRAN_3D(fabx),
+                                BL_TO_FORTRAN_3D(faby),
+                                BL_TO_FORTRAN_3D(fabz),
+                                BL_TO_FORTRAN_3D(fabSx),
+                                BL_TO_FORTRAN_3D(fabSy),
+                                BL_TO_FORTRAN_3D(fabSz),
+                                BL_TO_FORTRAN_3D(fabxc),
+                                BL_TO_FORTRAN_3D(fabyc),
+                                BL_TO_FORTRAN_3D(fabzc),
+                                BL_TO_FORTRAN_3D(fabsls),
+                                BL_TO_FORTRAN_3D(fabxf),
+                                BL_TO_FORTRAN_3D(fabyf),
+                                BL_TO_FORTRAN_3D(fabzf),
+                                dx, AMREX_ZFILL(prob_lo));
+ 
+           }
+    }
+}
+    AverageFaceToCC(cxf_mf, 0, cxc_mf, 0, 1);
+    AverageFaceToCC(cyf_mf, 0, cyc_mf, 0, 1);
+    AverageFaceToCC(czf_mf, 0, czc_mf, 0, 1);
+
+    std::cout<< " max Dconc_x 5 = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
     amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;
@@ -1012,7 +1169,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
     // increment or decrement the flux registers by area and time-weighted
     // fluxes Note that the fluxes have already been scaled by dt and area In
-    // this example we are solving con_t = -div(+F) The fluxes contain, e.g.,
     // F_{i+1/2,j} = (con*u)_{i+1/2,j} Keep this in mind when considering the
     // different sign convention for updating the flux registers from the coarse
     // or fine grid perspective NOTE: the flux register associated with
@@ -1078,34 +1234,36 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     else if (indicator==1){
     DistributionMapping xcondm = Dcon_x[lev]->DistributionMap();
     BoxArray xconba            = Dcon_x[lev]->boxArray();
-
+    int xng=Dcon_x[lev]->nGrow();
     MF[lev].reset(new MultiFab(xconba, xcondm, 1, 0));
 
     MF[lev]->setVal(0.);
 
-        MF[lev]->copy(* Dcon_x[lev], 0, 0,1, 1, 0);
+        MF[lev]->copy(* Dcon_x[lev], 0, 0,1, xng, 0);
 //        std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==2){
     DistributionMapping ycondm = Dcon_y[lev]->DistributionMap();
     BoxArray yconba            = Dcon_y[lev]->boxArray();
+    int yng=Dcon_y[lev]->nGrow();
 
 
     MF[lev].reset(new MultiFab(yconba, ycondm, 1, 0));
 
     MF[lev]->setVal(0.);
 
-	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, 1, 0);
+	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, yng, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==3){
     DistributionMapping zcondm = Dcon_z[lev]->DistributionMap();
     BoxArray zconba            = Dcon_z[lev]->boxArray();
+    int zng=Dcon_z[lev]->nGrow();
 
     MF[lev].reset(new MultiFab(zconba, zcondm, 1, 0));
 
     MF[lev]->setVal(0.);
-	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, 1, 0);
+	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, zng, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
     else if (indicator==4){
@@ -1114,6 +1272,42 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     MF[lev]->setVal(0.);
 
 	 MF[lev]->copy(* MagDcon[lev], 0, 0,1, 0, 0);
+ //       std::cout<< "Indicator " << indicator<< std::endl;}
+    }
+    else if (indicator==5){
+    DistributionMapping condm = Dconc_x[lev]->DistributionMap();
+    BoxArray conba            = Dconc_x[lev]->boxArray();
+    int xng=Dconc_x[lev]->nGrow();
+
+    MF[lev].reset(new MultiFab(conba, condm, 1, 0));
+
+    MF[lev]->setVal(0.);
+
+        MF[lev]->copy(* Dconc_x[lev], 0, 0,1, xng, 0);
+//        std::cout<< "Indicator " << indicator<< std::endl;}
+    }
+    else if (indicator==6){
+    DistributionMapping condm = Dconc_y[lev]->DistributionMap();
+    BoxArray conba            = Dconc_y[lev]->boxArray();
+    int yng=Dconc_y[lev]->nGrow();
+
+
+    MF[lev].reset(new MultiFab(conba, condm, 1, 0));
+
+    MF[lev]->setVal(0.);
+
+	MF[lev]->copy(* Dconc_y[lev], 0, 0,1, yng, 0);
+ //       std::cout<< "Indicator " << indicator<< std::endl;}
+    }
+    else if (indicator==7){
+    DistributionMapping condm = Dconc_z[lev]->DistributionMap();
+    BoxArray conba            = Dconc_z[lev]->boxArray();
+    int zng=Dconc_z[lev]->nGrow();
+
+    MF[lev].reset(new MultiFab(conba, condm, 1, 0));
+
+    MF[lev]->setVal(0.);
+	 MF[lev]->copy(* Dconc_z[lev], 0, 0,1, zng, 0);
  //       std::cout<< "Indicator " << indicator<< std::endl;}
     }
 

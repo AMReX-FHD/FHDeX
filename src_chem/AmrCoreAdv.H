@@ -173,6 +173,10 @@ private:
    Vector< std::unique_ptr<MultiFab> >  Dcon_z;
    Vector< std::unique_ptr<MultiFab> >  MagDcon;
 
+   Vector< std::unique_ptr<MultiFab> >  Dconc_x;
+   Vector< std::unique_ptr<MultiFab> >  Dconc_y;
+   Vector< std::unique_ptr<MultiFab> >  Dconc_z;
+
    Vector< std::unique_ptr<MultiFab> >  xface;
    Vector< std::unique_ptr<MultiFab> >  yface;
    Vector< std::unique_ptr<MultiFab> >  zface;

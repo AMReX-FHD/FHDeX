@@ -54,15 +54,39 @@ extern "C"
                 BL_FORT_FAB_ARG_3D(con_x),
                 BL_FORT_FAB_ARG_3D(con_y),
                 BL_FORT_FAB_ARG_3D(con_z),
-                BL_FORT_FAB_ARG_3D(dp),
+                BL_FORT_FAB_ARG_3D(xface),
+                BL_FORT_FAB_ARG_3D(yface),
+                BL_FORT_FAB_ARG_3D(zface),
                 int* iface, const int* if_lo, const int* if_hi,
-                const BL_FORT_FAB_ARG_3D(ls),
-                const BL_FORT_FAB_ARG_3D(xp),
-                const BL_FORT_FAB_ARG_3D(yp),
-                const BL_FORT_FAB_ARG_3D(zp),
                 const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
                 const amrex_real* ib_cen_z, 
                 const amrex_real* dx, const amrex_real* prob_lo);
+
+    void get_surfgrad_3d( const int* lo, const int* hi,
+                const BL_FORT_FAB_ARG_3D(conx),
+                const BL_FORT_FAB_ARG_3D(cony),
+                const BL_FORT_FAB_ARG_3D(conz),
+                const BL_FORT_FAB_ARG_3D(sx),
+                const BL_FORT_FAB_ARG_3D(sy),
+                const BL_FORT_FAB_ARG_3D(sz),
+                BL_FORT_FAB_ARG_3D(cons_x),
+                BL_FORT_FAB_ARG_3D(cons_y),
+                BL_FORT_FAB_ARG_3D(cons_z),
+                const BL_FORT_FAB_ARG_3D(ls),
+                const BL_FORT_FAB_ARG_3D(xfc),
+                const BL_FORT_FAB_ARG_3D(yfc),
+                const BL_FORT_FAB_ARG_3D(zfc),
+                const amrex_real* dx, const amrex_real* prob_lo);
+   
+     void get_gradCdotncc_3d( const int* lo, const int* hi,
+                const BL_FORT_FAB_ARG_3D(concx),
+                const BL_FORT_FAB_ARG_3D(concy),
+                const BL_FORT_FAB_ARG_3D(concz),
+                BL_FORT_FAB_ARG_3D(s),
+                BL_FORT_FAB_ARG_3D(MagDCon),
+                const BL_FORT_FAB_ARG_3D(ls),
+                const amrex_real* dx, const amrex_real* prob_lo);
+
 
    void get_congrad_2d( const int* lo, const int* hi,
                 const BL_FORT_FAB_ARG_3D(con),
@@ -94,6 +118,7 @@ extern "C"
 		  const int* dlo, const int* dhi,
 		  const amrex_real* dx, const amrex_real* glo, 
 		  const amrex_real* time, const int* bc);
+
 
 #ifdef __cplusplus
 }
