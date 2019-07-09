@@ -20,7 +20,7 @@ using namespace amrex;
 struct IBM_realData {
     //Analogous to particle realData (p.m_data)
     enum {
-        radius,
+        radius = 0,
         velx,
         vely,
         velz,

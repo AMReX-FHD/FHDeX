@@ -99,12 +99,10 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
            const RealVect & u, Real theta,
            NDERIV__coordinate arg, const RealVect & dx, Real delta);
 
-}
-
-
 void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                const RealVect & u, Real theta, Real k);
 
+}
 
 #endif
