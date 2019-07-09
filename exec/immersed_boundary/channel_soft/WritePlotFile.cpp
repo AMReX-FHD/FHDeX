@@ -30,6 +30,9 @@ void WritePlotFile(int step,
     Vector< std::unique_ptr<MultiFab> > DconNew_y;
     Vector< std::unique_ptr<MultiFab> > DconNew_z;
     Vector< std::unique_ptr<MultiFab> > magDC;
+    Vector< std::unique_ptr<MultiFab> > DconNewc_x;
+    Vector< std::unique_ptr<MultiFab> > DconNewc_y;
+    Vector< std::unique_ptr<MultiFab> > DconNewc_z;
 
     Vector< std::unique_ptr<MultiFab> > mf(lev+1);
 
@@ -45,7 +48,7 @@ void WritePlotFile(int step,
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 4*AMREX_SPACEDIM+3+5*(lev+1);
+    int nPlot = 4*AMREX_SPACEDIM+3+8*(lev+1);
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -80,6 +83,9 @@ void WritePlotFile(int step,
     varNames[cnt++] = "dCdy";
     varNames[cnt++] = "dCdz";
     varNames[cnt++] = "|Dc|";
+    varNames[cnt++] = "dCdx_cen";
+    varNames[cnt++] = "dCdy_cen";
+    varNames[cnt++] = "dCdz_cen";
 
     for (int i=0; i<nPlot; ++i) {
         std::cout<<" i= "<< varNames[i]<<std::endl ;
@@ -140,6 +146,15 @@ void WritePlotFile(int step,
     cnt++;
     
     amr_core_adv.con_new_copy(lev, mf, 4);
+    MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
+    cnt++;
+    amr_core_adv.con_new_copy(lev, mf, 5);
+    MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
+    cnt++;
+    amr_core_adv.con_new_copy(lev, mf, 6);
+    MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
+    cnt++;
+    amr_core_adv.con_new_copy(lev, mf, 7);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
 

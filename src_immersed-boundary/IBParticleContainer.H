@@ -249,6 +249,10 @@ public:
                                     bool unique = false) const;
     Vector<IBP_info> IBParticleInfo(int lev, bool unique = false) const;
 
+    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
+        return  face_coords;
+    }
+ 
 
 
 private:

@@ -1,0 +1,3 @@
+rm -r -f parplt*
+rm -r --f cplt*
+rm -r -f plt*

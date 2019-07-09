@@ -11,9 +11,9 @@
   prob_type = 0
 
   ! number of cells in domain
-  n_cells(1:3) = 64 64 64
+  n_cells(1:3) = 32 32 32
   ! max number of cells in a box
-  max_grid_size(1:3) = 32 32 32
+  max_grid_size(1:3) = 16 16 16
 
   ! Time-step control
   fixed_dt = 1e-2
@@ -52,8 +52,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no-slip wall, -2 = periodic pressure
-  bc_lo(1:3) = 2 -2 -1
-  bc_hi(1:3) = 2 -2 -1
+  bc_lo(1:3) = 2 -1 -1
+  bc_hi(1:3) = 2 -1 -1
 
   p_lo(1:3)  = 0 -1  0
   p_hi(1:3)  = 0  1  0

@@ -1,7 +1,7 @@
 #include "compressible_functions.H"
 #include "compressible_functions_F.H"
 
-void setBC(MultiFab& prim, MultiFab& cons, MultiFab& eta, MultiFab& zeta, MultiFab& kappa)
+void setBC(MultiFab& prim, MultiFab& cons, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, MultiFab& chi, MultiFab& D)
 {
 
     // Loop over boxes
@@ -14,7 +14,9 @@ void setBC(MultiFab& prim, MultiFab& cons, MultiFab& eta, MultiFab& zeta, MultiF
                        prim[mfi].dataPtr(),
                        eta[mfi].dataPtr(),  
                        zeta[mfi].dataPtr(),
-                       kappa[mfi].dataPtr());
+                       kappa[mfi].dataPtr(),
+	               chi[mfi].dataPtr(),
+	               D[mfi].dataPtr());
 
     }
 

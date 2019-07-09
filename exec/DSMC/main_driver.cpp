@@ -48,6 +48,7 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
+    
 
     const int n_rngs = 1;
 
@@ -259,6 +260,8 @@ void main_driver(const char* argv)
     //Species type defined in species.H
     //array of length nspecies
 
+    int flux[2];
+
     species dsmcParticle[nspecies];
 
     double realParticles = 0;
@@ -375,7 +378,7 @@ void main_driver(const char* argv)
     FhdParticleContainer particles(geom, dmap, ba, crange);
 
     //create particles
-    particles.InitParticles(dsmcParticle);
+    particles.InitParticles(dsmcParticle,dx);
 
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
     //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
@@ -392,10 +395,10 @@ void main_driver(const char* argv)
 
         if(move_tog==1)
         {
-	  particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
-            particles.Redistribute();
+	   particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time, flux);
+           particles.Redistribute();
 
-            particles.ReBin();
+           particles.ReBin();
         }
 
         if(sr_tog==1)

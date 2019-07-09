@@ -6,7 +6,7 @@ module conv_module
 
   private
 
-  public :: cons_to_prim, get_temperature, get_energy, get_molfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, get_temperature_gas, get_energy_gas
+  public :: cons_to_prim, get_temperature, get_density, get_energy, get_molfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, get_temperature_gas, get_energy_gas
 
 contains
 
@@ -51,6 +51,9 @@ contains
             ! update temperature in-place using internal energy
             call get_temperature(intenergy, Yk_fixed, prim(i,j,k,5))
             
+            ! HACK: OVERRIDE
+            ! prim(i,j,k,6) = 2.0*cons(i,j,k,1)*intenergy/3.0
+            
             ! compute mole fractions from mass fractions
             call get_molfrac(Yk, Xk)
 
@@ -62,20 +65,18 @@ contains
 
             call get_pressure_gas(prim(i,j,k,6), Yk, prim(i,j,k,1), prim(i,j,k,5))
 
-            ! prim(i,j,k,6) = 2.0*intenergy/3.0
-
           enddo
         enddo
       enddo
 
   end subroutine cons_to_prim
 
-  subroutine get_temperature(energy, massvec, temp)     
+  subroutine get_temperature(energy, massfrac, temp)     
 
     !This function originaly had a reference to e0 - check this.
 
     real(amrex_real), intent(inout) :: temp
-    real(amrex_real), intent(in   ) :: energy, massvec(nspecies)
+    real(amrex_real), intent(in   ) :: energy, massfrac(nspecies)
 
     integer :: i
     real(amrex_real) :: cvmix, e0
@@ -83,11 +84,29 @@ contains
     cvmix = 0.0d0; e0 = 0.0d0
 
     do i = 1, nspecies
-      cvmix = cvmix + massvec(i)*hcv(i)
-       ! e0 = e0 + massvec(i)*e0ref(i)
+      cvmix = cvmix + massfrac(i)*hcv(i)
+       ! e0 = e0 + massfrac(i)*e0ref(i)
     enddo
 
     temp = (energy-e0)/cvmix 
+
+  end subroutine
+
+  subroutine get_density(pressure, density, temp, massfrac)  bind(C,name="get_density")    
+
+    real(amrex_real), intent(in   ) :: temp, pressure, massfrac(nspecies)
+    real(amrex_real), intent(inout) :: density
+
+    integer :: i
+    real(amrex_real) :: molmix
+
+    molmix = 0.0d0
+    do i = 1, nspecies
+      molmix = molmix + massfrac(i)/molmass(i)
+    enddo
+    molmix = 1.0d0/molmix
+
+   density = pressure/(runiv/molmix)/temp
 
   end subroutine
 

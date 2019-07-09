@@ -131,14 +131,15 @@ void main_driver(const char* argv)
     MultiFab cup2(ba,dmap,nvars,ngc);
     MultiFab cup3(ba,dmap,nvars,ngc);
 
+    //primative quantaties
+    MultiFab prim(ba,dmap,nprimvars,ngc);
+
+    //statistics
     MultiFab cuMeans(ba,dmap,nvars,ngc);
     MultiFab cuVars(ba,dmap,nvars,ngc);
 
     MultiFab cuMeansAv(ba,dmap,nvars,ngc);
     MultiFab cuVarsAv(ba,dmap,nvars,ngc);
-
-    //primative quantaties
-    MultiFab prim(ba,dmap,nprimvars,ngc);
 
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
     MultiFab primVars(ba,dmap,nprimvars + 5,ngc);
@@ -152,6 +153,8 @@ void main_driver(const char* argv)
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
 
+    MultiFab spatialCross(ba,dmap,6,ngc);
+    MultiFab spatialCrossAv(ba,dmap,6,ngc);
 
     Real delHolder1[n_cells[1]*n_cells[2]];
     Real delHolder2[n_cells[1]*n_cells[2]];
@@ -159,10 +162,6 @@ void main_driver(const char* argv)
     Real delHolder4[n_cells[1]*n_cells[2]];
     Real delHolder5[n_cells[1]*n_cells[2]];
     Real delHolder6[n_cells[1]*n_cells[2]];
-
-    MultiFab spatialCross(ba,dmap,6,ngc);
-
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -187,8 +186,6 @@ void main_driver(const char* argv)
     prim.setVal(0,2,1,ngc);
     prim.setVal(0,3,1,ngc);
     prim.setVal(T_init[0],4,1,ngc);
-
-    // amrex::Print() << "Hack: T_init = " << T_init[0] << "\n";
 
     double massvec[nspecies];
     double intEnergy, T0;
@@ -263,22 +260,160 @@ void main_driver(const char* argv)
     int step, statsCount;
 
     ///////////////////////////////////////////
-    // structure factor:
+    // Structure factor:
     ///////////////////////////////////////////
+    
+    ////////////////////////////////
+    // create equilibrium covariance matrix
+    Real molmix, avgmolmass;
+    Real P_bar;
+    Real c_v, c_v2;
+    Real dVol = dx[0]*dx[1];
+    molmix = 0.0;
+    avgmolmass = 0.0;
+    for(int i=0; i<nspecies; i++) {
+	molmix     += rhobar[i]/molmass[i];
+	avgmolmass += rhobar[i]*molmass[i];
+    }
+    molmix = 1.0/molmix;                // molar mass of mixture
+    P_bar = rho0*(Runiv/molmix)*T0;     // eqm pressure
+    c_v  = 1.5*(Runiv/molmix);          // Assuming all gases are monoatomic (dof=3)
+    c_v2 = c_v*c_v;                         
+    // calc cell volume
+    if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+    } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+    }
+    // calc momentum variance
+    Real Jeqmvar = rho0*k_B*T0/dVol;
+    Real Meqmvar = (rho0/P_bar)*Jeqmvar;
+    Real Eeqmvar = (c_v2*T0*T0)*Meqmvar + (c_v*T0)*Jeqmvar;
+    Real MEeqmcovar = (rho0/P_bar)*(c_v*T0)*Jeqmvar;
 
-    Vector< std::string > var_names;
-    int nvar_sf = AMREX_SPACEDIM+2;
-    // int nvar_sf = AMREX_SPACEDIM;
-    var_names.resize(nvar_sf);
+    // setup covariance eqm. variance matrix
     int cnt = 0;
+    int nvar_sf = nvars;
+    int ncov_sf = nvar_sf*(nvar_sf+1)/2;
+    int nb_sf = 4;
+    int nbcov_sf = nb_sf*(nb_sf+1)/2;
+
+    // struct. fact. eqm. variances
+    Vector< Real > eqmvars(ncov_sf);
+    Vector< Real > beqmvars(nbcov_sf);
+    Vector< int > blocks(nb_sf);
+
+    // layout of covariance matrix:
+    //
+    // <cons_i,cons_j> =
+    // | <rho,rho>         ...      ...       ...            ...      ... |
+    // | <Jx,rho>       <Jx,Jx>     ...       ...            ...      ... |
+    // |    ...            ...      ...       ...            ...      ... |
+    // | <rhoE,rho>     <rhoE,Jx>   ...   <rhoE,rhoE>        ...      ... |
+    // | <rho1,rho>     <rho1,Jx>   ...   <rho1,rhoE>    <rho1,rho1>  ... |
+    // |    ...            ...      ...       ...            ...      ... |
+
+    // covariance matrix block sizes
+    cnt = 0;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = AMREX_SPACEDIM;
+    blocks[cnt++] = 1;
+    blocks[cnt++] = nspecies;
+
+    // covariance matrix block scaling
+    cnt = 0;
+    beqmvars[cnt++] = Meqmvar*avgmolmass/molmix;  // rho,rho
+    beqmvars[cnt++] = sqrt(Meqmvar*Jeqmvar);      // J_i,rho      - cheat scale
+    beqmvars[cnt++] = MEeqmcovar;                 // rhoE,rho
+    beqmvars[cnt++] = Meqmvar;                    // rho_k,rho    - scaled by mass fracs later
+    beqmvars[cnt++] = Jeqmvar;                    // J_i,J_j
+    beqmvars[cnt++] = sqrt(Eeqmvar*Jeqmvar);      // rhoE,J_j     - cheat scale
+    beqmvars[cnt++] = sqrt(Meqmvar*Jeqmvar);      // rho_k,J_j    - cheat scale
+    beqmvars[cnt++] = Eeqmvar;                    // rhoE,rhoE
+    beqmvars[cnt++] = MEeqmcovar;                 // rho_k,rhoE   - scaled by mass fracs later
+    beqmvars[cnt++] = Meqmvar;                    // rho_k,rho_l  - scaled by mass fracs later
+
+    // for (int d=0; d<nbcov_sf; d++) {
+    //   Print() << "Hack: " << beqmvars[d] << std::endl;
+    //   beqmvars[d] = 1.0;
+    // }
+    // Print() << "Hack: " << avgmolmass/molmix << std::endl;
+    // exit(0);
+    
+    // loop over lower triangular block matrix
+    cnt = 0;
+    int bcnt = 0;
+    int ig, jg = 0;
+    // loop over matrix blocks
+    for(int jb=0; jb<nb_sf; jb++) {
+      ig = jg;
+      for(int ib=jb; ib<nb_sf; ib++) {
+	// loop within blocks
+	for(int j=0; j<blocks[jb]; j++) {
+	  int low_ind;
+	  if(ib==jb){      // if block lies on diagonal...
+	    low_ind=j;
+	  } else {
+	    low_ind=0;
+	  }
+	  for(int i=low_ind; i<blocks[ib]; i++) {
+	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
+	    eqmvars[cnt] = beqmvars[bcnt];
+
+	    // fix scale for individual species
+	    if(ib != 2 && jb != 2) { // not for energy
+
+	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
+	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
+	    	eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
+	      } else if (blocks[ib]==nspecies) {
+	    	eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
+	      } else if (blocks[jb]==nspecies) {
+	    	eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
+	      }
+
+	    } else {
+	      
+	      // if rho_k & energy, only scale by Yk
+	      if(blocks[ib]==nspecies && jb==2) {
+	    	eqmvars[cnt] *= rhobar[i];
+	      }
+	      
+	    }
+
+	    // Print() << "Hack: " << ig+i << " " << jg+j << " " << cnt << " " << eqmvars[cnt] << std::endl;
+	  }
+	}
+	bcnt++;
+	ig += blocks[ib];
+      }
+      jg += blocks[jb];
+    }
+    
+    // for (int d=0; d<ncov_sf; d++) {
+    //   Print() << "Hack: scaling = " << eqmvars[d] << " " << d << std::endl;
+    // }
+    // exit(0);
+
+    ////////////////////////////////
+
+    // set variable names
+    cnt = 0;
+    Vector< std::string > var_names;
+    var_names.resize(nvar_sf);
     std::string x;
     var_names[cnt++] = "rho";
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "mom";
+      x = "J";
       x += (120+d);
       var_names[cnt++] = x;
     }
-    var_names[cnt++] = "E";
+    var_names[cnt++] = "rhoE";
+    for (int d=0; d<nspecies; d++) {
+      x = "rho";
+      x += (49+d);
+      var_names[cnt++] = x;
+    }
 
     MultiFab struct_in_cc;
     struct_in_cc.define(ba, dmap, nvar_sf, 0);
@@ -292,13 +427,24 @@ void main_driver(const char* argv)
       s_pairB[d] = d;
     }
 
-    StructFact structFact(ba,dmap,var_names);
-    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
+    StructFact structFact(ba,dmap,var_names,eqmvars);
+    // StructFact structFact(ba,dmap,var_names,eqmvars,s_pairA,s_pairB);
 
     ///////////////////////////////////////////
 
     //Initialize everything
-    
+
+    // for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+    //   const Box& bx = mfi.validbox();
+
+    //   init_consvar(BL_TO_FORTRAN_BOX(bx),
+    // 	       BL_TO_FORTRAN_FAB(cu[mfi]),
+    // 	       dx, 
+    // 	       // geom.ProbLo(), geom.ProbHi(),
+    // 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+    // }
+	    
     // chi.setVal(0.0);
     // D.setVal(0.0);
     // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
@@ -315,7 +461,7 @@ void main_driver(const char* argv)
     // chi.FillBoundary(geom.periodicity());
     // D.FillBoundary(geom.periodicity());
 
-    // setBC(prim, cu, eta, zeta, kappa);
+    // setBC(prim, cu, eta, zeta, kappa, chi, D);
 
     // calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
@@ -338,36 +484,8 @@ void main_driver(const char* argv)
             spatialCross.setVal(0.0);
 
             statsCount = 1;
-
-            //dt = 2.0*dt;
         }
 
-//        if(step == (int)floor((double)n_steps_skip/2.0))
-//        {
-//            cuMeans.setVal(0.0);
-//            cuVars.setVal(0.0);
-
-//            primMeans.setVal(0.0);
-//            primVars.setVal(0.0);
-
-//            spatialCross.setVal(0.0);
-
-//            statsCount = 1;
-
-//            dt = 2.0*dt;
-//        }
-
-	// for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-	//   const Box& bx = mfi.validbox();
-
-	//   init_consvar(BL_TO_FORTRAN_BOX(bx),
-	// 	       BL_TO_FORTRAN_FAB(cu[mfi]),
-	// 	       dx, 
-	// 	       // geom.ProbLo(), geom.ProbHi(),
-	// 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
-	// }
-	
 	if (step > n_steps_skip) {
 	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
 	}
@@ -375,19 +493,15 @@ void main_driver(const char* argv)
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-	  // MultiFab::Copy(struct_in_cc, cu, 1, 0, nvar_sf, 0);
 	  structFact.FortStructure(struct_in_cc,geom);
         }
 	///////////////////////////////////////////
 
         statsCount++;
 
-        // if(step%100 == 0)
-        // {    
 	amrex::Print() << "Advanced step " << step << "\n";
-        // }
 
         if (plot_int > 0 && step > 0 && step%plot_int == 0)
         {
@@ -396,38 +510,17 @@ void main_driver(const char* argv)
            // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
 
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
+	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int)
+	       structFact.WritePlotFile(step,time,geom);
         }
 
         time = time + dt;
     }
 
-    if (struct_fact_int > 0) {
-
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-
-      // let rho = 1
-      Real SFscale = dVol/(rho0*k_B*T_init[0]);
-      // SFscale = 1.0;
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
-
-    }
-
-
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
 
-    // amrex::Abort();
     // amrex::Finalize();
 
 }

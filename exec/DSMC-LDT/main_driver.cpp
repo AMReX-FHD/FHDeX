@@ -34,9 +34,10 @@ void main_driver(const char* argv)
 
     //hard coded variables - make into input later
     //number of particles left/right - set to -1 to assign by density
-    int pL = 16; int pR = 4;
+    //int pL = 13; int pR = 9;
+    int pL = 8; int pR = 3;
     //temperature on left/right
-    Real tL = 300; Real tR = 250;
+    Real tL = 300; Real tR = 200;
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -395,14 +396,13 @@ void main_driver(const char* argv)
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geom, dmap, ba, crange);
-
     //create particles
     particles.InitParticlesDSMCtest(dsmcParticle, num_boxes, pL, pR, tL, tR);
     if (thermostat_tog == 1) {
         particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
     }
-    
 
+    
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
     //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
 
@@ -424,6 +424,9 @@ void main_driver(const char* argv)
 
     //make fluxes storage
     int flux[2]; flux[0] = 0; flux[1] = 0;
+
+    //store particles in each box each time step
+    int nL = pL; int nR = pR;
 
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
@@ -449,6 +452,15 @@ void main_driver(const char* argv)
         //thermostatting
         if(thermostat_tog == 1)
         {
+            //if crossing happens, regenerate all positions and velocities
+            if (flux[0] > 0 || flux[1] > 0) {
+                nL = nL + flux[0] - flux[1];
+                nR = nR + flux[1] - flux[0];
+                printf("Totals: %d %d\n", nL, nR);
+                particles.Resample(dsmcParticle, tL, tR);
+            }
+
+            //call thermostat. Function determines if re-scaling is necessary.
             particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
         }
 

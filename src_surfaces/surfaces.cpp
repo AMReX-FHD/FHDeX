@@ -68,7 +68,7 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[0].porosityLeft = 1;
         surfaceList[0].porosityRight = 1;
     }
-    else if (bc_lo[0] == 3) 
+    else if(bc_lo[0] == 3)
     {
         surfaceList[0].periodicity = 0;
         surfaceList[0].porosityLeft = 0;
@@ -81,7 +81,6 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[0].periodicity = 0;
         surfaceList[0].porosityLeft = 0;
         surfaceList[0].porosityRight = 0;
-
     }
 
     surfaceList[0].boundary = 1;
@@ -110,7 +109,7 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[0].fyRightAv = 0;
     surfaceList[0].fzRightAv = 0;
 
-//domianHi x plane
+//domainHi x plane
     surfaceList[1].x0 = domainHi[0];
     surfaceList[1].y0 = domainLo[1];
     surfaceList[1].z0 = domainLo[2];
@@ -203,7 +202,7 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[2].vz = 1;
 
     surfaceList[2].uTop = domainHi[0] - domainLo[0];
-    surfaceList[2].vTop = domainHi[2] - domainHi[2];
+    surfaceList[2].vTop = domainHi[2] - domainLo[2];
 
     surfaceList[2].lnx = 0;
     surfaceList[2].lny = 1;
@@ -464,8 +463,9 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].velz=0;
 
     surfaceList[5].c0=1;
-    surfaceList[5].graPhi=0;
-    surfaceList[5].graC=0;
+    surfaceList[5].agraph=0;
+    surfaceList[5].bgraph=0;
+    surfaceList[5].coltime=0;
 
     surfaceList[5].besslist;
     surfaceList[5].dbesslist;

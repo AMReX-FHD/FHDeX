@@ -68,6 +68,19 @@ private:
 };
 
 
+
+typedef enum {
+	ARG_r_m,
+	ARG_r,
+	ARG_r_p //,
+	// ARG_bn_m,
+	// ARG_bn_p,
+	// ARG_t_m,
+	// ARG_t,
+	// ARG_t_p
+} NDERIV__coordinate;
+
+
 namespace immbdy_md {
 
 using namespace immbdy_geom;
@@ -77,6 +90,18 @@ void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0);
 void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                Real k, Real cos_theta_0);
+
+
+Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
+        const RealVect & u, Real theta);
+
+Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
+           const RealVect & u, Real theta,
+           NDERIV__coordinate arg, const RealVect & dx, Real delta);
+
+void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
+               const RealVect & r, const RealVect & r_p, const RealVect & r_m,
+               const RealVect & u, Real theta, Real k);
 
 }
 

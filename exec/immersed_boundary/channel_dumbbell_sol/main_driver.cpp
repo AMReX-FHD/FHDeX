@@ -1,13 +1,12 @@
-
 #include "main_driver.H"
 #include "main_driver_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
-#include "analysis_functions_F.H"
+//#include "analysis_functions_F.H"
 #include "StochMFlux.H"
-#include "StructFact.H"
+//#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -313,7 +312,7 @@ void main_driver(const char * argv) {
     s_pairB[2] = 2;
 #endif
 
-    StructFact structFact(ba, dmap, var_names);
+    // StructFact structFact(ba, dmap, var_names);
     // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
 
 
@@ -326,14 +325,23 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+    // Make sure that the nghost (last argument) is big enough!
     IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
-    Vector<RealVect> marker_positions(3);
-    marker_positions[0] = RealVect{0.25, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.26, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.27, 0.5, 0.5};
+    Vector<RealVect> marker_positions(10);
+    marker_positions[0] = RealVect{0.05, 0.5, 0.5};
+    marker_positions[1] = RealVect{0.10, 0.5, 0.5};
+    marker_positions[2] = RealVect{0.15, 0.5, 0.5};
+    marker_positions[3] = RealVect{0.20, 0.5, 0.5};
+    marker_positions[4] = RealVect{0.25, 0.5, 0.5};
+    marker_positions[5] = RealVect{0.30, 0.5, 0.5};
+    marker_positions[6] = RealVect{0.35, 0.5, 0.5};
+    marker_positions[7] = RealVect{0.40, 0.5, 0.5};
+    marker_positions[8] = RealVect{0.45, 0.5, 0.5};
+    marker_positions[9] = RealVect{0.50, 0.5, 0.5};
 
-    Vector<Real> marker_radii = {.2, .2};
+    Vector<Real> marker_radii(10);
+    for (int i=0; i<10; ++i) marker_radii[i] = .10;
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 
@@ -468,12 +476,12 @@ void main_driver(const char * argv) {
         //_______________________________________________________________________
         // Update structure factor
 
-        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-            for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-            }
-            structFact.FortStructure(struct_in_cc,geom);
-        }
+        //if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        //    for(int d=0; d<AMREX_SPACEDIM; d++) {
+        //        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+        //    }
+        //    structFact.FortStructure(struct_in_cc,geom);
+        //}
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -483,29 +491,29 @@ void main_driver(const char * argv) {
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-          // write out umac & pres to a plotfile
-          WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
+           //write out umac & pres to a plotfile
+           WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
         }
     }
 
     ///////////////////////////////////////////
-    if (struct_fact_int > 0) {
-        Real dVol = dx[0]*dx[1];
-        int tot_n_cells = n_cells[0]*n_cells[1];
-        if (AMREX_SPACEDIM == 2) {
-            dVol *= cell_depth;
-        } else if (AMREX_SPACEDIM == 3) {
-            dVol *= dx[2];
-            tot_n_cells = n_cells[2]*tot_n_cells;
-        }
+    //if (struct_fact_int > 0) {
+    //    Real dVol = dx[0]*dx[1];
+    //    int tot_n_cells = n_cells[0]*n_cells[1];
+    //    if (AMREX_SPACEDIM == 2) {
+    //        dVol *= cell_depth;
+    //    } else if (AMREX_SPACEDIM == 3) {
+    //        dVol *= dx[2];
+    //        tot_n_cells = n_cells[2]*tot_n_cells;
+    //    }
 
         // let rho = 1
-        Real SFscale = dVol/(k_B*temp_const);
+    //    Real SFscale = dVol/(k_B*temp_const);
         // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-        structFact.Finalize(SFscale);
-        structFact.WritePlotFile(step,time,geom);
-    }
+    //    structFact.Finalize(SFscale);
+    //    structFact.WritePlotFile(step,time,geom);
+    // }
 
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors

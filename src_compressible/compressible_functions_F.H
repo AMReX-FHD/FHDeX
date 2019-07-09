@@ -14,74 +14,70 @@ extern "C"
 // in diff_flux.F90
 
   void diff_flux(const int* lo, const int* hi,
-			      const amrex::Real* cons,
-			      const amrex::Real* prim,
-			      const amrex::Real* eta,
-			      const amrex::Real* zeta,
-			      const amrex::Real* zappa,
+		 const amrex::Real* cons,
+		 const amrex::Real* prim,
+		 const amrex::Real* eta,
+		 const amrex::Real* zeta,
+		 const amrex::Real* kappa,
+		 const amrex::Real* chi,
+		 const amrex::Real* Dij,
+		 amrex::Real* xflux,
+		 amrex::Real* yfluz,
+#if (AMREX_SPACEDIM == 3)
+		 amrex::Real* zflux,
+#endif
+		 amrex::Real* cornux,
+		 amrex::Real* cornvx,
+		 amrex::Real* cornwx,
+		 amrex::Real* cornuy,
+		 amrex::Real* cornvy,
+		 amrex::Real* cornwy,
+		 amrex::Real* cornuz,
+		 amrex::Real* cornvz,
+		 amrex::Real* cornwz,
+		 amrex::Real* visccorn,
+		 const amrex::Real* dx);
 
-			      amrex::Real* xflux,
-			      amrex::Real* yfluz,
+    void hyp_flux_prim(const int* lo, const int* hi,
+		       const amrex::Real* cons,
+		       const amrex::Real* prim,
+		       amrex::Real* xflux,
+		       amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)
-			      amrex::Real* zflux,
+		       amrex::Real* zflux,
 #endif
-                              const amrex::Real* dx);
+		       const amrex::Real* dx);
 
-  void diff_flux_sym(const int* lo, const int* hi,
-			      const amrex::Real* cons,
-			      const amrex::Real* prim,
-			      const amrex::Real* eta,
-			      const amrex::Real* zeta,
-			      const amrex::Real* kappa,
-			      const amrex::Real* chi,
-			      const amrex::Real* Dij,
-			      amrex::Real* xflux,
-			      amrex::Real* yfluz,
+    void hyp_flux_cons(const int* lo, const int* hi,
+		       const amrex::Real* cons,
+		       const amrex::Real* prim,
+		       amrex::Real* xflux,
+		       amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)
-			      amrex::Real* zflux,
+		       amrex::Real* zflux,
 #endif
-                              amrex::Real* cornux,
-                              amrex::Real* cornvx,
-                              amrex::Real* cornwx,
-                              amrex::Real* cornuy,
-                              amrex::Real* cornvy,
-                              amrex::Real* cornwy,
-                              amrex::Real* cornuz,
-                              amrex::Real* cornvz,
-                              amrex::Real* cornwz,
-                              amrex::Real* visccorn,
-                              const amrex::Real* dx);
+		       const amrex::Real* dx);
 
-  void hyp_flux(const int* lo, const int* hi,
-			      const amrex::Real* cons,
-			      const amrex::Real* prim,
-			      amrex::Real* xflux,
-			      amrex::Real* yfluz,
+    void stoch_flux(const int* lo, const int* hi,
+		    const amrex::Real* cons,
+		    const amrex::Real* prim,
+		    amrex::Real* xflux,
+		    amrex::Real* yfluz,
 #if (AMREX_SPACEDIM == 3)
-			      amrex::Real* zflux,
+		    amrex::Real* zflux,
 #endif
-                              const amrex::Real* dx);
-
-  void stoch_flux(const int* lo, const int* hi,
-			      const amrex::Real* cons,
-			      const amrex::Real* prim,
-			      amrex::Real* xflux,
-			      amrex::Real* yfluz,
+		    amrex::Real* xsflux,
+		    amrex::Real* ysfluz,
 #if (AMREX_SPACEDIM == 3)
-			      amrex::Real* zflux,
+		    amrex::Real* zsflux,
 #endif
-			      amrex::Real* xsflux,
-			      amrex::Real* ysfluz,
-#if (AMREX_SPACEDIM == 3)
-			      amrex::Real* zsflux,
-#endif
-     			      const amrex::Real* rancorn,
-                              const amrex::Real* eta,
-			      const amrex::Real* zeta,
-			      const amrex::Real* zappa,
-		              const amrex::Real* chi,
-			      const amrex::Real* Dij,
-		              const amrex::Real* dx, const amrex::Real* dt);
+		    const amrex::Real* rancorn,
+		    const amrex::Real* eta,
+		    const amrex::Real* zeta,
+		    const amrex::Real* zappa,
+		    const amrex::Real* chi,
+		    const amrex::Real* Dij,
+		    const amrex::Real* dx, const amrex::Real* dt);
 
   void trans_coeffs(const int* lo, const int* hi,
 		    const amrex::Real* prim,
@@ -144,11 +140,13 @@ extern "C"
 			      const amrex::Real* prim);
 
   void set_bc(const int* lo, const int* hi,
-			      amrex::Real* cons,
-			      amrex::Real* prim,
-	  	      amrex::Real* eta,
-  		      amrex::Real* zeta,
-			      amrex::Real* zappa);
+	      amrex::Real* cons,
+	      amrex::Real* prim,
+	      amrex::Real* eta,
+	      amrex::Real* zeta,
+	      amrex::Real* kappa,
+	      amrex::Real* chi,
+	      amrex::Real* Dij);
 
   void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 

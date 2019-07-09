@@ -11,9 +11,10 @@ contains
 #if (AMREX_SPACEDIM == 2)
 
     subroutine fft_shift(lo,hi, &
-                         dft, dftlo, dfthi, ncomp) bind(C,name="fft_shift")
+                         dft, dftlo, dfthi, ncomp, &
+                         zero_avg) bind(C,name="fft_shift")
 
-      integer         , intent(in   ) :: ncomp
+      integer         , intent(in   ) :: ncomp, zero_avg
       integer         , intent(in   ) :: lo(2),hi(2)
       integer         , intent(in   ) :: dftlo(2),dfthi(2)
       double precision, intent(inout) :: dft(dftlo(1):dfthi(1),dftlo(2):dfthi(2),ncomp)
@@ -38,6 +39,11 @@ contains
       nyh = (ny+1)/2
 
       do n = 1,ncomp
+         
+         if (zero_avg.eq.1) then
+            ! set k=0 cell to zero
+            dft(lo(1),lo(2),n) = 0.0d0
+         endif
 
          dft_temp(dftlo(1):dfthi(1),dftlo(2):dfthi(2)) = &
               dft(dftlo(1):dfthi(1),dftlo(2):dfthi(2),n)
@@ -62,9 +68,10 @@ contains
 #if (AMREX_SPACEDIM == 3)
 
     subroutine fft_shift(lo,hi, &
-                         dft, dftlo, dfthi, ncomp) bind(C,name="fft_shift")
+                         dft, dftlo, dfthi, ncomp, &
+                         zero_avg) bind(C,name="fft_shift")
       
-      integer         , intent(in   ) :: ncomp
+      integer         , intent(in   ) :: ncomp, zero_avg
       integer         , intent(in   ) :: lo(3),hi(3)
       integer         , intent(in   ) :: dftlo(3),dfthi(3)
       double precision, intent(inout) :: dft(dftlo(1):dfthi(1),dftlo(2):dfthi(2),dftlo(3):dfthi(3),ncomp)
@@ -90,6 +97,11 @@ contains
       nzh = (nz+1)/2
 
       do n = 1,ncomp
+         
+         if (zero_avg.eq.1) then
+            ! set k=0 cell to zero
+            dft(lo(1),lo(2),lo(3),n) = 0.0d0
+         endif
 
          dft_temp(dftlo(1):dfthi(1),dftlo(2):dfthi(2),dftlo(3):dfthi(3)) = &
               dft(dftlo(1):dfthi(1),dftlo(2):dfthi(2),dftlo(3):dfthi(3),n)
