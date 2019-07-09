@@ -81,6 +81,7 @@ void IBMarkerContainer::InitList(int lev,
 
         int prev_id  = -1;
         int prev_cpu = -1;
+        int p_seq    =  0;
 
         for(int i = 0; i < pos.size(); i++) {
             // IntVect representing particle's position in the tile_box grid.
@@ -93,7 +94,6 @@ void IBMarkerContainer::InitList(int lev,
             // Add particle at position pos iff it's vector index is contained
             // within tile_box.
 
-            int p_seq = 0;
             if(tile_box.contains(pos_ind)) {
                 pcount ++;
 
