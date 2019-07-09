@@ -51,6 +51,8 @@ typedef struct {
     double c0;
     double agraph;
     double bgraph;
+    double a0graph;
+    double b0graph;
     double coltime;
 
     double besslist[100];
