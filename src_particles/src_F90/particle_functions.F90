@@ -351,11 +351,12 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
   use surfaces_module
-  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog
+  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog, mass, k_b, particle_count, particle_n0, t_init
   
   implicit none
 
   type(particle_t), intent(inout), target :: particles(np)
+  type(particle_t) :: toppart
   type(surface_t), intent(in), target :: surfaces(ns)
   integer(c_int), intent(in) :: np, ns
   integer(c_int), intent(in) :: lo(3), hi(3)
@@ -366,12 +367,12 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   real(amrex_real), intent(in) :: dt, time
   integer(c_int), intent(inout) :: flux(2)
   
-  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR
+  integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR, count, numcoll
   integer :: cell(3)
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact
+  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact, pi
 
   
   adj = 0.9999999
@@ -481,7 +482,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                       part%pos(2) = part%pos(2) + posalt(2)
 #if (BL_SPACEDIM == 3)
                       part%pos(3) = part%pos(3) + posalt(3)
-#endif
+#endif 
                    endif
                     
                 endif
@@ -562,8 +563,13 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                  surf%velz=prefact*bessel_jn(0, interval*2.4048/prob_hi(1))*(surf%agraph*sin(omega*time)+surf%bgraph*cos(time*omega))
                  surf%dbesslist(ii)=dbessj0
               enddo
+              pi=3.1415926535897932
+              numcoll=200
+              ! numcoll=pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1)))
+              do count=1,  numcoll
+                 call topparticle(surf, toppart, intside, domsize, push, time, inttime)
+            end do            
   
-
                 ! print*,'position',part%pos
                ! print*,'vel',part%vel
                 print*,'fortran move', surf%velz, part%id

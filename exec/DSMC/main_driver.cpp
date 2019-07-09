@@ -48,6 +48,7 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
+    
 
     const int n_rngs = 1;
 

@@ -217,7 +217,7 @@
 
     if(surf%boundary .eq. 6)then
        oldvel=part%vel
-     !   write(*,*) "old", oldvel(3), part%id
+       !write(*,*) "old", oldvel(3)
      !  print*, part%id, part%vel(3)
     endif
     
@@ -405,11 +405,10 @@
         endif
 
       endif
- 
+  
    endif
    if(graphene_tog .eq. 1) then
       if(surf%boundary .eq. 6) then
-        ! call laser(part, surf, intside, inttime, time)
       call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
@@ -417,66 +416,62 @@
   end subroutine apply_bc
 
 
- subroutine laser(part, surf, intside, inttime, time)
+ subroutine topparticle(surf, toppart, intside, domsize, push, time, inttime)
     
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
     use surfaces_module
     use rng_functions_module
-     use common_namelist_module, only: prob_hi, fixed_dt
+     use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0
     
     implicit none
 
-    type(particle_t), intent(inout) :: part
+    type(particle_t), intent(inout) :: toppart
     type(surface_t) :: surf
-    integer(c_int) :: count5, count6, intside
-    real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, pi, prefact
-    real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel
+    integer(c_int) :: intside, count, push
+    real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, prefact, srt, pi
+    real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel, domsize
 
-    c=9144
-    a=prob_hi(1)
     pi=3.1415926535897932
-    lstrength=10**-8
-    omega=14*(10**6)*pi*2
-    t=time+inttime
-    bJ1 = bessel_jn(1,2.4048)
-    prefact = c*c/(a*a*pi*bJ1**2)
+
+  
     
-    rnorm=(/ surf%rnx, surf%rny, surf%rnz /)
-    lnorm=(/ surf%lnx, surf%lny, surf%lnz /)
-    surfvel=(/ surf%velx, surf%vely, surf%velz /)
-    if(intside .eq. 1) then
-       normvel=dot_product(part%vel, rnorm)*rnorm
-    else
-       normvel=dot_product(part%vel, lnorm)*lnorm
-    endif
-    j=normvel*part%mass
-    magnormvel=norm2(normvel)
-    normvel=normvel/magnormvel
+    ! rnorm=(/ surf%rnx, surf%rny, surf%rnz /)
+    ! lnorm=(/ surf%lnx, surf%lny, surf%lnz /)
+    ! surfvel=(/ surf%velx, surf%vely, surf%velz /)
+    ! if(intside .eq. 1) then
+    !    normvel=dot_product(part%vel, rnorm)*rnorm
+    ! else
+    !    normvel=dot_product(part%vel, lnorm)*lnorm
+    ! endif
+    ! j=normvel*part%mass
+    ! magnormvel=norm2(normvel)
+    ! normvel=normvel/magnormvel
+   
+    toppart%r=k_b/mass(1)
+    srt = sqrt(toppart%r*surf%temperatureright)
+#if (BL_SPACEDIM == 3)
+          toppart%vel(1) = srt*get_particle_normal_func()
+          toppart%vel(2) = srt*get_particle_normal_func()
+          toppart%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+        
+          call rotation(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, toppart%vel(1), toppart%vel(2), toppart%vel(3))
 
-    surf%agraph=surf%agraph+lstrength*bessel_jn(0, 10e-100)*sin(omega*t)
-    surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 10e-100)*cos(omega*t)
+          toppart%pos(1) = prob_hi(1)*get_particle_normal_func()
+          toppart%pos(2) = prob_hi(1)*get_particle_normal_func()
+#endif
+          ! write(*,*) "top"
+          call apply_bc(surf, toppart, intside, domsize, push, time, inttime)
+    ! surf%agraph=surf%agraph+p*bessel_jn(0, 10e-100)*sin(omega*t)
+    ! surf%bgraph=surf%bgraph+p*lstrength*bessel_jn(0, 10e-100)*cos(omega*t)
 
-    surf%velz=-prefact*bessel_jn(0, 10e-100)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+    ! surf%velz=-prefact*bessel_jn(0, 10e-100)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
 
    ! part%vel(3)=part%vel(3)+surf%velz
-   ! part%vel=part%vel-surfvel
-   ! part%vel=part%vel+surf%velz*normvel
-       !write(*,*) surf%velz*normvel
-
-             ! intsurf=surf%boundary
-  
-             !     if(intsurf .eq.  5) then
-             !        write(*,*) "5", part%pos(1), part%pos(2), part%pos(3)
-             !        count5=count5+1
-             !     elseif(intsurf .eq. 6) then
-             !        write(*,*)  "6", part%pos(1), part%pos(2), part%pos(3)
-             !       count6= count6+1
-    !    endif
 
     
-end subroutine laser
+end subroutine topparticle
   
 subroutine surf_velocity(surf, part, time, oldvel, inttime)
   
@@ -497,7 +492,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
   real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
- write(*,*) "apply_bc ", surf%velz, part%id
+ !write(*,*) "apply_bc ", surf%velz, part%id
  
     pi=3.1415926535897932
     rho=sqrt(part%pos(1)**2+part%pos(2)**2)
@@ -570,7 +565,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
 !      step=time/fixed_dt
    
    !  if(step .eq. 300)then
-    ! write(*,*) surf%velz
+     write(*,*) surf%velz
    ! write(*,*) "old", oldvel(3), part%id
     ! write(*,*) "new part: ", part%vel(3)
    !  endif
