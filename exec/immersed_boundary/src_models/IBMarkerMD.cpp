@@ -1,3 +1,5 @@
+#include <cfloat>
+
 #include <AMReX.H>
 #include <AMReX_Print.H>
 
@@ -243,8 +245,8 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 
 
 Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
-           const RealVect & u, double theta,
-           NDERIV__coordinate arg, const RealVect & dx, double delta) {
+           const RealVect & u, Real theta,
+           NDERIV__coordinate arg, const RealVect & dx, Real delta) {
 
     RealVect r_dx;
 
@@ -253,17 +255,17 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
     else if (arg == ARG_r_p) r_dx = r_p + dx; //vadd(&r_dx, &r_p, &dx);
 
     else {
-        exit(1);
+        Abort();
     }
 
-    double uw_r_dx_p;
+    Real uw_r_dx_p;
 
     if      (arg == ARG_r_m) uw_r_dx_p = UW(r_dx, r, r_p, u, theta);
     else if (arg == ARG_r)   uw_r_dx_p = UW(r_m, r_dx, r_p, u, theta);
     else if (arg == ARG_r_p) uw_r_dx_p = UW(r_m, r, r_dx, u, theta);
 
     else {
-        exit(1);
+        Abort();
     }
 
     if      (arg == ARG_r_m) r_dx = r_m - dx; //vsub(&r_dx, &r_m, &dx);
@@ -271,21 +273,73 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
     else if (arg == ARG_r_p) r_dx = r_p - dx; //vsub(&r_dx, &r_p, &dx);
 
     else {
-        exit(1);
+        Abort();
     }
 
-    double uw_r_dx_m;
+    Real uw_r_dx_m;
 
     if      (arg == ARG_r_m) uw_r_dx_m = UW(r_dx, r, r_p, u, theta);
     else if (arg == ARG_r)   uw_r_dx_m = UW(r_m, r_dx, r_p, u, theta);
     else if (arg == ARG_r_p) uw_r_dx_m = UW(r_m, r, r_dx, u, theta);
 
     else {
-        exit(1);
+        Abort();
     }
 
     return (uw_r_dx_p - uw_r_dx_m)/(2*delta);
 }
 
+
+void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
+               const RealVect & r, const RealVect & r_p, const RealVect & r_m,
+               const RealVect & u, Real theta, Real Kw) {
+
+    Real delta = 100*DBL_EPSILON;
+
+    RealVect dx = {AMREX_D_DECL(delta, 0.0, 0.0)};
+    RealVect dy = {AMREX_D_DECL(0.0, delta, 0.0)};
+#if (AMREX_SPACEDIM > 2)
+    RealVect dz = {AMREX_D_DECL(0.0, 0.0, delta)};
+#endif
+
+
+    Real fx2  = ndrUW(r_m, r, r_p, u, theta, ARG_r,   dx, delta);
+    Real fPx2 = ndrUW(r_m, r, r_p, u, theta, ARG_r_p, dx, delta);
+    Real fMx2 = ndrUW(r_m, r, r_p, u, theta, ARG_r_m, dx, delta);
+
+#if (AMREX_SPACEDIM > 1)
+    Real fy2  = ndrUW(r_m, r, r_p, u, theta, ARG_r,   dy, delta);
+    Real fPy2 = ndrUW(r_m, r, r_p, u, theta, ARG_r_p, dy, delta);
+    Real fMy2 = ndrUW(r_m, r, r_p, u, theta, ARG_r_m, dy, delta);
+#endif
+#if (AMREX_SPACEDIM > 2)
+    Real fz2  = ndrUW(r_m, r, r_p, u, theta, ARG_r,   dz, delta);
+    Real fPz2 = ndrUW(r_m, r, r_p, u, theta, ARG_r_p, dz, delta);
+    Real fMz2 = ndrUW(r_m, r, r_p, u, theta, ARG_r_m, dz, delta);
+#endif
+
+    RealVect f_loc;
+    RealVect f_p_loc;
+    RealVect f_m_loc;
+
+    f_loc[0]   = -Kw*fx2/2;
+    f_p_loc[0] = -Kw*fPx2/2;
+    f_m_loc[0] = -Kw*fMx2/2;
+#if (AMREX_SPACEDIM > 1)
+    f_loc[1]   = -Kw*fy2/2;
+    f_p_loc[1] = -Kw*fPy2/2;
+    f_m_loc[1] = -Kw*fMy2/2;
+#endif
+#if (AMREX_SPACEDIM > 2)
+    f_loc[2]   = -Kw*fz2/2;
+    f_p_loc[2] = -Kw*fPz2/2;
+    f_m_loc[2] = -Kw*fMz2/2;
+#endif
+
+
+    f   += f_loc;
+    f_p += f_p_loc;
+    f_m += f_m_loc;
+}
 
 };
