@@ -21,7 +21,7 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 32000
+  max_step = 64000
   plot_int = 160
 
   ! Viscous friction L phi operator

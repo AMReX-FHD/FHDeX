@@ -143,9 +143,24 @@ void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0) {
     //___________________________________________________________________________
     // Add bending forces to the vertex data
 
-    RealVect f   = RealVect(AMREX_D_DECL(k*fx2/2,  k*fy2/2,  k*fz2/2));
-    RealVect f_p = RealVect(AMREX_D_DECL(k*fPx2/2, k*fPy2/2, k*fPz2/2));
-    RealVect f_m = RealVect(AMREX_D_DECL(k*fMx2/2, k*fMy2/2, k*fMz2/2));
+    RealVect f;
+    RealVect f_p;
+    RealVect f_m;
+
+    f[0]   = -k*fx2/2;
+    f_p[0] = -k*fPx2/2;
+    f_m[0] = -k*fMx2/2;
+#if (AMREX_SPACEDIM > 1)
+    f[1]   = -k*fy2/2;
+    f_p[1] = -k*fPy2/2;
+    f_m[1] = -k*fMy2/2;
+#endif
+#if (AMREX_SPACEDIM > 2)
+    f[2]   = -k*fz2/2;
+    f_p[2] = -k*fPz2/2;
+    f_m[2] = -k*fMz2/2;
+#endif
+
 
     e.start_f()     += f;
     e.end_f()       += f_p;
