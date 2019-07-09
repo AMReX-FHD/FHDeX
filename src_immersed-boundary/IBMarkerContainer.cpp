@@ -158,6 +158,94 @@ void IBMarkerContainer::InitList(int lev,
 
 
 
+void IBMarkerContainer::InitSingle(int lev, Real radius, const RealVect & pos,
+                                   int id, int cpu, int i_ref) {
+
+    // Inverse cell-size vector => used for determining index corresponding to
+    // IBParticle position (pos)
+    RealVect inv_dx = RealVect(AMREX_D_DECL(Geom(lev).InvCellSize(0),
+                                            Geom(lev).InvCellSize(1),
+                                            Geom(lev).InvCellSize(2) ));
+
+
+    // This uses the particle tile size. Note that the default is to tile so if
+    // we remove the true and don't explicitly add false it will still tile.
+    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+
+        // Current tile box
+        const Box & tile_box = mfi.tilebox();
+
+        // Create a particle container for this grid and add the
+        // immersed-boundary particles to it if the particle's position (pos)
+        // is within current tile box.
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        auto & particles = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+
+
+        // IntVect representing particle's position in the tile_box grid.
+        RealVect pos_grid = pos; // Important: need to initialize on same CPU
+        pos_grid *= inv_dx;
+        IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
+                                               (int) pos_grid[1],
+                                               (int) pos_grid[2] ));
+
+        // Add particle at position pos iff it's vector index is contained
+        // within tile_box.
+        if(tile_box.contains(pos_ind)) {
+
+            ParticleType p_new;
+
+            // Set id and cpu for this particle
+            p_new.id()  = ParticleType::NextID();
+            p_new.cpu() = ParallelDescriptor::MyProc();
+
+            // Set particle position
+            p_new.pos(0) = pos[0];
+            p_new.pos(1) = pos[1];
+            p_new.pos(2) = pos[2];
+
+            p_new.rdata(IBM_realData::radius) = radius;
+
+            // Initialize marker velocity as well as forces to 0
+            p_new.rdata(IBM_realData::velx)   = 0.;
+            p_new.rdata(IBM_realData::vely)   = 0.;
+            p_new.rdata(IBM_realData::velz)   = 0.;
+
+            p_new.rdata(IBM_realData::forcex) = 0.;
+            p_new.rdata(IBM_realData::forcey) = 0.;
+            p_new.rdata(IBM_realData::forcez) = 0.;
+
+            p_new.rdata(IBM_realData::pred_posx)   = 0.;
+            p_new.rdata(IBM_realData::pred_posy)   = 0.;
+            p_new.rdata(IBM_realData::pred_posz)   = 0.;
+
+            p_new.rdata(IBM_realData::pred_velx)   = 0.;
+            p_new.rdata(IBM_realData::pred_vely)   = 0.;
+            p_new.rdata(IBM_realData::pred_velz)   = 0.;
+
+            p_new.rdata(IBM_realData::pred_forcex) = 0.;
+            p_new.rdata(IBM_realData::pred_forcey) = 0.;
+            p_new.rdata(IBM_realData::pred_forcez) = 0.;
+
+            p_new.idata(IBM_intData::id_0)  = id;
+            p_new.idata(IBM_intData::cpu_0) = cpu;
+
+            p_new.idata(IBM_intData::id_1)  = i_ref;
+            p_new.idata(IBM_intData::cpu_1) = -1;
+
+            // Add to the data structure
+            particles.push_back(p_new);
+        }
+    }
+
+    // We shouldn't need this if the particles are tiled with one tile per
+    // grid, but otherwise we do need this to move particles from tile 0 to the
+    // correct tile.
+    Redistribute();
+}
+
+
 void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
 
     for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
