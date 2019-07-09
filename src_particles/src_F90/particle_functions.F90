@@ -553,6 +553,10 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
           if(graphene_tog .eq. 1) then
                surf=>surfaces(6)
               numcoll=200
+              pi=3.1415926535897932
+               numcoll=floor(pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1))))
+                        print *, "topnum: ", numcoll, prob_hi(1), fixed_dt
+
              do count=1,  numcoll
                  call topparticle(surf, time, inttime)
             end do       
@@ -571,9 +575,9 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                  surf%velz=prefact*bessel_jn(0, interval*2.4048/prob_hi(1))*(surf%agraph*sin(omega*time)+surf%bgraph*cos(time*omega))
                  surf%dbesslist(ii)=dbessj0
               enddo
-              pi=3.1415926535897932
 
-              ! numcoll=pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1)))
+
+
       
                 ! print*,'position',part%pos
                ! print*,'vel',part%vel

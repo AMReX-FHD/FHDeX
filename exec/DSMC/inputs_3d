@@ -19,7 +19,7 @@
 
   ! Controls for number of steps between actions
   max_step = 1
-  plot_int = 10
+  plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
   n_steps_skip = 1
@@ -50,7 +50,7 @@
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e12
+  particle_n0 = 6.02e17
 
   !Species info
   !--------------
