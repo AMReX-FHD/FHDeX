@@ -17,8 +17,7 @@ extern "C"
   void read_compressible_namelist (const char* inputs_file, const int length);
 
   // copy contents of compressible_params_module to C++ compressible namespace
-  void initialize_compressible_namespace(amrex::Real* Yk_lo, amrex::Real* Yk_hi, 
-					 amrex::Real* Xk_lo, amrex::Real* Xk_hi);
+  void initialize_compressible_namespace(amrex::Real* Yk_bc, amrex::Real* Xk_bc);
 
 ///////////////////////////
 

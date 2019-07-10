@@ -1,8 +1,8 @@
 module bound_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, algorithm_type, membrane_cell
-  use compressible_namelist_module, only : Yk_lo, Yk_hi, Xk_lo, Xk_hi
+  use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, algorithm_type, membrane_cell, MAX_SPECIES
+  use compressible_namelist_module, only : Yk_bc, Xk_bc
   use conv_module
   use trans_module
 
@@ -20,11 +20,6 @@ contains
 
     real(amrex_real), intent(inout) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
     real(amrex_real), intent(inout) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-    ! real(amrex_real), intent(inout) :: eta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
-    ! real(amrex_real), intent(inout) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
-    ! real(amrex_real), intent(inout) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
-    ! real(amrex_real), intent(inout) :: chi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
-    ! real(amrex_real), intent(inout) :: Dij(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
 
     integer :: i,j,k,l,idir,bcell
 
@@ -78,15 +73,20 @@ contains
           !print *, "Setting xLo thermal: "
 
           ! call setcwall(Xwall,Ywall,idir)
-          Ywall(1:nspecies) = Yk_lo(1:nspecies,1)
-          Xwall(1:nspecies) = Xk_lo(1:nspecies,1)
-
-          print*, Xk_lo(1:nspecies,1)
-          print*, Xk_lo(1:nspecies,2)
-          print*, Xk_lo(1:nspecies,3)
-          print*, Xk_hi(1:nspecies,1)
-          print*, Xk_hi(1:nspecies,2)
-          print*, Xk_hi(1:nspecies,3)
+          Ywall(1:nspecies) = Yk_bc(1,1,1:nspecies)
+          Xwall(1:nspecies) = Xk_bc(1,1,1:nspecies)
+          
+          do i = 1,AMREX_SPACEDIM
+             do j = 1,2
+                print*, Yk_bc(i,j,1:nspecies)
+             enddo
+          enddo
+          do i = 1,AMREX_SPACEDIM
+             do j = 1,2
+                print*, Xk_bc(i,j,1:nspecies)
+             enddo
+          enddo
+          print*, "Got here"
           stop
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
@@ -187,8 +187,8 @@ contains
        elseif(bc_hi(1) .eq. 2) then ! no slip thermal
 
           ! call setcwall(Xwall,Ywall,idir)
-          Ywall(1:nspecies) = Yk_hi(1:nspecies,1)
-          Xwall(1:nspecies) = Xk_hi(1:nspecies,1)
+          Ywall(1:nspecies) = Yk_bc(1,2,1:nspecies)
+          Xwall(1:nspecies) = Xk_bc(1,2,1:nspecies)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -291,8 +291,8 @@ contains
        elseif(bc_lo(2) .eq. 2) then ! no slip thermal
 
           ! call setcwall(Xwall,Ywall,idir)
-          Ywall(1:nspecies) = Yk_lo(1:nspecies,2)
-          Xwall(1:nspecies) = Xk_lo(1:nspecies,2)
+          Ywall(1:nspecies) = Yk_bc(2,1,1:nspecies)
+          Xwall(1:nspecies) = Xk_bc(2,1,1:nspecies)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -392,8 +392,8 @@ contains
        elseif(bc_hi(2) .eq. 2) then ! no slip thermal
 
           ! call setcwall(Xwall,Ywall,idir)
-          Ywall(1:nspecies) = Yk_hi(1:nspecies,2)
-          Xwall(1:nspecies) = Xk_hi(1:nspecies,2)
+          Ywall(1:nspecies) = Yk_bc(2,2,1:nspecies)
+          Xwall(1:nspecies) = Xk_bc(2,2,1:nspecies)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -492,8 +492,8 @@ contains
        elseif(bc_lo(3) .eq. 2) then ! no slip thermal
 
           ! call setcwall(Xwall,Ywall,idir)
-          Ywall(1:nspecies) = Yk_lo(1:nspecies,3)
-          Xwall(1:nspecies) = Xk_lo(1:nspecies,3)
+          Ywall(1:nspecies) = Yk_bc(3,1,1:nspecies)
+          Xwall(1:nspecies) = Xk_bc(3,1,1:nspecies)
 
           do k = 1,ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -593,8 +593,8 @@ contains
        elseif(bc_hi(3) .eq. 2) then ! no slip thermal
 
           ! call setcwall(Xwall,Ywall,idir)
-          Ywall(1:nspecies) = Yk_hi(1:nspecies,3)
-          Xwall(1:nspecies) = Xk_hi(1:nspecies,3)
+          Ywall(1:nspecies) = Yk_bc(3,2,1:nspecies)
+          Xwall(1:nspecies) = Xk_bc(3,2,1:nspecies)
 
           do k = 1,ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -659,47 +659,49 @@ contains
   subroutine setup_cwall() bind(C,name="setup_cwall")
 
     integer :: ns, d
+    integer :: index, nsx, dx
 
     real(amrex_real) :: sumxt, sumyt, sumxb, sumyb
 
+    ! Compute Xk or Yk at the wall, depending on which is defined
     do d=1,AMREX_SPACEDIM
        
-       if(bc_lo(d).eq.1 .or. bc_lo(d).eq.3 .or. bc_lo(d).eq.4)then
+       if(bc_lo(d).eq.2)then
 
           sumxb = 0
           sumyb = 0
 
           do ns=1,nspecies
 
-             sumxb = sumxb + Xk_lo(ns,d)
-             sumyb = sumyb + Yk_lo(ns,d)
+             sumxb = sumxb + Xk_bc(ns,1,d)
+             sumyb = sumyb + Yk_bc(ns,1,d)
 
           enddo
 
           if(abs(sumxb-1).lt.1.d-10)then
-             call get_massfrac(Xk_lo(1:nspecies,d),Yk_lo(1:nspecies,d))
+             call get_massfrac(Xk_bc(d,1,1:nspecies),Yk_bc(d,1,1:nspecies))
           elseif(abs(sumyb-1).lt.1d-10)then
-             call get_molfrac(Yk_lo(1:nspecies,d),Xk_lo(1:nspecies,d))
+             call get_molfrac(Yk_bc(d,1,1:nspecies),Xk_bc(d,1,1:nspecies))
           endif
 
        endif
        
-       if(bc_hi(d).eq.1 .or. bc_hi(d).eq.3 .or. bc_hi(d).eq.4)then
+       if(bc_hi(d).eq.2)then
 
           sumxt = 0
           sumyt = 0
 
           do ns=1,nspecies
 
-             sumxt = sumxt + Xk_hi(ns,d)
-             sumyt = sumyt + Yk_hi(ns,d)
-
+             sumxt = sumxt + Xk_bc(ns,2,d)
+             sumyt = sumyt + Yk_bc(ns,2,d)
+ 
           enddo
 
           if(abs(sumxt-1).lt.1.d-10)then
-             call get_massfrac(Xk_hi(1:nspecies,d),Yk_hi(1:nspecies,d))
+             call get_massfrac(Xk_bc(d,2,1:nspecies),Yk_bc(d,2,1:nspecies))
           elseif(abs(sumyt-1).lt.1d-10)then
-             call get_molfrac(Yk_hi(1:nspecies,d),Xk_hi(1:nspecies,d))
+             call get_molfrac(Yk_bc(d,2,1:nspecies),Xk_bc(d,2,1:nspecies))
           endif
 
        endif

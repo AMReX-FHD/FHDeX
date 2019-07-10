@@ -8,16 +8,12 @@ module compressible_namelist_module
   integer, parameter :: MAX_SPECIES = 10
   integer, parameter :: LOHI = 2
 
-  double precision,   save :: Yk_lo(MAX_SPECIES,AMREX_SPACEDIM)
-  double precision,   save :: Yk_hi(MAX_SPECIES,AMREX_SPACEDIM)
-  double precision,   save :: Xk_lo(MAX_SPECIES,AMREX_SPACEDIM)
-  double precision,   save :: Xk_hi(MAX_SPECIES,AMREX_SPACEDIM)
+  double precision,   save :: Yk_bc(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
+  double precision,   save :: Xk_bc(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
   
   ! Multispecies parameters
-  namelist /compressible/ Yk_lo       ! lo mass fraction wall boundary value
-  namelist /compressible/ Yk_hi       ! hi mass fraction wall boundary value
-  namelist /compressible/ Xk_lo       ! lo mole fraction wall boundary value
-  namelist /compressible/ Xk_hi       ! hi mole fraction wall boundary value
+  namelist /compressible/ Yk_bc       ! mass fraction wall boundary value
+  namelist /compressible/ Xk_bc       ! mole fraction wall boundary value
 
 contains
 
@@ -28,10 +24,8 @@ contains
     character(kind=c_char), intent(in   ) :: inputs_file(length)
 
     ! default values
-    Yk_lo(:,:) = 0.d0
-    Yk_hi(:,:) = 0.d0
-    Xk_lo(:,:) = 0.d0
-    Xk_hi(:,:) = 0.d0
+    Yk_bc(:,:,:) = 0.d0
+    Xk_bc(:,:,:) = 0.d0
 
     ! read in compressible namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -41,17 +35,13 @@ contains
   end subroutine read_compressible_namelist
 
   ! copy contents of compressible_params_module to C++ compressible namespace
-  subroutine initialize_compressible_namespace( Yk_lo_in, Yk_hi_in, &
-                                                Xk_lo_in, Xk_hi_in) &
+  subroutine initialize_compressible_namespace( Yk_bc_in, Xk_bc_in) &
                                                bind(C, name="initialize_compressible_namespace")
 
-    double precision,       intent(inout) :: Yk_lo_in(MAX_SPECIES,AMREX_SPACEDIM), Yk_hi_in(MAX_SPECIES,AMREX_SPACEDIM) 
-    double precision,       intent(inout) :: Xk_lo_in(MAX_SPECIES,AMREX_SPACEDIM), Xk_hi_in(MAX_SPECIES,AMREX_SPACEDIM)
+    double precision,       intent(inout) :: Yk_bc_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES), Xk_bc_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 
-    Yk_lo_in = Yk_lo
-    Yk_hi_in = Yk_hi
-    Xk_lo_in = Xk_lo
-    Xk_hi_in = Xk_hi
+    Yk_bc_in = Yk_bc
+    Xk_bc_in = Xk_bc
 
   end subroutine initialize_compressible_namespace
 
