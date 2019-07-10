@@ -228,7 +228,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         amrex::Print() << "Solving AD Eqn" << std::endl;
 
-        amr_core_adv.EvolveChem(umac, iface, LevelSet, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords);
+        amr_core_adv.EvolveChem(umac, iface, LevelSet, ibpc_lev, nstep,dt/2, time, diffcoeff, FaceCoords);
 
          amr_core_adv.con_new_copy(ibpc_lev, Dc_x, 1);
          amr_core_adv.con_new_copy(ibpc_lev, Dc_y, 2);
@@ -289,21 +289,21 @@ void advance(AmrCoreAdv & amr_core_adv,
 #if (AMREX_SPACEDIM == 2)
     amrex::Print() << "1st element" << std::endl;
 
-    DCs_spread[0].define(badpx, dmdpx, 1, 0);
+    DCs_spread[0].define(badpx, dmdpx, 1, 1);
     amrex::Print() << "2nd element" << std::endl;
-    DCs_spread[1].define(badpy, dmdpy, 1, 0);
+    DCs_spread[1].define(badpy, dmdpy, 1, 1);
     amrex::Print() << "3rd element" << std::endl;
 
 #elif (AMREX_SPACEDIM == 3)
     amrex::Print() << "1st element" << std::endl;
-    DCs_spread[0].define(badpx, dmdpx, 1, 0);
+    DCs_spread[0].define(badpx, dmdpx, 1, 1);
     amrex::Print() << "2nd element" << std::endl;
-    DCs_spread[1].define(badpy, dmdpy, 1, 0);
+    DCs_spread[1].define(badpy, dmdpy, 1, 1);
     amrex::Print() << "3rd element" << std::endl;
 
     std::cout<< " Box array " << badpz << std::endl;
     std::cout<< " Distribution Map " << dmdpz << std::endl;
-    DCs_spread[2].define(badpz, dmdpz, 1, 0);
+    DCs_spread[2].define(badpz, dmdpz, 1, 1);
     amrex::Print() << "After defining multifabs" << std::endl;
 
 #endif
@@ -314,9 +314,9 @@ void advance(AmrCoreAdv & amr_core_adv,
     DCs_spread[2].setVal(0.);
     amrex::Print() << "Copying gradient into array of multifabs" << std::endl;
 
-    DCs_spread[0].copy(*Dc_x[ibpc_lev],0,0,1,0,0);
-    DCs_spread[1].copy(*Dc_y[ibpc_lev],0,0,1,0,0);
-    DCs_spread[2].copy(*Dc_z[ibpc_lev],0,0,1,0,0);
+    DCs_spread[0].copy(*Dc_x[ibpc_lev],0,0,1,0,1);
+    DCs_spread[1].copy(*Dc_y[ibpc_lev],0,0,1,0,1);
+    DCs_spread[2].copy(*Dc_z[ibpc_lev],0,0,1,0,1);
 
 
     //___________________________________________________________________________
@@ -553,7 +553,9 @@ void advance(AmrCoreAdv & amr_core_adv,
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], force_0[d],          0, 0, 1, 1);
+        std::cout<<" Check Add "<<std::endl;
         MultiFab::Add(gmres_rhs_u[d], DCs_spread[d],       0, 0, 1, 1);
+        std::cout<<" Check Add after "<<std::endl;
 
         // fill boundary before adding pressure part to prevent it from
         // overwriding any pressure gradients in the ghost cells
@@ -663,14 +665,14 @@ void advance(AmrCoreAdv & amr_core_adv,
 
 #elif (AMREX_SPACEDIM == 3)
     amrex::Print() << "1st element" << std::endl;
-    DCs_spread0[0].define(badpx, dmdpx, 1, 0);
+    DCs_spread0[0].define(badpx, dmdpx, 1, 1);
     amrex::Print() << "2nd element" << std::endl;
-    DCs_spread0[1].define(badpy, dmdpy, 1, 0);
+    DCs_spread0[1].define(badpy, dmdpy, 1, 1);
     amrex::Print() << "3rd element" << std::endl;
 
     std::cout<< " Box array " << badpz << std::endl;
     std::cout<< " Distribution Map " << dmdpz << std::endl;
-    DCs_spread0[2].define(badpz, dmdpz, 1, 0);
+    DCs_spread0[2].define(badpz, dmdpz, 1, 1);
     amrex::Print() << "After defining multifabs" << std::endl;
 
 #endif
@@ -681,9 +683,9 @@ void advance(AmrCoreAdv & amr_core_adv,
     DCs_spread0[2].setVal(0.);
     amrex::Print() << "Copying gradient into array of multifabs" << std::endl;
 
-    DCs_spread0[0].copy(*Dc_x[ibpc_lev],0,0,1,0,0);
-    DCs_spread0[1].copy(*Dc_y[ibpc_lev],0,0,1,0,0);
-    DCs_spread0[2].copy(*Dc_z[ibpc_lev],0,0,1,0,0);
+    DCs_spread0[0].copy(*Dc_x[ibpc_lev],0,0,1,0,1);
+    DCs_spread0[1].copy(*Dc_y[ibpc_lev],0,0,1,0,1);
+    DCs_spread0[2].copy(*Dc_z[ibpc_lev],0,0,1,0,1);
 
 
      for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -803,6 +805,12 @@ void advance(AmrCoreAdv & amr_core_adv,
         gmres_rhs_u[d].mult(dtinv, 1);
         int cng=DCs_spread0[d].nGrow();
         DCs_spread0[d].mult(scaling_factor, cng);
+
+        MultiFab::Add(force_1[d], force_0[d], 0, 0, 1, 1);
+        force_1[d].mult(0.5,1);
+        MultiFab::Add(DCs_spread0[d], DCs_spread[d], 0, 0, 1, 1);
+        DCs_spread0[d].mult(0.5,1);
+
 
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
