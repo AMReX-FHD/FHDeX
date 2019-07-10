@@ -50,6 +50,10 @@ void main_driver(const char* argv)
 
     //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
     get_hc_gas();
+
+    //compute wall concentrations if BCs call for it
+    if (algorithm_type == 2) // if multispecies
+      setup_cwall();
   
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default

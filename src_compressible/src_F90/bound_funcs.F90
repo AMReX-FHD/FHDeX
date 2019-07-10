@@ -14,17 +14,17 @@ module bound_module
 
 contains
 
-  subroutine set_bc(lo,hi, cons, prim, eta, zeta, kappa, chi, Dij) bind(C,name="set_bc")
+  subroutine set_bc(lo,hi, cons, prim) bind(C,name="set_bc")
 
     integer         , intent(in   ) :: lo(3),hi(3)
 
     real(amrex_real), intent(inout) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
     real(amrex_real), intent(inout) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-    real(amrex_real), intent(inout) :: eta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
-    real(amrex_real), intent(inout) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
-    real(amrex_real), intent(inout) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
-    real(amrex_real), intent(inout) :: chi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
-    real(amrex_real), intent(inout) :: Dij(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
+    ! real(amrex_real), intent(inout) :: eta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
+    ! real(amrex_real), intent(inout) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
+    ! real(amrex_real), intent(inout) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
+    ! real(amrex_real), intent(inout) :: chi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
+    ! real(amrex_real), intent(inout) :: Dij(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
 
     integer :: i,j,k,l,idir,bcell
 
@@ -44,9 +44,9 @@ contains
 
                    !print *, "Setting xLo slip: "
 
-                   eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
-                   zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
-                   kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
+                   ! eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
+                   ! zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
+                   ! kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
                    cons(lo(1)-i,j,k,1) = cons(lo(1)-1+i,j,k,1)
                    cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2) 
@@ -62,8 +62,8 @@ contains
                    prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
                    
                    if(algorithm_type.eq.2) then
-                      chi(lo(1)-i,j,k,:) = chi(lo(1)-1+i,j,k,:)
-                      Dij(lo(1)-i,j,k,:,:) = Dij(lo(1)-1+i,j,k,:,:)
+                      ! chi(lo(1)-i,j,k,:) = chi(lo(1)-1+i,j,k,:)
+                      ! Dij(lo(1)-i,j,k,:,:) = Dij(lo(1)-1+i,j,k,:,:)
 
                       cons(lo(1)-i,j,k,5:nvars) = cons(lo(1)-1+i,j,k,5:nvars)
                       prim(lo(1)-i,j,k,6:nprimvars) = prim(lo(1)-1+i,j,k,6:nprimvars)
@@ -77,24 +77,25 @@ contains
 
           !print *, "Setting xLo thermal: "
 
-          idir = 0 
           ! call setcwall(Xwall,Ywall,idir)
+          Ywall(1:nspecies) = Yk_lo(1:nspecies,1)
+          Xwall(1:nspecies) = Xk_lo(1:nspecies,1)
 
-          ! print*, Xk_lo(1,1:nspecies)
-          ! print*, Xk_lo(2,1:nspecies)
-          ! print*, Xk_lo(3,1:nspecies)
-          ! print*, Xk_hi(4,1:nspecies)
-          ! print*, Xk_hi(5,1:nspecies)
-          ! print*, Xk_hi(6,1:nspecies)
-          ! stop
+          print*, Xk_lo(1:nspecies,1)
+          print*, Xk_lo(1:nspecies,2)
+          print*, Xk_lo(1:nspecies,3)
+          print*, Xk_hi(1:nspecies,1)
+          print*, Xk_hi(1:nspecies,2)
+          print*, Xk_hi(1:nspecies,3)
+          stop
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = 1,ngc(1)
 
-                   eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
-                   zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
-                   kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
+                   ! eta(lo(1)-i,j,k) = eta(lo(1)-1+i,j,k)
+                   ! zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
+                   ! kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
                    prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2) ! + 2*vel_lo(1)
                    prim(lo(1)-i,j,k,3) = -prim(lo(1)-1+i,j,k,3) 
@@ -103,8 +104,8 @@ contains
                    prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
 
                    if(algorithm_type.eq.2) then
-                      Dij(lo(1)-i,j,k,:,:) = Dij(lo(1)-1+i,j,k,:,:)
-                      chi(lo(1)-i,j,k,:) = chi(lo(1)-1+i,j,k,:)
+                      ! Dij(lo(1)-i,j,k,:,:) = Dij(lo(1)-1+i,j,k,:,:)
+                      ! chi(lo(1)-i,j,k,:) = chi(lo(1)-1+i,j,k,:)
 
                       do l = 1, nspecies
                          prim(lo(1)-i,j,k,6+l)          = 2.d0*Ywall(l) - prim(lo(1)-1+i,j,k,6+l)
@@ -154,9 +155,9 @@ contains
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = 1, ngc(1)
 
-                   eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
-                   zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
-                   kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)    
+                   ! eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
+                   ! zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
+                   ! kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k)    
 
                    cons(hi(1)+i,j,k,1) = cons(hi(1)+1-i,j,k,1)
                    cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2) 
@@ -172,8 +173,8 @@ contains
                    prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
 
                    if(algorithm_type.eq.2) then
-                      chi(hi(1)+i,j,k,:) = chi(hi(1)+1-i,j,k,:)         
-                      Dij(hi(1)+i,j,k,:,:) = Dij(hi(1)+1-i,j,k,:,:)  
+                      ! chi(hi(1)+i,j,k,:) = chi(hi(1)+1-i,j,k,:)         
+                      ! Dij(hi(1)+i,j,k,:,:) = Dij(hi(1)+1-i,j,k,:,:)  
                       
                       cons(hi(1)+i,j,k,5:nvars) = cons(hi(1)+1-i,j,k,5:nvars)
                       prim(hi(1)+i,j,k,6:nprimvars) = prim(hi(1)+1-i,j,k,6:nprimvars)
@@ -185,16 +186,17 @@ contains
 
        elseif(bc_hi(1) .eq. 2) then ! no slip thermal
 
-          idir = 1
           ! call setcwall(Xwall,Ywall,idir)
+          Ywall(1:nspecies) = Yk_hi(1:nspecies,1)
+          Xwall(1:nspecies) = Xk_hi(1:nspecies,1)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = 1, ngc(1)
 
-                   eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
-                   zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
-                   kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k) 
+                   ! eta(hi(1)+i,j,k) = eta(hi(1)+1-i,j,k)
+                   ! zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
+                   ! kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k) 
 
                    prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2) ! + 2*vel_hi(1)
                    prim(hi(1)+i,j,k,3) = -prim(hi(1)+1-i,j,k,3) 
@@ -203,8 +205,8 @@ contains
                    prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
 
                    if(algorithm_type.eq.2) then
-                      Dij(hi(1)+i,j,k,:,:) = Dij(hi(1)+1-i,j,k,:,:)
-                      chi(hi(1)+i,j,k,:) = chi(hi(1)+1-i,j,k,:)
+                      ! Dij(hi(1)+i,j,k,:,:) = Dij(hi(1)+1-i,j,k,:,:)
+                      ! chi(hi(1)+i,j,k,:) = chi(hi(1)+1-i,j,k,:)
 
                       do l = 1, nspecies
                          prim(hi(1)+i,j,k,6+l)          = 2.d0*Ywall(l) - prim(hi(1)+1-i,j,k,6+l)
@@ -257,9 +259,9 @@ contains
              do j = 1,ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,lo(2)-j,k) = eta(i,lo(2)-1+j,k)
-                   zeta(i,lo(2)-j,k) = zeta(i,lo(2)-1+j,k)
-                   kappa(i,lo(2)-j,k) = kappa(i,lo(2)-1+j,k)           
+                   ! eta(i,lo(2)-j,k) = eta(i,lo(2)-1+j,k)
+                   ! zeta(i,lo(2)-j,k) = zeta(i,lo(2)-1+j,k)
+                   ! kappa(i,lo(2)-j,k) = kappa(i,lo(2)-1+j,k)           
 
                    cons(i,lo(2)-j,k,1) = cons(i,lo(2)-1+j,k,1)
                    cons(i,lo(2)-j,k,2) = -cons(i,lo(2)-1+j,k,2) 
@@ -275,8 +277,8 @@ contains
                    prim(i,lo(2)-j,k,6) = prim(i,lo(2)-1+j,k,6)
 
                    if(algorithm_type.eq.2) then
-                      chi(i,lo(2)-j,k,:) = chi(i,lo(2)-1+j,k,:)
-                      Dij(i,lo(2)-j,k,:,:) = Dij(i,lo(2)-1+j,k,:,:)  
+                      ! chi(i,lo(2)-j,k,:) = chi(i,lo(2)-1+j,k,:)
+                      ! Dij(i,lo(2)-j,k,:,:) = Dij(i,lo(2)-1+j,k,:,:)  
 
                       cons(i,lo(2)-j,k,5:nvars) = cons(i,lo(2)-1+j,k,5:nvars)
                       prim(i,lo(2)-j,k,6:nprimvars) = prim(i,lo(2)-1+j,k,6:nprimvars)
@@ -288,16 +290,17 @@ contains
 
        elseif(bc_lo(2) .eq. 2) then ! no slip thermal
 
-          idir = 0
           ! call setcwall(Xwall,Ywall,idir)
+          Ywall(1:nspecies) = Yk_lo(1:nspecies,2)
+          Xwall(1:nspecies) = Xk_lo(1:nspecies,2)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,lo(2)-j,k) = eta(i,lo(2)-1+j,k)
-                   zeta(i,lo(2)-j,k) = zeta(i,lo(2)-1+j,k)
-                   kappa(i,lo(2)-j,k) = kappa(i,lo(2)-1+j,k)
+                   ! eta(i,lo(2)-j,k) = eta(i,lo(2)-1+j,k)
+                   ! zeta(i,lo(2)-j,k) = zeta(i,lo(2)-1+j,k)
+                   ! kappa(i,lo(2)-j,k) = kappa(i,lo(2)-1+j,k)
 
                    prim(i,lo(2)-j,k,2) = -prim(i,lo(2)-1+j,k,2)
                    prim(i,lo(2)-j,k,3) = -prim(i,lo(2)-1+j,k,3) ! + 2*vel_lo(2) 
@@ -306,8 +309,8 @@ contains
                    prim(i,lo(2)-j,k,6) = prim(i,lo(2)-1+j,k,6)
 
                    if(algorithm_type.eq.2) then
-                      Dij(i,lo(2)-j,k,:,:) = Dij(i,lo(2)-1+j,k,:,:)
-                      chi(i,lo(2)-j,k,:) = chi(i,lo(2)-1+j,k,:)
+                      ! Dij(i,lo(2)-j,k,:,:) = Dij(i,lo(2)-1+j,k,:,:)
+                      ! chi(i,lo(2)-j,k,:) = chi(i,lo(2)-1+j,k,:)
 
                       do l = 1, nspecies
                          prim(i,lo(2)-j,k,6+l)          = 2.d0*Ywall(l) - prim(i,lo(2)-1+j,k,6+l)
@@ -357,9 +360,9 @@ contains
              do j = 1,ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,hi(2)+j,k) = eta(i,hi(2)+1-j,k)
-                   zeta(i,hi(2)+j,k) = zeta(i,hi(2)+1-j,k)
-                   kappa(i,hi(2)+j,k) = kappa(i,hi(2)+1-j,k)
+                   ! eta(i,hi(2)+j,k) = eta(i,hi(2)+1-j,k)
+                   ! zeta(i,hi(2)+j,k) = zeta(i,hi(2)+1-j,k)
+                   ! kappa(i,hi(2)+j,k) = kappa(i,hi(2)+1-j,k)
 
                    cons(i,hi(2)+j,k,1) = cons(i,hi(2)+1-j,k,1)
                    cons(i,hi(2)+j,k,2) = -cons(i,hi(2)+1-j,k,2) 
@@ -375,8 +378,8 @@ contains
                    prim(i,hi(2)+j,k,6) = prim(i,hi(2)+1-j,k,6)
 
                    if(algorithm_type.eq.2) then
-                      chi(i,hi(2)+j,k,:) = chi(i,hi(2)+1-j,k,:)
-                      Dij(i,hi(2)+j,k,:,:) = Dij(i,hi(2)+1-j,k,:,:)
+                      ! chi(i,hi(2)+j,k,:) = chi(i,hi(2)+1-j,k,:)
+                      ! Dij(i,hi(2)+j,k,:,:) = Dij(i,hi(2)+1-j,k,:,:)
 
                       cons(i,hi(2)+j,k,5:nvars) = cons(i,hi(2)+1-j,k,5:nvars)
                       prim(i,hi(2)+j,k,6:nprimvars) = prim(i,hi(2)+1-j,k,6:nprimvars)
@@ -388,16 +391,17 @@ contains
 
        elseif(bc_hi(2) .eq. 2) then ! no slip thermal
 
-          idir = 1
           ! call setcwall(Xwall,Ywall,idir)
+          Ywall(1:nspecies) = Yk_hi(1:nspecies,2)
+          Xwall(1:nspecies) = Xk_hi(1:nspecies,2)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,hi(2)+j,k) = eta(i,hi(2)+1-j,k)              
-                   zeta(i,hi(2)+j,k) = zeta(i,hi(2)+1-j,k)
-                   kappa(i,hi(2)+j,k) = kappa(i,hi(2)+1-j,k)
+                   ! eta(i,hi(2)+j,k) = eta(i,hi(2)+1-j,k)              
+                   ! zeta(i,hi(2)+j,k) = zeta(i,hi(2)+1-j,k)
+                   ! kappa(i,hi(2)+j,k) = kappa(i,hi(2)+1-j,k)
 
                    prim(i,hi(2)+j,k,2) = -prim(i,hi(2)+1-j,k,2)
                    prim(i,hi(2)+j,k,3) = -prim(i,hi(2)+1-j,k,3) ! + 2*vel_hi(2)
@@ -405,8 +409,8 @@ contains
                    prim(i,hi(2)+j,k,5) = -prim(i,hi(2)+1-j,k,5) + 2*t_hi(2)
 
                    if(algorithm_type.eq.2) then
-                      Dij(i,hi(2)+j,k,:,:) = Dij(i,hi(2)+1-j,k,:,:)
-                      chi(i,hi(2)+j,k,:) = chi(i,hi(2)+1-j,k,:)
+                      ! Dij(i,hi(2)+j,k,:,:) = Dij(i,hi(2)+1-j,k,:,:)
+                      ! chi(i,hi(2)+j,k,:) = chi(i,hi(2)+1-j,k,:)
 
                       do l = 1, nspecies
                          prim(i,hi(2)+j,k,6+l)          = 2.d0*Ywall(l) - prim(i,hi(2)+1-j,k,6+l)
@@ -456,9 +460,9 @@ contains
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,j,lo(3)-k) = eta(i,j,lo(3)-1+k)
-                   zeta(i,j,lo(3)-k) = zeta(i,j,lo(3)-1+k)
-                   kappa(i,j,lo(3)-k) = kappa(i,j,lo(3)-1+k)  
+                   ! eta(i,j,lo(3)-k) = eta(i,j,lo(3)-1+k)
+                   ! zeta(i,j,lo(3)-k) = zeta(i,j,lo(3)-1+k)
+                   ! kappa(i,j,lo(3)-k) = kappa(i,j,lo(3)-1+k)  
 
                    cons(i,j,lo(3)-k,1) = cons(i,j,lo(3)-1+k,1)
                    cons(i,j,lo(3)-k,2) = -cons(i,j,lo(3)-1+k,2) 
@@ -474,8 +478,8 @@ contains
                    prim(i,j,lo(3)-k,6) = prim(i,j,lo(3)-1+k,6)
 
                    if(algorithm_type.eq.2) then
-                      chi(i,j,lo(3)-k,:) = chi(i,j,lo(3)-1+k,:)
-                      Dij(i,j,lo(3)-k,:,:) = Dij(i,j,lo(3)-1+k,:,:)            
+                      ! chi(i,j,lo(3)-k,:) = chi(i,j,lo(3)-1+k,:)
+                      ! Dij(i,j,lo(3)-k,:,:) = Dij(i,j,lo(3)-1+k,:,:)            
 
                       cons(i,j,lo(3)-k,5:nvars) = cons(i,j,lo(3)-1+k,5:nvars)
                       prim(i,j,lo(3)-k,6:nprimvars) = prim(i,j,lo(3)-1+k,6:nprimvars)
@@ -487,16 +491,17 @@ contains
 
        elseif(bc_lo(3) .eq. 2) then ! no slip thermal
 
-          idir = 0
           ! call setcwall(Xwall,Ywall,idir)
+          Ywall(1:nspecies) = Yk_lo(1:nspecies,3)
+          Xwall(1:nspecies) = Xk_lo(1:nspecies,3)
 
           do k = 1,ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,j,lo(3)-k) = eta(i,j,lo(3)-1+k)
-                   zeta(i,j,lo(3)-k) = zeta(i,j,lo(3)-1+k)
-                   kappa(i,j,lo(3)-k) = kappa(i,j,lo(3)-1+k)
+                   ! eta(i,j,lo(3)-k) = eta(i,j,lo(3)-1+k)
+                   ! zeta(i,j,lo(3)-k) = zeta(i,j,lo(3)-1+k)
+                   ! kappa(i,j,lo(3)-k) = kappa(i,j,lo(3)-1+k)
 
                    prim(i,j,lo(3)-k,2) = -prim(i,j,lo(3)-1+k,2) 
                    prim(i,j,lo(3)-k,3) = -prim(i,j,lo(3)-1+k,3) 
@@ -505,8 +510,8 @@ contains
                    prim(i,j,lo(3)-k,6) = prim(i,j,lo(3)-1+k,6)
 
                    if(algorithm_type.eq.2) then
-                      Dij(i,j,lo(3)-k,:,:) = Dij(i,j,lo(3)-1+k,:,:)
-                      chi(i,j,lo(3)-k,:) = chi(i,j,lo(3)-1+k,:)
+                      ! Dij(i,j,lo(3)-k,:,:) = Dij(i,j,lo(3)-1+k,:,:)
+                      ! chi(i,j,lo(3)-k,:) = chi(i,j,lo(3)-1+k,:)
 
                       do l = 1, nspecies
                          prim(i,j,lo(3)-k,6+l)          = 2.d0*Ywall(l) - prim(i,j,lo(3)-1+k,6+l)
@@ -556,9 +561,9 @@ contains
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,j,hi(3)+k) = eta(i,j,hi(3)+1-k)           
-                   zeta(i,j,hi(3)+k) = zeta(i,j,hi(3)+1-k)            
-                   kappa(i,j,hi(3)+k) = kappa(i,j,hi(3)+1-k)           
+                   ! eta(i,j,hi(3)+k) = eta(i,j,hi(3)+1-k)           
+                   ! zeta(i,j,hi(3)+k) = zeta(i,j,hi(3)+1-k)            
+                   ! kappa(i,j,hi(3)+k) = kappa(i,j,hi(3)+1-k)           
 
                    cons(i,j,hi(3)+k,1) = cons(i,j,hi(3)+1-k,1)
                    cons(i,j,hi(3)+k,2) = -cons(i,j,hi(3)+1-k,2) 
@@ -574,8 +579,8 @@ contains
                    prim(i,j,hi(3)+k,6) = prim(i,j,hi(3)+1-k,6)
 
                    if(algorithm_type.eq.2) then
-                      chi(i,j,hi(3)+k,:) = chi(i,j,hi(3)+1-k,:)           
-                      Dij(i,j,hi(3)+k,:,:) = Dij(i,j,hi(3)+1-k,:,:)           
+                      ! chi(i,j,hi(3)+k,:) = chi(i,j,hi(3)+1-k,:)           
+                      ! Dij(i,j,hi(3)+k,:,:) = Dij(i,j,hi(3)+1-k,:,:)           
 
                       cons(i,j,hi(3)+k,5:nvars) = cons(i,j,hi(3)+1-k,5:nvars)
                       prim(i,j,hi(3)+k,6:nprimvars) = prim(i,j,hi(3)+1-k,6:nprimvars)
@@ -587,16 +592,17 @@ contains
 
        elseif(bc_hi(3) .eq. 2) then ! no slip thermal
 
-          idir = 1
           ! call setcwall(Xwall,Ywall,idir)
+          Ywall(1:nspecies) = Yk_hi(1:nspecies,3)
+          Xwall(1:nspecies) = Xk_hi(1:nspecies,3)
 
           do k = 1,ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                   eta(i,j,hi(3)+k) = eta(i,j,hi(3)+1-k)
-                   zeta(i,j,hi(3)+k) = zeta(i,j,hi(3)+1-k)
-                   kappa(i,j,hi(3)+k) = kappa(i,j,hi(3)+1-k)
+                   ! eta(i,j,hi(3)+k) = eta(i,j,hi(3)+1-k)
+                   ! zeta(i,j,hi(3)+k) = zeta(i,j,hi(3)+1-k)
+                   ! kappa(i,j,hi(3)+k) = kappa(i,j,hi(3)+1-k)
 
                    prim(i,j,hi(3)+k,1) = prim(i,j,hi(3)+1-k,1)
                    prim(i,j,hi(3)+k,2) = -prim(i,j,hi(3)+1-k,2) 
@@ -605,8 +611,8 @@ contains
                    prim(i,j,hi(3)+k,5) = -prim(i,j,hi(3)+1-k,5) + 2*t_hi(3)
 
                    if(algorithm_type.eq.2) then
-                      Dij(i,j,hi(3)+k,:,:) = Dij(i,j,hi(3)+1-k,:,:)
-                      chi(i,j,hi(3)+k,:) = chi(i,j,hi(3)+1-k,:)
+                      ! Dij(i,j,hi(3)+k,:,:) = Dij(i,j,hi(3)+1-k,:,:)
+                      ! chi(i,j,hi(3)+k,:) = chi(i,j,hi(3)+1-k,:)
 
                       do l = 1, nspecies
                          prim(i,j,hi(3)+k,6+l)          = 2.d0*Ywall(l) - prim(i,j,hi(3)+1-k,6+l)
@@ -649,6 +655,58 @@ contains
     endif
 
   end subroutine set_bc
+
+  subroutine setup_cwall() bind(C,name="setup_cwall")
+
+    integer :: ns, d
+
+    real(amrex_real) :: sumxt, sumyt, sumxb, sumyb
+
+    do d=1,AMREX_SPACEDIM
+       
+       if(bc_lo(d).eq.1 .or. bc_lo(d).eq.3 .or. bc_lo(d).eq.4)then
+
+          sumxb = 0
+          sumyb = 0
+
+          do ns=1,nspecies
+
+             sumxb = sumxb + Xk_lo(ns,d)
+             sumyb = sumyb + Yk_lo(ns,d)
+
+          enddo
+
+          if(abs(sumxb-1).lt.1.d-10)then
+             call get_massfrac(Xk_lo(1:nspecies,d),Yk_lo(1:nspecies,d))
+          elseif(abs(sumyb-1).lt.1d-10)then
+             call get_molfrac(Yk_lo(1:nspecies,d),Xk_lo(1:nspecies,d))
+          endif
+
+       endif
+       
+       if(bc_hi(d).eq.1 .or. bc_hi(d).eq.3 .or. bc_hi(d).eq.4)then
+
+          sumxt = 0
+          sumyt = 0
+
+          do ns=1,nspecies
+
+             sumxt = sumxt + Xk_hi(ns,d)
+             sumyt = sumyt + Yk_hi(ns,d)
+
+          enddo
+
+          if(abs(sumxt-1).lt.1.d-10)then
+             call get_massfrac(Xk_hi(1:nspecies,d),Yk_hi(1:nspecies,d))
+          elseif(abs(sumyt-1).lt.1d-10)then
+             call get_molfrac(Yk_hi(1:nspecies,d),Xk_hi(1:nspecies,d))
+          endif
+
+       endif
+
+    enddo
+
+  end subroutine setup_cwall
 
 end module bound_module
 

@@ -5,7 +5,6 @@
   prob_hi(1:3) = 5.12e-4 5.12e-4 5.12e-4 ! physical hi coordinate
   prob_hi(1:3) = 2.56e-4 2.56e-4 2.56e-4 ! physical hi coordinate
 
-
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
   ngc = 2 2 2
@@ -55,7 +54,7 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  bc_lo(1:3) = -1 -1 -1
+  bc_lo(1:3) = 1 -1 -1
   bc_hi(1:3) = -1 -1 -1
 
   membrane_cell = -1
@@ -88,16 +87,13 @@
 
 &compressible
 
-  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to negative
-  ! 
+  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
+  ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
 
-  Yk_lo = -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
-  Yk_hi = -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+  Yk_lo = 0 0 0 0 0 0 0 0 0 0 0 0
+  Yk_hi = 0 0 0 0 0 0 0 0 0 0 0 0
 
-  Xk_lo = 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
-  Xk_hi = 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
-
-  Xk_lo = 0.1 0.2 0.3 0.2 0.3 0.4 0.3 0.4 0.1 0.4 0.1 0.2
-  Xk_hi = 0.2 0.3 0.4 0.3 0.4 0.1 0.4 0.1 0.2 0.1 0.2 0.3
+  Xk_lo = 0.1 0.2 0.3 0.4 0.2 0.3 0.4 0.1 0.3 0.4 0.1 0.2
+  Xk_hi = 0.2 0.3 0.4 0.1 0.3 0.4 0.1 0.2 0.4 0.1 0.2 0.3
 
 /

@@ -8,10 +8,10 @@ module compressible_namelist_module
   integer, parameter :: MAX_SPECIES = 10
   integer, parameter :: LOHI = 2
 
-  double precision,   save :: Yk_lo(AMREX_SPACEDIM,MAX_SPECIES)
-  double precision,   save :: Yk_hi(AMREX_SPACEDIM,MAX_SPECIES)
-  double precision,   save :: Xk_lo(AMREX_SPACEDIM,MAX_SPECIES)
-  double precision,   save :: Xk_hi(AMREX_SPACEDIM,MAX_SPECIES)
+  double precision,   save :: Yk_lo(MAX_SPECIES,AMREX_SPACEDIM)
+  double precision,   save :: Yk_hi(MAX_SPECIES,AMREX_SPACEDIM)
+  double precision,   save :: Xk_lo(MAX_SPECIES,AMREX_SPACEDIM)
+  double precision,   save :: Xk_hi(MAX_SPECIES,AMREX_SPACEDIM)
   
   ! Multispecies parameters
   namelist /compressible/ Yk_lo       ! lo mass fraction wall boundary value
@@ -28,15 +28,13 @@ contains
     character(kind=c_char), intent(in   ) :: inputs_file(length)
 
     ! default values
-    Yk_lo(:,:) = -1.d0
-    Yk_hi(:,:) = -1.d0
-    Xk_lo(:,:) = -1.d0
-    Xk_hi(:,:) = -1.d0
+    Yk_lo(:,:) = 0.d0
+    Yk_hi(:,:) = 0.d0
+    Xk_lo(:,:) = 0.d0
+    Xk_hi(:,:) = 0.d0
 
     ! read in compressible namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
-    ! print*, inputs_file
-    ! stop
     read(unit=100, nml=compressible)
     close(unit=100)
 
@@ -47,8 +45,8 @@ contains
                                                 Xk_lo_in, Xk_hi_in) &
                                                bind(C, name="initialize_compressible_namespace")
 
-    double precision,       intent(inout) :: Yk_lo_in(AMREX_SPACEDIM,MAX_SPECIES), Yk_hi_in(AMREX_SPACEDIM,MAX_SPECIES) 
-    double precision,       intent(inout) :: Xk_lo_in(AMREX_SPACEDIM,MAX_SPECIES), Xk_hi_in(AMREX_SPACEDIM,MAX_SPECIES)
+    double precision,       intent(inout) :: Yk_lo_in(MAX_SPECIES,AMREX_SPACEDIM), Yk_hi_in(MAX_SPECIES,AMREX_SPACEDIM) 
+    double precision,       intent(inout) :: Xk_lo_in(MAX_SPECIES,AMREX_SPACEDIM), Xk_hi_in(MAX_SPECIES,AMREX_SPACEDIM)
 
     Yk_lo_in = Yk_lo
     Yk_hi_in = Yk_hi
