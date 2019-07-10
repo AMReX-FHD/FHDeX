@@ -11,8 +11,8 @@ module time_step_module
 
 contains
 
-  subroutine set_inputs(Plot_Skip_out,Number_of_Samples_out,Equil_out,alpha_out,r1_out,r2_out) bind(C,name="set_inputs")
-    integer,    intent(inout)   :: Plot_Skip_out, Number_of_Samples_out,Equil_out
+  subroutine set_inputs(Plot_Skip_out,Number_of_Samples_out,Equil_out,alpha_out,r1_out,r2_out, adaptive_param,reverse_param) bind(C,name="set_inputs")
+    integer,    intent(inout)   :: Plot_Skip_out, Number_of_Samples_out,Equil_out,adaptive_param,reverse_param
     real(amrex_real), intent(inout) :: alpha_out,r1_out,r2_out
 
     Plot_Skip_out=Plot_Skip
@@ -21,6 +21,8 @@ contains
     alpha_out=alpha
     r1_out=r1
     r2_out=r2
+    adaptive_param=adaptive
+    reverse_param=Reverse
   end subroutine set_inputs
 
   subroutine rk2_stage1(lo,hi, phi, phin, rannums, integral, energy, teng, dx, dt,phi_avg) bind(C,name="rk2_stage1")

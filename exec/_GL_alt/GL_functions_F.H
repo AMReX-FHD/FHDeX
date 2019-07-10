@@ -10,7 +10,7 @@ extern "C"
 
 
 
-  void set_inputs(const int* Plot_Skip_out,const int* Number_of_Samples_out, const int* Equil,amrex::Real* alpha,amrex::Real* r1,amrex::Real* r2);
+  void set_inputs(const int* Plot_Skip_out,const int* Number_of_Samples_out, const int* Equil,amrex::Real* alpha,amrex::Real* r1,amrex::Real* r2, const int* adaptive, const int* reverse);
   void rk2_stage1(const int* lo, const int* hi,
 			      amrex::Real* phi,
 			      amrex::Real* phin,

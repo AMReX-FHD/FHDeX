@@ -289,3 +289,91 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         weak_phi=true;
     }
 }
+
+
+
+
+
+void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_phi)
+{ 
+      
+    int sucessful_iter;
+    int sucessful_iter_prev;
+    int Umbrella_Size_Prev;
+    amrex::Real r_temp;
+    amrex::Real umbrella_reset_val;
+
+    Umbrella_Size_Prev=umbrella_size;
+
+    if(sucessful_compare)
+    {
+    sucessful_iter_prev=1;
+    }else
+    {
+    sucessful_iter_prev=0;
+    }   
+    amrex::Print() << "E2-r2*S2 "  << Expec2-r2*MAD2 << "\n";
+    amrex::Print() << "E2+r2*S2 "  << Expec2+r2*MAD2 << "\n";
+    amrex::Print() << "E1-r2*S1 "  << Expec - r2*MAD <<  "\n";
+
+    if(Expec-r2*MAD < Expec2 + r2*MAD2 && Expec2-r2*MAD2 < Expec - r2*MAD)
+    {    
+
+        sucessful_compare=true;
+        sucessful_iter=1;
+        Shift_Flag=0;
+        Umbrella_Adjust(&sucessful_iter,&alpha,&umbrella_size,&sucessful_iter_prev);
+        amrex::Print() << "Overlap occured "  << "\n";
+        if(umbrella_size==1 &&  Umbrella_Size_Prev==1)
+        {
+        //    sucessful_compare=false;
+        //    sucessful_iter=0;
+        //    amrex::Print() << "Next umbrella is too close with weak k, shifting phi0 up "  << "\n";
+        //    Shift_Flag=1;
+        //    r_temp=0.5*r2;
+        //    inc_phi0_Adapt(&Expec,&MAD,&r_temp,&Shift_Flag);
+            weak_phi=true;
+        //    umbrella_reset_val=150.0;
+        //    umbrella_reset(&umbrella_reset_val);
+        //    umbrella_size=0;
+        }
+ 
+
+    }else if (Expec-r2*MAD > Expec2 + r2*MAD2)
+    {   
+        sucessful_compare=false;
+        Shift_Flag=0;
+        sucessful_iter=0;
+        Umbrella_Adjust (&sucessful_iter,&alpha ,&umbrella_size,&sucessful_iter_prev);
+        amrex::Print() << "Overlap did not occur"  << "\n";
+        amrex::Print() << umbrella_size  << "\n";
+        if(umbrella_size==2)
+        {   
+            r_temp=r2;
+            r2=0.5*r2;
+            inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
+            r2=r_temp;  
+            umbrella_reset_val=150.0;
+            umbrella_reset(&umbrella_reset_val);
+            umbrella_size=0;
+        } 
+   }
+   else if (Expec2-r2*MAD2 > Expec - r2*MAD)
+    {
+        sucessful_compare=false;
+        Shift_Flag=1;
+        amrex::Print() << "New Phi_0 resulted in higher average"  << "\n";
+        amrex::Print() << "decreasing Phi_0"  << "\n";
+        r2=-r2;
+        inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
+        r2=-r2;
+    }
+    if(sucessful_iter_prev==1 and sucessful_iter==0 and !First_Loop_Step) 
+    {
+        while_loop_comp=false;
+    }
+    if(sucessful_iter_prev==1 and sucessful_iter==1 and  umbrella_size==1)
+    {
+        weak_phi=true;
+    }
+}

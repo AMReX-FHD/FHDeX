@@ -44,6 +44,8 @@ void main_driver(const char* argv)
     int N_Burn;
     int L;
     int Plot_Skip;
+    int adaptive;
+    int Reverse;
 
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
@@ -57,7 +59,7 @@ void main_driver(const char* argv)
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    set_inputs(&Plot_Skip,&L,&N_Burn,&alpha,&r1,&r2);
+    set_inputs(&Plot_Skip,&L,&N_Burn,&alpha,&r1,&r2,&adaptive,&Reverse);
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -164,50 +166,103 @@ void main_driver(const char* argv)
     bool weak_phi=false;
     int Plot_Num=0;
     int umbrella_number=0;
-
-
-    Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
-               N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
-    inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
-    Make_PltFiles = false;
-
-    while((Expec+r1*MAD) <1)
+    int Window_Number=0;
+    if(adaptive==1 and Reverse==0)
     {
-            Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
-                    N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
-            Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
-            First_Loop_Step=false;
-        if(sucessful_compare and  while_loop_comp and !weak_phi)
-        {
-            while(sucessful_compare and  while_loop_comp and !weak_phi)
-            {
-                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
-                    N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
-                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
-            }
-        }else
-        {
-            while(!sucessful_compare)
-            {
-                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
-                    N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
-                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
-            }
-        }
-        
-            Make_PltFiles = true;
-            Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
-                    N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
-            Shift_Flag=1;
-            inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
-            umbrella_size=0;
-            Make_PltFiles = false;
-            First_Loop_Step=true;
-            while_loop_comp=true;
-            weak_phi=false;
-            sucessful_compare=true;
+        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+        inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+        Make_PltFiles = false;
 
+        while((Expec+r1*MAD) <1)
+        {
+                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+                First_Loop_Step=false;
+            if(sucessful_compare and  while_loop_comp and !weak_phi)
+            {
+                while(sucessful_compare and  while_loop_comp and !weak_phi)
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+                }
+            }else
+            {
+                while(!sucessful_compare)
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+                }
+            }
+            
+                Make_PltFiles = true;
+                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                Shift_Flag=1;
+                inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+                umbrella_size=0;
+                Make_PltFiles = false;
+                First_Loop_Step=true;
+                while_loop_comp=true;
+                weak_phi=false;
+                sucessful_compare=true;
+
+        }
     }
+    if(adaptive==1 and Reverse==1)
+    {
+        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+        inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+        Make_PltFiles = false;
+
+        while((Expec+r1*MAD)>0)
+        {
+                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+                First_Loop_Step=false;
+            if(sucessful_compare and  while_loop_comp and !weak_phi)
+            {
+                while(sucessful_compare and  while_loop_comp and !weak_phi)
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+                }
+            }else
+            {
+                while(!sucessful_compare)
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+                }
+            }
+            
+                Make_PltFiles = true;
+                Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                        N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+                Shift_Flag=1;
+                r1=-r1;
+                inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+                r1=-r1;
+                umbrella_size=0;
+                Make_PltFiles = false;
+                First_Loop_Step=true;
+                while_loop_comp=true;
+                weak_phi=false;
+                sucessful_compare=true;
+        }
+    }
+    if(adaptive==0)
+    {
+        Window_Number=Window_Number+1;
+    }
+
 }
 
 

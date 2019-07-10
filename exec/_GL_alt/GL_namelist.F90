@@ -22,8 +22,9 @@ module GL_namelist_module
   double precision,   save :: r2
   double precision,   save :: umbrella_max
   double precision,   save :: umbrella_min
-
-
+  integer,            save :: adaptive
+  integer,            save :: Reverse
+  
 
 
 
@@ -51,6 +52,10 @@ module GL_namelist_module
   namelist /GL_params/ r2
   namelist /GL_params/ umbrella_max
   namelist /GL_params/ umbrella_min
+  namelist /GL_params/ adaptive
+  namelist /GL_params/ Reverse
+
+  
 
 
   
