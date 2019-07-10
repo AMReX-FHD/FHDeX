@@ -40,7 +40,7 @@
   ! Advection method
   ! if advection_type = 1, interpolate primitive quantities
   ! if advection_type = 2, interpolate conserved quantities
-  advection_type = 2
+  advection_type = 1
 
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
@@ -48,7 +48,7 @@
   T_init(1) = 300
   rho0 = 4.83e-4
 
-  struct_fact_int = 1
+  struct_fact_int = 0
   n_steps_skip = 10
 
   ! Boundary conditions
@@ -79,10 +79,25 @@
   diameter = 2.18e-8, 2.58e-8, 3.63e-8, 4.16e-8
   rhobar =  0.25, 0.25, 0.25, 0.25
 
-  !Enter negative dof to use ucv & hcp values
-
+  !Enter negative dof to use hcv & hcp values
   dof =  3, 3, 3, 3
   hcv = -1 -1 -1 -1
   hcp = -1 -1 -1 -1
+
+/
+
+&compressible
+
+  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to negative
+  ! 
+
+  Yk_lo = -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+  Yk_hi = -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+
+  Xk_lo = 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+  Xk_hi = 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+
+  Xk_lo = 0.1 0.2 0.3 0.2 0.3 0.4 0.3 0.4 0.1 0.4 0.1 0.2
+  Xk_hi = 0.2 0.3 0.4 0.3 0.4 0.1 0.4 0.1 0.2 0.1 0.2 0.3
 
 /

@@ -2,6 +2,7 @@ module bound_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, algorithm_type, membrane_cell
+  use compressible_namelist_module, only : Yk_lo, Yk_hi, Xk_lo, Xk_hi
   use conv_module
   use trans_module
 
@@ -28,6 +29,10 @@ contains
     integer :: i,j,k,l,idir,bcell
 
     real(amrex_real) :: massvec(nspecies), fracvec(nspecies), intenergy, temp, rho, pt
+    real(amrex_real) :: Ywall(nspecies), Xwall(nspecies)
+
+    Ywall = 0.0d0
+    Xwall = 0.0d0
 
     if(lo(1) .eq. 0) then !lower x bound
 
@@ -73,7 +78,15 @@ contains
           !print *, "Setting xLo thermal: "
 
           idir = 0 
-          call setcwall(Xwall,Ywall,idir)
+          ! call setcwall(Xwall,Ywall,idir)
+
+          ! print*, Xk_lo(1,1:nspecies)
+          ! print*, Xk_lo(2,1:nspecies)
+          ! print*, Xk_lo(3,1:nspecies)
+          ! print*, Xk_hi(4,1:nspecies)
+          ! print*, Xk_hi(5,1:nspecies)
+          ! print*, Xk_hi(6,1:nspecies)
+          ! stop
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -83,7 +96,7 @@ contains
                    zeta(lo(1)-i,j,k) = zeta(lo(1)-1+i,j,k)
                    kappa(lo(1)-i,j,k) = kappa(lo(1)-1+i,j,k)
 
-                   prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2) 
+                   prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2) ! + 2*vel_lo(1)
                    prim(lo(1)-i,j,k,3) = -prim(lo(1)-1+i,j,k,3) 
                    prim(lo(1)-i,j,k,4) = -prim(lo(1)-1+i,j,k,4)
                    prim(lo(1)-i,j,k,5) = -prim(lo(1)-1+i,j,k,5) + 2*t_lo(1)
@@ -173,7 +186,7 @@ contains
        elseif(bc_hi(1) .eq. 2) then ! no slip thermal
 
           idir = 1
-          call setcwall(Xwall,Ywall,idir)
+          ! call setcwall(Xwall,Ywall,idir)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -183,7 +196,7 @@ contains
                    zeta(hi(1)+i,j,k) = zeta(hi(1)+1-i,j,k)
                    kappa(hi(1)+i,j,k) = kappa(hi(1)+1-i,j,k) 
 
-                   prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2) 
+                   prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2) ! + 2*vel_hi(1)
                    prim(hi(1)+i,j,k,3) = -prim(hi(1)+1-i,j,k,3) 
                    prim(hi(1)+i,j,k,4) = -prim(hi(1)+1-i,j,k,4)
                    prim(hi(1)+i,j,k,5) = -prim(hi(1)+1-i,j,k,5) + 2*t_hi(1)
@@ -276,7 +289,7 @@ contains
        elseif(bc_lo(2) .eq. 2) then ! no slip thermal
 
           idir = 0
-          call setcwall(Xwall,Ywall,idir)
+          ! call setcwall(Xwall,Ywall,idir)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -286,10 +299,10 @@ contains
                    zeta(i,lo(2)-j,k) = zeta(i,lo(2)-1+j,k)
                    kappa(i,lo(2)-j,k) = kappa(i,lo(2)-1+j,k)
 
-                   prim(i,lo(2)-j,k,2) = -prim(i,lo(2)-1+j,k,2) 
-                   prim(i,lo(2)-j,k,3) = -prim(i,lo(2)-1+j,k,3) 
+                   prim(i,lo(2)-j,k,2) = -prim(i,lo(2)-1+j,k,2)
+                   prim(i,lo(2)-j,k,3) = -prim(i,lo(2)-1+j,k,3) ! + 2*vel_lo(2) 
                    prim(i,lo(2)-j,k,4) = -prim(i,lo(2)-1+j,k,4)
-                   prim(i,lo(2)-j,k,5) = -prim(i,lo(2)-1+j,k,5) + 2*t_lo(1)
+                   prim(i,lo(2)-j,k,5) = -prim(i,lo(2)-1+j,k,5) + 2*t_lo(2)
                    prim(i,lo(2)-j,k,6) = prim(i,lo(2)-1+j,k,6)
 
                    if(algorithm_type.eq.2) then
@@ -376,7 +389,7 @@ contains
        elseif(bc_hi(2) .eq. 2) then ! no slip thermal
 
           idir = 1
-          call setcwall(Xwall,Ywall,idir)
+          ! call setcwall(Xwall,Ywall,idir)
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -386,9 +399,8 @@ contains
                    zeta(i,hi(2)+j,k) = zeta(i,hi(2)+1-j,k)
                    kappa(i,hi(2)+j,k) = kappa(i,hi(2)+1-j,k)
 
-                   prim(i,hi(2)+j,k,1) = prim(i,hi(2)+1-j,k,1)
-                   prim(i,hi(2)+j,k,2) = -prim(i,hi(2)+1-j,k,2) 
-                   prim(i,hi(2)+j,k,3) = -prim(i,hi(2)+1-j,k,3) 
+                   prim(i,hi(2)+j,k,2) = -prim(i,hi(2)+1-j,k,2)
+                   prim(i,hi(2)+j,k,3) = -prim(i,hi(2)+1-j,k,3) ! + 2*vel_hi(2)
                    prim(i,hi(2)+j,k,4) = -prim(i,hi(2)+1-j,k,4)
                    prim(i,hi(2)+j,k,5) = -prim(i,hi(2)+1-j,k,5) + 2*t_hi(2)
 
@@ -476,7 +488,7 @@ contains
        elseif(bc_lo(3) .eq. 2) then ! no slip thermal
 
           idir = 0
-          call setcwall(Xwall,Ywall,idir)
+          ! call setcwall(Xwall,Ywall,idir)
 
           do k = 1,ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -488,13 +500,13 @@ contains
 
                    prim(i,j,lo(3)-k,2) = -prim(i,j,lo(3)-1+k,2) 
                    prim(i,j,lo(3)-k,3) = -prim(i,j,lo(3)-1+k,3) 
-                   prim(i,j,lo(3)-k,4) = -prim(i,j,lo(3)-1+k,4)
+                   prim(i,j,lo(3)-k,4) = -prim(i,j,lo(3)-1+k,4) ! + 2*vel_lo(3)
                    prim(i,j,lo(3)-k,5) = -prim(i,j,lo(3)-1+k,5) + 2*t_lo(1)
                    prim(i,j,lo(3)-k,6) = prim(i,j,lo(3)-1+k,6)
 
                    if(algorithm_type.eq.2) then
                       Dij(i,j,lo(3)-k,:,:) = Dij(i,j,lo(3)-1+k,:,:)
-                      chi(i,j,lo(3)-k) = chi(i,j,lo(3)-1+k,:)
+                      chi(i,j,lo(3)-k,:) = chi(i,j,lo(3)-1+k,:)
 
                       do l = 1, nspecies
                          prim(i,j,lo(3)-k,6+l)          = 2.d0*Ywall(l) - prim(i,j,lo(3)-1+k,6+l)
@@ -576,7 +588,7 @@ contains
        elseif(bc_hi(3) .eq. 2) then ! no slip thermal
 
           idir = 1
-          call setcwall(Xwall,Ywall,idir)
+          ! call setcwall(Xwall,Ywall,idir)
 
           do k = 1,ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -589,7 +601,7 @@ contains
                    prim(i,j,hi(3)+k,1) = prim(i,j,hi(3)+1-k,1)
                    prim(i,j,hi(3)+k,2) = -prim(i,j,hi(3)+1-k,2) 
                    prim(i,j,hi(3)+k,3) = -prim(i,j,hi(3)+1-k,3) 
-                   prim(i,j,hi(3)+k,4) = -prim(i,j,hi(3)+1-k,4)
+                   prim(i,j,hi(3)+k,4) = -prim(i,j,hi(3)+1-k,4) ! + 2*vel_hi(3)
                    prim(i,j,hi(3)+k,5) = -prim(i,j,hi(3)+1-k,5) + 2*t_hi(3)
 
                    if(algorithm_type.eq.2) then

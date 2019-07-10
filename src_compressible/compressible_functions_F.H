@@ -11,6 +11,18 @@ extern "C"
     // these are interfaces to fortran subroutines
 
 ///////////////////////////
+// in compressible_namelist.F90
+
+  // read in fortran namelist into compressible_params_module
+  void read_compressible_namelist (const char* inputs_file, const int length);
+
+  // copy contents of compressible_params_module to C++ compressible namespace
+  void initialize_compressible_namespace(amrex::Real* Yk_lo, amrex::Real* Yk_hi, 
+					 amrex::Real* Xk_lo, amrex::Real* Xk_hi);
+
+///////////////////////////
+
+///////////////////////////
 // in diff_flux.F90
 
   void diff_flux(const int* lo, const int* hi,

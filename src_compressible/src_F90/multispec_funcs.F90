@@ -100,9 +100,9 @@ contains
 
     real(amrex_real) etaf,kappaf,zetaf,DF(1:nspecies,1:nspecies),chif(1:nspecies),Yf(nspecies),Xf(nspecies)
 
-    do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+    do k = lo(3)-ngc(3),hi(3)+ngc(3)
+       do j = lo(2)-ngc(2),hi(2)+ngc(2)
+          do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
              sumYk = 0.d0
              do ns = 1, nspecies

@@ -1,8 +1,17 @@
+#ifndef _compressible_functions_H_
+#define _compressible_functions_H_
+
+#define MAX_SPECIES 10
+#define LOHI 2
+
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
 
 using namespace amrex;
+
+// copy contents of compressible_params_module to C++ compressible namespace
+void InitializeCompressibleNamespace();
 
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
@@ -37,3 +46,4 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
 
 void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab& primMean, const MultiFab& primVar, const MultiFab& spatialCross, const MultiFab& etaMean, const MultiFab& kappaMean, MultiFab& consMeanAv, MultiFab& consVarAv, MultiFab& primMeanAv, MultiFab& primVarAv, MultiFab& spatialCrossAv, MultiFab& etaMeanAv, MultiFab& kappaMeanAv);
 
+#endif
