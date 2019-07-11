@@ -11,6 +11,17 @@ extern "C"
     // these are interfaces to fortran subroutines
 
 ///////////////////////////
+// in compressible_namelist.F90
+
+  // read in fortran namelist into compressible_params_module
+  void read_compressible_namelist (const char* inputs_file, const int length);
+
+  // copy contents of compressible_params_module to C++ compressible namespace
+  void initialize_compressible_namespace(amrex::Real* Yk_bc, amrex::Real* Xk_bc);
+
+///////////////////////////
+
+///////////////////////////
 // in diff_flux.F90
 
   void diff_flux(const int* lo, const int* hi,
@@ -141,12 +152,9 @@ extern "C"
 
   void set_bc(const int* lo, const int* hi,
 	      amrex::Real* cons,
-	      amrex::Real* prim,
-	      amrex::Real* eta,
-	      amrex::Real* zeta,
-	      amrex::Real* kappa,
-	      amrex::Real* chi,
-	      amrex::Real* Dij);
+	      amrex::Real* prim);
+
+  void setup_cwall();
 
   void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 

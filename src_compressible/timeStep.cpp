@@ -67,10 +67,9 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     /////////////////////////////////////////////////////
 
     conservedToPrimitive(prim, cu);
+
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
-
-    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
@@ -78,8 +77,10 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     chi.FillBoundary(geom.periodicity());
     D.FillBoundary(geom.periodicity());
     
-    // Impose membrane BCs
-    setBC(prim, cu, eta, zeta, kappa, chi, D);
+    setBC(prim, cu);
+    
+    // Compute transport coefs after setting BCs
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -134,16 +135,17 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     conservedToPrimitive(prim, cup);
     cup.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
-
-    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-
+    
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
     chi.FillBoundary(geom.periodicity());
     D.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup, eta, zeta, kappa, chi, D);
+    setBC(prim, cup);
+
+    // Compute transport coefs after setting BCs
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields
@@ -200,15 +202,16 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     cup2.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
 
-    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-
     eta.FillBoundary(geom.periodicity());
     zeta.FillBoundary(geom.periodicity());
     kappa.FillBoundary(geom.periodicity());
     chi.FillBoundary(geom.periodicity());
     D.FillBoundary(geom.periodicity());
 
-    setBC(prim, cup2, eta, zeta, kappa, chi, D);
+    setBC(prim, cup2);
+
+    // Compute transport coefs after setting BCs
+    calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////
     // Perform weighting of white noise fields

@@ -45,13 +45,14 @@ contains
 !             energy = energy + phi(i,j)*(acoef+bcoef*phi(i,j)+ccoef*phi(i,j)**2+dcoef*phi(i,j)**3) &
 !               + diff_coef/2.d0*((phi(i,j)-phi(i-1,j))**2+(phi(i,j)-phi(i,j-1))**2)
 
-              teng = teng + dele + 0.5d0*umbrella*integral
+!             teng = teng + dele + 0.5d0*umbrella*integral
+              teng = teng + phi(i,j)
 
           enddo
         enddo
 
             energy = energy *dx(1)*dx(2)
-            teng = teng *dx(1)*dx(2)
+!           teng = teng *dx(1)*dx(2)
 
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
@@ -116,7 +117,7 @@ contains
            !  phi(i,j) =  (sin(2.d0*pi*xloc)*sin(2.d0*pi*yloc)) **2
            !  if( (xloc-.5d0)**2 + (yloc-.5d0)**2 .lt. rad**2)then
               if( (xloc-xcen)**2 + (yloc-xcen)**2 .lt. rad**2)then
-                 phi(i,j) = 1.d0
+                 phi(i,j) = 0.d0
               else
                  phi(i,j) = 0.d0
               endif
@@ -137,8 +138,12 @@ contains
 
       real(amrex_real) :: xloc,yloc
       integer :: i,j
+      integer, save :: counter = 0
+      counter = counter + 1
 
          integral = 0.d0
+
+ !     if(counter.gt. 100000)return
 
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
