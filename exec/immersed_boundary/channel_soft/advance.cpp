@@ -29,6 +29,7 @@ void advance(AmrCoreAdv & amr_core_adv,
              std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
              MultiFab & pres, MultiFab & tracer,
              std::array<MultiFab, AMREX_SPACEDIM> & force_ibm,
+             std::array<MultiFab, AMREX_SPACEDIM> & DCs_spread,
              IBMarkerMap & ib_forces,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
              const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
@@ -284,39 +285,39 @@ void advance(AmrCoreAdv & amr_core_adv,
     DC_s[2].copy(*Dc_z[ibpc_lev],0,0,1,0,0);
 
 
-    std::array< MultiFab, AMREX_SPACEDIM > DCs_spread;
+    std::array< MultiFab, AMREX_SPACEDIM > DCs_spread0;
 
 #if (AMREX_SPACEDIM == 2)
     amrex::Print() << "1st element" << std::endl;
 
-    DCs_spread[0].define(badpx, dmdpx, 1, 1);
+    DCs_spread0[0].define(badpx, dmdpx, 1, 1);
     amrex::Print() << "2nd element" << std::endl;
-    DCs_spread[1].define(badpy, dmdpy, 1, 1);
+    DCs_spread0[1].define(badpy, dmdpy, 1, 1);
     amrex::Print() << "3rd element" << std::endl;
 
 #elif (AMREX_SPACEDIM == 3)
     amrex::Print() << "1st element" << std::endl;
-    DCs_spread[0].define(badpx, dmdpx, 1, 1);
+    DCs_spread0[0].define(badpx, dmdpx, 1, 1);
     amrex::Print() << "2nd element" << std::endl;
-    DCs_spread[1].define(badpy, dmdpy, 1, 1);
+    DCs_spread0[1].define(badpy, dmdpy, 1, 1);
     amrex::Print() << "3rd element" << std::endl;
 
     std::cout<< " Box array " << badpz << std::endl;
     std::cout<< " Distribution Map " << dmdpz << std::endl;
-    DCs_spread[2].define(badpz, dmdpz, 1, 1);
+    DCs_spread0[2].define(badpz, dmdpz, 1, 1);
     amrex::Print() << "After defining multifabs" << std::endl;
 
 #endif
 
 
-    DCs_spread[0].setVal(0.);
-    DCs_spread[1].setVal(0.);
-    DCs_spread[2].setVal(0.);
+    DCs_spread0[0].setVal(0.);
+    DCs_spread0[1].setVal(0.);
+    DCs_spread0[2].setVal(0.);
     amrex::Print() << "Copying gradient into array of multifabs" << std::endl;
 
-    DCs_spread[0].copy(*Dc_x[ibpc_lev],0,0,1,0,1);
-    DCs_spread[1].copy(*Dc_y[ibpc_lev],0,0,1,0,1);
-    DCs_spread[2].copy(*Dc_z[ibpc_lev],0,0,1,0,1);
+    DCs_spread0[0].copy(*Dc_x[ibpc_lev],0,0,1,0,1);
+    DCs_spread0[1].copy(*Dc_y[ibpc_lev],0,0,1,0,1);
+    DCs_spread0[2].copy(*Dc_z[ibpc_lev],0,0,1,0,1);
 
 
     //___________________________________________________________________________
@@ -443,13 +444,13 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         ib_pc.SpreadMarkers(ibpc_lev, pindex, force, force_0);
         auto & dcs = marker_DCs.at(pindex);
-        ib_pc.SpreadMarkers(ibpc_lev, pindex, dcs, DCs_spread);
+        ib_pc.SpreadMarkers(ibpc_lev, pindex, dcs, DCs_spread0);
 
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         force_0[d].FillBoundary(geom.periodicity());
-        DCs_spread[d].FillBoundary(geom.periodicity());
+        DCs_spread0[d].FillBoundary(geom.periodicity());
 
         // MultiFab::Add(force_1[d], force_0[d], 0, 0, 1, 1);
         VisMF::Write(force_0[d], "force_0_" + std::to_string(d));
@@ -541,20 +542,20 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     //___________________________________________________________________________
     // Set up the RHS for the predictor
-    amrex::Real scaling_factor=0.1;
+    amrex::Real scaling_factor=-0.1;
     
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // explicit part
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
         gmres_rhs_u[d].mult(dtinv, 1);
-        int cng=DCs_spread[d].nGrow();
-        DCs_spread[d].mult(scaling_factor, cng);
+        int cng=DCs_spread0[d].nGrow();
+        DCs_spread0[d].mult(scaling_factor, cng);
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], force_0[d],          0, 0, 1, 1);
         std::cout<<" Check Add "<<std::endl;
-        MultiFab::Add(gmres_rhs_u[d], DCs_spread[d],       0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], DCs_spread0[d],       0, 0, 1, 1);
         std::cout<<" Check Add after "<<std::endl;
 
         // fill boundary before adding pressure part to prevent it from
@@ -653,39 +654,39 @@ void advance(AmrCoreAdv & amr_core_adv,
     DC_s0[2].copy(*Dc_z[ibpc_lev],0,0,1,0,0);
 
 
-    std::array< MultiFab, AMREX_SPACEDIM > DCs_spread0;
+    std::array< MultiFab, AMREX_SPACEDIM > DCs_spread1;
 
 #if (AMREX_SPACEDIM == 2)
     amrex::Print() << "1st element" << std::endl;
 
-    DCs_spread0[0].define(badpx, dmdpx, 1, 0);
+    DCs_spread1[0].define(badpx, dmdpx, 1, 0);
     amrex::Print() << "2nd element" << std::endl;
-    DCs_spread0[1].define(badpy, dmdpy, 1, 0);
+    DCs_spread1[1].define(badpy, dmdpy, 1, 0);
     amrex::Print() << "3rd element" << std::endl;
 
 #elif (AMREX_SPACEDIM == 3)
     amrex::Print() << "1st element" << std::endl;
-    DCs_spread0[0].define(badpx, dmdpx, 1, 1);
+    DCs_spread1[0].define(badpx, dmdpx, 1, 1);
     amrex::Print() << "2nd element" << std::endl;
-    DCs_spread0[1].define(badpy, dmdpy, 1, 1);
+    DCs_spread1[1].define(badpy, dmdpy, 1, 1);
     amrex::Print() << "3rd element" << std::endl;
 
     std::cout<< " Box array " << badpz << std::endl;
     std::cout<< " Distribution Map " << dmdpz << std::endl;
-    DCs_spread0[2].define(badpz, dmdpz, 1, 1);
+    DCs_spread1[2].define(badpz, dmdpz, 1, 1);
     amrex::Print() << "After defining multifabs" << std::endl;
 
 #endif
 
 
-    DCs_spread0[0].setVal(0.);
-    DCs_spread0[1].setVal(0.);
-    DCs_spread0[2].setVal(0.);
+    DCs_spread1[0].setVal(0.);
+    DCs_spread1[1].setVal(0.);
+    DCs_spread1[2].setVal(0.);
     amrex::Print() << "Copying gradient into array of multifabs" << std::endl;
 
-    DCs_spread0[0].copy(*Dc_x[ibpc_lev],0,0,1,0,1);
-    DCs_spread0[1].copy(*Dc_y[ibpc_lev],0,0,1,0,1);
-    DCs_spread0[2].copy(*Dc_z[ibpc_lev],0,0,1,0,1);
+    DCs_spread1[0].copy(*Dc_x[ibpc_lev],0,0,1,0,1);
+    DCs_spread1[1].copy(*Dc_y[ibpc_lev],0,0,1,0,1);
+    DCs_spread1[2].copy(*Dc_z[ibpc_lev],0,0,1,0,1);
 
 
      for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -785,13 +786,13 @@ void advance(AmrCoreAdv & amr_core_adv,
         ib_pc.SpreadMarkers(ibpc_lev, pindex, force, force_1);
 
         auto & dcs = marker_DCs.at(pindex);
-        ib_pc.SpreadMarkers(ibpc_lev, pindex, dcs, DCs_spread0);
+        ib_pc.SpreadMarkers(ibpc_lev, pindex, dcs, DCs_spread1);
 
     }
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         force_1[d].FillBoundary(geom.periodicity());
-        DCs_spread0[d].FillBoundary(geom.periodicity());
+        DCs_spread1[d].FillBoundary(geom.periodicity());
         VisMF::Write(force_1[d], "force_1_" + std::to_string(d));
     }
 
@@ -803,13 +804,13 @@ void advance(AmrCoreAdv & amr_core_adv,
         // explicit part
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
         gmres_rhs_u[d].mult(dtinv, 1);
-        int cng=DCs_spread0[d].nGrow();
-        DCs_spread0[d].mult(scaling_factor, cng);
+        int cng=DCs_spread1[d].nGrow();
+        DCs_spread1[d].mult(scaling_factor, cng);
 
         MultiFab::Add(force_1[d], force_0[d], 0, 0, 1, 1);
         force_1[d].mult(0.5,1);
-        MultiFab::Add(DCs_spread0[d], DCs_spread[d], 0, 0, 1, 1);
-        DCs_spread0[d].mult(0.5,1);
+        MultiFab::Add(DCs_spread1[d], DCs_spread0[d], 0, 0, 1, 1);
+        DCs_spread1[d].mult(0.5,1);
 
 
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
@@ -817,7 +818,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], force_1[d],          0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], DCs_spread0[d],       0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], DCs_spread1[d],       0, 0, 1, 1);
 
         // fill boundary before adding pressure part to prevent it from
         // overwriding any pressure gradients in the ghost cells
@@ -845,6 +846,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         // Output immersed-boundary forces
         MultiFab::Copy(force_ibm[d], force_1[d],   0, 0, 1, 1);
+        MultiFab::Copy(DCs_spread[d], DCs_spread1[d],   0, 0, 1, 1);
 
         // Output pressure solution
         MultiFab::Copy(pres,         p_1,          0, 0, 1, 1);
