@@ -44,21 +44,21 @@
  ! umbrella = 00.
 
  !phi0 = .5
- phi0 =1.0
+ phi0 =0.0
  rad = .4
  n_inc_phi = 300000
  phi_inc = 0.00
 
  Plot_Skip=6   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
- Number_of_Samples=30  ! Number of samples per umbrella
- Equil=10000  !number of equilibration steps per umbrella
+ Number_of_Samples=100  ! Number of samples per umbrella
+ Equil=35000  !number of equilibration steps per umbrella
  alpha=1.5  !spring constant scaling parameter
  r1=1.0 !phi0 step parameter, see overleaf notes
  r2=1.0  !overlap parameter, see overleaf notes
  umbrella_max=2000.0
  umbrella_min=50.0
  adaptive=1
- Reverse=1
+ Reverse=0
 
 
 
