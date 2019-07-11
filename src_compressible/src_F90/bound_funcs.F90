@@ -76,18 +76,17 @@ contains
           Ywall(1:nspecies) = Yk_bc(1,1,1:nspecies)
           Xwall(1:nspecies) = Xk_bc(1,1,1:nspecies)
           
-          do i = 1,AMREX_SPACEDIM
-             do j = 1,2
-                print*, Yk_bc(i,j,1:nspecies)
-             enddo
-          enddo
-          do i = 1,AMREX_SPACEDIM
-             do j = 1,2
-                print*, Xk_bc(i,j,1:nspecies)
-             enddo
-          enddo
-          print*, "Got here"
-          stop
+          ! do i = 1,AMREX_SPACEDIM
+          !    do j = 1,2
+          !       print*, Yk_bc(i,j,1:nspecies)
+          !    enddo
+          ! enddo
+          ! do i = 1,AMREX_SPACEDIM
+          !    do j = 1,2
+          !       print*, Xk_bc(i,j,1:nspecies)
+          !    enddo
+          ! enddo
+          ! stop
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -407,6 +406,7 @@ contains
                    prim(i,hi(2)+j,k,3) = -prim(i,hi(2)+1-j,k,3) ! + 2*vel_hi(2)
                    prim(i,hi(2)+j,k,4) = -prim(i,hi(2)+1-j,k,4)
                    prim(i,hi(2)+j,k,5) = -prim(i,hi(2)+1-j,k,5) + 2*t_hi(2)
+                   prim(i,hi(2)+j,k,6) = prim(i,hi(2)+1-j,k,6)
 
                    if(algorithm_type.eq.2) then
                       ! Dij(i,hi(2)+j,k,:,:) = Dij(i,hi(2)+1-j,k,:,:)
@@ -429,7 +429,9 @@ contains
                    call get_energy(intenergy, fracvec, temp)
                    ! call get_density_gas(pt, rho, temp)
                    ! call get_energy_gas(pt, intenergy)
-
+                   
+                   ! print*, "Hack: rho = ", rho, pt, rho, temp, fracvec
+                   ! stop
                    prim(i,hi(2)+j,k,1) = rho
                    cons(i,hi(2)+j,k,1) = rho
                    cons(i,hi(2)+j,k,2) = rho*prim(i,hi(2)+j,k,2)
@@ -506,7 +508,7 @@ contains
                    prim(i,j,lo(3)-k,2) = -prim(i,j,lo(3)-1+k,2) 
                    prim(i,j,lo(3)-k,3) = -prim(i,j,lo(3)-1+k,3) 
                    prim(i,j,lo(3)-k,4) = -prim(i,j,lo(3)-1+k,4) ! + 2*vel_lo(3)
-                   prim(i,j,lo(3)-k,5) = -prim(i,j,lo(3)-1+k,5) + 2*t_lo(1)
+                   prim(i,j,lo(3)-k,5) = -prim(i,j,lo(3)-1+k,5) + 2*t_lo(3)
                    prim(i,j,lo(3)-k,6) = prim(i,j,lo(3)-1+k,6)
 
                    if(algorithm_type.eq.2) then
@@ -604,11 +606,11 @@ contains
                    ! zeta(i,j,hi(3)+k) = zeta(i,j,hi(3)+1-k)
                    ! kappa(i,j,hi(3)+k) = kappa(i,j,hi(3)+1-k)
 
-                   prim(i,j,hi(3)+k,1) = prim(i,j,hi(3)+1-k,1)
                    prim(i,j,hi(3)+k,2) = -prim(i,j,hi(3)+1-k,2) 
                    prim(i,j,hi(3)+k,3) = -prim(i,j,hi(3)+1-k,3) 
                    prim(i,j,hi(3)+k,4) = -prim(i,j,hi(3)+1-k,4) ! + 2*vel_hi(3)
                    prim(i,j,hi(3)+k,5) = -prim(i,j,hi(3)+1-k,5) + 2*t_hi(3)
+                   prim(i,j,hi(3)+k,6) = prim(i,j,hi(3)+1-k,6)
 
                    if(algorithm_type.eq.2) then
                       ! Dij(i,j,hi(3)+k,:,:) = Dij(i,j,hi(3)+1-k,:,:)
@@ -673,8 +675,8 @@ contains
 
           do ns=1,nspecies
 
-             sumxb = sumxb + Xk_bc(ns,1,d)
-             sumyb = sumyb + Yk_bc(ns,1,d)
+             sumxb = sumxb + Xk_bc(d,1,ns)
+             sumyb = sumyb + Yk_bc(d,1,ns)
 
           enddo
 
@@ -693,8 +695,8 @@ contains
 
           do ns=1,nspecies
 
-             sumxt = sumxt + Xk_bc(ns,2,d)
-             sumyt = sumyt + Yk_bc(ns,2,d)
+             sumxt = sumxt + Xk_bc(d,2,ns)
+             sumyt = sumyt + Yk_bc(d,2,ns)
  
           enddo
 

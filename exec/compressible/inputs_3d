@@ -39,7 +39,7 @@
   ! Advection method
   ! if advection_type = 1, interpolate primitive quantities
   ! if advection_type = 2, interpolate conserved quantities
-  advection_type = 1
+  advection_type = 2
 
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
@@ -54,8 +54,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  bc_lo(1:3) = 2 2 2
-  bc_hi(1:3) = 2 2 2
+  bc_lo(1:3) = -1 2 -1
+  bc_hi(1:3) = -1 2 -1
 
   membrane_cell = -1
 
@@ -63,8 +63,8 @@
   transmission = 0.0
 
   ! Temperature if thermal BC specified
-  t_lo(1:3) = 300 300 300
-  t_hi(1:3) = 600 600 600
+  t_lo(1:3) = 200 200 200
+  t_hi(1:3) = 400 400 400
 
   !Kinetic species info
   !--------------
@@ -87,27 +87,25 @@
 
 &compressible
 
+  ! vel_bc(1,1:3) = -1 -1 -1
+  ! vel_bc(2,1:3) = -1 -1 -1
+
+  ! therm_bc(1,1:3) = -1 -1 -1
+  ! therm_bc(2,1:3) = -1 -1 -1
+
+  ! conc_bc(1,1:3) = -1 -1 -1
+  ! conc_bc(2,1:3) = -1 -1 -1
+
   ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
   ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
-
-  Yk_bc(:,:,:) = 0
-
-  Xk_bc(1,1,:) = 0.1 0.2 0.3 0.4
-  Xk_bc(2,1,:) = 0.2 0.3 0.4 0.1
-  Xk_bc(3,1,:) = 0.3 0.4 0.1 0.2
-  Xk_bc(1,2,:) = 0.2 0.3 0.4 0.1
-  Xk_bc(2,2,:) = 0.3 0.4 0.1 0.2
-  Xk_bc(3,2,:) = 0.4 0.1 0.2 0.3
-
-  !!
+    
+  Yk_bc(1,1,1:4) = 0.0 0.0 0.0 0.0
   
-  Yk_bc(1,1,:) = 0.1 0.2 0.3 0.4
-  Yk_bc(2,1,:) = 0.2 0.3 0.4 0.1
-  Yk_bc(3,1,:) = 0.3 0.4 0.1 0.2
-  Yk_bc(1,2,:) = 0.2 0.3 0.4 0.1
-  Yk_bc(2,2,:) = 0.3 0.4 0.1 0.2
-  Yk_bc(3,2,:) = 0.4 0.1 0.2 0.3
-
-  Xk_bc(:,:,:) = 0
-
+  Xk_bc(1,1,1:4) = 0.1 0.2 0.3 0.4
+  Xk_bc(2,1,1:4) = 0.2 0.3 0.4 0.1
+  Xk_bc(3,1,1:4) = 0.3 0.4 0.1 0.2
+  Xk_bc(1,2,1:4) = 0.2 0.3 0.4 0.1
+  Xk_bc(2,2,1:4) = 0.3 0.4 0.1 0.2
+  Xk_bc(3,2,1:4) = 0.4 0.1 0.2 0.3
+  
 /
