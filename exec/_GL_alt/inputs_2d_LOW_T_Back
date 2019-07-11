@@ -49,7 +49,7 @@
  n_inc_phi = 300000
  phi_inc = 0.00
 
- Plot_Skip=6   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
+ Plot_Skip=20   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
  Number_of_Samples=100  ! Number of samples per umbrella
  Equil=35000  !number of equilibration steps per umbrella
  alpha=1.5  !spring constant scaling parameter
