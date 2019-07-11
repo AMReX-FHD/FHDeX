@@ -68,7 +68,6 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
     ParallelDescriptor::ReduceRealSum(phi_avg);
     ParallelDescriptor::ReduceRealSum(energy);
     ParallelDescriptor::ReduceRealSum(teng);
-    amrex::Print() << phi_avg << "\n";
     //if(ParallelDescriptor::MyProc() == 0 ){
     //       std::cout << n << " " << energy << "  energy  " << std::endl;
     //       std::cout << n << " " << teng << "  teng  " << std::endl;
