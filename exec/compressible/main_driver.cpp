@@ -399,8 +399,8 @@ void main_driver(const char* argv)
       }
 
       // let rho = 1
-      Real SFscale = dVol/(rho0*k_B*T_init[0]);
-      // SFscale = 1.0;
+      // Real SFscale = dVol/(rho0*k_B*T_init[0]);
+       Real SFscale = 1.0;
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
       structFact.Finalize(SFscale);
