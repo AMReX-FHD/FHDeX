@@ -487,6 +487,28 @@ void main_driver(const char* argv)
         time = time + dt;
     }
 
+    if (struct_fact_int > 0) {
+
+      Real dVol = dx[0]*dx[1];
+      int tot_n_cells = n_cells[0]*n_cells[1];
+      if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+      } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+	tot_n_cells = n_cells[2]*tot_n_cells;
+      }
+
+      // let rho = 1
+      // Real SFscale = dVol/(rho0*k_B*T_init[0]);
+       Real SFscale = 1.0;
+      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+      
+      structFact.Finalize(SFscale);
+      structFact.WritePlotFile(step,time,geom);
+
+    }
+
+
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;

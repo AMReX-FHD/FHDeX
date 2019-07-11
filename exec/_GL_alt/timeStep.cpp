@@ -61,11 +61,12 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
       	           dx, &dt);   
     }
 
+   
     ParallelDescriptor::ReduceRealSum(energy);
     ParallelDescriptor::ReduceRealSum(teng);
     if(ParallelDescriptor::MyProc() == 0 ){
            std::cout << n << " " << energy << "  energy  " << std::endl;
-           std::cout << n << " " << teng << "  teng  " << std::endl;
+           std::cout << n << " " << teng/(128*128) << " average  " << std::endl;
           // std::cout << time << " " << energy << "  energy = "<< energy << "  dphi/dt  = " << phit << std::endl;
     }
 
