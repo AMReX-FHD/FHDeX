@@ -2,7 +2,7 @@
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
 
-void FhdParticleContainer::InitParticles(species* particleInfo)
+void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
     
     const int lev = 0;
@@ -103,8 +103,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
                 p.rdata(RealData::R) = particleInfo[i_spec].R; //R
                 p.rdata(RealData::radius) = particleInfo[i_spec].d/2.0; //radius
                 p.rdata(RealData::accelFactor) = -6*3.14159265359*p.rdata(RealData::radius)/p.rdata(RealData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
-                //p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
-                p.rdata(RealData::dragFactor) = 0; //drag factor
+                p.rdata(RealData::dragFactor) = 6*3.14159265359*p.rdata(RealData::radius); //drag factor
+                //p.rdata(RealData::dragFactor) = 0; //drag factor
                 //p.rdata(RealData::dragFactor) = 6*3.14159265359*dx[0]*1.322; //drag factor
 
                 p.rdata(RealData::wetDiff) = particleInfo[i_spec].wetDiff;
@@ -116,9 +116,11 @@ void FhdParticleContainer::InitParticles(species* particleInfo)
 
                 p.idata(IntData::species) = i_spec +1;
 		p.rdata(RealData::potential) = 0;                 
-		// SPC: temporary hack--set distance for which we do direct coulomb force calculation
-		//      to be same as that of the SR leonard jones
-		p.rdata(RealData::coulombRadiusFactor) = 6.5*dx[0];                 
+
+		// set distance for which we do direct, short range coulomb force calculation
+		// in p3m to be 6.5*dx_poisson_grid
+		p.rdata(RealData::p3m_radius) = 6.5*dxp[0];   
+
                 particle_tile.push_back(p);
 
                 pcount++;

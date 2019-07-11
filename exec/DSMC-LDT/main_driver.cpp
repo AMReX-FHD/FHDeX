@@ -13,6 +13,7 @@
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
+#include "rng_functions.H"
 #include "rng_functions_F.H"
 
 #include "species.H"
@@ -30,6 +31,14 @@ using namespace std;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
+
+    //hard coded variables - make into input later
+    //number of particles left/right - set to -1 to assign by density
+    //int pL = 13; int pR = 9;
+    int pL = 8; int pR = 3;
+    //temperature on left/right
+    Real tL = 300; Real tR = 200;
+
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -39,7 +48,9 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
+
+    //this is giving a fortran runtime error. not needed here anyway
+    //read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -84,6 +95,7 @@ void main_driver(const char* argv)
     // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
     // note we are converting "Vector<int> max_grid_size" to an IntVect
     ba.maxSize(IntVect(max_grid_size));
+    int num_boxes = ba.size();
 
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
@@ -99,11 +111,13 @@ void main_driver(const char* argv)
     Print() << geom << "\n";
     Print() << domain << "\n";
 
+    //get the grid spacing
     const Real* dx = geom.CellSize();
 
-
+    //multifab for cell volumes
     MultiFab cellVols(ba, dmap, 1, 0);
 
+    //set cell volumes
 #if (AMREX_SPACEDIM == 2)
     cellVols.setVal(dx[0]*dx[1]*cell_depth);
 #elif (AMREX_SPACEDIM == 3)
@@ -118,6 +132,13 @@ void main_driver(const char* argv)
 
     Real dt = fixed_dt;
     //Real dtinv = 1.0/dt;
+
+
+
+
+
+
+    //Construct the boundaries 
 
     ifstream surfaceFile("surfaces.dat");
     int surfaceCount;
@@ -237,6 +258,12 @@ void main_driver(const char* argv)
 
     surfaceFile.close();
 
+
+
+
+
+
+
     const int* lims = domain.hiVect();
 
     // AJN - get rid of collision stuff?
@@ -267,15 +294,15 @@ void main_driver(const char* argv)
 
         dsmcParticle[i].Neff = particle_neff;
         dsmcParticle[i].R = k_B/dsmcParticle[i].m;
-        dsmcParticle[i].T = T_init[0];
+        dsmcParticle[i].T = T_init[0]; //this is meaningless here
 
         if(particle_count[i] >= 0) {
-            // adjust number of particles up so there is the same number per box            
-            dsmcParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
-            dsmcParticle[i].total = dsmcParticle[i].ppb*ba.size();
+            //set particle totals - change later to if on pL and pB          
+            //dsmcParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
+            dsmcParticle[i].total = pL+pR;
             dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
 
-            Print() << "Species " << i << " count adjusted to " << dsmcParticle[i].total << "\n";
+            Print() << "Species " << i << " count is " << pL + pR << "\n";
         }
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
@@ -288,7 +315,7 @@ void main_driver(const char* argv)
             Print() << "Species " << i << " n0 adjusted to " << dsmcParticle[i].n0 << "\n";
         }
 
-        Print() << "Species " << i << " particles per box: " <<  dsmcParticle[i].ppb << "\n";
+        //Print() << "Species " << i << " particles per box: " <<  dsmcParticle[i].ppb << "\n";
 
         realParticles = realParticles + dsmcParticle[i].total;
         simParticles = simParticles + dsmcParticle[i].total*particle_neff;
@@ -297,10 +324,10 @@ void main_driver(const char* argv)
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
 
-    Print() << "Sim particles per box: " << simParticles/(double)ba.size() << "\n";
+    //Print() << "Sim particles per box: " << simParticles/(double)ba.size() << "\n";
 
     Print() << "Collision cells: " << totalCollisionCells << "\n";
-    Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
+    //Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
 
     // MFs for storing particle statistics
@@ -369,14 +396,15 @@ void main_driver(const char* argv)
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geom, dmap, ba, crange);
-
     //create particles
-    particles.InitParticles(dsmcParticle);
-    particles.Redistribute();
-    particles.ReBin();
+    particles.InitParticlesDSMCtest(dsmcParticle, num_boxes, pL, pR, tL, tR);
+    if (thermostat_tog == 1) {
+        particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+    }
 
+    
     //This will cause problems for cells with less than 2 particles. No need to run this for now.
-    particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
+    //particles.InitializeFields(particleInstant, cellVols, dsmcParticle[0]);
 
     //setup initial DSMC collision parameters
     particles.InitCollisionCells(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
@@ -384,27 +412,57 @@ void main_driver(const char* argv)
     int statsCount = 1;
     double time = 0;
 
-    //Make plot file with the initial configuration
-    WritePlotFile(0,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
+    //Make plot file with the initial configuration - only use if init fields is working
+    //WritePlotFile(0,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
+
+    //create plot file to output fluxes
+    std::ofstream outfile;
+    outfile.open("fluxes.txt", std::ios_base::out);
+    outfile << dt << '\n';
+    outfile << pL << ' ' << pR << '\n';
+    outfile << tL << ' ' << tR << '\n';
+
+    //make fluxes storage
+    int flux[2]; flux[0] = 0; flux[1] = 0;
+
+    //store particles in each box each time step
+    int nL = pL; int nR = pR;
 
     //Time stepping loop
     for(int step=1;step<=max_step;++step)
     {
 
-
-        if(move_tog==1)
+        //perform particle updates
+        //ballistic movement
+        if(move_tog == 1)
         {
-            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time);
+            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time, flux);
+            outfile << flux[0] << ' ' << flux[1] << '\n';
             particles.Redistribute();
 
             particles.ReBin();
         }
 
-        if(sr_tog==1)
+        //particle collisions
+        if(sr_tog == 1)
         {
             particles.CollideParticles(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
         }
 
+        //thermostatting
+        if(thermostat_tog == 1)
+        {
+            //if crossing happens, regenerate all positions and velocities
+            if (flux[0] > 0 || flux[1] > 0) {
+                nL = nL + flux[0] - flux[1];
+                nR = nR + flux[1] - flux[0];
+                printf("Totals: %d %d\n", nL, nR);
+                particles.Resample(dsmcParticle, tL, tR);
+            }
+
+            //call thermostat. Function determines if re-scaling is necessary.
+            particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+        }
 
         //Start collecting statistics after step n_steps_skip
         if(step == n_steps_skip)
@@ -416,9 +474,8 @@ void main_driver(const char* argv)
 
             statsCount = 1;
         }
-       
+        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, dsmcParticle[0], dt,statsCount);
-
         statsCount++;
 
         if (plot_int > 0 && step%plot_int == 0)
@@ -427,13 +484,12 @@ void main_driver(const char* argv)
             WritePlotFile(step,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
         }
 
-        if(step% (max_step/10) == 0)
+        if(step% 100 == 0)
         {    
                 amrex::Print() << "Advanced step " << step << "\n";
         }
         
         time = time + dt;
-
     }
 
     // Call the timer again and compute the maximum difference between the start time 
@@ -441,4 +497,7 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
+    //close the outfile
+    outfile.close();
 }

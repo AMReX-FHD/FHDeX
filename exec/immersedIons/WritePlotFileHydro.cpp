@@ -88,6 +88,7 @@ void WritePlotFileHydro(int step,
 
     // compute divergence and store result in plotfile
     ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
+    cnt++;
 
     // average staggered means to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -121,9 +122,9 @@ void WritePlotFileHydro(int step,
         std::string asciiName4 = Concatenate("asciiVy",step,9);
         std::string asciiName5 = Concatenate("asciiVz",step,9);
 
-        outputMFAscii(umac[0], asciiName3);
-        outputMFAscii(umac[1], asciiName4);
-        outputMFAscii(umac[2], asciiName5);
+        //outputMFAscii(umac[0], asciiName3);
+        //outputMFAscii(umac[1], asciiName4);
+        //outputMFAscii(umac[2], asciiName5);
 
     }
 

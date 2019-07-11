@@ -18,7 +18,8 @@
 #include "species.H"
 #include "surfaces.H"
 
-#include "analysis_functions_F.H"
+//#include "analysis_functions_F.H"
+#include "StructFact_F.H"
 #include "StochMFlux.H"
 #include "StructFact.H"
 
@@ -60,19 +61,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-//    int fhdSeed = 0;
-//    int particleSeed = 0;
-//    int selectorSeed = 0;
-//    int thetaSeed = 0;
-//    int phiSeed = 0;
-//    int generalSeed = 0;
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -474,14 +475,18 @@ void main_driver(const char* argv)
     // mflux divergence, staggered in x,y,z
 
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
-    // Define mfluxdiv predictor multifabs
+    std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdivC;
+    // Define mfluxdiv predictor/corrector multifabs
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
         stochMfluxdiv[d].setVal(0.0);
+        stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        stochMfluxdivC[d].setVal(0.0);
     }
 
     Vector< amrex::Real > weights;
     weights = {1.0};
+//weights = {std::sqrt(0.5), std::sqrt(0.5)};
 
     // Declare object of StochMFlux class
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
@@ -497,8 +502,10 @@ void main_driver(const char* argv)
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
+    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
 
 
@@ -510,44 +517,40 @@ void main_driver(const char* argv)
         umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
 
+    // tracer - get rid of this.
+    MultiFab tracer(ba, dmap, 1,1);
+    tracer.setVal(0.);
+
 
     ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
 
-    
     Vector< std::string > var_names;
-    var_names.resize(AMREX_SPACEDIM);
-    int cnt = 0;
-    std::string x;
-    for (int d=0; d<var_names.size(); d++) {
-      x = "vel";
-      x += (120+d);
-      var_names[cnt++] = x;
-    }
+    int nvar_sf = 1;
+    // int nvar_sf = AMREX_SPACEDIM;
+    var_names.resize(nvar_sf);
+    var_names[0] = "charge";
 
     MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
-    
-    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
-    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
+    struct_in_cc.define(bp, dmap, nvar_sf, 0);
 
-    // Select which variable pairs to include in structure factor:
-    s_pairA[0] = 0;
-    s_pairB[0] = 0;
-    //
-    s_pairA[1] = 1;
-    s_pairB[1] = 1;
-    //
-#if (AMREX_SPACEDIM == 3)
-    s_pairA[2] = 2;
-    s_pairB[2] = 2;
-#endif
-    
-    StructFact structFact(ba,dmap,var_names);
-    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
+//    amrex::Vector< int > s_pairA(nvar_sf);
+//    amrex::Vector< int > s_pairB(nvar_sf);
 
-    
+//    // Select which variable pairs to include in structure factor:
+//    for (int d=0; d<nvar_sf; d++) {
+//      s_pairA[d] = d;
+//      s_pairB[d] = d;
+//    }
+
+ //   StructFact structFact(bp,dmap,var_names);
+
+
+
+
+
+
     // AJN - don't need to initialize velocities in overdamped.  first gmres solve should get them as long as they start out with non-NaN values.
 
     // DRL - This is actually useful for dubugging, to get a known velocity field.
@@ -591,7 +594,7 @@ void main_driver(const char* argv)
     // AJN - don't need this
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+        //sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
     }
 
 
@@ -645,7 +648,7 @@ void main_driver(const char* argv)
 
     //create particles
 
-    particles.InitParticles(ionParticle);
+    particles.InitParticles(ionParticle, dxp);
 
     //----------------------    
     // Electrostatic setup
@@ -734,6 +737,7 @@ void main_driver(const char* argv)
 
         if(sr_tog==1 || es_tog==3)
         {
+                particles.Redistribute();
                 particles.clearNeighbors();
 
                 particles.fillNeighbors();
@@ -752,17 +756,26 @@ void main_driver(const char* argv)
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        if((variance_coef_mom != 0.0) && fluid_tog == 1) {
+        if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
           sMflux.fillMStochastic();
 //          // compute stochastic momentum force
           sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+
+          if(fluid_tog ==2)
+          {
+             sMflux.stochMforce(stochMfluxdivC,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+          }
+
         }
 
-  	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+    	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+        if(fluid_tog ==2)
+        {
+            advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
+        }
 
-
-        if(move_tog==1)
+        if(move_tog != 0)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
@@ -804,13 +817,13 @@ void main_driver(const char* argv)
 	//_______________________________________________________________________
 	// Update structure factor
 
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-            for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-            }
-//the below is giving some issues when we use multiple cores
-       //     structFact.FortStructure(struct_in_cc,geom);
-        }
+
+
+
+       // if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+//	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
+//	      structFact.FortStructure(struct_in_cc,geomP);
+  //      }
 
         if (plot_int > 0 && step%plot_int == 0)
         {
@@ -832,21 +845,25 @@ void main_driver(const char* argv)
     }
     ///////////////////////////////////////////
     if (struct_fact_int > 0) {
+
         Real dVol = dx[0]*dx[1];
         int tot_n_cells = n_cells[0]*n_cells[1];
-        if (AMREX_SPACEDIM == 2) {
-            dVol *= cell_depth;
-        } else if (AMREX_SPACEDIM == 3) {
-            dVol *= dx[2];
-            tot_n_cells = n_cells[2]*tot_n_cells;
-        }
+      if (AMREX_SPACEDIM == 2) {
+	    dVol *= cell_depth;
+      } else if (AMREX_SPACEDIM == 3) {
+	    dVol *= dx[2];
+	    tot_n_cells = n_cells[2]*tot_n_cells;
+      }
 
-        // let rho = 1
-        Real SFscale = dVol/(k_B*temp_const);
-        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+      // let rho = 1
+      //Real SFscale = dVol/(rho0*k_B*T_init[0]);
+      Real SFscale = 1;
+      // SFscale = 1.0;
+      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+      
+    //  structFact.Finalize(SFscale);
+    //  structFact.WritePlotFile(step,time,geomP);
 
-        structFact.Finalize(SFscale);
-        structFact.WritePlotFile(step,time,geom);
     }
 
     // Call the timer again and compute the maximum difference between the start time 
@@ -854,4 +871,5 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
+
 }

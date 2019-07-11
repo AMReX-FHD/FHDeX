@@ -21,7 +21,10 @@ contains
       real(amrex_real), intent(inout) :: zeta(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
       real(amrex_real), intent(inout) :: kappa(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3))
 
-      integer :: i,j,k,l 
+      ! real(amrex_real), intent(inout) :: chi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
+      ! real(amrex_real), intent(inout) :: Dij(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
+
+      integer :: i,j,k,l
       real(amrex_real) :: mgrams(MAX_SPECIES)
       real(amrex_real) :: vconst(nspecies), tconst(nspecies), R(nspecies), gamma1, gamma2, rootT, specaveta, specavkappa
 
@@ -56,23 +59,24 @@ contains
               specavkappa = specavkappa + prim(i,j,k,6+l)*tconst(l)
             enddo
 
-            ! rootT = sqrt(prim(i,j,k,5))
-            rootT = sqrt(300.d0)
+            rootT = sqrt(prim(i,j,k,5))
 
             zeta(i,j,k) = 0 !no bulk viscosity for now
 
             eta(i,j,k) = rootT*specaveta
             kappa(i,j,k) = rootT*specavkappa
             
-            ! if((i.eq.0).and.(j.eq.0)) then
-            !    print *, "Hack = ", i, j, k, specaveta, specavkappa, rootT, prim(i,j,k,5)
+            ! if((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+            !    print *, "transcoef: Hack = ", i, j, k, specaveta, specavkappa, rootT, prim(i,j,k,5)
             ! endif
 
             if(kappa(i,j,k) .ne. kappa(i,j,k)) then
                print *, "NAN! kappa ", i, j, k, prim(i,j,k,5)
                call exit()
             endif
-            !print *, eta(i,j,k), kappa(i,j,k)
+
+            ! print*, "Hack (trans_coeffs): eta = ", eta(i,j,k)
+            ! stop
 
           enddo
         enddo

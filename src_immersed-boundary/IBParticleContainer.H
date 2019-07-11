@@ -11,17 +11,19 @@
 #include <AMReX_NeighborParticles.H>
 #include <MFUtil.H>
 #include <IBParticleInfo.H>
+#include <IBMarkerContainer.H>
 #include <IBCore.H>
 
 
 using namespace amrex;
-// using namespace std;
 
 class mfix_level;
 class IBCore;
 
 
+
 //TODO: Check members lables with "Audit"
+
 
 // IBP => Immmersed Boundary Particle
 struct IBP_realData {
@@ -91,7 +93,7 @@ struct IBP_intData {
 
 
 
-class IBParIter final 
+class IBParIter final
     : public amrex::ParIter<IBP_realData::count, IBP_intData::count, 0, 0>
 {
 
@@ -127,18 +129,15 @@ public:
     * Auxiliary data types                                                      *
     ****************************************************************************/
 
-    // Used by PICMultiDeposition when iterating over particles (TODO: Audit)
-    //using MyConstParIter = ParConstIter<IBP_realData::count, IBP_intData::count, 0, 0>;
-
     // Data types representing slightly different representations of particle
     // data (for convenience and avoiding auto &).
-    //using RealType      = typename ParticleType::RealType;
-    //using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
+    // using RealType      = typename ParticleType::RealType;
+    // using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
     // using AoS = ArrayOfStructs<IBP_realData::count, IBP_intData::count>;
 
     // (ID, initial CPU) tuple: unique to each particle
     using ParticleIndex = std::pair<int, int>;
-    using IBMarkerMap = std::map<ParticleIndex, Vector<RealVect>>;
+    using IBMarkerMap   = std::map<ParticleIndex, Vector<RealVect>>;
 
     // Particle Position, Velocity, and Radius (abbriated particle info struct)
     using PPVR = struct {
@@ -250,6 +249,10 @@ public:
                                     bool unique = false) const;
     Vector<IBP_info> IBParticleInfo(int lev, bool unique = false) const;
 
+    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
+        return  face_coords;
+    }
+ 
 
 
 private:
@@ -259,7 +262,7 @@ private:
     /// We add a particle to the neighbor list if it's center is within 3 particle radii
     ///
     struct {
-        bool operator()(const ParticleType& p1, const ParticleType& p2) const
+        bool operator()(const ParticleType & p1, const ParticleType & p2) const
         {
             return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
                                  + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
@@ -282,7 +285,7 @@ private:
     Vector<IBMarkerMap> marker_velocities;
     Vector<IBMarkerMap> marker_forces;
 
-    // Posotions on faces
+    // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
 

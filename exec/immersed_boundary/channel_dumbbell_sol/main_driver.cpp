@@ -1,13 +1,12 @@
-
-#include "hydro_test_functions.H"
-#include "hydro_test_functions_F.H"
+#include "main_driver.H"
+#include "main_driver_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
-#include "analysis_functions_F.H"
+//#include "analysis_functions_F.H"
 #include "StochMFlux.H"
-#include "StructFact.H"
+//#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -29,11 +28,13 @@
 #include <AMReX_MultiFabUtil.H>
 
 #include <IBMarkerContainer.H>
+#include <IBMarkerMD.H>
 
 
 using namespace amrex;
 using namespace common;
 using namespace gmres;
+using namespace immbdy_md;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -311,7 +312,7 @@ void main_driver(const char * argv) {
     s_pairB[2] = 2;
 #endif
 
-    StructFact structFact(ba, dmap, var_names);
+    // StructFact structFact(ba, dmap, var_names);
     // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
 
 
@@ -324,13 +325,23 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+    // Make sure that the nghost (last argument) is big enough!
     IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
-    Vector<RealVect> marker_positions(2);
-    marker_positions[0] = RealVect{0.5, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.5, 0.51, 0.5};
+    Vector<RealVect> marker_positions(10);
+    marker_positions[0] = RealVect{0.05, 0.5, 0.5};
+    marker_positions[1] = RealVect{0.10, 0.5, 0.5};
+    marker_positions[2] = RealVect{0.15, 0.5, 0.5};
+    marker_positions[3] = RealVect{0.20, 0.5, 0.5};
+    marker_positions[4] = RealVect{0.25, 0.5, 0.5};
+    marker_positions[5] = RealVect{0.30, 0.5, 0.5};
+    marker_positions[6] = RealVect{0.35, 0.5, 0.5};
+    marker_positions[7] = RealVect{0.40, 0.5, 0.5};
+    marker_positions[8] = RealVect{0.45, 0.5, 0.5};
+    marker_positions[9] = RealVect{0.50, 0.5, 0.5};
 
-    Vector<Real> marker_radii = {.2, .2};
+    Vector<Real> marker_radii(10);
+    for (int i=0; i<10; ++i) marker_radii[i] = .10;
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 
@@ -347,18 +358,14 @@ void main_driver(const char * argv) {
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+
+        // initialize velocity
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            init_vel(BL_TO_FORTRAN_BOX(bx),
+                     BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
+                     geom.ProbLo(), geom.ProbHi(), & d,
+                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
 
         // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
@@ -397,18 +404,42 @@ void main_driver(const char * argv) {
     MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
 
     int step = 0;
     Real time = 0.;
 
 
     //___________________________________________________________________________
+    // Example of how to call bending force calculation
+    // note the namespace: immbdy_md declared above
+    // also note the order of the arguments: r_m -> r -> r_p (m=>minus, p=>plus)
+
+    //RealVect f, f_p, f_m;
+    //RealVect r, r_p, r_m;
+
+    //r_p = RealVect{0.6, 0.5, 0.5};
+    //r   = RealVect{0.5, 0.51, 0.5};
+    //r_m = RealVect{0.4, 0.5, 0.5};
+
+
+    //f_p = RealVect{0., 0., 0.};
+    //f   = RealVect{0., 0., 0.};
+    //f_m = RealVect{0., 0., 0.};
+
+
+    //bending_f(f, f_p, f_m, r, r_p, r_m, 10, 1.);
+
+    //Print() << "f= " << f_p << std::endl;
+    //Print() << "f= " << f << std::endl;
+    //Print() << "f= " << f_m << std::endl;
+
+
+    //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres);
+        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
     }
 
 
@@ -418,21 +449,6 @@ void main_driver(const char * argv) {
      * Advance Time Steps                                                       *
      *                                                                          *
      ***************************************************************************/
-
-    //___________________________________________________________________________
-    // FFT test
-    // if (struct_fact_int > 0) {
-    //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-    //     mf_cc[0].define(ba, dmap, 1, 0);
-    //     mf_cc[1].define(ba, dmap, 1, 0);
-    //     mf_cc[2].define(ba, dmap, 1, 0);
-    //     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-    //         const Box& bx = mfi.validbox();
-    //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-    //     }
-    // }
 
     for(step = 1; step <= max_step; ++step) {
 
@@ -460,12 +476,12 @@ void main_driver(const char * argv) {
         //_______________________________________________________________________
         // Update structure factor
 
-        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-            for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-            }
-            structFact.FortStructure(struct_in_cc,geom);
-        }
+        //if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        //    for(int d=0; d<AMREX_SPACEDIM; d++) {
+        //        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+        //    }
+        //    structFact.FortStructure(struct_in_cc,geom);
+        //}
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -475,29 +491,29 @@ void main_driver(const char * argv) {
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-          // write out umac & pres to a plotfile
-          WritePlotFile(step,time,geom,umac,tracer,pres);
+           //write out umac & pres to a plotfile
+           WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
         }
     }
 
     ///////////////////////////////////////////
-    if (struct_fact_int > 0) {
-        Real dVol = dx[0]*dx[1];
-        int tot_n_cells = n_cells[0]*n_cells[1];
-        if (AMREX_SPACEDIM == 2) {
-            dVol *= cell_depth;
-        } else if (AMREX_SPACEDIM == 3) {
-            dVol *= dx[2];
-            tot_n_cells = n_cells[2]*tot_n_cells;
-        }
+    //if (struct_fact_int > 0) {
+    //    Real dVol = dx[0]*dx[1];
+    //    int tot_n_cells = n_cells[0]*n_cells[1];
+    //    if (AMREX_SPACEDIM == 2) {
+    //        dVol *= cell_depth;
+    //    } else if (AMREX_SPACEDIM == 3) {
+    //        dVol *= dx[2];
+    //        tot_n_cells = n_cells[2]*tot_n_cells;
+    //    }
 
         // let rho = 1
-        Real SFscale = dVol/(k_B*temp_const);
+    //    Real SFscale = dVol/(k_B*temp_const);
         // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-        structFact.Finalize(SFscale);
-        structFact.WritePlotFile(step,time,geom);
-    }
+    //    structFact.Finalize(SFscale);
+    //    structFact.WritePlotFile(step,time,geom);
+    // }
 
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors

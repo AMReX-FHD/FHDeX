@@ -5,7 +5,6 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
-#include "analysis_functions_F.H"
 #include "StochMFlux.H"
 #include "StructFact.H"
 
@@ -210,17 +209,10 @@ void main_driver(const char* argv)
     // mflux divergence, staggered in x,y,z
 
     // Define mfluxdiv predictor multifabs
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_stoch;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_predict[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-      mfluxdiv_predict[d].setVal(0.0);
-    }
-
-    // Define mfluxdiv corrector multifabs
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-      mfluxdiv_correct[d].setVal(0.0);
+      mfluxdiv_stoch[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+      mfluxdiv_stoch[d].setVal(0.0);
     }
 
     Vector< amrex::Real > weights;
@@ -282,7 +274,7 @@ void main_driver(const char* argv)
     s_pairB[2] = 2;
 #endif
 
-    StructFact structFact(ba,dmap,var_names);
+    // StructFact structFact(ba,dmap,var_names);
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
     ///////////////////////////////////////////
@@ -349,12 +341,11 @@ void main_driver(const char* argv)
 	  sMflux.fillMStochastic();
 
 	  // compute stochastic force terms
-	  sMflux.stochMforce(mfluxdiv_predict,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-	  sMflux.stochMforce(mfluxdiv_correct,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	  sMflux.stochMforce(mfluxdiv_stoch,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	}
 
 	// Advance umac
-	advance(umac,umacNew,pres,tracer,mfluxdiv_predict,mfluxdiv_correct,
+	advance(umac,umacNew,pres,tracer,mfluxdiv_stoch,
 		alpha_fc,beta,gamma,beta_ed,geom,dt);
 
 	//////////////////////////////////////////////////
@@ -366,7 +357,7 @@ void main_driver(const char* argv)
 	  for(int d=0; d<AMREX_SPACEDIM; d++) {
 	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
 	  }
-	  structFact.FortStructure(struct_in_cc,geom);
+//	  structFact.FortStructure(struct_in_cc,geom);
         }
 	///////////////////////////////////////////
 
@@ -398,8 +389,8 @@ void main_driver(const char* argv)
       Real SFscale = dVol/(k_B*temp_const);
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
+//      structFact.Finalize(SFscale);
+//      structFact.WritePlotFile(step,time,geom);
     }
 
     // Call the timer again and compute the maximum difference between the start time

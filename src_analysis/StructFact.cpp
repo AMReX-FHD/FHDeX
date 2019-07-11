@@ -1,6 +1,6 @@
 
 #include "common_functions.H"
-#include "analysis_functions_F.H"
+#include "StructFact_F.H"
 #include "StructFact.H"
 
 #include <AMReX_MultiFabUtil.H>
@@ -8,7 +8,8 @@
 #include "AMReX_BoxArray.H"
 
 StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
-		       const Vector< std::string >& var_names, 
+		       const Vector< std::string >& var_names,
+		       const Vector< Real >& var_scaling_in,
 		       const Vector< int >& s_pairA_in,
 		       const Vector< int >& s_pairB_in,
 		       const int verbosity_in) {
@@ -24,6 +25,15 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
   // Reorder pair selecting vectors & error checking
 
   NCOV = s_pairA_in.size();
+
+  if ( NCOV != var_scaling_in.size() )
+      amrex::Error("Structure factor scaling dimension mismatch");
+
+  scaling.resize(NCOV);
+  for (int n=0; n<NCOV; n++) {
+      scaling[n] = 1.0/var_scaling_in[n];
+  }
+  
   s_pairA.resize(NCOV);
   s_pairB.resize(NCOV);
   
@@ -64,9 +74,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 	loop = 1;
       }
     }
-
     tot_iters++;
-
     if (tot_iters > 2*NVARU) {
       loop = 0;
       amrex::Error("Bubble sort failed to converge");
@@ -139,12 +147,22 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 }
 
 StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
-		       const Vector< std::string >& var_names, const int verbosity_in) {
+		       const Vector< std::string >& var_names,
+		       const Vector< Real >& var_scaling_in,
+		       const int verbosity_in) {
   
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
   NVAR = var_names.size();
   NCOV = NVAR*(NVAR+1)/2;
+
+  if ( NCOV != var_scaling_in.size() )
+      amrex::Error("Structure factor scaling dimension mismatch");
+
+  scaling.resize(NCOV);
+  for (int n=0; n<NCOV; n++) {
+      scaling[n] = 1.0/var_scaling_in[n];
+  }
   
   s_pairA.resize(NCOV);
   s_pairB.resize(NCOV);
@@ -248,96 +266,6 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   }
 
   nsamples++;
-}
-
-void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom) {
-  
-  BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
-
-  MultiFab plotfile;
-  Vector<std::string> varNames;
-  int nPlot = 1;
-
-  //////////////////////////////////////////////////////////////////////////////////
-  // Write out structure factor magnitude to plot file
-  //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename1 = "plt_structure_factor_mag";
-  nPlot = NCOV;
-  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-  varNames.resize(nPlot);
-
-  int cnt = 0; // keep a counter for plotfile variables
-  for (int n=0; n<NCOV; n++) {
-    varNames[cnt++] = cov_names[cnt];
-  }
-  
-  MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
-
-  // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
-  
-  //////////////////////////////////////////////////////////////////////////////////
-  // Write out real and imaginary components of structure factor to plot file
-  //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename2 = "plt_structure_factor_real_imag";
-  nPlot = 2*NCOV;
-  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
-  varNames.resize(nPlot);
-
-  cnt = 0; // keep a counter for plotfile variables
-  int index = 0;
-  for (int n=0; n<NCOV; n++) {
-    varNames[cnt] = cov_names[cnt];
-    varNames[cnt] += "_real";
-    index++;
-    cnt++;
-  }
-
-  index = 0;
-  for (int n=0; n<NCOV; n++) {
-    varNames[cnt] = cov_names[index];
-    varNames[cnt] += "_imag";
-    index++;
-    cnt++;
-  }
-
-  MultiFab::Copy(plotfile,cov_real,0,    0,NCOV,0);
-  MultiFab::Copy(plotfile,cov_imag,0,NCOV,NCOV,0);
-
-  // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
-}
-
-void StructFact::StructOut(MultiFab& struct_out) {
-
-  BL_PROFILE_VAR("StructFact::StructOut()",StructOut);
-
-  if (struct_out.nComp() == cov_mag.nComp()) {
-    MultiFab::Copy(struct_out,cov_mag,0,0,cov_mag.nComp(),0);
-  } else {
-    amrex::Error("Must have an equal number of components");
-  }
-}
-
-void StructFact::Finalize(const amrex::Real scale) {
-  
-  Real nsamples_inv = 1.0/(Real)nsamples;
-  
-  ShiftFFT(cov_real);
-  ShiftFFT(cov_imag);
-
-  cov_real.mult(nsamples_inv);
-  cov_real.mult(scale);
-
-  cov_imag.mult(nsamples_inv);
-  cov_imag.mult(scale);
-
-  cov_mag.setVal(0.0);
-  MultiFab::AddProduct(cov_mag,cov_real,0,cov_real,0,0,NCOV,0);
-  MultiFab::AddProduct(cov_mag,cov_imag,0,cov_imag,0,0,NCOV,0);
-
-  SqrtMF(cov_mag);
-
 }
 
 void StructFact::ComputeFFT(const MultiFab& variables,
@@ -510,7 +438,113 @@ void StructFact::ComputeFFT(const MultiFab& variables,
   }
 }
 
-void StructFact::ShiftFFT(MultiFab& dft_out) {
+void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom,
+			       const int zero_avg) {
+  
+  BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
+
+  MultiFab plotfile;
+  Vector<std::string> varNames;
+  int nPlot = 1;
+
+  // Build temp real & imag components
+  const BoxArray& ba = cov_mag.boxArray();
+  const DistributionMapping& dm = cov_mag.DistributionMap();
+  MultiFab cov_real_temp(ba, dm, NCOV, 0);
+  MultiFab cov_imag_temp(ba, dm, NCOV, 0);
+  MultiFab::Copy(cov_real_temp, cov_real, 0, 0, NCOV, 0);
+  MultiFab::Copy(cov_imag_temp, cov_imag, 0, 0, NCOV, 0);
+
+  // Finalize covariances - scale & compute magnitude
+  Finalize(cov_real_temp, cov_imag_temp, zero_avg);
+
+  //////////////////////////////////////////////////////////////////////////////////
+  // Write out structure factor magnitude to plot file
+  //////////////////////////////////////////////////////////////////////////////////
+  const std::string plotfilename1 = amrex::Concatenate("plt_structure_factor_mag_",step,9);
+  nPlot = NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
+
+  int cnt = 0; // keep a counter for plotfile variables
+  for (int n=0; n<NCOV; n++) {
+    varNames[cnt++] = cov_names[cnt];
+  }
+  
+  MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
+
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
+  
+  //////////////////////////////////////////////////////////////////////////////////
+  // Write out real and imaginary components of structure factor to plot file
+  //////////////////////////////////////////////////////////////////////////////////
+  const std::string plotfilename2 = amrex::Concatenate("plt_structure_factor_real_imag_",step,9);
+  nPlot = 2*NCOV;
+  plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
+  varNames.resize(nPlot);
+
+  cnt = 0; // keep a counter for plotfile variables
+  int index = 0;
+  for (int n=0; n<NCOV; n++) {
+    varNames[cnt] = cov_names[cnt];
+    varNames[cnt] += "_real";
+    index++;
+    cnt++;
+  }
+
+  index = 0;
+  for (int n=0; n<NCOV; n++) {
+    varNames[cnt] = cov_names[index];
+    varNames[cnt] += "_imag";
+    index++;
+    cnt++;
+  }
+
+  MultiFab::Copy(plotfile,cov_real_temp,0,0,   NCOV,0);
+  MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
+
+  // write a plotfile
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
+}
+
+void StructFact::StructOut(MultiFab& struct_out) {
+
+  BL_PROFILE_VAR("StructFact::StructOut()",StructOut);
+
+  if (struct_out.nComp() == cov_mag.nComp()) {
+    MultiFab::Copy(struct_out,cov_mag,0,0,cov_mag.nComp(),0);
+  } else {
+    amrex::Error("Must have an equal number of components");
+  }
+}
+
+void StructFact::Finalize(MultiFab& cov_real_in, MultiFab& cov_imag_in, const int zero_avg) {
+  
+  Real nsamples_inv = 1.0/(Real)nsamples;
+  
+  ShiftFFT(cov_real_in,zero_avg);
+  ShiftFFT(cov_imag_in,zero_avg);
+
+  cov_real_in.mult(nsamples_inv);
+  for (int d=0; d<NCOV; d++) {
+      cov_real_in.mult(scaling[d],d,1);
+  }
+
+  cov_imag_in.mult(nsamples_inv);
+  for (int d=0; d<NCOV; d++) {
+      cov_imag_in.mult(scaling[d],d,1);
+  }
+  
+  cov_mag.setVal(0.0);
+  MultiFab::AddProduct(cov_mag,cov_real_in,0,cov_real_in,0,0,NCOV,0);
+  MultiFab::AddProduct(cov_mag,cov_imag_in,0,cov_imag_in,0,0,NCOV,0);
+
+  SqrtMF(cov_mag);
+
+}
+
+void StructFact::ShiftFFT(MultiFab& dft_out, const int zero_avg) {
 
   BoxArray ba_onegrid;
   {
@@ -535,7 +569,7 @@ void StructFact::ShiftFFT(MultiFab& dft_out) {
       // Note: Make sure that multifab is cell-centered
       const Box& validBox = mfi.validbox();
       fft_shift(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		BL_TO_FORTRAN_FAB(dft_onegrid[mfi]));
+		BL_TO_FORTRAN_FAB(dft_onegrid[mfi]), &zero_avg);
     }
 
     dft_out.ParallelCopy(dft_onegrid, 0, d, 1);

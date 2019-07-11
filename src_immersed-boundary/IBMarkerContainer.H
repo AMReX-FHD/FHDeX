@@ -20,7 +20,7 @@ using namespace amrex;
 struct IBM_realData {
     //Analogous to particle realData (p.m_data)
     enum {
-        radius,
+        radius = 0,
         velx,
         vely,
         velz,
@@ -105,6 +105,9 @@ public:
     using NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
         ::NeighborParticleContainer;
 
+    using MyConstParIter = ParConstIter<IBM_realData::count, IBM_intData::count, 0, 0>;
+
+
     IBMarkerContainer(AmrCore * amr_core, int n_nbhd);
     IBMarkerContainer(const Geometry & geom, const DistributionMapping & dmap,
                       const BoxArray & ba, int n_nbhd);
@@ -117,13 +120,19 @@ public:
 
 
     void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos);
-
-
-
+    void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
 
 
     // Get number of particles
     int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().size();};
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Marker Spreading and Interpolation                                       *
+     *                                                                          *
+     ***************************************************************************/
 
 
     //___________________________________________________________________________
@@ -188,23 +197,42 @@ public:
 
 
 
-
     /****************************************************************************
-     * Physics                                                                   *
-     ****************************************************************************/
+     *                                                                          *
+     * Physics                                                                  *
+     *                                                                          *
+     ***************************************************************************/
+
 
     void MoveMarkers(int lev, Real dt);
     void MovePredictor(int lev, Real dt);
     void ResetMarkers(int lev);
     void ResetPredictor(int lev);
 
-    const IntVector & get_neighbor_list(int lev, const PairIndex & index) {
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Access marker (amrex particle) data                                      *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    const IntVector & get_neighbor_list(int lev, const PairIndex & index) const {
         return neighbor_list[lev].at(index);
     };
 
-    ParticleType * get_neighbors(int lev, const PairIndex & index) {
+    ParticleType * get_neighbors(int lev, const PairIndex & index) const {
         return (ParticleType *) neighbors[lev].at(index).dataPtr();
-    }
+    };
+
+    int FindConnectedMarkers(      AoS & particles,
+                             const ParticleType & part,
+                                   ParticleVector & nbhd_data,
+                             const Vector<int> & nbhd,
+                             int nbhd_index,
+                             ParticleType *& prev_marker,
+                             ParticleType *& next_marker) const;
 
 
 
@@ -235,33 +263,32 @@ public:
 
 
 
-    void InitInternals(int ngrow);
-
-    void ReadStaticParameters();
-
-
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
 
 
     struct {
-        bool operator()(const ParticleType & p1, const ParticleType & p2) const
-            {
-                return AMREX_D_TERM((p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
-                                     + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-                                     + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-                    <= 4.0*p1.rdata(0)*p1.rdata(0);
-            }
+        bool operator()(const ParticleType & p1, const ParticleType & p2) const {
+            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
+                                 + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+                                 + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+                <= 4.0*p1.rdata(0)*p1.rdata(0);
+        }
     } CheckPair;
+
+    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
+        return  face_coords;
+    }
 
 
 private:
 
-    // Posotions on faces
+    // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
-
+    void InitInternals(int ngrow);
+    void ReadStaticParameters();
 
     AmrCore * m_amr_core;
     int nghost;

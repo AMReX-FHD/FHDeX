@@ -81,10 +81,11 @@ void IBMarkerContainer::InitList(int lev,
 
         int prev_id  = -1;
         int prev_cpu = -1;
+        int p_seq    =  0;
 
         for(int i = 0; i < pos.size(); i++) {
             // IntVect representing particle's position in the tile_box grid.
-            RealVect pos_grid = pos[i];
+            RealVect pos_grid = pos[0]; // Important: need to initialize on same CPU
             pos_grid *= inv_dx;
             IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
                                                    (int) pos_grid[1],
@@ -117,28 +118,31 @@ void IBMarkerContainer::InitList(int lev,
                 p_new.rdata(IBM_realData::forcey) = 0.;
                 p_new.rdata(IBM_realData::forcez) = 0.;
 
+                p_new.rdata(IBM_realData::pred_posx)   = 0.;
+                p_new.rdata(IBM_realData::pred_posy)   = 0.;
+                p_new.rdata(IBM_realData::pred_posz)   = 0.;
+
+                p_new.rdata(IBM_realData::pred_velx)   = 0.;
+                p_new.rdata(IBM_realData::pred_vely)   = 0.;
+                p_new.rdata(IBM_realData::pred_velz)   = 0.;
+
                 p_new.rdata(IBM_realData::pred_forcex) = 0.;
                 p_new.rdata(IBM_realData::pred_forcey) = 0.;
                 p_new.rdata(IBM_realData::pred_forcez) = 0.;
 
-                ////////// Added predictor postions back ////////
-                p_new.rdata(IBM_realData::pred_posx) = 0.;
-                p_new.rdata(IBM_realData::pred_posy) = 0.;
-                p_new.rdata(IBM_realData::pred_posz) = 0.;
+                p_new.idata(IBM_intData::id_0)  = prev_id;
+                p_new.idata(IBM_intData::cpu_0) = prev_cpu;
 
-
-                p_new.idata(IBM_intData::id_0)    = prev_id;
-                p_new.idata(IBM_intData::cpu_0)   = prev_cpu;
-
-                p_new.idata(IBM_intData::id_1)    = -1;
-                p_new.idata(IBM_intData::cpu_1)   = -1;
+                p_new.idata(IBM_intData::id_1)  = p_seq;
+                p_new.idata(IBM_intData::cpu_1) = -1;
 
                 // Add to the data structure
                 particles.push_back(p_new);
 
-
                 prev_id  = p_new.id();
                 prev_cpu = p_new.cpu();
+
+                p_seq ++;
             }
         }
 
@@ -157,17 +161,117 @@ void IBMarkerContainer::InitList(int lev,
 
 
 
+void IBMarkerContainer::InitSingle(int lev, Real radius, const RealVect & pos,
+                                   int id, int cpu, int i_ref) {
+
+    // Inverse cell-size vector => used for determining index corresponding to
+    // IBParticle position (pos)
+    RealVect inv_dx = RealVect(AMREX_D_DECL(Geom(lev).InvCellSize(0),
+                                            Geom(lev).InvCellSize(1),
+                                            Geom(lev).InvCellSize(2) ));
+
+
+    // This uses the particle tile size. Note that the default is to tile so if
+    // we remove the true and don't explicitly add false it will still tile.
+    for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
+
+        // Current tile box
+        const Box & tile_box = mfi.tilebox();
+
+        // Create a particle container for this grid and add the
+        // immersed-boundary particles to it if the particle's position (pos)
+        // is within current tile box.
+        const int grid_id = mfi.index();
+        const int tile_id = mfi.LocalTileIndex();
+        auto & particles = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+
+
+        // IntVect representing particle's position in the tile_box grid.
+        RealVect pos_grid = pos; // Important: need to initialize on same CPU
+        pos_grid *= inv_dx;
+        IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
+                                               (int) pos_grid[1],
+                                               (int) pos_grid[2] ));
+
+        // Add particle at position pos iff it's vector index is contained
+        // within tile_box.
+        if(tile_box.contains(pos_ind)) {
+
+            ParticleType p_new;
+
+            // Set id and cpu for this particle
+            p_new.id()  = ParticleType::NextID();
+            p_new.cpu() = ParallelDescriptor::MyProc();
+
+            // Set particle position
+            p_new.pos(0) = pos[0];
+            p_new.pos(1) = pos[1];
+            p_new.pos(2) = pos[2];
+
+            p_new.rdata(IBM_realData::radius) = radius;
+
+            // Initialize marker velocity as well as forces to 0
+            p_new.rdata(IBM_realData::velx)   = 0.;
+            p_new.rdata(IBM_realData::vely)   = 0.;
+            p_new.rdata(IBM_realData::velz)   = 0.;
+
+            p_new.rdata(IBM_realData::forcex) = 0.;
+            p_new.rdata(IBM_realData::forcey) = 0.;
+            p_new.rdata(IBM_realData::forcez) = 0.;
+
+            p_new.rdata(IBM_realData::pred_posx)   = 0.;
+            p_new.rdata(IBM_realData::pred_posy)   = 0.;
+            p_new.rdata(IBM_realData::pred_posz)   = 0.;
+
+            p_new.rdata(IBM_realData::pred_velx)   = 0.;
+            p_new.rdata(IBM_realData::pred_vely)   = 0.;
+            p_new.rdata(IBM_realData::pred_velz)   = 0.;
+
+            p_new.rdata(IBM_realData::pred_forcex) = 0.;
+            p_new.rdata(IBM_realData::pred_forcey) = 0.;
+            p_new.rdata(IBM_realData::pred_forcez) = 0.;
+
+            p_new.idata(IBM_intData::id_0)  = id;
+            p_new.idata(IBM_intData::cpu_0) = cpu;
+
+            p_new.idata(IBM_intData::id_1)  = i_ref;
+            p_new.idata(IBM_intData::cpu_1) = -1;
+
+            // Add to the data structure
+            particles.push_back(p_new);
+        }
+    }
+
+    // We shouldn't need this if the particles are tiled with one tile per
+    // grid, but otherwise we do need this to move particles from tile 0 to the
+    // correct tile.
+    Redistribute();
+}
+
+
 void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
 
     for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
-        long np = particle_data.size();
 
-        AoS & particles = particle_data.GetArrayOfStructs();
-        for (int i = 0; i < np; ++i) {
+        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
+
+            part.pos(0) += dt * part.rdata(IBM_realData::velx);
+            part.pos(1) += dt * part.rdata(IBM_realData::vely);
+            part.pos(2) += dt * part.rdata(IBM_realData::velz);
+        }
+
+
+        ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
+        long nn = nbhd.size();
+
+        for (int i=0; i<nn; ++i) {
+            ParticleType & part = nbhd[i];
 
             part.pos(0) += dt * part.rdata(IBM_realData::velx);
             part.pos(1) += dt * part.rdata(IBM_realData::vely);
@@ -181,20 +285,48 @@ void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
 void IBMarkerContainer::MovePredictor(int lev, Real dt) {
 
     for (IBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+    // for (MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
+
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
-        long np = particle_data.size();
 
-        AoS & particles = particle_data.GetArrayOfStructs();
+        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            MarkerIndex pindex(part.id(), part.cpu());
 
-            part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
-            part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
-            part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
+            // // update predictor to match the position
+            // part.rdata(IBM_realData::pred_posx) = part.pos(0);
+            // part.rdata(IBM_realData::pred_posy) = part.pos(1);
+            // part.rdata(IBM_realData::pred_posz) = part.pos(2);
+
+            // part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
+            // part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
+            // part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
+            part.rdata(IBM_realData::pred_posx) = dt * part.rdata(IBM_realData::pred_velx);
+            part.rdata(IBM_realData::pred_posy) = dt * part.rdata(IBM_realData::pred_vely);
+            part.rdata(IBM_realData::pred_posz) = dt * part.rdata(IBM_realData::pred_velz);
         }
+
+
+        // ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
+        // long nn = nbhd.size();
+
+        // for (int i=0; i<nn; ++i) {
+        //     ParticleType & part = nbhd[i];
+
+        //     // part.rdata(IBM_realData::pred_posx) = part.pos(0);
+        //     // part.rdata(IBM_realData::pred_posy) = part.pos(1);
+        //     // part.rdata(IBM_realData::pred_posz) = part.pos(2);
+
+        //     // part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
+        //     // part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
+        //     // part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
+        //     part.rdata(IBM_realData::pred_posx) = dt * part.rdata(IBM_realData::pred_velx);
+        //     part.rdata(IBM_realData::pred_posy) = dt * part.rdata(IBM_realData::pred_vely);
+        //     part.rdata(IBM_realData::pred_posz) = dt * part.rdata(IBM_realData::pred_velz);
+        // }
     }
 }
 
@@ -215,6 +347,10 @@ void IBMarkerContainer::ResetMarkers(int lev) {
             part.rdata(IBM_realData::velx) = 0.;
             part.rdata(IBM_realData::vely) = 0.;
             part.rdata(IBM_realData::velz) = 0.;
+
+            part.rdata(IBM_realData::forcex) = 0.;
+            part.rdata(IBM_realData::forcey) = 0.;
+            part.rdata(IBM_realData::forcez) = 0.;
         }
     }
 }
@@ -232,11 +368,14 @@ void IBMarkerContainer::ResetPredictor(int lev) {
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            MarkerIndex pindex(part.id(), part.cpu());
 
             part.rdata(IBM_realData::pred_velx) = 0.;
             part.rdata(IBM_realData::pred_vely) = 0.;
             part.rdata(IBM_realData::pred_velz) = 0.;
+
+            part.rdata(IBM_realData::pred_forcex) = 0.;
+            part.rdata(IBM_realData::pred_forcey) = 0.;
+            part.rdata(IBM_realData::pred_forcez) = 0.;
         }
     }
 }
@@ -271,9 +410,11 @@ void IBMarkerContainer::SpreadMarkers(int lev,
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
-        Box bx = mfi.growntilebox();
+        Box bx       = mfi.growntilebox();
+        Box tile_box = mfi.tilebox();
 
         spread_markers(BL_TO_FORTRAN_BOX(bx),
+                       BL_TO_FORTRAN_BOX(tile_box),
                        BL_TO_FORTRAN_ANYD(f_out[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
                        BL_TO_FORTRAN_ANYD(f_out[1][mfi]),
@@ -354,7 +495,8 @@ void IBMarkerContainer::SpreadMarkers(int lev,
     }
 
 
-    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -391,43 +533,44 @@ void IBMarkerContainer::SpreadMarkers(int lev,
         // Spread the non-neighbor particles (markers)
         SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
 
-        // Clear vectors => to be filled with neighbor data now
-        marker_positions.clear();
-        marker_forces.clear();
-
-
-        // Neighbor marker data for current tile
-        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
-
-        //_______________________________________________________________________
-        // Fill vector of neighbor marker positions and forces
-        int ng = neighbors[lev].at(index).size();
-
-        marker_positions.resize(ng);
-        marker_forces.resize(ng);
-
-        for (int i = 0; i < ng; ++i) {
-            const ParticleType & part = nbhd_data[i];
-
-            RealVect ppos, pfor;
-            for (int d=0; d<AMREX_SPACEDIM; ++d)
-                ppos[d] = part.pos(d);
-
-            pfor[0] = part.rdata(IBM_realData::forcex);
-#if (AMREX_SPACEDIM > 1)
-            pfor[1] = part.rdata(IBM_realData::forcey);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            pfor[2] = part.rdata(IBM_realData::forcez);
-#endif
-
-            marker_positions[i] = ppos;
-            marker_forces[i]    = pfor;
-        }
-
-        //_______________________________________________________________________
-        // Spread the neighbor particles (markers)
-        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+//        // Clear vectors => to be filled with neighbor data now
+//        marker_positions.clear();
+//        marker_forces.clear();
+//
+//
+//        // Neighbor marker data for current tile
+//        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+//
+//        //_______________________________________________________________________
+//        // Fill vector of neighbor marker positions and forces
+//        int ng = neighbors[lev].at(index).size();
+//
+//        marker_positions.resize(ng);
+//        marker_forces.resize(ng);
+//
+//        for (int i = 0; i < ng; ++i) {
+//            const ParticleType & part = nbhd_data[i];
+//
+//            RealVect ppos, pfor;
+//            for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                ppos[d] = part.pos(d);
+//
+//            pfor[0] = part.rdata(IBM_realData::forcex);
+//#if (AMREX_SPACEDIM > 1)
+//            pfor[1] = part.rdata(IBM_realData::forcey);
+//#endif
+//#if (AMREX_SPACEDIM > 2)
+//            pfor[2] = part.rdata(IBM_realData::forcez);
+//#endif
+//
+//            marker_positions[i] = ppos;
+//            marker_forces[i]    = pfor;
+//        }
+//
+//        std::cout << "spreading neighbor particles: " << ng << std::endl;
+//        //_______________________________________________________________________
+//        // Spread the neighbor particles (markers)
+//        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
     }
 }
 
@@ -447,7 +590,8 @@ void IBMarkerContainer::SpreadPredictor(int lev,
     }
 
 
-    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -465,12 +609,12 @@ void IBMarkerContainer::SpreadPredictor(int lev,
 
             RealVect ppos, pfor;
 
-            ppos[0] = part.rdata(IBM_realData::pred_posx);
+            ppos[0] = part.pos(0) + part.rdata(IBM_realData::pred_posx);
 #if (AMREX_SPACEDIM > 1)
-            ppos[1] = part.rdata(IBM_realData::pred_posy);
+            ppos[1] = part.pos(1) + part.rdata(IBM_realData::pred_posy);
 #endif
 #if (AMREX_SPACEDIM > 2)
-            ppos[2] = part.rdata(IBM_realData::pred_posz);
+            ppos[2] = part.pos(2) + part.rdata(IBM_realData::pred_posz);
 #endif
 
             pfor[0] = part.rdata(IBM_realData::pred_forcex);
@@ -489,50 +633,51 @@ void IBMarkerContainer::SpreadPredictor(int lev,
         // Spread the non-neighbor particles (markers)
         SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
 
-        // Clear vectors => to be filled with neighbor data now
-        marker_positions.clear();
-        marker_forces.clear();
-
-
-        // Neighbor marker data for current tile
-        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
-
-
-        //_______________________________________________________________________
-        // Fill vector of neighbor marker positions and forces
-        int ng = neighbors[lev].at(index).size();
-
-        marker_positions.resize(ng);
-        marker_forces.resize(ng);
-
-        for (int i = 0; i < ng; ++i) {
-            const ParticleType & part = nbhd_data[i];
-
-            RealVect ppos, pfor;
-
-            ppos[0] = part.rdata(IBM_realData::pred_posx);
-#if (AMREX_SPACEDIM > 1)
-            ppos[1] = part.rdata(IBM_realData::pred_posy);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            ppos[2] = part.rdata(IBM_realData::pred_posz);
-#endif
-
-            pfor[0] = part.rdata(IBM_realData::pred_forcex);
-#if (AMREX_SPACEDIM > 1)
-            pfor[1] = part.rdata(IBM_realData::pred_forcey);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            pfor[2] = part.rdata(IBM_realData::pred_forcez);
-#endif
-
-            marker_positions[i] = ppos;
-            marker_forces[i]    = pfor;
-        }
-
-        //_______________________________________________________________________
-        // Spread the eighbor particles (markers)
-        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+//        // Clear vectors => to be filled with neighbor data now
+//        marker_positions.clear();
+//        marker_forces.clear();
+//
+//
+//        // Neighbor marker data for current tile
+//        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+//
+//
+//        //_______________________________________________________________________
+//        // Fill vector of neighbor marker positions and forces
+//        int ng = neighbors[lev].at(index).size();
+//
+//        marker_positions.resize(ng);
+//        marker_forces.resize(ng);
+//
+//        for (int i = 0; i < ng; ++i) {
+//            const ParticleType & part = nbhd_data[i];
+//
+//            RealVect ppos, pfor;
+//
+//            ppos[0] = part.pos(0) + part.rdata(IBM_realData::pred_posx);
+//#if (AMREX_SPACEDIM > 1)
+//            ppos[1] = part.pos(1) + part.rdata(IBM_realData::pred_posy);
+//#endif
+//#if (AMREX_SPACEDIM > 2)
+//            ppos[2] = part.pos(2) + part.rdata(IBM_realData::pred_posz);
+//#endif
+//
+//            pfor[0] = part.rdata(IBM_realData::pred_forcex);
+//#if (AMREX_SPACEDIM > 1)
+//            pfor[1] = part.rdata(IBM_realData::pred_forcey);
+//#endif
+//#if (AMREX_SPACEDIM > 2)
+//            pfor[2] = part.rdata(IBM_realData::pred_forcez);
+//#endif
+//
+//            marker_positions[i] = ppos;
+//            marker_forces[i]    = pfor;
+//        }
+//
+//        std::cout << "spreading neighbor particles: " << ng << std::endl;
+//        //_______________________________________________________________________
+//        // Spread the eighbor particles (markers)
+//        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
     }
 }
 
@@ -566,9 +711,11 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
-        Box bx = mfi.growntilebox();
+        Box bx       = mfi.growntilebox();
+        Box tile_box = mfi.tilebox();
 
         interpolate_markers(BL_TO_FORTRAN_BOX(bx),
+                            BL_TO_FORTRAN_BOX(tile_box),
                             BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
                             BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
@@ -620,7 +767,8 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 
 void IBMarkerContainer::InterpolateMarkers(int lev,
-        Vector<RealVect> & f_out, const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
+                                           Vector<RealVect> & f_out,
+                                           const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const {
 
     //___________________________________________________________________________
     // We don't need these spreading weights => create a dummy MF
@@ -651,7 +799,8 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
     }
 
 
-    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -695,54 +844,54 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 #endif
         }
 
-        // Clear vectors => to be filled with neighbor data now
-        marker_positions.clear();
-        marker_forces.clear();
-
-
-        // Neighbor marker data for current tile
-        ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
-
-
-        //_______________________________________________________________________
-        // Fill vector of neighbor marker positions and forces
-        int ng = neighbors[lev].at(index).size();
-
-        marker_positions.resize(ng);
-        marker_forces.resize(ng);
-
-        for (int i = 0; i < ng; ++i) {
-            ParticleType & part = nbhd_data[i];
-
-            RealVect ppos, pfor;
-            for (int d=0; d<AMREX_SPACEDIM; ++d)
-                ppos[d] = part.pos(d);
-
-            // pfor should be (0, .., 0)
-
-            marker_positions[i] = ppos;
-            marker_forces[i]    = pfor;
-        }
-
-        //_______________________________________________________________________
-        // Interpolate the neighbor particles (markers)
-        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
-
-        // Add interpolated markers back to the particles (markers)
-        for (int i = 0; i < ng; ++i) {
-            ParticleType & part = nbhd_data[i];
-
-            part.rdata(IBM_realData::velx) += marker_forces[i][0];
-#if (AMREX_SPACEDIM > 1)
-            part.rdata(IBM_realData::vely) += marker_forces[i][1];
-#endif
-#if (AMREX_SPACEDIM > 2)
-            part.rdata(IBM_realData::velz) += marker_forces[i][2];
-#endif
-
-        }
-
-        // TODO: sync neighbors?
+//        // Clear vectors => to be filled with neighbor data now
+//        marker_positions.clear();
+//        marker_forces.clear();
+//
+//
+//        // Neighbor marker data for current tile
+//        ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+//
+//
+//        //_______________________________________________________________________
+//        // Fill vector of neighbor marker positions and forces
+//        int ng = neighbors[lev].at(index).size();
+//
+//        marker_positions.resize(ng);
+//        marker_forces.resize(ng);
+//
+//        for (int i = 0; i < ng; ++i) {
+//            ParticleType & part = nbhd_data[i];
+//
+//            RealVect ppos, pfor;
+//            for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                ppos[d] = part.pos(d);
+//
+//            // pfor should be (0, .., 0)
+//
+//            marker_positions[i] = ppos;
+//            marker_forces[i]    = pfor;
+//        }
+//
+//        //_______________________________________________________________________
+//        // Interpolate the neighbor particles (markers)
+//        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+//
+//        // Add interpolated markers back to the particles (markers)
+//        for (int i = 0; i < ng; ++i) {
+//            ParticleType & part = nbhd_data[i];
+//
+//            part.rdata(IBM_realData::velx) += marker_forces[i][0];
+//#if (AMREX_SPACEDIM > 1)
+//            part.rdata(IBM_realData::vely) += marker_forces[i][1];
+//#endif
+//#if (AMREX_SPACEDIM > 2)
+//            part.rdata(IBM_realData::velz) += marker_forces[i][2];
+//#endif
+//
+//        }
+//
+//        // TODO: sync neighbors?
     }
 }
 
@@ -763,7 +912,8 @@ void IBMarkerContainer::InterpolatePredictor(int lev,
     }
 
 
-    for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    // for (MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
+    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -781,12 +931,12 @@ void IBMarkerContainer::InterpolatePredictor(int lev,
 
             RealVect ppos, pfor;
 
-            ppos[0] = part.rdata(IBM_realData::pred_posx);
+            ppos[0] = part.pos(0) + part.rdata(IBM_realData::pred_posx);
 #if (AMREX_SPACEDIM > 1)
-            ppos[1] = part.rdata(IBM_realData::pred_posy);
+            ppos[1] = part.pos(1) + part.rdata(IBM_realData::pred_posy);
 #endif
 #if (AMREX_SPACEDIM > 2)
-            ppos[2] = part.rdata(IBM_realData::pred_posz);
+            ppos[2] = part.pos(2) + part.rdata(IBM_realData::pred_posz);
 #endif
 
             // pfor should be (0, .., 0)
@@ -813,61 +963,122 @@ void IBMarkerContainer::InterpolatePredictor(int lev,
 #endif
         }
 
-        // Clear vectors => to be filled with neighbor data now
-        marker_positions.clear();
-        marker_forces.clear();
+//        // Clear vectors => to be filled with neighbor data now
+//        marker_positions.clear();
+//        marker_forces.clear();
+//
+//
+//        // Neighbor marker data for current tile
+//        ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+//
+//
+//        //_______________________________________________________________________
+//        // Fill vector of neighbor marker positions and forces
+//        int ng = neighbors[lev].at(index).size();
+//
+//        marker_positions.resize(ng);
+//        marker_forces.resize(ng);
+//
+//        for (int i = 0; i < ng; ++i) {
+//            const ParticleType & part = nbhd_data[i];
+//
+//            RealVect ppos, pfor;
+//
+//            ppos[0] = part.pos(0) + part.rdata(IBM_realData::pred_posx);
+//#if (AMREX_SPACEDIM > 1)
+//            ppos[1] = part.pos(1) + part.rdata(IBM_realData::pred_posy);
+//#endif
+//#if (AMREX_SPACEDIM > 2)
+//            ppos[2] = part.pos(2) + part.rdata(IBM_realData::pred_posz);
+//#endif
+//
+//
+//            // pfor should be (0, .., 0)
+//
+//            marker_positions[i] = ppos;
+//            marker_forces[i]    = pfor;
+//        }
+//
+//        //_______________________________________________________________________
+//        // Interpolate the neighbor particles (markers)
+//        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+//
+//        // Add interpolated markers back to the particles (markers)
+//        for (int i = 0; i < ng; ++i) {
+//            ParticleType & part = nbhd_data[i];
+//
+//            part.rdata(IBM_realData::pred_velx) += marker_forces[i][0];
+//#if (AMREX_SPACEDIM > 1)
+//            part.rdata(IBM_realData::pred_vely) += marker_forces[i][1];
+//#endif
+//#if (AMREX_SPACEDIM > 2)
+//            part.rdata(IBM_realData::pred_velz) += marker_forces[i][2];
+//#endif
+//
+//        }
+//
+//        // TODO: sync neighbors?
+    }
+}
 
 
-        // Neighbor marker data for current tile
-        ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+
+int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
+                                            const ParticleType & part,
+                                                  ParticleVector & nbhd_data,
+                                            const Vector<int> & nbhd,
+                                            int nbhd_index,
+                                            ParticleType *& prev_marker,
+                                            ParticleType *& next_marker) const {
+
+    long np = particles.size();
+    int nn  = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
+    nbhd_index ++; // pointing at first neighbor
 
 
-        //_______________________________________________________________________
-        // Fill vector of neighbor marker positions and forces
-        int ng = neighbors[lev].at(index).size();
-
-        marker_positions.resize(ng);
-        marker_forces.resize(ng);
-
-        for (int i = 0; i < ng; ++i) {
-            const ParticleType & part = nbhd_data[i];
-
-            RealVect ppos, pfor;
-
-            ppos[0] = part.rdata(IBM_realData::pred_posx);
-#if (AMREX_SPACEDIM > 1)
-            ppos[1] = part.rdata(IBM_realData::pred_posy);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            ppos[2] = part.rdata(IBM_realData::pred_posz);
-#endif
+    bool prev_set = false;
+    bool next_set = false;
 
 
-            // pfor should be (0, .., 0)
+    // Loops over neighbor list
+    for (int j=0; j < nn; ++j) {
+        int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing
 
-            marker_positions[i] = ppos;
-            marker_forces[i]    = pfor;
+        ParticleType * npart;
+        if (ni >= np) {
+            ni = ni - np;
+            npart = & nbhd_data[ni];
+        } else {
+            npart = & particles[ni];
         }
 
-        //_______________________________________________________________________
-        // Interpolate the neighbor particles (markers)
-        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+        // Check if the neighbor candidate is the previous/minus neighbor
+        if (        (npart->id() == part.idata(IBM_intData::id_0))
+                && (npart->cpu() == part.idata(IBM_intData::cpu_0)) ) {
 
-        // Add interpolated markers back to the particles (markers)
-        for (int i = 0; i < ng; ++i) {
-            ParticleType & part = nbhd_data[i];
-
-            part.rdata(IBM_realData::pred_velx) += marker_forces[i][0];
-#if (AMREX_SPACEDIM > 1)
-            part.rdata(IBM_realData::pred_vely) += marker_forces[i][1];
-#endif
-#if (AMREX_SPACEDIM > 2)
-            part.rdata(IBM_realData::pred_velz) += marker_forces[i][2];
-#endif
-
+            prev_marker = npart;
+            prev_set = true;
         }
 
-        // TODO: sync neighbors?
+        // Check if the neighbor candidate is the next/plus neighbor
+        if (        (part.id() == npart->idata(IBM_intData::id_0))
+                && (part.cpu() == npart->idata(IBM_intData::cpu_0)) ) {
+
+            next_marker = npart;
+            next_set = true;
+        }
+
+        nbhd_index ++;
+    }
+
+    if (prev_set && next_set) {
+        return 0;
+    } else if (! prev_set &&   next_set ) {
+        return 1;
+    } else if (  prev_set && ! next_set)  {
+        return 2;
+    } else {
+        return -1;
     }
 }
 
@@ -1069,13 +1280,9 @@ void IBMarkerContainer::NeighborIBMarkerInfo(Vector<IBM_info> & info,
                                              int lev, PairIndex index,
                                              bool unique) const {
 
-    RealVect inv_dx = RealVect(
-            AMREX_D_DECL(
-                Geom(lev).InvCellSize(0),
-                Geom(lev).InvCellSize(1),
-                Geom(lev).InvCellSize(2)
-            )
-        );
+    RealVect inv_dx = RealVect(AMREX_D_DECL(Geom(lev).InvCellSize(0),
+                                            Geom(lev).InvCellSize(1),
+                                            Geom(lev).InvCellSize(2)  ));
 
     int ng = neighbors[lev].at(index).size();
 
@@ -1254,18 +1461,22 @@ void IBMarkerContainer::InitInternals(int ngrow) {
     // Turn off certain components for ghost particle communication
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
     //      => 3 corresponds to the start of IBM_realData
-    setRealCommComp(4,  true);  // IBM_realData.velx
-    setRealCommComp(5,  true);  // IBM_realData.vely
-    setRealCommComp(6,  true);  // IBM_realData.velz
-    setRealCommComp(7,  true);  // IBM_realData.forcex
-    setRealCommComp(8,  true);  // IBM_realData.forcey
-    setRealCommComp(9,  true);  // IBM_realData.forcez
-    setRealCommComp(10, true);  // IBM_realData.pred_posx
-    setRealCommComp(11, true);  // IBM_realData.pred_posy
-    setRealCommComp(12, true);  // IBM_realData.pred_posz
-    setRealCommComp(13, true);  // IBM_realData.pred_forcex
-    setRealCommComp(14, true);  // IBM_realData.pred_forcey
-    setRealCommComp(15, true);  // IBM_realData.pred_forcez
+    setRealCommComp(4,  true);  // IBM_realData.radius;
+    setRealCommComp(5,  true);  // IBM_realData.velx
+    setRealCommComp(6,  true);  // IBM_realData.vely
+    setRealCommComp(7,  true);  // IBM_realData.velz
+    setRealCommComp(8,  true);  // IBM_realData.forcex
+    setRealCommComp(9,  true);  // IBM_realData.forcey
+    setRealCommComp(10, true);  // IBM_realData.forcez
+    setRealCommComp(11, true);  // IBM_realData.pred_posx
+    setRealCommComp(12, true);  // IBM_realData.pred_posy
+    setRealCommComp(13, true);  // IBM_realData.pred_posz
+    setRealCommComp(14, true);  // IBM_realData.pred_velx
+    setRealCommComp(15, true);  // IBM_realData.pred_vely
+    setRealCommComp(16, true);  // IBM_realData.pred_velz
+    setRealCommComp(17, true);  // IBM_realData.pred_forcex
+    setRealCommComp(18, true);  // IBM_realData.pred_forcey
+    setRealCommComp(19, true);  // IBM_realData.pred_forcez
 
     // Field numbers: {0, 1} => {ID, CPU}
     //      => 2 corresponds to the start of IBM_intData

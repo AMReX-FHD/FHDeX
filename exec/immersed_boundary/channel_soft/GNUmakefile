@@ -14,6 +14,7 @@ DEBUG     = FALSE
 PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
+USE_EB    = TRUE
 COMP      = gnu
 DIM       = 3
 DSMC      = TRUE
@@ -89,6 +90,9 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
+include $(AMREX_HOME)/Src/EB/Make.package
+# INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/EB
+# VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/EB
 
 include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT

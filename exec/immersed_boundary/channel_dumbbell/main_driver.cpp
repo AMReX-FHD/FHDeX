@@ -1,13 +1,12 @@
-
-#include "hydro_test_functions.H"
-#include "hydro_test_functions_F.H"
+#include "main_driver.H"
+#include "main_driver_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
-#include "analysis_functions_F.H"
+//#include "analysis_functions_F.H"
 #include "StochMFlux.H"
-#include "StructFact.H"
+// #include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -311,7 +310,7 @@ void main_driver(const char * argv) {
     s_pairB[2] = 2;
 #endif
 
-    StructFact structFact(ba, dmap, var_names);
+    // StructFact structFact(ba, dmap, var_names);
     // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
 
 
@@ -324,16 +323,18 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
-    IBMarkerContainer ib_mc(geom, dmap, ba, 1);
+    // Make sure that the nghost (last argument) is big enough!
+    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
-    Vector<RealVect> marker_positions(1);
-    marker_positions[0] = RealVect{0.5, 0.5, 0.5};
-//    marker_positions[1] = RealVect{0.5, 1.0, 0.5};
+    Vector<RealVect> marker_positions(2);
+    marker_positions[0] = RealVect{0.2,  0.5, 0.5};
+    marker_positions[1] = RealVect{0.21, 0.5, 0.5};
 
-    //define spring constant between adjacent markers
-//    Real spr_k = 1;
+    Vector<Real> marker_radii(2);
+    marker_radii[0] = {0.02};
+    marker_radii[1] = {0.02};
 
-    ib_mc.InitList(0, marker_positions);
+    ib_mc.InitList(0, marker_radii, marker_positions);
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
@@ -409,7 +410,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres);
+        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
     }
 
 
@@ -419,21 +420,6 @@ void main_driver(const char * argv) {
      * Advance Time Steps                                                       *
      *                                                                          *
      ***************************************************************************/
-
-    //___________________________________________________________________________
-    // FFT test
-    // if (struct_fact_int > 0) {
-    //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-    //     mf_cc[0].define(ba, dmap, 1, 0);
-    //     mf_cc[1].define(ba, dmap, 1, 0);
-    //     mf_cc[2].define(ba, dmap, 1, 0);
-    //     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-    //         const Box& bx = mfi.validbox();
-    //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-    //     }
-    // }
 
     for(step = 1; step <= max_step; ++step) {
 
@@ -465,7 +451,7 @@ void main_driver(const char * argv) {
             for(int d=0; d<AMREX_SPACEDIM; d++) {
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
             }
-            structFact.FortStructure(struct_in_cc,geom);
+            // structFact.FortStructure(struct_in_cc,geom);
         }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
@@ -477,28 +463,28 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-          WritePlotFile(step,time,geom,umac,tracer,pres);
+          WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
         }
     }
 
-    ///////////////////////////////////////////
-    if (struct_fact_int > 0) {
-        Real dVol = dx[0]*dx[1];
-        int tot_n_cells = n_cells[0]*n_cells[1];
-        if (AMREX_SPACEDIM == 2) {
-            dVol *= cell_depth;
-        } else if (AMREX_SPACEDIM == 3) {
-            dVol *= dx[2];
-            tot_n_cells = n_cells[2]*tot_n_cells;
-        }
+    // ///////////////////////////////////////////
+    // if (struct_fact_int > 0) {
+    //     Real dVol = dx[0]*dx[1];
+    //     int tot_n_cells = n_cells[0]*n_cells[1];
+    //     if (AMREX_SPACEDIM == 2) {
+    //         dVol *= cell_depth;
+    //     } else if (AMREX_SPACEDIM == 3) {
+    //         dVol *= dx[2];
+    //         tot_n_cells = n_cells[2]*tot_n_cells;
+    //     }
 
-        // let rho = 1
-        Real SFscale = dVol/(k_B*temp_const);
-        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+    //     // let rho = 1
+    //     Real SFscale = dVol/(k_B*temp_const);
+    //     // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-        structFact.Finalize(SFscale);
-        structFact.WritePlotFile(step,time,geom);
-    }
+    //     structFact.Finalize(SFscale);
+    //     structFact.WritePlotFile(step,time,geom);
+    // }
 
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors

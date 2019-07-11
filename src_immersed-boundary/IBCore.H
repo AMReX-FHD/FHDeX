@@ -111,6 +111,9 @@ public:
         return * tag_interface;
     }
 
+    const MultiFab & get_LevelSet() const {
+        return * ls;
+    }
 
     // This is unsafe => don't use!
     // const Box & get_IBMBox(const PairIndex & part_index) const {
