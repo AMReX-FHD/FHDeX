@@ -19,9 +19,9 @@
 #include "surfaces.H"
 
 //#include "analysis_functions_F.H"
-#include "StructFact_F.H"
+//#include "StructFact_F.H"
 #include "StochMFlux.H"
-#include "StructFact.H"
+//#include "StructFact.H"
 
 #include "hydro_test_functions_F.H"
 
