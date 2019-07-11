@@ -535,14 +535,14 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     bJ1 = bessel_jn(1,k)
     p=(oldvel(3) -part%vel(3))*part%mass
 
-    print *, "vel: ", oldvel(3), part%vel(3)
+    !print *, "vel: ", oldvel(3), part%vel(3)
     prefact = c*c/(a*a*pi*bJ1**2)
 
     surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*t)
     surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
  enddo
 
- part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+ part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
     
 
     !parabola
@@ -579,7 +579,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
 !      step=time/fixed_dt
    
    !  if(step .eq. 300)then
-     write(*,*) prefact*bessel_jn(0, 0d0)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+     write(*,*) (surf%agraph+surf%bgraph), (surf%a0graph+surf%b0graph)
    ! write(*,*) "old", oldvel(3), part%id
     ! write(*,*) "new part: ", part%vel(3)
    !  endif

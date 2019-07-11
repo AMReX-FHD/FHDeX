@@ -48,9 +48,9 @@ subroutine get_gradCdotncc_3d( lo, hi, &
            call amrex_eb_normal_levelset(pos, prob_lo,  1, &
                                              ls, ls_lo,  ls_hi,     &
                                              dx,  normc ) 
-           s(i,j,k)=normc(1)*concx(i,j,k)+normc(2)*concy(i,j,k)+normc(3)*concz(i,j,k)
+           s(i,j,k)=(normc(1)*concx(i,j,k)+normc(2)*concy(i,j,k)+normc(3)*concz(i,j,k))/(normc(1)**2+normc(2)**2+normc(3)**2)
            MagDconc(i,j,k)=sqrt(concx(i,j,k)**2+concy(i,j,k)**2+concz(i,j,k)**2)
-   
+!           print *, " Center normal ", normc  
         enddo
      enddo
   enddo
