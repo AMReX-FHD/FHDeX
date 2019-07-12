@@ -411,7 +411,7 @@
       if(surf%boundary .eq. 6) then
 
       !print *, "new: ", part%vel(3)
-      call surf_velocity(surf, part, time, oldvel, inttime)
+      !call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
         
