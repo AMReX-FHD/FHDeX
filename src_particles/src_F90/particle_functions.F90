@@ -557,7 +557,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                         !print *, "topnum: ", numcoll, prob_hi(1), fixed_dt
 
                do count=1,  numcoll
-                  ! call topparticle(surf, time, inttime)
+                   call topparticle(surf, time, inttime)
                end do
 
                call laser(surf, time)

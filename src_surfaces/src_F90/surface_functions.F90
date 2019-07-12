@@ -411,7 +411,7 @@
       if(surf%boundary .eq. 6) then
 
       !print *, "new: ", part%vel(3)
-      !call surf_velocity(surf, part, time, oldvel, inttime)
+      call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
         
@@ -435,7 +435,7 @@
 
     pi=3.1415926535897932
     !omega=14*(10**6)*pi*2
-    omega=17*(10**6)*pi/13
+    omega=15*(10**6)*pi
     lstrength=-10**(-5d0)*cos(omega*time)
     t=time
     dt=t+fixed_dt
