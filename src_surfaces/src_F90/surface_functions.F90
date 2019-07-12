@@ -415,9 +415,41 @@
    endif
    endif
         
-  end subroutine apply_bc
+ end subroutine apply_bc
 
+ subroutine laser(surf, time)
+    use iso_c_binding, only: c_int
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use cell_sorted_particle_module, only: particle_t
+    use surfaces_module
+    use rng_functions_module
+     use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0
+    
+    implicit none
 
+    type(particle_t) :: toppart
+    type(surface_t), intent(inout) :: surf
+    integer(c_int) :: count, push, iside
+    real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, prefact, srt, pi, rad, domsize(3)
+    real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel
+
+    pi=3.1415926535897932
+    
+    omega=14*(10**6)*pi*2
+    !omega=17*(10**6)*pi/13
+
+    lstrength=-10**(-5d0)*cos(omega*time)
+    t=time
+    dt=t+fixed_dt
+    !do while (t .lt. dt)
+        surf%agraph=surf%agraph+lstrength*bessel_jn(0, 10e-100)*sin(omega*time)
+        surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 10e-100)*cos(omega*time)
+        t=t+fixed_dt
+     !end do
+     !print*, 'A', 10**(-5d0)
+     
+  end subroutine laser
+  
  subroutine topparticle(surf, time, inttime)
     
     use iso_c_binding, only: c_int
@@ -430,7 +462,7 @@
     implicit none
 
     type(particle_t) :: toppart
-    type(surface_t) :: surf
+    type(surface_t), intent(inout) :: surf
     integer(c_int) :: count, push, iside
     real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, prefact, srt, pi, rad, domsize(3)
     real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel
@@ -476,7 +508,7 @@
           iside = 0
           push = 0
           domsize = prob_hi-prob_lo
-          ! write(*,*) "top"
+           write(*,*) "top"
           call apply_bc(surf, toppart, iside, domsize, push, time, inttime)
     ! surf%agraph=surf%agraph+p*bessel_jn(0, 10e-100)*sin(omega*t)
     ! surf%bgraph=surf%bgraph+p*lstrength*bessel_jn(0, 10e-100)*cos(omega*t)
@@ -511,7 +543,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  
     pi=3.1415926535897932
     rho=sqrt(part%pos(1)**2+part%pos(2)**2)
-    c=914.4
+    c=9144
     a=prob_hi(1)
      do i=1,1
           if(i .eq. 1)then
@@ -542,7 +574,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
  enddo
 
- part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
+ part%vel(3)=part%vel(3)+prefact*p*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
     
 
     !parabola
@@ -579,9 +611,9 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
 !      step=time/fixed_dt
    
    !  if(step .eq. 300)then
-     write(*,*) (surf%agraph+surf%bgraph), (surf%a0graph+surf%b0graph)
+    ! write(*,*) (surf%agraph+surf%bgraph), (surf%a0graph+surf%b0graph)
    ! write(*,*) "old", oldvel(3), part%id
-    ! write(*,*) "new part: ", part%vel(3)
+     write(*,*) prefact*p*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
    !  endif
   end subroutine surf_velocity
 

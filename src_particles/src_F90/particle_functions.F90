@@ -364,7 +364,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   type(c_ptr), intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   integer(c_int), intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
   real(amrex_real), intent(in) :: plo(3), phi(3), dx(3)
-  real(amrex_real), intent(in) :: dt, time
+  real(amrex_real), intent(in) :: dt, time 
   integer(c_int), intent(inout) :: flux(2)
   
   integer :: i, j, k, p, cell_np, new_np, intsurf, intside, push, intcount, ii, fluxL, fluxR, count, numcoll
@@ -372,7 +372,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   integer(c_int), pointer :: cell_parts(:)
   type(particle_t), pointer :: part
   type(surface_t), pointer :: surf
-  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact, pi
+  real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact, pi, t
 
   
   adj = 0.9999999
@@ -552,41 +552,41 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
 
                surf=>surfaces(6)
 
-              pi=3.1415926535897932
+               pi=3.1415926535897932
                numcoll=floor(pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1))))
-                        print *, "topnum: ", numcoll, prob_hi(1), fixed_dt
+                        !print *, "topnum: ", numcoll, prob_hi(1), fixed_dt
 
-             do count=1,  numcoll
-                 call topparticle(surf, time, inttime)
-            end do       
+               do count=1,  numcoll
+                   call topparticle(surf, time, inttime)
+               end do
 
-
+               call laser(surf, time)
+               surf%a0graph=surf%agraph
+               surf%b0graph=surf%bgraph
+        
                interval=prob_hi(1)/100
                radius=0
                bJ1 = bessel_jn(1,2.4048)
-               prefact = 9104**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
+               prefact = 9144**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
                omega=14*10**6*2*3.14159265
                surf=>surfaces(6)
                do ii=1, 100
                  radius=interval*ii
                  radius=radius*2.4048/prob_hi(1)
-                 !bessj0 =surf%grac*bessel_jn(0,radius)*sin((time*omega)+surf%graphi)
+                 bessj0 =-prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))/omega
                  !surf%besslist(ii)=bessj0
-                 surf%velz=prefact*bessel_jn(0, interval*2.4048/prob_hi(1))*(surf%agraph*sin(omega*time)+surf%bgraph*cos(time*omega))
-                 surf%dbesslist(ii)=dbessj0
-              enddo
+                 dbessj0=prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))
+                 surf%dbesslist(ii)=bessj0
+               enddo
 
-              surf%a0graph=surf%agraph
-              surf%b0graph=surf%bgraph
-
-                ! print*,'position',part%pos
+               ! print*,'position',part%pos
                ! print*,'vel',part%vel
-                print*,'fortran move', surf%velz, part%id
-                !print*, 'c', surf%grac
-               !print*, sin((time*omega))
-              ! print*, surf%velz
-             ! print*, 'velocity',part%vel
-                ! print*, "hack"
+               ! print*,'fortran move', surf%velz, part%id
+               ! print*, 'a', surf%agraph
+               ! print*, sin((time*omega))
+               ! print*, surf%velz
+               ! print*, 'velocity',part%vel
+               ! print*, "hack"
              endif
              
   
@@ -614,7 +614,7 @@ subroutine get_interpolation_weights(cc, rr, ixf, onemdxf)
 
   use amrex_fort_module, only: amrex_real
 
-  double precision, intent(in   )  :: ixf(3), onemdxf(3)
+  double precision, intent(in)  :: ixf(3), onemdxf(3)
 
   double precision, intent(inout)  :: cc(0:7)
   double precision, intent(inout)  :: rr(0:7)

@@ -180,6 +180,8 @@ BL_PROFILE_VAR_START(particle_move);
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
+	 //Print() << "FHD\n";
+
         move_particles_dsmc(particles.data(), &np,
                        ARLIM_3D(tile_box.loVect()), 
                        ARLIM_3D(tile_box.hiVect()),
@@ -212,7 +214,7 @@ BL_PROFILE_VAR_START(particle_move);
     
     if(graphene_tog==1)
       { 
-	Print()<< surfaceList[5].velz<<"\n";
+	//Print()<< surfaceList[5].velz<<"\n";
   outfile.open("out.txt", std::ios_base::app);
   for (i=0;i<100;i++)
 	  {

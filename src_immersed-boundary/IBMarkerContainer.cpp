@@ -12,7 +12,7 @@
 #include <IBMarkerContainer.H>
 #include <ib_functions_F.H>
 
-
+#include <iostream>
 
 using namespace common;
 using namespace amrex;
@@ -264,19 +264,27 @@ void IBMarkerContainer::MoveMarkers(int lev, Real dt) {
             part.pos(0) += dt * part.rdata(IBM_realData::velx);
             part.pos(1) += dt * part.rdata(IBM_realData::vely);
             part.pos(2) += dt * part.rdata(IBM_realData::velz);
+
+        //    std::cout << "corrector velz is " << part.rdata(IBM_realData::velz);
+        //    std::cout << "corrector posz is " << part.pos(2);
+
         }
 
 
-        ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
-        long nn = nbhd.size();
+        //ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
+        //long nn = nbhd.size();
 
-        for (int i=0; i<nn; ++i) {
-            ParticleType & part = nbhd[i];
+        //for (int i=0; i<nn; ++i) {
+        //    ParticleType & part = nbhd[i];
 
-            part.pos(0) += dt * part.rdata(IBM_realData::velx);
-            part.pos(1) += dt * part.rdata(IBM_realData::vely);
-            part.pos(2) += dt * part.rdata(IBM_realData::velz);
-        }
+        //    part.pos(0) += dt * part.rdata(IBM_realData::velx);
+        //    part.pos(1) += dt * part.rdata(IBM_realData::vely);
+        //    part.pos(2) += dt * part.rdata(IBM_realData::velz);
+
+        //    std::cout << "neighbor corrector velz is " << part.rdata(IBM_realData::velz);
+        //    std::cout << "neighbor corrector posz is " << part.pos(2);
+
+        //}
     }
 }
 
@@ -307,6 +315,9 @@ void IBMarkerContainer::MovePredictor(int lev, Real dt) {
             part.rdata(IBM_realData::pred_posx) = dt * part.rdata(IBM_realData::pred_velx);
             part.rdata(IBM_realData::pred_posy) = dt * part.rdata(IBM_realData::pred_vely);
             part.rdata(IBM_realData::pred_posz) = dt * part.rdata(IBM_realData::pred_velz);
+
+          //  std::cout << "pred_velz is " << part.rdata(IBM_realData::pred_velz);
+          //  std::cout << "pred_posz is " << part.rdata(IBM_realData::pred_posz);
         }
 
 
