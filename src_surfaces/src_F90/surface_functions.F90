@@ -411,7 +411,7 @@
       if(surf%boundary .eq. 6) then
 
       !print *, "new: ", part%vel(3)
-      !call surf_velocity(surf, part, time, oldvel, inttime)
+      call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
         
@@ -434,17 +434,17 @@
     real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel
 
     pi=3.1415926535897932
-    !omega=14*(10**6)*pi*2
-    omega=17*(10**6)*pi/13
+    omega=15*(10**6)*pi*2
+    !omega=17*(10**6)*pi/13
     lstrength=-10**(-5d0)*cos(omega*time)
     t=time
     dt=t+fixed_dt
-    do while (t .lt. dt)
+    !do while (t .lt. dt)
         surf%agraph=surf%agraph+lstrength*bessel_jn(0, 10e-100)*sin(omega*time)
         surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 10e-100)*cos(omega*time)
         t=t+fixed_dt
-     end do
-      !print*, 'A', 10**(-5d0)
+     !end do
+     !print*, 'A', 10**(-5d0)
      
   end subroutine laser
   
