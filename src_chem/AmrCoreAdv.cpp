@@ -226,9 +226,9 @@ void AmrCoreAdv::EvolveChem(
 //       std::cout<<(*vface[lev]).max(0) << std::endl; 
 //       std::cout<<(*wface[lev]).max(0) << std::endl; 
 
-//       uface[lev]->FillBoundary(geom[lev].periodicity());
-//       vface[lev]->FillBoundary(geom[lev].periodicity());
-//       wface[lev]->FillBoundary(geom[lev].periodicity());
+       uface[lev]->FillBoundary(geom[lev].periodicity());
+       vface[lev]->FillBoundary(geom[lev].periodicity());
+       wface[lev]->FillBoundary(geom[lev].periodicity());
 //
 //       xface[lev]->FillBoundary(geom[lev].periodicity());
 //       yface[lev]->FillBoundary(geom[lev].periodicity());
@@ -871,6 +871,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 #endif
     {
         FArrayBox flux[BL_SPACEDIM];
+        FArrayBox flux1[BL_SPACEDIM];
+        FArrayBox flux2[BL_SPACEDIM];
 //    std::cout << "max con 2.1 "<< (*con_new[lev]).max(0) <<std::endl;
 
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi) {
@@ -893,6 +895,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
                 flux[i].resize(bxtmp,S_new.nComp());
+                flux1[i].resize(bxtmp,S_new.nComp());
+                flux2[i].resize(bxtmp,S_new.nComp());
             }
 
 //    std::cout << "max con 2.4 "<< (*con_new[lev]).max(0) <<std::endl;
@@ -935,15 +939,27 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                 // compute new state (stateout) and fluxes.
                 advect_3d(& time, bx.loVect(), bx.hiVect(),
                           BL_TO_FORTRAN_3D(statein),
+                          BL_TO_FORTRAN_3D(statein),
                           BL_TO_FORTRAN_3D(stateout),
                           BL_TO_FORTRAN_3D(ptS),
+                          BL_TO_FORTRAN_3D(ptS),
                           BL_TO_FORTRAN_3D(fabsl),
+                          BL_TO_FORTRAN_3D(fabsl),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
+                                       BL_TO_FORTRAN_3D(vface_mf),
+                                       BL_TO_FORTRAN_3D(wface_mf)),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
                                        BL_TO_FORTRAN_3D(vface_mf),
                                        BL_TO_FORTRAN_3D(wface_mf)),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
                                        BL_TO_FORTRAN_3D(flux[1]),
                                        BL_TO_FORTRAN_3D(flux[2])),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux1[0]),
+                                       BL_TO_FORTRAN_3D(flux1[1]),
+                                       BL_TO_FORTRAN_3D(flux1[2])),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux2[0]),
+                                       BL_TO_FORTRAN_3D(flux2[1]),
+                                       BL_TO_FORTRAN_3D(flux2[2])),
                           dx, & dt_lev, & diffcoeff);}
 //    std::cout << "max con 2.7 "<< (*con_new[lev]).max(0) <<std::endl;
 
