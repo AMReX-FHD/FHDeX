@@ -17,3 +17,4 @@ CEXE_sources += MultiFABPhysBC.cpp
 CEXE_sources += outputAscii.cpp
 
 CEXE_sources += ComputeBasicStats.cpp
+CEXE_sources += ComputeAverages.cpp

@@ -142,7 +142,7 @@ void main_driver(const char* argv)
     //primative quantaties
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
-    //statistics
+    //statistics    
     MultiFab cuMeans(ba,dmap,nvars,ngc);
     MultiFab cuVars(ba,dmap,nvars,ngc);
 
@@ -160,6 +160,8 @@ void main_driver(const char* argv)
 
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
+
+    MultiFab cuVertAvg;
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -458,6 +460,8 @@ void main_driver(const char* argv)
 
 	if (step > n_steps_skip) {
 	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
+
+	  ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
 	}
 
 	///////////////////////////////////////////
@@ -486,28 +490,6 @@ void main_driver(const char* argv)
 
         time = time + dt;
     }
-
-    if (struct_fact_int > 0) {
-
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-
-      // let rho = 1
-      // Real SFscale = dVol/(rho0*k_B*T_init[0]);
-       Real SFscale = 1.0;
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
-
-    }
-
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
