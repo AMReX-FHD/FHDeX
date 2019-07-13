@@ -38,6 +38,7 @@ void AmrCoreAdv::Initialize( )
     t_old.resize(nlevs_max, -1.e100);
     dt.resize(nlevs_max, 1.e100);
 
+    con_pre.resize(nlevs_max);
     con_new.resize(nlevs_max);
 
     con_old.resize(nlevs_max);
@@ -111,12 +112,18 @@ void AmrCoreAdv::Initialize( )
  *******************************************************************************/
 
 void AmrCoreAdv::EvolveChem(
+        std::array<MultiFab, AMREX_SPACEDIM> & umac_pre, 
         std::array<MultiFab, AMREX_SPACEDIM> & umac, 
-        const iMultiFab & iface, const MultiFab & LevelSet, int lev, int nstep,
+        const iMultiFab & iface_pre,
+        const iMultiFab & iface,
+        const MultiFab & LevelSet_pre, 
+        const MultiFab & LevelSet, 
+        int lev, int nstep,
         Real dt_fluid, Real time, Real dc, 
-        const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords)
+        const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords, int corrector)
 {
-   diffcoeff=dc;
+    Correct=corrector;
+    diffcoeff=dc;
     std::cout<< " max Dconc_x A = " << (*Dconc_x[lev]).max(0) <<std::endl;
 
 //   std::cout << "EvolveChem diffcoeff"<< diffcoeff<<std::endl;
@@ -129,6 +136,10 @@ void AmrCoreAdv::EvolveChem(
    uface.resize(max_level + 1);
    vface.resize(max_level + 1);
    wface.resize(max_level + 1);
+
+   uface_pre.resize(max_level + 1);
+   vface_pre.resize(max_level + 1);
+   wface_pre.resize(max_level + 1);
 
    xface.resize(max_level + 1);
    yface.resize(max_level + 1);
@@ -150,18 +161,11 @@ void AmrCoreAdv::EvolveChem(
         
         uface[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         vface[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
-        if (wface[lev]){ std::cout << "wface i`sn't empty" << '\n';
-        std::cout<< " wface  ghost cells " << (*wface[lev]).nGrow() << std::endl;
-
-        std::cout<< "Num comp wface " << (*wface[lev]).nComp() << std::endl;}
-        else std::cout << "wface is empty\n"; 
-        std::cout<< z_face_ba << std::endl;
-        std::cout<< condm <<std::endl;
-        std::cout << "wface size " << wface.size()<<std::endl;
-        std::cout << "lev " << lev <<std::endl;
-        
         wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
-        std::cout << " after wface " <<std::endl;
+
+        uface_pre[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
+        vface_pre[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
+        wface_pre[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
 
         int mac_ncompx= (face_coords[lev])[0].nComp();
         int mac_ncompy= (face_coords[lev])[1].nComp();
@@ -170,24 +174,18 @@ void AmrCoreAdv::EvolveChem(
         int mac_ngrowy= (face_coords[lev])[1].nGrow();
         int mac_ngrowz= (face_coords[lev])[2].nGrow();
 
-        std::cout << " Number of components in a MAC grid x= " << mac_ncompx << " y= "<< mac_ncompy<< " z= "<< mac_ncompz << std::endl;
-        std::cout << " Number of ghost cells in a MAC grid x= " << mac_ngrowx << " y= "<< mac_ngrowy<< " z= "<< mac_ngrowz << std::endl;
-
-        if (xface[lev]) std::cout << "xface isn't empty" << '\n';
-        else std::cout << "xface is empty\n"; 
         
         xface[lev].reset(new MultiFab(x_face_ba, condm, mac_ncompx, 0));
-        if (yface[lev]) std::cout << "yface isn't empty" << '\n';
-        else std::cout << "yface is empty\n"; 
-
         yface[lev].reset(new MultiFab(y_face_ba, condm, mac_ncompy, 0));
-        if (zface[lev]) std::cout << " zface isn't empty" << '\n';
-        else std::cout << " zface is empty\n"; 
         zface[lev].reset(new MultiFab(z_face_ba, condm, mac_ncompz, 0));
 
         uface[lev]->setVal(0.);
         vface[lev]->setVal(0.);
         wface[lev]->setVal(0.);
+        
+        uface_pre[lev]->setVal(0.);
+        vface_pre[lev]->setVal(0.);
+        wface_pre[lev]->setVal(0.);
         
         xface[lev]->setVal(0.);
         yface[lev]->setVal(0.);
@@ -217,6 +215,10 @@ void AmrCoreAdv::EvolveChem(
        uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
        vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
        wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
+
+       uface_pre[lev]->copy(umac_pre[0], 0, 0, 1, 0, 1);
+       vface_pre[lev]->copy(umac_pre[1], 0, 0, 1, 0, 1);
+       wface_pre[lev]->copy(umac_pre[2], 0, 0, 1, 0, 1);
               
         xface[lev]->copy((face_coords[lev])[0], 0, 0, mac_ncompx , 0, 0);
         yface[lev]->copy((face_coords[lev])[1], 0, 0, mac_ncompy , 0, 0);
@@ -226,9 +228,13 @@ void AmrCoreAdv::EvolveChem(
 //       std::cout<<(*vface[lev]).max(0) << std::endl; 
 //       std::cout<<(*wface[lev]).max(0) << std::endl; 
 
-//       uface[lev]->FillBoundary(geom[lev].periodicity());
-//       vface[lev]->FillBoundary(geom[lev].periodicity());
-//       wface[lev]->FillBoundary(geom[lev].periodicity());
+       uface_pre[lev]->FillBoundary(geom[lev].periodicity());
+       vface_pre[lev]->FillBoundary(geom[lev].periodicity());
+       wface_pre[lev]->FillBoundary(geom[lev].periodicity());
+       
+       uface[lev]->FillBoundary(geom[lev].periodicity());
+       vface[lev]->FillBoundary(geom[lev].periodicity());
+       wface[lev]->FillBoundary(geom[lev].periodicity());
 //
 //       xface[lev]->FillBoundary(geom[lev].periodicity());
 //       yface[lev]->FillBoundary(geom[lev].periodicity());
@@ -243,6 +249,10 @@ void AmrCoreAdv::EvolveChem(
     source_loc.reset(new iMultiFab(conba, condm, 1, 1));
     source_loc->copy(iface, 0, 0, 1, 0, 1 );
     source_loc->FillBoundary(geom[0].periodicity());
+    
+    source_loc_pre.reset(new iMultiFab(conba, condm, 1, 1));
+    source_loc_pre->copy(iface_pre, 0, 0, 1, 0, 1 );
+    source_loc_pre->FillBoundary(geom[0].periodicity());
 
     DistributionMapping lsdm = LevelSet.DistributionMap();
     BoxArray lsba            = LevelSet.boxArray();
@@ -250,6 +260,11 @@ void AmrCoreAdv::EvolveChem(
     levset->setVal(0.);
     levset->copy(LevelSet, 0, ls_nc-1, ls_nc, ls_gst, 1);
     levset->FillBoundary(geom[0].periodicity());
+
+    levset_pre.reset(new MultiFab(lsba, lsdm, 1, 1));
+    levset_pre->setVal(0.);
+    levset_pre->copy(LevelSet, 0, ls_nc-1, ls_nc, ls_gst, 1);
+    levset_pre->FillBoundary(geom[0].periodicity());
 
     /***************************************************************************
      * Evolve chemical field by integrating time step                          *
@@ -333,6 +348,7 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        SetBoxArray(lev, ba);
        SetDistributionMap(lev, dm);
  
+       con_pre[lev]->setVal(0.);
        con_new[lev]->setVal(0.);
        con_old[lev]->setVal(0.);
    //     std::cout << "For loop InitData"<<std::endl;
@@ -446,6 +462,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
     const int nghost = 0;
 
     con_new[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
+    con_pre[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
     con_old[lev].reset(new MultiFab(ba, dm, ncomp, nghost));
 
     t_new[lev] = time;
@@ -871,6 +888,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 #endif
     {
         FArrayBox flux[BL_SPACEDIM];
+        FArrayBox flux1[BL_SPACEDIM];
+        FArrayBox flux2[BL_SPACEDIM];
 //    std::cout << "max con 2.1 "<< (*con_new[lev]).max(0) <<std::endl;
 
         for (MFIter mfi(S_new, true); mfi.isValid(); ++mfi) {
@@ -893,6 +912,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             for (int i = 0; i < BL_SPACEDIM ; i++) {
                 const Box& bxtmp = amrex::surroundingNodes(bx,i);
                 flux[i].resize(bxtmp,S_new.nComp());
+                flux1[i].resize(bxtmp,S_new.nComp());
+                flux2[i].resize(bxtmp,S_new.nComp());
             }
 
 //    std::cout << "max con 2.4 "<< (*con_new[lev]).max(0) <<std::endl;
@@ -935,15 +956,27 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                 // compute new state (stateout) and fluxes.
                 advect_3d(& time, bx.loVect(), bx.hiVect(),
                           BL_TO_FORTRAN_3D(statein),
+                          BL_TO_FORTRAN_3D(statein),
                           BL_TO_FORTRAN_3D(stateout),
                           BL_TO_FORTRAN_3D(ptS),
+                          BL_TO_FORTRAN_3D(ptS),
                           BL_TO_FORTRAN_3D(fabsl),
+                          BL_TO_FORTRAN_3D(fabsl),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
+                                       BL_TO_FORTRAN_3D(vface_mf),
+                                       BL_TO_FORTRAN_3D(wface_mf)),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
                                        BL_TO_FORTRAN_3D(vface_mf),
                                        BL_TO_FORTRAN_3D(wface_mf)),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
                                        BL_TO_FORTRAN_3D(flux[1]),
                                        BL_TO_FORTRAN_3D(flux[2])),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux1[0]),
+                                       BL_TO_FORTRAN_3D(flux1[1]),
+                                       BL_TO_FORTRAN_3D(flux1[2])),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux2[0]),
+                                       BL_TO_FORTRAN_3D(flux2[1]),
+                                       BL_TO_FORTRAN_3D(flux2[2])),
                           dx, & dt_lev, & diffcoeff);}
 //    std::cout << "max con 2.7 "<< (*con_new[lev]).max(0) <<std::endl;
 

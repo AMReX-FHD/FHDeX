@@ -1,14 +1,26 @@
 subroutine advect_3d(time, lo, hi, &
-     &            uin , ui_lo, ui_hi, &
+     &            uin_p , uip_lo, uip_hi, &
+     &            uin_f , uif_lo, uif_hi, &
      &            uout, uo_lo, uo_hi, &
-     &            ptS, pts_lo, pts_hi,&
-     &            iface, if_lo, if_hi,&
-     &            vx  , vx_lo, vx_hi, &
-     &            vy  , vy_lo, vy_hi, &
-     &            vz  , vz_lo, vz_hi, &
+     &            ptSp, ptsp_lo, ptsp_hi,&
+     &            ptSf, ptsf_lo, ptsf_hi,&
+     &            ifacep, ifp_lo, ifp_hi,&
+     &            ifacef, iff_lo, iff_hi,&
+     &            vx_p  , vxp_lo, vxp_hi, &
+     &            vy_p  , vyp_lo, vyp_hi, &
+     &            vz_p  , vzp_lo, vzp_hi, &
+     &            vx_f  , vxf_lo, vxf_hi, &
+     &            vy_f  , vyf_lo, vyf_hi, &
+     &            vz_f  , vzf_lo, vzf_hi, &
      &            flxx, fx_lo, fx_hi, &
      &            flxy, fy_lo, fy_hi, &
      &            flxz, fz_lo, fz_hi, &
+     &            flxx1, fx1_lo, fx1_hi, &
+     &            flxy1, fy1_lo, fy1_hi, &
+     &            flxz1, fz1_lo, fz1_hi, &
+     &            flxx2, fx2_lo, fx2_hi, &
+     &            flxy2, fy2_lo, fy2_hi, &
+     &            flxz2, fz2_lo, fz2_hi, &
      &            dx,dt,nu) bind(C, name="advect_3d")
   
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
@@ -18,26 +30,52 @@ subroutine advect_3d(time, lo, hi, &
 
   integer, intent(in) :: lo(3), hi(3)
   double precision, intent(in) :: dx(3), dt, time,nu
-  integer, intent(in) :: ui_lo(3), ui_hi(3)
+  integer, intent(in) :: uip_lo(3), uip_hi(3)
+  integer, intent(in) :: uif_lo(3), uif_hi(3)
   integer, intent(in) :: uo_lo(3), uo_hi(3)
-  integer, intent(in) :: pts_lo(3), pts_hi(3)
-  integer, intent(in) :: if_lo(3), if_hi(3)
-  integer, intent(in) :: vx_lo(3), vx_hi(3)
-  integer, intent(in) :: vy_lo(3), vy_hi(3)
-  integer, intent(in) :: vz_lo(3), vz_hi(3)
+  integer, intent(in) :: ptsp_lo(3), ptsp_hi(3)
+  integer, intent(in) :: ptsf_lo(3), ptsf_hi(3)
+  integer, intent(in) :: ifp_lo(3), ifp_hi(3)
+  integer, intent(in) :: iff_lo(3), iff_hi(3)
+  integer, intent(in) :: vxf_lo(3), vxf_hi(3)
+  integer, intent(in) :: vyf_lo(3), vyf_hi(3)
+  integer, intent(in) :: vzf_lo(3), vzf_hi(3)
+  integer, intent(in) :: vxp_lo(3), vxp_hi(3)
+  integer, intent(in) :: vyp_lo(3), vyp_hi(3)
+  integer, intent(in) :: vzp_lo(3), vzp_hi(3)
   integer, intent(in) :: fx_lo(3), fx_hi(3)
   integer, intent(in) :: fy_lo(3), fy_hi(3)
   integer, intent(in) :: fz_lo(3), fz_hi(3)
-  double precision, intent(in   ) :: uin (ui_lo(1):ui_hi(1),ui_lo(2):ui_hi(2),ui_lo(3):ui_hi(3))
+  integer, intent(in) :: fx1_lo(3), fx1_hi(3)
+  integer, intent(in) :: fy1_lo(3), fy1_hi(3)
+  integer, intent(in) :: fz1_lo(3), fz1_hi(3)
+  integer, intent(in) :: fx2_lo(3), fx2_hi(3)
+  integer, intent(in) :: fy2_lo(3), fy2_hi(3)
+  integer, intent(in) :: fz2_lo(3), fz2_hi(3)
+  double precision, intent(in   ) :: uin_p (uip_lo(1):uip_hi(1),uip_lo(2):uip_hi(2),uip_lo(3):uip_hi(3))
+  double precision, intent(in   ) :: uin_f (uif_lo(1):uif_hi(1),uif_lo(2):uif_hi(2),uif_lo(3):uif_hi(3))
   double precision, intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2),uo_lo(3):uo_hi(3))
-  double precision, intent(in) :: ptS(pts_lo(1):pts_hi(1),pts_lo(2):pts_hi(2),pts_lo(3):pts_hi(3))
-  integer, intent(in) :: iface(if_lo(1):if_hi(1),if_lo(2):if_hi(2),if_lo(3):if_hi(3))
-  double precision, intent(in   ) :: vx  (vx_lo(1):vx_hi(1),vx_lo(2):vx_hi(2),vx_lo(3):vx_hi(3))
-  double precision, intent(in   ) :: vy  (vy_lo(1):vy_hi(1),vy_lo(2):vy_hi(2),vy_lo(3):vy_hi(3))
-  double precision, intent(in   ) :: vz  (vz_lo(1):vz_hi(1),vz_lo(2):vz_hi(2),vz_lo(3):vz_hi(3))
+  double precision, intent(in) :: ptSp(ptsp_lo(1):ptsp_hi(1),ptsp_lo(2):ptsp_hi(2),ptsp_lo(3):ptsp_hi(3))
+  double precision, intent(in) :: ptSf(ptsf_lo(1):ptsf_hi(1),ptsf_lo(2):ptsf_hi(2),ptsf_lo(3):ptsf_hi(3))
+  integer, intent(in) :: ifacep(ifp_lo(1):ifp_hi(1),ifp_lo(2):ifp_hi(2),ifp_lo(3):ifp_hi(3))
+  integer, intent(in) :: ifacef(iff_lo(1):iff_hi(1),iff_lo(2):iff_hi(2),iff_lo(3):iff_hi(3))
+  double precision, intent(in   ) :: vx_p  (vxp_lo(1):vxp_hi(1),vxp_lo(2):vxp_hi(2),vxp_lo(3):vxp_hi(3))
+  double precision, intent(in   ) :: vy_p  (vyp_lo(1):vyp_hi(1),vyp_lo(2):vyp_hi(2),vyp_lo(3):vyp_hi(3))
+  double precision, intent(in   ) :: vz_p  (vzp_lo(1):vzp_hi(1),vzp_lo(2):vzp_hi(2),vzp_lo(3):vzp_hi(3))
+  double precision, intent(in   ) :: vx_f  (vxf_lo(1):vxf_hi(1),vxf_lo(2):vxf_hi(2),vxf_lo(3):vxf_hi(3))
+  double precision, intent(in   ) :: vy_f  (vyf_lo(1):vyf_hi(1),vyf_lo(2):vyf_hi(2),vyf_lo(3):vyf_hi(3))
+  double precision, intent(in   ) :: vz_f  (vzf_lo(1):vzf_hi(1),vzf_lo(2):vzf_hi(2),vzf_lo(3):vzf_hi(3))
   double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
   double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
   double precision, intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
+
+  double precision, intent(  out) :: flxx1(fx1_lo(1):fx1_hi(1),fx1_lo(2):fx1_hi(2),fx1_lo(3):fx1_hi(3))
+  double precision, intent(  out) :: flxy1(fy1_lo(1):fy1_hi(1),fy1_lo(2):fy1_hi(2),fy1_lo(3):fy1_hi(3))
+  double precision, intent(  out) :: flxz1(fz1_lo(1):fz1_hi(1),fz1_lo(2):fz1_hi(2),fz1_lo(3):fz1_hi(3))
+
+  double precision, intent(  out) :: flxx2(fx2_lo(1):fx2_hi(1),fx2_lo(2):fx2_hi(2),fx2_lo(3):fx2_hi(3))
+  double precision, intent(  out) :: flxy2(fy2_lo(1):fy2_hi(1),fy2_lo(2):fy2_hi(2),fy2_lo(3):fy2_hi(3))
+  double precision, intent(  out) :: flxz2(fz2_lo(1):fz2_hi(1),fz2_lo(2):fz2_hi(2),fz2_lo(3):fz2_hi(3))
 
   integer :: i, j, k
   integer :: glo(3), ghi(3)
@@ -45,25 +83,41 @@ subroutine advect_3d(time, lo, hi, &
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
-       conx, conx_y, conx_z, cony, cony_x, cony_z, conz, conz_x, conz_y, slope
+       conx1, conx1_y, conx1_z, cony1, cony1_x, cony1_z, conz1, conz1_x, conz1_y, slope1
+  double precision, dimension(:,:,:), pointer, contiguous :: &
+       conx2, conx2_y, conx2_z, cony2, cony2_x, cony2_z, conz2, conz2_x, conz2_y, slope2
 
   dtdx = dt/dx
 
   glo = lo - 1
   ghi = hi + 1
 
+
   ! edge states
-  call bl_allocate(conx  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(conx_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(conx_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(cony  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(cony_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(cony_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(conz  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(conz_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
-  call bl_allocate(conz_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx1  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx1_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx1_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony1  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony1_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony1_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz1  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz1_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz1_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
   ! slope
-  call bl_allocate(slope,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))  
+  call bl_allocate(slope1,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))  
+
+
+  call bl_allocate(conx2  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx2_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conx2_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony2  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony2_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(cony2_z,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz2  ,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz2_x,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  call bl_allocate(conz2_y,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))
+  ! slope
+  call bl_allocate(slope2,glo(1), ghi(1), glo(2), ghi(2), glo(3), ghi(3))  
   
   ! We like to allocate these **pointers** here and then pass them to a function
   ! to remove their pointerness for performance, because normally pointers could
@@ -73,63 +127,101 @@ subroutine advect_3d(time, lo, hi, &
   ! Note that one MUST CALL BL_DEALLOCATE.
 
   ! check if CFL condition is violated.
-  umax = maxval(abs(vx))
-  vmax = maxval(abs(vy))
-  wmax = maxval(abs(vz))
+ 
+ umax = maxval(abs(vx_f))
+  vmax = maxval(abs(vy_f))
+  wmax = maxval(abs(vz_f))
 
-  conmax_in=maxval(abs(uin))
+  conmax_in=maxval(abs(uin_p))
   if ( umax*dt .ge. dx(1) .or. &
        vmax*dt .ge. dx(2) .or. &
        wmax*dt .ge. dx(3) ) then
-     print *, "umax = ", umax, ", vmax = ", vmax, ", wmax = ", wmax, ", dt = ", dt, ", dx = ", dx
 !!! TEMPORARILY UNTIL couple fluid velocity
      call bl_error("CFL violation. Use smaller adv.cfl.")
   end if
 
   ! call a function to compute flux
   call compute_flux_3d(lo, hi, dt, dx, &
-                       uin, ui_lo, ui_hi, &
-                       vx, vx_lo, vx_hi, &
-                       vy, vy_lo, vy_hi, &
-                       vz, vz_lo, vz_hi, &
-                       flxx, fx_lo, fx_hi, &
-                       flxy, fy_lo, fy_hi, &
-                       flxz, fz_lo, fz_hi, &
-                       conx, conx_y, conx_z, &
-                       cony, cony_x, cony_z, &
-                       conz, conz_x, conz_y, &
-                       slope, glo, ghi,nu)
+                       uin_p, uip_lo, uip_hi, &
+                       vx_p, vxp_lo, vxp_hi, &
+                       vy_p, vyp_lo, vyp_hi, &
+                       vz_p, vzp_lo, vzp_hi, &
+                       flxx1, fx1_lo, fx1_hi, &
+                       flxy1, fy1_lo, fy1_hi, &
+                       flxz1, fz1_lo, fz1_hi, &
+                       conx1, conx1_y, conx1_z, &
+                       cony1, cony1_x, cony1_z, &
+                       conz1, conz1_x, conz1_y, &
+                       slope1, glo, ghi,nu)
+
+  call compute_flux_3d(lo, hi, dt, dx, &
+                       uin_f, uif_lo, uif_hi, &
+                       vx_f, vxf_lo, vxf_hi, &
+                       vy_f, vyf_lo, vyf_hi, &
+                       vz_f, vzf_lo, vzf_hi, &
+                       flxx2, fx2_lo, fx2_hi, &
+                       flxy2, fy2_lo, fy2_hi, &
+                       flxz2, fz2_lo, fz2_hi, &
+                       conx2, conx2_y, conx2_z, &
+                       cony2, cony2_x, cony2_z, &
+                       conz2, conz2_x, conz2_y, &
+                       slope2, glo, ghi,nu)
 
   ! Do a conservative update
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
-           if (iface(i,j,k) .eq. 2) then
-           uout(i,j,k)= uin(i,j,k)
+ 
+           if (ifacep(i,j,k) .eq. 2) then
+           uout(i,j,k)= uin_p(i,j,k)
            else
-           if (iface(i,j,k) .eq. 1) then
-               if (iface(i+1,j,k) .eq. 2)then
-               flxx(i+1,j,k)=0
-               else if (iface(i-1,j,k) .eq. 2) then
-               flxx(i,j,k)=0
+           if (ifacep(i,j,k) .eq. 1) then
+               if (ifacep(i+1,j,k) .eq. 2)then
+               flxx1(i+1,j,k)=0
+               else if (ifacep(i-1,j,k) .eq. 2) then
+               flxx1(i,j,k)=0
                end if
 
-               if (iface(i,j+1,k) .eq. 2)then
-               flxy(i,j+1,k)=0
-               else if (iface(i,j-1,k) .eq. 2) then
-               flxy(i,j,k)=0
+               if (ifacep(i,j+1,k) .eq. 2)then
+               flxy1(i,j+1,k)=0
+               else if (ifacep(i,j-1,k) .eq. 2) then
+               flxy1(i,j,k)=0
+               end if
+               if (ifacep(i,j,k+1) .eq. 2)then
+               flxz1(i,j,k+1)=0
+               else if (ifacep(i,j,k-1) .eq. 2) then
+               flxz1(i,j,k)=0
+               end if
+           endif
+           if (ifacef(i,j,k) .eq. 1) then
+               if (ifacef(i+1,j,k) .eq. 2)then
+               flxx1(i+1,j,k)=0
+               else if (ifacef(i-1,j,k) .eq. 2) then
+               flxx1(i,j,k)=0
                end if
 
-               if (iface(i,j,k+1) .eq. 2)then
-               flxz(i,j,k+1)=0
-               else if (iface(i,j,k-1) .eq. 2) then
-               flxz(i,j,k)=0
+               if (ifacef(i,j+1,k) .eq. 2)then
+               flxy1(i,j+1,k)=0
+               else if (ifacef(i,j-1,k) .eq. 2) then
+               flxy1(i,j,k)=0
+               end if
+               if (ifacef(i,j,k+1) .eq. 2)then
+               flxz1(i,j,k+1)=0
+               else if (ifacef(i,j,k-1) .eq. 2) then
+               flxz1(i,j,k)=0
                end if
            end if 
-           uout(i,j,k) = uin(i,j,k) + &
-              ( (flxx(i,j,k) - flxx(i+1,j,k)) * dtdx(1) &
-                + (flxy(i,j,k) - flxy(i,j+1,k)) * dtdx(2) &
-                + (flxz(i,j,k) - flxz(i,j,k+1)) * dtdx(3) )+dt*ptS(i,j,k)
+           uout(i,j,k) = uin_p(i,j,k) + &
+              0.5*(( (flxx1(i,j,k) - flxx1(i+1,j,k)) * dtdx(1) &
+                + (flxy1(i,j,k) - flxy1(i,j+1,k)) * dtdx(2) &
+                + (flxz1(i,j,k) - flxz1(i,j,k+1)) * dtdx(3) )&
+                + ( (flxx2(i,j,k) - flxx2(i+1,j,k)) * dtdx(1) &
+                + (flxy2(i,j,k) - flxy2(i,j+1,k)) * dtdx(2) &
+                + (flxz2(i,j,k) - flxz2(i,j,k+1)) * dtdx(3) ))+dt/2*(ptSp(i,j,k)+ptSf(i,j,k))
+
+            flxx(i,j,k)=0.5*(flxx1(i,j,k)+flxx2(i,j,k))
+            flxy(i,j,k)=0.5*(flxy1(i,j,k)+flxy2(i,j,k))
+            flxz(i,j,k)=0.5*(flxy1(i,j,k)+flxz2(i,j,k))
            endif
         enddo
      enddo
@@ -159,15 +251,27 @@ subroutine advect_3d(time, lo, hi, &
      enddo
   enddo
 
-  call bl_deallocate(conx  )
-  call bl_deallocate(conx_y)
-  call bl_deallocate(conx_z)
-  call bl_deallocate(cony  )
-  call bl_deallocate(cony_x)
-  call bl_deallocate(cony_z)
-  call bl_deallocate(conz  )
-  call bl_deallocate(conz_x)
-  call bl_deallocate(conz_y)
-  call bl_deallocate(slope)
+  call bl_deallocate(conx1  )
+  call bl_deallocate(conx1_y)
+  call bl_deallocate(conx1_z)
+  call bl_deallocate(cony1  )
+  call bl_deallocate(cony1_x)
+  call bl_deallocate(cony1_z)
+  call bl_deallocate(conz1  )
+  call bl_deallocate(conz1_x)
+  call bl_deallocate(conz1_y)
+
+  call bl_deallocate(slope1)
+ 
+  call bl_deallocate(conx2  )
+  call bl_deallocate(conx2_y)
+  call bl_deallocate(conx2_z)
+  call bl_deallocate(cony2  )
+  call bl_deallocate(cony2_x)
+  call bl_deallocate(cony2_z)
+  call bl_deallocate(conz2  )
+  call bl_deallocate(conz2_x)
+  call bl_deallocate(conz2_y)
+  call bl_deallocate(slope2)
 
 end subroutine advect_3d

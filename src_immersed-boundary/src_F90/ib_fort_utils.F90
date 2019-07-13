@@ -518,7 +518,8 @@ contains
 
 
 
-    pure subroutine spread_kernel(lo,       hi,               &
+  !  pure
+ subroutine spread_kernel(lo,       hi,               &
             &                     mf_x,     mfx_lo,   mfx_hi, &
             &                     mf_y,     mfy_lo,   mfy_hi, &
             &                     mf_z,     mfz_lo,   mfz_hi, &
@@ -619,6 +620,7 @@ contains
         klo = max(lo(3), int(pos(3) * invdx(3) - 3))
         khi = min(hi(3), int(pos(3) * invdx(3) + 3))
 
+     print*, "max vspread = ", maxval(v_spread)
 
         !________________________________________________________________________
         ! x-components
@@ -636,14 +638,18 @@ contains
                     do ll = 1, AMREX_SPACEDIM
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
-
+                    print*, " mf_x first ", mf_x(i,j,k)
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
                     weight_x(i, j, k) = weight_x(i, j, k) + weight
-
+                    print*," mf_x = ", mf_x(i,j,k), " vspread ", v_spread(1), " weight ", weight, " invvol ", invvol, " v_spread(1)*weight*invol ", v_spread(1)*weight*invvol
                 end do
             end do
         end do
+     print*, "max mf_x = ", maxval(mf_x)
 
+ !      if (maxval(mf_x)>0.0) then
+ !                   pause
+ !      end if
 
         !________________________________________________________________________
         ! y-components

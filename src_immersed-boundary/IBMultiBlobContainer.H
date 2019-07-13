@@ -167,7 +167,7 @@ private:
     Vector<IBMarkerMap> marker_ref_pos;
 
     // IB marker data
-    Vector<IBMarkerContainer> markers;
+    IBMarkerContainer markers;
 
 
 
