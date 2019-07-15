@@ -40,7 +40,7 @@ void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
 void setBC(MultiFab& prim, MultiFab& cons);
 
-void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& spatialCross, MultiFab& eta, MultiFab& etaMean, MultiFab& kappa, MultiFab& kappaMean, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6, const int steps, const amrex::Real* dx);
+void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& eta, MultiFab& etaMean, MultiFab& kappa, MultiFab& kappaMean, const int steps, const amrex::Real* dx);
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
 
