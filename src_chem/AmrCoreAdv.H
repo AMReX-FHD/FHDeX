@@ -221,7 +221,7 @@ private:
 
     amrex::Real diffcoeff;
 
-     int Correct=0;
+    int Correct=0;
    // how often each level regrids the higher levels of refinement
     // (after a level advances that many time steps)
     int regrid_int = 2;

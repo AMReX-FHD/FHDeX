@@ -142,7 +142,7 @@ void main_driver(const char* argv)
     //primative quantaties
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
-    //statistics
+    //statistics    
     MultiFab cuMeans(ba,dmap,nvars,ngc);
     MultiFab cuVars(ba,dmap,nvars,ngc);
 
@@ -161,15 +161,7 @@ void main_driver(const char* argv)
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
 
-    MultiFab spatialCross(ba,dmap,6,ngc);
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
-
-    Real delHolder1[n_cells[1]*n_cells[2]];
-    Real delHolder2[n_cells[1]*n_cells[2]];
-    Real delHolder3[n_cells[1]*n_cells[2]];
-    Real delHolder4[n_cells[1]*n_cells[2]];
-    Real delHolder5[n_cells[1]*n_cells[2]];
-    Real delHolder6[n_cells[1]*n_cells[2]];
+    MultiFab cuVertAvg;
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -179,8 +171,6 @@ void main_driver(const char* argv)
 
     etaMean.setVal(0.0);
     kappaMean.setVal(0.0);
-
-    spatialCross.setVal(0.0);
 
     //possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
@@ -219,10 +209,6 @@ void main_driver(const char* argv)
     cup.setVal(rho0,0,1,ngc);
     cup2.setVal(rho0,0,1,ngc);
     cup3.setVal(rho0,0,1,ngc);
-    
-    //Print() << intEnergy << "\n";
-
-    //while(true);
 
     //fluxes
     std::array< MultiFab, AMREX_SPACEDIM > flux;
@@ -280,8 +266,8 @@ void main_driver(const char* argv)
     molmix = 0.0;
     avgmolmass = 0.0;
     for(int i=0; i<nspecies; i++) {
-	molmix     += rhobar[i]/molmass[i];
-	avgmolmass += rhobar[i]*molmass[i];
+      molmix     += rhobar[i]/molmass[i];
+      avgmolmass += rhobar[i]*molmass[i];
     }
     molmix = 1.0/molmix;                // molar mass of mixture
     P_bar = rho0*(Runiv/molmix)*T0;     // eqm pressure
@@ -453,26 +439,6 @@ void main_driver(const char* argv)
 
     // }
 	    
-    // chi.setVal(0.0);
-    // D.setVal(0.0);
-    // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-
-    // conservedToPrimitive(prim, cu);
-    // cu.FillBoundary(geom.periodicity());
-    // prim.FillBoundary(geom.periodicity());
-
-    // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-
-    // eta.FillBoundary(geom.periodicity());
-    // zeta.FillBoundary(geom.periodicity());
-    // kappa.FillBoundary(geom.periodicity());
-    // chi.FillBoundary(geom.periodicity());
-    // D.FillBoundary(geom.periodicity());
-
-    // setBC(prim, cu, eta, zeta, kappa, chi, D);
-
-    // calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
-
     statsCount = 1;
 
     //Time stepping loop
@@ -489,13 +455,13 @@ void main_driver(const char* argv)
             primMeans.setVal(0.0);
             primVars.setVal(0.0);
 
-            spatialCross.setVal(0.0);
-
             statsCount = 1;
         }
 
 	if (step > n_steps_skip) {
-	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
+
+	  ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
 	}
 
 	///////////////////////////////////////////
@@ -515,37 +481,15 @@ void main_driver(const char* argv)
         {
 
            // yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, etaMean, kappaMean, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
-           // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
+           // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, etaMeanAv, kappaMeanAv);
 
-           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
+           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
 	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int)
 	       structFact.WritePlotFile(step,time,geom);
         }
 
         time = time + dt;
     }
-
-    if (struct_fact_int > 0) {
-
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-
-      // let rho = 1
-      // Real SFscale = dVol/(rho0*k_B*T_init[0]);
-       Real SFscale = 1.0;
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom);
-
-    }
-
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
