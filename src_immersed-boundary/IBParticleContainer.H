@@ -252,7 +252,7 @@ public:
     const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
         return  face_coords;
     }
- 
+
 
 
 private:
@@ -262,8 +262,7 @@ private:
     /// We add a particle to the neighbor list if it's center is within 3 particle radii
     ///
     struct {
-        bool operator()(const ParticleType & p1, const ParticleType & p2) const
-        {
+        bool operator() (const ParticleType & p1, const ParticleType & p2) const {
             return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
                                  + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
                                  + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
