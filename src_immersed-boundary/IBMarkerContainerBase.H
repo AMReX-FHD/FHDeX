@@ -53,8 +53,8 @@ public:
     using MarkerIndex = std::pair<int, int>;
 
 
-    void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos);
-    void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
+    // void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos);
+    // void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
 
 
     // Get number of particles
@@ -223,12 +223,16 @@ private:
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
-    void InitInternals(int ngrow);
+    void InitInternals(int ngrow, int real_comp, int int_comp);
     void ReadStaticParameters();
 
     AmrCore * m_amr_core;
     int nghost;
 };
+
+
+
+#include "IBMarkerContainerBaseI.H"
 
 
 #endif
