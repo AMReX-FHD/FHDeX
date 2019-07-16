@@ -174,9 +174,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     Real driv_k = 10000.0; //bending stiffness
     RealVect driv_u = {0, 0, 1};
 
-    Real driv_period = 0.01;
+    Real driv_period = 100;  //This is actually angular frequency =  2*pi/T
     Real length_flagellum = 0.5;
-    Real driv_amp = 1;
+    Real driv_amp = 5;
 
 
     /****************************************************************************
