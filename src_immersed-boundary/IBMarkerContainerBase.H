@@ -72,15 +72,15 @@ public:
 
 
     //___________________________________________________________________________
-    // Spreading operators applied to external forces
-    void SpreadMarkers(int lev,
-                       const Vector<RealVect> & f_in,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+    // Spreading operators applied to raw data arrays
+    // void SpreadMarkers(int lev,
+    //                    const Vector<RealVect> & f_in,
+    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
-    void SpreadMarkers(int lev,
-                       const Vector<RealVect> & f_in,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+    // void SpreadMarkers(int lev,
+    //                    const Vector<RealVect> & f_in,
+    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
     void SpreadMarkers(int lev,
                        const Vector<RealVect> & f_in,
@@ -103,15 +103,15 @@ public:
 
 
     //___________________________________________________________________________
-    // Interpolation operators applied to external forces
-    void InterpolateMarkers(int lev,
-                            Vector<RealVect> & f_out,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
+    // Interpolation operators applied to raw data arrays
+    // void InterpolateMarkers(int lev,
+    //                         Vector<RealVect> & f_out,
+    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
 
-    void InterpolateMarkers(int lev,
-                            Vector<RealVect> & f_out,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+    // void InterpolateMarkers(int lev,
+    //                         Vector<RealVect> & f_out,
+    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
     void InterpolateMarkers(int lev,
                             Vector<RealVect> & f_out,
@@ -154,21 +154,21 @@ public:
      ***************************************************************************/
 
 
-    const IntVector & get_neighbor_list(int lev, const PairIndex & index) const {
-        return neighbor_list[lev].at(index);
-    };
+    // const IntVector & get_neighbor_list(int lev, const PairIndex & index) const {
+    //     return neighbor_list[lev].at(index);
+    // };
 
-    ParticleType * get_neighbors(int lev, const PairIndex & index) const {
-        return (ParticleType *) neighbors[lev].at(index).dataPtr();
-    };
+    // ParticleType * get_neighbors(int lev, const PairIndex & index) const {
+    //     return (ParticleType *) neighbors[lev].at(index).dataPtr();
+    // };
 
-    int FindConnectedMarkers(      AoS & particles,
-                             const ParticleType & part,
-                                   ParticleVector & nbhd_data,
-                             const Vector<int> & nbhd,
-                             int nbhd_index,
-                             ParticleType *& prev_marker,
-                             ParticleType *& next_marker) const;
+    // int FindConnectedMarkers(      AoS & particles,
+    //                          const ParticleType & part,
+    //                                ParticleVector & nbhd_data,
+    //                          const Vector<int> & nbhd,
+    //                          int nbhd_index,
+    //                          ParticleType *& prev_marker,
+    //                          ParticleType *& next_marker) const;
 
 
 
@@ -176,25 +176,25 @@ public:
 
     void PrintMarkerData(int lev) const;
 
-    void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
-                           bool unique = false) const;
-    Vector<IBM_info> LocalIBMarkerInfo(int lev, PairIndex index,
-                                       bool unique = false) const;
-    Vector<IBM_info> LocalIBMarkerInfo(int lev, bool unique = false) const;
+    // void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
+    //                        bool unique = false) const;
+    // Vector<IBM_info> LocalIBMarkerInfo(int lev, PairIndex index,
+    //                                    bool unique = false) const;
+    // Vector<IBM_info> LocalIBMarkerInfo(int lev, bool unique = false) const;
 
 
-    void NeighborIBMarkerInfo(Vector<IBM_info> & npart_info, int lev, PairIndex index,
-                              bool unique = false) const ;
-    Vector<IBM_info> NeighborIBMarkerInfo(int lev, PairIndex index,
-                                          bool unique = false) const;
-    Vector<IBM_info> NeighborIBMarkerInfo(int lev, bool unique = false) const;
+    // void NeighborIBMarkerInfo(Vector<IBM_info> & npart_info, int lev, PairIndex index,
+    //                           bool unique = false) const ;
+    // Vector<IBM_info> NeighborIBMarkerInfo(int lev, PairIndex index,
+    //                                       bool unique = false) const;
+    // Vector<IBM_info> NeighborIBMarkerInfo(int lev, bool unique = false) const;
 
 
-    void IBMarkerInfo(Vector<IBM_info> & part_info, int lev, PairIndex index,
-                      bool unique = false) const;
-    Vector<IBM_info> IBMarkerInfo(int lev, PairIndex index,
-                                  bool unique = false) const;
-    Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
+    // void IBMarkerInfo(Vector<IBM_info> & part_info, int lev, PairIndex index,
+    //                   bool unique = false) const;
+    // Vector<IBM_info> IBMarkerInfo(int lev, PairIndex index,
+    //                               bool unique = false) const;
+    // Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
 
 
 
