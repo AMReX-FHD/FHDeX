@@ -203,13 +203,13 @@ void AmrCoreAdv::EvolveChem(
         Dconc_y[lev]->setVal(0.);
         Dconc_z[lev]->setVal(0.);
 
-       uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
-       vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
-       wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
+      // uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
+      // vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
+      // wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
 
-       uface_pre[lev]->copy(umac_pre[0], 0, 0, 1, 0, 1);
-       vface_pre[lev]->copy(umac_pre[1], 0, 0, 1, 0, 1);
-       wface_pre[lev]->copy(umac_pre[2], 0, 0, 1, 0, 1);
+       //uface_pre[lev]->copy(umac_pre[0], 0, 0, 1, 0, 1);
+      // vface_pre[lev]->copy(umac_pre[1], 0, 0, 1, 0, 1);
+      // wface_pre[lev]->copy(umac_pre[2], 0, 0, 1, 0, 1);
               
         xface[lev]->copy((face_coords[lev])[0], 0, 0, mac_ncompx , 0, 0);
         yface[lev]->copy((face_coords[lev])[1], 0, 0, mac_ncompy , 0, 0);
