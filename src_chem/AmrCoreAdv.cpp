@@ -203,13 +203,13 @@ void AmrCoreAdv::EvolveChem(
         Dconc_y[lev]->setVal(0.);
         Dconc_z[lev]->setVal(0.);
 
-      // uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
-      // vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
-      // wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
+        uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
+        vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
+        wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
 
-       //uface_pre[lev]->copy(umac_pre[0], 0, 0, 1, 0, 1);
-      // vface_pre[lev]->copy(umac_pre[1], 0, 0, 1, 0, 1);
-      // wface_pre[lev]->copy(umac_pre[2], 0, 0, 1, 0, 1);
+        uface_pre[lev]->copy(umac_pre[0], 0, 0, 1, 0, 1);
+        vface_pre[lev]->copy(umac_pre[1], 0, 0, 1, 0, 1);
+        wface_pre[lev]->copy(umac_pre[2], 0, 0, 1, 0, 1);
               
         xface[lev]->copy((face_coords[lev])[0], 0, 0, mac_ncompx , 0, 0);
         yface[lev]->copy((face_coords[lev])[1], 0, 0, mac_ncompy , 0, 0);
@@ -787,19 +787,26 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
     // State with ghost cells
     //MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
+
     MultiFab Sborder(badp,dmdp, num_comp, num_grow);
     Sborder.setVal(0.);
-    Sborder.copy(*con_old[lev], 0,num_comp-1 , num_comp, num_grow, num_grow);
+    Sborder.copy(*con_old[lev], 0,num_comp-1 , num_comp, 0, num_grow);
     Sborder.FillBoundary(geom[0].periodicity());
 
     MultiFab Sborder_pre(badp,dmdp, num_comp, num_grow);
     Sborder_pre.setVal(0.);
 
-    if (Correct==1){
-    Sborder_pre.copy(*con_old[lev], 0,(*con_old[lev]).nComp()-1 ,(*con_old[lev]).nComp(), num_grow, num_grow);}
+    if (Correct==0){
+    Sborder_pre.copy(*con_old[lev], 0,(*con_old[lev]).nComp()-1 ,(*con_old[lev]).nComp(), 0, num_grow);
+    //std::cout << " We are predicting "<< std::endl;
+    }
     else{
-    Sborder_pre.copy(*con_pre[lev], 0,(*con_pre[lev]).nComp()-1 ,(*con_pre[lev]).nComp(), num_grow, num_grow);}
+    Sborder_pre.copy(*con_pre[lev], 0,(*con_pre[lev]).nComp()-1 ,(*con_pre[lev]).nComp(), 0, num_grow);
+   // std::cout << " We are correcting "<< std::endl;
+  
+    }
     Sborder_pre.FillBoundary(geom[0].periodicity());
+    //std::cout<< "Max con old " << (*con_old[lev]).max(0) << std::endl;
 
 //    static Vector<Real> ib_init_pos;
 //
@@ -835,6 +842,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & uface_mf_p      = uface_lev_pre[mfi];
             FArrayBox & vface_mf_p      = vface_lev_pre[mfi];
             FArrayBox & wface_mf_p      = wface_lev_pre[mfi];
+
 
 
             for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -904,7 +912,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux2[0]),
                                        BL_TO_FORTRAN_3D(flux2[1]),
                                        BL_TO_FORTRAN_3D(flux2[2])),
-                          dx, & dt_lev, & diffcoeff);}
+                          dx, & dt_lev, & diffcoeff, & Correct);}
 
 
             if (do_reflux) {
@@ -916,10 +924,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     }
 //    std::swap(con_old[lev], con_new[lev]);
     S_new->FillBoundary(geom[lev].periodicity());
-    con_old[lev]->FillBoundary(geom[lev].periodicity());
+    con_pre[lev]->FillBoundary(geom[lev].periodicity());
+    con_new[lev]->FillBoundary(geom[lev].periodicity());
 
     if (Correct==1)
-    con_old[lev]->copy(*con_new[lev], 0,num_comp-1 ,num_comp,(*con_new[lev]).nGrow() ,(*con_old[lev]).nGrow()  );
+    std::swap(con_old[lev], con_new[lev]);
+
+//   { con_old[lev]->copy(*con_new[lev], 0,num_comp-1 ,num_comp,(*con_new[lev]).nGrow() ,(*con_old[lev]).nGrow()  );
     con_old[lev]->FillBoundary(geom[lev].periodicity());
      
     // After updating con_new we compute the first derivatives
@@ -950,7 +961,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     S_new_fill.setVal(0.);
   
     if (Correct==1){ 
-    S_new_fill.copy(*con_new[lev], 0,num_comp-1 ,num_comp,(*con_new[lev]).nGrow() , 1);}
+    S_new_fill.copy(*con_old[lev], 0,num_comp-1 ,num_comp,(*con_new[lev]).nGrow() , 1);}
     else{
     S_new_fill.copy(*con_pre[lev], 0,num_comp-1 ,num_comp,(*con_pre[lev]).nGrow() , 1);}
     S_new_fill.FillBoundary(geom[lev].periodicity());
@@ -1087,7 +1098,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
     MF[lev]->setVal(0.);
 
-        MF[lev]->copy(* con_new[lev], 0, 0,1, 0, 0);
+        MF[lev]->copy(* con_old[lev], 0, 0,1, 0, 0);
     }
     else if (indicator==1){
     DistributionMapping xcondm = Dcon_x[lev]->DistributionMap();
