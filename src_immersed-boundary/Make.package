@@ -1,4 +1,6 @@
 CEXE_headers += IBCore.H
+CEXE_headers += IBMarkerContainerBase.H
+CEXE_headers += IBMarkerContainerBaseI.H
 CEXE_headers += IBMarkerContainer.H
 CEXE_headers += IBParticleContainer.H
 CEXE_headers += IBMultiBlobContainer.H
