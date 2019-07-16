@@ -33,11 +33,15 @@ public:
 
     // advance solution (of the advection diffusion equation) in time
     void EvolveChem(
+            std::array<MultiFab, AMREX_SPACEDIM> & umac_pre, 
             std::array<MultiFab, AMREX_SPACEDIM> & umac, 
+            const iMultiFab & iface_pre,
             const iMultiFab & iface,
+            const MultiFab & LevelSet_pre,
             const MultiFab & LevelSet,
             int lev, int step, Real dt_fluid, Real time, Real diffcoeff,
-            const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords);
+            const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords,
+            int corrector);
 
     // initializes multilevel data
     void InitData ( amrex::BoxArray & ba, amrex::DistributionMapping & dm);
@@ -160,6 +164,7 @@ private:
     // array of multifabs to store the solution at each level of refinement
     // after advancing a level we use "swap".
     // amrex::Vector<amrex::MultiFab> con_new;
+    amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_pre;
     amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_new;
     amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_old;
 
@@ -167,6 +172,10 @@ private:
    Vector< std::unique_ptr<MultiFab> >  uface;
    Vector< std::unique_ptr<MultiFab> >  vface;
    Vector< std::unique_ptr<MultiFab> >  wface;
+   
+   Vector< std::unique_ptr<MultiFab> >  uface_pre;
+   Vector< std::unique_ptr<MultiFab> >  vface_pre;
+   Vector< std::unique_ptr<MultiFab> >  wface_pre;
   
    Vector< std::unique_ptr<MultiFab> >  Dcon_x;
    Vector< std::unique_ptr<MultiFab> >  Dcon_y;
@@ -182,7 +191,9 @@ private:
    Vector< std::unique_ptr<MultiFab> >  zface;
 
    std::unique_ptr<iMultiFab>           source_loc;
+   std::unique_ptr<iMultiFab>           source_loc_pre;
    std::unique_ptr<MultiFab>            levset;
+   std::unique_ptr<MultiFab>            levset_pre;
 
     // condition types at the lo/hi walls in each direction
     //BCRec bcs;
@@ -209,6 +220,8 @@ private:
     amrex::Real cfl = 0.25;
 
     amrex::Real diffcoeff;
+
+    int Correct=0;
    // how often each level regrids the higher levels of refinement
     // (after a level advances that many time steps)
     int regrid_int = 2;

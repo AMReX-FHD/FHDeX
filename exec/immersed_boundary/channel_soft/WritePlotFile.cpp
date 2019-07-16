@@ -19,6 +19,7 @@ void WritePlotFile(int step,
                    const MultiFab & tracer,
                    const MultiFab & pres,
                    const std::array< MultiFab, AMREX_SPACEDIM> & force_ibm,
+                   const std::array< MultiFab, AMREX_SPACEDIM> & DCs_spread,
                    const IBParticleContainer & ib_pc,
                    AmrCoreAdv & amr_core_adv,
                    int lev
@@ -48,7 +49,7 @@ void WritePlotFile(int step,
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 4*AMREX_SPACEDIM+3+8*(lev+1);
+    int nPlot = 5*AMREX_SPACEDIM+3+8*(lev+1);
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -86,6 +87,9 @@ void WritePlotFile(int step,
     varNames[cnt++] = "dCdx_cen";
     varNames[cnt++] = "dCdy_cen";
     varNames[cnt++] = "dCdz_cen";
+    varNames[cnt++] = "slipvel_x";
+    varNames[cnt++] = "slipvel_y";
+    varNames[cnt++] = "slipvel_z";
 
     for (int i=0; i<nPlot; ++i) {
         std::cout<<" i= "<< varNames[i]<<std::endl ;
@@ -157,6 +161,11 @@ void WritePlotFile(int step,
     amr_core_adv.con_new_copy(lev, mf, 7);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        ShiftFaceToCC(DCs_spread[d], 0, plotfile, cnt, 1);
+        cnt++;
+    }
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename, plotfile, varNames, geom, time, step);

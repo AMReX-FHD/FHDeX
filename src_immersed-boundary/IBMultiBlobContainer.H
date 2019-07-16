@@ -147,7 +147,7 @@ public:
 
 
     struct {
-        bool operator()(const ParticleType & p1, const ParticleType & p2) const {
+        bool operator() (const ParticleType & p1, const ParticleType & p2) const {
             return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
                                  + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
                                  + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
