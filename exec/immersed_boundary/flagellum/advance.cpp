@@ -60,6 +60,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
     // RHS pressure in GMRES
+    BL_PROFILE_VAR("MultiFab gmres_rhs_p()", Multifab);  // add this before
     MultiFab gmres_rhs_p(ba, dmap, 1, 1);
     gmres_rhs_p.setVal(0.);
 
@@ -199,13 +200,17 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
     // Compute tracer:
+    BL_PROFILE_VAR("compute tracer",TRACER);
     tracer.FillBoundary(geom.periodicity());
     MultiFABPhysBC(tracer, geom);
-
+    
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
+    BL_PROFILE_VAR_STOP(TRACER);
 
     // compute predictor
+    BL_PROFILE_VAR("compute predictor",PRED);
+    
     MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
@@ -214,7 +219,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
-
+    BL_PROFILE_VAR_STOP(PRED);
     // advance in time
     MultiFab::Add(tracer, tracerPred,  0, 0, 1, 0);
     MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
@@ -295,7 +300,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-
+      
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
@@ -306,7 +311,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
                                                         pti.LocalTileIndex());
 
-
+        
         // Get neighbor list (for collision checking)
         const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
                                                          pti.LocalTileIndex());
@@ -314,7 +319,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         int nbhd_index = 0;
 
         for (int i=0; i<np; ++i) {
-
+            BL_PROFILE_REGION_START("PREDFINDNEIGBORS");
+            BL_PROFILE("predictor find neigbors()"); 
             ParticleType & mark = markers[i];
 
             // Get previous and next markers connected to current marker (if they exist)
@@ -325,13 +331,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                                     nbhd_data, nbhd,
                                                     nbhd_index,
                                                     prev_marker, next_marker);
-
+            BL_PROFILE_REGION_STOP("PREDFINDNEIGBORS");
 
             if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
 
             // update spring forces
             if (status == 0) { // has next (p) and prev (m)
-
+            BL_PROFILE_REGION_START("PREDUPDATESPRINGFORCES");
+                BL_PROFILE("predictor updating springforces");
                 RealVect r_p, r_m;
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     r_m[d] = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d)
@@ -351,11 +358,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     mark.rdata(IBM_realData::pred_forcex + d)         += fp_0 * r_p[d];
                     next_marker->rdata(IBM_realData::pred_forcex + d) -= fp_0 * r_p[d];
                 }
+            BL_PROFILE_REGION_STOP("PREDUPDATESPRINGFORCES");
             }
 
             // update bending forces for curent, minus/prev, and next/plus
             if (status == 0) { // has next (p) and prev (m)
-
+                BL_PROFILE_REGION_START("PREDUPDATEBENDINGFORCES");
+                BL_PROFILE("predictor updating bending forces");
                 // position vectors
                 RealVect r, r_m, r_p;
                 for(int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -382,16 +391,19 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
                 }
             }
-
+                BL_PROFILE_REGION_STOP("PREDUPDATEBENDINGFORCES");
             // Increment neighbor list
             int nn      = nbhd[nbhd_index];
             nbhd_index += nn + 1; // +1 <= because the first field contains nn
         }
     }
-
+    
     // TODO: Constrain it to move in the z = constant plane only
     // Set the forces in the z direction to zero
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+        BL_PROFILE_REGION_START("CONSTRAINZ");
+        BL_PROFILE("zcontrant");
+
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
@@ -404,7 +416,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // Zero z-force only
             mark.rdata(IBM_realData::pred_forcez) = 0.;
         }
-     }
+            BL_PROFILE_REGION_STOP("CONSTRAINZ");
+
+    }
 
 
 
@@ -413,8 +427,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Spread forces to predictor
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
+        BL_PROFILE_REGION_START("SPREADFORCESFOPRED");
+        BL_PROFILE("spread predictor forces");
         fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
         fc_force_pred[d].setVal(0.);
+        BL_PROFILE_REGION_STOP("STREADFORCESFORPRED");
     }
 
     // Spread predictor forces
@@ -540,7 +557,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
+         BL_PROFILE_REGION_START("IBMarIter pti");
+         BL_PROFILE("IBMarkIter pti()");
         // Get marker data (local to current thread)
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
@@ -574,7 +592,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             // update spring forces
             if (status == 0) { // has next (p) and prev (m)
-
+                BL_PROFILE_REGION_START("UPDATESRPINGFORCES");
                 RealVect r_p, r_m;
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     r_m[d] = mark.pos(d) - prev_marker->pos(d);
@@ -592,11 +610,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     mark.rdata(IBM_realData::forcex + d)         += fp_0 * r_p[d];
                     next_marker->rdata(IBM_realData::forcex + d) -= fp_0 * r_p[d];
                 }
+            BL_PROFILE_REGION_STOP("UPDATESPRINGFORCES");
             }
 
             // update bending forces for curent, minus/prev, and next/plus
             if (status == 0) { // has next (p) and prev (m)
-
+                BL_PROFILE_REGION_START("UPDATEBENDINGFORCES");
                  // position vectors
                  RealVect r, r_m, r_p;
                  for(int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -617,22 +636,27 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                  // updating the force on the minus, current, and plus particles.
                  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                     
                      prev_marker->rdata(IBM_realData::forcex + d) += f_m[d];
                      mark.rdata(IBM_realData::forcex + d)         +=   f[d];
                      next_marker->rdata(IBM_realData::forcex + d) += f_p[d];
                  }
+            BL_PROFILE_REGION_STOP("UPDATEBENDINGFORCES");
             }
 
             // Increment neighbor list
             int nn      = nbhd[nbhd_index];
             nbhd_index += nn + 1; // +1 <= because the first field contains nn
          }
+     BL_PROFILE_REGION_STOP("IBMarIter pti");
     }
 
 
     // TODO: Constrain it to move in the z = constant plane only
     // Set the forces in the z direction to zero
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+        BL_PROFILE_REGION_START("CONSTRAINZ");
+         BL_PROFILE("constrain z");
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
@@ -645,15 +669,18 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // Zero z-force only
             mark.rdata(IBM_realData::forcez) = 0.;
         }
-     }
+        BL_PROFILE_REGION_STOP("CONSTRAINZ");
+    }
 
 
     //___________________________________________________________________________
     // Spread forces to corrector
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
+        BL_PROFILE_VAR("SPREADTOCORRECTOR",corrector);
         fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
         fc_force_corr[d].setVal(0.);
+        BL_PROFILE_VAR_STOP(corrector);
     }
 
     // Spread to the `fc_force` multifab
@@ -692,4 +719,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++)
         MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);
+  
+BL_PROFILE_VAR_STOP(advance);
 }
