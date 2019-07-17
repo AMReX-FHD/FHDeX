@@ -87,26 +87,29 @@ struct IBM_intData {
 
 
 class IBMarIter
-    : public amrex::ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
+    : public IBMarIterBase<IBM_realData::count, IBM_intData::count>
 {
 
 public:
 
-    using ParIter<IBM_realData::count, IBM_intData::count, 0, 0>::ParIter;
+    using IBMarIterBase<IBM_realData::count, IBM_intData::count>::ParIter;
 };
 
 
 
 class IBMarkerContainer
-    : public amrex::NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
+    : public IBMarkerContainerBase<IBM_realData, IBM_intData>
 {
 
 public:
 
-    using NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
-        ::NeighborParticleContainer;
+    // using NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
+    //     ::NeighborParticleContainer;
 
-    using MyConstParIter = ParConstIter<IBM_realData::count, IBM_intData::count, 0, 0>;
+    //using MyConstParIter = ParConstIter<IBM_realData::count, IBM_intData::count, 0, 0>;
+    using MyConstParIter = IBMarkerContainerBase<IBM_realData, IBM_intData>
+        ::MyConstParIter;
+
 
 
     IBMarkerContainer(AmrCore * amr_core, int n_nbhd);
