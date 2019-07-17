@@ -29,22 +29,22 @@ public:
 
 
 
-template <int NStructReal, int NStructInt>
+template <typename StructReal, typename StructInt>
 class IBMarkerContainer
-    : public amrex::NeighborParticleContainer<NStructReal, NStructInt>
+    : public amrex::NeighborParticleContainer<StructReal::count, StructInt::count>
 {
 
 public:
 
-    using NeighborParticleContainer<NStructReal, NStructInt>
+    using NeighborParticleContainer<StructReal::count, StructInt::count>
           ::NeighborParticleContainer;
 
-    using MyConstParIter = ParConstIter<NStructReal, NStructInt, 0, 0>;
+    using MyConstParIter = ParConstIter<StructReal::count, StructInt::count, 0, 0>;
 
 
     IBMarkerContainerBase(AmrCore * amr_core, int n_nbhd);
     IBMarkerContainerBase(const Geometry & geom, const DistributionMapping & dmap,
-                      const BoxArray & ba, int n_nbhd);
+                          const BoxArray & ba, int n_nbhd);
 
     virtual ~IBMarkerContainerBase() {};
 
@@ -58,7 +58,7 @@ public:
 
 
     // Get number of particles
-    int NumberOfMarkers(IBMarIterBase<NStructReal, NStructInt> & pti){
+    int NumberOfMarkers(IBMarIterBase<StructReal::count, StructInt::count> & pti){
         return pti.GetArrayOfStructs().size();
     };
 
@@ -213,7 +213,7 @@ public:
         }
     } CheckPair;
 
-    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
+    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() const {
         return  face_coords;
     }
 
@@ -223,7 +223,7 @@ private:
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 
-    void InitInternals(int ngrow, int real_comp, int int_comp);
+    void InitInternals(int ngrow);
     void ReadStaticParameters();
 
     AmrCore * m_amr_core;
