@@ -423,13 +423,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Spread forces to predictor
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
+    BL_PROFILE_VAR("spread forces to predictor",spreadpredfor);
     for (int d=0; d<AMREX_SPACEDIM; ++d){
-        BL_PROFILE_VAR("Spread forces for predictor",SPREADFORCESFOPRED);
         fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
         fc_force_pred[d].setVal(0.);
-        BL_PROFILE_VAR_STOP(STREADFORCESFORPRED);
     }
-
+    BL_PROFILE_VAR_STOP(spreadpredfor);
     // Spread predictor forces
     //ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles. This may be redundant
 
@@ -451,7 +450,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
-	BL_PROFILE_VAR_STOP(filltheneihbors);
+	BL_PROFILE_VAR_STOP(filltheneighbors);
     }
 
     std::array< MultiFab, AMREX_SPACEDIM > pg;
