@@ -388,8 +388,6 @@ void advance(AmrCoreAdv & amr_core_adv,
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         force_0[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, umac[d].nGrow());
         force_1[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, umac[d].nGrow());
-        force_0[d].setVal(0);
-        force_1[d].setVal(0);
      }
 
 
@@ -464,7 +462,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     // Add immersed-boundary forces to predictor's RHS
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
-       // force_0[d].setVal(0);
+        force_0[d].setVal(0);
 
     for (const auto & pindex : part_indices) {
         const auto & force = marker_force_0.at(pindex);
@@ -593,7 +591,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], force_0[d],          0, 0, 1, 1);
         std::cout<<" Check Add "<<std::endl;
-        MultiFab::Add(gmres_rhs_u[d], DCs_spread0[d],       0, 0, 1, 1);
+        //MultiFab::Add(gmres_rhs_u[d], DCs_spread0[d],       0, 0, 1, 1);
         std::cout<<" Check Add after "<<std::endl;
 
         // fill boundary before adding pressure part to prevent it from
@@ -856,7 +854,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     // Add immersed-boundary forces to predictor's RHS
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
-      // force_1[d].setVal(0);
+        force_1[d].setVal(0);
 
     for (const auto & pindex : part_indices) {
         const auto & force = marker_force_1.at(pindex);
@@ -902,7 +900,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], force_1[d],          0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], DCs_spread1[d],       0, 0, 1, 1);
+       // MultiFab::Add(gmres_rhs_u[d], DCs_spread1[d],       0, 0, 1, 1);
 
         // fill boundary before adding pressure part to prevent it from
         // overwriding any pressure gradients in the ghost cells
