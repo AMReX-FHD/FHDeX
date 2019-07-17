@@ -363,9 +363,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             // update bending forces for curent, minus/prev, and next/plus
             if (status == 0) { // has next (p) and prev (m)
-                BL_PROFILE_REGION_START("PREDUPDATEBENDINGFORCES");
-                BL_PROFILE("predictor updating bending forces");
-                // position vectors
+                BL_PROFILE_VAR("Predictor bending forces",predictorbendingforces);
+		// position vectors
                 RealVect r, r_m, r_p;
                 for(int d=0; d<AMREX_SPACEDIM; ++d) {
                     r[d]   = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d);
@@ -390,8 +389,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     mark.rdata(IBM_realData::pred_forcex + d)         +=   f[d];
                     next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
                 }
-            }
-                BL_PROFILE_REGION_STOP("PREDUPDATEBENDINGFORCES");
+
+		BL_PROFILE_VAR_STOP(predictorbendingforces);
+
+	    }
             // Increment neighbor list
             int nn      = nbhd[nbhd_index];
             nbhd_index += nn + 1; // +1 <= because the first field contains nn
@@ -401,10 +402,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // TODO: Constrain it to move in the z = constant plane only
     // Set the forces in the z direction to zero
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-        BL_PROFILE_REGION_START("CONSTRAINZ");
-        BL_PROFILE("zcontrant");
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        BL_PROFILE_VAR("Constrainz",CONSTRAINZ);
+	PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
         long np = markers.size();
@@ -416,7 +415,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // Zero z-force only
             mark.rdata(IBM_realData::pred_forcez) = 0.;
         }
-            BL_PROFILE_REGION_STOP("CONSTRAINZ");
+            BL_PROFILE_VAR_STOP(CONSTRAINZ);
 
     }
 
@@ -427,22 +426,24 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Spread forces to predictor
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
-        BL_PROFILE_REGION_START("SPREADFORCESFOPRED");
-        BL_PROFILE("spread predictor forces");
+        BL_PROFILE_VAR("Spread forces for predictor",SPREADFORCESFOPRED);
         fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
         fc_force_pred[d].setVal(0.);
-        BL_PROFILE_REGION_STOP("STREADFORCESFORPRED");
+        BL_PROFILE_VAR_STOP(STREADFORCESFORPRED);
     }
 
     // Spread predictor forces
     //ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles. This may be redundant
 
     ib_mc.SpreadPredictor(0, fc_force_pred);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+	BL_PROFILE_VAR("spread predictor forces",SREADPREDICTORFORCES);
         fc_force_pred[d].SumBoundary(geom.periodicity());
-
+	BL_PROFILE_VAR_STOP(SREADPREDICTORFORCES);
+	}
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
+	BL_PROFILE_VAR("fill neighbors",filltheneighbors);
         Lumac[d].FillBoundary(geom.periodicity());
 
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
@@ -452,6 +453,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
+	BL_PROFILE_VAR_STOP(filltheneihbors);
     }
 
     std::array< MultiFab, AMREX_SPACEDIM > pg;
@@ -482,6 +484,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Compute predictor advective term
     // let rho = 1
     for (int d=0; d<AMREX_SPACEDIM; d++) {
+	BL_PROFILE_VAR("compute predictor advective",computepredictorad);
         umacNew[d].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
         MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
@@ -492,6 +495,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         uMom[d].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
         MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+    	BL_PROFILE_VAR_STOP(computepredictorad);
     }
 
     MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
