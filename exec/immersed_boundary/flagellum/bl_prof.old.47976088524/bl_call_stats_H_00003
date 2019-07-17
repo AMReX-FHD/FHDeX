@@ -1,0 +1,127 @@
+CallStatsProc 3 nRSS 23857 nTraceStats 25796455  datafile  bl_call_stats_D_00003  seekpos  0
+fName "ApplyMatrix()" 118
+fName "ApplyPrecon()" 91
+fName "AverageCCToFace()" 23
+fName "AverageFaceToCC()" 64
+fName "BndryData::define()" 42
+fName "CCInnerProd()" 117
+fName "CCL2Norm()" 116
+fName "ComputeDiv()" 66
+fName "ComputeMACSolverRHS()" 34
+fName "Constrainz" 83
+fName "DistributionMapping::Distribute()" 2
+fName "DistributionMapping::LeastUsedCPUs()" 3
+fName "DistributionMapping::SFCProcessorMapDoIt()" 1
+fName "FabArray::FillBoundary()" 11
+fName "FabArray::ParallelCopy()" 28
+fName "FabArray::setVal()" 4
+fName "FabArray::setVal(val,region,comp,ncomp,nghost)" 10
+fName "FabArrayBase::CPC::define()" 30
+fName "FabArrayBase::FB::FB()" 14
+fName "FabArrayBase::getCPC()" 29
+fName "FabArrayBase::getFB()" 13
+fName "FillBoundary_finish()" 15
+fName "FillBoundary_nowait()" 12
+fName "FindFaceCoords()" 5
+fName "GMRES()" 90
+fName "IBMarkIter pti()" 122
+fName "MLABecLaplacian::FFlux()" 62
+fName "MLABecLaplacian::Fapply()" 55
+fName "MLABecLaplacian::Fsmooth()" 97
+fName "MLABecLaplacian::averageDownCoeffs()" 49
+fName "MLABecLaplacian::define()" 35
+fName "MLABecLaplacian::prepareForSolve()" 47
+fName "MLCellLinOp::apply()" 53
+fName "MLCellLinOp::applyBC()" 54
+fName "MLCellLinOp::compFlux()" 61
+fName "MLCellLinOp::correctionResidual()" 99
+fName "MLCellLinOp::defineAuxData()" 40
+fName "MLCellLinOp::defineBC()" 41
+fName "MLCellLinOp::prepareForSolve()" 48
+fName "MLCellLinOp::setLevelBC()" 44
+fName "MLCellLinOp::smooth()" 96
+fName "MLCellLinOp::solutionResidual()" 52
+fName "MLLinOp::define()" 36
+fName "MLLinOp::defineGrids()" 37
+fName "MLLinOp::makeAgglomeratedDMap" 38
+fName "MLLinOp::makeSubCommunicator()" 39
+fName "MLMG::MLResNormInf()" 57
+fName "MLMG::MLRhsNormInf()" 59
+fName "MLMG::ResNormInf()" 58
+fName "MLMG::actualBottomSolve()" 105
+fName "MLMG::addInterpCorrection()" 107
+fName "MLMG::buildFineMask()" 50
+fName "MLMG::computeMLResidual()" 51
+fName "MLMG::computeResidual()" 111
+fName "MLMG::getFluxes()" 60
+fName "MLMG::mgVcycle()" 94
+fName "MLMG::mgVcycle_bottom" 104
+fName "MLMG::mgVcycle_down::0" 95
+fName "MLMG::mgVcycle_down::1" 101
+fName "MLMG::mgVcycle_down::2" 102
+fName "MLMG::mgVcycle_down::3" 103
+fName "MLMG::mgVcycle_up::0" 110
+fName "MLMG::mgVcycle_up::1" 109
+fName "MLMG::mgVcycle_up::2" 108
+fName "MLMG::mgVcycle_up::3" 106
+fName "MLMG::oneIter()" 93
+fName "MLMG::prepareForSolve()" 46
+fName "MLMG::solve()" 45
+fName "MLMG:computeResOfCorrection()" 98
+fName "MacProj()" 33
+fName "MkAdvMFluxdiv()" 77
+fName "MkAdvSFluxdiv()" 75
+fName "MultiFABFillRandom()" 25
+fName "MultiFab::Copy()" 87
+fName "MultiFab::Divide()" 32
+fName "MultiFab::Multiply()" 24
+fName "MultiFab::Saxpy()" 31
+fName "MultiFab::Subtract()" 89
+fName "MultiFab::SumBoundary()" 86
+fName "MultiFab::Xpay()" 56
+fName "NeighborParticleContainer::BuildMasks" 9
+fName "NeighborParticleContainer::GetNeighborCommTags" 16
+fName "NeighborParticleContainer::buildNeighborList" 79
+fName "NeighborParticleContainer::cacheNeighborInfo" 17
+fName "NeighborParticleContainer::clearNeighborsCPU" 18
+fName "NeighborParticleContainer::fillNeighborsCPU" 8
+fName "NeighborParticleContainer::fillNeighborsMPI" 20
+fName "NeighborParticleContainer::getRcvCountsMPI" 21
+fName "NeighborParticleContainer::updateNeighborsCPU" 19
+fName "OverrideSync()" 27
+fName "OwnerMask()" 26
+fName "PD_convert" 72
+fName "ParticleContainer::RedistributeCPU()" 6
+fName "ParticleContainer::RedistributeMPI()" 7
+fName "ParticleContainer::WriteBinaryParticleData()" 69
+fName "ParticleContainer::WriteParticles()" 70
+fName "Predictor bending forces" 82
+fName "RD:convertFromNativeDoubleFormat" 71
+fName "RedistributeMPI_copy" 121
+fName "RedistributeMPI_locate" 120
+fName "SPREADTOCORRECTOR" 124
+fName "SetMacSolverBCs()" 43
+fName "ShiftFaceToCC()" 65
+fName "StagApplyOp()" 78
+fName "StagInnerProd()" 115
+fName "StagL2Norm()" 114
+fName "StagMGSolver()" 92
+fName "StochMFlux::StochMFlux()" 22
+fName "SumCC()" 113
+fName "SumStag()" 112
+fName "VisMF::Write(FabArray)" 68
+fName "WriteMultiLevelPlotfile()" 67
+fName "WritePlotFile()" 63
+fName "advance()" 73
+fName "amrex::average_down" 100
+fName "compute predictor" 76
+fName "compute predictor advective" 119
+fName "compute tracer" 74
+fName "constrain z" 123
+fName "fill neighbors" 88
+fName "main_driver()" 0
+fName "predictor find neigbors()" 80
+fName "predictor updating springforces" 81
+fName "spread forces to predictor" 84
+fName "spread predictor forces" 85
+timeMinMax  0.007202815999999997 384.103601548
