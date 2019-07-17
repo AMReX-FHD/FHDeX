@@ -37,7 +37,7 @@ struct IBM_realData {
         pred_forcex,
         pred_forcey,
         pred_forcez,
-        count    // Awesome little trick!
+        count    // Awesome little trick! (only works if first field is 0)
     };
 
     static Vector<std::string> names() {
