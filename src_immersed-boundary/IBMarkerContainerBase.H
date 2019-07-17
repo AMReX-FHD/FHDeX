@@ -19,7 +19,7 @@ using namespace amrex;
 
 template <int NStructReal, int NStructInt>
 class IBMarIterBase
-    : public amrex::ParIter<NStructReal, NStructInt, 0, 0>
+    : public ParIter<NStructReal, NStructInt, 0, 0>
 {
 
 public:
@@ -31,7 +31,7 @@ public:
 
 template <typename StructReal, typename StructInt>
 class IBMarkerContainerBase
-    : public amrex::NeighborParticleContainer<StructReal::count, StructInt::count>
+    : public NeighborParticleContainer<StructReal::count, StructInt::count>
 {
 
 public:
@@ -203,8 +203,8 @@ public:
 
 
 
-    static bool use_neighbor_list;
-    static bool sort_neighbor_list;
+    // static bool use_neighbor_list;
+    // static bool sort_neighbor_list;
 
 
 
@@ -222,17 +222,19 @@ public:
         return  face_coords;
     }
 
+protected:
 
-private:
-
-    // Positions on faces
-    Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
+    int nghost;
 
     void InitInternals(int ngrow);
     void ReadStaticParameters();
 
     AmrCore * m_amr_core;
-    int nghost;
+
+private:
+
+    // Positions on faces
+    Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
 };
 
 

@@ -203,14 +203,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     BL_PROFILE_VAR("compute tracer",TRACER);
     tracer.FillBoundary(geom.periodicity());
     MultiFABPhysBC(tracer, geom);
-    
+
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
     BL_PROFILE_VAR_STOP(TRACER);
 
     // compute predictor
     BL_PROFILE_VAR("compute predictor",PRED);
-    
+
     MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
@@ -300,7 +300,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-      
+
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
@@ -311,7 +311,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
                                                         pti.LocalTileIndex());
 
-        
+
         // Get neighbor list (for collision checking)
         const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
                                                          pti.LocalTileIndex());
