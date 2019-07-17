@@ -60,10 +60,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
     // RHS pressure in GMRES
-    BL_PROFILE_VAR("MultiFab gmres_rhs_p()", Multifab);  // add this before
     MultiFab gmres_rhs_p(ba, dmap, 1, 1);
     gmres_rhs_p.setVal(0.);
-
     // RHS velocities in GMRES
     std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
     // Velocity components updated by diffusion operator
