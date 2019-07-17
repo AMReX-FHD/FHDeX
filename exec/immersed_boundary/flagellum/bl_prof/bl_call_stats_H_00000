@@ -1,4 +1,4 @@
-CallStatsProc 0 nRSS 5 nTraceStats 26770472  datafile  bl_call_stats_D_00000  seekpos  0
+CallStatsProc 0 nRSS 5 nTraceStats 26770458  datafile  bl_call_stats_D_00000  seekpos  0
 fName "ApplyMatrix()" 113
 fName "ApplyPrecon()" 86
 fName "AverageCCToFace()" 23
@@ -116,4 +116,4 @@ fName "adv_spread predictor forces" 80
 fName "advance()" 72
 fName "amrex::average_down" 95
 fName "main_driver()" 0
-timeMinMax  0.029348767 329.514258468
+timeMinMax  0.006589334999999998 375.918983275

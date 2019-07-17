@@ -1,4 +1,4 @@
-CallStatsProc 2 nRSS 24153 nTraceStats 25796524  datafile  bl_call_stats_D_00002  seekpos  0
+CallStatsProc 2 nRSS 5 nTraceStats 25802960  datafile  bl_call_stats_D_00002  seekpos  0
 fName "ApplyMatrix()" 120
 fName "ApplyPrecon()" 93
 fName "AverageCCToFace()" 25
@@ -8,7 +8,6 @@ fName "CCInnerProd()" 119
 fName "CCL2Norm()" 118
 fName "ComputeDiv()" 68
 fName "ComputeMACSolverRHS()" 36
-fName "Constrainz" 85
 fName "DistributionMapping::Distribute()" 2
 fName "DistributionMapping::LeastUsedCPUs()" 3
 fName "DistributionMapping::SFCProcessorMapDoIt()" 1
@@ -24,7 +23,6 @@ fName "FillBoundary_finish()" 17
 fName "FillBoundary_nowait()" 14
 fName "FindFaceCoords()" 5
 fName "GMRES()" 92
-fName "IBMarkIter pti()" 122
 fName "MLABecLaplacian::FFlux()" 64
 fName "MLABecLaplacian::Fapply()" 57
 fName "MLABecLaplacian::Fsmooth()" 99
@@ -95,11 +93,9 @@ fName "ParticleContainer::RedistributeCPU()" 6
 fName "ParticleContainer::RedistributeMPI()" 7
 fName "ParticleContainer::WriteBinaryParticleData()" 71
 fName "ParticleContainer::WriteParticles()" 72
-fName "Predictor bending forces" 84
 fName "RD:convertFromNativeDoubleFormat" 73
 fName "RedistributeMPI_copy" 9
 fName "RedistributeMPI_locate" 8
-fName "SPREADTOCORRECTOR" 124
 fName "SetMacSolverBCs()" 45
 fName "ShiftFaceToCC()" 67
 fName "StagApplyOp()" 80
@@ -112,16 +108,24 @@ fName "SumStag()" 114
 fName "VisMF::Write(FabArray)" 70
 fName "WriteMultiLevelPlotfile()" 69
 fName "WritePlotFile()" 65
+fName "adv_Constrain z pred" 85
+fName "adv_Predictor bending forces" 84
+fName "adv_compute predictor" 78
+fName "adv_compute predictor advective" 121
+fName "adv_compute tracer" 76
+fName "adv_contstrain z" 126
+fName "adv_fill neighbors" 90
+fName "adv_fillboundary" 128
+fName "adv_find neighbors" 82
+fName "adv_grab marker data" 122
+fName "adv_match markers" 123
+fName "adv_spread forces to corrector" 127
+fName "adv_spread forces to predictor" 86
+fName "adv_spread predictor forces" 87
+fName "adv_update bending forces" 125
+fName "adv_updating predictor spring forces" 83
+fName "adv_updatingspringforces" 124
 fName "advance()" 75
 fName "amrex::average_down" 102
-fName "compute predictor" 78
-fName "compute predictor advective" 121
-fName "compute tracer" 76
-fName "constrain z" 123
-fName "fill neighbors" 90
 fName "main_driver()" 0
-fName "predictor find neigbors()" 82
-fName "predictor updating springforces" 83
-fName "spread forces to predictor" 86
-fName "spread predictor forces" 87
-timeMinMax  0.008664691999999998 384.104237243
+timeMinMax  0.006404494 375.918731603
