@@ -52,8 +52,8 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
   indlo = (dir-1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
   indhi = (dir+1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
 
-  IntVect dom_lo(domain.loVect3d());
-  IntVect dom_hi(domain.hiVect3d());
+  IntVect dom_lo(domain.loVect());
+  IntVect dom_hi(domain.hiVect());
   dom_hi[dir] = nbx[dir];
   Box domain_flattened(dom_lo, dom_hi);
   dom_hi[dir] = 1;
