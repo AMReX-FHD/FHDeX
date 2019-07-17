@@ -589,9 +589,9 @@ void advance(AmrCoreAdv & amr_core_adv,
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], force_0[d],          0, 0, 1, 1);
+        //MultiFab::Add(gmres_rhs_u[d], force_0[d],          0, 0, 1, 1);
         std::cout<<" Check Add "<<std::endl;
-        //MultiFab::Add(gmres_rhs_u[d], DCs_spread0[d],       0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], DCs_spread0[d],       0, 0, 1, 1);
         std::cout<<" Check Add after "<<std::endl;
 
         // fill boundary before adding pressure part to prevent it from
@@ -899,8 +899,8 @@ void advance(AmrCoreAdv & amr_core_adv,
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], force_1[d],          0, 0, 1, 1);
-       // MultiFab::Add(gmres_rhs_u[d], DCs_spread1[d],       0, 0, 1, 1);
+        //MultiFab::Add(gmres_rhs_u[d], force_1[d],          0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], DCs_spread1[d],       0, 0, 1, 1);
 
         // fill boundary before adding pressure part to prevent it from
         // overwriding any pressure gradients in the ghost cells
