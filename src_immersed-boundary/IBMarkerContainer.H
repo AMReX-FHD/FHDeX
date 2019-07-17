@@ -11,6 +11,7 @@
 #include <AMReX_NeighborParticles.H>
 #include <IBParticleInfo.H>
 #include <common_namespace.H>
+#include <IBMarkerContainerBase.H>
 
 
 using namespace amrex;

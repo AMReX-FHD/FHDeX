@@ -30,7 +30,7 @@ public:
 
 
 template <typename StructReal, typename StructInt>
-class IBMarkerContainer
+class IBMarkerContainerBase
     : public amrex::NeighborParticleContainer<StructReal::count, StructInt::count>
 {
 
@@ -40,6 +40,10 @@ public:
           ::NeighborParticleContainer;
 
     using MyConstParIter = ParConstIter<StructReal::count, StructInt::count, 0, 0>;
+
+    using ParticleType = typename NeighborParticleContainer<StructReal::count, StructInt::count>::ParticleType;
+    using PairIndex = typename NeighborParticleContainer<StructReal::count, StructInt::count>::PairIndex;
+    using AoS = typename NeighborParticleContainer<StructReal::count, StructInt::count>::AoS;
 
 
     IBMarkerContainerBase(AmrCore * amr_core, int n_nbhd);
@@ -204,14 +208,15 @@ public:
 
 
 
-    struct {
-        bool operator()(const ParticleType & p1, const ParticleType & p2) const {
-            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
-                                 + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-                                 + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-                <= 4.0*p1.rdata(0)*p1.rdata(0);
-        }
-    } CheckPair;
+    // Needs to be specified once a concrete class is created
+    // struct {
+    //     bool operator()(const ParticleType & p1, const ParticleType & p2) const {
+    //         return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
+    //                              + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
+    //                              + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
+    //             <= 4.0*p1.rdata(0)*p1.rdata(0);
+    //     }
+    // } CheckPair;
 
     const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() const {
         return  face_coords;

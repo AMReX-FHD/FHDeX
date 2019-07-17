@@ -22,8 +22,11 @@
 using namespace common;
 using namespace amrex;
 
-bool IBMarkerContainer::use_neighbor_list  {true};
-bool IBMarkerContainer::sort_neighbor_list {false};
+
+
+// Needs to be specified once a concrete class is created
+// bool IBMarkerContainer::use_neighbor_list  {true};
+// bool IBMarkerContainer::sort_neighbor_list {false};
 
 
 
@@ -65,7 +68,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
-        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
 
         for (int i=0; i<np; ++i) {
@@ -89,7 +92,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
-        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
 
         for (int i = 0; i < np; ++i) {
@@ -115,7 +118,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev) {
             pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
         AoS & particles = particle_data.GetArrayOfStructs();
@@ -139,7 +142,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
             pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
         AoS & particles = particle_data.GetArrayOfStructs();
@@ -168,7 +171,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
     //___________________________________________________________________________
     // Geometry data
-    const Geometry & geom = Geom(0);
+    const Geometry & geom = this->Geom(0);
     const Real     *   dx = geom.CellSize();
 
     const int n_marker = f_pos.size();
@@ -179,8 +182,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
     // WARNING: this will break if IBMarkerContainer is on a different grid
     // than the grid which we're spreading to
 
-    const BoxArray & ba            = ParticleBoxArray(lev);
-    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    const BoxArray & ba            = this->ParticleBoxArray(lev);
+    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
 
     MultiFab dummy(ba, dm, 1, f_out[0].nGrow());
 
@@ -244,7 +247,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        const auto & particle_data = GetParticles(lev).at(index);
+        const auto & particle_data = this->GetParticles(lev).at(index);
 
 
         //_______________________________________________________________________
@@ -297,7 +300,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        const auto & particle_data = GetParticles(lev).at(index);
+        const auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
@@ -340,7 +343,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
     //___________________________________________________________________________
     // Geometry data
-    const Geometry & geom = Geom(0);
+    const Geometry & geom = this->Geom(0);
     const Real     *   dx = geom.CellSize();
 
     const int n_marker = f_pos.size();
@@ -351,8 +354,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
     // WARNING: this will break if IBMarkerContainer is on a differnt grid
     // than the grid which we're interpolating from
 
-    const BoxArray & ba            = ParticleBoxArray(lev);
-    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    const BoxArray & ba            = this->ParticleBoxArray(lev);
+    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
 
     MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
 
@@ -416,7 +419,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
@@ -448,7 +451,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
-                part.rdata(StrucReal::velx + d) += marker_forces[i][d];
+                part.rdata(StructReal::velx + d) += marker_forces[i][d];
         }
     }
 }
@@ -477,7 +480,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
@@ -522,9 +525,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
 
     // Inverse cell-size vector => max is used for determining IBParticle
     // radius in units of cell size
-    Vector<Real> inv_dx = {AMREX_D_DECL(Geom(lev).InvCellSize(0),
-                                        Geom(lev).InvCellSize(1),
-                                        Geom(lev).InvCellSize(2)   )};
+    Vector<Real> inv_dx = {AMREX_D_DECL(this->Geom(lev).InvCellSize(0),
+                                        this->Geom(lev).InvCellSize(1),
+                                        this->Geom(lev).InvCellSize(2)   )};
 
     // Find max inv_dx (in case we have an anisotropic grid)
     Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
@@ -538,14 +541,14 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
     // ParIter skips tiles without particles => Iterate over MultiFab instead of
     // ParticleIter. Note also that AmrexParticleContainer uses wired tiling =>
     // turn tiling off
-    for(MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
+    for(MFIter pti = this->MakeMFIter(lev, false); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
         // Neighbours are stored as raw data (see below)
-        int ng = neighbors[lev].at(index).size();
+        int ng = this->neighbors[lev].at(index).size();
 
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
         local_count += np;
@@ -577,7 +580,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
         // Also we stride the neighbors[index] array in units of
         // sizeof(ParticleData). All of this is a little too dangerous for my
         // taste: never hide what you're doing from your compiler!!!
-        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).dataPtr();
         for(int i = 0; i < ng; i++){
             const ParticleType & part = nbhd_data[i];
 
@@ -602,13 +605,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
     //      => 3 corresponds to the start of IBM_realData
     for (int i=3; i < StructReal::count + 3; ++i)
-        setRealCommComp(i,  true);
+        this->setRealCommComp(i,  true);
 
     // Field numbers: {0, 1} => {ID, CPU}
     //      => 2 corresponds to the start of IBM_intData
     // We _do_ want the the neighbour particles to have ID and cpu init data.
     for (int i = 2; i < StructInt::count + 2; ++i)
-        setIntCommComp(i, true);
+        this->setIntCommComp(i, true);
 
 
 
@@ -623,14 +626,14 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     int lev = 0;
 
     face_coords.resize(lev + 1);
-    const BoxArray & ba            = ParticleBoxArray(lev);
-    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    const BoxArray & ba            = this->ParticleBoxArray(lev);
+    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         const BoxArray ba_fc = convert(ba, nodal_flag_dir[d]);
         face_coords[lev][d].define(ba_fc, dm, AMREX_SPACEDIM, ngrow);
     }
 
-    const Geometry & geom = Geom(lev);
+    const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
 }
 
@@ -644,18 +647,18 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
         ParmParse pp("particles");
 
         // AMReX default is false => enable by default
-        do_tiling = true;
+        this->do_tiling = true;
         // Allow user to overwrite
-        pp.query("do_tiling",  do_tiling);
+        pp.query("do_tiling",  this->do_tiling);
 
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
-        if (do_tiling)
-            tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
+        if (this->do_tiling)
+            this->tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
         // User can overwrite
         Vector<int> ts(BL_SPACEDIM);
         if (pp.queryarr("tile_size", ts))
-            tile_size = IntVect(ts);
+            this->tile_size = IntVect(ts);
 
         // pp.query("use_neighbor_list", use_neighbor_list);
         // pp.query("sort_neighbor_list", sort_neighbor_list);
