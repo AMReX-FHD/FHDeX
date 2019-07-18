@@ -419,8 +419,6 @@ void advance(AmrCoreAdv & amr_core_adv,
             pos_0[i] = pos[i] + del_0[i];
             force[i] = f_0[i] - spring_coefficient*del_0[i]+scaling_factor*dcs[i];
 
-            if (i == 10)
-                Print() << "predictor force[" << i << "] = " << force[i] << std::endl;
         }
     }
 
@@ -753,8 +751,6 @@ void advance(AmrCoreAdv & amr_core_adv,
             force[i] = f_0[i] - spring_coefficient*del_1[i]+scaling_factor*dcs[i];
             f_0[i]   = force[i];
 
-            if (i == 10)
-                Print() << "corrector force[" << i << "] = " << force[i] << std::endl;
         }
     }
 

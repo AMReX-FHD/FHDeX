@@ -91,9 +91,9 @@ void WritePlotFile(int step,
     varNames[cnt++] = "slipvel_y";
     varNames[cnt++] = "slipvel_z";
 
-    for (int i=0; i<nPlot; ++i) {
-        std::cout<<" i= "<< varNames[i]<<std::endl ;
-    }
+   // for (int i=0; i<nPlot; ++i) {
+   //     std::cout<<" i= "<< varNames[i]<<std::endl ;
+   // }
     
 
     // reset plotfile variable counter

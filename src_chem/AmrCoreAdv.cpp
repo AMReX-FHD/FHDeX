@@ -1064,14 +1064,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     tzf_mf.FillBoundary(geom[lev].periodicity());
 
 
-    
-
-
-
-    amrex::Print() << "Max Dconx face "<< (Dcon_x[lev]->max(0))<< std::endl;
-    amrex::Print() << "Max Dcony face "<< (Dcon_y[lev]->max(0))<< std::endl;
-    amrex::Print() << "Max Dconz face "<< (Dcon_z[lev]->max(0))<< std::endl;
-
 
     amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;

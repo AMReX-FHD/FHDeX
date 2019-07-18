@@ -139,7 +139,6 @@ void main_driver(const char * argv) {
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
 
-    Print() << "distribution mapping at the very beginning: " << dmap << std::endl;
 
 
     //___________________________________________________________________________
@@ -416,7 +415,7 @@ void main_driver(const char * argv) {
 
 
     // DEBUG: Test interface
-    ib_pc.PrintParticleData(0);
+    //ib_pc.PrintParticleData(0);
 
     //__________________________________________________________________________
     // Build IB core
@@ -450,10 +449,8 @@ void main_driver(const char * argv) {
 
     //__________________________________________________________________________
     // Build AmrCore and initialize chemical multifabs
-    std:: cout << "Diff Coeff Maindriver"<< diffcoeff << std::endl;
 
     AmrCoreAdv amr_core_adv;
-    std:: cout << " After declaring AmrCoreAdv Class"<< diffcoeff << std::endl;
 
     amr_core_adv.InitData( ba, dmap);
 
