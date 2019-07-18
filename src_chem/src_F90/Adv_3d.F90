@@ -225,38 +225,11 @@ subroutine advect_3d(time, lo, hi, &
                 + ( (flxx2(i,j,k) - flxx2(i+1,j,k)) * dtdx(1) &
                 + (flxy2(i,j,k) - flxy2(i,j+1,k)) * dtdx(2) &
                 + (flxz2(i,j,k) - flxz2(i,j,k+1)) * dtdx(3) ))+dt*0.5*(ptSp(i,j,k)+ptSf(i,j,k))
-             if ((correct == 0) .and. (ptSp(i,j,k)>0.))then
-!             if (flxx1(i,j,k) .ne. flxx2(i,j,k)) then
-!             print *, " flxx1 ", flxx1( i,j,k), "flx11", flxx11, " flxx2 ", flxx2(i,j,k), " flxx22 ",flxx22, "i ", i, " j ", j, " k ", k
-!             print *, " ifacep ", ifacep( i,j,k), " ifacef ", ifacef(i,j,k), "i ", i, " j ", j, " k ", k
-!
-!             end if
-!             if (flxy1(i,j,k) .ne. flxy2(i,j,k)) then
-!             print *, " flxy1 ", flxy1( i,j,k), " flxy11 ", flxy11, " flxy2 ", flxy2(i,j,k), " flxy22 ", flxy22, "i ", i, " j ", j, " k ", k
-!             end if
-!             if (flxz1(i,j,k) .ne. flxz2(i,j,k)) then
-!             print *, " flxz1 ", flxz1( i,j,k), " flxz11", flxz11, " flxz2 ", flxz2(i,j,k)," flxz22 ", flxz22, "i ", i, " j ", j, " k ", k
-!             end if
-!             if (ptSp(i,j,k) .ne. ptSf(i,j,k)) then
-!             print *, " ptSp ", ptSp( i,j,k), " ptSf ", ptSp(i,j,k), "i ", i, " j ", j, " k ", k
-!             end if
-!             if (ifacep(i,j,k) .ne. ifacef(i,j,k)) then
-!             print *, " ifacep ", ifacep( i,j,k), " ifacef ", ifacef(i,j,k), "i ", i, " j ", j, " k ", k
-!             end if
-!
-!             if (uin_p(i,j,k) .ne. uin_f(i,j,k)) then
-!             print *, " uinp ", uin_p( i,j,k), " uinf ", uin_f(i,j,k), "i ", i, " j ", j, " k ", k
-!             end if
-!             if ((ifacep(i,j,k) .eq. 1) .and. (ptSp(i,j,k)>0.) )then
-             !print *, " lo ", lo, " hi ", hi,  " i ", i, " j ", j, " k ", k, " uout ", uout( i,j,k), " uin_p ", uin_p(i,j,k), " uin_f ", uin_f(i,j,k)
-!             end if
-!             end if
              end if
 
             flxx(i,j,k)=0.5*(flxx1(i,j,k)+flxx2(i,j,k))
             flxy(i,j,k)=0.5*(flxy1(i,j,k)+flxy2(i,j,k))
             flxz(i,j,k)=0.5*(flxy1(i,j,k)+flxz2(i,j,k))
-           endif
         enddo
      enddo
   enddo
