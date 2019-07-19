@@ -113,12 +113,9 @@ class IBMarkerContainer
 
 public:
 
-    //using NeighborParticleContainer<IBM_realData::count, IBM_intData::count>
-    //    ::NeighborParticleContainer;
     using IBMarkerContainerBase<IBM_realData, IBM_intData>
         ::IBMarkerContainerBase;
 
-    //using MyConstParIter = ParConstIter<IBM_realData::count, IBM_intData::count, 0, 0>;
     using MyConstIBMarIter = IBMarkerContainerBase<IBM_realData, IBM_intData>
         ::MyConstIBMarIter;
 
@@ -132,7 +129,6 @@ public:
 
 
     // (ID, initial CPU) tuple: unique to each particle
-    // using MarkerIndex = std::pair<int, int>;
     using MarkerIndex = typename IBMarkerContainerBase<IBM_realData, IBM_intData>
         ::PairIndex;
 
@@ -163,24 +159,14 @@ public:
                        const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
-
-    // void SpreadMarkers(int lev,
-    //                    const Vector<RealVect> & f_in,
-    //                    const Vector<RealVect> & f_pos,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
     //---------------------------------------------------------------------------
 
 
 
     //___________________________________________________________________________
     // Spreading operators applied to internal force fields (in amrex::Particles)
-    // void SpreadMarkers(int lev,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
     using IBMarkerContainerBase<IBM_realData, IBM_intData>::SpreadMarkers;
 
-    // void SpreadPredictor(int lev,
-    //                      std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
     using IBMarkerContainerBase<IBM_realData, IBM_intData>::SpreadPredictor;
     //---------------------------------------------------------------------------
 
@@ -196,41 +182,16 @@ public:
                             Vector<RealVect> & f_out,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
                             const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
-
-    // void InterpolateMarkers(int lev,
-    //                         Vector<RealVect> & f_out,
-    //                         const Vector<RealVect> & f_pos,
-    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
     //---------------------------------------------------------------------------
 
 
 
     //___________________________________________________________________________
     // Interpolation operators applied to internal force fields (in amrex::Particles)
-    // void InterpolateMarkers(int lev,
-    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
     using IBMarkerContainerBase<IBM_realData, IBM_intData>::InterpolateMarkers;
 
-
-    // void InterpolatePredictor(int lev,
-    //                           const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
     using IBMarkerContainerBase<IBM_realData, IBM_intData>::InterpolatePredictor;
     //---------------------------------------------------------------------------
-
-
-
-    /****************************************************************************
-     *                                                                          *
-     * Physics                                                                  *
-     *                                                                          *
-     ***************************************************************************/
-
-
-    // void MoveMarkers(int lev, Real dt);
-    // void MovePredictor(int lev, Real dt);
-    // void ResetMarkers(int lev);
-    // void ResetPredictor(int lev);
 
 
 
@@ -257,11 +218,6 @@ public:
                              ParticleType *& prev_marker,
                              ParticleType *& next_marker) const;
 
-
-
-    // int get_nghost() const {return nghost;};
-
-    // void PrintMarkerData(int lev) const;
 
     void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
                            bool unique = false) const;
@@ -299,21 +255,6 @@ public:
                 <= 4.0*p1.rdata(0)*p1.rdata(0);
         }
     } CheckPair;
-
-    // const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
-    //     return  face_coords;
-    // }
-
-private:
-
-    // // Positions on faces
-    // Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
-
-    // void InitInternals(int ngrow);
-    // void ReadStaticParameters();
-
-    // AmrCore * m_amr_core;
-    // int nghost;
 };
 
 
