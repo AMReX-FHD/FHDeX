@@ -24,7 +24,15 @@ class IBMarIterBase
 
 public:
 
-    using ParIter<NStructReal, NStructInt, 0, 0>::ParIter;
+    using ContainerType = ParticleContainer<NStructReal, NStructInt, 0, 0>;
+
+    IBMarIterBase (ContainerType & pc, int level)
+        : ParIter<NStructReal, NStructInt, 0, 0>(pc,level)
+        {}
+
+    IBMarIterBase (ContainerType & pc, int level, MFItInfo& info)
+        : ParIter<NStructReal, NStructInt, 0, 0>(pc,level,info)
+        {}
 };
 
 

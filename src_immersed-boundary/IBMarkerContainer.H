@@ -86,23 +86,23 @@ struct IBM_intData {
 
 
 
+class IBMarIter
+    : public IBMarIterBase<IBM_realData::count, IBM_intData::count>
+{
+
+public:
+    using IBMarIterBase<IBM_realData::count, IBM_intData::count>::IBMarIterBase;
+
+};
+
 // class IBMarIter
-//     : public IBMarIterBase<IBM_realData::count, IBM_intData::count>
+//     : public ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
 // {
 //
 // public:
 //
-//     using IBMarIterBase<IBM_realData::count, IBM_intData::count>::ParIter;
+//     using ParIter<IBM_realData::count, IBM_intData::count, 0, 0>::ParIter;
 // };
-
-class IBMarIter
-    : public ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
-{
-
-public:
-
-    using ParIter<IBM_realData::count, IBM_intData::count, 0, 0>::ParIter;
-};
 
 
 
