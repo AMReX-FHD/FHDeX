@@ -63,9 +63,7 @@ IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt) {
 
-    // for (IBMarIterBase<StructReal::count, StructInt::count> pti(* this, lev);
-    //         pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
@@ -86,10 +84,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real dt) {
 
-    // for (MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
-    //for (IBMarIterBase<StructReal::count, StructInt::count> pti(* this, lev);
-    //        pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
@@ -115,9 +110,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev) {
 
-    // for (IBMarIterBase<StructReal::count, StructInt::count> pti(* this, lev);
-    //         pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
@@ -140,9 +133,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev) {
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
 
-    //for (IBMarIterBase<StructInt::count, StructInt::count> pti(* this, lev);
-    //        pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
@@ -246,7 +237,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
 
     // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -299,7 +290,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
 
 
     // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -418,7 +409,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
 
     // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
@@ -479,7 +470,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
 
 
     // for (MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());

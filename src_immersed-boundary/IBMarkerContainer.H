@@ -119,8 +119,8 @@ public:
         ::IBMarkerContainerBase;
 
     //using MyConstParIter = ParConstIter<IBM_realData::count, IBM_intData::count, 0, 0>;
-    using MyConstParIter = IBMarkerContainerBase<IBM_realData, IBM_intData>
-        ::MyConstParIter;
+    using MyConstIBMarIter = IBMarkerContainerBase<IBM_realData, IBM_intData>
+        ::MyConstIBMarIter;
 
 
 

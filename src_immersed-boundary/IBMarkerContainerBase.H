@@ -39,7 +39,8 @@ public:
     using NeighborParticleContainer<StructReal::count, StructInt::count>
           ::NeighborParticleContainer;
 
-    using MyConstParIter = ParConstIter<StructReal::count, StructInt::count, 0, 0>;
+    using MyConstIBMarIter = ParConstIter<StructReal::count, StructInt::count, 0, 0>;
+    using MyIBMarIter      = IBMarIterBase<StructReal::count, StructInt::count>;
 
     using ParticleType = typename NeighborParticleContainer<StructReal::count, StructInt::count>::ParticleType;
     using PairIndex = typename NeighborParticleContainer<StructReal::count, StructInt::count>::PairIndex;
