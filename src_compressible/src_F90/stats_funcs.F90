@@ -12,7 +12,7 @@ module stats_module
 contains
 
   subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, totalmass) bind(c,name='evaluate_means')
-
+ 
       implicit none
 
       integer,          intent(in      ) :: steps, lo(3), hi(3)
@@ -27,7 +27,7 @@ contains
       !double precision fac1, fac2, fac3, test, pairfrac
       integer i,j,k,l, cells
       double precision stepsminusone, stepsinv, densitymeaninv, fracvec(nspecies), massvec(nspecies)
-
+ 
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
 

@@ -638,6 +638,7 @@ contains
                     do ll = 1, AMREX_SPACEDIM
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
+
                     ! print*, " mf_x first ", mf_x(i,j,k)
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
                     weight_x(i, j, k) = weight_x(i, j, k) + weight

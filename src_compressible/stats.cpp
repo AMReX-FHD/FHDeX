@@ -45,7 +45,7 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
 }
 
 void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab& primMean, const MultiFab& primVar, const MultiFab& spatialCross, const MultiFab& etaMean, const MultiFab& kappaMean, MultiFab& consMeanAv, MultiFab& consVarAv, MultiFab& primMeanAv, MultiFab& primVarAv, MultiFab& spatialCrossAv, MultiFab& etaMeanAv, MultiFab& kappaMeanAv)
-{
+{  
 
     // Loop over boxes
 

@@ -1283,7 +1283,7 @@ contains
                 do kk = 1, nspecies
                    do ll = 1, nspecies
                       Fk(kk) = Fk(kk) - half*(Dij(i-1,j,k,kk,ll)+Dij(i,j,k,kk,ll))*( dk(ll) +soret(ll))
-                   enddo
+                   enddo 
                 enddo
 
                 ! compute Q (based on Eqn. 2.5.25, Giovangigli's book)
