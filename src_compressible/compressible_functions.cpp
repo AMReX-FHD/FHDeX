@@ -10,5 +10,5 @@ void InitializeCompressibleNamespace() {
   Xk_bc.resize(MAX_SPECIES*LOHI*AMREX_SPACEDIM);
 
   initialize_compressible_namespace(Yk_bc.dataPtr(), Xk_bc.dataPtr());
-  
+ 
 }

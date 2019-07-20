@@ -45,5 +45,5 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
 
 void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab& primMean, const MultiFab& primVar, const MultiFab& spatialCross, const MultiFab& etaMean, const MultiFab& kappaMean, MultiFab& consMeanAv, MultiFab& consVarAv, MultiFab& primMeanAv, MultiFab& primVarAv, MultiFab& spatialCrossAv, MultiFab& etaMeanAv, MultiFab& kappaMeanAv);
-
+ 
 #endif

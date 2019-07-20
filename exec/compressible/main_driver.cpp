@@ -428,16 +428,16 @@ void main_driver(const char* argv)
 
     //Initialize everything
 
-    // for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-    //   const Box& bx = mfi.validbox();
+    for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+      const Box& bx = mfi.validbox();
 
-    //   init_consvar(BL_TO_FORTRAN_BOX(bx),
-    // 	       BL_TO_FORTRAN_FAB(cu[mfi]),
-    // 	       dx, 
-    // 	       // geom.ProbLo(), geom.ProbHi(),
-    // 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+      init_consvar(BL_TO_FORTRAN_BOX(bx),
+    	       BL_TO_FORTRAN_FAB(cu[mfi]),
+    	       dx, 
+    	       // geom.ProbLo(), geom.ProbHi(),
+    	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
-    // }
+    }
 	    
     statsCount = 1;
 
@@ -458,12 +458,12 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-	if (step > n_steps_skip) {
-	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
+	// if (step > n_steps_skip) {
+	//   evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
 
-	  ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
-	}
-
+	//   ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
+	// }
+ 
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
