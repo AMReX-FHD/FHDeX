@@ -22,8 +22,8 @@
   ! max_step = 200000
   ! plot_int = 200000
 
-  max_step = 100
-  plot_int = 10
+  max_step = 200000
+  plot_int = 100
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -32,8 +32,8 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
 
-  visc_coef = 1.
-  ! visc_coef = 1e-3
+  ! visc_coef = 1.
+  visc_coef = 1e-2
 
   visc_type = 2
 
