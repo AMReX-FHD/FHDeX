@@ -87,7 +87,7 @@ contains
           !    enddo
           ! enddo
           ! stop
-
+ 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
                 do i = 1,ngc(1)
