@@ -108,6 +108,7 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Make BoxArray, DistributionMapping, and Geometry
+    
     BoxArray ba;
     Geometry geom;
     {
@@ -326,19 +327,24 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
     // Make sure that the nghost (last argument) is big enough!
+
+    // add the approximate equilibrium sin-wave shape
+    BL_PROFILE_VAR("main_create markers",createmarkers);
+    Real rr = 1; // for step 1e-5 
+
     IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
     Vector<RealVect> marker_positions(10);
-    marker_positions[0] = RealVect{0.05, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.10, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.15, 0.5, 0.5};
-    marker_positions[3] = RealVect{0.20, 0.5, 0.5};
-    marker_positions[4] = RealVect{0.25, 0.5, 0.5};
-    marker_positions[5] = RealVect{0.30, 0.5, 0.5};
-    marker_positions[6] = RealVect{0.35, 0.5, 0.5};
-    marker_positions[7] = RealVect{0.40, 0.5, 0.5};
-    marker_positions[8] = RealVect{0.45, 0.5, 0.5};
-    marker_positions[9] = RealVect{0.50, 0.5, 0.5};
+    marker_positions[0] = RealVect{0.05, 0.5+0.002*rr, 0.5};
+    marker_positions[1] = RealVect{0.10, 0.5-0.015*rr, 0.5};
+    marker_positions[2] = RealVect{0.15, 0.5-0.025*rr, 0.5};
+    marker_positions[3] = RealVect{0.20, 0.5-0.024*rr, 0.5};
+    marker_positions[4] = RealVect{0.25, 0.5-0.014*rr, 0.5};
+    marker_positions[5] = RealVect{0.30, 0.5+0.000*rr, 0.5};
+    marker_positions[6] = RealVect{0.35, 0.5+0.012*rr, 0.5};
+    marker_positions[7] = RealVect{0.40, 0.5+0.017*rr, 0.5};
+    marker_positions[8] = RealVect{0.45, 0.5+0.012*rr, 0.5};
+    marker_positions[9] = RealVect{0.50, 0.5-0.002*rr, 0.5};
 
     Vector<Real> marker_radii(10);
     for (int i=0; i<10; ++i) marker_radii[i] = .10;
@@ -347,6 +353,7 @@ void main_driver(const char * argv) {
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
+    BL_PROFILE_VAR_STOP(createmarkers);
 
 
     //___________________________________________________________________________
@@ -358,25 +365,28 @@ void main_driver(const char * argv) {
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-
+        BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
         // initialize velocity
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            init_vel(BL_TO_FORTRAN_BOX(bx),
+             init_vel(BL_TO_FORTRAN_BOX(bx),
                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                      geom.ProbLo(), geom.ProbHi(), & d,
                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+           
+        BL_PROFILE_VAR_STOP(markerv);
 
-
+           BL_PROFILE_VAR("main_initialize tracer",tracer);
         // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(tracer[mfi]),
                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
+            BL_PROFILE_VAR_STOP(tracer);
     }
 
 
     //___________________________________________________________________________
     // Ensure that ICs satisfy BCs
+    BL_PROFILE_VAR("main_ensure initilizaction works",ICwork);
 
     pres.FillBoundary(geom.periodicity());
     MultiFABPhysBC(pres, geom);
@@ -386,6 +396,7 @@ void main_driver(const char * argv) {
         MultiFABPhysBCDomainVel(umac[i], i, geom, i);
         MultiFABPhysBCMacVel(umac[i], i, geom, i);
     }
+    BL_PROFILE_VAR_STOP(ICwork);
 
 
     //___________________________________________________________________________
@@ -429,17 +440,17 @@ void main_driver(const char * argv) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
-        // if(variance_coef_mom != 0.0) {
+         if(variance_coef_mom != 0.0) {
 
         //     //___________________________________________________________________
         //     // Fill stochastic terms
 
-        //     sMflux.fillMStochastic();
+             sMflux.fillMStochastic();
 
-        //     // Compute stochastic force terms (and apply to mfluxdiv_*)
-        //     sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        //     sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        // }
+             // Compute stochastic force terms (and apply to mfluxdiv_*)
+             sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+             sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+         }
 
         //___________________________________________________________________
         // Advance umac
@@ -451,12 +462,13 @@ void main_driver(const char * argv) {
         //_______________________________________________________________________
         // Update structure factor
 
-        //if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-        //    for(int d=0; d<AMREX_SPACEDIM; d++) {
-        //        ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-        //    }
-        //    structFact.FortStructure(struct_in_cc,geom);
-        //}
+ //       if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+ //         for(int d=0; d<AMREX_SPACEDIM; d++)
+ //         //           ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+            //      }
+            //    // structFact.FortStructure(struct_in_cc,geom);
+          
+       // }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -472,28 +484,28 @@ void main_driver(const char * argv) {
     }
 
     ///////////////////////////////////////////
-    //if (struct_fact_int > 0) {
-    //    Real dVol = dx[0]*dx[1];
-    //    int tot_n_cells = n_cells[0]*n_cells[1];
-    //    if (AMREX_SPACEDIM == 2) {
-    //        dVol *= cell_depth;
-    //    } else if (AMREX_SPACEDIM == 3) {
-    //        dVol *= dx[2];
-    //        tot_n_cells = n_cells[2]*tot_n_cells;
-    //    }
+//    if (struct_fact_int > 0) {
+//        Real dVol = dx[0]*dx[1];
+//        int tot_n_cells = n_cells[0]*n_cells[1];
+//        if (AMREX_SPACEDIM == 2) {
+//            dVol *= cell_depth;
+//        } else if (AMREX_SPACEDIM == 3) {
+//            dVol *= dx[2];
+//            tot_n_cells = n_cells[2]*tot_n_cells;
+//        }
 
         // let rho = 1
-    //    Real SFscale = dVol/(k_B*temp_const);
+        //Real SFscale = dVol/(k_B*temp_const);
         // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-    //    structFact.Finalize(SFscale);
-    //    structFact.WritePlotFile(step,time,geom);
-    // }
+     //   structFact.Finalize(SFscale);
+     //     structFact.WritePlotFile(step,time,geom);
+     // }
 
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors
-    Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << std::endl;
+    // Real stop_time = ParallelDescriptor::second() - strt_time;
+    // ParallelDescriptor::ReduceRealMax(stop_time);
+    // amrex::Print() << "Run time = " << stop_time << std::endl;
 
 }

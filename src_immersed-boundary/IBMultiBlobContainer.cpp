@@ -305,6 +305,37 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 
 
 
+void IBMultiBlobContainer::SpreadMarkers(int lev,
+                                         std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+
+}
+
+
+
+void IBMultiBlobContainer::SpreadPredictor(int lev,
+                                           std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+}
+
+
+
+void IBMultiBlobContainer::InterpolateMarkers(int lev,
+                                              const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
+
+
+}
+
+
+
+void IBMultiBlobContainer::InterpolatePredictor(int lev,
+                                                const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
+
+
+}
+
+
+
 void IBMultiBlobContainer::InitInternals(int ngrow) {
     ReadStaticParameters();
 

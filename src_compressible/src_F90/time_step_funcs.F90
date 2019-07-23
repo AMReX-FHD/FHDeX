@@ -1,7 +1,7 @@
 module time_step_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars
+  use common_namelist_module, only : ngc, nvars, nprimvars, grav
   implicit none
 
   private
@@ -38,18 +38,44 @@ contains
         do  k=lo(3),hi(3)
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
-
-
+           
                  cup(i,j,k,l) = cu(i,j,k,l)                                      &
                                 - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
                                 - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
                                 - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
-                                + dt*source(i,j,k,l)                                
+                                + dt*source(i,j,k,l)      
            enddo
           enddo
         enddo
+      enddo
+      
+      ! Add gravity to velocity
+      do  l=2,4
+        do  k=lo(3),hi(3)
+         do  j=lo(2),hi(2)
+           do  i=lo(1),hi(1)
+              
+              cup(i,j,k,l) = cup(i,j,k,l) + dt*cu(i,j,k,1)*grav(l-1)
+
+           enddo
+          enddo
+        enddo
+      enddo
+      
+      ! Add gravity to energy
+      do  k=lo(3),hi(3)
+         do  j=lo(2),hi(2)
+            do  i=lo(1),hi(1)
+
+               cup(i,j,k,5) = cup(i,j,k,5) + dt*cu(i,j,k,1)* &
+                    ( grav(1)*cu(i,j,k,2) & 
+                    + grav(2)*cu(i,j,k,3) & 
+                    + grav(3)*cu(i,j,k,4) )
+
+            enddo
+         enddo
       enddo
 
     ! print *, "Flo1: ", xflux(lo(1),0,0,1:nvars)
@@ -135,6 +161,33 @@ contains
         enddo
       enddo
 
+      ! Add gravity to velocity
+      do  l=2,4
+        do  k=lo(3),hi(3)
+         do  j=lo(2),hi(2)
+           do  i=lo(1),hi(1)
+              
+              cup2(i,j,k,l) = cup2(i,j,k,l) + 0.25d0*dt*cup(i,j,k,1)*grav(l-1)
+
+           enddo
+          enddo
+        enddo
+      enddo
+      
+      ! Add gravity to energy
+      do  k=lo(3),hi(3)
+         do  j=lo(2),hi(2)
+            do  i=lo(1),hi(1)
+
+               cup2(i,j,k,5) = cup2(i,j,k,5) + 0.25d0*dt*cup(i,j,k,1)* &
+                    ( grav(1)*cup(i,j,k,2) & 
+                    + grav(2)*cup(i,j,k,3) & 
+                    + grav(3)*cup(i,j,k,4) )
+
+            enddo
+         enddo
+      enddo
+
     ! print *, "Flo2: ", xflux(lo(1),0,0,1:nvars)
     ! print *, "Flo2+1: ", xflux(lo(1)+1,0,0,1:nvars)
     ! print *, "Fhi2: ", xflux(hi(1)+1,0,0,1:nvars)
@@ -211,6 +264,35 @@ contains
           enddo
         enddo
       enddo
+
+      
+      ! Add gravity to velocity
+      do  l=2,4
+        do  k=lo(3),hi(3)
+         do  j=lo(2),hi(2)
+           do  i=lo(1),hi(1)
+              
+              cu(i,j,k,l) = cu(i,j,k,l) + twothirds*dt*cup2(i,j,k,1)*grav(l-1)
+
+           enddo
+          enddo
+        enddo
+      enddo
+      
+      ! Add gravity to energy
+      do  k=lo(3),hi(3)
+         do  j=lo(2),hi(2)
+            do  i=lo(1),hi(1)
+
+               cu(i,j,k,5) = cu(i,j,k,5) + twothirds*dt*cup2(i,j,k,1)* &
+                    ( grav(1)*cup2(i,j,k,2) & 
+                    + grav(2)*cup2(i,j,k,3) & 
+                    + grav(3)*cup2(i,j,k,4) )
+
+            enddo
+         enddo
+      enddo
+
 
 !     print *, "lo3: ", xflux(lo(1),0,0,1:nvars)
 !     print *, "lo3+1: ", xflux(lo(1)+1,0,0,1:nvars)
