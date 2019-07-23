@@ -18,7 +18,7 @@
   fixed_dt = 5e-11
 
   ! Controls for number of steps between actions
-  max_step = 20000
+  max_step = 1000000
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
@@ -26,7 +26,7 @@
 
   ! Toggles 0=off, 1=on
   move_tog = 1 ! Particle move
-  sr_tog = 0 ! Particle collisions
+  sr_tog = 1 ! Particle collisions
   graphene_tog=1 !moving top boundary
  
 

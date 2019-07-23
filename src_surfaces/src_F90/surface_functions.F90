@@ -411,7 +411,7 @@
       if(surf%boundary .eq. 6) then
 
       !print *, "new: ", part%vel(3)
-      !call surf_velocity(surf, part, time, oldvel, inttime)
+      call surf_velocity(surf, part, time, oldvel, inttime)
    endif
    endif
         
@@ -423,27 +423,29 @@
     use cell_sorted_particle_module, only: particle_t
     use surfaces_module
     use rng_functions_module
-     use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0
+     use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0, max_step
     
     implicit none
 
     type(particle_t) :: toppart
     type(surface_t), intent(inout) :: surf
     integer(c_int) :: count, push, iside
-    real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, prefact, srt, pi, rad, domsize(3)
+    real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, prefact, srt, pi, rad, domsize(3), interval, resomega
     real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel
 
     pi=3.1415926535897932
-    
-    omega=14*(10**6)*pi*2
-    !omega=17*(10**6)*pi/13
 
-    lstrength=-10**(-5d0)*cos(omega*time)
+    interval=3/100
+    !omega=(12.5+interval*surf%omg)*(10**6)*pi*2
+    omega=14*(10**6)*pi*2
+    resomega=14*(10**6)*pi*2
+
+    lstrength=10**(2d0)*cos(omega*time)
     t=time
     dt=t+fixed_dt
     !do while (t .lt. dt)
-        surf%agraph=surf%agraph+lstrength*bessel_jn(0, 10e-100)*sin(omega*time)
-        surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 10e-100)*cos(omega*time)
+        surf%agraph=surf%agraph+lstrength*bessel_jn(0, 10e-100)*sin(resomega*time)
+        surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 10e-100)*cos(resomega*time)
         t=t+fixed_dt
      !end do
      !print*, 'A', 10**(-5d0)
@@ -508,7 +510,7 @@
           iside = 0
           push = 0
           domsize = prob_hi-prob_lo
-           write(*,*) "top"
+          ! write(*,*) "top"
           call apply_bc(surf, toppart, iside, domsize, push, time, inttime)
     ! surf%agraph=surf%agraph+p*bessel_jn(0, 10e-100)*sin(omega*t)
     ! surf%bgraph=surf%bgraph+p*lstrength*bessel_jn(0, 10e-100)*cos(omega*t)
@@ -613,7 +615,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
    !  if(step .eq. 300)then
     ! write(*,*) (surf%agraph+surf%bgraph), (surf%a0graph+surf%b0graph)
    ! write(*,*) "old", oldvel(3), part%id
-     write(*,*) prefact*p*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
+    ! write(*,*) prefact*p*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
    !  endif
   end subroutine surf_velocity
 

@@ -48,6 +48,7 @@ module surfaces_module
      real(amrex_particle_real) :: velz
 
      real(amrex_particle_real) :: c0
+     real(amrex_particle_real) :: omg
      real(amrex_particle_real) :: agraph
      real(amrex_particle_real) :: bgraph
      real(amrex_particle_real) :: a0graph

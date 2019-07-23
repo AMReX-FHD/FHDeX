@@ -557,7 +557,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                         !print *, "topnum: ", numcoll, prob_hi(1), fixed_dt
 
                do count=1,  numcoll
-                   !call topparticle(surf, time, inttime)
+                   call topparticle(surf, time, inttime)
                end do
 
                call laser(surf, time)
@@ -568,9 +568,9 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                radius=0
                bJ1 = bessel_jn(1,2.4048)
                prefact = 9144**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
-               omega=14*10**6*2*3.14159265
+               omega=14*(10**6)*2*3.1415926535897932
                surf=>surfaces(6)
-               do ii=1, 100
+               do ii=1, 1
                  radius=interval*ii
                  radius=radius*2.4048/prob_hi(1)
                  bessj0 =-prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))/omega
