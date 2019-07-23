@@ -5,11 +5,16 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
 
+#include "common_namespace.H"
+
 #include "exec_functions.H"
 
 #include "AMReX_ArrayLim.H"
 
 #include <algorithm>
+
+using namespace common;
+using namespace amrex;
 
 void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums, 
                const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt, amrex::Real& integral, int n, amrex::Real& phi_avg)
@@ -66,6 +71,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
       	           dx, &dt,&phi_avg);   
     }
     ParallelDescriptor::ReduceRealSum(phi_avg);
+    phi_avg = phi_avg / (n_cells[0]*n_cells[1]);
     ParallelDescriptor::ReduceRealSum(energy);
     ParallelDescriptor::ReduceRealSum(teng);
     //if(ParallelDescriptor::MyProc() == 0 ){

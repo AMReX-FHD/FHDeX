@@ -56,18 +56,18 @@ contains
               dele =  phi(i,j)*(acoef+bcoef*phi(i,j)+ccoef*phi(i,j)**2+dcoef*phi(i,j)**3) &
                 + 0.5d0*diff_coef*((phi(i,j)-phi(i-1,j))**2+(phi(i,j)-phi(i,j-1))**2)
 
-              energy = energy + dele
+              energy = energy + dele*dx(1)*dx(2)
 
 !             energy = energy + phi(i,j)*(acoef+bcoef*phi(i,j)+ccoef*phi(i,j)**2+dcoef*phi(i,j)**3) &
 !               + diff_coef/2.d0*((phi(i,j)-phi(i-1,j))**2+(phi(i,j)-phi(i,j-1))**2)
 
-              teng = teng + dele + 0.5d0*umbrella*integral
+              teng = teng + ( dele + 0.5d0*umbrella*integral ) *dx(1)*dx(2)
 
           enddo
         enddo
 
-            energy = energy *dx(1)*dx(2)
-            teng = teng *dx(1)*dx(2)
+!           energy = energy *dx(1)*dx(2)
+!           teng = teng *dx(1)*dx(2)
 
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
@@ -76,7 +76,6 @@ contains
 
           enddo
         enddo
-        phi_avg=0.0d0
         call Stat_Quant(lo,hi, phi,phi_avg)
   end subroutine rk2_stage1
 
@@ -155,17 +154,14 @@ contains
       real(amrex_real) :: xloc,yloc
       integer :: i,j
 
-         integral = 0.d0
-
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
 
-              integral = integral + phi(i,j) - phi0
+              integral = integral + (phi(i,j) - phi0)*dx(1)*dx(2)
 
           enddo
         enddo
 
-        integral = integral*dx(1)*dx(2)
 
   end subroutine integrate
 
@@ -282,7 +278,6 @@ contains
     real(amrex_real), intent(inout  ) :: phi_avg
     integer :: i,j
   
-      phi_avg = 0.d0
        do  j=lo(2),hi(2)
          do  i=lo(1),hi(1)
   
@@ -290,7 +285,6 @@ contains
   
         enddo
       enddo
-      phi_avg = phi_avg/(n_cells(2)*n_cells(1))
 
   
   end subroutine Stat_Quant
