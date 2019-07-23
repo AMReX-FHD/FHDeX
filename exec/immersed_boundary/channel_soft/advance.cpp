@@ -370,14 +370,6 @@ void advance(AmrCoreAdv & amr_core_adv,
         DC_s0[d].FillBoundary(geom.periodicity());
 
     }
-   amrex::Real max_xdcs1=0.0;
-   amrex::Real min_xdcs1=0.0;
-   
-   amrex::Real max_ydcs1=0.0;
-   amrex::Real min_ydcs1=0.0;
-   
-   amrex::Real max_zdcs1=0.0;
-   amrex::Real min_zdcs1=0.0;
 
     for (const auto & pindex : part_indices) {
         auto & vel = marker_vel.at(pindex);
@@ -389,21 +381,6 @@ void advance(AmrCoreAdv & amr_core_adv,
         ib_pc.InterpolateMarkers(ibpc_lev, pindex, dcs, DC_s0);
         //ib_pc.InterpolateMarkers(ibpc_lev, pindex, cy, Dc_y);
         //ib_pc.InterpolateMarkers(ibpc_lev, pindex, cz, Dc_z);
-   }
-    for (const auto & pindex : part_indices) {
-        auto & dcs = marker_DCs0.at(pindex);
-       
-       for (int indx=0; indx<dcs.size(); indx++){
-       max_xdcs1=std::max(dcs[0][indx], max_xdcs1);
-       min_xdcs1=std::min(dcs[0][indx], min_xdcs1);
-       
-       max_ydcs1=std::max(dcs[1][indx], max_ydcs1);
-       min_ydcs1=std::min(dcs[1][indx], min_ydcs1);
-     
-    
-       max_zdcs1=std::max(dcs[2][indx], max_zdcs1);
-       min_zdcs1=std::min(dcs[2][indx], min_zdcs1);
-    }
    }
     for (const auto & pindex : part_indices) {
         const auto & vel   = marker_vel.at(pindex);
@@ -711,29 +688,6 @@ void advance(AmrCoreAdv & amr_core_adv,
         ib_pc.InterpolateMarkers(ibpc_lev, pindex, dcs, DC_s1);
 
     }
-     max_xdcs1=0.0;
-     min_xdcs1=0.0;
-     
-     max_ydcs1=0.0;
-     min_ydcs1=0.0;
-     
-     max_zdcs1=0.0;
-     min_zdcs1=0.0;
-    for (const auto & pindex : part_indices) {
-        auto & dcs = marker_DCs0.at(pindex);
-       
-       for (int indx=0; indx<dcs.size(); indx++){
-       max_xdcs1=std::max(dcs[0][indx], max_xdcs1);
-       min_xdcs1=std::min(dcs[0][indx], min_xdcs1);
-       
-       max_ydcs1=std::max(dcs[1][indx], max_ydcs1);
-       min_ydcs1=std::min(dcs[1][indx], min_ydcs1);
-     
-    
-       max_zdcs1=std::max(dcs[2][indx], max_zdcs1);
-       min_zdcs1=std::min(dcs[2][indx], min_zdcs1);
-    }
-   }
 
 
     for (const auto & pindex : part_indices) {

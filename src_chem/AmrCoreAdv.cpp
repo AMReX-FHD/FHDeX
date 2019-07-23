@@ -1065,7 +1065,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
 
 
-    amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
+    amrex::Print() << "simulated con total"<< (con_old[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;
 
 }
