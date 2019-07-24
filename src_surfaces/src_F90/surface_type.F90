@@ -19,7 +19,8 @@ module surfaces_module
 
      real(amrex_particle_real) :: vx
      real(amrex_particle_real) :: vy
-     real(amrex_particle_real) :: vz
+     real(amrex_particle_real) :: vz  
+
 
      real(amrex_particle_real) :: lnx
      real(amrex_particle_real) :: lny
@@ -47,8 +48,11 @@ module surfaces_module
      real(amrex_particle_real) :: velz
 
      real(amrex_particle_real) :: c0
+     real(amrex_particle_real) :: omg
      real(amrex_particle_real) :: agraph
      real(amrex_particle_real) :: bgraph
+     real(amrex_particle_real) :: a0graph
+     real(amrex_particle_real) :: b0graph
      real(amrex_particle_real) :: coltime
 
      real(amrex_particle_real) :: besslist(100);

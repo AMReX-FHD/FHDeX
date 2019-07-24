@@ -165,7 +165,7 @@ void WritePlotFile(int step,
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
-    WriteSingleLevelPlotfile(mplotfilename,mobility,fvarNames,geom,time,step);
+    //WriteSingleLevelPlotfile(mplotfilename,mobility,fvarNames,geom,time,step);
 
     WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
 
@@ -190,11 +190,11 @@ void WritePlotFile(int step,
         //std::string asciiName7 = Concatenate("asciiIy",step,9);
         //std::string asciiName8 = Concatenate("asciiIz",step,9);
 
-        outputMFAscii(charge, asciiName1);
-        outputMFAscii(potential, asciiName2);
-        outputMFAscii(efield[0], asciiName3);
-        outputMFAscii(efield[1], asciiName4);
-        outputMFAscii(efield[2], asciiName5);
+        //outputMFAscii(charge, asciiName1);
+        //outputMFAscii(potential, asciiName2);
+        //outputMFAscii(efield[0], asciiName3);
+        //outputMFAscii(efield[1], asciiName4);
+        //outputMFAscii(efield[2], asciiName5);
 
         //MultiFab ix(cba, cdmap, 1, 0);
        // MultiFab iy(cba, cdmap, 1, 0);

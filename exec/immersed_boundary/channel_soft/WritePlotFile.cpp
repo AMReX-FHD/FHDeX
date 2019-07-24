@@ -48,7 +48,7 @@ void WritePlotFile(int step,
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 4*AMREX_SPACEDIM+3+8*(lev+1);
+    int nPlot = 5*AMREX_SPACEDIM+8*(lev+1);
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -87,9 +87,9 @@ void WritePlotFile(int step,
     varNames[cnt++] = "dCdy_cen";
     varNames[cnt++] = "dCdz_cen";
 
-    for (int i=0; i<nPlot; ++i) {
-        std::cout<<" i= "<< varNames[i]<<std::endl ;
-    }
+   // for (int i=0; i<nPlot; ++i) {
+   //     std::cout<<" i= "<< varNames[i]<<std::endl ;
+   // }
     
 
     // reset plotfile variable counter
@@ -157,6 +157,7 @@ void WritePlotFile(int step,
     amr_core_adv.con_new_copy(lev, mf, 7);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
+
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename, plotfile, varNames, geom, time, step);

@@ -7,15 +7,8 @@
 using namespace common;
 
 
-void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& spatialCross, MultiFab& eta, MultiFab& etaMean, MultiFab& kappa, MultiFab& kappaMean, Real* delHolder1, Real* delHolder2, Real* delHolder3, Real* delHolder4, Real* delHolder5, Real* delHolder6, const int steps, const amrex::Real* dx)
+void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const MultiFab& prim, MultiFab& primMean, MultiFab& primVar, MultiFab& eta, MultiFab& etaMean, MultiFab& kappa, MultiFab& kappaMean, const int steps, const amrex::Real* dx)
 {
-    double del1;
-    double del2;
-    double del3;
-    double del4;
-    double del5;
-    double del6;
-
     double totalMass;
 
     // Loop over boxes
@@ -27,35 +20,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
                        cons[mfi].dataPtr(),  
                        consMean[mfi].dataPtr(),
                        prim[mfi].dataPtr(),
-                       primMean[mfi].dataPtr(), &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, &totalMass);
+                       primMean[mfi].dataPtr(), &steps, &totalMass);
 
-    }
-
-    //this is a bit of a hack? Reduce real sum should work with vectors
-    for(int i=0;i<(n_cells[1]*n_cells[2]);i++)
-    {
-        //Fix to directly address array elements
-
-        del1 = delHolder1[i];
-        del2 = delHolder2[i];
-        del3 = delHolder3[i];
-        del4 = delHolder4[i];
-        del5 = delHolder5[i];
-        del6 = delHolder6[i];
-
-        ParallelDescriptor::ReduceRealSum(del1);
-        ParallelDescriptor::ReduceRealSum(del2);
-        ParallelDescriptor::ReduceRealSum(del3);
-        ParallelDescriptor::ReduceRealSum(del4);
-        ParallelDescriptor::ReduceRealSum(del5);
-        ParallelDescriptor::ReduceRealSum(del6);
-
-        delHolder1[i] = del1;
-        delHolder2[i] = del2;
-        delHolder3[i] = del3;
-        delHolder4[i] = del4;
-        delHolder5[i] = del5;
-        delHolder6[i] = del6;
     }
 
     ParallelDescriptor::ReduceRealSum(totalMass);
@@ -73,14 +39,13 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, 
                        prim[mfi].dataPtr(),
                        primMean[mfi].dataPtr(),
                        primVar[mfi].dataPtr(),
-                       spatialCross[mfi].dataPtr(),
-                       &steps, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6);
+                       &steps);
     }
 
 }
 
 void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab& primMean, const MultiFab& primVar, const MultiFab& spatialCross, const MultiFab& etaMean, const MultiFab& kappaMean, MultiFab& consMeanAv, MultiFab& consVarAv, MultiFab& primMeanAv, MultiFab& primVarAv, MultiFab& spatialCrossAv, MultiFab& etaMeanAv, MultiFab& kappaMeanAv)
-{
+{  
 
     // Loop over boxes
 

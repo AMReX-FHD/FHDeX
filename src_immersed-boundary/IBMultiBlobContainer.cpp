@@ -30,7 +30,8 @@ IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
     : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
             geom, dmap, ba, n_nbhd
         ),
-    nghost(n_nbhd)
+      nghost(n_nbhd),
+      markers(geom, dmap, ba, n_nbhd)
 {
     InitInternals(n_nbhd);
 }
@@ -41,8 +42,10 @@ IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
     : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
-    m_amr_core(amr_core),
-    nghost(n_nbhd)
+      m_amr_core(amr_core),
+      nghost(n_nbhd),
+      markers(amr_core, n_nbhd)
+
 {
     InitInternals(n_nbhd);
 }
@@ -151,6 +154,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
     if (marker_ref_pos.size() <= lev)
         marker_ref_pos.resize(lev+1);
 
+
     double inv_sqrt_n = 1./std::sqrt(n_marker);
 
 
@@ -224,6 +228,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
                 {
                     // Add to list
                     marker_ref_pos[lev][pindex][i] = pos;
+                    markers.InitSingle(lev, 1., pos, part.id(), part.cpu(), i);
                 }
             }
         }
@@ -289,10 +294,44 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
                 {
                     // Add to list
                     marker_ref_pos[lev][pindex][i] = pos;
+                    // Don't do this for the neighbor-markers (already being
+                    // done by the owner's core)
+                    // markers.InitSingle(lev, 1., pos, part.id(), part.cpu(), i);
                 }
             }
         }
     }
+}
+
+
+
+void IBMultiBlobContainer::SpreadMarkers(int lev,
+                                         std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+
+}
+
+
+
+void IBMultiBlobContainer::SpreadPredictor(int lev,
+                                           std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
+
+}
+
+
+
+void IBMultiBlobContainer::InterpolateMarkers(int lev,
+                                              const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
+
+
+}
+
+
+
+void IBMultiBlobContainer::InterpolatePredictor(int lev,
+                                                const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
+
+
 }
 
 

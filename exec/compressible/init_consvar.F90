@@ -31,12 +31,10 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, ncomp, dx &
 
   ! Vortex:
   ! [r_a r_b] defines radial bounds of bump:
-  r_a = 0.5d0*L_hlf
+  ! r_a = 0.5d0*L_hlf
   ! r_b = L_hlf - r_a
 
   ! Stream:
-  ! freq = 3.d0*pi/L_hlf
-  ! amp = 2.0d-1*L_hlf
   width1 = L_hlf/2.0d0
 
   do k = lo(3), hi(3)
@@ -49,26 +47,30 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, ncomp, dx &
 
            pos = reallo + itVec
            relpos = pos - center
-           rad2 = DOT_PRODUCT(relpos,relpos)
-           rad = SQRT(rad2)
+
+           ! rad2 = DOT_PRODUCT(relpos,relpos)
+           ! rad = SQRT(rad2)
 
            ! Circle
-           ! cu(i,j,k) = 0.5d0*(1d0+tanh(k2_inv*(r_a-rad)))
+           ! fun = 0.5d0*(1d0+tanh(k2_inv*(r_a-rad)))
 
            ! Stream:
-           ! perturb = amp*sin(freq*relpos(1))
-           ! slope = amp*freq*cos(freq*relpos(1))
-           perturb = 0d0
-           fun_ptrb = 0.25d0*(1d0+tanh(k1_inv*(rad - (-width1/1.5d0+perturb)))) &
-                *(1d0+tanh(k2_inv*((width1/1.5d0+perturb) - rad)))
+           ! perturb = 0d0
+           ! fun = 0.25d0*(1d0+tanh(k1_inv*(rad - (-width1/1.5d0+perturb)))) &
+           !      *(1d0+tanh(k2_inv*((width1/1.5d0+perturb) - rad)))
 
-           cu(i,j,k,1) = 1.0
-           do l = 2, 4
-              cu(i,j,k,l) = fun_ptrb
-           end do
-           do l = 6,nvars
-              cu(i,j,k,l) = 0.2
-           end do
+           ! Total density must be pre-set
+           if (relpos(3) .gt. 0) then
+              cu(i,j,k,5+1) = cu(i,j,k,1)*0.4
+              cu(i,j,k,5+2) = cu(i,j,k,1)*0.4
+              cu(i,j,k,5+3) = cu(i,j,k,1)*0.1
+              cu(i,j,k,5+4) = cu(i,j,k,1)*0.1
+           else
+              cu(i,j,k,5+1) = cu(i,j,k,1)*0.1
+              cu(i,j,k,5+2) = cu(i,j,k,1)*0.1
+              cu(i,j,k,5+3) = cu(i,j,k,1)*0.4
+              cu(i,j,k,5+4) = cu(i,j,k,1)*0.4
+           endif
 
         end do
      end do

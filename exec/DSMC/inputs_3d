@@ -1,8 +1,8 @@
 &common
 
   ! Problem specification
-  prob_lo(1:3) = -2.5e-5 -2.5e-5 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 2.5e-5 2.5e-5 0.5e-5     ! physical hi coordinate
+  prob_lo(1:3) = -2.5e-4 -2.5e-4 0.0      ! physical lo coordinate
+  prob_hi(1:3) = 2.5e-4 2.5e-4 4e-5     ! physical hi coordinate
     
   ! number of cells in domain
   n_cells(1:3) = 32 32 4
@@ -19,14 +19,14 @@
 
   ! Controls for number of steps between actions
   max_step = 1
-  plot_int = 10
+  plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
   n_steps_skip = 1
 
   ! Toggles 0=off, 1=on
   move_tog = 1 ! Particle move
-  sr_tog = 0 ! Particle collisions
+  sr_tog = 1 ! Particle collisions
   graphene_tog=1 !moving top boundary
  
 
@@ -50,7 +50,7 @@
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e12
+  particle_n0 = 6.02e15
 
   !Species info
   !--------------

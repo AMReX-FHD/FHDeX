@@ -67,12 +67,18 @@ contains
 
              !  want sum of specden == rho
              do n=1,nspecies
-                specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i-1,j,k,5+n))                 &
-                     -wgt2*(cons(i-2,j,k,5+n)+cons(i+1,j,k,5+n))
-
-                Yk(n) = specden(n)/rho
-
+                Yk(n) = primitive(6+n)
+                
+                ! specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i-1,j,k,5+n))                 &
+                !      -wgt2*(cons(i-2,j,k,5+n)+cons(i+1,j,k,5+n))
+                ! Yk(n) = specden(n)/rho
              enddo
+             
+             ! if (i.eq.0 .and. j.eq.0 .and. k.eq.0) then
+             !    print*, Yk
+             !    print*, specden/rho
+             !    ! stop
+             ! endif
 
              call get_energy(intenergy, Yk, temp)
              ! call get_energy_gas(pt, intenergy)
@@ -90,7 +96,8 @@ contains
              
              if(algorithm_type.eq.2) then ! Add advection of concentration
                 do n=1,nspecies
-                   xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
+                   xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + rho*primitive(6+n)*primitive(2)
+                   ! xflux(i,j,k,5+n) = xflux(i,j,k,5+n) + specden(n)*primitive(2)
                 enddo
              endif
 
@@ -125,11 +132,11 @@ contains
 
              !  want sum of specden == rho
              do n=1,nspecies
-                specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j-1,k,5+n))                 &
-                     -wgt2*(cons(i,j-2,k,5+n)+cons(i,j+1,k,5+n))
+                Yk(n) = primitive(6+n)
 
-                Yk(n) = specden(n)/rho
-
+                ! specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j-1,k,5+n))                 &
+                !      -wgt2*(cons(i,j-2,k,5+n)+cons(i,j+1,k,5+n))
+                ! Yk(n) = specden(n)/rho
              enddo
 
              call get_energy(intenergy, Yk, temp)
@@ -148,7 +155,8 @@ contains
              
              if(algorithm_type.eq.2) then ! Add advection of concentration
                 do n=1,nspecies
-                   yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + specden(n)*primitive(3)
+                   yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + rho*primitive(6+n)*primitive(3)
+                   ! yflux(i,j,k,5+n) = yflux(i,j,k,5+n) + specden(n)*primitive(3)
                 enddo
              endif
 
@@ -175,11 +183,12 @@ contains
 
              !  want sum of specden == rho
              do n=1,nspecies
-                specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j,k-1,5+n))                 &
-                     -wgt2*(cons(i,j,k-2,5+n)+cons(i,j,k+1,5+n))
+                Yk(n) = primitive(6+n)
 
-                Yk(n) = specden(n)/rho
+                ! specden(n) = wgt1*(cons(i,j,k,5+n)+cons(i,j,k-1,5+n))                 &
+                !      -wgt2*(cons(i,j,k-2,5+n)+cons(i,j,k+1,5+n))
 
+                ! Yk(n) = specden(n)/rho
              enddo
 
              call get_energy(intenergy, Yk, temp)
@@ -197,7 +206,8 @@ contains
              
              if(algorithm_type.eq.2) then ! Add advection of concentration
                 do n=1,nspecies
-                   zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + specden(n)*primitive(4)
+                   zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + rho*primitive(6+n)*primitive(4)
+                   ! zflux(i,j,k,5+n) = zflux(i,j,k,5+n) + specden(n)*primitive(4)
                 enddo
              endif
 
@@ -1273,7 +1283,7 @@ contains
                 do kk = 1, nspecies
                    do ll = 1, nspecies
                       Fk(kk) = Fk(kk) - half*(Dij(i-1,j,k,kk,ll)+Dij(i,j,k,kk,ll))*( dk(ll) +soret(ll))
-                   enddo
+                   enddo 
                 enddo
 
                 ! compute Q (based on Eqn. 2.5.25, Giovangigli's book)

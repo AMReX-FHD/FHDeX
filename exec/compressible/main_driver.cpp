@@ -11,6 +11,9 @@
 #include "compressible_functions.H"
 #include "compressible_functions_F.H"
 
+#include "compressible_namespace.H"
+#include "compressible_namespace_declarations.H"
+
 #include "exec_functions.H"
 
 #include "StructFact.H"
@@ -25,6 +28,7 @@
 
 using namespace amrex;
 using namespace common;
+using namespace compressible;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -38,14 +42,18 @@ void main_driver(const char* argv)
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    // read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
+    read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
-    // InitializeGmresNamespace();
+    InitializeCompressibleNamespace();
 
     //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
     get_hc_gas();
+
+    //compute wall concentrations if BCs call for it
+    if (algorithm_type == 2) // if multispecies
+      setup_cwall();
   
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -134,7 +142,7 @@ void main_driver(const char* argv)
     //primative quantaties
     MultiFab prim(ba,dmap,nprimvars,ngc);
 
-    //statistics
+    //statistics    
     MultiFab cuMeans(ba,dmap,nvars,ngc);
     MultiFab cuVars(ba,dmap,nvars,ngc);
 
@@ -153,15 +161,7 @@ void main_driver(const char* argv)
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
 
-    MultiFab spatialCross(ba,dmap,6,ngc);
-    MultiFab spatialCrossAv(ba,dmap,6,ngc);
-
-    Real delHolder1[n_cells[1]*n_cells[2]];
-    Real delHolder2[n_cells[1]*n_cells[2]];
-    Real delHolder3[n_cells[1]*n_cells[2]];
-    Real delHolder4[n_cells[1]*n_cells[2]];
-    Real delHolder5[n_cells[1]*n_cells[2]];
-    Real delHolder6[n_cells[1]*n_cells[2]];
+    MultiFab cuVertAvg;
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -171,8 +171,6 @@ void main_driver(const char* argv)
 
     etaMean.setVal(0.0);
     kappaMean.setVal(0.0);
-
-    spatialCross.setVal(0.0);
 
     //possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
@@ -211,10 +209,6 @@ void main_driver(const char* argv)
     cup.setVal(rho0,0,1,ngc);
     cup2.setVal(rho0,0,1,ngc);
     cup3.setVal(rho0,0,1,ngc);
-    
-    //Print() << intEnergy << "\n";
-
-    //while(true);
 
     //fluxes
     std::array< MultiFab, AMREX_SPACEDIM > flux;
@@ -272,8 +266,8 @@ void main_driver(const char* argv)
     molmix = 0.0;
     avgmolmass = 0.0;
     for(int i=0; i<nspecies; i++) {
-	molmix     += rhobar[i]/molmass[i];
-	avgmolmass += rhobar[i]*molmass[i];
+      molmix     += rhobar[i]/molmass[i];
+      avgmolmass += rhobar[i]*molmass[i];
     }
     molmix = 1.0/molmix;                // molar mass of mixture
     P_bar = rho0*(Runiv/molmix)*T0;     // eqm pressure
@@ -434,37 +428,17 @@ void main_driver(const char* argv)
 
     //Initialize everything
 
-    // for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-    //   const Box& bx = mfi.validbox();
+    for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+      const Box& bx = mfi.validbox();
 
-    //   init_consvar(BL_TO_FORTRAN_BOX(bx),
-    // 	       BL_TO_FORTRAN_FAB(cu[mfi]),
-    // 	       dx, 
-    // 	       // geom.ProbLo(), geom.ProbHi(),
-    // 	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+      init_consvar(BL_TO_FORTRAN_BOX(bx),
+    	       BL_TO_FORTRAN_FAB(cu[mfi]),
+    	       dx, 
+    	       // geom.ProbLo(), geom.ProbHi(),
+    	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
-    // }
+    }
 	    
-    // chi.setVal(0.0);
-    // D.setVal(0.0);
-    // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-
-    // conservedToPrimitive(prim, cu);
-    // cu.FillBoundary(geom.periodicity());
-    // prim.FillBoundary(geom.periodicity());
-
-    // calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
-
-    // eta.FillBoundary(geom.periodicity());
-    // zeta.FillBoundary(geom.periodicity());
-    // kappa.FillBoundary(geom.periodicity());
-    // chi.FillBoundary(geom.periodicity());
-    // D.FillBoundary(geom.periodicity());
-
-    // setBC(prim, cu, eta, zeta, kappa, chi, D);
-
-    // calculateFlux(cu, prim, eta, zeta, kappa, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
-
     statsCount = 1;
 
     //Time stepping loop
@@ -481,15 +455,15 @@ void main_driver(const char* argv)
             primMeans.setVal(0.0);
             primVars.setVal(0.0);
 
-            spatialCross.setVal(0.0);
-
             statsCount = 1;
         }
 
-	if (step > n_steps_skip) {
-	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, etaMean, kappa, kappaMean, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
-	}
+	// if (step > n_steps_skip) {
+	//   evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
 
+	//   ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
+	// }
+ 
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
@@ -507,9 +481,9 @@ void main_driver(const char* argv)
         {
 
            // yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, etaMean, kappaMean, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
-           // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, spatialCrossAv, etaMeanAv, kappaMeanAv);
+           // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, etaMeanAv, kappaMeanAv);
 
-           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
+           WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
 	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int)
 	       structFact.WritePlotFile(step,time,geom);
         }

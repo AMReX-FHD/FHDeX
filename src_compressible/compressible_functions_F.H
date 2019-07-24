@@ -11,6 +11,17 @@ extern "C"
     // these are interfaces to fortran subroutines
 
 ///////////////////////////
+// in compressible_namelist.F90
+
+  // read in fortran namelist into compressible_params_module
+  void read_compressible_namelist (const char* inputs_file, const int length);
+
+  // copy contents of compressible_params_module to C++ compressible namespace
+  void initialize_compressible_namespace(amrex::Real* Yk_bc, amrex::Real* Xk_bc);
+
+///////////////////////////
+
+///////////////////////////
 // in diff_flux.F90
 
   void diff_flux(const int* lo, const int* hi,
@@ -141,12 +152,9 @@ extern "C"
 
   void set_bc(const int* lo, const int* hi,
 	      amrex::Real* cons,
-	      amrex::Real* prim,
-	      amrex::Real* eta,
-	      amrex::Real* zeta,
-	      amrex::Real* kappa,
-	      amrex::Real* chi,
-	      amrex::Real* Dij);
+	      amrex::Real* prim);
+
+  void setup_cwall();
 
   void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 
@@ -155,8 +163,8 @@ extern "C"
 
   void get_hc_gas();
 
-  void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans, const amrex::Real* prim, amrex::Real* primmeans, const int* steps, amrex::Real* delHolder1, amrex::Real* delHolder2, amrex::Real* delHolder3, amrex::Real* delHolder4, amrex::Real* delHolder5, amrex::Real* delHolder6, amrex::Real* totalmass);
-  void evaluate_corrs(const int* lo, const int* hi, const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars, const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars, amrex::Real* spatialcross, const int* steps, amrex::Real* delHolder1, amrex::Real* delHolder2, amrex::Real* delHolder3, amrex::Real* delHolder4, amrex::Real* delHolder5, amrex::Real* delHolder6);
+  void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans, const amrex::Real* prim, amrex::Real* primmeans, const int* steps, amrex::Real* totalmass);
+  void evaluate_corrs(const int* lo, const int* hi, const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars, const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars, const int* steps);
 
 
   void multifab_yzav(const int* lo, const int* hi, const amrex::Real* fabin, amrex::Real* fabout, const int* comps);
@@ -184,5 +192,5 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-
+ 
 #endif
