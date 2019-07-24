@@ -49,6 +49,7 @@ typedef struct {
     double velz;
 
     double c0;
+    double omg;
     double agraph;
     double bgraph;
     double a0graph;

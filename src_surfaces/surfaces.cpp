@@ -462,7 +462,8 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
     surfaceList[5].vely=0;
     surfaceList[5].velz=0;
 
-    surfaceList[5].c0=1;
+    surfaceList[5].c0=0;
+    surfaceList[5].omg=0;
     surfaceList[5].agraph=0;
     surfaceList[5].bgraph=0;
     surfaceList[5].a0graph=0;

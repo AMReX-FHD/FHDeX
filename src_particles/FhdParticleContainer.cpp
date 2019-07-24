@@ -213,10 +213,13 @@ BL_PROFILE_VAR_START(particle_move);
     std::ofstream outfile;
     
     if(graphene_tog==1)
-      { 
-	//Print()<< surfaceList[5].velz<<"\n";
-  outfile.open("out.txt", std::ios_base::app);
-  for (i=0;i<100;i++)
+      {
+	//	char num[21];
+	//	std::string txt=".txt";
+	//	sprintf(num, "%f", surfaceList[5].omg);
+	//	outfile.open(num + txt, std::ios_base::app);
+        outfile.open("out.txt", std::ios_base::app);
+  for (i=0;i<1;i++)
 	  {
 	    outfile << surfaceList[5].dbesslist[i] << ", ";
 	  }

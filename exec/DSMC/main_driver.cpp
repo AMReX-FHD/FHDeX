@@ -31,12 +31,13 @@ using namespace std;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
+    remove("out.txt");
     // store the current time so we can later compute total run time.
   
-  remove("out.txt");
-
     Real strt_time = ParallelDescriptor::second();
 
+    //for(int omg; omg<101;omg++)
+    //  {
     std::string inputs_file = argv;
 
     // read in parameters from inputs file into F90 modules
@@ -390,6 +391,8 @@ void main_driver(const char* argv)
     int statsCount = 1;
     double time = 0;
     //Time stepping loop
+	//remove("out.txt");
+	//surfaceList[5].omg=omg;
     for(int step=1;step<=max_step;++step)
     {
 
@@ -414,7 +417,7 @@ void main_driver(const char* argv)
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
 
-            Print() << "Resetting stat collection.\n";
+	    // Print() << "Resetting stat collection.\n";
 
             statsCount = 1;
         }
@@ -426,18 +429,18 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0)
         {
            
-            WritePlotFile(step,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
+	  //WritePlotFile(step,time,geom,particleInstant, particleMeans, particleVars, cellVols, particles);
         }
 
         if(step%1 == 0)
         {    
-                amrex::Print() << "Advanced step " << step << "\n";
+	  amrex::Print() << "Advanced step " << step<<", " << surfaceList[5].omg << "\n";
         }
         
         time = time + dt;
 
     }
-
+    //       }
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;
