@@ -139,10 +139,11 @@ public:
     using ParticleIndex = std::pair<int, int>;
     using IBMarkerMap   = std::map<ParticleIndex, Vector<RealVect>>;
 
-    // Particle Position, Velocity, and Radius (abbriated particle info struct)
-    using PPVR = struct {
+    // Particle Position, Velocity, Orientation, and Radius (abbriated particle info struct)
+    using PPVOR = struct {
         RealVect pos;
         RealVect vel;
+        RealVect ori;
         double   rad;
     };
 
@@ -253,7 +254,8 @@ public:
         return  face_coords;
     }
 
-
+ //   const Vector<RealVect> get_pcenter_coords() {
+ //       return  pos(0);
 
 private:
 

@@ -228,7 +228,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & FaceCoords=ib_pc.get_face_coords();
 
         int corrector=0;
-        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector, source_strength);
+//        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector, source_strength);
 
          amr_core_adv.con_new_copy(ibpc_lev, Dc_x0, 1);
          amr_core_adv.con_new_copy(ibpc_lev, Dc_y0, 2);
@@ -548,12 +548,15 @@ void advance(AmrCoreAdv & amr_core_adv,
 #endif
         //IBMarkerContainer ib_marker;
         // advection diffuision (AD) code
+        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,0,source_strength);
+
+
         const iMultiFab & iface1 = ib_core.get_TagInterface();
         const MultiFab  & LevelSet1=ib_core.get_LevelSet();
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & FaceCoords1=ib_pc.get_face_coords();
 
         corrector=1;
-        amr_core_adv.EvolveChem(umac,umacNew,iface0, iface1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
+//        amr_core_adv.EvolveChem(umac,umacNew,iface0, iface1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
 
 
 //        amr_core_adv.EvolveChem(umacNew, iface1, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords0);
@@ -729,6 +732,7 @@ void advance(AmrCoreAdv & amr_core_adv,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
 
+        amr_core_adv.EvolveChem(umac,umacNew,iface0, iface1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // Output velocity solution
