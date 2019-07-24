@@ -18,7 +18,7 @@
   fixed_dt = 5e-11
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 1000000
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
@@ -48,9 +48,9 @@
   ! -1 = calculate based on n0
   particle_count = -1
   ! real particles per simulator particle
-  particle_neff = 1
+  particle_neff = 1000
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e15
+  particle_n0 = 6.02e17
 
   !Species info
   !--------------

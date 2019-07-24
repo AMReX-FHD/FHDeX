@@ -437,10 +437,10 @@
 
     interval=3/100
     !omega=(12.5+interval*surf%omg)*(10**6)*pi*2
-    omega=14*(10**6)*pi*2
+    omega=14.325*(10**6)*pi*2
     resomega=14*(10**6)*pi*2
 
-    lstrength=10**(2d0)*cos(omega*time)
+    lstrength=10**(-15d0)*cos(omega*time)
     t=time
     dt=t+fixed_dt
     !do while (t .lt. dt)
@@ -581,7 +581,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     !print *, "velgraph: ", prefact*bessel_jn(0, lambda)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
  enddo
 
- part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
+ part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))/pi
     
 
     !parabola
