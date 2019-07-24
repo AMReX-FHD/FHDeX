@@ -59,7 +59,7 @@ extern "C"
                        BL_FORT_FAB_ARG_3D(fy2),
                        BL_FORT_FAB_ARG_3D(fz2)),
                 const amrex_real* dx, const amrex_real* dt, 
-                const amrex_real* nu);
+                const amrex_real* diffcoeff, const int* correct); 
 
     void get_congrad_3d( const int* lo, const int* hi,
                 const BL_FORT_FAB_ARG_3D(con),

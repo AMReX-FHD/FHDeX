@@ -21,14 +21,14 @@ subroutine advect_3d(time, lo, hi, &
      &            flxx2, fx2_lo, fx2_hi, &
      &            flxy2, fy2_lo, fy2_hi, &
      &            flxz2, fz2_lo, fz2_hi, &
-     &            dx,dt,nu) bind(C, name="advect_3d")
+     &            dx,dt,nu, correct) bind(C, name="advect_3d")
   
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
   use compute_flux_module_3d, only : compute_flux_3d
 
   implicit none
 
-  integer, intent(in) :: lo(3), hi(3)
+  integer, intent(in) :: lo(3), hi(3), correct
   double precision, intent(in) :: dx(3), dt, time,nu
   integer, intent(in) :: uip_lo(3), uip_hi(3)
   integer, intent(in) :: uif_lo(3), uif_hi(3)
@@ -80,7 +80,7 @@ subroutine advect_3d(time, lo, hi, &
   integer :: i, j, k
   integer :: glo(3), ghi(3)
   double precision :: dtdx(3), umax, vmax, wmax, conmax_in, conmax_out
-
+  double precision :: flxx11, flxy11, flxz11, flxx22, flxy22, flxz22
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
   double precision, dimension(:,:,:), pointer, contiguous :: &
        conx1, conx1_y, conx1_z, cony1, cony1_x, cony1_z, conz1, conz1_x, conz1_y, slope1
@@ -171,7 +171,14 @@ subroutine advect_3d(time, lo, hi, &
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
- 
+
+           flxx11=flxx1(i,j,k)
+           flxy11=flxy1(i,j,k)
+           flxz11=flxz1(i,j,k)
+           flxx22=flxx2(i,j,k)
+           flxy22=flxy2(i,j,k)
+           flxz22=flxz2(i,j,k)
+
            if (ifacep(i,j,k) .eq. 2) then
            uout(i,j,k)= uin_p(i,j,k)
            else
@@ -195,20 +202,20 @@ subroutine advect_3d(time, lo, hi, &
            endif
            if (ifacef(i,j,k) .eq. 1) then
                if (ifacef(i+1,j,k) .eq. 2)then
-               flxx1(i+1,j,k)=0
+               flxx2(i+1,j,k)=0
                else if (ifacef(i-1,j,k) .eq. 2) then
-               flxx1(i,j,k)=0
+               flxx2(i,j,k)=0
                end if
 
                if (ifacef(i,j+1,k) .eq. 2)then
-               flxy1(i,j+1,k)=0
+               flxy2(i,j+1,k)=0
                else if (ifacef(i,j-1,k) .eq. 2) then
-               flxy1(i,j,k)=0
+               flxy2(i,j,k)=0
                end if
                if (ifacef(i,j,k+1) .eq. 2)then
-               flxz1(i,j,k+1)=0
+               flxz2(i,j,k+1)=0
                else if (ifacef(i,j,k-1) .eq. 2) then
-               flxz1(i,j,k)=0
+               flxz2(i,j,k)=0
                end if
            end if 
            uout(i,j,k) = uin_p(i,j,k) + &
@@ -217,12 +224,12 @@ subroutine advect_3d(time, lo, hi, &
                 + (flxz1(i,j,k) - flxz1(i,j,k+1)) * dtdx(3) )&
                 + ( (flxx2(i,j,k) - flxx2(i+1,j,k)) * dtdx(1) &
                 + (flxy2(i,j,k) - flxy2(i,j+1,k)) * dtdx(2) &
-                + (flxz2(i,j,k) - flxz2(i,j,k+1)) * dtdx(3) ))+dt/2*(ptSp(i,j,k)+ptSf(i,j,k))
+                + (flxz2(i,j,k) - flxz2(i,j,k+1)) * dtdx(3) ))+dt*0.5*(ptSp(i,j,k)+ptSf(i,j,k))
+             end if
 
             flxx(i,j,k)=0.5*(flxx1(i,j,k)+flxx2(i,j,k))
             flxy(i,j,k)=0.5*(flxy1(i,j,k)+flxy2(i,j,k))
             flxz(i,j,k)=0.5*(flxy1(i,j,k)+flxz2(i,j,k))
-           endif
         enddo
      enddo
   enddo

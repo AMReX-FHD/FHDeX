@@ -216,15 +216,14 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           dr(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
           dr(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
-          !Rationalise this later
-
+          ! Divison/multiplication by 0.1 below is bc the spacing in the table above is 0.1
           r2 = dot_product(dr,dr) 
-          r = sqrt(r2)
-          r_norm = r/dx(1)
-          r_cell = floor(r_norm/0.1)
-          r_cell_frac = r_norm/0.1-r_cell ! for use in lookup below
-          r_cell = r_cell + 1
-          r_cell_frac = r_cell_frac*0.1
+          r = sqrt(r2)                    ! separation dist
+          r_norm = r/dx(1)                ! separation dist in units of dx=dy=dz
+          r_cell = floor(r_norm/0.1)      ! scaling by 10 allows r_cell to index the points/val arrays above 
+          r_cell = r_cell + 1             ! shift simply bc points/val array indices begin at 1, but first val=0.0
+          r_cell_frac = r_norm/0.1-r_cell !  
+          r_cell_frac = r_cell_frac*0.1   ! for use in point-slope formula below
 
           !print *, "r: ", r_cell_frac
           !print *, "cr: ", r_cell
@@ -237,6 +236,8 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
+            !print *, "particle ", i, " force ", particles(i)%force
+
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             ! Compute correction for fact that the above, sr coulomb interactions accounted for in poisson solve
             ! and hence are double counted 
@@ -245,12 +246,10 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             if (pkernel_es .eq. 6) then 
             
-                !Put more efficient version here.
-                ! do linear interpolation of force between vals(i+1) and val(i) 
+              ! do linear interpolation of force between vals(i+1) and val(i) 
               m = (vals(r_cell+1)-vals(r_cell))/(points(r_cell+1)-points(r_cell))
 
               correction_force_mag = m*r_cell_frac + vals(r_cell)
-              !correction_force_mag = vals(r_cell)
     
             endif 
             ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
@@ -568,9 +567,9 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                radius=0
                bJ1 = bessel_jn(1,2.4048)
                prefact = 9144**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
-               omega=14*10**6*2*3.14159265
+               omega=14*(10**6)*2*3.1415926535897932
                surf=>surfaces(6)
-               do ii=1, 100
+               do ii=1, 1
                  radius=interval*ii
                  radius=radius*2.4048/prob_hi(1)
                  bessj0 =-prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))/omega

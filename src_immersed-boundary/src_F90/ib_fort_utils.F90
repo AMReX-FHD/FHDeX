@@ -97,16 +97,16 @@ contains
         integer                        :: i
         type(particle_info_t), pointer :: p
 
-        do i = 1, np
-            p => info(i)
-
-            write(*,*) "Particle Info recieved:"
-            write(*,*) "   pos = ", p%pos
-            write(*,*) "   vel = ", p%vel
-            write(*,*) "   ind = ", p%ind
-            write(*,*) "   rad = ", p%radius, "id = ", p%id, "cpu = ", p%cpu
-            write(*,*) "  real = ", p%real
-        end do
+!        do i = 1, np
+!            p => info(i)
+!
+!            write(*,*) "Particle Info recieved:"
+!            write(*,*) "   pos = ", p%pos
+!            write(*,*) "   vel = ", p%vel
+!            write(*,*) "   ind = ", p%ind
+!            write(*,*) "   rad = ", p%radius, "id = ", p%id, "cpu = ", p%cpu
+!            write(*,*) "  real = ", p%real
+!        end do
 
     end subroutine test_interface
 
@@ -518,8 +518,7 @@ contains
 
 
 
-  !  pure
- subroutine spread_kernel(lo,       hi,               &
+    pure subroutine spread_kernel(lo,       hi,               &
             &                     mf_x,     mfx_lo,   mfx_hi, &
             &                     mf_y,     mfy_lo,   mfy_hi, &
             &                     mf_z,     mfz_lo,   mfz_hi, &
