@@ -43,12 +43,12 @@ void AmrCoreAdv::Initialize( )
 
     Dcon_x.resize(nlevs_max);
     Dcon_y.resize(nlevs_max);
-    Dcon_z.resize(nlevs_max);
-    MagDcon.resize(nlevs_max);
     Dconc_x.resize(nlevs_max);
     Dconc_y.resize(nlevs_max);
-    Dconc_z.resize(nlevs_max);
 
+    MagDcon.resize(nlevs_max);
+   Dcon_z.resize(nlevs_max);
+   Dconc_z.resize(nlevs_max);
     bcs.resize(1);
 //    uface.resize(nlevs_max );
 //    vface.resize(nlevs_max);
@@ -129,100 +129,108 @@ void AmrCoreAdv::EvolveChem(
     // con Dcon_x, Dcon_y, Dcon_z
    uface.resize(max_level + 1);
    vface.resize(max_level + 1);
-   wface.resize(max_level + 1);
 
    uface_pre.resize(max_level + 1);
    vface_pre.resize(max_level + 1);
-   wface_pre.resize(max_level + 1);
-
    xface.resize(max_level + 1);
    yface.resize(max_level + 1);
-   zface.resize(max_level + 1);
-
-
     DistributionMapping condm = con_new[lev]->DistributionMap();
     BoxArray conba            = con_new[lev]->boxArray();
 
-    BoxArray x_face_ba = umac[0].boxArray();//conba;
-    BoxArray y_face_ba = umac[1].boxArray(); //conba;
-    BoxArray z_face_ba = umac[2].boxArray();//conba;
+   BoxArray x_face_ba = umac[0].boxArray();//conba;
+   BoxArray y_face_ba = umac[1].boxArray(); //conba;
 
-  //  x_face_ba.surroundingNodes(0);
-  //  y_face_ba.surroundingNodes(1);
-  //  z_face_ba.surroundingNodes(2);
+#if (AMREX_SPACEDIM>=3)    
+
+   wface.resize(max_level + 1);
+
+   wface_pre.resize(max_level + 1);
+
+   zface.resize(max_level + 1);
+#endif
+
+
+    BoxArray z_face_ba = umac[2].boxArray();//conba;
 
     for (lev = 0; lev <= finest_level; ++lev) {
         
         uface[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         vface[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
-        wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
-
         uface_pre[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         vface_pre[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
-        wface_pre[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
-
         int mac_ncompx= (face_coords[lev])[0].nComp();
         int mac_ncompy= (face_coords[lev])[1].nComp();
-        int mac_ncompz= (face_coords[lev])[2].nComp();
         int mac_ngrowx= (face_coords[lev])[0].nGrow();
         int mac_ngrowy= (face_coords[lev])[1].nGrow();
-        int mac_ngrowz= (face_coords[lev])[2].nGrow();
-
-        
         xface[lev].reset(new MultiFab(x_face_ba, condm, mac_ncompx, 0));
         yface[lev].reset(new MultiFab(y_face_ba, condm, mac_ncompy, 0));
-        zface[lev].reset(new MultiFab(z_face_ba, condm, mac_ncompz, 0));
+        
+         xface[lev]->setVal(0.);
+        yface[lev]->setVal(0.);
 
         uface[lev]->setVal(0.);
         vface[lev]->setVal(0.);
-        wface[lev]->setVal(0.);
-        
         uface_pre[lev]->setVal(0.);
         vface_pre[lev]->setVal(0.);
-        wface_pre[lev]->setVal(0.);
-        
-        xface[lev]->setVal(0.);
-        yface[lev]->setVal(0.);
-        zface[lev]->setVal(0.);
-        
         Dcon_x[lev].reset(new MultiFab(x_face_ba, condm, 1, 1));
         Dcon_y[lev].reset(new MultiFab(y_face_ba, condm, 1, 1));
-        Dcon_z[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
 
         Dcon_x[lev]->setVal(0.);
         Dcon_y[lev]->setVal(0.);
-        Dcon_z[lev]->setVal(0.);
-
         Dconc_x[lev].reset(new MultiFab(conba, condm, 1, 1));
         Dconc_y[lev].reset(new MultiFab(conba, condm, 1, 1));
-        Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 1));
 
         MagDcon[lev].reset(new MultiFab(conba, condm, 1, 0));
 
         Dconc_x[lev]->setVal(0.);
         Dconc_y[lev]->setVal(0.);
-        Dconc_z[lev]->setVal(0.);
-
         uface[lev]->copy(umac[0], 0, 0, 1, 0, 1);
         vface[lev]->copy(umac[1], 0, 0, 1, 0, 1);
-        wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
-
         uface_pre[lev]->copy(umac_pre[0], 0, 0, 1, 0, 1);
         vface_pre[lev]->copy(umac_pre[1], 0, 0, 1, 0, 1);
-        wface_pre[lev]->copy(umac_pre[2], 0, 0, 1, 0, 1);
-              
         xface[lev]->copy((face_coords[lev])[0], 0, 0, mac_ncompx , 0, 0);
         yface[lev]->copy((face_coords[lev])[1], 0, 0, mac_ncompy , 0, 0);
-        zface[lev]->copy((face_coords[lev])[2], 0, 0, mac_ncompz , 0, 0);
-
        uface_pre[lev]->FillBoundary(geom[lev].periodicity());
        vface_pre[lev]->FillBoundary(geom[lev].periodicity());
-       wface_pre[lev]->FillBoundary(geom[lev].periodicity());
-       
        uface[lev]->FillBoundary(geom[lev].periodicity());
        vface[lev]->FillBoundary(geom[lev].periodicity());
+
+#if (AMREX_SPACEDIM>=3)    
+        wface[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
+
+        wface_pre[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
+
+        int mac_ncompz= (face_coords[lev])[2].nComp();
+        int mac_ngrowz= (face_coords[lev])[2].nGrow();
+
+        
+        zface[lev].reset(new MultiFab(z_face_ba, condm, mac_ncompz, 0));
+
+        wface[lev]->setVal(0.);
+        
+        wface_pre[lev]->setVal(0.);
+        
+        zface[lev]->setVal(0.);
+        
+        Dcon_z[lev].reset(new MultiFab(z_face_ba, condm, 1, 1));
+
+        Dcon_z[lev]->setVal(0.);
+
+        Dconc_z[lev].reset(new MultiFab(conba, condm, 1, 1));
+
+        Dconc_z[lev]->setVal(0.);
+
+        wface[lev]->copy(umac[2], 0, 0, 1, 0, 1);
+
+        wface_pre[lev]->copy(umac_pre[2], 0, 0, 1, 0, 1);
+              
+        zface[lev]->copy((face_coords[lev])[2], 0, 0, mac_ncompz , 0, 0);
+
+       wface_pre[lev]->FillBoundary(geom[lev].periodicity());
+       
        wface[lev]->FillBoundary(geom[lev].periodicity());
 
+#endif
     }
     int ls_gst= LevelSet.nGrow();
     int ls_nc= LevelSet.nComp();
@@ -319,21 +327,24 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        
        Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 1));
-       Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 1));
       
        Dconc_x[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dconc_y[lev].reset(new MultiFab(ba, dm, 1, 1));
-       Dconc_z[lev].reset(new MultiFab(ba, dm, 1, 1));
-
-       MagDcon[lev].reset(new MultiFab(ba, dm, 1, 0));
 
        Dcon_x[lev]->setVal(0.);
        Dcon_y[lev]->setVal(0.);
-       Dcon_z[lev]->setVal(0.);
-       
+
        Dconc_x[lev]->setVal(0.);
        Dconc_y[lev]->setVal(0.);
+
+
+       Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dconc_z[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dcon_z[lev]->setVal(0.);
+       
        Dconc_z[lev]->setVal(0.);
+       MagDcon[lev].reset(new MultiFab(ba, dm, 1, 0));
+
 
        MagDcon[lev]->setVal(0.);
 
@@ -752,11 +763,15 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     ptSource_pre.setVal(0.);
     Vector<int> xloc;
     Vector<int> yloc;
-    Vector<int> zloc;
     Real strength = 0.1;
     Real Sphere_cent_x=0.5;
     Real Sphere_cent_y=0.5;
+
+#if (AMREX_SPACEDIM>=3)    
+
+    Vector<int> zloc;
     Real Sphere_cent_z=0.5;
+#endif
     MultiFab * S_new = NULL;   
     if (Correct == 1){
     S_new     = con_new[lev].get();}
@@ -765,11 +780,15 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
     MultiFab &  uface_lev_pre = * uface_pre[lev];
     MultiFab &  vface_lev_pre = * vface_pre[lev];
-    MultiFab &  wface_lev_pre = * wface_pre[lev];
 
     MultiFab &  uface_lev = * uface[lev];
     MultiFab &  vface_lev = * vface[lev];
+
+#if (AMREX_SPACEDIM>=3)    
+
+    MultiFab &  wface_lev_pre = * wface_pre[lev];
     MultiFab &  wface_lev = * wface[lev];
+#endif
     iMultiFab & sloc_mf   = * source_loc;
     iMultiFab & sloc_mf_pre   = * source_loc_pre;
 
@@ -825,6 +844,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
         FArrayBox flux1[BL_SPACEDIM];
         FArrayBox flux2[BL_SPACEDIM];
 
+        FArrayBox vel[BL_SPACEDIM];
+
         for (MFIter mfi(*S_new, true); mfi.isValid(); ++mfi) {
             const Box & bx = mfi.tilebox();
 
@@ -835,14 +856,16 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             IArrayBox & fabsl 	      =   sloc_mf[mfi];
             FArrayBox & uface_mf      = uface_lev[mfi];
             FArrayBox & vface_mf      = vface_lev[mfi];
-            FArrayBox & wface_mf      = wface_lev[mfi];
 
             FArrayBox & ptS_p           =  ptSource_pre[mfi];
             IArrayBox & fabsl_p         =   sloc_mf_pre[mfi];
             FArrayBox & uface_mf_p      = uface_lev_pre[mfi];
             FArrayBox & vface_mf_p      = vface_lev_pre[mfi];
-            FArrayBox & wface_mf_p      = wface_lev_pre[mfi];
 
+#if (AMREX_SPACEDIM>=3)    
+            FArrayBox & wface_mf      = wface_lev[mfi];
+            FArrayBox & wface_mf_p      = wface_lev_pre[mfi];
+#endif
 
 
             for (int i = 0; i < BL_SPACEDIM ; i++) {
@@ -851,41 +874,58 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                 flux1[i].resize(bxtmp,S_new->nComp());
                 flux2[i].resize(bxtmp,S_new->nComp());
             }
+   #if (AMREX_SPACEDIM==2)    
 
-
-            if (BL_SPACEDIM==2) {
-                // fill the point source multifab from the tagged interface multifab
                 get_ptsource_2d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
                                  & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
                                  AMREX_ZFILL(prob_lo));
+                get_ptsource_2d( bx.loVect(), bx.hiVect(),
+                                 BL_TO_FORTRAN_3D(fabsl_p),
+                                 BL_TO_FORTRAN_3D(ptS_p),
+                                 & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
+                                  AMREX_ZFILL(prob_lo));
+
 
                 // compute new state (stateout) and fluxes.
-                advect_2d( & time, bx.loVect(), bx.hiVect(),
-                           BL_TO_FORTRAN_3D(statein),
-                           BL_TO_FORTRAN_3D(stateout),
-                           BL_TO_FORTRAN_3D(ptS),
-                           BL_TO_FORTRAN_3D(fabsl),
-                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
-                                        BL_TO_FORTRAN_3D(uface_mf),
-                                        BL_TO_FORTRAN_3D(uface_mf)),
-                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
-                                        BL_TO_FORTRAN_3D(flux[1]),
-                                        BL_TO_FORTRAN_3D(flux[2])),
-                           dx, & dt_lev, &diffcoeff);
-            } else {
-                // fill the point source multifab from the tagged interface multifab
+                advect_2d(& time, bx.loVect(), bx.hiVect(),
+                          BL_TO_FORTRAN_3D(statein),
+                          BL_TO_FORTRAN_3D(statein_p),
+                          BL_TO_FORTRAN_3D(stateout),
+                          BL_TO_FORTRAN_3D(ptS),
+                          BL_TO_FORTRAN_3D(ptS_p),
+                          BL_TO_FORTRAN_3D(fabsl),
+                          BL_TO_FORTRAN_3D(fabsl_p),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
+                                       BL_TO_FORTRAN_3D(vface_mf),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf_p),
+                                       BL_TO_FORTRAN_3D(vface_mf_p),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux[0]),
+                                       BL_TO_FORTRAN_3D(flux[1]),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux1[0]),
+                                       BL_TO_FORTRAN_3D(flux1[1]),
+                          AMREX_D_DECL(BL_TO_FORTRAN_3D(flux2[0]),
+                                       BL_TO_FORTRAN_3D(flux2[1]),
+                          dx, & dt_lev, & diffcoeff, & Correct);
+
+
+
+   #elif (AMREX_SPACEDIM>=3)    
+
+
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
                                  & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
-                                 & Sphere_cent_z, AMREX_ZFILL(prob_lo));
+                                 & Sphere_cent_z,
+                                 AMREX_ZFILL(prob_lo));
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl_p),
                                  BL_TO_FORTRAN_3D(ptS_p),
                                  & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
-                                 & Sphere_cent_z, AMREX_ZFILL(prob_lo));
+                                 & Sphere_cent_z,
+                                  AMREX_ZFILL(prob_lo));
 
 
                 // compute new state (stateout) and fluxes.
@@ -912,14 +952,14 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(flux2[0]),
                                        BL_TO_FORTRAN_3D(flux2[1]),
                                        BL_TO_FORTRAN_3D(flux2[2])),
-                          dx, & dt_lev, & diffcoeff, & Correct);}
-
+                          dx, & dt_lev, & diffcoeff, & Correct);
+#endif
 
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++) {
                     fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
                 }
-            }
+           }
         }
     }
 //    std::swap(con_old[lev], con_new[lev]);
@@ -938,20 +978,29 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     // tangential components of the derivatives, face centered
     MultiFab &  txf_mf       = * Dcon_x[lev];
     MultiFab &  tyf_mf       = * Dcon_y[lev];
-    MultiFab &  tzf_mf       = * Dcon_z[lev];
-
     MultiFab &  txc_mf       = * Dconc_x[lev];
     MultiFab &  tyc_mf       = * Dconc_y[lev];
-    MultiFab &  tzc_mf       = * Dconc_z[lev];
     const BoxArray & badpx           = Dcon_x[lev]->boxArray();
     const DistributionMapping & dmdpx =Dcon_x[lev]->DistributionMap();
     
     const BoxArray & badpy           = Dcon_y[lev]->boxArray();
     const DistributionMapping & dmdpy =Dcon_y[lev]->DistributionMap();
    
+    txf_mf.setVal(0.);
+    tyf_mf.setVal(0.);
+    txc_mf.setVal(0.);
+    tyc_mf.setVal(0.);
+
+   #if (AMREX_SPACEDIM>=3)    
+    MultiFab &  tzf_mf       = * Dcon_z[lev];
+
+    MultiFab &  tzc_mf       = * Dconc_z[lev];
     const BoxArray & badpz           = Dcon_z[lev]->boxArray();
     const DistributionMapping & dmdpz =Dcon_z[lev]->DistributionMap();
+    tzf_mf.setVal(0.);
+    tzc_mf.setVal(0.);
 
+   #endif
 
     // level set   
     MultiFab &  ls_mf       = * levset;
@@ -966,13 +1015,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     S_new_fill.copy(*con_pre[lev], 0,num_comp-1 ,num_comp,(*con_pre[lev]).nGrow() , 1);}
     S_new_fill.FillBoundary(geom[lev].periodicity());
 
-    txf_mf.setVal(0.);
-    tyf_mf.setVal(0.);
-    tzf_mf.setVal(0.);
-    
-    txc_mf.setVal(0.);
-    tyc_mf.setVal(0.);
-    tzc_mf.setVal(0.);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -988,18 +1030,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             
             FArrayBox & fabx         =       txc_mf[mfi];
             FArrayBox & faby         =       tyc_mf[mfi];
+   #if (AMREX_SPACEDIM>=3)    
             FArrayBox & fabz         =       tzc_mf[mfi];
-
+   #endif
             // compute velocities on faces (prescribed function of space and time)
-            if (BL_SPACEDIM==2) {
-//                get_congrad_2d( bx.loVect(), bx.hiVect(),
-//                                BL_TO_FORTRAN_3D(stateout),
-//                                BL_TO_FORTRAN_3D(fabx),
-//                                BL_TO_FORTRAN_3D(faby),
-//                                BL_TO_FORTRAN_3D(fabsl),
-//                                & Sphere_cent_x, & Sphere_cent_y,
-//                                dx, AMREX_ZFILL(prob_lo));
-            } else {
+   #if (AMREX_SPACEDIM>=3)    
+
                 get_surfgrad_3d( bx.loVect(), bx.hiVect(),
                                 BL_TO_FORTRAN_3D(stateout),
                                 BL_TO_FORTRAN_3D(fabx),
@@ -1009,24 +1045,29 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabsls),
                                 BL_TO_FORTRAN_3D(fabsl),
                                 dx, AMREX_ZFILL(prob_lo));
-
+   #endif
             }
         }
-    }
 
     txc_mf.FillBoundary(geom[lev].periodicity());
     tyc_mf.FillBoundary(geom[lev].periodicity());
-    tzc_mf.FillBoundary(geom[lev].periodicity());
 
     
     std::array< MultiFab, AMREX_SPACEDIM > Cxface_array;
     Cxface_array[0].define(badpx, dmdpx, 1, 0);
     Cxface_array[1].define(badpy, dmdpy, 1, 0);
-    Cxface_array[2].define(badpz, dmdpz, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > Cyface_array;
     Cyface_array[0].define(badpx, dmdpx, 1, 0);
     Cyface_array[1].define(badpy, dmdpy, 1, 0);
+    Cxface_array[0].setVal(0.);
+    Cxface_array[1].setVal(0.);
+    Cyface_array[0].setVal(0.);
+    Cyface_array[1].setVal(0.);
+ 
+  #if (AMREX_SPACEDIM>=3)    
+    Cxface_array[2].define(badpz, dmdpz, 1, 0);
+    tzc_mf.FillBoundary(geom[lev].periodicity());
+
     Cyface_array[2].define(badpz, dmdpz, 1, 0);
     
     std::array< MultiFab, AMREX_SPACEDIM > Czface_array;
@@ -1034,18 +1075,14 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     Czface_array[1].define(badpy, dmdpy, 1, 0);
     Czface_array[2].define(badpz, dmdpz, 1, 0);
     
-    Cxface_array[0].setVal(0.);
-    Cxface_array[1].setVal(0.);
     Cxface_array[2].setVal(0.);
   
-    Cyface_array[0].setVal(0.);
-    Cyface_array[1].setVal(0.);
     Cyface_array[2].setVal(0.);
    
     Czface_array[0].setVal(0.);
     Czface_array[1].setVal(0.);
     Czface_array[2].setVal(0.);
-    
+  #endif 
 //    Sface_array[0].FillBoundary(geom[lev].periodicity());
 //    Sface_array[1].FillBoundary(geom[lev].periodicity());
 //    Sface_array[2].FillBoundary(geom[lev].periodicity());
@@ -1054,18 +1091,20 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
  
    AverageCCToFace(txc_mf, 0, Cxface_array,0,1);
    AverageCCToFace(tyc_mf, 0, Cyface_array,0,1);
-   AverageCCToFace(tzc_mf, 0, Czface_array,0,1);
 
    txf_mf.copy(Cxface_array[0], 0, 0,1, 0, 0);
    tyf_mf.copy(Cyface_array[1], 0, 0,1, 0, 0);
-   tzf_mf.copy(Czface_array[2], 0, 0,1, 0, 0);
     txf_mf.FillBoundary(geom[lev].periodicity());
     tyf_mf.FillBoundary(geom[lev].periodicity());
+
+  #if (AMREX_SPACEDIM>=3)    
+   AverageCCToFace(tzc_mf, 0, Czface_array,0,1);
+   tzf_mf.copy(Czface_array[2], 0, 0,1, 0, 0);
     tzf_mf.FillBoundary(geom[lev].periodicity());
+  #endif
 
 
-
-    amrex::Print() << "simulated con total"<< (con_new[lev]->sum(0,false));
+    amrex::Print() << "simulated con total"<< (con_old[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;
 
 }
@@ -1078,12 +1117,15 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     BoxArray conba            = con_new[lev]->boxArray();
     BoxArray x_face_ba = conba;
     BoxArray y_face_ba = conba;
-    BoxArray z_face_ba = conba;
-
     x_face_ba.surroundingNodes(0);
     y_face_ba.surroundingNodes(1);
-    z_face_ba.surroundingNodes(2);
 
+  #if (AMREX_SPACEDIM>=3)    
+
+    BoxArray z_face_ba = conba;
+
+    z_face_ba.surroundingNodes(2);
+  #endif
 
     if (indicator==0){
     MF[lev].reset(new MultiFab(conba, condm, 1, 0));
@@ -1115,6 +1157,8 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 	MF[lev]->copy(* Dcon_y[lev], 0, 0,1, yng, 0);
     }
     else if (indicator==3){
+  #if (AMREX_SPACEDIM>=3)    
+
     DistributionMapping zcondm = Dcon_z[lev]->DistributionMap();
     BoxArray zconba            = Dcon_z[lev]->boxArray();
     int zng=Dcon_z[lev]->nGrow();
@@ -1123,6 +1167,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
     MF[lev]->setVal(0.);
 	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, zng, 0);
+  #endif
     }
     else if (indicator==4){
     MF[lev].reset(new MultiFab(conba, condm, 1, 0));
@@ -1155,7 +1200,9 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 	MF[lev]->copy(* Dconc_y[lev], 0, 0,1, yng, 0);
     }
     else if (indicator==7){
-    DistributionMapping condm = Dconc_z[lev]->DistributionMap();
+  #if (AMREX_SPACEDIM>=3)    
+  
+  DistributionMapping condm = Dconc_z[lev]->DistributionMap();
     BoxArray conba            = Dconc_z[lev]->boxArray();
     int zng=Dconc_z[lev]->nGrow();
 
@@ -1163,6 +1210,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
     MF[lev]->setVal(0.);
 	 MF[lev]->copy(* Dconc_z[lev], 0, 0,1, zng, 0);
+  #endif
     }
 
     else amrex::Abort( "Incorrect indicator for copying information from AmrCoreAdv to Mfix" );

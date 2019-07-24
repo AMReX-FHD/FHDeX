@@ -436,15 +436,10 @@ void main_driver(const char * argv) {
 
 
     std::array<MultiFab, AMREX_SPACEDIM> force_ibm;
-    std::array<MultiFab, AMREX_SPACEDIM> DCs_spread;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         force_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
         force_ibm[d].setVal(0.);
-    }
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        DCs_spread[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        DCs_spread[d].setVal(0.);
     }
 
     //__________________________________________________________________________
@@ -474,7 +469,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, DCs_spread, ib_pc,
+        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc,
                       amr_core_adv, lev);
     }
 
@@ -555,7 +550,7 @@ void main_driver(const char * argv) {
  
         advance(amr_core_adv,
                 umac, umacNew, pres, tracer,
-                force_ibm, DCs_spread, marker_force_0,
+                force_ibm, marker_force_0,
                 mfluxdiv_predict, mfluxdiv_correct,
                 alpha_fc, beta, gamma, beta_ed,
                 ib_pc, ib_core, geom, dt, time);
@@ -607,7 +602,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, pres, f_ibm, and particle data to a plotfile
-            WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm,DCs_spread, ib_pc, amr_core_adv,lev);
+            WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc, amr_core_adv,lev);
         }
     }
 

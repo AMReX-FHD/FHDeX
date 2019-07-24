@@ -3,6 +3,8 @@
 
 #include "common_namespace.H"
 
+#include "AMReX_PlotFileUtil.H"
+
 using namespace common;
 
 int greatest_common_divisor(int,int);
@@ -11,8 +13,14 @@ void factor(int,int*,int);
 //Computes divergence at cell centres from velcocities at cell faces
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg, 
 			    const Geometry& geom, const int dir, 
-			    const int incomp, const int outcomp, const int ncomp)
+			    const int incomp, const int ncomp)
 {
+
+  bool write_data = false;
+  std::string plotname; 
+
+  int outcomp = 0;
+  int inputcomp = 0;
 
   MultiFab mf_flattened, mf_pencil;
 
@@ -27,6 +35,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
   Vector<int> max_grid_size_flattened(AMREX_SPACEDIM);
   Vector<int> max_grid_size_pencil(AMREX_SPACEDIM);
+  Vector<int> max_grid_size_flat(AMREX_SPACEDIM);
 
   int nx[3], nbx[3];
   int mx[2], mbx[2];
@@ -54,9 +63,9 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
   IntVect dom_lo(domain.loVect());
   IntVect dom_hi(domain.hiVect());
-  dom_hi[dir] = nbx[dir];
+  dom_hi[dir] = nbx[dir]-1;
   Box domain_flattened(dom_lo, dom_hi);
-  dom_hi[dir] = 1;
+  dom_hi[dir] = 0;
   Box domain_flat(dom_lo, dom_hi);
 
   a = greatest_common_divisor( nxprod,domain.length(indlo) );
@@ -77,43 +86,74 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
   Print() << "2D redist: " << mbx[0] << "x" << mbx[1] << ", grids: " << mx[0] << "x" << mx[1] << std::endl;
 
-  max_grid_size_pencil[indlo] = mx[0];
-  max_grid_size_pencil[indhi] = mx[1];
-  max_grid_size_pencil[dir]   = 1;      // nx[dir]
-
   max_grid_size_flattened      = max_grid_size;
   max_grid_size_flattened[dir] = 1;      // nx[dir]
+
+  max_grid_size_pencil[indlo] = mx[0];
+  max_grid_size_pencil[indhi] = mx[1];
+  max_grid_size_pencil[dir]   = nbx[dir];          // nx[dir]
+  // max_grid_size_pencil[dir]   = domain.length(dir);
+
+  max_grid_size_flat      = max_grid_size_pencil;
+  max_grid_size_flat[dir] = 1;
 
   ba_flattened.define(domain_flattened);
   ba_flattened.maxSize(IntVect(max_grid_size_flattened));
   mf_flattened.define(ba_flattened,dmap,ncomp,0);
 
+  Print() << domain_flattened << std::endl;
+  Print() << IntVect(max_grid_size_flattened) << std::endl;
+  Print() << ba_flattened << std::endl;
+
   ba_pencil.define(domain_flattened);
+  // ba_pencil.define(domain);
   ba_pencil.maxSize(IntVect(max_grid_size_pencil));
   mf_pencil.define(ba_pencil,dmap,ncomp,0);
 
+  Print() << dmap << std::endl;
+  Print() << domain_flattened << std::endl;
+  Print() << IntVect(max_grid_size_pencil) << std::endl;
+  Print() << ba_pencil << std::endl;
+
   ba_flat.define(domain_flat);
-  ba_flat.maxSize(IntVect(max_grid_size_pencil));
+  ba_flat.maxSize(IntVect(max_grid_size_flat));
   mf_avg.define(ba_flat,dmap,ncomp,0);
 
-  // exit(0);
-
+  inputcomp = incomp;
   for ( MFIter mfi(mf); mfi.isValid(); ++mfi ) {
     const Box& bx = mfi.validbox();
-    compute_vert_average(BL_TO_FORTRAN_FAB(mf[mfi]),BL_TO_FORTRAN_FAB(mf_flattened[mfi]), 
-			 &dir,
-			 &incomp, &outcomp, &ncomp);
+    compute_vert_average(BL_TO_FORTRAN_BOX(bx),
+  			 BL_TO_FORTRAN_FAB(mf[mfi]),BL_TO_FORTRAN_FAB(mf_flattened[mfi]), 
+  			 &dir, &inputcomp, &outcomp, &ncomp);
+  }
+
+  if (write_data) {
+    plotname = "mf_flattened";
+    VisMF::Write(mf_flattened,plotname);
   }
 
   // Copy/redistrubute to pencils
-  // ...
 
-  // for ( MFIter mfi(mf); mfi.isValid(); ++mfi ) {
-  //   const Box& bx = mfi.validbox();
-  //   compute_vert_average(BL_TO_FORTRAN_FAB(mf_pencil[mfi]),BL_TO_FORTRAN_FAB(mf_avg[mfi]), 
-  // 			 &dir,
-  // 			 &incomp, &outcomp, &ncomp);
-  // }
+  mf_pencil.ParallelCopy(mf_flattened, 0, 0, ncomp);
+  // mf_pencil.ParallelCopy(mf, incomp, 0, ncomp);
+
+  if (write_data) {
+    plotname = "mf_pencil";
+    VisMF::Write(mf_pencil,plotname);
+  }
+
+  inputcomp = 0;
+  for ( MFIter mfi(mf_pencil); mfi.isValid(); ++mfi ) {
+    const Box& bx = mfi.validbox();
+    compute_vert_average(BL_TO_FORTRAN_BOX(bx),
+			 BL_TO_FORTRAN_FAB(mf_pencil[mfi]),BL_TO_FORTRAN_FAB(mf_avg[mfi]), 
+                         &dir, &inputcomp, &outcomp, &ncomp);
+  }
+
+  if (write_data) {
+    plotname = "mf_avg";
+    VisMF::Write(mf_avg,plotname);
+  }
 
 }
 
