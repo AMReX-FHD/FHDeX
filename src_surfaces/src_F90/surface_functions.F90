@@ -437,7 +437,7 @@
 
     interval=3/100
     !omega=(12.5+interval*surf%omg)*(10**6)*pi*2
-    omega=14.325*(10**6)*pi*2
+    omega=14.2625*(10**6)*pi*2
     resomega=14*(10**6)*pi*2
 
     lstrength=10**(-15d0)*cos(omega*time)
