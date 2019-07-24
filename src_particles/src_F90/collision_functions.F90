@@ -137,7 +137,9 @@ contains
 
           cell_np = cell_part_cnt(i,j,k)
 
-          !print *, cell_np
+            
+
+          !print *, "parts: ", cell_np
           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
           if (cell_np .gt. 1) then
@@ -154,7 +156,7 @@ contains
 
             !pairs = floor(pairs*0.1)
 
-            !print *, "Attempting ", pairs, " pairs. Cell factor: ", cellfactor(i,j,k)
+            !print *, "Attempting ", pairs, " pairs. Cell factor: ", cellfactor(i,j,k), cellvols(i,j,k)
 
             do n = 1, pairs
 

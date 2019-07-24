@@ -577,8 +577,19 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
 
 
-    !print *, "velpart: ", oldvel(3)
-    !print *, "velgraph: ", prefact*bessel_jn(0, lambda)*(surf%agraph*sin(omega*t)+surf%bgraph*cos(omega*t))
+!    print *, "velpart: ", oldvel(3)
+!    print *, "tau: ", t
+!    print *, "rho: ", rho
+!    print *, "a: ", a
+!    print *, "k: ", k
+!    print *, "p: ", p
+!    print *, "c: ", c
+!    print *, "prefact: ", prefact*bessel_jn(0, 0d0)
+!    print *, "Bess: ", bessel_jn(0, lambda)
+!    print *, "omega: ", omega
+
+!    print *, "velgraph: ", prefact*bessel_jn(0, 0d0)*surf%agraph*sin(omega*t) + prefact*bessel_jn(0, 0d0)*surf%bgraph*cos(omega*t)
+!    print *, "parts: ", surf%agraph, surf%bgraph
  enddo
 
  part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
@@ -623,4 +634,5 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     ! write(*,*) prefact*p*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
    !  endif
   end subroutine surf_velocity
+
 
