@@ -288,10 +288,12 @@ void main_driver(const char* argv)
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             dsmcParticle[i].total = (int)ceil(particle_n0[i]*effectiveVol/particle_neff);
+                Print() << "TOTAL: " << dsmcParticle[i].total << ", " << particle_n0[i] << "\n";
+
             // adjust number of particles up so there is the same number per box  
             dsmcParticle[i].ppb = (int)ceil((double)dsmcParticle[i].total/(double)ba.size());
             dsmcParticle[i].total = dsmcParticle[i].ppb*ba.size();
-            dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
+            dsmcParticle[i].n0 = (dsmcParticle[i].total/effectiveVol)*particle_neff;
 
             Print() << "Species " << i << " n0 adjusted to " << dsmcParticle[i].n0 << "\n";
             Print() << "Effective volume: " << effectiveVol << "\n";
@@ -299,8 +301,8 @@ void main_driver(const char* argv)
 
         Print() << "Species " << i << " particles per box: " <<  dsmcParticle[i].ppb << "\n";
 
-        realParticles = realParticles + dsmcParticle[i].total;
-        simParticles = simParticles + dsmcParticle[i].total*particle_neff;
+        realParticles = realParticles + dsmcParticle[i].total*particle_neff;
+        simParticles = simParticles + dsmcParticle[i].total;
     }
     
     Print() << "Total real particles: " << realParticles << "\n";
