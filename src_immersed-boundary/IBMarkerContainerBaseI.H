@@ -608,6 +608,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
         this->setIntCommComp(i, true);
 
 
+    //for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    //    this->setRealCommComp(StructReal::pred_forcex + d, false);
+    //    this->setRealCommComp(StructReal::forcex + d, false);
+    //}
+
+    this->setEnableInverse(true);
+
 
     /****************************************************************************
      *                                                                          *
