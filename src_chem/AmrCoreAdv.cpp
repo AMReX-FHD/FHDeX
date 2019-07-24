@@ -118,11 +118,11 @@ void AmrCoreAdv::EvolveChem(
         const MultiFab & LevelSet, 
         int lev, int nstep,
         Real dt_fluid, Real time, Real dc, 
-        const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords, int corrector)
+        const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords, int corrector, Real source_strength)
 {
     Correct=corrector;
     diffcoeff=dc;
-    
+    strength= source_strength;    
     dt[lev] = dt_fluid;
 
     // initialize copies of velocities u_g, v_g, w_g and first derivatives of
@@ -763,7 +763,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     ptSource_pre.setVal(0.);
     Vector<int> xloc;
     Vector<int> yloc;
-    Real strength = 0.1;
     Real Sphere_cent_x=0.5;
     Real Sphere_cent_y=0.5;
 

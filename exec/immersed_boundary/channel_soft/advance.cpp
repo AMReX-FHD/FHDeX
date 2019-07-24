@@ -211,7 +211,6 @@ void advance(AmrCoreAdv & amr_core_adv,
     int ib_grow  = 6; // using the 6-point stencil
 
     Real spring_coefficient = 2e2;
-    amrex::Real scaling_factor=0.1;
 
     int nstep=0;
 
@@ -229,7 +228,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & FaceCoords=ib_pc.get_face_coords();
 
         int corrector=0;
-        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector);
+        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector, source_strength);
 
          amr_core_adv.con_new_copy(ibpc_lev, Dc_x0, 1);
          amr_core_adv.con_new_copy(ibpc_lev, Dc_y0, 2);
@@ -554,7 +553,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & FaceCoords1=ib_pc.get_face_coords();
 
         corrector=1;
-        amr_core_adv.EvolveChem(umac,umacNew,iface0, iface1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector);
+        amr_core_adv.EvolveChem(umac,umacNew,iface0, iface1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
 
 
 //        amr_core_adv.EvolveChem(umacNew, iface1, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords0);

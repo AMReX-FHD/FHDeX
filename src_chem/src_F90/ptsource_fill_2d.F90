@@ -24,7 +24,7 @@ subroutine get_ptsource_2d( lo, hi, &
         do i = lo(1), hi(1)
            y = prob_lo(2)+(dble(j)+0.5d0)*dx(2)
            if ((iface(i,j).eq.1) .and. (y .le. ib_cen_y)) then
-           pts(i,j)=strength
+           pts(i,j)=strength*dx(1)*dx(2)
            endif
         enddo
      enddo
