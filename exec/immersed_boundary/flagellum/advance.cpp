@@ -712,25 +712,25 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
 
-    // // Apply Heun's Method time stepping to marker forces
-    // for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+    // Apply Heun's Method time stepping to marker forces
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
-    //     PairIndex index(pti.index(), pti.LocalTileIndex());
-    //     AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
-    //     long np = markers.size();
+        long np = markers.size();
 
-    //     for (int i = 0; i < np; ++i) {
+        for (int i = 0; i < np; ++i) {
 
-    //         ParticleType & mark = markers[i];
+            ParticleType & mark = markers[i];
 
-    //         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //             mark.rdata(IBM_realData::forcex + d) = 0.5*mark.rdata(IBM_realData::forcex + d)
-    //                 + 0.5*mark.rdata(IBM_realData::pred_forcex + d);
-    //         }
-    //     }
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBM_realData::forcex + d) = 0.5*mark.rdata(IBM_realData::forcex + d)
+                    + 0.5*mark.rdata(IBM_realData::pred_forcex + d);
+            }
+        }
 
-    // }
+    }
 
 
 
