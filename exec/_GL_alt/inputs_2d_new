@@ -18,9 +18,10 @@
   cfl = .1
 
   ! Controls for number of steps between actions
-  max_step = 6000000
-  plot_int  = 1000
-  n_steps_skip = 0
+  max_step = 100000000
+  plot_int = 1000
+  n_steps_skip = 000000
+
 
   ! Boundary conditions
   ! ----------------------
@@ -38,27 +39,17 @@
  ccoef = -216.
  dcoef = 112.
 
- diff_coef = 1.0  !1.
- noise_coef = .01 !
- umbrella = 44.444444
+ diff_coef = 1.
+ noise_coef = .010
+ umbrella = 150.
  ! umbrella = 00.
 
  !phi0 = .5
- phi0 =1.0
+ phi0 = .0
  rad = .4
- n_inc_phi = 300000
- phi_inc = 0.00
+ n_inc_phi = 100000
+ phi_inc = .001
 
- Plot_Skip=6   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
- Number_of_Samples=100  ! Number of samples per umbrella
- Equil=30000  !number of equilibration steps per umbrella
- alpha=1.5  !spring constant scaling parameter
- r1=1.0 !phi0 step parameter, see overleaf notes
- r2=1.0  !overlap parameter, see overleaf notes
- umbrella_max=2000.0
- umbrella_min=50.0
- adaptive=1
- Reverse=1
 
 
 

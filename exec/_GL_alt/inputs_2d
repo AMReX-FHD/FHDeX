@@ -15,7 +15,7 @@
   max_grid_size(1:2) = 64 64
 
   ! Time-step control
-  cfl = .1
+  cfl =0.1
 
   ! Controls for number of steps between actions
   max_step = 6000000
@@ -40,25 +40,25 @@
 
  diff_coef = 1.0  !1.
  noise_coef = .01 !
- umbrella = 44.444444
+ umbrella = 150.00 ! starting umbrella value/fixed value when not using adaptive method
  ! umbrella = 00.
 
  !phi0 = .5
- phi0 =1.0
+ phi0 =0.00286481020
  rad = .4
  n_inc_phi = 300000
- phi_inc = 0.00
+ phi_inc =0.1 !0.00014747000000000024 ! increment parameter used when adaptive is off
 
- Plot_Skip=6   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
- Number_of_Samples=100  ! Number of samples per umbrella
- Equil=30000  !number of equilibration steps per umbrella
+ Plot_Skip=30   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
+ Number_of_Samples=150  ! Number of samples per umbrella
+ Equil=21000  !number of equilibration steps per umbrella
  alpha=1.5  !spring constant scaling parameter
  r1=1.0 !phi0 step parameter, see overleaf notes
  r2=1.0  !overlap parameter, see overleaf notes
  umbrella_max=2000.0
  umbrella_min=50.0
- adaptive=1
- Reverse=1
+ adaptive=0
+ Reverse=0
 
 
 

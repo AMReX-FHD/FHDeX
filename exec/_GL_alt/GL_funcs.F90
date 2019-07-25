@@ -7,7 +7,7 @@ module time_step_module
 
   private
 
-  public :: rk2_stage1, rk2_stage2, initphi, integrate, setdt, Stat_Quant, inc_phi0_Adapt, Umbrella_Adjust, Param_Output,umbrella_reset,set_inputs
+  public :: rk2_stage1, rk2_stage2, initphi, integrate, setdt, Stat_Quant, inc_phi0_Adapt, Umbrella_Adjust, Param_Output,umbrella_reset,set_inputs,fixed_inc_phi0,Comp_H1_semi_norm
 
 contains
 
@@ -62,12 +62,11 @@ contains
 !               + diff_coef/2.d0*((phi(i,j)-phi(i-1,j))**2+(phi(i,j)-phi(i,j-1))**2)
 
               teng = teng + ( dele + 0.5d0*umbrella*integral ) *dx(1)*dx(2)
-
           enddo
         enddo
 
-!           energy = energy *dx(1)*dx(2)
-!           teng = teng *dx(1)*dx(2)
+        !    energy = energy *dx(1)*dx(2)
+        !    teng = teng *dx(1)*dx(2)
 
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
@@ -140,6 +139,10 @@ contains
 
           enddo
         enddo
+      phi=phi*0.0d0 ! set phi_0=0.0
+
+      open(7,file="Console_output_Fortran.txt") !create output file for fortran output from run
+      close(7)
 
   end subroutine initphi
 
@@ -157,17 +160,40 @@ contains
          do  j=lo(2),hi(2)
            do  i=lo(1),hi(1)
 
-              integral = integral + (phi(i,j) - phi0)*dx(1)*dx(2)
+              integral = integral +  (phi(i,j) - phi0)*dx(1)*dx(2)
 
           enddo
         enddo
-
 
   end subroutine integrate
 
 
 
+  subroutine Comp_H1_semi_norm(lo,hi, phi, dx, H1_semi) bind(C,name="Comp_H1_semi_norm")
 
+    integer         , intent(in   ) :: lo(2),hi(2)
+    real(amrex_real), intent(in   ) :: dx(2)
+    real(amrex_real), intent(out  ) :: H1_semi
+
+    real(amrex_real), intent(inout) :: phi(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2))
+
+    real(amrex_real) :: xloc,yloc
+    integer :: i,j
+
+    do  j=lo(2),hi(2)
+        do  i=lo(1),hi(1)
+
+        H1_semi = H1_semi + ((phi(i,j)-phi(i-1,j))**2.0)/(dx(1)**2.0) + ((phi(i,j)-phi(i,j-1))**2.0)/(dx(2)**2.0)
+
+      enddo
+    enddo
+    H1_semi = (H1_semi*dx(1)*dx(2))**0.5
+
+  end subroutine Comp_H1_semi_norm
+
+
+
+  
 
   subroutine inc_phi0 ( step ) bind(C,name="inc_phi0")
 
@@ -178,6 +204,10 @@ contains
      phi0 = phi0 + phi_inc
      write(6,*)"phi0 changed to ",phi0 ," at step ", step
 
+     open(7,file="Console_output_Fortran.txt",status="old",position="append",action="write")
+     write(7,*)"phi0 changed to ",phi0 ," at step ", step
+     close(7)
+
   endif
 
      phi0 = min(phi0, 1.d0)
@@ -186,18 +216,49 @@ contains
 
 
 
+  subroutine fixed_inc_phi0 ( forward_input ) bind(C,name="fixed_inc_phi0")
+
+    integer, intent(in) :: forward_input
+  
+    if(forward_input .eq. 1)then
+       phi0 = phi0 + phi_inc
+       write(6,*)"phi0 changed to ",phi0 
+  
+       open(7,file="Console_output_Fortran.txt",status="old",position="append",action="write")
+       write(7,*)"phi0 changed to ",phi0
+       close(7)
+    endif
+
+    if(forward_input .eq. 0)then
+      phi0 = phi0 - phi_inc
+      write(6,*)"phi0 changed to ",phi0 
+ 
+      open(7,file="Console_output_Fortran.txt",status="old",position="append",action="write")
+      write(7,*)"phi0 changed to ",phi0 
+      close(7)
+   endif
+  
+    end subroutine fixed_inc_phi0
+
+
+
   subroutine inc_phi0_Adapt ( Expec,MAD,r1,Shift_Flag ) bind(C,name="inc_phi0_Adapt")
 
     real(amrex_real), intent(inout  ) :: Expec,MAD,r1
     integer, intent(inout ) :: Shift_Flag
+    open(7,file="Console_output_Fortran.txt",status="old",position="append",action="write")
+
     write(6,*)" phi0 is",phi0 
+    write(7,*)" phi0 is",phi0 
+
     if(Shift_Flag .NE. 1) then
       phi0 =(Expec+r1*MAD)
     else 
       phi0=phi0+r1*MAD
     end if
     write(6,*)" phi0 changed to ",phi0 
-
+    write(7,*)" phi0 changed to ",phi0 
+    close(7)
 
   end subroutine inc_phi0_Adapt
 
@@ -206,11 +267,15 @@ contains
     real(amrex_real), intent(in  ) :: alpha
     integer, intent(inout ) :: sucessful_iter,umbrella_size,sucessful_iter_prev
 
+    open(7,file="Console_output_Fortran.txt",status="old",position="append",action="write")
+
     if (umbrella <=umbrella_min) then
       umbrella_size=1
     else if (umbrella .GE. umbrella_max .AND. sucessful_iter==0 ) then 
       write(6,*)"Umbrella is large, and we have no overlap. Umbrella is ",umbrella 
+      write(7,*)"Umbrella is large, and we have no overlap. Umbrella is ",umbrella 
       write(6,*)"Shifting down phi_0 "
+      write(7,*)"Shifting down phi_0 "
       umbrella_size=2 
     end if
     !! check previous step, current step, and umbrella_size. This section must account for all positbiltities
@@ -231,8 +296,9 @@ contains
 
       if (umbrella .LE. umbrella_max .AND. sucessful_iter .NE. 0 ) then
         write(6,*)"Umbrella changed to ",umbrella 
+        write(7,*)"Umbrella changed to ",umbrella 
       end if 
-
+      close(7)
   end subroutine Umbrella_Adjust
 
 
@@ -247,10 +313,14 @@ contains
 
   subroutine umbrella_reset ( umbrella_input) bind(C,name="umbrella_reset")
     real(amrex_real), intent(in  ) :: umbrella_input
+
+    open(7,file="Console_output_Fortran.txt",status="old",position="append",action="write")
+
     umbrella=umbrella_input
+
     write(6,*)"Umbrella is set to",umbrella
-
-
+    write(7,*)"Umbrella is set to",umbrella
+    close(7)
   end subroutine umbrella_reset
 
 

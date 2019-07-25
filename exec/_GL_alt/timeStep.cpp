@@ -17,13 +17,12 @@ using namespace common;
 using namespace amrex;
 
 void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums, 
-               const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt, amrex::Real& integral, int n, amrex::Real& phi_avg)
+               const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt, amrex::Real& integral, int n, amrex::Real& phi_avg,amrex::Real& energy,amrex::Real& teng,amrex::Real& H1_semi_norm)
 {
 
     const int comp=0;
     int ncomp=1;
 
-    amrex::Real energy, teng;
 
     for (MFIter mfi(rannums); mfi.isValid(); ++mfi) {
 
@@ -71,9 +70,22 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
       	           dx, &dt,&phi_avg);   
     }
     ParallelDescriptor::ReduceRealSum(phi_avg);
-    phi_avg = phi_avg / (n_cells[0]*n_cells[1]);
+    phi_avg = phi_avg/(n_cells[0]*n_cells[1]);
     ParallelDescriptor::ReduceRealSum(energy);
     ParallelDescriptor::ReduceRealSum(teng);
+
+    for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.validbox();
+
+        Comp_H1_semi_norm(BL_TO_FORTRAN_BOX(bx),
+                   phi[mfi].dataPtr(),  
+      	           dx,
+                   &H1_semi_norm);   
+    }
+    ParallelDescriptor::ReduceRealSum(H1_semi_norm);
+    H1_semi_norm=H1_semi_norm/(n_cells[0]*n_cells[1]);
+
     //if(ParallelDescriptor::MyProc() == 0 ){
     //       std::cout << n << " " << energy << "  energy  " << std::endl;
     //       std::cout << n << " " << teng << "  teng  " << std::endl;
@@ -117,8 +129,14 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     int Steps_Counted;
     int Total_Steps;
     int j=0;
+
     amrex::Real Expec_Temp;
     amrex::Real Phi_Avg;
+    amrex::Real energy;
+    amrex::Real teng;
+    amrex::Real H1_semi_norm;
+
+
     amrex::Real median;
     amrex::Real umbrella;
     amrex::Real phi0;
@@ -128,7 +146,9 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     Total_Steps=L*plot_int;
     Expec_Temp=0.0;
     Phi_Avg=0.0;
+  
     Param_Output(&umbrella,&phi0);
+
     std::stringstream ss;
     ss << std::setw(8) << std::setfill('0') << umbrella_number;
     std::string s = ss.str();
@@ -137,6 +157,18 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     umb_Num=umb_Num+".txt";
     std::ofstream ofs;
     std::ofstream ofs2;
+
+    ofs.setf(std::ios::scientific);
+    ofs.setf(std::ios::showpos);
+    ofs.precision(13);
+    ofs2.setf(std::ios::scientific);
+    ofs2.setf(std::ios::showpos);
+    ofs2.precision(13);
+
+    std::ofstream ofs3;
+    ofs3.open("Console_output_Fortran.txt", std::ofstream::out | std::ofstream::app);
+
+
  if(ParallelDescriptor::MyProc() == 0  and Make_PltFiles)                    
  {
     ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);
@@ -153,7 +185,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     for(step=1;step<=Total_Steps+N_Burn;++step)
     {
 
-        RK2step(phi, phin, rannums, geom, dx, dt, integral, step,Phi_Avg);
+        RK2step(phi, phin, rannums, geom, dx, dt, integral, step,Phi_Avg,energy,teng,H1_semi_norm);
 
         if(step>N_Burn)
         {
@@ -165,7 +197,6 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
             }
             if (plot_int > 0 && Steps_Counted > n_steps_skip && Steps_Counted%plot_int == 0)
             {
-                
                 Avg_collect[j]=Phi_Avg;
                 Expec_Temp=Expec_Temp+Phi_Avg;
                 j=j+1;
@@ -176,11 +207,11 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
                         if(ParallelDescriptor::MyProc() == 0 )
                         {
                             ofs2.open("AVG_DATA.txt", std::ofstream::out | std::ofstream::app);
-                            ofs2 << Phi_Avg<< "\n";
+                            ofs2 << Phi_Avg << " " << energy << " " << teng  << " " << H1_semi_norm << "\n";
                             ofs2.close();
 
                             ofs.open (umb_Num.c_str(), std::ofstream::out | std::ofstream::app);
-                            ofs << Phi_Avg<< "\n";
+                            ofs << Phi_Avg << " " << energy << " " << teng  << " " << H1_semi_norm << "\n";
                             ofs.close();
                         }
                         if((j+1)%Plot_Skip==0)
@@ -194,23 +225,33 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
         }
         time = time + dt;
     }
-    Expec=Expec_Temp/L;
-    std::sort(Avg_collect, Avg_collect+L);
-    median=Avg_collect[L/2];
-    amrex::Print() << "median of Phi in umbrella is " << median << "\n";
-    for(j=0;j<L;j++)
-    {
-        Avg_collect[j]=std::abs(Avg_collect[j]-median) ;
-    }
-    std::sort(Avg_collect, Avg_collect+L);
-    MAD=Avg_collect[L/2];
-    amrex::Print() << "Average of Phi in umbrella is " << Expec << "\n";
-    amrex::Print() << "MAD of Umbrella is " << MAD << "\n";
-    //Expec=median; // using median instead of average for comparison
-    if(Make_PltFiles)
-    {
-        umbrella_number=umbrella_number+1;
-    }
+
+        Expec=Expec_Temp/L;
+        std::sort(Avg_collect, Avg_collect+L);
+        median=Avg_collect[L/2];
+        if(ParallelDescriptor::MyProc() == 0)                    
+        {
+            ofs3 << "median of Phi in umbrella is " << median << "\n";
+        }
+        amrex::Print() << "median of Phi in umbrella is " << median << "\n";
+        for(j=0;j<L;j++)
+        {
+            Avg_collect[j]=std::abs(Avg_collect[j]-median) ;
+        }
+        std::sort(Avg_collect, Avg_collect+L);
+        MAD=Avg_collect[L/2];
+        amrex::Print() << "Average of Phi in umbrella is " << Expec << "\n";
+        amrex::Print() << "MAD of Umbrella is " << MAD << "\n";
+        if(ParallelDescriptor::MyProc() == 0)                    
+        {
+            ofs3 << "Average of Phi in umbrella is " << Expec << "\n";
+            ofs3 << "MAD of Umbrella is " << MAD << "\n";
+        }
+        //Expec=median; // using median instead of average for comparison
+        if(Make_PltFiles)
+        {
+            umbrella_number=umbrella_number+1;
+        }
 
 }
 
@@ -232,9 +273,26 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
     {
     sucessful_iter_prev=0;
     }   
+
+    std::ofstream ofs;
+    ofs.open("Console_output_Fortran.txt", std::ofstream::out | std::ofstream::app);
+    if(ParallelDescriptor::MyProc() == 0 )
+    {
+        ofs << "E2-r2*S2 "  << Expec2-r2*MAD2 << "\n";
+        ofs << "E2+r2*S2 "  << Expec2+r2*MAD2 << "\n";
+        ofs << "E1+r2*S1 "  << Expec + r2*MAD <<  "\n";
+    }
+
+
     amrex::Print() << "E2-r2*S2 "  << Expec2-r2*MAD2 << "\n";
     amrex::Print() << "E2+r2*S2 "  << Expec2+r2*MAD2 << "\n";
     amrex::Print() << "E1+r2*S1 "  << Expec + r2*MAD <<  "\n";
+
+
+
+
+
+
 
     if(Expec2-r2*MAD2 < Expec + r2*MAD && Expec2+r2*MAD2 > Expec + r2*MAD)
     {    
@@ -244,6 +302,10 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         Shift_Flag=0;
         Umbrella_Adjust(&sucessful_iter,&alpha,&umbrella_size,&sucessful_iter_prev);
         amrex::Print() << "Overlap occured "  << "\n";
+    if(ParallelDescriptor::MyProc() == 0 )
+    {
+        ofs << "Overlap occured "  << "\n";
+    }
         if(umbrella_size==1 &&  Umbrella_Size_Prev==1)
         {
         //    sucessful_compare=false;
@@ -267,6 +329,11 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         Umbrella_Adjust (&sucessful_iter,&alpha ,&umbrella_size,&sucessful_iter_prev);
         amrex::Print() << "Overlap did not occur"  << "\n";
         amrex::Print() << umbrella_size  << "\n";
+        if(ParallelDescriptor::MyProc() == 0 )
+        {
+            ofs << "Overlap did not occur"  << "\n";
+            ofs << umbrella_size  << "\n";
+        }
         if(umbrella_size==2)
         {   
             r_temp=r2;
@@ -284,6 +351,11 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         Shift_Flag=1;
         amrex::Print() << "New Phi_0 resulted in lower average"  << "\n";
         amrex::Print() << "Increasing Phi_0"  << "\n";
+        if(ParallelDescriptor::MyProc() == 0 )
+        {
+            ofs << "New Phi_0 resulted in lower average"  << "\n";
+            ofs << "Increasing Phi_0"  << "\n";
+        }
         inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
     }
     if(sucessful_iter_prev==1 and sucessful_iter==0 and !First_Loop_Step) 
@@ -294,6 +366,7 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
     {
         weak_phi=true;
     }
+        ofs.close();
 }
 
 
@@ -318,6 +391,16 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
     {
     sucessful_iter_prev=0;
     }   
+
+
+    std::ofstream ofs;
+    ofs.open("Console_output_Fortran.txt", std::ofstream::out | std::ofstream::app);
+    if(ParallelDescriptor::MyProc() == 0 )
+    {
+        ofs << "E2-r2*S2 "  << Expec2-r2*MAD2 << "\n";
+        ofs << "E2+r2*S2 "  << Expec2+r2*MAD2 << "\n";
+        ofs << "E1+r2*S1 "  << Expec + r2*MAD <<  "\n";
+    }
     amrex::Print() << "E2-r2*S2 "  << Expec2-r2*MAD2 << "\n";
     amrex::Print() << "E2+r2*S2 "  << Expec2+r2*MAD2 << "\n";
     amrex::Print() << "E1-r2*S1 "  << Expec - r2*MAD <<  "\n";
@@ -330,6 +413,10 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
         Shift_Flag=0;
         Umbrella_Adjust(&sucessful_iter,&alpha,&umbrella_size,&sucessful_iter_prev);
         amrex::Print() << "Overlap occured "  << "\n";
+        if(ParallelDescriptor::MyProc() == 0 )
+        {
+            ofs << "Overlap occured "  << "\n";
+        }
         if(umbrella_size==1 &&  Umbrella_Size_Prev==1)
         {
         //    sucessful_compare=false;
@@ -353,13 +440,18 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
         Umbrella_Adjust (&sucessful_iter,&alpha ,&umbrella_size,&sucessful_iter_prev);
         amrex::Print() << "Overlap did not occur"  << "\n";
         amrex::Print() << umbrella_size  << "\n";
+        if(ParallelDescriptor::MyProc() == 0 )
+        {
+            ofs << "Overlap did not occur"  << "\n";
+            ofs << umbrella_size  << "\n";
+        }
         if(umbrella_size==2)
         {   
             r_temp=r2;
             r2=0.5*r2;
             inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
             r2=r_temp;  
-            umbrella_reset_val=150.0;
+            umbrella_reset_val=44.44444444444;
             umbrella_reset(&umbrella_reset_val);
             umbrella_size=0;
         } 
@@ -370,6 +462,11 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
         Shift_Flag=1;
         amrex::Print() << "New Phi_0 resulted in higher average"  << "\n";
         amrex::Print() << "decreasing Phi_0"  << "\n";
+        if(ParallelDescriptor::MyProc() == 0 )
+        {
+            ofs << "New Phi_0 resulted in higher average"  << "\n";
+            ofs << "decreasing Phi_0"  << "\n";
+        }
         r2=-r2;
         inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
         r2=-r2;
@@ -382,4 +479,5 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
     {
         weak_phi=true;
     }
+    ofs.close();
 }

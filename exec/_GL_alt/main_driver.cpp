@@ -149,7 +149,7 @@ void main_driver(const char* argv)
      }
 
 //if(ParallelDescriptor::MyProc()==0)
-{
+
     //Time stepping loop
 
     amrex::Real integral;
@@ -166,7 +166,8 @@ void main_driver(const char* argv)
     bool weak_phi=false;
     int Plot_Num=0;
     int umbrella_number=0;
-    int Window_Number=0;
+    int step_marker=1;
+
     if(adaptive==1 and Reverse==0)
     {
         Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
@@ -216,7 +217,9 @@ void main_driver(const char* argv)
     {
         Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
                 N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+        r1=-r1;
         inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+        r1=-r1;
         Make_PltFiles = false;
 
         while((Expec+r1*MAD)>0)
@@ -260,11 +263,67 @@ void main_driver(const char* argv)
     }
     if(adaptive==0)
     {
-        Window_Number=Window_Number+1;
+        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+        int inc_dir=1; // forward direction
+        fixed_inc_phi0(&inc_dir);
+
+        while((Expec+r1*MAD) <0.24)
+        {
+        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+        fixed_inc_phi0(&inc_dir);
+        }
+        inc_dir=0; // forward direction
+        while((Expec+r1*MAD) >0.00286481020)
+        {
+        Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+                N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+        fixed_inc_phi0(&inc_dir);
+        }
     }
 
-}
 
+
+
+    // while((Expec+r1*MAD)>0.004)
+    // {
+    //         Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+    //                 N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+    //         Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+    //         First_Loop_Step=false;
+    //     if(sucessful_compare and  while_loop_comp and !weak_phi)
+    //     {
+    //         while(sucessful_compare and  while_loop_comp and !weak_phi)
+    //         {
+    //             Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+    //                 N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+    //             Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+    //         }
+    //     }else
+    //     {
+    //         while(!sucessful_compare)
+    //         {
+    //             Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+    //                 N_Burn,L,Expec2,MAD2,max_step,Plot_Num,Plot_Skip,umbrella_number);
+    //             Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_phi);
+    //         }
+    //     }
+        
+    //     Make_PltFiles = true;
+    //     Run_Steps(phi,phin,rannums,geom,dx,dt,integral,step, time,plot_int,n_steps_skip,Make_PltFiles,
+    //             N_Burn,L,Expec,MAD,max_step,Plot_Num,Plot_Skip,umbrella_number);
+    //     Shift_Flag=1;
+    //     r1=-r1;
+    //     inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+    //     r1=-r1;
+    //     umbrella_size=0;
+    //     Make_PltFiles = false;
+    //     First_Loop_Step=true;
+    //     while_loop_comp=true;
+    //     weak_phi=false;
+    //     sucessful_compare=true;
+    // }
 
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
