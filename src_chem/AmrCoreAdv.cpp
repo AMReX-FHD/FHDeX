@@ -114,6 +114,8 @@ void AmrCoreAdv::EvolveChem(
         std::array<MultiFab, AMREX_SPACEDIM> & umac, 
         const iMultiFab & iface_pre,
         const iMultiFab & iface,
+        const iMultiFab & catalyst_pre,
+        const iMultiFab & catalyst,
         const MultiFab & LevelSet_pre, 
         const MultiFab & LevelSet, 
         int lev, int nstep,
@@ -235,12 +237,20 @@ void AmrCoreAdv::EvolveChem(
     int ls_gst= LevelSet.nGrow();
     int ls_nc= LevelSet.nComp();
     
+    interface_loc.reset(new iMultiFab(conba, condm, 1, 1));
+    interface_loc->copy(iface, 0, 0, 1, 0, 1 );
+    interface_loc->FillBoundary(geom[0].periodicity());
+    
+    interface_loc_pre.reset(new iMultiFab(conba, condm, 1, 1));
+    interface_loc_pre->copy(iface_pre, 0, 0, 1, 0, 1 );
+    interface_loc_pre->FillBoundary(geom[0].periodicity());
+
     source_loc.reset(new iMultiFab(conba, condm, 1, 1));
-    source_loc->copy(iface, 0, 0, 1, 0, 1 );
+    source_loc->copy(catalyst, 0, 0, 1, 0, 1 );
     source_loc->FillBoundary(geom[0].periodicity());
     
     source_loc_pre.reset(new iMultiFab(conba, condm, 1, 1));
-    source_loc_pre->copy(iface_pre, 0, 0, 1, 0, 1 );
+    source_loc_pre->copy(catalyst_pre, 0, 0, 1, 0, 1 );
     source_loc_pre->FillBoundary(geom[0].periodicity());
 
     DistributionMapping lsdm = LevelSet.DistributionMap();
@@ -788,6 +798,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab &  wface_lev_pre = * wface_pre[lev];
     MultiFab &  wface_lev = * wface[lev];
 #endif
+    iMultiFab & iloc_mf   = * interface_loc;
+    iMultiFab & iloc_mf_pre   = * interface_loc_pre;
+
     iMultiFab & sloc_mf   = * source_loc;
     iMultiFab & sloc_mf_pre   = * source_loc_pre;
 
@@ -853,11 +866,13 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & stateout      =     (*S_new)[mfi];
             FArrayBox & ptS           =  ptSource[mfi];
             IArrayBox & fabsl 	      =   sloc_mf[mfi];
+            IArrayBox & fabil 	      =   iloc_mf[mfi];
             FArrayBox & uface_mf      = uface_lev[mfi];
             FArrayBox & vface_mf      = vface_lev[mfi];
 
             FArrayBox & ptS_p           =  ptSource_pre[mfi];
             IArrayBox & fabsl_p         =   sloc_mf_pre[mfi];
+            IArrayBox & fabil_p         =   iloc_mf_pre[mfi];
             FArrayBox & uface_mf_p      = uface_lev_pre[mfi];
             FArrayBox & vface_mf_p      = vface_lev_pre[mfi];
 
@@ -878,12 +893,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                 get_ptsource_2d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
-                                 & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
+                                 & strength, dx,
                                  AMREX_ZFILL(prob_lo));
                 get_ptsource_2d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl_p),
                                  BL_TO_FORTRAN_3D(ptS_p),
-                                 & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
+                                 & strength, dx,
                                   AMREX_ZFILL(prob_lo));
 
 
@@ -894,8 +909,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                           BL_TO_FORTRAN_3D(stateout),
                           BL_TO_FORTRAN_3D(ptS),
                           BL_TO_FORTRAN_3D(ptS_p),
-                          BL_TO_FORTRAN_3D(fabsl),
-                          BL_TO_FORTRAN_3D(fabsl_p),
+                          BL_TO_FORTRAN_3D(fabil),
+                          BL_TO_FORTRAN_3D(fabil_p),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
                                        BL_TO_FORTRAN_3D(vface_mf),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf_p),
@@ -916,14 +931,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
-                                 & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
-                                 & Sphere_cent_z,
+                                 & strength, dx,
                                  AMREX_ZFILL(prob_lo));
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl_p),
                                  BL_TO_FORTRAN_3D(ptS_p),
-                                 & strength, dx, & Sphere_cent_x, & Sphere_cent_y,
-                                 & Sphere_cent_z,
+                                 & strength, dx,
                                   AMREX_ZFILL(prob_lo));
 
 
@@ -934,8 +947,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                           BL_TO_FORTRAN_3D(stateout),
                           BL_TO_FORTRAN_3D(ptS),
                           BL_TO_FORTRAN_3D(ptS_p),
-                          BL_TO_FORTRAN_3D(fabsl),
-                          BL_TO_FORTRAN_3D(fabsl_p),
+                          BL_TO_FORTRAN_3D(fabil),
+                          BL_TO_FORTRAN_3D(fabil_p),
                           AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
                                        BL_TO_FORTRAN_3D(vface_mf),
                                        BL_TO_FORTRAN_3D(wface_mf)),
@@ -1023,7 +1036,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             const Box& bx = mfi.tilebox();
 
             FArrayBox & stateout      =   S_new_fill[mfi];
-            IArrayBox & fabsl         =      sloc_mf[mfi];
+            IArrayBox & fabil         =      iloc_mf[mfi];
             FArrayBox & fabmdc        =      mdc_mf[mfi];
             FArrayBox & fabsls        =      ls_mf[mfi];
             
@@ -1042,7 +1055,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                 BL_TO_FORTRAN_3D(fabz),
                                 BL_TO_FORTRAN_3D(fabmdc),
                                 BL_TO_FORTRAN_3D(fabsls),
-                                BL_TO_FORTRAN_3D(fabsl),
+                                BL_TO_FORTRAN_3D(fabil),
                                 dx, AMREX_ZFILL(prob_lo));
    #endif
             }

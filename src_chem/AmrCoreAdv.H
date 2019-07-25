@@ -37,6 +37,8 @@ public:
             std::array<MultiFab, AMREX_SPACEDIM> & umac, 
             const iMultiFab & iface_pre,
             const iMultiFab & iface,
+            const iMultiFab & catalyst_pre,
+            const iMultiFab & catalyst,
             const MultiFab & LevelSet_pre,
             const MultiFab & LevelSet,
             int lev, int step, Real dt_fluid, Real time, Real diffcoeff,
@@ -192,6 +194,9 @@ private:
 
    std::unique_ptr<iMultiFab>           source_loc;
    std::unique_ptr<iMultiFab>           source_loc_pre;
+   
+   std::unique_ptr<iMultiFab>           interface_loc;
+   std::unique_ptr<iMultiFab>           interface_loc_pre;
    std::unique_ptr<MultiFab>            levset;
    std::unique_ptr<MultiFab>            levset_pre;
 

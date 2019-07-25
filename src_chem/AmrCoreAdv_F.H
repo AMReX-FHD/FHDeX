@@ -108,7 +108,6 @@ extern "C"
 //                const BL_FORT_FAB_ARG_3D(iface),
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength,const amrex_real* dx,
-                const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
                 const amrex_real* prob_lo);
  
     void get_ptsource_3d( const int* lo, const int* hi,
@@ -116,8 +115,7 @@ extern "C"
 //                const BL_FORT_FAB_ARG_3D(iface),
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength, const amrex_real* dx,
-                const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
- 		const amrex_real* ib_cen_z, const amrex_real* prob_lo);
+ 	        const amrex_real* prob_lo);
    
 
      void confill (BL_FORT_FAB_ARG_3D(state),

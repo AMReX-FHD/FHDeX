@@ -30,6 +30,13 @@ extern "C"
             amrex_real * phi,           const int * philo, const int * phihi,
             const amrex_real * dx
         );
+    void tag_catalyst_interface(
+            const int  * lo,            const int * hi,
+            const void * particle_info,
+            const int  * iface,           const int * iflo, const int * ifhi,
+            const int  * ctag,            const int * ctaglo, const int * ctaghi,
+            const amrex_real * dx
+        );
 
     void tag_interface_ib(
             int * iface,            const int * iflo,  const int * ifhi,

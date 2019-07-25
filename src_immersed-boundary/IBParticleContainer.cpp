@@ -294,7 +294,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
                         );
                    // HACK orientation hard coded in
                     RealVect ori = RealVect(
-                            AMREX_D_DECL(0,1,0 ));
+                            AMREX_D_DECL(0,0,1 ));
                      
                     // Radius
                     Real r = part.rdata(IBP_realData::radius);
@@ -336,7 +336,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
                    // HACK orientation hard coded in
 
                     RealVect ori = RealVect(
-                            AMREX_D_DECL(0,1,0 ));
+                            AMREX_D_DECL(0,0,1 ));
                      
 
                     // Radius
@@ -1045,6 +1045,10 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
                              part.rdata(IBP_realData::vely),
                              part.rdata(IBP_realData::velz)   )
             );
+        // HACK HARD CODE IN POSITION
+        RealVect ori = RealVect(
+                AMREX_D_DECL(0,0,1 )
+            );
 
         // Position of IBParticle on grid
         RealVect pos_grid = pos * inv_dx;
@@ -1059,6 +1063,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
         IBP_info part_info;
         part_info.pos    = pos;
         part_info.vel    = vel;
+        part_info.ori    = ori;
         part_info.index  = pos_ind;
         part_info.radius = r;
         part_info.id     = part.id();
@@ -1176,6 +1181,10 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
         IntVect  pos_ind  = IntVect(
                 AMREX_D_DECL( (int) pos_grid[0], (int) pos_grid[1], (int) pos_grid[2] )
             );
+        // HACK HARD CODE IN POSITION
+        RealVect ori = RealVect(
+                AMREX_D_DECL(0,1,0 )
+            );
 
         // Radius
         Real r = part.rdata(IBP_realData::radius);
@@ -1184,6 +1193,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
         IBP_info part_info;
         part_info.pos    = pos;
         part_info.vel    = vel;
+        part_info.ori    = ori;
         part_info.index  = pos_ind;
         part_info.radius = r;
         part_info.id     = part.id();

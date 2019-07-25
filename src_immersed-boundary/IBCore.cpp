@@ -48,6 +48,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     // interface tags
     ls            = std::unique_ptr<MultiFab> (new  MultiFab);
     ls_id         = std::unique_ptr<iMultiFab>(new iMultiFab);
+    tag_catalyst = std::unique_ptr<iMultiFab>(new iMultiFab);
     tag_interface = std::unique_ptr<iMultiFab>(new iMultiFab);
     ls_vel        = std::unique_ptr<MultiFab> (new  MultiFab);
 
@@ -61,6 +62,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     *       1. ls (level-set)                                                  *
     *       2. ls_id (nearest IBParticle tags)                                 *
     *       3. tag_interface (points near interface)                           *
+    *       4. tag_catalyst (cells where catalyst is located)                           *
     ****************************************************************************/
 
     ls->define(ba_nd, dmap[lev], 1, n_pad);
@@ -77,6 +79,10 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     // Tag those cells that are exactly 1 from an interface (ls = 0)
     tag_interface->define(grids[lev], dmap[lev], 1, n_pad);
     tag_interface->setVal(0);
+
+    // Tag those cells that have catalyst in them
+    tag_catalyst->define(grids[lev], dmap[lev], 1, n_pad);
+    tag_catalyst->setVal(0);
 
 
     ls_vel->define(ba_nd, dmap[lev], 3, n_pad);
@@ -195,15 +201,23 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     for (MFIter mfi(* tag_interface, true); mfi.isValid(); ++ mfi) {
         const FArrayBox & phi_tile   = (* ls)[mfi];
         // Using the ID tags to test if current box contains immersed boundaries
+        const Box & tile_box = mfi.tilebox();
+
         const IArrayBox & tag_tile   = (* ls_id)[mfi];
               IArrayBox & iface_tile = (* tag_interface)[mfi];
+              IArrayBox & cat_tile = (* tag_catalyst)[mfi];
 
         tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
                           BL_TO_FORTRAN_3D(phi_tile),
                           BL_TO_FORTRAN_3D(tag_tile));
-    }
 
+        tag_catalyst_interface (BL_TO_FORTRAN_BOX(tile_box),
+                                part_loc.dataPtr(), 
+                                BL_TO_FORTRAN_3D(iface_tile), 
+                                BL_TO_FORTRAN_3D(cat_tile), dx.dataPtr());
+    }
     tag_interface->FillBoundary(Geom(lev).periodicity());
+    tag_catalyst->FillBoundary(Geom(lev).periodicity());
 
 
 
