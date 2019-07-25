@@ -34,7 +34,7 @@ subroutine advect_3d(time, lo, hi, &
   ! parameters nu is the diffusion coeffiecent
   double precision, intent(in) :: dx(3), dt, time,nu
   ! work region
-  integer, intent(in) :: lo(3), hi(3), correct
+  integer, intent(in) :: lo(3), hi(3)
   integer, intent(in) :: uip_lo(3), uip_hi(3)
   integer, intent(in) :: uif_lo(3), uif_hi(3)
   integer, intent(in) :: uo_lo(3), uo_hi(3)

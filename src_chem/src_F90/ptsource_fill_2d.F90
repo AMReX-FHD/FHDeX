@@ -14,7 +14,7 @@ subroutine get_ptsource_2d( lo, hi, &
   ! * IN stength - source strength
   !      ctag    - location of catalyst (1 if catlyst present 0 otherwise)
   double precision, intent(in) :: strength
-  integer, intent(in) :: ctag(c_lo(1):c_hi(1),c_lo(2):c_hi(2),c_lo(3):c_hi(3))
+  integer, intent(in) :: ctag(c_lo(1):c_hi(1),c_lo(2):c_hi(2))
   ! * OUT ptS    - created point sources
   double precision, intent(out) :: ptS(pts_lo(1):pts_hi(1),pts_lo(2):pts_hi(2))
 

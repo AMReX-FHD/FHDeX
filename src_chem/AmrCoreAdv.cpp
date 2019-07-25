@@ -1052,7 +1052,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
    tzf_mf.copy(Czface_array[2], 0, 0,1, 0, 0);
     tzf_mf.FillBoundary(geom[lev].periodicity());
   #endif
-    if Correct==1{
+    if( Correct==1){
    // Print out the total concentration in simulated domain vs the true total concentration 
     amrex::Print() << "simulated con total"<< (con_old[lev]->sum(0,false));
     amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;}
