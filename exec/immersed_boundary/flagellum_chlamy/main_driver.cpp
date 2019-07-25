@@ -330,35 +330,19 @@ void main_driver(const char * argv) {
 
     // add the approximate equilibrium sin-wave shape
     BL_PROFILE_VAR("main_create markers",createmarkers);
-    Real rr = 1; // for step 1e-5 
+    
+    int nm = 21; //total number of markers used to represent a flagellum 
+    Real l_db = 0.025; //initial distance bew markers
 
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+    IBMarkerContainer ib_mc(geom, dmap, ba, nm);
 
-    Vector<RealVect> marker_positions(10);
-    // marker_positions[0] = RealVect{0.05, 0.5+0.002*rr, 0.5};
-    // marker_positions[1] = RealVect{0.10, 0.5-0.015*rr, 0.5};
-    // marker_positions[2] = RealVect{0.15, 0.5-0.025*rr, 0.5};
-    // marker_positions[3] = RealVect{0.20, 0.5-0.024*rr, 0.5};
-    // marker_positions[4] = RealVect{0.25, 0.5-0.014*rr, 0.5};
-    // marker_positions[5] = RealVect{0.30, 0.5+0.000*rr, 0.5};
-    // marker_positions[6] = RealVect{0.35, 0.5+0.012*rr, 0.5};
-    // marker_positions[7] = RealVect{0.40, 0.5+0.017*rr, 0.5};
-    // marker_positions[8] = RealVect{0.45, 0.5+0.012*rr, 0.5};
-    // marker_positions[9] = RealVect{0.50, 0.5-0.002*rr, 0.5};
-    marker_positions[0] = RealVect{0.05, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.10, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.15, 0.5, 0.5};
-    marker_positions[3] = RealVect{0.20, 0.5, 0.5};
-    marker_positions[4] = RealVect{0.25, 0.5, 0.5};
-    marker_positions[5] = RealVect{0.30, 0.5, 0.5};
-    marker_positions[6] = RealVect{0.35, 0.5, 0.5};
-    marker_positions[7] = RealVect{0.40, 0.5, 0.5};
-    marker_positions[8] = RealVect{0.45, 0.5, 0.5};
-    marker_positions[9] = RealVect{0.50, 0.5, 0.5};
+    Vector<RealVect> marker_positions(nm);
+    Vector<Real> marker_radii(nm);
 
-
-    Vector<Real> marker_radii(10);
-    for (int i=0; i<10; ++i) marker_radii[i] = .10;
+    for (int i=0; i<nm; ++i) { 
+	marker_radii[i] = .05;
+        marker_positions[i] = RealVect{0.05+i*l_db, 0.5, 0.5};
+    }
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 
