@@ -386,8 +386,30 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 // calling the active bending force calculation
                 // This a simple since wave imposed
-                Real theta = l_db*driv_amp*sin(driv_period*time
-                             + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
+                //Real theta = l_db*driv_amp*sin(driv_period*time
+                //             + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
+
+
+                //Fourier series parameters based on normalized axial location (0.1-1)
+                Real s = mark.idata(IBM_intData::id_1)/np; //note: id_1 = 0 for first marker created
+
+                Real a0 = 5.979*s^4 - 20.969*s^3 + 16.229*s^2 - 0.7861*s - 0.7402;
+                Real a1 = -3.4386*s^4 + 14.471*s^3 - 11.596*s^2 - 0.2674*s + 0.8171;
+                Real a2 = -2.3251*s^4 + 6.0159*s^3 - 3.8686*s^2 + 0.4714*s + 0.038;
+                Real a3 = -0.2153*s^4 + 0.4819*s^3 - 0.7644*s^2 + 0.5822*s - 0.1149;
+                Real b1 = 2.2601*s^4 + 4.017*s^3 - 14.262*s^2 + 7.1863*s - 0.0507;
+                Real b2 = 0.9559*s^4 + 0.8517*s^3 - 2.9389*s^2 + 1.2036*s - 0.0165;
+                Real b3 = 0.1762*s^4 - 1.3385*s^3 + 1.8047*s^2 - 0.647*s + 0.0394;
+
+                Real w  = 2*M_PI; //for normailized beat period of 1
+
+                Real T = driv_period;  // T=13.3 ms for 75.2Hz beating
+
+                Real theta_raw = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
+                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
+                                    + a3*cos(3*w*time/T) + b3*sin(3*w*t/T);
+
+                Real theta = l_db*driv_amp*theta_raw;
 
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
 

@@ -22,18 +22,21 @@
 using namespace common;
 using namespace amrex;
 
-bool IBMarkerContainer::use_neighbor_list  {true};
-bool IBMarkerContainer::sort_neighbor_list {false};
+
+
+// Needs to be specified once a concrete class is created
+// bool IBMarkerContainer::use_neighbor_list  {true};
+// bool IBMarkerContainer::sort_neighbor_list {false};
 
 
 
-template <int NStructReal, int NStructInt>
-IBMarkerContainerBase<NStructReal, NStructInt>::IBMarkerContainerBase(
+template <typename StructReal, typename StructInt>
+IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
             const Geometry & geom,
             const DistributionMapping & dmap,
             const BoxArray & ba,
             int n_nbhd
-        ) : NeighborParticleContainer<NStructReal, NStructInt>(
+        ) : NeighborParticleContainer<StructReal::count, StructInt::count>(
             geom, dmap, ba, n_nbhd
         ),
     nghost(n_nbhd)
@@ -43,10 +46,10 @@ IBMarkerContainerBase<NStructReal, NStructInt>::IBMarkerContainerBase(
 
 
 
-template <int NStructReal, int NStructInt>
-IBMarkerContainerBase<NStructReal, NStructInt>::IBMarkerContainerBase(
+template <typename StructReal, typename StructInt>
+IBMarkerContainerBase<StructReal, StructInt>::IBMarkerContainerBase(
             AmrCore * amr_core, int n_nbhd
-        ) : NeighborParticleContainer<NStructReal, NStructReal>(
+        ) : NeighborParticleContainer<StructReal::count, StructReal::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
     m_amr_core(amr_core),
@@ -57,54 +60,35 @@ IBMarkerContainerBase<NStructReal, NStructInt>::IBMarkerContainerBase(
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::MoveMarkers(int lev, Real dt) {
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt) {
 
-    for (IBMarIterBase<NStructReal, NStructInt> pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
-        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
 
-            part.pos(0) += dt * part.rdata(IBM_realData::velx);
-            part.pos(1) += dt * part.rdata(IBM_realData::vely);
-            part.pos(2) += dt * part.rdata(IBM_realData::velz);
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                part.pos(d) += dt * part.rdata(StructReal::velx + d);
         }
-
-
-        //ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
-        //long nn = nbhd.size();
-
-        //for (int i=0; i<nn; ++i) {
-        //    ParticleType & part = nbhd[i];
-
-        //    part.pos(0) += dt * part.rdata(IBM_realData::velx);
-        //    part.pos(1) += dt * part.rdata(IBM_realData::vely);
-        //    part.pos(2) += dt * part.rdata(IBM_realData::velz);
-
-        //    std::cout << "neighbor corrector velz is " << part.rdata(IBM_realData::velz);
-        //    std::cout << "neighbor corrector posz is " << part.pos(2);
-
-        //}
     }
 }
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::MovePredictor(int lev, Real dt) {
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real dt) {
 
-    for (IBMarIterBase<NStructReal, NStructInt> pti(* this, lev); pti.isValid(); ++pti) {
-    // for (MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
-
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
-        AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
 
         for (int i = 0; i < np; ++i) {
@@ -115,91 +99,62 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::MovePredictor(int lev, Real
             // part.rdata(IBM_realData::pred_posy) = part.pos(1);
             // part.rdata(IBM_realData::pred_posz) = part.pos(2);
 
-            // part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
-            // part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
-            // part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
-            part.rdata(IBM_realData::pred_posx) = dt * part.rdata(IBM_realData::pred_velx);
-            part.rdata(IBM_realData::pred_posy) = dt * part.rdata(IBM_realData::pred_vely);
-            part.rdata(IBM_realData::pred_posz) = dt * part.rdata(IBM_realData::pred_velz);
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                part.rdata(StructReal::pred_posx + d) = dt * part.rdata(StructReal::pred_velx + d);
         }
-
-
-        // ParticleVector & nbhd = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
-        // long nn = nbhd.size();
-
-        // for (int i=0; i<nn; ++i) {
-        //     ParticleType & part = nbhd[i];
-
-        //     // part.rdata(IBM_realData::pred_posx) = part.pos(0);
-        //     // part.rdata(IBM_realData::pred_posy) = part.pos(1);
-        //     // part.rdata(IBM_realData::pred_posz) = part.pos(2);
-
-        //     // part.rdata(IBM_realData::pred_posx) += dt * part.rdata(IBM_realData::pred_velx);
-        //     // part.rdata(IBM_realData::pred_posy) += dt * part.rdata(IBM_realData::pred_vely);
-        //     // part.rdata(IBM_realData::pred_posz) += dt * part.rdata(IBM_realData::pred_velz);
-        //     part.rdata(IBM_realData::pred_posx) = dt * part.rdata(IBM_realData::pred_velx);
-        //     part.rdata(IBM_realData::pred_posy) = dt * part.rdata(IBM_realData::pred_vely);
-        //     part.rdata(IBM_realData::pred_posz) = dt * part.rdata(IBM_realData::pred_velz);
-        // }
     }
 }
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::ResetMarkers(int lev) {
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev) {
 
-    for (IBMarIterBase<NStructReal, NStructInt> pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
 
-            part.rdata(IBM_realData::velx) = 0.;
-            part.rdata(IBM_realData::vely) = 0.;
-            part.rdata(IBM_realData::velz) = 0.;
-
-            part.rdata(IBM_realData::forcex) = 0.;
-            part.rdata(IBM_realData::forcey) = 0.;
-            part.rdata(IBM_realData::forcez) = 0.;
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(StructReal::velx + d)   = 0.;
+                part.rdata(StructReal::forcex + d) = 0.;
+            }
         }
     }
 }
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::ResetPredictor(int lev) {
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
 
-    for (IBMarIterBase<NStructInt, NStructInt> pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
 
-            part.rdata(IBM_realData::pred_velx) = 0.;
-            part.rdata(IBM_realData::pred_vely) = 0.;
-            part.rdata(IBM_realData::pred_velz) = 0.;
-
-            part.rdata(IBM_realData::pred_forcex) = 0.;
-            part.rdata(IBM_realData::pred_forcey) = 0.;
-            part.rdata(IBM_realData::pred_forcez) = 0.;
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(StructReal::pred_velx + d)   = 0.;
+                part.rdata(StructReal::pred_forcex + d) = 0.;
+            }
         }
     }
 }
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
             const Vector<RealVect> & f_in,
             const Vector<RealVect> & f_pos,
@@ -210,7 +165,7 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
 
     //___________________________________________________________________________
     // Geometry data
-    const Geometry & geom = Geom(0);
+    const Geometry & geom = this->Geom(0);
     const Real     *   dx = geom.CellSize();
 
     const int n_marker = f_pos.size();
@@ -221,8 +176,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
     // WARNING: this will break if IBMarkerContainer is on a different grid
     // than the grid which we're spreading to
 
-    const BoxArray & ba            = ParticleBoxArray(lev);
-    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    const BoxArray & ba            = this->ParticleBoxArray(lev);
+    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
 
     MultiFab dummy(ba, dm, 1, f_out[0].nGrow());
 
@@ -264,8 +219,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out
         ) const {
@@ -282,11 +237,11 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
 
 
     // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        const auto & particle_data = GetParticles(lev).at(index);
+        const auto & particle_data = this->GetParticles(lev).at(index);
 
 
         //_______________________________________________________________________
@@ -300,16 +255,10 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
             const ParticleType & part = particles[i];
 
             RealVect ppos, pfor;
-            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 ppos[d] = part.pos(d);
-
-            pfor[0] = part.rdata(IBM_realData::forcex);
-#if (AMREX_SPACEDIM > 1)
-            pfor[1] = part.rdata(IBM_realData::forcey);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            pfor[2] = part.rdata(IBM_realData::forcez);
-#endif
+                pfor[d] = part.rdata(StructReal::forcex + d);
+            }
 
             marker_positions[i] = ppos;
             marker_forces[i]    = pfor;
@@ -323,8 +272,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadMarkers(
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadPredictor(
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
             int lev,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out
         ) const {
@@ -341,11 +290,11 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadPredictor(
 
 
     // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        const auto & particle_data = GetParticles(lev).at(index);
+        const auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
@@ -359,21 +308,10 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadPredictor(
 
             RealVect ppos, pfor;
 
-            ppos[0] = part.pos(0) + part.rdata(IBM_realData::pred_posx);
-#if (AMREX_SPACEDIM > 1)
-            ppos[1] = part.pos(1) + part.rdata(IBM_realData::pred_posy);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            ppos[2] = part.pos(2) + part.rdata(IBM_realData::pred_posz);
-#endif
-
-            pfor[0] = part.rdata(IBM_realData::pred_forcex);
-#if (AMREX_SPACEDIM > 1)
-            pfor[1] = part.rdata(IBM_realData::pred_forcey);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            pfor[2] = part.rdata(IBM_realData::pred_forcez);
-#endif
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ppos[d] = part.pos(d) + part.rdata(StructReal::pred_posx + d);
+                pfor[d] = part.rdata(StructReal::pred_forcex + d);
+            }
 
             marker_positions[i] = ppos;
             marker_forces[i]    = pfor;
@@ -387,8 +325,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::SpreadPredictor(
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
             int lev,
             Vector<RealVect> & f_out,
             const Vector<RealVect> & f_pos,
@@ -399,7 +337,7 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
 
     //___________________________________________________________________________
     // Geometry data
-    const Geometry & geom = Geom(0);
+    const Geometry & geom = this->Geom(0);
     const Real     *   dx = geom.CellSize();
 
     const int n_marker = f_pos.size();
@@ -410,8 +348,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
     // WARNING: this will break if IBMarkerContainer is on a differnt grid
     // than the grid which we're interpolating from
 
-    const BoxArray & ba            = ParticleBoxArray(lev);
-    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    const BoxArray & ba            = this->ParticleBoxArray(lev);
+    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
 
     MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
 
@@ -453,8 +391,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
             int lev,
             const std::array<MultiFab, AMREX_SPACEDIM> & f_out
         ) {
@@ -471,11 +409,11 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
 
 
     // for (MFIter pti = MakeMFIter(lev, true); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
@@ -489,7 +427,7 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
 
             RealVect ppos, pfor;
             for (int d=0; d<AMREX_SPACEDIM; ++d)
-            ppos[d] = part.pos(d);
+                ppos[d] = part.pos(d);
 
             // pfor should be (0, .., 0)
 
@@ -506,21 +444,16 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolateMarkers(
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
 
-            part.rdata(IBM_realData::velx) += marker_forces[i][0];
-#if (AMREX_SPACEDIM > 1)
-            part.rdata(IBM_realData::vely) += marker_forces[i][1];
-#endif
-#if (AMREX_SPACEDIM > 2)
-            part.rdata(IBM_realData::velz) += marker_forces[i][2];
-#endif
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                part.rdata(StructReal::velx + d) += marker_forces[i][d];
         }
     }
 }
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolatePredictor(
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
             int lev,
             const std::array<MultiFab, AMREX_SPACEDIM> & f_out
         ) {
@@ -537,11 +470,11 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolatePredictor(
 
 
     // for (MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
-    for (MyConstParIter pti(* this, lev); pti.isValid(); ++pti) {
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
         PairIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
@@ -555,13 +488,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolatePredictor(
 
             RealVect ppos, pfor;
 
-            ppos[0] = part.pos(0) + part.rdata(IBM_realData::pred_posx);
-#if (AMREX_SPACEDIM > 1)
-            ppos[1] = part.pos(1) + part.rdata(IBM_realData::pred_posy);
-#endif
-#if (AMREX_SPACEDIM > 2)
-            ppos[2] = part.pos(2) + part.rdata(IBM_realData::pred_posz);
-#endif
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                ppos[d] = part.pos(d) + part.rdata(StructReal::pred_posx + d);
 
             // pfor should be (0, .., 0)
 
@@ -578,27 +506,22 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InterpolatePredictor(
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
 
-            part.rdata(IBM_realData::pred_velx) += marker_forces[i][0];
-#if (AMREX_SPACEDIM > 1)
-            part.rdata(IBM_realData::pred_vely) += marker_forces[i][1];
-#endif
-#if (AMREX_SPACEDIM > 2)
-            part.rdata(IBM_realData::pred_velz) += marker_forces[i][2];
-#endif
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                part.rdata(StructReal::pred_velx + d) += marker_forces[i][d];
         }
     }
 }
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::PrintMarkerData(int lev) const {
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) const {
 
     // Inverse cell-size vector => max is used for determining IBParticle
     // radius in units of cell size
-    Vector<Real> inv_dx = {AMREX_D_DECL(Geom(lev).InvCellSize(0),
-                                        Geom(lev).InvCellSize(1),
-                                        Geom(lev).InvCellSize(2)   )};
+    Vector<Real> inv_dx = {AMREX_D_DECL(this->Geom(lev).InvCellSize(0),
+                                        this->Geom(lev).InvCellSize(1),
+                                        this->Geom(lev).InvCellSize(2)   )};
 
     // Find max inv_dx (in case we have an anisotropic grid)
     Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
@@ -612,14 +535,14 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::PrintMarkerData(int lev) co
     // ParIter skips tiles without particles => Iterate over MultiFab instead of
     // ParticleIter. Note also that AmrexParticleContainer uses wired tiling =>
     // turn tiling off
-    for(MFIter pti = MakeMFIter(lev, false); pti.isValid(); ++pti) {
+    for(MFIter pti = this->MakeMFIter(lev, false); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
         // Neighbours are stored as raw data (see below)
-        int ng = neighbors[lev].at(index).size();
+        int ng = this->neighbors[lev].at(index).size();
 
-        auto & particle_data = GetParticles(lev).at(index);
+        auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
         local_count += np;
@@ -651,7 +574,7 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::PrintMarkerData(int lev) co
         // Also we stride the neighbors[index] array in units of
         // sizeof(ParticleData). All of this is a little too dangerous for my
         // taste: never hide what you're doing from your compiler!!!
-        const ParticleType * nbhd_data = (ParticleType *) neighbors[lev].at(index).dataPtr();
+        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).dataPtr();
         for(int i = 0; i < ng; i++){
             const ParticleType & part = nbhd_data[i];
 
@@ -665,10 +588,8 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::PrintMarkerData(int lev) co
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::InitInternals(
-            int ngrow, int real_comp, int int_comp
-        ) {
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
 
     ReadStaticParameters();
 
@@ -677,15 +598,22 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InitInternals(
     // Turn off certain components for ghost particle communication
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
     //      => 3 corresponds to the start of IBM_realData
-    for (int i=3; i < real_comp + 3; ++i)
-        setRealCommComp(i,  true);
+    for (int i=3; i < StructReal::count + 3; ++i)
+        this->setRealCommComp(i,  true);
 
     // Field numbers: {0, 1} => {ID, CPU}
     //      => 2 corresponds to the start of IBM_intData
     // We _do_ want the the neighbour particles to have ID and cpu init data.
-    for (int i = 2; i < int_comp + 2; ++i)
-        setIntCommComp(i, true);
+    for (int i = 2; i < StructInt::count + 2; ++i)
+        this->setIntCommComp(i, true);
 
+
+    //for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    //    this->setRealCommComp(StructReal::pred_forcex + d, false);
+    //    this->setRealCommComp(StructReal::forcex + d, false);
+    //}
+
+    this->setEnableInverse(true);
 
 
     /****************************************************************************
@@ -699,39 +627,39 @@ void IBMarkerContainerBase<NStructReal, NStructInt>::InitInternals(
     int lev = 0;
 
     face_coords.resize(lev + 1);
-    const BoxArray & ba            = ParticleBoxArray(lev);
-    const DistributionMapping & dm = ParticleDistributionMap(lev);
+    const BoxArray & ba            = this->ParticleBoxArray(lev);
+    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         const BoxArray ba_fc = convert(ba, nodal_flag_dir[d]);
         face_coords[lev][d].define(ba_fc, dm, AMREX_SPACEDIM, ngrow);
     }
 
-    const Geometry & geom = Geom(lev);
+    const Geometry & geom = this->Geom(lev);
     FindFaceCoords(face_coords[lev], geom);
 }
 
 
 
-template <int NStructReal, int NStructInt>
-void IBMarkerContainerBase<NStructReal, NStructInt>::ReadStaticParameters() {
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
     static bool initialized = false;
 
     if (!initialized) {
         ParmParse pp("particles");
 
         // AMReX default is false => enable by default
-        do_tiling = true;
+        this->do_tiling = true;
         // Allow user to overwrite
-        pp.query("do_tiling",  do_tiling);
+        pp.query("do_tiling",  this->do_tiling);
 
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
-        if (do_tiling)
-            tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
+        if (this->do_tiling)
+            this->tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
         // User can overwrite
         Vector<int> ts(BL_SPACEDIM);
         if (pp.queryarr("tile_size", ts))
-            tile_size = IntVect(ts);
+            this->tile_size = IntVect(ts);
 
         // pp.query("use_neighbor_list", use_neighbor_list);
         // pp.query("sort_neighbor_list", sort_neighbor_list);
