@@ -19,32 +19,45 @@ using namespace amrex;
 
 template <int NStructReal, int NStructInt>
 class IBMarIterBase
-    : public amrex::ParIter<NStructReal, NStructInt, 0, 0>
+    : public ParIter<NStructReal, NStructInt, 0, 0>
 {
 
 public:
 
-    using ParIter<NStructReal, NStructInt, 0, 0>::ParIter;
+    using ContainerType = ParticleContainer<NStructReal, NStructInt, 0, 0>;
+
+    IBMarIterBase (ContainerType & pc, int level)
+        : ParIter<NStructReal, NStructInt, 0, 0>(pc,level)
+        {}
+
+    IBMarIterBase (ContainerType & pc, int level, MFItInfo& info)
+        : ParIter<NStructReal, NStructInt, 0, 0>(pc,level,info)
+        {}
 };
 
 
 
-template <int NStructReal, int NStructInt>
-class IBMarkerContainer
-    : public amrex::NeighborParticleContainer<NStructReal, NStructInt>
+template <typename StructReal, typename StructInt>
+class IBMarkerContainerBase
+    : public NeighborParticleContainer<StructReal::count, StructInt::count>
 {
 
 public:
 
-    using NeighborParticleContainer<NStructReal, NStructInt>
+    using NeighborParticleContainer<StructReal::count, StructInt::count>
           ::NeighborParticleContainer;
 
-    using MyConstParIter = ParConstIter<NStructReal, NStructInt, 0, 0>;
+    using MyConstIBMarIter = ParConstIter<StructReal::count, StructInt::count, 0, 0>;
+    using MyIBMarIter      = IBMarIterBase<StructReal::count, StructInt::count>;
+
+    using ParticleType = typename NeighborParticleContainer<StructReal::count, StructInt::count>::ParticleType;
+    using PairIndex = typename NeighborParticleContainer<StructReal::count, StructInt::count>::PairIndex;
+    using AoS = typename NeighborParticleContainer<StructReal::count, StructInt::count>::AoS;
 
 
     IBMarkerContainerBase(AmrCore * amr_core, int n_nbhd);
     IBMarkerContainerBase(const Geometry & geom, const DistributionMapping & dmap,
-                      const BoxArray & ba, int n_nbhd);
+                          const BoxArray & ba, int n_nbhd);
 
     virtual ~IBMarkerContainerBase() {};
 
@@ -53,12 +66,8 @@ public:
     using MarkerIndex = std::pair<int, int>;
 
 
-    // void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos);
-    // void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
-
-
     // Get number of particles
-    int NumberOfMarkers(IBMarIterBase<NStructReal, NStructInt> & pti){
+    int NumberOfMarkers(IBMarIterBase<StructReal::count, StructInt::count> & pti){
         return pti.GetArrayOfStructs().size();
     };
 
@@ -73,15 +82,6 @@ public:
 
     //___________________________________________________________________________
     // Spreading operators applied to raw data arrays
-    // void SpreadMarkers(int lev,
-    //                    const Vector<RealVect> & f_in,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
-
-    // void SpreadMarkers(int lev,
-    //                    const Vector<RealVect> & f_in,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
-
     void SpreadMarkers(int lev,
                        const Vector<RealVect> & f_in,
                        const Vector<RealVect> & f_pos,
@@ -104,15 +104,6 @@ public:
 
     //___________________________________________________________________________
     // Interpolation operators applied to raw data arrays
-    // void InterpolateMarkers(int lev,
-    //                         Vector<RealVect> & f_out,
-    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_in) const;
-
-    // void InterpolateMarkers(int lev,
-    //                         Vector<RealVect> & f_out,
-    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-    //                         const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
-
     void InterpolateMarkers(int lev,
                             Vector<RealVect> & f_out,
                             const Vector<RealVect> & f_pos,
@@ -154,80 +145,27 @@ public:
      ***************************************************************************/
 
 
-    // const IntVector & get_neighbor_list(int lev, const PairIndex & index) const {
-    //     return neighbor_list[lev].at(index);
-    // };
-
-    // ParticleType * get_neighbors(int lev, const PairIndex & index) const {
-    //     return (ParticleType *) neighbors[lev].at(index).dataPtr();
-    // };
-
-    // int FindConnectedMarkers(      AoS & particles,
-    //                          const ParticleType & part,
-    //                                ParticleVector & nbhd_data,
-    //                          const Vector<int> & nbhd,
-    //                          int nbhd_index,
-    //                          ParticleType *& prev_marker,
-    //                          ParticleType *& next_marker) const;
-
-
-
     int get_nghost() const {return nghost;};
 
     void PrintMarkerData(int lev) const;
 
-    // void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
-    //                        bool unique = false) const;
-    // Vector<IBM_info> LocalIBMarkerInfo(int lev, PairIndex index,
-    //                                    bool unique = false) const;
-    // Vector<IBM_info> LocalIBMarkerInfo(int lev, bool unique = false) const;
-
-
-    // void NeighborIBMarkerInfo(Vector<IBM_info> & npart_info, int lev, PairIndex index,
-    //                           bool unique = false) const ;
-    // Vector<IBM_info> NeighborIBMarkerInfo(int lev, PairIndex index,
-    //                                       bool unique = false) const;
-    // Vector<IBM_info> NeighborIBMarkerInfo(int lev, bool unique = false) const;
-
-
-    // void IBMarkerInfo(Vector<IBM_info> & part_info, int lev, PairIndex index,
-    //                   bool unique = false) const;
-    // Vector<IBM_info> IBMarkerInfo(int lev, PairIndex index,
-    //                               bool unique = false) const;
-    // Vector<IBM_info> IBMarkerInfo(int lev, bool unique = false) const;
-
-
-
-
-    static bool use_neighbor_list;
-    static bool sort_neighbor_list;
-
-
-
-    struct {
-        bool operator()(const ParticleType & p1, const ParticleType & p2) const {
-            return AMREX_D_TERM(   (p1.pos(0) - p2.pos(0))*(p1.pos(0) - p2.pos(0)) ,
-                                 + (p1.pos(1) - p2.pos(1))*(p1.pos(1) - p2.pos(1)) ,
-                                 + (p1.pos(2) - p2.pos(2))*(p1.pos(2) - p2.pos(2)) )
-                <= 4.0*p1.rdata(0)*p1.rdata(0);
-        }
-    } CheckPair;
-
-    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() {
+    const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() const {
         return  face_coords;
     }
 
+protected:
+
+    int nghost;
+
+    void InitInternals(int ngrow);
+    void ReadStaticParameters();
+
+    AmrCore * m_amr_core;
 
 private:
 
     // Positions on faces
     Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
-
-    void InitInternals(int ngrow, int real_comp, int int_comp);
-    void ReadStaticParameters();
-
-    AmrCore * m_amr_core;
-    int nghost;
 };
 
 
