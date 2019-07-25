@@ -218,7 +218,7 @@ BL_PROFILE_VAR_START(particle_move);
 	//	std::string txt=".txt";
 	//	sprintf(num, "%f", surfaceList[5].omg);
 	//	outfile.open(num + txt, std::ios_base::app);
-        outfile.open("out.txt", std::ios_base::app);
+        outfile.open("out.csv", std::ios_base::app);
   for (i=0;i<1;i++)
 	  {
 	    outfile << surfaceList[5].dbesslist[i] << ", ";

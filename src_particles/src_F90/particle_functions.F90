@@ -350,7 +350,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
   use surfaces_module
-  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog, mass, k_b, particle_count, particle_n0, t_init
+  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog, mass, k_b, particle_count, particle_n0, t_init, particle_neff
   
   implicit none
 
@@ -552,7 +552,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                surf=>surfaces(6)
 
                pi=3.1415926535897932
-               numcoll=floor(pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1))))
+               numcoll=floor(pi*(prob_hi(1)**2)*fixed_dt*(particle_n0(1)/particle_neff)*sqrt((k_b*t_init(1))/(2*pi*mass(1))))
                         !print *, "topnum: ", numcoll, prob_hi(1), fixed_dt
 
                do count=1,  numcoll
@@ -575,7 +575,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                  bessj0 =-prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))/omega
                  !surf%besslist(ii)=bessj0
                  dbessj0=prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))
-                 surf%dbesslist(ii)=10e-5*bessj0
+                 surf%dbesslist(ii)=bessj0
                enddo
 
                ! print*,'position',part%pos
