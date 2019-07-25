@@ -25,7 +25,6 @@ using namespace amrex;
 
 void AmrCoreAdv::Initialize( )
 {
-//    ReadParameters();
 
     int nlevs_max = max_level + 1;
 
@@ -36,6 +35,7 @@ void AmrCoreAdv::Initialize( )
     t_old.resize(nlevs_max, -1.e100);
     dt.resize(nlevs_max, 1.e100);
 
+    // initialize vectors found at the end of AmrCoreAdv.cpp
     con_pre.resize(nlevs_max);
     con_new.resize(nlevs_max);
 
@@ -47,16 +47,9 @@ void AmrCoreAdv::Initialize( )
     Dconc_y.resize(nlevs_max);
 
     MagDcon.resize(nlevs_max);
-   Dcon_z.resize(nlevs_max);
-   Dconc_z.resize(nlevs_max);
+    Dcon_z.resize(nlevs_max);
+    Dconc_z.resize(nlevs_max);
     bcs.resize(1);
-//    uface.resize(nlevs_max );
-//    vface.resize(nlevs_max);
-//    wface.resize(nlevs_max);
-//
-//    xface.resize(nlevs_max);
-//    yface.resize(nlevs_max);
-//    zface.resize(nlevs_max);
    
     // periodic boundaries
     int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
@@ -105,7 +98,7 @@ void AmrCoreAdv::Initialize( )
 /*******************************************************************************
  *                                                                             *
  * Advance solution (of the advection diffusion equation) in time for a        *
- * a specified level                                                           *
+ * a specified level called by advance in executable directory                                                          *
  *                                                                             *
  *******************************************************************************/
 
@@ -122,13 +115,16 @@ void AmrCoreAdv::EvolveChem(
         Real dt_fluid, Real time, Real dc, 
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords, int corrector, Real source_strength)
 {
+    // if this is a predictor or corrector step
     Correct=corrector;
+    // diffusion coefficent
     diffcoeff=dc;
+    // " strength" of point sources
     strength= source_strength;    
+    // time step
     dt[lev] = dt_fluid;
 
-    // initialize copies of velocities u_g, v_g, w_g and first derivatives of
-    // con Dcon_x, Dcon_y, Dcon_z
+    // initialize copies of velocities umac amd face center posiions face_coord, initalize surface gradient of concentration, note that _pre indicates that this quantity is from the predicter step. If this is the predicter step (Corrector=0)  then the predicter quanties are the same as the other quanity, ie uface =uface_pre
    uface.resize(max_level + 1);
    vface.resize(max_level + 1);
 
@@ -234,6 +230,8 @@ void AmrCoreAdv::EvolveChem(
 
 #endif
     }
+    // initialize copies of levelset, and the location of the interface and catalyst
+
     int ls_gst= LevelSet.nGrow();
     int ls_nc= LevelSet.nComp();
     
@@ -330,10 +328,8 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        con_pre[lev]->setVal(0.);
        con_new[lev]->setVal(0.);
        con_old[lev]->setVal(0.);
-
+       // fills in concentration 
        MakeNewLevelFromScratch ( lev, 0., ba, dm);
-//       con_new[lev]->setVal(0.);
-//       con_old[lev]->setVal(0.);
        
        Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 1));
@@ -358,12 +354,9 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
 
        MagDcon[lev]->setVal(0.);
 
-//       MakeNewLevelFromScratch ( lev, 0., ba, dm);}
 
    }
 }
-    // DEBUG: write intitial plotfile
-    // if (plot_int > 0) WritePlotFile();
 
 
 // Make a new level using provided BoxArray and DistributionMapping and fill
@@ -540,35 +533,6 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int ngrow)
     }
 }
 
-// read in some parameters from inputs file
-//void AmrCoreAdv::ReadParameters ()
-//{
-//    {
-//        amrex::Print() << "ReadParameters"<< std::endl;
-//        ParmParse pp;  // Traditionally, max_step and stop_time do not have prefix.
-//        pp.query("max_step", max_step);
-//        pp.query("stop_time", stop_time);
-//    }
-//
-//    {
-//        ParmParse pp("amr"); // Traditionally, these have prefix, amr.
-//
-//        pp.query("regrid_int", regrid_int);
-//        pp.query("plot_file", plot_file);
-//        pp.query("plot_int", plot_int);
-//        pp.query("chk_file", chk_file);
-//        pp.query("chk_int", chk_int);
-//        pp.query("restart",restart_chkfile);
-//    }
-//{
-//        ParmParse pp("adv");
-//
-//        pp.query("cfl", cfl);
-//        pp.query("diffcoeff", diffcoeff);
-//        pp.query("do_reflux", do_reflux);
-//    }
-//}
-
 // set covered coarse cells to be the average of overlying fine cells
 void AmrCoreAdv::AverageDown ()
 {
@@ -622,9 +586,6 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(0, time, smf, stime);
 
 
-//	PhysBCFunct physbc(geom[lev],bcs,BndryFunctBase(confill));
-//	amrex::FillPatchSingleLevel(mf, time, smf, stime, 0, icomp, ncomp,
-//				     geom[lev], physbc);
         BndryFuncArray bfunc(confill);
 
         PhysBCFunct<BndryFuncArray> physbc(geom[lev], bcs, bfunc);
@@ -643,8 +604,6 @@ AmrCoreAdv::FillPatch (int lev, Real time, MultiFab& mf, int icomp, int ncomp)
 	GetData(lev-1, time, cmf, ctime);
 	GetData(lev  , time, fmf, ftime);
 
-//        PhysBCFunct cphysbc(geom[lev-1],bcs,BndryFunctBase(confill));
-//        PhysBCFunct fphysbc(geom[lev  ],bcs,BndryFunctBase(confill));
         BndryFuncArray bfunc(confill);
         PhysBCFunct<BndryFuncArray> cphysbc(geom[lev-1],bcs,bfunc);
         PhysBCFunct<BndryFuncArray> fphysbc(geom[lev  ],bcs,bfunc);
@@ -756,8 +715,9 @@ void AmrCoreAdv::timeStep (int lev, Real time, int iteration)
 
 // advance a single level for a single time step, updates flux registers
 void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int ncycle) {
-    
-    constexpr int num_grow =3; // 3;
+   
+    // need 3 ghost cell to advance concentration 
+    constexpr int num_grow =3; 
     int num_comp=1;
     t_old[lev]  = t_new[lev];
     t_new[lev] += dt_lev;
@@ -765,28 +725,21 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     const BoxArray & badp            = con_new[lev]->boxArray();
     const DistributionMapping & dmdp = con_new[lev]->DistributionMap();
 
+    // initalize point source multifab
     MultiFab ptSource(badp,dmdp,1,0);
-
     ptSource.setVal(0.);
     MultiFab ptSource_pre(badp,dmdp,1,0);
 
     ptSource_pre.setVal(0.);
-    Vector<int> xloc;
-    Vector<int> yloc;
-    Real Sphere_cent_x=0.5;
-    Real Sphere_cent_y=0.5;
-
-#if (AMREX_SPACEDIM>=3)    
-
-    Vector<int> zloc;
-    Real Sphere_cent_z=0.5;
-#endif
+    
+    // if we are in the correcting step the updated concetration will be con_new, otherwise it is con_pre, the predicted concentration
     MultiFab * S_new = NULL;   
     if (Correct == 1){
     S_new     = con_new[lev].get();}
     else{
     S_new     =con_pre[lev].get();}
 
+    // define fluid velocity multifab for this level
     MultiFab &  uface_lev_pre = * uface_pre[lev];
     MultiFab &  vface_lev_pre = * vface_pre[lev];
 
@@ -798,15 +751,16 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab &  wface_lev_pre = * wface_pre[lev];
     MultiFab &  wface_lev = * wface[lev];
 #endif
+    // define location of interface for this level
     iMultiFab & iloc_mf   = * interface_loc;
     iMultiFab & iloc_mf_pre   = * interface_loc_pre;
-
+    // define location of sources for this level
     iMultiFab & sloc_mf   = * source_loc;
     iMultiFab & sloc_mf_pre   = * source_loc_pre;
-
+    // problem set up
     const Real * dx      = geom[lev].CellSize();
     const Real * prob_lo = geom[lev].ProbLo();
-
+    // initalize fluxes multifab, reflux is old code for AMR
     MultiFab fluxes[BL_SPACEDIM];
     if (do_reflux) {
         for (int i = 0; i < BL_SPACEDIM; ++i) {
@@ -816,9 +770,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
         }
     }
 
-    // State with ghost cells
-    //MultiFab Sborder(grids[lev], dmap[lev], S_new.nComp(), num_grow);
-
+    // Copy of con_old used to update con_pre or con_new
     MultiFab Sborder(badp,dmdp, num_comp, num_grow);
     Sborder.setVal(0.);
     Sborder.copy(*con_old[lev], 0,num_comp-1 , num_comp, 0, num_grow);
@@ -827,31 +779,20 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     MultiFab Sborder_pre(badp,dmdp, num_comp, num_grow);
     Sborder_pre.setVal(0.);
 
+    // Copy of con_old/con_pre used to update con_pre or con_new
+
     if (Correct==0){
     Sborder_pre.copy(*con_old[lev], 0,(*con_old[lev]).nComp()-1 ,(*con_old[lev]).nComp(), 0, num_grow);
-    //std::cout << " We are predicting "<< std::endl;
     }
     else{
     Sborder_pre.copy(*con_pre[lev], 0,(*con_pre[lev]).nComp()-1 ,(*con_pre[lev]).nComp(), 0, num_grow);
-   // std::cout << " We are correcting "<< std::endl;
-  
     }
     Sborder_pre.FillBoundary(geom[0].periodicity());
-    //std::cout<< "Max con old " << (*con_old[lev]).max(0) << std::endl;
-
-//    static Vector<Real> ib_init_pos;
-//
-//    {
-//        ParmParse pp("mfix");
-//        int n = pp.countval("ib_init__pos");
-//        if (n > 0) pp.getarr("ib_init__pos",ib_init_pos, 0, n);
-//    }
-
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     {
+
         FArrayBox flux[BL_SPACEDIM];
         FArrayBox flux1[BL_SPACEDIM];
         FArrayBox flux2[BL_SPACEDIM];
@@ -889,7 +830,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                 flux2[i].resize(bxtmp,S_new->nComp());
             }
    #if (AMREX_SPACEDIM==2)    
-
+                // define previous and predicted pointsources
                 get_ptsource_2d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
@@ -927,6 +868,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
    #elif (AMREX_SPACEDIM>=3)    
 
+                // define previous and predicted pointsources
 
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
@@ -966,7 +908,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                        BL_TO_FORTRAN_3D(flux2[2])),
                           dx, & dt_lev, & diffcoeff, & Correct);
 #endif
-
+           // old code to do AMR
             if (do_reflux) {
                 for (int i = 0; i < BL_SPACEDIM ; i++) {
                     fluxes[i][mfi].copy(flux[i],mfi.nodaltilebox(i));
@@ -974,15 +916,14 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
            }
         }
     }
-//    std::swap(con_old[lev], con_new[lev]);
     S_new->FillBoundary(geom[lev].periodicity());
     con_pre[lev]->FillBoundary(geom[lev].periodicity());
     con_new[lev]->FillBoundary(geom[lev].periodicity());
 
+    // if we are in a correcting step we update the concentration
     if (Correct==1)
     std::swap(con_old[lev], con_new[lev]);
 
-//   { con_old[lev]->copy(*con_new[lev], 0,num_comp-1 ,num_comp,(*con_new[lev]).nGrow() ,(*con_old[lev]).nGrow()  );
     con_old[lev]->FillBoundary(geom[lev].periodicity());
      
     // After updating con_new we compute the first derivatives
@@ -1016,11 +957,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
     // level set   
     MultiFab &  ls_mf       = * levset;
-
+    // magnitude of the surface gradient
     MultiFab &  mdc_mf       = * MagDcon[lev];
     MultiFab S_new_fill(badp,dmdp,num_comp, 1);
     S_new_fill.setVal(0.);
   
+    // if we are correcting we take the surface gradient of the correct concentration (recalling that above we swapped so it will be stored in con_old), otherwise we take the surface gradient of the predicted concentration
     if (Correct==1){ 
     S_new_fill.copy(*con_old[lev], 0,num_comp-1 ,num_comp,(*con_new[lev]).nGrow() , 1);}
     else{
@@ -1045,9 +987,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
    #if (AMREX_SPACEDIM>=3)    
             FArrayBox & fabz         =       tzc_mf[mfi];
    #endif
-            // compute velocities on faces (prescribed function of space and time)
+            // No support for 2D yet
    #if (AMREX_SPACEDIM>=3)    
-
+                // compute surface gradient
                 get_surfgrad_3d( bx.loVect(), bx.hiVect(),
                                 BL_TO_FORTRAN_3D(stateout),
                                 BL_TO_FORTRAN_3D(fabx),
@@ -1064,7 +1006,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     txc_mf.FillBoundary(geom[lev].periodicity());
     tyc_mf.FillBoundary(geom[lev].periodicity());
 
-    
+    // initialize array of face centered multifabs
     std::array< MultiFab, AMREX_SPACEDIM > Cxface_array;
     Cxface_array[0].define(badpx, dmdpx, 1, 0);
     Cxface_array[1].define(badpy, dmdpy, 1, 0);
@@ -1095,12 +1037,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     Czface_array[1].setVal(0.);
     Czface_array[2].setVal(0.);
   #endif 
-//    Sface_array[0].FillBoundary(geom[lev].periodicity());
-//    Sface_array[1].FillBoundary(geom[lev].periodicity());
-//    Sface_array[2].FillBoundary(geom[lev].periodicity());
- 
-//   s_mf.FillBoundary(geom[lev].periodicity());
- 
+
+   // Average cell centered surface gradient to face centers
    AverageCCToFace(txc_mf, 0, Cxface_array,0,1);
    AverageCCToFace(tyc_mf, 0, Cyface_array,0,1);
 
@@ -1114,10 +1052,10 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
    tzf_mf.copy(Czface_array[2], 0, 0,1, 0, 0);
     tzf_mf.FillBoundary(geom[lev].periodicity());
   #endif
-
-
+    if Correct==1{
+   // Print out the total concentration in simulated domain vs the true total concentration 
     amrex::Print() << "simulated con total"<< (con_old[lev]->sum(0,false));
-    amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;
+    amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;}
 
 }
 
@@ -1146,6 +1084,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
         MF[lev]->copy(* con_old[lev], 0, 0,1, 0, 0);
     }
+    // face centered surface gradients
     else if (indicator==1){
     DistributionMapping xcondm = Dcon_x[lev]->DistributionMap();
     BoxArray xconba            = Dcon_x[lev]->boxArray();
@@ -1199,6 +1138,7 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
         MF[lev]->copy(* Dconc_x[lev], 0, 0,1, xng, 0);
     }
+    // cell centered surface gradient
     else if (indicator==6){
     DistributionMapping condm = Dconc_y[lev]->DistributionMap();
     BoxArray conba            = Dconc_y[lev]->boxArray();

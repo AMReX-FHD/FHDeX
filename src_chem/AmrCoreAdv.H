@@ -164,12 +164,11 @@ private:
     amrex::Vector<amrex::Real> dt;
 
     // array of multifabs to store the solution at each level of refinement
-    // after advancing a level we use "swap".
-    // amrex::Vector<amrex::MultiFab> con_new;
     amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_pre;
     amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_new;
     amrex::Vector<std::unique_ptr<amrex:: MultiFab>> con_old;
 
+   // array of multifabs to store the fluid velocity at each level of refinement
 
    Vector< std::unique_ptr<MultiFab> >  uface;
    Vector< std::unique_ptr<MultiFab> >  vface;
@@ -178,20 +177,24 @@ private:
    Vector< std::unique_ptr<MultiFab> >  uface_pre;
    Vector< std::unique_ptr<MultiFab> >  vface_pre;
    Vector< std::unique_ptr<MultiFab> >  wface_pre;
-  
+ 
+   // array of multifabs to store the surface gradient at each level of refinement (face centered and cell centered) and the magnitude of the gradient (cell centerd)
+ 
    Vector< std::unique_ptr<MultiFab> >  Dcon_x;
    Vector< std::unique_ptr<MultiFab> >  Dcon_y;
    Vector< std::unique_ptr<MultiFab> >  Dcon_z;
-   Vector< std::unique_ptr<MultiFab> >  MagDcon;
 
    Vector< std::unique_ptr<MultiFab> >  Dconc_x;
    Vector< std::unique_ptr<MultiFab> >  Dconc_y;
    Vector< std::unique_ptr<MultiFab> >  Dconc_z;
 
+   Vector< std::unique_ptr<MultiFab> >  MagDcon;
+   // array of multifabs to store the face centerd positions at each level of refinement
+
    Vector< std::unique_ptr<MultiFab> >  xface;
    Vector< std::unique_ptr<MultiFab> >  yface;
    Vector< std::unique_ptr<MultiFab> >  zface;
-
+   // multifabs to store the location of the point sources, the location of th einterface, and the levelset
    std::unique_ptr<iMultiFab>           source_loc;
    std::unique_ptr<iMultiFab>           source_loc_pre;
    
@@ -224,9 +227,12 @@ private:
     // advective cfl number - dt = cfl*dx/umax
     amrex::Real cfl = 0.25;
 
+    // diffusion coefficient
     amrex::Real diffcoeff;
+   // source strength
     amrex::Real strength;
 
+    // if we are doing a predictor or corrector step
     int Correct=0;
    // how often each level regrids the higher levels of refinement
     // (after a level advances that many time steps)
