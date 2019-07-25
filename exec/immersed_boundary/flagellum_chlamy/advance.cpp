@@ -167,14 +167,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // initial distance btw markers. TODO: Need to update depending on initial
     // coordinates.
-    Real l_db = 0.05;
+    Real l_db = 0.025;
 
     // Parameters for calling bending force calculation
     Real driv_k = 10000.0; //bending stiffness
     RealVect driv_u = {0, 0, 1};
 
     // Real driv_period = 100;  //This is actually angular frequency =  2*pi/T
-    Real driv_period = 10;  //This is actually angular frequency =  2*pi/T
+    Real driv_period = 0.0133;  // corresponding to beat frequency of 75.2 Hz
     Real length_flagellum = 0.5;
     // Real driv_amp = 15 * std::min(time*10, 1.);
     Real driv_amp = 10 * std::min(time*10, 1.);
@@ -393,13 +393,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 //Fourier series parameters based on normalized axial location (0.1-1)
                 Real s = mark.idata(IBM_intData::id_1)/np; //note: id_1 = 0 for first marker created
 
-                Real a0 = 5.979*s^4 - 20.969*s^3 + 16.229*s^2 - 0.7861*s - 0.7402;
-                Real a1 = -3.4386*s^4 + 14.471*s^3 - 11.596*s^2 - 0.2674*s + 0.8171;
-                Real a2 = -2.3251*s^4 + 6.0159*s^3 - 3.8686*s^2 + 0.4714*s + 0.038;
-                Real a3 = -0.2153*s^4 + 0.4819*s^3 - 0.7644*s^2 + 0.5822*s - 0.1149;
-                Real b1 = 2.2601*s^4 + 4.017*s^3 - 14.262*s^2 + 7.1863*s - 0.0507;
-                Real b2 = 0.9559*s^4 + 0.8517*s^3 - 2.9389*s^2 + 1.2036*s - 0.0165;
-                Real b3 = 0.1762*s^4 - 1.3385*s^3 + 1.8047*s^2 - 0.647*s + 0.0394;
+                Real a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
+                Real a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
+                Real a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
+                Real a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
+                Real b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
+                Real b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
+                Real b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
 
                 Real w  = 2*M_PI; //for normailized beat period of 1
 
@@ -407,7 +407,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 Real theta_raw = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
                                     + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
-                                    + a3*cos(3*w*time/T) + b3*sin(3*w*t/T);
+                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
 
                 Real theta = l_db*driv_amp*theta_raw;
 
@@ -686,8 +686,30 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 RealVect f_m = RealVect{0., 0., 0.};
 
                 // calling the active bending force calculation
-                Real theta = l_db*driv_amp*sin(driv_period*time
-                            + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
+                //Real theta = l_db*driv_amp*sin(driv_period*time
+                //            + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
+                              //Fourier series parameters based on normalized axial location (0.1-1)
+                Real s = mark.idata(IBM_intData::id_1)/np; //note: id_1 = 0 for first marker created
+
+                Real a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
+                Real a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
+                Real a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
+                Real a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
+                Real b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
+                Real b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
+                Real b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
+
+                Real w  = 2*M_PI; //for normailized beat period of 1
+
+                Real T = driv_period;  // T=13.3 ms for 75.2Hz beating
+
+                Real theta_raw = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
+                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
+                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
+
+                Real theta = l_db*driv_amp*theta_raw;
+
+
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
 
                 // updating the force on the minus, current, and plus particles.
