@@ -332,19 +332,43 @@ void main_driver(const char * argv) {
     BL_PROFILE_VAR("main_create markers",createmarkers);
     
     int nm = 21; //total number of markers used to represent a flagellum 
-    Real l_db = 0.025; //initial distance bew markers
+    Real l_db = 0.025; //initial distance between markers
 
     IBMarkerContainer ib_mc(geom, dmap, ba, nm);
 
     Vector<RealVect> marker_positions(nm);
     Vector<Real> marker_radii(nm);
+    
+    // This is a realistic initial waveform normalized to length of 0.5
+    //marker_positions[0]  = RealVect{0.0500, 0.5000, 0.5};
+    //marker_positions[1]  = RealVect{0.0636, 0.4791, 0.5};
+    //marker_positions[2]  = RealVect{0.0768, 0.4579, 0.5};
+    //marker_positions[3]  = RealVect{0.0899, 0.4367, 0.5};
+    //marker_positions[4]  = RealVect{0.34, 0.4158, 0.5};
+    //marker_positions[5]  = RealVect{0.1176, 0.3952, 0.5};
+    //marker_positions[6]  = RealVect{0.1324, 0.3752, 0.5};
+    //marker_positions[7]  = RealVect{0.1479, 0.3556, 0.5};
+    //marker_positions[8]  = RealVect{0.1637, 0.3363, 0.5};
+    //marker_positions[9]  = RealVect{0.1797, 0.3172, 0.5};
+    //marker_positions[10] = RealVect{0.1954, 0.2978, 0.5};
+    //marker_positions[11] = RealVect{0.24, 0.2780, 0.5};
+    //marker_positions[12] = RealVect{0.2244, 0.2573, 0.5};
+    //marker_positions[13] = RealVect{0.2366, 0.2356, 0.5};
+    //marker_positions[14] = RealVect{0.2462, 0.2126, 0.5};
+    //marker_positions[15] = RealVect{0.2523, 0.1884, 0.5};
+    //marker_positions[16] = RealVect{0.2542, 0.1636, 0.5};
+    //marker_positions[17] = RealVect{0.2508, 0.1389, 0.5};
+    //marker_positions[18] = RealVect{0.2414, 0.1159, 0.5};
+    //marker_positions[19] = RealVect{0.2259, 0.0965, 0.5};
+    //marker_positions[20] = RealVect{0.2049, 0.0833, 0.5};
 
     for (int i=0; i<nm; ++i) { 
-	marker_radii[i] = .05;
-        marker_positions[i] = RealVect{0.05+i*l_db, 0.5, 0.5};
+	marker_radii[i] = .05;  
+        marker_positions[i] = RealVect{0.05+i*l_db, 0.5, 0.5}; // This is for initially horizontal straight shape
     }
 
     ib_mc.InitList(0, marker_radii, marker_positions);
+
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
