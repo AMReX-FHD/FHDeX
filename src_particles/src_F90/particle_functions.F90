@@ -567,7 +567,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                radius=0
                bJ1 = bessel_jn(1,2.4048)
                prefact = 9144**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
-               omega=14*(10**6)*2*3.1415926535897932
+               omega=12.5*(10**6)*2*3.1415926535897932
                surf=>surfaces(6)
                do ii=1, 1
                  radius=interval*ii
@@ -575,13 +575,13 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                  bessj0 =-prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))/omega
                  !surf%besslist(ii)=bessj0
                  dbessj0=prefact*bessel_jn(0, radius)*(surf%a0graph*sin(omega*time)+surf%b0graph*cos(time*omega))
-                 surf%dbesslist(ii)=bessj0
+                 surf%dbesslist(ii)=10e-5*bessj0
                enddo
 
                ! print*,'position',part%pos
                ! print*,'vel',part%vel
                ! print*,'fortran move', surf%velz, part%id
-               ! print*, 'a', surf%agraph
+               ! print*, 'a', surf%a0graph
                ! print*, sin((time*omega))
                ! print*, surf%velz
                ! print*, 'velocity',part%vel

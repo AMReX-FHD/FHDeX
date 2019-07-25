@@ -437,10 +437,11 @@
 
     interval=3/100
     !omega=(12.5+interval*surf%omg)*(10**6)*pi*2
-    omega=12.56*(10**6)*pi*2
+    omega=12.5*(10**6)*pi*2
     resomega=12.5*(10**6)*pi*2
 
-    lstrength=10**(-40d0)*cos(omega*time)
+    !lstrength=10**(-8d0)*cos(omega*time)
+    lstrength=0
     t=time
     dt=t+fixed_dt
     !do while (t .lt. dt)
@@ -448,7 +449,7 @@
         surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 10e-100)*cos(resomega*time)
         t=t+fixed_dt
      !end do
-     !print*, 'A', 10**(-5d0)
+     !print*, 'A', surf%agraph, surf%bgraph 
      
   end subroutine laser
   
@@ -561,7 +562,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
           endif
      
     lambda = rho*k/a
-    omega=14*(10**6)*pi*2
+    omega=12.5*(10**6)*pi*2
     t=time+inttime
     point=0*k/a
 
@@ -576,7 +577,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*t)
     surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
 
-
+     print *, "A-B: ", surf%agraph, surf%bgraph
 !    print *, "velpart: ", oldvel(3)
 !    print *, "tau: ", t
 !    print *, "rho: ", rho
