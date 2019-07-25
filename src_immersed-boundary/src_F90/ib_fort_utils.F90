@@ -1,5 +1,5 @@
-module ib_fort_utils
-    use amrex_fort_module, only: amrex_real, amrex_particle_real
+	module ib_fort_utils
+	    use amrex_fort_module, only: amrex_real, amrex_particle_real
     use iso_c_binding,     only: c_int
 
     implicit none
@@ -12,8 +12,8 @@ module ib_fort_utils
         ! Same types an order as struct IBP_info in IBParticleInfo.H
         real(amrex_real)   :: pos(3)    !< Position
         real(amrex_real)   :: vel(3)    !< Velocity
-        real(amrex_real)   :: ori(3)    !< Orientation
         integer(c_int)     :: ind(3)    !< Index in grid
+        real(amrex_real)   :: ori(3)    !< Orientation
         real(amrex_real)   :: radius    !< Particle radius
         integer(c_int)     :: id        !< Unique index
         integer(c_int)     :: cpu       !< CPU at time of initialization

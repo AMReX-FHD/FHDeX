@@ -205,17 +205,40 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
         const IArrayBox & tag_tile   = (* ls_id)[mfi];
               IArrayBox & iface_tile = (* tag_interface)[mfi];
-              IArrayBox & cat_tile = (* tag_catalyst)[mfi];
-
         tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
                           BL_TO_FORTRAN_3D(phi_tile),
                           BL_TO_FORTRAN_3D(tag_tile));
 
+    }
+
+    for (MFIter mfi(* tag_catalyst, ib_pc->tile_size); mfi.isValid(); ++mfi) {
+
+        //_______________________________________________________________________
+        // Get immersed-boundary data from IBParticleContainer
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index).
+        PairIndex index(mfi.index(), mfi.LocalTileIndex());
+
+        Vector<IBP_info> info = ib_pc->IBParticleInfo(lev, index);
+        std::cout<< " orientation "<< info[0].ori<< std::endl;
+        const Box & tile_box = mfi.tilebox();
+
+              IArrayBox & iface_tile = (* tag_interface)[mfi];
+              IArrayBox & cat_tile = (* tag_catalyst)[mfi];
+
+
         tag_catalyst_interface (BL_TO_FORTRAN_BOX(tile_box),
-                                part_loc.dataPtr(), 
+                                info.dataPtr(), 
                                 BL_TO_FORTRAN_3D(iface_tile), 
                                 BL_TO_FORTRAN_3D(cat_tile), dx.dataPtr());
+
+
+        //_______________________________________________________________________
+        // Collect local (to memory) unique copies of particle data. Use the
+        // `critical` pragma to prevent race conditions.
     }
+
+
+
     tag_interface->FillBoundary(Geom(lev).periodicity());
     tag_catalyst->FillBoundary(Geom(lev).periodicity());
 

@@ -22,7 +22,6 @@ subroutine get_ptsource_3d( lo, hi, &
        do i = lo(1), hi(1)
 
            ! z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
-           y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
 
            if (iface(i,j,k).eq.1) then
            pts(i,j,k)=strength*dx(1)*dx(2)*dx(3)
