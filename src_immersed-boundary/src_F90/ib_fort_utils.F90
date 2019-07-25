@@ -255,18 +255,20 @@ contains
         ! pos     => (nodal) position of the cell (i, j, k)
         integer                        :: i, j, k
         real(amrex_real) :: dot
-        real(amrex_real), dimension(3) :: pos, vect, ori
+        real(amrex_real), dimension(3) :: pos1, pos, vect, ori
 
 
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
                     pos = (/ (i+0.5)*dx(1), (j+0.5)*dx(2), (k+0.5)*dx(3) /)
-                    vect=pos-part_info%pos;
-                    ori=part_info%ori;
+                    pos1 =part_info%pos
+                    vect=pos-part_info%pos
+                    ori=part_info%ori
                     dot=ori(1)*vect(1)+ori(2)*vect(2)+ori(3)*vect(3)
-                    if ((dot<=0) .and. (iface(i,j,k)==1)) then
+                    if ((dot<=0.) .and. (iface(i,j,k)==1)) then
                     ctag(i, j, k) = 1
+                    print *, "dot ", dot, " ori ", ori
                     else 
                     ctag(i,j,k)=0
                     end if 
@@ -673,7 +675,7 @@ contains
         klo = max(lo(3), int(pos(3) * invdx(3) - 3))
         khi = min(hi(3), int(pos(3) * invdx(3) + 3))
 
-    ! print*, "max vspread = ", maxval(v_spread)
+        ! print*, "max vspread = ", maxval(v_spread)
 
         !________________________________________________________________________
         ! x-components
@@ -691,18 +693,19 @@ contains
                     do ll = 1, AMREX_SPACEDIM
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
-                    !print*, " mf_x first ", mf_x(i,j,k)
+
+                    ! print*, " mf_x first ", mf_x(i,j,k)
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
                     weight_x(i, j, k) = weight_x(i, j, k) + weight
-                    !print*," mf_x = ", mf_x(i,j,k), " vspread ", v_spread(1), " weight ", weight, " invvol ", invvol, " v_spread(1)*weight*invol ", v_spread(1)*weight*invvol
+                    ! print*," mf_x = ", mf_x(i,j,k), " vspread ", v_spread(1), " weight ", weight, " invvol ", invvol, " v_spread(1)*weight*invol ", v_spread(1)*weight*invvol
                 end do
             end do
         end do
-     !print*, "max mf_x = ", maxval(mf_x)
+        ! print*, "max mf_x = ", maxval(mf_x)
 
- !      if (maxval(mf_x)>0.0) then
- !                   pause
- !      end if
+        ! if (maxval(mf_x)>0.0) then
+        !     pause
+        ! end if
 
         !________________________________________________________________________
         ! y-components

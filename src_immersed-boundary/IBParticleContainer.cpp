@@ -294,7 +294,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
                         );
                    // HACK orientation hard coded in
                     RealVect ori = RealVect(
-                            AMREX_D_DECL(0,0,1 ));
+                            AMREX_D_DECL(0.,0.,1. ));
                      
                     // Radius
                     Real r = part.rdata(IBP_realData::radius);
@@ -336,8 +336,8 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
                    // HACK orientation hard coded in
 
                     RealVect ori = RealVect(
-                            AMREX_D_DECL(0,0,1 ));
-                     
+                            AMREX_D_DECL(0.,0.,1. ));
+                    std::cout<<" ori"<< ori[0]<<ori[1]<<ori[2]<<std::endl; 
 
                     // Radius
                     Real r = part.rdata(IBP_realData::radius);
@@ -1047,7 +1047,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
             );
         // HACK HARD CODE IN POSITION
         RealVect ori = RealVect(
-                AMREX_D_DECL(0,0,1 )
+                AMREX_D_DECL(0.,0.,1. )
             );
 
         // Position of IBParticle on grid
@@ -1183,7 +1183,7 @@ void IBParticleContainer::NeighborIBParticleInfo(Vector<IBP_info> & info,
             );
         // HACK HARD CODE IN POSITION
         RealVect ori = RealVect(
-                AMREX_D_DECL(0,1,0 )
+                AMREX_D_DECL(0. ,0. ,1. )
             );
 
         // Radius
