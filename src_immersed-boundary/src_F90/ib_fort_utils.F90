@@ -239,10 +239,11 @@ contains
         ! ** IN:  spatial discretization
         real(amrex_real), dimension(3), intent(in   ) :: dx
         integer(c_int), dimension(3), intent(in   ) :: iflo, ifhi
+        ! ** IN:  location of the interface
 
         integer(c_int),   intent( in) :: iface(iflo(1):ifhi(1), iflo(2):ifhi(2), iflo(3):ifhi(3))
 
-        ! ** OUT: (nodal) level-set (signed distance from particle surface)
+        ! ** OUT: (nodal) location of the catalyst on the colloid
         integer(c_int),   dimension(3), intent(in   ) :: ctaglo, ctaghi
         integer(c_int),   intent(  out) :: ctag(ctaglo(1):ctaghi(1), &
             &                                  ctaglo(2):ctaghi(2), &
@@ -252,7 +253,11 @@ contains
         !________________________________________________________________________
         ! ** Internal variables:
         ! i, j, k => cell-centered indices
-        ! pos     => (nodal) position of the cell (i, j, k)
+        ! pos     => (cell centered) position of the cell (i, j, k)
+        ! pos1    => position of the center of the particle
+        ! vect    => vector from pos1 to pos
+        ! ori     => orientation of particle
+        ! dot     => dot product of the vect and ori 
         integer                        :: i, j, k
         real(amrex_real) :: dot
         real(amrex_real), dimension(3) :: pos1, pos, vect, ori
@@ -266,9 +271,9 @@ contains
                     vect=pos-part_info%pos
                     ori=part_info%ori
                     dot=ori(1)*vect(1)+ori(2)*vect(2)+ori(3)*vect(3)
+                    ! if we are on the interface and on the " bottom half " of the particle (with respect to the orientation  ie dot <=0) then there is catalyst present in this cell, otherwise there isn't
                     if ((dot<=0.) .and. (iface(i,j,k)==1)) then
                     ctag(i, j, k) = 1
-                    print *, "dot ", dot, " ori ", ori
                     else 
                     ctag(i,j,k)=0
                     end if 

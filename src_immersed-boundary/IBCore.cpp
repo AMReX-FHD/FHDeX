@@ -210,6 +210,11 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
                           BL_TO_FORTRAN_3D(tag_tile));
 
     }
+   /****************************************************************************
+    * Tag Catalyst Location                                                    *
+    ****************************************************************************/
+
+
 
     for (MFIter mfi(* tag_catalyst, ib_pc->tile_size); mfi.isValid(); ++mfi) {
 
@@ -219,7 +224,6 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
         Vector<IBP_info> info = ib_pc->IBParticleInfo(lev, index);
-        std::cout<< " orientation "<< info[0].ori<< std::endl;
         const Box & tile_box = mfi.tilebox();
 
               IArrayBox & iface_tile = (* tag_interface)[mfi];
