@@ -27,9 +27,14 @@ subroutine advect_3d(time, lo, hi, &
   use compute_flux_module_3d, only : compute_flux_3d
 
   implicit none
-
-  integer, intent(in) :: lo(3), hi(3), correct
+  ! correct = 0 if we are making a predictor concentration and correct =1 if we are solving for a corrected concentration
+  integer, intent(in) :: correct
+  ! dx - grid size
+  ! dt - time step
+  ! parameters nu is the diffusion coeffiecent
   double precision, intent(in) :: dx(3), dt, time,nu
+  ! work region
+  integer, intent(in) :: lo(3), hi(3), correct
   integer, intent(in) :: uip_lo(3), uip_hi(3)
   integer, intent(in) :: uif_lo(3), uif_hi(3)
   integer, intent(in) :: uo_lo(3), uo_hi(3)
@@ -52,9 +57,18 @@ subroutine advect_3d(time, lo, hi, &
   integer, intent(in) :: fx2_lo(3), fx2_hi(3)
   integer, intent(in) :: fy2_lo(3), fy2_hi(3)
   integer, intent(in) :: fz2_lo(3), fz2_hi(3)
+
+  ! ** IN: uin_p - previous concentration (c^n)
+  !        uin_f - predicted concentration (c^*), (denoted f since it is only used in determining the flux)
+  !        ptSp/ ptsf     - previous/ predicted point sources
+  !        ifacep/ ifacef - previous/ predicted locating of interface
+  !        vx_p/ vx_f     - previous/ predicted x component of velocity
+  !        vy_p/ vy_f     - previous/ predicted y component of velocity
+  !        vz_p/ vz_f     - previous/ predicted z component of velocity
+  !  NOTE: if correct=0 the previous/ predicted quantities are the same
+
   double precision, intent(in   ) :: uin_p (uip_lo(1):uip_hi(1),uip_lo(2):uip_hi(2),uip_lo(3):uip_hi(3))
   double precision, intent(in   ) :: uin_f (uif_lo(1):uif_hi(1),uif_lo(2):uif_hi(2),uif_lo(3):uif_hi(3))
-  double precision, intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2),uo_lo(3):uo_hi(3))
   double precision, intent(in) :: ptSp(ptsp_lo(1):ptsp_hi(1),ptsp_lo(2):ptsp_hi(2),ptsp_lo(3):ptsp_hi(3))
   double precision, intent(in) :: ptSf(ptsf_lo(1):ptsf_hi(1),ptsf_lo(2):ptsf_hi(2),ptsf_lo(3):ptsf_hi(3))
   integer, intent(in) :: ifacep(ifp_lo(1):ifp_hi(1),ifp_lo(2):ifp_hi(2),ifp_lo(3):ifp_hi(3))
@@ -65,6 +79,12 @@ subroutine advect_3d(time, lo, hi, &
   double precision, intent(in   ) :: vx_f  (vxf_lo(1):vxf_hi(1),vxf_lo(2):vxf_hi(2),vxf_lo(3):vxf_hi(3))
   double precision, intent(in   ) :: vy_f  (vyf_lo(1):vyf_hi(1),vyf_lo(2):vyf_hi(2),vyf_lo(3):vyf_hi(3))
   double precision, intent(in   ) :: vz_f  (vzf_lo(1):vzf_hi(1),vzf_lo(2):vzf_hi(2),vzf_lo(3):vzf_hi(3))
+ 
+  ! ** Out: uout - predicted concentration c^*( if correct = 0 ) or corrected concentration c^n+1 (if correct = 1)
+  !         flxx1. flxy1, flxz1  - the x, y, and z componetents of the previous concentration fluxes        
+  !         flxx2. flxy2, flxz2  - the x, y, and z componetents of the predicted concentration fluxes        
+  !         flxx. flxy, flxz  - the x, y, and z componetents of the average of the previous and predicted concentration fluxes        
+  double precision, intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2),uo_lo(3):uo_hi(3))
   double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
   double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
   double precision, intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
@@ -77,6 +97,7 @@ subroutine advect_3d(time, lo, hi, &
   double precision, intent(  out) :: flxy2(fy2_lo(1):fy2_hi(1),fy2_lo(2):fy2_hi(2),fy2_lo(3):fy2_hi(3))
   double precision, intent(  out) :: flxz2(fz2_lo(1):fz2_hi(1),fz2_lo(2):fz2_hi(2),fz2_lo(3):fz2_hi(3))
 
+  
   integer :: i, j, k
   integer :: glo(3), ghi(3)
   double precision :: dtdx(3), umax, vmax, wmax, conmax_in, conmax_out
@@ -178,7 +199,7 @@ subroutine advect_3d(time, lo, hi, &
            flxx22=flxx2(i,j,k)
            flxy22=flxy2(i,j,k)
            flxz22=flxz2(i,j,k)
-
+           ! Enforce a no flux boundary condition at the interface of the sphere, ie if we are evaluating a flux inside the particle set the flux equal to zero
            if (ifacep(i,j,k) .eq. 2) then
            uout(i,j,k)= uin_p(i,j,k)
            else
@@ -218,6 +239,8 @@ subroutine advect_3d(time, lo, hi, &
                flxz2(i,j,k)=0
                end if
            end if 
+           ! if correct=0 C^{*}=C^n+Div(flux^n)+ptSp^n
+           ! if correct=1 C^{n+1}=C^n+1/2(Div(flux^*)+Div(flux^n)+1/2(ptSp^*+ptSp^n)
            uout(i,j,k) = uin_p(i,j,k) + &
               0.5*(( (flxx1(i,j,k) - flxx1(i+1,j,k)) * dtdx(1) &
                 + (flxy1(i,j,k) - flxy1(i,j+1,k)) * dtdx(2) &
@@ -234,7 +257,7 @@ subroutine advect_3d(time, lo, hi, &
      enddo
   enddo
   conmax_out=maxval(abs(uout))
-
+  ! Old code for AMR
   ! Scale by face area in order to correctly reflx
   do       k = lo(3), hi(3)
      do    j = lo(2), hi(2)
@@ -258,6 +281,7 @@ subroutine advect_3d(time, lo, hi, &
      enddo
   enddo
 
+ ! deallocate pointers
   call bl_deallocate(conx1  )
   call bl_deallocate(conx1_y)
   call bl_deallocate(conx1_z)

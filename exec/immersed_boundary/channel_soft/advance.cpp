@@ -739,7 +739,7 @@ void advance(AmrCoreAdv & amr_core_adv,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
         // One step of EvolveChem to solve for corrected concentration  
-        amr_core_adv.EvolveChem(umac,umac0,iface0, iface1, catalyst0, catalyst1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
+        amr_core_adv.EvolveChem(umac,umac_0,iface0, iface1, catalyst0, catalyst1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // Output velocity solution

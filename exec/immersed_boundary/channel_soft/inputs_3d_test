@@ -21,8 +21,8 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 1 !0000
-  plot_int = 1
+  max_step = 1000
+  plot_int = 10
 
 
 
@@ -62,7 +62,7 @@
 !  Chemical solver parameters
   solve_chem       = 1
   diffcoeff        = 0.1
-  scaling_factor   = 0.1
+  scaling_factor   = -0.1
   source_strength  = 3000
 !  max_grid_size   =  32
 !! amr.ref_ratio       = 2 2 2 2 # refinement ratio

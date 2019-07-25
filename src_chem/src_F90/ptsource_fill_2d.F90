@@ -1,17 +1,21 @@
 subroutine get_ptsource_2d( lo, hi, &
-     &            iface, if_lo, if_hi, &
+     &            ctag, c_lo, c_hi, &
      &            ptS, pts_lo, pts_hi, &
      &            strength, dx, prob_lo ) bind(C, name="get_ptsource_2d")
   
   use amrex_mempool_module, only : bl_allocate, bl_deallocate
 
   implicit none
-
-  double precision, intent(in) :: strength, prob_lo(2), dx(2)
+  ! * work region
+  double precision, intent(in) :: prob_lo(2), dx(2)
   integer, intent(in) :: lo(2), hi(2)
-  integer, intent(in) :: if_lo(2), if_hi(2)
+  integer, intent(in) :: c_lo(2), c_hi(2)
   integer, intent(in) :: pts_lo(2), pts_hi(2)
-  integer, intent(in) :: iface(if_lo(1):if_hi(1),if_lo(2):if_hi(2))
+  ! * IN stength - source strength
+  !      ctag    - location of catalyst (1 if catlyst present 0 otherwise)
+  double precision, intent(in) :: strength
+  integer, intent(in) :: ctag(c_lo(1):c_hi(1),c_lo(2):c_hi(2),c_lo(3):c_hi(3))
+  ! * OUT ptS    - created point sources
   double precision, intent(out) :: ptS(pts_lo(1):pts_hi(1),pts_lo(2):pts_hi(2))
 
   integer :: i, j
@@ -21,7 +25,8 @@ subroutine get_ptsource_2d( lo, hi, &
      do    j = lo(2), hi(2)
         do i = lo(1), hi(1)
            y = prob_lo(2)+(dble(j)+0.5d0)*dx(2)
-           if (iface(i,j).eq.1) then
+           ! if catalyst is present then create a point source, strength scaled by grid size so that solution isn't grid dependent
+           if (ctag(i,j).eq.1) then
            pts(i,j)=strength*dx(1)*dx(2)
            endif
         enddo
