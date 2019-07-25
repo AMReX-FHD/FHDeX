@@ -437,18 +437,19 @@
 
     interval=3/100
     !omega=(12.5+interval*surf%omg)*(10**6)*pi*2
-    omega=14*(10**6)*pi*2
-    resomega=14*(10**6)*pi*2
+    omega=13d0*(10**6)*pi*2
+    resomega=12.5*(10**6)*pi*2
 
-    lstrength=10**(2d0)*cos(omega*time)
+    lstrength=3*10e-16*cos(omega*time)
+    !lstrength=0
     t=time
     dt=t+fixed_dt
     !do while (t .lt. dt)
-        surf%agraph=surf%agraph+lstrength*bessel_jn(0, 10e-100)*sin(resomega*time)
-        surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 10e-100)*cos(resomega*time)
+        surf%agraph=surf%agraph+lstrength*bessel_jn(0, 0d0)*sin(resomega*time)
+        surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 0d0)*cos(resomega*time)
         t=t+fixed_dt
      !end do
-     !print*, 'A', 10**(-5d0)
+     !print*, 'A', surf%agraph, surf%bgraph 
      
   end subroutine laser
   
@@ -529,7 +530,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  use cell_sorted_particle_module, only: particle_t
  use surfaces_module
  use rng_functions_module
- use common_namelist_module, only: prob_hi, fixed_dt
+ use common_namelist_module, only: prob_hi, fixed_dt, particle_neff
  
 
  implicit none
@@ -537,7 +538,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  type(particle_t), intent(inout) :: part
  type(surface_t) :: surf 
  integer(c_int)  i, count, step, ii
- real(amrex_real) surfvel, p, f_x, a, point, lambda, time, bessj0, dbessj0, k, rho, prefact, omega, bJ0, bJ1, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime
+ real(amrex_real) surfvel, p, f_x, a, point, lambda, time, bessj0, dbessj0, k, rho, prefact, omega, bJ0, bJ1, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime, tau
   real(amrex_real), dimension(3)::oldvel
  character (len=90) :: filename
 
@@ -561,22 +562,25 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
           endif
      
     lambda = rho*k/a
-    omega=14*(10**6)*pi*2
+    omega=12.5*(10**6)*pi*2
     t=time+inttime
+    tau=time+inttime
     point=0*k/a
 
     
     bJ1 = bessel_jn(1,k)
-    p=(oldvel(3) -part%vel(3))*part%mass
+    p=(oldvel(3) -part%vel(3))*part%mass*particle_neff
     !p=(oldvel(3) -part%vel(3))
 
     !print *, "vel: ", oldvel(3), part%vel(3)
     prefact = c*c/(a*a*pi*bJ1**2)
 
-    surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*t)
-    surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*t)
+    surf%agraph=surf%agraph+p*bessel_jn(0, lambda)*sin(omega*tau)
+    surf%bgraph=surf%bgraph+p*bessel_jn(0, lambda)*cos(omega*tau)
 
+     !print *, "A-B: ", surf%agraph, surf%bgraph
 
+     !call sleep(1)
 !    print *, "velpart: ", oldvel(3)
 !    print *, "tau: ", t
 !    print *, "rho: ", rho
@@ -592,7 +596,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
 !    print *, "parts: ", surf%agraph, surf%bgraph
  enddo
 
- part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
+ part%vel(3)=part%vel(3)+prefact*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))/pi
     
 
     !parabola

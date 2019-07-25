@@ -5,9 +5,9 @@
   prob_hi(1:3) = 2.5e-4 2.5e-4 4e-5     ! physical hi coordinate
     
   ! number of cells in domain
-  n_cells(1:3) = 32 32 4
+  n_cells(1:3) = 12 12 1
   ! max number of cells in a box
-  max_grid_size(1:3) = 32 32 4
+  max_grid_size(1:3) = 12 12 1
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
@@ -15,10 +15,10 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 5e-11
+  fixed_dt = 10e-11
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 100000
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
@@ -48,15 +48,15 @@
   ! -1 = calculate based on n0
   particle_count = -1
   ! real particles per simulator particle
-  particle_neff = 1
+  particle_neff = 1000
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e15
+  particle_n0 = 4.9105e17
 
   !Species info
   !--------------
   nspecies = 1
-  mass = 4e-23
-  diameter = 2.488e-8
+  mass = 4.7e-23
+  diameter = 3.34e-8
 
   ! Stochastic parameters
   k_B = 1.38064852e-16
