@@ -102,11 +102,12 @@ do       k = lo(3), hi(3)
                  else
                  con_z=con_zc
                  end if
-              else
+             end if
+            !  else
               con_x=con_xc 
               con_y=con_yc 
               con_z=con_zc
-               end if
+            !   end if
           else
           ! interior to the IB gradient is zero  
           con_x=0.
@@ -121,6 +122,8 @@ do       k = lo(3), hi(3)
            s=(norm(1)*con_x+norm(2)*con_y+norm(3)*con_z)/(norm(1)**2+norm(2)**2+norm(3)**2)
            ! Tangential gradients
            cons_x(i,j,k)=con_x-norm(1)*s
+             ! print *,  " con s", cons_x(i,j,k), " con x ", con_x, " norm(1)", norm(1), " s " , s
+           
            cons_y(i,j,k)=con_y-norm(2)*s
            cons_z(i,j,k)=con_z-norm(3)*s
            ! Magnitude of tangential gradients
