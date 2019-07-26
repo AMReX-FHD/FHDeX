@@ -42,7 +42,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const Geometry geom, const Real& dt, Real time)
 {
 
-    BL_PROFILE_VAR("advance()",advance);
+    BL_PROFILE_VAR("advance()", advance);
 
     const Real * dx  = geom.CellSize();
     const Real dtinv = 1.0/dt;
@@ -688,7 +688,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 // calling the active bending force calculation
                 Real theta = l_db*driv_amp*sin(driv_period*time
                             + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
-                
+
                 //Fourier series parameters based on normalized axial location (0.05-1)
                 //Real s = mark.idata(IBM_intData::id_1)/np; //note: id_1 = 0 for first marker created
 
