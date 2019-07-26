@@ -19,16 +19,36 @@ void AverageFaceToCC(const MultiFab& face, int face_comp,
     else if (face.is_nodal(2)) {
         av_dim = 2;
     }
-
+    else {
+        Abort("AverageFaceToCC requires a face-centered MultiFab");
+    }
+    
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
 
-        const Box& validBox = mfi.validbox();
+        const Box& bx = mfi.validbox();
 
-        average_face_to_cc(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                           BL_TO_FORTRAN_FAB(face[mfi]),
-                           BL_TO_FORTRAN_FAB(cc[mfi]),
-                           &face_comp, &cc_comp, &ncomp, &av_dim);
+        const auto& face_fab = (&face)->array(mfi);
+        const auto& cc_fab = (&cc)->array(mfi);
+
+        if (av_dim == 0) {
+            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                cc_fab(i,j,k,cc_comp+n) = 0.5*(face_fab(i+1,j,k,face_comp+n) + face_fab(i,j,k,face_comp+n));
+            });
+        }
+        else  if (av_dim == 1) {
+            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                cc_fab(i,j,k,cc_comp+n) = 0.5*(face_fab(i,j+1,k,face_comp+n) + face_fab(i,j,k,face_comp+n));
+            });
+        }
+        else {
+            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                cc_fab(i,j,k,cc_comp+n) = 0.5*(face_fab(i,j,k+1,face_comp+n) + face_fab(i,j,k,face_comp+n));
+            });
+        }
     }
 }
 

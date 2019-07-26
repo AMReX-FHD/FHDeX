@@ -66,14 +66,6 @@ extern "C"
 ///////////////////////////
 // in convert_stag.F90
 
-    void average_face_to_cc(const int* lo, const int* hi,
-                            const amrex::Real* face,
-                            const int* f_lo, const int* f_hi, const int* nc_f,
-                            amrex::Real* cc,
-                            const int* c_lo, const int* c_hi, const int* nc_c,
-                            const int* face_comp, const int* cc_comp, const int* ncomp,
-                            const int* av_dim);
-
     void average_cc_to_face(const int* lo, const int* hi,
                             const amrex::Real* cc,
                             const int* c_lo, const int* c_hi, const int* nc_c,
