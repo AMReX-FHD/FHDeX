@@ -57,22 +57,42 @@ void ComputeDiv(MultiFab& div,
 void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
                  int start_incomp, int start_outcomp, int ncomp, const Geometry& geom)
 {
+    const Real* dx = geom.CellSize(); 
+    
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
+
         const Box& bx = mfi.validbox();
-
-        for (int incomp=start_incomp; incomp<start_incomp+ncomp; ++incomp) {
-
-            int outcomp = incomp + start_outcomp - start_incomp;
-
-            compute_grad(BL_TO_FORTRAN_BOX(bx),
-                         BL_TO_FORTRAN_N_ANYD(gphi[0][mfi],outcomp),
-                         BL_TO_FORTRAN_N_ANYD(gphi[1][mfi],outcomp),
-#if (AMREX_SPACEDIM==3)
-                         BL_TO_FORTRAN_N_ANYD(gphi[2][mfi],outcomp),
+        
+        const auto& phi_fab = (&phi)->array(mfi);
+        const auto& gphix_fab = (&gphi[0]) -> array(mfi);
+        const auto& gphiy_fab = (&gphi[1]) -> array(mfi);
+        const Box& bx_x = amrex::growHi(bx,0,1);
+        const Box& bx_y = amrex::growHi(bx,1,1);
+#if (AMREX_SPACEDIM == 3)        
+        const auto& gphiz_fab = (&gphi[2]) -> array(mfi);
+        const Box& bx_z = amrex::growHi(bx,2,1);
 #endif
-                         BL_TO_FORTRAN_N_ANYD(phi[mfi],incomp),
-                         geom.CellSize());
-        }
+
+        AMREX_HOST_DEVICE_FOR_4D(bx_x, ncomp, i, j, k, n,
+        {
+            gphix_fab(i,j,k,start_outcomp+n) =
+                (phi_fab(i,j,k,start_incomp+n) - phi_fab(i-1,j,k,start_incomp+n) ) / dx[0];
+        });
+
+        AMREX_HOST_DEVICE_FOR_4D(bx_y, ncomp, i, j, k, n,
+        {
+            gphiy_fab(i,j,k,start_outcomp+n) =
+                (phi_fab(i,j,k,start_incomp+n) - phi_fab(i,j-1,k,start_incomp+n) ) / dx[1];
+        });
+
+#if (AMREX_SPACEDIM == 3)
+        AMREX_HOST_DEVICE_FOR_4D(bx_z, ncomp, i, j, k, n,
+        {
+            gphiz_fab(i,j,k,start_outcomp+n) =
+                (phi_fab(i,j,k,start_incomp+n) - phi_fab(i,j,k-1,start_incomp+n) ) / dx[2];
+        });
+#endif
+
     }
 }
 
