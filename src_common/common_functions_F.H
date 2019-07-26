@@ -64,28 +64,7 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in convert_stag.F90
-
-    void average_cc_to_face(const int* lo, const int* hi,
-                            const amrex::Real* cc,
-                            const int* c_lo, const int* c_hi, const int* nc_c,
-                            amrex::Real* facex,
-                            const int* x_lo, const int* x_hi, const int* nc_x,
-                            amrex::Real* facey,
-                            const int* y_lo, const int* y_hi, const int* nc_y,
-#if (AMREX_SPACEDIM == 3)
-                            amrex::Real* facez,
-                            const int* z_lo, const int* z_hi, const int* nc_z,
-#endif
-                            const int* cc_comp, const int* face_comp, const int* ncomp);
-
-    void shift_face_to_cc(const int* lo, const int* hi,
-                            const amrex::Real* face,
-                            const int* f_lo, const int* f_hi, const int* nc_f,
-                            amrex::Real* cc,
-                            const int* c_lo, const int* c_hi, const int* nc_c,
-                            const int* face_comp, const int* cc_comp, const int* ncomp,
-                            const int* av_dim);
+// in init_funcs.F90
 
     void init_rho_2d(const int* lo, const int* hi,
                      amrex_real* data, const int* dlo, const int* dhi,

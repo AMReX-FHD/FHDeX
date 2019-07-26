@@ -1,6 +1,5 @@
 F90EXE_sources += common_namelist.F90
 F90EXE_sources += compute_div_and_grad.F90
-F90EXE_sources += convert_stag.F90
 F90EXE_sources += debug_mod.F90
 F90EXE_sources += init_funcs.F90
 F90EXE_sources += find_coords.F90
