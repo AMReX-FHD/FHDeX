@@ -48,6 +48,7 @@ void WritePlotFile(int step,
     // plot pressure
     // plot tracer
     // plot divergence
+    // plot concentration and it's gradient tangent to the level set
     int nPlot = 5*AMREX_SPACEDIM+8*(lev+1);
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
@@ -128,32 +129,39 @@ void WritePlotFile(int step,
         ShiftFaceToCC(force_ibm[d], 0, plotfile, cnt, 1);
         cnt++;
     }
-
+    // copy concentration in to the plot file
     amr_core_adv.con_new_copy(lev, mf, 0);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
-
+    // copy x component of concentration gradient tangent to the level set in to the plot file, face centered
     amr_core_adv.con_new_copy(lev, mf,1);
-    MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
+    ShiftFaceToCC(*mf[lev], 0, plotfile, cnt, 1);
     cnt++;
+    // copy y component of concentration gradient tangent to the level set in to the plot file, face centered
     
     amr_core_adv.con_new_copy(lev, mf, 2);
-    MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
+    ShiftFaceToCC(*mf[lev], 0, plotfile, cnt, 1);
     cnt++;
+    // copy z component of concentration gradient tangent to the level set in to the plot file, face centered
 
     amr_core_adv.con_new_copy(lev, mf, 3);
-    MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
+    ShiftFaceToCC(*mf[lev], 0, plotfile, cnt, 1);
     cnt++;
+    // copy magnitude of concentration gradient tangent to the level set in to the plot file, cell centered
     
     amr_core_adv.con_new_copy(lev, mf, 4);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
+    // copy x component of concentration gradient  tangent to the level set in to the plot file, cell centered
+
     amr_core_adv.con_new_copy(lev, mf, 5);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
+    // copy y component of concentration gradient tangent to the level set in to the plot file, cell centered
     amr_core_adv.con_new_copy(lev, mf, 6);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;
+    // copy z component of concentration gradient tangent to the level set in to the plot file, cell centered
     amr_core_adv.con_new_copy(lev, mf, 7);
     MultiFab::Copy(plotfile, * mf[lev], 0, cnt, 1, 0);
     cnt++;

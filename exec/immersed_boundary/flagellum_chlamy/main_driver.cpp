@@ -4,8 +4,9 @@
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
 
+//#include "analysis_functions_F.H"
 #include "StochMFlux.H"
-#include "StructFact.H"
+//#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -21,25 +22,19 @@
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
-#include <AMReX_ParmParse.H>
-#include "IBParticleContainer.H"
-#include "IBCore.H"
-
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
-//chemistry
-#include <iostream>
-#include <AMReX.H>
-#include <AMReX_BLProfiler.H>
-#include <AMReX_ParallelDescriptor.H>
-#include <AmrCoreAdv.H>
+#include <IBMarkerContainer.H>
+#include <IBMarkerMD.H>
+
 
 using namespace amrex;
 using namespace common;
 using namespace gmres;
+using namespace immbdy_md;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -138,7 +133,6 @@ void main_driver(const char * argv) {
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
-
 
 
     //___________________________________________________________________________
@@ -318,7 +312,7 @@ void main_driver(const char * argv) {
     s_pairB[2] = 2;
 #endif
 
-    //StructFact structFact(ba, dmap, var_names);
+    // StructFact structFact(ba, dmap, var_names);
     // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
 
 
@@ -331,6 +325,37 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+    // Make sure that the nghost (last argument) is big enough!
+
+    // add the approximate equilibrium sin-wave shape
+    BL_PROFILE_VAR("main_create markers", createmarkers);
+
+    int nm = 21; //total number of markers used to represent a flagellum
+    Real l_db = 0.025; //initial distance between markers
+
+    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+
+    Vector<RealVect> marker_positions(nm);
+    Vector<Real> marker_radii(nm);
+
+    for (int i=0; i<nm; ++i) {
+        marker_radii[i] = .10;
+
+        // This is for initially horizontal straight shape
+        marker_positions[i] = RealVect{0.05 + i*l_db, 0.5, 0.5};
+    }
+
+    ib_mc.InitList(0, marker_radii, marker_positions);
+
+
+    ib_mc.fillNeighbors();
+    ib_mc.PrintMarkerData(0);
+
+    BL_PROFILE_VAR_STOP(createmarkers);
+
+
+    //___________________________________________________________________________
+    // Initialize velocities (fluid and tracers)
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
@@ -338,23 +363,28 @@ void main_driver(const char * argv) {
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
+        BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
         // initialize velocity
         for (int d=0; d<AMREX_SPACEDIM; ++d)
-            init_vel(BL_TO_FORTRAN_BOX(bx),
+             init_vel(BL_TO_FORTRAN_BOX(bx),
                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                      geom.ProbLo(), geom.ProbHi(), & d,
                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
-    	// initialize tracer
+        BL_PROFILE_VAR_STOP(markerv);
+
+        BL_PROFILE_VAR("main_initialize tracer",tracer);
+        // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(tracer[mfi]),
                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
+        BL_PROFILE_VAR_STOP(tracer);
     }
 
 
     //___________________________________________________________________________
     // Ensure that ICs satisfy BCs
+    BL_PROFILE_VAR("main_ensure initilizaction works",ICwork);
 
     pres.FillBoundary(geom.periodicity());
     MultiFABPhysBC(pres, geom);
@@ -364,6 +394,7 @@ void main_driver(const char * argv) {
         MultiFABPhysBCDomainVel(umac[i], i, geom, i);
         MultiFABPhysBCMacVel(umac[i], i, geom, i);
     }
+    BL_PROFILE_VAR_STOP(ICwork);
 
 
     //___________________________________________________________________________
@@ -388,69 +419,13 @@ void main_driver(const char * argv) {
     int step = 0;
     Real time = 0.;
 
-    // Initialize Chemical fields
 
-    //   AmrCoreAdv amr_core_adv;
-
-
-    /****************************************************************************
-     *                                                                          *
-     * Build container for immersed particles                                   *
-     *                                                                          *
-     ***************************************************************************/
-
-    // TODO: 8 is a magic number for now: it needs to be larger than the
-    // particle radius (in cells)
-    IBParticleContainer ib_pc(geom, dmap, ba, 10);
-
-    // Initializing colloid position
-    Vector<RealVect> ib_pos(1);
-    ib_pos[0] = RealVect{AMREX_D_DECL(0.5, 0.5, 0.5)};
-    Vector<Real>     ib_r(1);
-    ib_r[0]   = 0.10;
-    Vector<Real>     ib_rho(1);
-    ib_rho[0] = 100.00;
-
-    ib_pc.InitList(0, ib_pos, ib_r, ib_rho);
-
-
-    // DEBUG: Test interface
-    //ib_pc.PrintParticleData(0);
-
-    //__________________________________________________________________________
-    // Build IB core
-
-    // NOTE: IBCore (based on AmrCore) needs a parm parse database to contain
-    // certain fields => add them here
-    {
-        ParmParse pp("amr");
-        pp.add("max_level", 0);
-        pp.addarr("n_cell", n_cells);
+    //___________________________________________________________________________
+    // Write out initial state
+    if (plot_int > 0) {
+        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
     }
 
-
-
-    IBCore ib_core;
-    ib_core.set_IBParticleContainer(& ib_pc);
-
-
-    std::array<MultiFab, AMREX_SPACEDIM> force_ibm;
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        force_ibm[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
-        force_ibm[d].setVal(0.);
-    }
-
-    //__________________________________________________________________________
-    // Build AmrCore and initialize chemical multifabs
-
-    AmrCoreAdv amr_core_adv;
-
-    amr_core_adv.InitData( ba, dmap);
-
-
-    // Need to have only one level for now
-    int lev =0;
 
 
     /****************************************************************************
@@ -459,131 +434,37 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
-    //___________________________________________________________________________
-    // Write out initial state
-    if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc,
-                      amr_core_adv, lev);
-    }
-
-    Print() << "Write Plot File Success "<<std::endl;
-
-    //___________________________________________________________________________
-    // FFT test
-    // if (struct_fact_int > 0) {
-    //     std::array <MultiFab, AMREX_SPACEDIM> mf_cc;
-    //     mf_cc[0].define(ba, dmap, 1, 0);
-    //     mf_cc[1].define(ba, dmap, 1, 0);
-    //     mf_cc[2].define(ba, dmap, 1, 0);
-    //     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-    //         const Box& bx = mfi.validbox();
-    //         init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    //                    BL_TO_FORTRAN_ANYD(mf_cc[0][mfi]),
-    //                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-    //     }
-    // }
-
-
-    ib_pc.FillMarkerPositions(0, 64);
-
-
-    //___________________________________________________________________________
-    // Temporary place to store marker forces _outside_ advanve
-    // => this will be moved to the IBParticleContainer class ASAP
-
-    Vector<IBP_info> ibp_info = ib_pc.IBParticleInfo(0, true);
-
-    Vector<ParticleIndex> part_indices(ibp_info.size());
-
-    IBMarkerMap marker_force_0;
-
-    for (int i=0; i<ibp_info.size(); ++i) {
-        part_indices[i] = ibp_info[i].asPairIndex();
-
-        // Pre-allocate particle arrays
-        const Vector<RealVect> marker_positions = ib_pc.MarkerPositions(0, part_indices[i]);
-        // ... initialized to (0..0) by default constructor
-        marker_force_0[part_indices[i]].resize(marker_positions.size());
-    }
-
-    //---------------------------------------------------------------------------
-
-
-
-
     for(step = 1; step <= max_step; ++step) {
+
         Real step_strt_time = ParallelDescriptor::second();
 
-        // if(variance_coef_mom != 0.0) {
+        if(variance_coef_mom != 0.0) {
 
-        //     //___________________________________________________________________
-        //     // Fill stochastic terms
+           //___________________________________________________________________
+           // Fill stochastic terms
 
-        //     sMflux.fillMStochastic();
+            sMflux.fillMStochastic();
 
-        //     // Compute stochastic force terms (and apply to mfluxdiv_*)
-        //     // NOTE: StochMFlux::stochMforce fills ghost cells
-        //     sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        //     sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        // }
+            // Compute stochastic force terms (and apply to mfluxdiv_*)
+            sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+            sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+        }
 
+        //___________________________________________________________________
+        // Advance umac
+        advance(umac, umacNew, pres, tracer, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+                alpha_fc, beta, gamma, beta_ed, geom, dt, time);
 
-        //_______________________________________________________________________
-        // Fill Immersed-Boundary interface data
-
-        int lev_ib = 0;
-        Real t0_ib = 0;
-
-        ib_core.MakeNewLevelFromScratch(lev_ib, t0_ib, ba, dmap);
-
-
-        //_______________________________________________________________________
-        // Advance umac and chemistry
- 
-        advance(amr_core_adv,
-                umac, umacNew, pres, tracer,
-                force_ibm, marker_force_0,
-                mfluxdiv_predict, mfluxdiv_correct,
-                alpha_fc, beta, gamma, beta_ed,
-                ib_pc, ib_core, geom, dt, time);
-
-
-        // Empty force data
-        std::map<ParticleIndex, std::array<Real, AMREX_SPACEDIM>> f_trans;
-        f_trans.clear();
-
-        // Print() << "Force data BEFORE Interpolation:" << std::endl;
-        // for (const auto & f : f_trans) {
-        //     std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
-        //     for (int d=0; d<AMREX_SPACEDIM; ++d)
-        //         std::cout << f.second[d] << std::endl;
-        // }
-
-        ib_pc.InterpolateParticleForces(0, force_ibm, ib_core, f_trans);
-
-        // Print() << "Force data AFTER Interpolation:" << std::endl;
-        // for (const auto & f : f_trans) {
-        //     std::cout << f.first.first <<", " << f.first.second << ":" << std::endl;
-        //     for (int d=0; d<AMREX_SPACEDIM; ++d)
-        //         std::cout << f.second[d] << std::endl;
-        // }
-
-        // ib_pc.MoveIBParticles(0, dt, f_trans);
 
 
         //_______________________________________________________________________
         // Update structure factor
 
-        if (step > n_steps_skip
-                && struct_fact_int > 0
-                && (step-n_steps_skip-1)%struct_fact_int == 0
-            ) {
-
-            for(int d=0; d<AMREX_SPACEDIM; d++)
-                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-          //  Have to comment this out for now
-          //  structFact.FortStructure(struct_in_cc,geom);
-        }
+        // if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        //     for(int d=0; d<AMREX_SPACEDIM; d++)
+        //         ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+        //     structFact.FortStructure(struct_in_cc,geom);
+        // }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -593,35 +474,34 @@ void main_driver(const char * argv) {
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-            // write out umac, pres, f_ibm, and particle data to a plotfile
-            WritePlotFile(step, time, geom, umac, tracer, pres, force_ibm, ib_pc, amr_core_adv,lev);
+           //write out umac & pres to a plotfile
+           WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
         }
     }
 
     ///////////////////////////////////////////
-    if (struct_fact_int > 0) {
-        Real dVol = dx[0]*dx[1];
-        int tot_n_cells = n_cells[0]*n_cells[1];
-        if (AMREX_SPACEDIM == 2) {
-            dVol *= cell_depth;
-        } else if (AMREX_SPACEDIM == 3) {
-            dVol *= dx[2];
-            tot_n_cells = n_cells[2]*tot_n_cells;
-        }
+    // if (struct_fact_int > 0) {
+    //     Real dVol = dx[0]*dx[1];
+    //     int tot_n_cells = n_cells[0]*n_cells[1];
+    //     if (AMREX_SPACEDIM == 2) {
+    //         dVol *= cell_depth;
+    //     } else if (AMREX_SPACEDIM == 3) {
+    //         dVol *= dx[2];
+    //         tot_n_cells = n_cells[2]*tot_n_cells;
+    //     }
 
-        // let rho = 1
-        Real SFscale = dVol/(k_B*temp_const);
-        // Have to comment this out for now
-        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+    //     let rho = 1
+    //     Real SFscale = dVol/(k_B*temp_const);
+    //     Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-        //structFact.Finalize(SFscale);
-       // structFact.WritePlotFile(step,time,geom);
-    }
+    //     structFact.Finalize(SFscale);
+    //     structFact.WritePlotFile(step,time,geom);
+    // }
 
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors
-    Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << std::endl;
+    // Real stop_time = ParallelDescriptor::second() - strt_time;
+    // ParallelDescriptor::ReduceRealMax(stop_time);
+    // amrex::Print() << "Run time = " << stop_time << std::endl;
 
 }

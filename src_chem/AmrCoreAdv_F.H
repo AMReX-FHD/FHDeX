@@ -84,40 +84,18 @@ extern "C"
                 int* iface, const int* if_lo, const int* if_hi,
                 const amrex_real* dx, const amrex_real* prob_lo);
    
-//     void get_gradCdotncc_3d( const int* lo, const int* hi,
-//                const BL_FORT_FAB_ARG_3D(concx),
-//                const BL_FORT_FAB_ARG_3D(concy),
-//                const BL_FORT_FAB_ARG_3D(concz),
-//                BL_FORT_FAB_ARG_3D(s),
-//                BL_FORT_FAB_ARG_3D(MagDCon),
-//                const BL_FORT_FAB_ARG_3D(ls),
-//                const amrex_real* dx, const amrex_real* prob_lo);
-
-
-//   void get_congrad_2d( const int* lo, const int* hi,
-//                const BL_FORT_FAB_ARG_3D(con),
-//                BL_FORT_FAB_ARG_3D(con_x),
-//                BL_FORT_FAB_ARG_3D(con_y),
- //               int* iface, const int* if_lo, const int* if_hi,
- //               const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
-//                const amrex_real* dx, const amrex_real* prob_lo);
-
-    
+   
    void get_ptsource_2d( const int* lo, const int* hi,
-               int* iface, const int* if_lo, const int* if_hi,
-//                const BL_FORT_FAB_ARG_3D(iface),
+               int* ctag, const int* c_lo, const int* c_hi,
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength,const amrex_real* dx,
-                const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
                 const amrex_real* prob_lo);
  
     void get_ptsource_3d( const int* lo, const int* hi,
-                int * iface,const int* if_lo, const int* if_hi,
-//                const BL_FORT_FAB_ARG_3D(iface),
+                int * ctag,const int* c_lo, const int* c_hi,
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength, const amrex_real* dx,
-                const amrex_real* ib_cen_x, const amrex_real* ib_cen_y,
- 		const amrex_real* ib_cen_z, const amrex_real* prob_lo);
+ 	        const amrex_real* prob_lo);
    
 
      void confill (BL_FORT_FAB_ARG_3D(state),

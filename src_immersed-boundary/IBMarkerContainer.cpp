@@ -342,7 +342,6 @@ int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
     bool prev_set = false;
     bool next_set = false;
 
-
     // Loops over neighbor list
     for (int j=0; j < nn; ++j) {
         int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing

@@ -210,12 +210,12 @@ void advance(AmrCoreAdv & amr_core_adv,
     int ibpc_lev = 0; // assume single level for now
     int ib_grow  = 6; // using the 6-point stencil
 
+   // spring coefficient for the immersed boundary points
     Real spring_coefficient = 2e2;
-    amrex::Real scaling_factor=0.1;
 
     int nstep=0;
 
-
+   // Store copies of the concentration surface gradient for predictor
         Vector< std::unique_ptr<MultiFab> > Dc_x0(ibpc_lev+1);
         Vector< std::unique_ptr<MultiFab> > Dc_y0(ibpc_lev+1);
 #if (AMREX_SPACEDIM == 3)
@@ -223,14 +223,15 @@ void advance(AmrCoreAdv & amr_core_adv,
         Vector< std::unique_ptr<MultiFab> > Dc_z0(ibpc_lev+1);
 #endif
         //IBMarkerContainer ib_marker;
-        // advection diffuision (AD) code
+        // Get the locations of the interface and catalyst, as well as the level set and face coordinates for the predicted concentratio advection diffuision (AD) code
         const iMultiFab & iface0 = ib_core.get_TagInterface();
+        const iMultiFab & catalyst0 = ib_core.get_TagCatalyst();
         const MultiFab  & LevelSet0=ib_core.get_LevelSet();
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & FaceCoords=ib_pc.get_face_coords();
-
+        // Indicates that this is a predictor step
         int corrector=0;
-        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector);
 
+        // Copy previous time step's concentration gradient
          amr_core_adv.con_new_copy(ibpc_lev, Dc_x0, 1);
          amr_core_adv.con_new_copy(ibpc_lev, Dc_y0, 2);
 #if (AMREX_SPACEDIM == 3)
@@ -249,7 +250,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     const BoxArray & badpz           = Dc_z0[ibpc_lev]->boxArray();
     const DistributionMapping & dmdpz =Dc_z0[ibpc_lev]->DistributionMap();
 #endif
-
+    // Put all the componets of the concentration surface gradient into an array
     std::array< MultiFab, AMREX_SPACEDIM > DC_s0;
   
     DC_s0[0].define(badpx, dmdpx, 1, ib_grow);
@@ -316,6 +317,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         marker_delta_1[part_indices[i]].resize(marker_positions.size());
         marker_force_1[part_indices[i]].resize(marker_positions.size());
 
+        // The interpolated concentration surface gradients go here
         marker_DCs0[part_indices[i]].resize(marker_positions.size());
         marker_DCs1[part_indices[i]].resize(marker_positions.size());
 
@@ -360,12 +362,10 @@ void advance(AmrCoreAdv & amr_core_adv,
         auto & vel = marker_vel.at(pindex);
 
         ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umac_buffer);
-
+        // interpolate  concentration surface gradient on to markers
         auto & dcs = marker_DCs0.at(pindex);
 
         ib_pc.InterpolateMarkers(ibpc_lev, pindex, dcs, DC_s0);
-        //ib_pc.InterpolateMarkers(ibpc_lev, pindex, cy, Dc_y);
-        //ib_pc.InterpolateMarkers(ibpc_lev, pindex, cz, Dc_z);
    }
     for (const auto & pindex : part_indices) {
         const auto & vel   = marker_vel.at(pindex);
@@ -379,6 +379,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         for (int i=0; i<vel.size(); ++i) {
             del_0[i] = dt*vel[i];
             pos_0[i] = pos[i] + del_0[i];
+            // " force " is defined by the movement of the immersed boundary particles and the interpolated concentration gradient 
             force[i] = f_0[i] - spring_coefficient*del_0[i]+scaling_factor*dcs[i];
 
         }
@@ -484,7 +485,6 @@ void advance(AmrCoreAdv & amr_core_adv,
         MultiFab::Copy(umac_1[d], umac[d], 0, 0, 1, umac[d].nGrow());
         MultiFab::Add(force_0[d], force_ibm[d], 0, 0, 1, 1);
         MultiFab::Add(force_1[d], force_ibm[d], 0, 0, 1, 1);
-        //force_1[d].setVal(0);
     }
 
     MultiFab::Copy(p_0, pres, 0, 0, 1, 1);
@@ -540,6 +540,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     //___________________________________________________________________________
     // Compute corrector's advective term (using predictor's fluid solution)
 
+    // Store copies of the concentration surface gradient for corrector
 
         Vector< std::unique_ptr<MultiFab> > Dc_x1(ibpc_lev+1);
         Vector< std::unique_ptr<MultiFab> > Dc_y1(ibpc_lev+1);
@@ -548,23 +549,27 @@ void advance(AmrCoreAdv & amr_core_adv,
         Vector< std::unique_ptr<MultiFab> > Dc_z1(ibpc_lev+1);
 #endif
         //IBMarkerContainer ib_marker;
-        // advection diffuision (AD) code
+        // One step of EvolveChem to solve for predicted concentration
+        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, catalyst0, catalyst0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
+       
+        // Get the locations of the interface and catalyst, as well as the level set and face coordinates for the corrected concentration advection diffuision (AD) code
+         
+        const iMultiFab & catalyst1 = ib_core.get_TagCatalyst();
+
         const iMultiFab & iface1 = ib_core.get_TagInterface();
         const MultiFab  & LevelSet1=ib_core.get_LevelSet();
         const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & FaceCoords1=ib_pc.get_face_coords();
-
+        // Indicates we are on the corrector step
         corrector=1;
-        amr_core_adv.EvolveChem(umac,umacNew,iface0, iface1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector);
 
-
-//        amr_core_adv.EvolveChem(umacNew, iface1, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords0);
-
+        // copying predicted concentration surface gradients
          amr_core_adv.con_new_copy(ibpc_lev, Dc_x1, 1);
          amr_core_adv.con_new_copy(ibpc_lev, Dc_y1, 2);
 #if (AMREX_SPACEDIM == 3)
 
          amr_core_adv.con_new_copy(ibpc_lev, Dc_z1, 3);
 #endif
+    // putting predicted concentration surface gradients in an array
 
     std::array< MultiFab, AMREX_SPACEDIM > DC_s1;
     DC_s1[0].define(badpx, dmdpx, 1,ib_grow );
@@ -647,7 +652,9 @@ void advance(AmrCoreAdv & amr_core_adv,
     for (const auto & pindex : part_indices) {
         auto & vel = marker_vel.at(pindex);
 
-        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umacNew_buffer);
+        ib_pc.InterpolateMarkers(ibpc_lev, pindex, vel, umacNew_buffer);\
+
+        // interpolating predicted concentration surface gradient on to markers
         auto & dcs = marker_DCs1.at(pindex);
 
         ib_pc.InterpolateMarkers(ibpc_lev, pindex, dcs, DC_s1);
@@ -667,6 +674,8 @@ void advance(AmrCoreAdv & amr_core_adv,
         for (int i=0; i<vel.size(); ++i) {
             del_1[i] = dt*vel[i];
             pos_1[i] = pos[i] + del_1[i];
+            // " force " is defined by the movement of the immersed boundary particles and the interpolated concentration gradient 
+
             force[i] = f_0[i] - spring_coefficient*del_1[i]+scaling_factor*dcs[i];
             f_0[i]   = force[i];
 
@@ -701,7 +710,7 @@ void advance(AmrCoreAdv & amr_core_adv,
         // explicit part
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
         gmres_rhs_u[d].mult(dtinv, 1);
-
+        // RHS 1/2(f_1+f_0) from Heun's method
         MultiFab::Add(force_1[d], force_0[d], 0, 0, 1, 1);
         force_1[d].mult(0.5,1);
 
@@ -729,7 +738,8 @@ void advance(AmrCoreAdv & amr_core_adv,
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, p_1,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
-
+        // One step of EvolveChem to solve for corrected concentration  
+        amr_core_adv.EvolveChem(umac,umac_0,iface0, iface1, catalyst0, catalyst1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // Output velocity solution

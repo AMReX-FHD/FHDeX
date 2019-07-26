@@ -140,6 +140,8 @@ int                        common::plot_ascii;
 int                        common::particle_motion;
 int                        common::solve_chem;
 amrex::Real                common::diffcoeff;
+amrex::Real                common::scaling_factor;
+amrex::Real                common::source_strength;
 int                        common::regrid_int;
 int                        common::do_reflux;
 

@@ -25,7 +25,7 @@ struct IBP_info {
     RealVect pos;     // Particle position
     RealVect vel;     // Particle velocity
     IntVect  index;   // Index (of pos) in the grid
-
+    RealVect ori;     // Orientation of particle
     Real radius;      // Particle radius
     int  id;          // Particle ID (local initial MPI rank)
     int  cpu;         // MPI rank (where the particle was created)

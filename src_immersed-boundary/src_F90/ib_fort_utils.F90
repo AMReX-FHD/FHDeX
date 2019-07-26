@@ -1,5 +1,5 @@
-module ib_fort_utils
-    use amrex_fort_module, only: amrex_real, amrex_particle_real
+	module ib_fort_utils
+	    use amrex_fort_module, only: amrex_real, amrex_particle_real
     use iso_c_binding,     only: c_int
 
     implicit none
@@ -13,6 +13,7 @@ module ib_fort_utils
         real(amrex_real)   :: pos(3)    !< Position
         real(amrex_real)   :: vel(3)    !< Velocity
         integer(c_int)     :: ind(3)    !< Index in grid
+        real(amrex_real)   :: ori(3)    !< Orientation
         real(amrex_real)   :: radius    !< Particle radius
         integer(c_int)     :: id        !< Unique index
         integer(c_int)     :: cpu       !< CPU at time of initialization
@@ -221,6 +222,66 @@ contains
 
         end function cell_contains_interface
     end subroutine tag_interface_ib
+
+    subroutine tag_catalyst_interface(lo,        hi,           &
+                                    part_info,                 &
+                                    iface, iflo, ifhi,         & 
+                                    ctag,       ctaglo, ctaghi,   &
+                                    dx                       ) &
+               bind(C, name="tag_catalyst_interface")
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int),   dimension(3), intent(in   ) :: lo, hi
+
+        ! ** IN:  particle info
+        type(particle_info_t),          intent(in   ) :: part_info
+        ! ** IN:  spatial discretization
+        real(amrex_real), dimension(3), intent(in   ) :: dx
+        integer(c_int), dimension(3), intent(in   ) :: iflo, ifhi
+        ! ** IN:  location of the interface
+
+        integer(c_int),   intent( in) :: iface(iflo(1):ifhi(1), iflo(2):ifhi(2), iflo(3):ifhi(3))
+
+        ! ** OUT: (nodal) location of the catalyst on the colloid
+        integer(c_int),   dimension(3), intent(in   ) :: ctaglo, ctaghi
+        integer(c_int),   intent(  out) :: ctag(ctaglo(1):ctaghi(1), &
+            &                                  ctaglo(2):ctaghi(2), &
+            &                                  ctaglo(3):ctaghi(3))
+
+
+        !________________________________________________________________________
+        ! ** Internal variables:
+        ! i, j, k => cell-centered indices
+        ! pos     => (cell centered) position of the cell (i, j, k)
+        ! pos1    => position of the center of the particle
+        ! vect    => vector from pos1 to pos
+        ! ori     => orientation of particle
+        ! dot     => dot product of the vect and ori 
+        integer                        :: i, j, k
+        real(amrex_real) :: dot
+        real(amrex_real), dimension(3) :: pos1, pos, vect, ori
+
+
+        do k = lo(3), hi(3)
+            do j = lo(2), hi(2)
+                do i = lo(1), hi(1)
+                    pos = (/ (i+0.5)*dx(1), (j+0.5)*dx(2), (k+0.5)*dx(3) /)
+                    pos1 =part_info%pos
+                    vect=pos-part_info%pos
+                    ori=part_info%ori
+                    dot=ori(1)*vect(1)+ori(2)*vect(2)+ori(3)*vect(3)
+                    ! if we are on the interface and on the " bottom half " of the particle (with respect to the orientation  ie dot <=0) then there is catalyst present in this cell, otherwise there isn't
+                    if ((dot<=0.) .and. (iface(i,j,k)==1)) then
+                    ctag(i, j, k) = 1
+                    else 
+                    ctag(i,j,k)=0
+                    end if 
+                end do
+            end do
+        end do
+
+    end subroutine tag_catalyst_interface
 
 
     subroutine fill_levelset_ib(lo,        hi,             &

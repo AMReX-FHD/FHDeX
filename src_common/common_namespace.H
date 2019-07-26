@@ -202,6 +202,8 @@ namespace common {
     // parameters neccesary for chemical reactions
     extern int                        solve_chem;    
     extern amrex::Real                diffcoeff;
+    extern amrex::Real                scaling_factor;
+    extern amrex::Real                source_strength;
     extern int                        regrid_int;    
     extern int                        do_reflux;    
 
