@@ -3,28 +3,50 @@
 
 
 //Computes divergence at cell centres from velcocities at cell faces
-void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+void ComputeDiv(MultiFab& div,
+                const std::array<MultiFab, AMREX_SPACEDIM>& phi_fc,
                 int start_incomp, int start_outcomp, int ncomp,
-                const Geometry & geom, int increment)
+                const Geometry& geom, int increment)
 {
 
     BL_PROFILE_VAR("ComputeDiv()",ComputeDiv);
 
+    const Real* dx = geom.CellSize(); 
+    
     for ( MFIter mfi(div); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        for (int incomp=start_incomp; incomp<start_incomp+ncomp; ++incomp) {
-
-            int outcomp = incomp + start_outcomp - start_incomp;
-
-            compute_div(BL_TO_FORTRAN_BOX(bx),
-                        BL_TO_FORTRAN_N_ANYD(phi_fc[0][mfi],incomp),
-                        BL_TO_FORTRAN_N_ANYD(phi_fc[1][mfi],incomp),
-#if (AMREX_SPACEDIM==3)
-                        BL_TO_FORTRAN_N_ANYD(phi_fc[2][mfi],incomp),
+        const auto& div_fab = (&div)->array(mfi);
+        const auto& phix_fab = (&phi_fc[0])->array(mfi);
+        const auto& phiy_fab = (&phi_fc[1])->array(mfi);
+#if (AMREX_SPACEDIM == 3)        
+        const auto& phiz_fab = (&phi_fc[2])->array(mfi);
 #endif
-                        BL_TO_FORTRAN_N_ANYD(div[mfi],outcomp),
-                        geom.CellSize(), & increment);
+
+        if (increment == 0) {
+            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                div_fab(i,j,k,start_outcomp+n) =
+                      (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0]
+                    + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1]
+#if (AMREX_SPACEDIM == 3)
+                    + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]
+#endif
+                    ;
+            });
+        }
+        else
+        {
+            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+            {
+                div_fab(i,j,k,start_outcomp+n) +=
+                      (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0]
+                    + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1]
+#if (AMREX_SPACEDIM == 3)
+                    + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]
+#endif
+                    ;
+            });
         }
     }
 }
