@@ -99,17 +99,26 @@ void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi
 //Computes gradient at cell centres from cell centred data - oututs to a three component mf.
 void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, const Geometry& geom)
 {
+
+    const Real* dx = geom.CellSize(); 
+
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
-
-
-            compute_grad_cc(BL_TO_FORTRAN_BOX(bx),
-                         BL_TO_FORTRAN_3D(gphi[0][mfi]),
-                         BL_TO_FORTRAN_3D(gphi[1][mfi]),
-#if (AMREX_SPACEDIM==3)
-                         BL_TO_FORTRAN_3D(gphi[2][mfi]),
+        
+        const auto& phi_fab = (&phi)->array(mfi);
+        const auto& gphix_fab = (&gphi[0]) -> array(mfi);
+        const auto& gphiy_fab = (&gphi[1]) -> array(mfi);
+#if (AMREX_SPACEDIM == 3)        
+        const auto& gphiz_fab = (&gphi[2]) -> array(mfi);
 #endif
-                         BL_TO_FORTRAN_3D(phi[mfi]),
-                         geom.CellSize());
-        }    
+
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            gphix_fab(i,j,k) = (phi_fab(i+1,j,k) - phi_fab(i-1,j,k) ) / (2.*dx[0]);
+            gphiy_fab(i,j,k) = (phi_fab(i,j+1,k) - phi_fab(i,j-1,k) ) / (2.*dx[1]);
+#if (AMREX_SPACEDIM == 3)
+            gphiz_fab(i,j,k) = (phi_fab(i,j,k+1) - phi_fab(i,j,k-1) ) / (2.*dx[2]);
+#endif
+        });
+    }
 }

@@ -80,18 +80,6 @@ extern "C"
                   const amrex_real* dx, const amrex_real* prob_lo, const amrex_real* prob_hi, const int* di, const amrex::Real* real_lo, const amrex::Real* real_hi);
 
 ///////////////////////////
-// in compute_div_and_grad.F90
-
-    void compute_grad_cc(const int* lo, const int* hi,
-                     amrex_real* xdata, const int* xdlo, const int* xdhi,
-                     amrex_real* ydata, const int* ydlo, const int* ydhi,
-#if (AMREX_SPACEDIM == 3)
-                     amrex_real* zdata, const int* zdlo, const int* zdhi,
-#endif
-                     const amrex_real* div, const int* divlo, const int* divhi,
-                     const amrex_real* dx);
-
-///////////////////////////
 
 ///////////////////////////
 // in debug.F90
