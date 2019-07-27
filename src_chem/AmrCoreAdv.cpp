@@ -757,6 +757,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     // define location of sources for this level
     iMultiFab & sloc_mf   = * source_loc;
     iMultiFab & sloc_mf_pre   = * source_loc_pre;
+    int Num_loc=sloc_mf.sum(0,false);
+    int Num_loc_Pre=sloc_mf_pre.sum(0,false);
     // problem set up
     const Real * dx      = geom[lev].CellSize();
     const Real * prob_lo = geom[lev].ProbLo();
@@ -835,12 +837,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
                                  & strength, dx,
-                                 AMREX_ZFILL(prob_lo));
+                                 AMREX_ZFILL(prob_lo), & Num_loc);
                 get_ptsource_2d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl_p),
                                  BL_TO_FORTRAN_3D(ptS_p),
                                  & strength, dx,
-                                  AMREX_ZFILL(prob_lo));
+                                  AMREX_ZFILL(prob_lo),& Num_loc_Pre);
 
 
                 // compute new state (stateout) and fluxes.
@@ -874,12 +876,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
                                  & strength, dx,
-                                 AMREX_ZFILL(prob_lo));
+                                 AMREX_ZFILL(prob_lo), & Num_loc);
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl_p),
                                  BL_TO_FORTRAN_3D(ptS_p),
                                  & strength, dx,
-                                  AMREX_ZFILL(prob_lo));
+                                  AMREX_ZFILL(prob_lo), & Num_loc_Pre);
 
 
                 // compute new state (stateout) and fluxes.

@@ -89,13 +89,13 @@ extern "C"
                int* ctag, const int* c_lo, const int* c_hi,
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength,const amrex_real* dx,
-                const amrex_real* prob_lo);
+                const amrex_real* prob_lo, int* Num_Source);
  
     void get_ptsource_3d( const int* lo, const int* hi,
                 int * ctag,const int* c_lo, const int* c_hi,
                 BL_FORT_FAB_ARG_3D(ptS),
                 const amrex_real* strength, const amrex_real* dx,
- 	        const amrex_real* prob_lo);
+ 	        const amrex_real* prob_lo, int* Num_source);
    
 
      void confill (BL_FORT_FAB_ARG_3D(state),
