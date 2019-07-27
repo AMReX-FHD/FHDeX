@@ -1054,10 +1054,10 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
    tzf_mf.copy(Czface_array[2], 0, 0,1, 0, 0);
     tzf_mf.FillBoundary(geom[lev].periodicity());
   #endif
-    if( Correct==1){
+//    if( Correct==1){
    // Print out the total concentration in simulated domain vs the true total concentration 
     amrex::Print() << "simulated con total"<< (con_old[lev]->sum(0,false));
-    amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;}
+    amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;//}
 
 }
 
@@ -1088,22 +1088,18 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     }
     // face centered surface gradients
     else if (indicator==1){
-    DistributionMapping xcondm = Dcon_x[lev]->DistributionMap();
-    BoxArray xconba            = Dcon_x[lev]->boxArray();
     int xng=Dcon_x[lev]->nGrow();
-    MF[lev].reset(new MultiFab(xconba, xcondm, 1, 0));
+    MF[lev].reset(new MultiFab(x_face_ba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 
         MF[lev]->copy(* Dcon_x[lev], 0, 0,1, xng, 0);
     }
     else if (indicator==2){
-    DistributionMapping ycondm = Dcon_y[lev]->DistributionMap();
-    BoxArray yconba            = Dcon_y[lev]->boxArray();
     int yng=Dcon_y[lev]->nGrow();
 
 
-    MF[lev].reset(new MultiFab(yconba, ycondm, 1, 0));
+    MF[lev].reset(new MultiFab(y_face_ba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 
@@ -1112,11 +1108,9 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     else if (indicator==3){
   #if (AMREX_SPACEDIM>=3)    
 
-    DistributionMapping zcondm = Dcon_z[lev]->DistributionMap();
-    BoxArray zconba            = Dcon_z[lev]->boxArray();
     int zng=Dcon_z[lev]->nGrow();
 
-    MF[lev].reset(new MultiFab(zconba, zcondm, 1, 0));
+    MF[lev].reset(new MultiFab(z_face_ba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, zng, 0);

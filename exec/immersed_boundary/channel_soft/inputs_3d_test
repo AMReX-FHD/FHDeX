@@ -63,7 +63,7 @@
   solve_chem       = 1
   diffcoeff        = 0.01
   scaling_factor   = 0.1
-  source_strength  = 3000
+  source_strength  = 10
   !amr.regrid_int      = 2  
   do_reflux = 0
 !
