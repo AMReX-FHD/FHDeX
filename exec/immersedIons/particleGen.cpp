@@ -62,7 +62,14 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 //#if (BL_SPACEDIM == 3)
 //                p.pos(2) = phi[2]/2.0+0.77*dx[2];
 //#endif
-//                ll++;
+
+//                p.pos(0) = phi[0]/2.0-10*dx[0] + ll*10*dx[0];
+//                p.pos(1) = phi[1]/2.0;
+//#if (BL_SPACEDIM == 3)
+//                p.pos(2) = phi[2]/2.0;
+//#endif
+
+                ll++;
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
 

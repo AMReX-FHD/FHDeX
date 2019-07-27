@@ -1674,11 +1674,11 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   if(pkernel_es .eq. 3) then 
     !pvol = 6.28319
-    pvol = 0.5
+    pvol = 1
   elseif(pkernel_es .eq. 4) then  
-    pvol = 0.5
+    pvol = 1
   elseif(pkernel_es .eq. 6) then  
-    pvol = 0.5
+    pvol = 1
   endif
 
 
@@ -2601,6 +2601,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
           call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
 
+          !print *, "Coulomb force: ", part%force
           potential = potential + part%potential
       endif
       !print *, "start weights", p
