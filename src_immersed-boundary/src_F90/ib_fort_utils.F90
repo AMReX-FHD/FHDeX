@@ -112,7 +112,8 @@ contains
     end subroutine test_interface
 
 
-    pure subroutine tag_interface_ib(iface, iflo,  ifhi,  &
+!    pure
+ subroutine tag_interface_ib(iface, iflo,  ifhi,  &
                                      phi,   philo, phihi, &
                                      tag,   taglo, taghi )&
                     bind(C, name="tag_interface_ib")
@@ -136,6 +137,7 @@ contains
                 end do
              end do
         end do
+        print*, "interface fill ", maxval(iface)
 
     contains
 
@@ -265,7 +267,7 @@ contains
         real(amrex_real), dimension(3) ::pos, pos1, cent, vect, ori1
         integer                        :: m
         type(particle_info_t), pointer :: p
-
+        print*, "catalyst fill ", maxval(iface)
         do m = 1, np
             p => part_info(m)
            cent =p%pos
@@ -282,12 +284,12 @@ contains
                     dot=ori1(1)*vect(1)+ori1(2)*vect(2)+ori1(3)*vect(3)
                     ! if we are on the interface and on the " bottom half " of the particle (with respect to the orientation  ie dot <=0) then there is catalyst present in this cell, otherwise there isn't
                     !if (iface(i,j,k)==1) then 
-                   ! print *, iface(i,j,k)!" dot ", dot, "pos", pos(3), "vect", vect(3)
+                    !print *, iface(i,j,k)!" dot ", dot, "pos", pos(3), "vect", vect(3)
                     !end if
-
+                    
                     if ((dot<=0.) .and. (iface(i,j,k)==1)) then
                     ctag(i, j, k) = 1
-                   ! print *, " ctag ", ctag(i,j,k), " dot ", dot
+                    print *, " ctag ", ctag(i,j,k), " dot ", dot
 
                     else 
                     ctag(i,j,k)=0

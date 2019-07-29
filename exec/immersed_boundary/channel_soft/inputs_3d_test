@@ -13,7 +13,7 @@
   ! number of cells in domain
   n_cells(1:3) = 16 16 16 !64 64 64 !32 32 32
   ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 16!32 32 32 !16 16 16
+  max_grid_size(1:3) = 8 8 8 !16 16 16!32 32 32 !16 16 16
 
   ! Time-step control
   fixed_dt = 1e-3
@@ -21,8 +21,8 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 1000
-  plot_int = 10
+  max_step = 1!000
+  plot_int = 1
 
 
 
