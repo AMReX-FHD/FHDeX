@@ -22,8 +22,8 @@
   ! max_step = 200000
   ! plot_int = 200000
 
-  max_step = 1000
-  plot_int = 50
+  max_step = 6000
+  plot_int = 100
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
