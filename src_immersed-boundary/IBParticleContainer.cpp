@@ -337,7 +337,6 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
 
                     RealVect ori = RealVect(
                             AMREX_D_DECL(0.,0.,1. ));
-                    std::cout<<" ori"<< ori[0]<<ori[1]<<ori[2]<<std::endl; 
 
                     // Radius
                     Real r = part.rdata(IBP_realData::radius);

@@ -81,7 +81,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
     tag_interface->setVal(0);
 
     // Tag those cells that have catalyst in them
-    tag_catalyst->define(grids[lev], dmap[lev], 1, n_pad);
+    tag_catalyst->define(grids[lev], dmap[lev], 1,n_pad);
     tag_catalyst->setVal(0);
 
 
@@ -210,6 +210,8 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
                           BL_TO_FORTRAN_3D(tag_tile));
 
     }
+    tag_interface->FillBoundary(Geom(lev).periodicity());
+
    /****************************************************************************
     * Tag Catalyst Location                                                    *
     ****************************************************************************/
@@ -224,14 +226,15 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         PairIndex index(mfi.index(), mfi.LocalTileIndex());
 
         Vector<IBP_info> info = ib_pc->IBParticleInfo(lev, index);
+        int n_ibm = info.size();
         const Box & tile_box = mfi.tilebox();
 
               IArrayBox & iface_tile = (* tag_interface)[mfi];
               IArrayBox & cat_tile = (* tag_catalyst)[mfi];
-
-
+         
+    //    std::cout<< " TAG CATALYST max iface"<< iface_tile.max(0) << std::endl;
         tag_catalyst_interface (BL_TO_FORTRAN_BOX(tile_box),
-                                info.dataPtr(), 
+                                info.dataPtr(), & n_ibm, 
                                 BL_TO_FORTRAN_3D(iface_tile), 
                                 BL_TO_FORTRAN_3D(cat_tile), dx.dataPtr());
 
@@ -243,7 +246,7 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
 
 
 
-    tag_interface->FillBoundary(Geom(lev).periodicity());
+//    tag_interface->FillBoundary(Geom(lev).periodicity());
     tag_catalyst->FillBoundary(Geom(lev).periodicity());
 
 

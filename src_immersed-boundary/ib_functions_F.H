@@ -32,7 +32,7 @@ extern "C"
         );
     void tag_catalyst_interface(
             const int  * lo,            const int * hi,
-            const void * particle_info,
+            const void * particle_info, int * np,
             const int  * iface,           const int * iflo, const int * ifhi,
             const int  * ctag,            const int * ctaglo, const int * ctaghi,
             const amrex_real * dx
