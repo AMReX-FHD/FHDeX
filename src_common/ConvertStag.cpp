@@ -28,8 +28,8 @@ void AverageFaceToCC(const MultiFab& face, int face_comp,
 
         const Box& bx = mfi.validbox();
 
-        const auto& face_fab = (&face)->array(mfi);
-        const auto& cc_fab = (&cc)->array(mfi);
+        Array4<Real const> const& face_fab = face.array(mfi);
+        Array4<Real> const& cc_fab = cc.array(mfi);
 
         if (av_dim == 0) {
             AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
@@ -65,15 +65,15 @@ void AverageCCToFace(const MultiFab& cc, int cc_comp,
 
         const Box& bx = mfi.validbox();        
         
-        const auto& cc_fab = (&cc)->array(mfi);
-        const auto& facex_fab = (&face[0]) -> array(mfi);
-        const auto& facey_fab = (&face[1]) -> array(mfi);
-        const Box& bx_x = amrex::growHi(bx,0,1);
-        const Box& bx_y = amrex::growHi(bx,1,1);
-#if (AMREX_SPACEDIM == 3)        
-        const auto& facez_fab = (&face[2]) -> array(mfi);
-        const Box& bx_z = amrex::growHi(bx,2,1);
-#endif
+        Array4<Real const> const& cc_fab = (&cc)->array(mfi);
+
+        AMREX_D_TERM(Array4<Real> const& facex_fab = (&face[0]) -> array(mfi);,
+                     Array4<Real> const& facey_fab = (&face[1]) -> array(mfi);,
+                     Array4<Real> const& facez_fab = (&face[2]) -> array(mfi););
+
+        AMREX_D_TERM(const Box& bx_x = mfi.nodaltilebox(0);,
+                     const Box& bx_y = mfi.nodaltilebox(1);,
+                     const Box& bx_z = mfi.nodaltilebox(2););
 
         AMREX_HOST_DEVICE_FOR_4D(bx_x, ncomp, i, j, k, n,
         {
@@ -103,18 +103,7 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
 
     BL_PROFILE_VAR("ShiftFaceToCC()",ShiftFaceToCC);
 
-    int av_dim;  // along which dimension to do the shift
-
-    if (face.is_nodal(0)) {
-        av_dim = 0;
-    }
-    else if (face.is_nodal(1)) {
-        av_dim = 1;
-    }
-    else if (face.is_nodal(2)) {
-        av_dim = 2;
-    }
-    else {
+    if (!face.is_nodal(0) && !face.is_nodal(1) && !face.is_nodal(2)) {
         Abort("ShiftFaceToCC requires a face-centered MultiFab");
     }
 
@@ -123,8 +112,9 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
 
         const Box& bx = mfi.validbox();
 
-        const auto& face_fab = (&face)->array(mfi);
-        const auto& cc_fab = (&cc)->array(mfi);
+        Array4<Real const> const& face_fab = face.array(mfi);
+        
+        Array4<Real> const& cc_fab = cc.array(mfi);
 
         AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
         {
