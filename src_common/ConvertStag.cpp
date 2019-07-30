@@ -122,9 +122,9 @@ void AverageCCToFace(const MultiFab& cc, int cc_comp,
         
         Array4<Real const> const& cc_fab = cc.array(mfi);
 
-        AMREX_D_TERM(Array4<Real> const& facex_fab = (&face[0]) -> array(mfi);,
-                     Array4<Real> const& facey_fab = (&face[1]) -> array(mfi);,
-                     Array4<Real> const& facez_fab = (&face[2]) -> array(mfi););
+        AMREX_D_TERM(Array4<Real> const& facex_fab = face[0].array(mfi);,
+                     Array4<Real> const& facey_fab = face[1].array(mfi);,
+                     Array4<Real> const& facez_fab = face[2].array(mfi););
 
         AMREX_D_TERM(const Box& bx_x = mfi.nodaltilebox(0);,
                      const Box& bx_y = mfi.nodaltilebox(1);,
