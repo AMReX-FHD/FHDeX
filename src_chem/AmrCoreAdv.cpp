@@ -767,7 +767,6 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     int Num_loc_Pre=sloc_mf_pre.sum(0,false);
     // problem set up
     const Real * dx      = geom[lev].CellSize();
-    std::cout << *dx<<std::endl;
     const Real * prob_lo = geom[lev].ProbLo();
     // initalize fluxes multifab, reflux is old code for AMR
     MultiFab fluxes[BL_SPACEDIM];
@@ -1064,8 +1063,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     if( Correct==1){
    // Print out the total concentration in simulated domain vs the true total concentration 
     amrex::Real SA=2*3.14*0.1*0.1;
-    amrex::Print() << "simulated con total grid "<< (con_old[lev]->sum(0,false));
-    amrex::Print() << "simulated con surface "<< (ptSource.sum(0,false))*(time+dt[0]);
+    amrex::Print() << "simulated con total grid "<< (con_old[lev]->sum(0,false)*(*dx)*(*dx)*(*dx));
+    amrex::Print() << "simulated con surface "<< (ptSource.sum(0,false))*(time+dt[0])*(*dx)*(*dx)/4;
     amrex::Print() << "true con total"<< SA*strength*(time+dt[0])<< std::endl;}
 
 }

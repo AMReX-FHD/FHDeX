@@ -209,11 +209,9 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
         tag_interface_ib (BL_TO_FORTRAN_3D(iface_tile),
                           BL_TO_FORTRAN_3D(phi_tile),
                           BL_TO_FORTRAN_3D(tag_tile));
-    std::cout<< "tag interface IBCore1 "<< iface_tile.max(0)<< std::endl;
 
     }
     tag_interface->FillBoundary(Geom(lev).periodicity());
-    std::cout<< "tag intergace IBCore2 "<< (*tag_interface).max(0,false)<< std::endl;
    /****************************************************************************
     * Tag Catalyst Location                                                    *
     ****************************************************************************/
@@ -234,7 +232,6 @@ void IBCore::MakeNewLevelFromScratch (int lev, Real time,
               IArrayBox & iface_tile = (* tag_interface)[mfi];
               IArrayBox & cat_tile = (* tag_catalyst)[mfi];
          
-        std::cout<< " TAG CATALYST max iface"<< iface_tile.max(0) << std::endl;
         tag_catalyst_interface (BL_TO_FORTRAN_BOX(tile_box),
                                 info.dataPtr(), & n_ibm, 
                                 BL_TO_FORTRAN_3D(iface_tile), 

@@ -137,7 +137,6 @@ contains
                 end do
              end do
         end do
-        print*, "interface fill ", maxval(iface)
 
     contains
 
@@ -267,16 +266,13 @@ contains
         real(amrex_real), dimension(3) ::pos, pos1, cent, vect, ori1
         integer                        :: m
         type(particle_info_t), pointer :: p
-        print*, "catalyst fill ", maxval(iface)
         do m = 1, np
             p => part_info(m)
            cent =p%pos
-
            ori1 = p%ori
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                !    print *, i, j,k
                    ! print *, " center ",cent
                     pos = (/ (i+0.5)*dx(1), (j+0.5)*dx(2), (k+0.5)*dx(3) /)
                    ! print *," ori ", ori1
@@ -289,7 +285,6 @@ contains
                     
                     if ((dot<=0.) .and. (iface(i,j,k)==1)) then
                     ctag(i, j, k) = 1
-                    print *, " ctag ", ctag(i,j,k), " dot ", dot
 
                     else 
                     ctag(i,j,k)=0
