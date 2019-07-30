@@ -1,57 +1,6 @@
 #include "common_functions.H"
 #include "common_functions_F.H"
 
-void AverageFaceToCC(const MultiFab& face, int face_comp,
-                     MultiFab& cc, int cc_comp,
-                     int ncomp)
-{
-
-    BL_PROFILE_VAR("AverageFaceToCC()",AverageFaceToCC);
-
-    int av_dim;  // along which dimension to do the average
-
-    if (face.is_nodal(0)) {
-        av_dim = 0;
-    }
-    else if (face.is_nodal(1)) {
-        av_dim = 1;
-    }
-    else if (face.is_nodal(2)) {
-        av_dim = 2;
-    }
-    else {
-        Abort("AverageFaceToCC requires a face-centered MultiFab");
-    }
-    
-    // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
-
-        const Box& bx = mfi.validbox();
-
-        Array4<Real const> const& face_fab = face.array(mfi);
-        Array4<Real> const& cc_fab = cc.array(mfi);
-
-        if (av_dim == 0) {
-            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
-            {
-                cc_fab(i,j,k,cc_comp+n) = 0.5*(face_fab(i+1,j,k,face_comp+n) + face_fab(i,j,k,face_comp+n));
-            });
-        }
-        else  if (av_dim == 1) {
-            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
-            {
-                cc_fab(i,j,k,cc_comp+n) = 0.5*(face_fab(i,j+1,k,face_comp+n) + face_fab(i,j,k,face_comp+n));
-            });
-        }
-        else {
-            AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
-            {
-                cc_fab(i,j,k,cc_comp+n) = 0.5*(face_fab(i,j,k+1,face_comp+n) + face_fab(i,j,k,face_comp+n));
-            });
-        }
-    }
-}
-
 void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
                      MultiFab& cc, int cc_comp)
 {

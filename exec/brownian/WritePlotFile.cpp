@@ -44,9 +44,7 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(eplotfile,potential,0,1,1,0);
 
     // average staggered velocities to cell-centers and copy into plotfile
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        AverageFaceToCC(efield[i],0,eplotfile,2+i,1);
-    }
+    AverageFaceToCC(efield,eplotfile,2);
 
     amrex::MultiFab::Copy(cplotfile,particleInstant,0,0,11,0);
     amrex::MultiFab::Copy(cplotfile,particleMeans,0,11,12,0);
