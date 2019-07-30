@@ -32,8 +32,8 @@ subroutine get_ptsource_3d( lo, hi, &
 
            ! if catalyst is present then create a point source, strength scaled by grid size so that solution isn't grid dependent
            if (ctag(i,j,k).eq.1) then
-           pts(i,j,k)=strength/(dx(1)*dx(2)*dx(3))
-           print *, pts(i,j,k)
+           pts(i,j,k)=strength!(dx(1)*dx(2)*dx(3))
+          ! print *, pts(i,j,k)
            endif
         enddo
      enddo
