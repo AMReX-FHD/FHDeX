@@ -7,25 +7,25 @@
 
 using namespace common;
 
-int greatest_common_divisor(int,int);
+int greatest_common_factor(int,int);
 void factor(int,int*,int);
 
 //Computes divergence at cell centres from velcocities at cell faces
-void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg, 
+void ComputeVerticalAverage(const MultiFab& mf,
 			    const Geometry& geom, const int dir, 
-			    const int incomp, const int ncomp)
+			    const int incomp, const int ncomp,
+			    const int findredist)
 {
 
   bool write_data = false;
-  std::string plotname; 
+  std::string plotname;
 
   int outcomp = 0;
   int inputcomp = 0;
 
-  MultiFab mf_flattened, mf_pencil;
+  MultiFab mf_pencil, mf_avg;
 
   BoxArray ba_in = mf.boxArray();
-  BoxArray ba_flattened;
   BoxArray ba_pencil;
   BoxArray ba_flat;
 
@@ -33,7 +33,6 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
   Box domain(geom.Domain());
   const DistributionMapping& dmap = mf.DistributionMap();
 
-  Vector<int> max_grid_size_flattened(AMREX_SPACEDIM);
   Vector<int> max_grid_size_pencil(AMREX_SPACEDIM);
   Vector<int> max_grid_size_flat(AMREX_SPACEDIM);
 
@@ -51,91 +50,62 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
   if (nbx[0]*nbx[1]*nbx[2] != ba_in.size()) 
     amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
 
-  nxprod = nx[0]*nx[1]*nx[2]/nx[dir];
-  if (nxprod%nbx[dir] != 0) {
-    amrex::Error("CURRENT PENCIL REFACTORING DOESN'T WORK");
-  } else {
-    nxprod /= nbx[dir];
-  }
-
   indlo = (dir-1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
   indhi = (dir+1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
 
   IntVect dom_lo(domain.loVect());
   IntVect dom_hi(domain.hiVect());
-  dom_hi[dir] = nbx[dir]-1;
-  Box domain_flattened(dom_lo, dom_hi);
   dom_hi[dir] = 0;
   Box domain_flat(dom_lo, dom_hi);
 
-  a = greatest_common_divisor( nxprod,domain.length(indlo) );
-  b = greatest_common_divisor( nxprod,domain.length(indhi) );
-  c = (a*b)/nxprod;
-  factor(c, mx, 2);
-  mx[0] = a/mx[0];
-  mx[1] = b/mx[1];
+  if (findredist == 1) {
 
-  // Print() << "Hack: " << a << "," << b << "," << c << std::endl;
-  // Print() << "Hack: " << nxprod << ", grids: " << mx[0] << "x" << mx[1] << std::endl;
+    nxprod = nx[0]*nx[1]*nx[2]/nx[dir];
+    if (nxprod%nbx[dir] != 0) {
+      amrex::Error("CURRENT PENCIL REFACTORING DOESN'T WORK");
+    } else {
+      nxprod /= nbx[dir];
+    }
 
-  if (mx[0]*mx[1] != nxprod) 
-    amrex::Error("FACTORING NOT POSSIBLE DUE TO UNCOMMON PRIME FACTOR");
+    // Find a,b,&c such that (a*b)/c = (nx*ny)/pz, with c as a common factor to a & b
+    a = greatest_common_factor( nxprod,domain.length(indlo) );
+    b = greatest_common_factor( nxprod,domain.length(indhi) );
+    c = (a*b)/nxprod; // c is a factor of both a & b
+    factor(c, mx, 2); // factor c into two numbers
+    mx[0] = a/mx[0];
+    mx[1] = b/mx[1];
+
+    if (mx[0]*mx[1] != nxprod) 
+      amrex::Error("FACTORING NOT POSSIBLE DUE TO UNCOMMON PRIME FACTOR");
+
+  } else {
+    
+    // mx[0] = ;
+    // mx[1] = ;
+
+  }
 
   mbx[0] = domain.length(indlo)/mx[0];
   mbx[1] = domain.length(indhi)/mx[1];
 
   Print() << "2D redist: " << mbx[0] << "x" << mbx[1] << ", grids: " << mx[0] << "x" << mx[1] << std::endl;
 
-  max_grid_size_flattened      = max_grid_size;
-  max_grid_size_flattened[dir] = 1;      // nx[dir]
-
   max_grid_size_pencil[indlo] = mx[0];
   max_grid_size_pencil[indhi] = mx[1];
-  max_grid_size_pencil[dir]   = nbx[dir];          // nx[dir]
-  // max_grid_size_pencil[dir]   = domain.length(dir);
-
-  max_grid_size_flat      = max_grid_size_pencil;
-  max_grid_size_flat[dir] = 1;
-
-  ba_flattened.define(domain_flattened);
-  ba_flattened.maxSize(IntVect(max_grid_size_flattened));
-  mf_flattened.define(ba_flattened,dmap,ncomp,0);
-
-  Print() << domain_flattened << std::endl;
-  Print() << IntVect(max_grid_size_flattened) << std::endl;
-  Print() << ba_flattened << std::endl;
-
-  ba_pencil.define(domain_flattened);
-  // ba_pencil.define(domain);
+  max_grid_size_pencil[dir]   = domain.length(dir);
+  ba_pencil.define(domain);
   ba_pencil.maxSize(IntVect(max_grid_size_pencil));
   mf_pencil.define(ba_pencil,dmap,ncomp,0);
 
-  Print() << dmap << std::endl;
-  Print() << domain_flattened << std::endl;
-  Print() << IntVect(max_grid_size_pencil) << std::endl;
-  Print() << ba_pencil << std::endl;
-
+  max_grid_size_flat      = max_grid_size_pencil;
+  max_grid_size_flat[dir] = 1;
   ba_flat.define(domain_flat);
   ba_flat.maxSize(IntVect(max_grid_size_flat));
   mf_avg.define(ba_flat,dmap,ncomp,0);
 
-  inputcomp = incomp;
-  for ( MFIter mfi(mf); mfi.isValid(); ++mfi ) {
-    const Box& bx = mfi.validbox();
-    compute_vert_average(BL_TO_FORTRAN_BOX(bx),
-  			 BL_TO_FORTRAN_FAB(mf[mfi]),BL_TO_FORTRAN_FAB(mf_flattened[mfi]), 
-  			 &dir, &inputcomp, &outcomp, &ncomp);
-  }
-
-  if (write_data) {
-    plotname = "mf_flattened";
-    VisMF::Write(mf_flattened,plotname);
-  }
-
   // Copy/redistrubute to pencils
 
-  mf_pencil.ParallelCopy(mf_flattened, 0, 0, ncomp);
-  // mf_pencil.ParallelCopy(mf, incomp, 0, ncomp);
+  mf_pencil.ParallelCopy(mf, incomp, 0, ncomp);
 
   if (write_data) {
     plotname = "mf_pencil";
@@ -157,44 +127,36 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
 }
 
-int greatest_common_divisor(int a, int b) {
-  return b == 0 ? a : greatest_common_divisor(b, a % b);
+// Functions for computing automatic refactorization of 3D -> 2D grids
+
+int greatest_common_factor(int a, int b) {
+  return b == 0 ? a : greatest_common_factor(b, a % b);
 }
 
 void factor(int num, int* factors, int nf) {
-  
   int n = num;
   int cnt = 0;
-  
+
   for (int i=0; i<nf; i++)  
     factors[i]=1;
 
-  // factor out powers of 2 
-  while (n%2 == 0)  
-    {  
-      // cout << 2 << " ";  
+  while (n%2 == 0) { // factor out powers of 2 
       n /= 2; 
       factors[cnt%nf]*=2;
       cnt++;
-    }  
-  for (int i=3; i<=sqrt(n); i+=2)  
-    {  
-      // find other odd factors
-      while (n % i == 0)  
-	{  
-	  // cout << i << " ";  
+  } 
+  for (int i=3; i<=sqrt(n); i+=2) { // find other odd factors
+     while (n % i == 0) {
 	  n /= i;  
 	  factors[cnt%nf]*=i;
 	  cnt++;
-	}  
-    }  
-  
-  // check if n is a prime number greater than 2  
-  if (n > 2)  {
-    // cout << n << " ";  
+     }  
+  }   
+  if (n > 2)  { // check if n is a prime number greater than 2 
     amrex::Error("CANNOT FACTOR PRIME NUMBER");
   }
   
+  // check:
   n = 1;
   for (int i=0; i<nf; i++)  
     n *= factors[i];

@@ -51,6 +51,9 @@ void main_driver(const char* argv)
     //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
     get_hc_gas();
 
+    //initialize boundary condition switches for mass, temperature, & velocity
+    setup_bc();
+
     //compute wall concentrations if BCs call for it
     if (algorithm_type == 2) // if multispecies
       setup_cwall();
@@ -160,8 +163,6 @@ void main_driver(const char* argv)
 
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
-
-    MultiFab cuVertAvg;
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -458,11 +459,13 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-	// if (step > n_steps_skip) {
-	//   evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
+	if (step > n_steps_skip) {
+	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
 
-	//   ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
-	// }
+	  // ComputeVerticalAverage(cu, geom, 2, 5, 1);
+
+	  amrex::Abort("End");
+	}
  
 	///////////////////////////////////////////
 	// Update structure factor
