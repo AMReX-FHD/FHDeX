@@ -16,36 +16,28 @@ void ComputeDiv(MultiFab& div,
     for ( MFIter mfi(div); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        const auto& div_fab = (&div)->array(mfi);
-        const auto& phix_fab = (&phi_fc[0])->array(mfi);
-        const auto& phiy_fab = (&phi_fc[1])->array(mfi);
-#if (AMREX_SPACEDIM == 3)        
-        const auto& phiz_fab = (&phi_fc[2])->array(mfi);
-#endif
+        Array4<Real> const& div_fab = div.array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& phix_fab = phi_fc[0].array(mfi);,
+                     Array4<Real const> const& phiy_fab = phi_fc[1].array(mfi);,
+                     Array4<Real const> const& phiz_fab = phi_fc[2].array(mfi););
 
         if (increment == 0) {
             AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
-            {
+            {                    
                 div_fab(i,j,k,start_outcomp+n) =
-                      (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0]
-                    + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1]
-#if (AMREX_SPACEDIM == 3)
-                    + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]
-#endif
-                    ;
+                    AMREX_D_TERM(  (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0],
+                                 + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1],
+                                 + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]);;
             });
         }
         else
         {
             AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
-            {
+            {                 
                 div_fab(i,j,k,start_outcomp+n) +=
-                      (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0]
-                    + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1]
-#if (AMREX_SPACEDIM == 3)
-                    + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]
-#endif
-                    ;
+                    AMREX_D_TERM(  (phix_fab(i+1,j,k,start_incomp+n) - phix_fab(i,j,k,start_incomp+n)) / dx[0],
+                                 + (phiy_fab(i,j+1,k,start_incomp+n) - phiy_fab(i,j,k,start_incomp+n)) / dx[1],
+                                 + (phiz_fab(i,j,k+1,start_incomp+n) - phiz_fab(i,j,k,start_incomp+n)) / dx[2]);;
             });
         }
     }
@@ -60,18 +52,16 @@ void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi
     const Real* dx = geom.CellSize(); 
     
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
-
-        const Box& bx = mfi.validbox();
         
-        const auto& phi_fab = (&phi)->array(mfi);
-        const auto& gphix_fab = (&gphi[0]) -> array(mfi);
-        const auto& gphiy_fab = (&gphi[1]) -> array(mfi);
-        const Box& bx_x = amrex::growHi(bx,0,1);
-        const Box& bx_y = amrex::growHi(bx,1,1);
-#if (AMREX_SPACEDIM == 3)        
-        const auto& gphiz_fab = (&gphi[2]) -> array(mfi);
-        const Box& bx_z = amrex::growHi(bx,2,1);
-#endif
+        Array4<Real const> const& phi_fab = phi.array(mfi);
+        
+        AMREX_D_TERM(Array4<Real> const& gphix_fab = gphi[0].array(mfi);,
+                     Array4<Real> const& gphiy_fab = gphi[1].array(mfi);,
+                     Array4<Real> const& gphiz_fab = gphi[2].array(mfi););
+        
+        AMREX_D_TERM(const Box& bx_x = mfi.nodaltilebox(0);,
+                     const Box& bx_y = mfi.nodaltilebox(1);,
+                     const Box& bx_z = mfi.nodaltilebox(2););
 
         AMREX_HOST_DEVICE_FOR_4D(bx_x, ncomp, i, j, k, n,
         {
@@ -105,20 +95,17 @@ void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
         
-        const auto& phi_fab = (&phi)->array(mfi);
-        const auto& gphix_fab = (&gphi[0]) -> array(mfi);
-        const auto& gphiy_fab = (&gphi[1]) -> array(mfi);
-#if (AMREX_SPACEDIM == 3)        
-        const auto& gphiz_fab = (&gphi[2]) -> array(mfi);
-#endif
+        Array4<Real const> const& phi_fab = phi.array(mfi);
+
+        AMREX_D_TERM(Array4<Real> const& gphix_fab = gphi[0].array(mfi);,
+                     Array4<Real> const& gphiy_fab = gphi[1].array(mfi);,
+                     Array4<Real> const& gphiz_fab = gphi[2].array(mfi););
 
         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
         {
-            gphix_fab(i,j,k) = (phi_fab(i+1,j,k) - phi_fab(i-1,j,k) ) / (2.*dx[0]);
-            gphiy_fab(i,j,k) = (phi_fab(i,j+1,k) - phi_fab(i,j-1,k) ) / (2.*dx[1]);
-#if (AMREX_SPACEDIM == 3)
-            gphiz_fab(i,j,k) = (phi_fab(i,j,k+1) - phi_fab(i,j,k-1) ) / (2.*dx[2]);
-#endif
+            AMREX_D_TERM(gphix_fab(i,j,k) = (phi_fab(i+1,j,k) - phi_fab(i-1,j,k) ) / (2.*dx[0]);,
+                         gphiy_fab(i,j,k) = (phi_fab(i,j+1,k) - phi_fab(i,j-1,k) ) / (2.*dx[1]);,
+                         gphiz_fab(i,j,k) = (phi_fab(i,j,k+1) - phi_fab(i,j,k-1) ) / (2.*dx[2]););
         });
     }
 }
