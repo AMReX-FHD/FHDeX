@@ -28,6 +28,86 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
 }
 
 
+AMREX_GPU_HOST_DEVICE
+inline
+void avg_cc_to_fc (Box const& tbx,
+                   Box const& xbx,
+                   Box const& ybx,
+#if (AMREX_SPACEDIM == 3)
+                   Box const& zbx,
+#endif
+                   Array4<Real> const& fx,
+                   Array4<Real> const& fy,
+#if (AMREX_SPACEDIM == 3)
+                   Array4<Real> const& fz,
+#endif
+                   Array4<Real const> const& cc,
+                   int fcomp, int ccomp, int ncomp) noexcept
+{
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host    
+    // tlo is the minimal box containins the union of the face-centered grid boxes
+
+    // if running on the gpu, tlo is a box with a single point that comes
+    // from the union of the face-centered grid boxes  
+    
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to
+    // the lower/uppser bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to
+    // the single point defined by tlo, unless tlo is outside of the union
+    // of the face-centered grid boxes, in which case they are set to
+    // values that make sure the loop is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+    
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = xlo.z; k <= xhi.z; ++k) {
+    for (int j = xlo.y; j <= xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = xlo.x; i <= xhi.x; ++i) {
+        fx(i,j,k,fcomp+n) = 0.5*(cc(i-1,j,k,ccomp+n) + cc(i,j,k,ccomp+n));
+    }
+    }
+    }
+    }
+
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+        fy(i,j,k,fcomp+n) = 0.5*(cc(i,j-1,k,ccomp+n) + cc(i,j,k,ccomp+n));
+    }
+    }
+    }
+    }
+
+#if (AMREX_SPACEDIM == 3)
+    for (int n = 0; n < ncomp; ++n) {
+    for (int k = zlo.z; k <= zhi.z; ++k) {
+    for (int j = zlo.y; j <= zhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = zlo.x; i <= zhi.x; ++i) {
+        fz(i,j,k,fcomp+n) = 0.5*(cc(i,j,k-1,ccomp+n) + cc(i,j,k,ccomp+n));
+    }
+    }
+    }
+    }
+#endif
+
+}
+
 void AverageCCToFace(const MultiFab& cc, int cc_comp,
                      std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
                      int ncomp)
@@ -40,7 +120,7 @@ void AverageCCToFace(const MultiFab& cc, int cc_comp,
 
         const Box& bx = mfi.validbox();        
         
-        Array4<Real const> const& cc_fab = (&cc)->array(mfi);
+        Array4<Real const> const& cc_fab = cc.array(mfi);
 
         AMREX_D_TERM(Array4<Real> const& facex_fab = (&face[0]) -> array(mfi);,
                      Array4<Real> const& facey_fab = (&face[1]) -> array(mfi);,
@@ -50,26 +130,20 @@ void AverageCCToFace(const MultiFab& cc, int cc_comp,
                      const Box& bx_y = mfi.nodaltilebox(1);,
                      const Box& bx_z = mfi.nodaltilebox(2););
 
-        AMREX_HOST_DEVICE_FOR_4D(bx_x, ncomp, i, j, k, n,
-        {
-            facex_fab(i,j,k,face_comp+n) = 0.5*(cc_fab(i,j,k,cc_comp+n) + cc_fab(i-1,j,k,cc_comp+n));
-        });
+        const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x,bx_y,bx_z));
 
-        AMREX_HOST_DEVICE_FOR_4D(bx_y, ncomp, i, j, k, n,
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
         {
-            facey_fab(i,j,k,face_comp+n) = 0.5*(cc_fab(i,j,k,cc_comp+n) + cc_fab(i,j-1,k,cc_comp+n));
+            avg_cc_to_fc(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
+                         AMREX_D_DECL(facex_fab,facey_fab,facez_fab), cc_fab,
+                         face_comp, cc_comp, ncomp);           
+            
         });
-
-#if (AMREX_SPACEDIM == 3)
-        AMREX_HOST_DEVICE_FOR_4D(bx_z, ncomp, i, j, k, n,
-        {
-            facez_fab(i,j,k,face_comp+n) = 0.5*(cc_fab(i,j,k,cc_comp+n) + cc_fab(i,j,k-1,cc_comp+n));
-        });
-#endif
 
     }
 
 }
+
 
 void ShiftFaceToCC(const MultiFab& face, int face_comp,
                      MultiFab& cc, int cc_comp,
