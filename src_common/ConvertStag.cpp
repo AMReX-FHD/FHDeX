@@ -52,6 +52,32 @@ void AverageFaceToCC(const MultiFab& face, int face_comp,
     }
 }
 
+void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
+                     MultiFab& cc, int cc_comp)
+{
+
+    BL_PROFILE_VAR("AverageFaceToCC()",AverageFaceToCC);
+    
+    // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
+    for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.validbox();
+
+        AMREX_D_TERM(Array4<Real const> const& facex_fab = face[0].array(mfi);,
+                     Array4<Real const> const& facey_fab = face[1].array(mfi);,
+                     Array4<Real const> const& facez_fab = face[2].array(mfi););
+                        
+        Array4<Real> const& cc_fab = cc.array(mfi);
+
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            AMREX_D_TERM(cc_fab(i,j,k,cc_comp  ) = 0.5*(facex_fab(i+1,j,k) + facex_fab(i,j,k));,
+                         cc_fab(i,j,k,cc_comp+1) = 0.5*(facey_fab(i,j+1,k) + facey_fab(i,j,k));,
+                         cc_fab(i,j,k,cc_comp+2) = 0.5*(facez_fab(i,j,k+1) + facez_fab(i,j,k)););
+        });
+    }
+}
+
 
 void AverageCCToFace(const MultiFab& cc, int cc_comp,
                      std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
