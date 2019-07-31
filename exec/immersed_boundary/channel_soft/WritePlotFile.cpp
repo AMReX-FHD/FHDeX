@@ -97,10 +97,8 @@ void WritePlotFile(int step,
     cnt = 0;
 
     // average staggered velocities to cell-centers and copy into plotfile
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        AverageFaceToCC(umac[d], 0, plotfile, cnt, 1);
-        cnt++;
-    }
+    AverageFaceToCC(umac, plotfile, cnt);
+    cnt+=AMREX_SPACEDIM;
 
     // shift staggered velocities to cell-centers and copy into plotfile
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -120,10 +118,8 @@ void WritePlotFile(int step,
     ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
     cnt++;
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        AverageFaceToCC(force_ibm[d], 0, plotfile, cnt, 1);
-        cnt++;
-    }
+    AverageFaceToCC(force_ibm, plotfile, cnt);
+    cnt+=AMREX_SPACEDIM;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         ShiftFaceToCC(force_ibm[d], 0, plotfile, cnt, 1);

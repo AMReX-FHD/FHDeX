@@ -12,9 +12,9 @@
   nprimvars = 14
 
   ! number of cells in domain
-  n_cells(1:3) = 32 32 32
+  n_cells(1:3) = 8 8 8
   ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 16
+  max_grid_size(1:3) = 4 4 4
 
   ! Time-step control
   fixed_dt = 1e-12
@@ -52,9 +52,16 @@
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:
-  ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  bc_lo(1:3) = -1 -1 -1
-  bc_hi(1:3) = -1 -1 -1
+  !  BC spec.   =   Species density       Velocity        Temperature             
+  !    ----               ----              ----              ----
+  !     -1      |       periodic           periodic         periodic 
+  !      1      |         wall               slip           adiabatic
+  !      2      |       reservoir           no slip         isothermal
+  !      3      |         wall              no slip         isothermal
+  !      4      |         wall              no slip         adiabatic
+
+  bc_lo(1:3) = -1 -1 4
+  bc_hi(1:3) = -1 -1 4
 
   membrane_cell = -1
 
@@ -86,14 +93,13 @@
 
 &compressible
 
-  ! vel_bc(1,1:3) = -1 -1 -1
-  ! vel_bc(2,1:3) = -1 -1 -1
-
-  ! therm_bc(1,1:3) = -1 -1 -1
-  ! therm_bc(2,1:3) = -1 -1 -1
-
-  ! conc_bc(1,1:3) = -1 -1 -1
-  ! conc_bc(2,1:3) = -1 -1 -1
+  ! -1 = periodic, 1 = neumann, 2 = dirichlet
+  mass_bc_lo(1:3) = 0 0 0
+  mass_bc_hi(1:3) = 0 0 0	
+  therm_bc_lo(1:3) = 0 0 0
+  therm_bc_hi(1:3) = 0 0 0
+  vel_bc_lo(1:3) = 0 0 0
+  vel_bc_hi(1:3) = 0 0 0
 
   ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
   ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...

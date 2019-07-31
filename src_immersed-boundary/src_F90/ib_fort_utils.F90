@@ -112,7 +112,8 @@ contains
     end subroutine test_interface
 
 
-    pure subroutine tag_interface_ib(iface, iflo,  ifhi,  &
+!    pure
+ subroutine tag_interface_ib(iface, iflo,  ifhi,  &
                                      phi,   philo, phihi, &
                                      tag,   taglo, taghi )&
                     bind(C, name="tag_interface_ib")
@@ -224,7 +225,7 @@ contains
     end subroutine tag_interface_ib
 
     subroutine tag_catalyst_interface(lo,        hi,           &
-                                    part_info,                 &
+                                    part_info,   np,           &
                                     iface, iflo, ifhi,         & 
                                     ctag,       ctaglo, ctaghi,   &
                                     dx                       ) &
@@ -235,7 +236,9 @@ contains
         integer(c_int),   dimension(3), intent(in   ) :: lo, hi
 
         ! ** IN:  particle info
-        type(particle_info_t),          intent(in   ) :: part_info
+        integer(c_int),                 intent(in   ) :: np 
+        type(particle_info_t),          intent(in   ), target :: part_info(np)
+        ! type(particle_info_t),          intent(in   ), target :: part_info
         ! ** IN:  spatial discretization
         real(amrex_real), dimension(3), intent(in   ) :: dx
         integer(c_int), dimension(3), intent(in   ) :: iflo, ifhi
@@ -260,20 +263,29 @@ contains
         ! dot     => dot product of the vect and ori 
         integer                        :: i, j, k
         real(amrex_real) :: dot
-        real(amrex_real), dimension(3) :: pos1, pos, vect, ori
-
-
+        real(amrex_real), dimension(3) ::pos, pos1, cent, vect, ori1
+        integer                        :: m
+        type(particle_info_t), pointer :: p
+        do m = 1, np
+            p => part_info(m)
+           cent =p%pos
+           ori1 = p%ori
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
+                   ! print *, " center ",cent
                     pos = (/ (i+0.5)*dx(1), (j+0.5)*dx(2), (k+0.5)*dx(3) /)
-                    pos1 =part_info%pos
-                    vect=pos-part_info%pos
-                    ori=part_info%ori
-                    dot=ori(1)*vect(1)+ori(2)*vect(2)+ori(3)*vect(3)
+                   ! print *," ori ", ori1
+                    vect=cent-pos !part_info%pos
+                    dot=ori1(1)*vect(1)+ori1(2)*vect(2)+ori1(3)*vect(3)
                     ! if we are on the interface and on the " bottom half " of the particle (with respect to the orientation  ie dot <=0) then there is catalyst present in this cell, otherwise there isn't
+                    !if (iface(i,j,k)==1) then 
+                    !print *, iface(i,j,k)!" dot ", dot, "pos", pos(3), "vect", vect(3)
+                    !end if
+                    
                     if ((dot<=0.) .and. (iface(i,j,k)==1)) then
                     ctag(i, j, k) = 1
+
                     else 
                     ctag(i,j,k)=0
                     end if 
@@ -281,6 +293,7 @@ contains
             end do
         end do
 
+        end do
     end subroutine tag_catalyst_interface
 
 

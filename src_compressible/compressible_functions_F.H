@@ -17,7 +17,10 @@ extern "C"
   void read_compressible_namelist (const char* inputs_file, const int length);
 
   // copy contents of compressible_params_module to C++ compressible namespace
-  void initialize_compressible_namespace(amrex::Real* Yk_bc, amrex::Real* Xk_bc);
+  void initialize_compressible_namespace(int* mass_bc_lo, int* mass_bc_hi,
+					 int* therm_bc_lo, int* therm_bc_hi,
+					 int* vel_bc_lo, int* vel_bc_hi,
+					 amrex::Real* Yk_bc, amrex::Real* Xk_bc);
 
 ///////////////////////////
 
@@ -153,6 +156,8 @@ extern "C"
   void set_bc(const int* lo, const int* hi,
 	      amrex::Real* cons,
 	      amrex::Real* prim);
+
+  void setup_bc();
 
   void setup_cwall();
 

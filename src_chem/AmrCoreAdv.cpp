@@ -330,9 +330,15 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        con_old[lev]->setVal(0.);
        // fills in concentration 
        MakeNewLevelFromScratch ( lev, 0., ba, dm);
+       BoxArray x_face_ba=ba;
+       BoxArray y_face_ba=ba;
+       BoxArray z_face_ba=ba;
+        x_face_ba.surroundingNodes(0);
+        y_face_ba.surroundingNodes(1);
+        z_face_ba.surroundingNodes(2);
        
-       Dcon_x[lev].reset(new MultiFab(ba, dm, 1, 1));
-       Dcon_y[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dcon_x[lev].reset(new MultiFab(x_face_ba, dm, 1, 1));
+       Dcon_y[lev].reset(new MultiFab(y_face_ba, dm, 1, 1));
       
        Dconc_x[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dconc_y[lev].reset(new MultiFab(ba, dm, 1, 1));
@@ -344,7 +350,7 @@ void AmrCoreAdv::InitData ( BoxArray & ba, DistributionMapping & dm)
        Dconc_y[lev]->setVal(0.);
 
 
-       Dcon_z[lev].reset(new MultiFab(ba, dm, 1, 1));
+       Dcon_z[lev].reset(new MultiFab(z_face_ba, dm, 1, 1));
        Dconc_z[lev].reset(new MultiFab(ba, dm, 1, 1));
        Dcon_z[lev]->setVal(0.);
        
@@ -757,6 +763,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     // define location of sources for this level
     iMultiFab & sloc_mf   = * source_loc;
     iMultiFab & sloc_mf_pre   = * source_loc_pre;
+    int Num_loc=sloc_mf.sum(0,false);
+    int Num_loc_Pre=sloc_mf_pre.sum(0,false);
     // problem set up
     const Real * dx      = geom[lev].CellSize();
     const Real * prob_lo = geom[lev].ProbLo();
@@ -835,12 +843,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
                                  & strength, dx,
-                                 AMREX_ZFILL(prob_lo));
+                                 AMREX_ZFILL(prob_lo), & Num_loc);
                 get_ptsource_2d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl_p),
                                  BL_TO_FORTRAN_3D(ptS_p),
                                  & strength, dx,
-                                  AMREX_ZFILL(prob_lo));
+                                  AMREX_ZFILL(prob_lo),& Num_loc_Pre);
 
 
                 // compute new state (stateout) and fluxes.
@@ -874,12 +882,12 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
                                  & strength, dx,
-                                 AMREX_ZFILL(prob_lo));
+                                 AMREX_ZFILL(prob_lo), & Num_loc);
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl_p),
                                  BL_TO_FORTRAN_3D(ptS_p),
                                  & strength, dx,
-                                  AMREX_ZFILL(prob_lo));
+                                  AMREX_ZFILL(prob_lo), & Num_loc_Pre);
 
 
                 // compute new state (stateout) and fluxes.
@@ -1054,8 +1062,10 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
   #endif
     if( Correct==1){
    // Print out the total concentration in simulated domain vs the true total concentration 
-    amrex::Print() << "simulated con total"<< (con_old[lev]->sum(0,false));
-    amrex::Print() << "true con total"<< ptSource.sum(0,false)*(time+dt[0])<< std::endl;}
+    amrex::Real SA=2*3.14*0.1*0.1;
+    amrex::Print() << "time = "<< time+dt[0]<< " simulated con total grid "<< (con_old[lev]->sum(0,false)*(*dx)*(*dx)*(*dx));
+    amrex::Print() << "simulated con surface "<< (ptSource.sum(0,false))*(time+dt[0])*(*dx)*(*dx)/4;
+    amrex::Print() << "true con total"<< SA*strength/Num_loc*(time+dt[0])<< std::endl;}
 
 }
 
@@ -1065,16 +1075,16 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
 
     DistributionMapping condm = con_new[lev]->DistributionMap();
     BoxArray conba            = con_new[lev]->boxArray();
-    BoxArray x_face_ba = conba;
-    BoxArray y_face_ba = conba;
-    x_face_ba.surroundingNodes(0);
-    y_face_ba.surroundingNodes(1);
+   // BoxArray x_face_ba = conba;
+   // BoxArray y_face_ba = conba;
+   // x_face_ba.surroundingNodes(0);
+   // y_face_ba.surroundingNodes(1);
 
   #if (AMREX_SPACEDIM>=3)    
 
-    BoxArray z_face_ba = conba;
+   // BoxArray z_face_ba = conba;
 
-    z_face_ba.surroundingNodes(2);
+   // z_face_ba.surroundingNodes(2);
   #endif
 
     if (indicator==0){
@@ -1086,22 +1096,20 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     }
     // face centered surface gradients
     else if (indicator==1){
-    DistributionMapping xcondm = Dcon_x[lev]->DistributionMap();
-    BoxArray xconba            = Dcon_x[lev]->boxArray();
     int xng=Dcon_x[lev]->nGrow();
-    MF[lev].reset(new MultiFab(xconba, xcondm, 1, 0));
+    BoxArray x_face_ba= Dcon_x[lev]->boxArray();
+    MF[lev].reset(new MultiFab(x_face_ba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 
         MF[lev]->copy(* Dcon_x[lev], 0, 0,1, xng, 0);
     }
     else if (indicator==2){
-    DistributionMapping ycondm = Dcon_y[lev]->DistributionMap();
-    BoxArray yconba            = Dcon_y[lev]->boxArray();
     int yng=Dcon_y[lev]->nGrow();
+    BoxArray y_face_ba= Dcon_y[lev]->boxArray();
 
 
-    MF[lev].reset(new MultiFab(yconba, ycondm, 1, 0));
+    MF[lev].reset(new MultiFab(y_face_ba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 
@@ -1110,11 +1118,10 @@ void AmrCoreAdv::con_new_copy(int  lev, amrex::Vector<std::unique_ptr<MultiFab>>
     else if (indicator==3){
   #if (AMREX_SPACEDIM>=3)    
 
-    DistributionMapping zcondm = Dcon_z[lev]->DistributionMap();
-    BoxArray zconba            = Dcon_z[lev]->boxArray();
     int zng=Dcon_z[lev]->nGrow();
+    BoxArray z_face_ba= Dcon_z[lev]->boxArray();
 
-    MF[lev].reset(new MultiFab(zconba, zcondm, 1, 0));
+    MF[lev].reset(new MultiFab(z_face_ba, condm, 1, 0));
 
     MF[lev]->setVal(0.);
 	 MF[lev]->copy(* Dcon_z[lev], 0, 0,1, zng, 0);
