@@ -6,7 +6,7 @@
 #include "hydro_functions_F.H"
 
 #include "StochMFlux.H"
-#include "StructFact.H"
+//#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
