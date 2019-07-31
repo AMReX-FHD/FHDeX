@@ -9,12 +9,13 @@ CEXE_headers += common_namespace_declarations.H
 CEXE_headers += species.H
 
 CEXE_sources += ConvertStag.cpp
+CEXE_sources += ComputeBasicStats.cpp
 CEXE_sources += ComputeDivAndGrad.cpp
 CEXE_sources += Debug.cpp
 CEXE_sources += FindCoords.cpp
 CEXE_sources += FindNodalValues.cpp
 CEXE_sources += MultiFABPhysBC.cpp
 CEXE_sources += outputAscii.cpp
+CEXE_sources += SqrtMF.cpp
 
-CEXE_sources += ComputeBasicStats.cpp
 !CEXE_sources += ComputeAverages.cpp

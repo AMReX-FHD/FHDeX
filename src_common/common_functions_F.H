@@ -197,6 +197,10 @@ extern "C"
 
 
 ///////////////////////////
+// in sqrt_mf.F90
+    
+  void sqrt_mf(const int* lo, const int* hi,
+	       const amrex_real* mf, const int* mflo, const int* mfhi, const int* ncomp);
 
 #ifdef __cplusplus
 }
