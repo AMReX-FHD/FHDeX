@@ -715,12 +715,12 @@ contains
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
                    cons(i,j,lo(3)-k,2) = cons(i,j,lo(3)-1+k,2) 
-                   cons(i,j,lo(3)-k,3) = -cons(i,j,lo(3)-1+k,3) 
-                   cons(i,j,lo(3)-k,4) = cons(i,j,lo(3)-1+k,4) 
+                   cons(i,j,lo(3)-k,3) = cons(i,j,lo(3)-1+k,3) 
+                   cons(i,j,lo(3)-k,4) = -cons(i,j,lo(3)-1+k,4) 
 
                    prim(i,j,lo(3)-k,2) = prim(i,j,lo(3)-1+k,2)
-                   prim(i,j,lo(3)-k,3) = -prim(i,j,lo(3)-1+k,3)
-                   prim(i,j,lo(3)-k,4) = prim(i,j,lo(3)-1+k,4)
+                   prim(i,j,lo(3)-k,3) = prim(i,j,lo(3)-1+k,3)
+                   prim(i,j,lo(3)-k,4) = -prim(i,j,lo(3)-1+k,4)
 
                    ! thermal & species (+pressure) BCs must be enforced first
                    fracvec = prim(i,j,lo(3)-k,6+1:6+nspecies)
@@ -866,12 +866,12 @@ contains
                 do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
                    cons(i,j,hi(3)+k,2) = cons(i,j,hi(3)+1-k,2) 
-                   cons(i,j,hi(3)+k,3) = -cons(i,j,hi(3)+1-k,3) 
-                   cons(i,j,hi(3)+k,4) = cons(i,j,hi(3)+1-k,4) 
+                   cons(i,j,hi(3)+k,3) = cons(i,j,hi(3)+1-k,3) 
+                   cons(i,j,hi(3)+k,4) = -cons(i,j,hi(3)+1-k,4) 
 
                    prim(i,j,hi(3)+k,2) = prim(i,j,hi(3)+1-k,2)
-                   prim(i,j,hi(3)+k,3) = -prim(i,j,hi(3)+1-k,3)
-                   prim(i,j,hi(3)+k,4) = prim(i,j,hi(3)+1-k,4)
+                   prim(i,j,hi(3)+k,3) = prim(i,j,hi(3)+1-k,3)
+                   prim(i,j,hi(3)+k,4) = -prim(i,j,hi(3)+1-k,4)
 
                    ! thermal & species (+pressure) BCs must be enforced first
                    fracvec = prim(i,j,hi(3)+k,6+1:6+nspecies)
