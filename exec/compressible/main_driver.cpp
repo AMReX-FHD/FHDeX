@@ -447,6 +447,11 @@ void main_driver(const char* argv)
     }
 	    
     statsCount = 1;
+    
+    // Write initial plotfile
+    conservedToPrimitive(prim, cu);
+    if (plot_int > 0)
+	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
