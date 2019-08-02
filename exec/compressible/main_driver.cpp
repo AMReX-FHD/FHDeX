@@ -193,23 +193,8 @@ void main_driver(const char* argv)
 
     for(int i=0;i<nspecies;i++)
     {
-        prim.setVal(rhobar[i],6+i,1,ngc);
-        cu.setVal(rho0*rhobar[i],5+i,1,ngc);
-
         massvec[i] = rhobar[i];
     }
-
-    get_energy(&intEnergy, massvec, &T0);
-
-    cu.setVal(rho0,0,1,ngc);
-    cu.setVal(0,1,1,ngc);
-    cu.setVal(0,2,1,ngc);
-    cu.setVal(0,3,1,ngc);
-    cu.setVal(rho0*intEnergy,4,1,ngc);
-
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
 
     //fluxes
     std::array< MultiFab, AMREX_SPACEDIM > flux;
@@ -429,15 +414,36 @@ void main_driver(const char* argv)
 
     //Initialize everything
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-      const Box& bx = mfi.validbox();
+    for(int i=0;i<nspecies;i++)
+    {
+        prim.setVal(rhobar[i],6+i,1,ngc);
+        cu.setVal(rho0*rhobar[i],5+i,1,ngc);
 
-      init_consvar(BL_TO_FORTRAN_BOX(bx),
-    	       BL_TO_FORTRAN_FAB(cu[mfi]),
-    	       dx, 
-    	       // geom.ProbLo(), geom.ProbHi(),
-    	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+        massvec[i] = rhobar[i];
+    }
 
+    get_energy(&intEnergy, massvec, &T0);
+
+    cu.setVal(rho0,0,1,ngc);
+    cu.setVal(0,1,1,ngc);
+    cu.setVal(0,2,1,ngc);
+    cu.setVal(0,3,1,ngc);
+    cu.setVal(rho0*intEnergy,4,1,ngc);
+
+    cup.setVal(rho0,0,1,ngc);
+    cup2.setVal(rho0,0,1,ngc);
+    cup3.setVal(rho0,0,1,ngc);
+    
+    if (prob_type > 1) {
+      for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+	const Box& bx = mfi.validbox();
+
+	init_consvar(BL_TO_FORTRAN_BOX(bx),
+		     BL_TO_FORTRAN_ANYD(cu[mfi]),
+		     BL_TO_FORTRAN_ANYD(prim[mfi]),
+		     dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+      }
     }
 	    
     statsCount = 1;
@@ -464,7 +470,7 @@ void main_driver(const char* argv)
 
 	  // ComputeVerticalAverage(cu, geom, 2, 5, 1);
 
-	  amrex::Abort("End");
+	  // amrex::Abort("End");
 	}
  
 	///////////////////////////////////////////
