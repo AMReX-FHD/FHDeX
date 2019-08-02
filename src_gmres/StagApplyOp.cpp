@@ -65,7 +65,7 @@ void StagApplyOp(const MultiFab& beta_cc,
     
     // multiply alpha by theta_alpha
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        alpha_fc[d].mult(theta_alpha, 1);
+        alpha_fc[d].mult(theta_alpha);
     }
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
@@ -139,7 +139,7 @@ void StagApplyOp(const MultiFab& beta_cc,
 
     // divide alpha by theta_alpha
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        alpha_fc[d].mult(1./theta_alpha, 1);
+        alpha_fc[d].mult(1./theta_alpha);
     }
 }
 

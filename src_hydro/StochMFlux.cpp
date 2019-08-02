@@ -331,17 +331,6 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
   }
 }
 
-void StochMFlux::SqrtMF(amrex::MultiFab& mf) {
-  for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-
-    // Note: Make sure that multifab is cell-centered
-    const Box& validBox_cc = enclosedCells(mfi.validbox());
-
-    sqrt_mf(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
-	    BL_TO_FORTRAN_FAB(mf[mfi]));
-  }
-}
-
 void StochMFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
   std::string plotfilename;
   std::string dimStr = "xyz";

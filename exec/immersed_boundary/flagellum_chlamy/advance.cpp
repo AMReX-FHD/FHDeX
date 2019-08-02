@@ -36,7 +36,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              IBMarkerContainer & ib_mc,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-             const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+             std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
              const MultiFab& beta, const MultiFab& gamma,
              const std::array< MultiFab, NUM_EDGE >& beta_ed,
              const Geometry geom, const Real& dt, Real time)
@@ -177,7 +177,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     Real driv_period = 0.0133;  // corresponding to beat frequency of 75.2 Hz
     Real length_flagellum = 0.5;
     //Real driv_amp = 15 * std::min(time*10, 1.);
-    Real driv_amp = 0.00001; // * std::min(time*10, 1.);
+    Real driv_amp = 50 * std::min(time*10, 1.);
     Print() << "driv_amp = " << driv_amp << std::endl;
 
 
@@ -283,6 +283,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             ParticleType & mark = markers[i];
             // Zero z-velocity only
             mark.rdata(IBM_realData::pred_velz) = 0.;
+
+	    // fix the first marker in x and y as well. can also use id_1==0
+            if (mark.idata(IBM_intData::id_0) == -1) {
+	    	mark.rdata(IBM_realData::pred_velx) = 0.;
+                mark.rdata(IBM_realData::pred_vely) = 0.;
+            }
+
         }
     }
 
@@ -409,7 +416,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                     + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
                                     + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
 
-                Real theta = l_db*driv_amp*theta_raw;
+                s = (mark.idata(IBM_intData::id_1)+1)/20;
+
+                a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
+                a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
+                a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
+                a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
+                b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
+                b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
+                b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
+
+                Real theta_raw_next = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
+                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
+                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
+
+                Real theta = l_db*driv_amp*(theta_raw - theta_raw_next);
+
+		//std::cout << "predictor theta = " << theta << std::endl;
 
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
 
@@ -582,6 +605,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             ParticleType & mark = markers[i];
             // Zero z-velocity only
             mark.rdata(IBM_realData::velz) = 0.;
+
+            // fix the first marker in x and y as well. can also use id_1==0
+            if (mark.idata(IBM_intData::id_0) == -1) {
+                mark.rdata(IBM_realData::velx) = 0.;
+                mark.rdata(IBM_realData::vely) = 0.;
+            }
         }
     }
 
@@ -708,8 +737,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                     + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
                                     + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
 
-                Real theta = l_db*driv_amp*theta_raw;
+                s = (mark.idata(IBM_intData::id_1)+1)/20;
 
+                a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
+                a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
+                a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
+                a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
+                b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
+                b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
+                b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
+
+                Real theta_raw_next = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
+                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
+                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
+
+                Real theta = l_db*driv_amp*(theta_raw - theta_raw_next);
+
+                //std::cout << "corrector theta = " << theta << std::endl;
 
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
 

@@ -102,9 +102,6 @@ extern "C"
     const amrex_real* temperature_yz, const int* tempyzlo, const int* tempyzhi);
 #endif
 
-void sqrt_mf(const int* lo, const int* hi,
-	     const amrex_real* mf, const int* mflo, const int* mfhi, const int* ncomp);
-
 ///////////////////////////
 
 ///////////////////////////
