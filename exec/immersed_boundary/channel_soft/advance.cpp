@@ -211,7 +211,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     int ib_grow  = 6; // using the 6-point stencil
 
    // spring coefficient for the immersed boundary points
-    Real spring_coefficient = 2e2;
+    Real spring_coefficient = 5e1;
 
     int nstep=0;
 
