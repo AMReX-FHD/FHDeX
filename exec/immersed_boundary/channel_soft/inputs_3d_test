@@ -62,7 +62,7 @@
 !  Chemical solver parameters
   solve_chem       = 1
   diffcoeff        = 0.1
-  scaling_factor   = 0.1
+  scaling_factor   = -0.3
   source_strength  = 0.1
   !amr.regrid_int      = 2  
   do_reflux = 0

@@ -1,4 +1,4 @@
-
+#include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
@@ -766,6 +766,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     iMultiFab & sloc_mf_pre   = * source_loc_pre;
 
     MultiFab MagVel(badp, dmdp,1,0);
+    MultiFab Z_cen(badp, dmdp,1,0);
 
     int Num_loc=sloc_mf.sum(0,false);
     int Num_loc_Pre=sloc_mf_pre.sum(0,false);
@@ -819,6 +820,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             FArrayBox & stateout      =     (*S_new)[mfi];
             FArrayBox & ptS           =  ptSource[mfi];
             FArrayBox & fabmV         =  MagVel[mfi];
+            FArrayBox & fabzc         =  Z_cen[mfi];
             IArrayBox & fabsl 	      =   sloc_mf[mfi];
             IArrayBox & fabil 	      =   iloc_mf[mfi];
             FArrayBox & uface_mf      = uface_lev[mfi];
@@ -885,6 +887,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
                                        BL_TO_FORTRAN_3D(vface_mf),
                                        BL_TO_FORTRAN_3D(wface_mf)),
                                  BL_TO_FORTRAN_3D(fabmV),
+                                 BL_TO_FORTRAN_3D(fabzc),
                                  BL_TO_FORTRAN_3D(fabil),
                                  dx, AMREX_ZFILL(prob_lo));
 
@@ -1079,13 +1082,18 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     amrex::Print() << "true con total"<< SA*strength/Num_loc*(time+dt[0])<< std::endl;
    // in a file ft_postprocessSF.txt (SF is the scaling factor) we output the max surface gradient and velocity
     std::ofstream finaltime_PP;
-    char buffer [50];
-    sprintf(buffer," ft_postprocess%.2f.txt", scaling_factor);
-    finaltime_PP.open(buffer);
-     finaltime_PP << " max surface gradient  .\n";
-     finaltime_PP << mdc_mf.max(0,false) ;
-     finaltime_PP << " max  velocity.\n";
-     finaltime_PP << MagVel.max(0,false) ;
+     char buffer [25];
+     sprintf(buffer,"ft_postprocess%.2f.txt",scaling_factor);
+     amrex::Print()<<buffer;
+     finaltime_PP.open(buffer);
+     finaltime_PP << " scaling factor "<<std::endl;
+     finaltime_PP << scaling_factor <<std::endl; ;
+     finaltime_PP << " max surface gradient"<<std::endl;
+     finaltime_PP << mdc_mf.max(0,false)<<std::endl; ;
+     finaltime_PP << " max  velocity "<< std::endl;
+     finaltime_PP << MagVel.max(0,false)<< std::endl ;
+     finaltime_PP << " max  z velocity "<< std::endl;
+     finaltime_PP << Z_cen.norm0(0,false)<< std::endl ;
 
      finaltime_PP.close();
 

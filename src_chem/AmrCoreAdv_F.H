@@ -89,6 +89,7 @@ extern "C"
                 const BL_FORT_FAB_ARG_3D(v),
                 const BL_FORT_FAB_ARG_3D(w),
                 BL_FORT_FAB_ARG_3D(MagVel),
+                BL_FORT_FAB_ARG_3D(zcen),
                 int* iface, const int* if_lo, const int* if_hi,
                 const amrex_real* dx, const amrex_real* prob_lo);
    

@@ -3,6 +3,7 @@ subroutine get_MagVel_3d( lo, hi, &
      &            v, v_lo, v_hi,&
      &            w, w_lo, w_hi,&
      &            MagVel, m_lo, m_hi, & 
+     &            zcen, z_lo, z_hi, & 
      &            iface, if_lo, if_hi,&
      &            dx, prob_lo) bind(C, name="get_MagVel_3d")
   
@@ -20,6 +21,7 @@ subroutine get_MagVel_3d( lo, hi, &
   integer, intent(in) :: u_lo(3), u_hi(3)
   integer, intent(in) :: v_lo(3), v_hi(3)
   integer, intent(in) :: w_lo(3), w_hi(3)
+  integer, intent(in) :: z_lo(3), z_hi(3)
 
   
   ! ** IN: u,v,w - x, y, z components of the velocity 
@@ -33,6 +35,7 @@ subroutine get_MagVel_3d( lo, hi, &
 
   ! ** OUT: MagVel - magnitude of velocity
  double precision, intent(out) :: MagVel(m_lo(1):m_hi(1),m_lo(2):m_hi(2),m_lo(3):m_hi(3))
+ double precision, intent(out) :: zcen(z_lo(1):z_hi(1),z_lo(2):z_hi(2),z_lo(3):z_hi(3))
 
   ! norm - normal of level set defined on cell centers
   ! uvel,vvel,wvel  - x, y, and z componets of velocity used to find the magnitude
@@ -46,12 +49,14 @@ do       k = lo(3), hi(3)
            if (iface(i,j,k)==2) then
            ! we don't care about the non-physical velocity inside the immersed boundary
            MagVel(i,j,k)=0.
+           zcen(i,j,k)=0.
            else
            ! make sure velocities are cell centered
            uvel=(u(i-1,j,k)+u(i,j,k))/2
            vvel=(v(i,j-1,k)+v(i,j,k))/2
            wvel=(w(i,j,k-1)+w(i,j,k))/2
            MagVel(i,j,k)=sqrt(uvel**2+vvel**2+wvel**2)
+           zcen(i,j,k)=wvel
            end if
         enddo
      enddo
