@@ -1,41 +1,27 @@
-subroutine init_consvar(lo, hi, cu, culo, cuhi, ncomp, dx &
+subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
      , reallo, realhi) bind(C, name="init_consvar")
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, bc_lo, bc_hi, n_cells, membrane_cell
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, bc_lo, bc_hi, n_cells, prob_type, membrane_cell
+  use conv_module, only : get_energy
 
   implicit none
 
-  integer         , intent(in   ) :: lo(3), hi(3), culo(3), cuhi(3), ncomp
+  integer         , intent(in   ) :: lo(3), hi(3), culo(3), cuhi(3), pulo(3), puhi(3)
   real(amrex_real), intent(inout) :: cu(culo(1):cuhi(1),culo(2):cuhi(2),culo(3):cuhi(3), nvars)
-  real(amrex_real), intent(in   ) :: dx(3) 
+  real(amrex_real), intent(in   ) :: pu(pulo(1):puhi(1),pulo(2):puhi(2),pulo(3):puhi(3), nprimvars)
+  real(amrex_real), intent(in   ) :: dx(3)
   real(amrex_real), intent(in   ) :: reallo(3), realhi(3)
 
   integer          :: i,j,k,l
-  double precision :: pos(3),center(3),partdom,itVec(3),relpos(3),rad,rad2
-
-  double precision :: L_hlf, k1, k1_inv, k2, k2_inv, r_a, r_b
-  double precision :: pi, freq, amp, width1, width2, perturb, slope, fun, fun_ptrb
+  double precision :: pos(3),center(3),itVec(3),relpos(3)
+  double precision :: L_hlf, pi
+  double precision :: massvec(nspecies), intEnergy
 
   center = (realhi - reallo)/2d0
   L_hlf = (realhi(1) - reallo(1))/2d0
 
-  !! IC parameters
   pi = acos(-1.d0)
-
-  ! k1 & k2 determine steepness of profile:
-  k1 = 1d-2*L_hlf
-  k2 = k1
-  k1_inv = 1/k1
-  k2_inv = 1/k2
-
-  ! Vortex:
-  ! [r_a r_b] defines radial bounds of bump:
-  ! r_a = 0.5d0*L_hlf
-  ! r_b = L_hlf - r_a
-
-  ! Stream:
-  width1 = L_hlf/2.0d0
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
@@ -48,29 +34,26 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, ncomp, dx &
            pos = reallo + itVec
            relpos = pos - center
 
-           ! rad2 = DOT_PRODUCT(relpos,relpos)
-           ! rad = SQRT(rad2)
-
-           ! Circle
-           ! fun = 0.5d0*(1d0+tanh(k2_inv*(r_a-rad)))
-
-           ! Stream:
-           ! perturb = 0d0
-           ! fun = 0.25d0*(1d0+tanh(k1_inv*(rad - (-width1/1.5d0+perturb)))) &
-           !      *(1d0+tanh(k2_inv*((width1/1.5d0+perturb) - rad)))
-
            ! Total density must be pre-set
-           if (relpos(3) .gt. 0) then
-              cu(i,j,k,5+1) = cu(i,j,k,1)*0.4
-              cu(i,j,k,5+2) = cu(i,j,k,1)*0.4
-              cu(i,j,k,5+3) = cu(i,j,k,1)*0.1
-              cu(i,j,k,5+4) = cu(i,j,k,1)*0.1
-           else
-              cu(i,j,k,5+1) = cu(i,j,k,1)*0.1
-              cu(i,j,k,5+2) = cu(i,j,k,1)*0.1
-              cu(i,j,k,5+3) = cu(i,j,k,1)*0.4
-              cu(i,j,k,5+4) = cu(i,j,k,1)*0.4
+           
+           if (prob_type.eq.2) then ! Rayleigh-Taylor
+              if (relpos(3) .ge. 0) then
+                 massvec = (/0.4, 0.4, 0.1, 0.1/)
+                 do l = 1,nspecies
+                    cu(i,j,k,5+l) = cu(i,j,k,1)*massvec(l)
+                 enddo
+              else
+                 massvec = (/0.1, 0.1, 0.4, 0.4/)
+                 do l = 1,nspecies
+                    cu(i,j,k,5+l) = cu(i,j,k,1)*massvec(l)
+                 enddo
+              endif
+
+              call get_energy(intEnergy, massvec, pu(i,j,k,5))
+              cu(i,j,k,5) = cu(i,j,k,1)*intEnergy + 0.5*cu(i,j,k,1)*(pu(i,j,k,2)**2 + &
+                   pu(i,j,k,3)**2 + pu(i,j,k,4)**2)
            endif
+
 
         end do
      end do
