@@ -43,7 +43,7 @@ public:
             const MultiFab & LevelSet,
             int lev, int step, Real dt_fluid, Real time, Real diffcoeff,
             const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords,
-            int corrector, Real source_strength);
+            int corrector, Real source_strength, Real SF);
 
     // initializes multilevel data
     void InitData ( amrex::BoxArray & ba, amrex::DistributionMapping & dm);
@@ -231,7 +231,7 @@ private:
     amrex::Real diffcoeff;
    // source strength
     amrex::Real strength;
-
+    amrex::Real scaling_factor;
     // if we are doing a predictor or corrector step
     int Correct=0;
    // how often each level regrids the higher levels of refinement

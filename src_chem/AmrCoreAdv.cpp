@@ -113,9 +113,10 @@ void AmrCoreAdv::EvolveChem(
         const MultiFab & LevelSet, 
         int lev, int nstep,
         Real dt_fluid, Real time, Real dc, 
-        const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords, int corrector, Real source_strength)
+        const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords, int corrector, Real source_strength, Real SF)
 {
     // if this is a predictor or corrector step
+    scaling_factor=SF;
     Correct=corrector;
     // diffusion coefficent
     diffcoeff=dc;
@@ -763,6 +764,9 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     // define location of sources for this level
     iMultiFab & sloc_mf   = * source_loc;
     iMultiFab & sloc_mf_pre   = * source_loc_pre;
+
+    MultiFab MagVel(badp, dmdp,1,0);
+
     int Num_loc=sloc_mf.sum(0,false);
     int Num_loc_Pre=sloc_mf_pre.sum(0,false);
     // problem set up
@@ -814,6 +818,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
             const FArrayBox & statein =   Sborder[mfi];
             FArrayBox & stateout      =     (*S_new)[mfi];
             FArrayBox & ptS           =  ptSource[mfi];
+            FArrayBox & fabmV         =  MagVel[mfi];
             IArrayBox & fabsl 	      =   sloc_mf[mfi];
             IArrayBox & fabil 	      =   iloc_mf[mfi];
             FArrayBox & uface_mf      = uface_lev[mfi];
@@ -875,9 +880,15 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
 
 
    #elif (AMREX_SPACEDIM>=3)    
+                get_MagVel_3d( bx.loVect(), bx.hiVect(),
+                               AMREX_D_DECL(BL_TO_FORTRAN_3D(uface_mf),
+                                       BL_TO_FORTRAN_3D(vface_mf),
+                                       BL_TO_FORTRAN_3D(wface_mf)),
+                                 BL_TO_FORTRAN_3D(fabmV),
+                                 BL_TO_FORTRAN_3D(fabil),
+                                 dx, AMREX_ZFILL(prob_lo));
 
                 // define previous and predicted pointsources
-
                 get_ptsource_3d( bx.loVect(), bx.hiVect(),
                                  BL_TO_FORTRAN_3D(fabsl),
                                  BL_TO_FORTRAN_3D(ptS),
@@ -976,7 +987,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     else{
     S_new_fill.copy(*con_pre[lev], 0,num_comp-1 ,num_comp,(*con_pre[lev]).nGrow() , 1);}
     S_new_fill.FillBoundary(geom[lev].periodicity());
-
+   
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1065,7 +1076,21 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     amrex::Real SA=2*3.14*0.1*0.1;
     amrex::Print() << "time = "<< time+dt[0]<< " simulated con total grid "<< (con_old[lev]->sum(0,false)*(*dx)*(*dx)*(*dx));
     amrex::Print() << "simulated con surface "<< (ptSource.sum(0,false))*(time+dt[0])*(*dx)*(*dx)/4;
-    amrex::Print() << "true con total"<< SA*strength/Num_loc*(time+dt[0])<< std::endl;}
+    amrex::Print() << "true con total"<< SA*strength/Num_loc*(time+dt[0])<< std::endl;
+   // in a file ft_postprocessSF.txt (SF is the scaling factor) we output the max surface gradient and velocity
+    std::ofstream finaltime_PP;
+    char buffer [50];
+    sprintf(buffer," ft_postprocess%.2f.txt", scaling_factor);
+    finaltime_PP.open(buffer);
+     finaltime_PP << " max surface gradient  .\n";
+     finaltime_PP << mdc_mf.max(0,false) ;
+     finaltime_PP << " max  velocity.\n";
+     finaltime_PP << MagVel.max(0,false) ;
+
+     finaltime_PP.close();
+
+
+}
 
 }
 

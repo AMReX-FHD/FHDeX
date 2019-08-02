@@ -83,6 +83,14 @@ extern "C"
                 const BL_FORT_FAB_ARG_3D(ls),
                 int* iface, const int* if_lo, const int* if_hi,
                 const amrex_real* dx, const amrex_real* prob_lo);
+
+    void get_MagVel_3d( const int* lo, const int* hi,
+                const BL_FORT_FAB_ARG_3D(u),
+                const BL_FORT_FAB_ARG_3D(v),
+                const BL_FORT_FAB_ARG_3D(w),
+                BL_FORT_FAB_ARG_3D(MagVel),
+                int* iface, const int* if_lo, const int* if_hi,
+                const amrex_real* dx, const amrex_real* prob_lo);
    
    
    void get_ptsource_2d( const int* lo, const int* hi,

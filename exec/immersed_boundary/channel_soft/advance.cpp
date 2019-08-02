@@ -550,7 +550,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 #endif
         //IBMarkerContainer ib_marker;
         // One step of EvolveChem to solve for predicted concentration
-        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, catalyst0, catalyst0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
+        amr_core_adv.EvolveChem(umac,umac,iface0, iface0, catalyst0, catalyst0, LevelSet0, LevelSet0, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength, scaling_factor);
        
         // Get the locations of the interface and catalyst, as well as the level set and face coordinates for the corrected concentration advection diffuision (AD) code
          
@@ -739,7 +739,7 @@ void advance(AmrCoreAdv & amr_core_adv,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
         // One step of EvolveChem to solve for corrected concentration  
-        amr_core_adv.EvolveChem(umac,umac_0,iface0, iface1, catalyst0, catalyst1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength);
+        amr_core_adv.EvolveChem(umac,umac_0,iface0, iface1, catalyst0, catalyst1, LevelSet0, LevelSet1, ibpc_lev, nstep,dt, time, diffcoeff, FaceCoords,corrector,source_strength,scaling_factor);
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         // Output velocity solution

@@ -123,7 +123,6 @@ contains
         integer(c_int),   intent(  out) :: iface(iflo(1):ifhi(1), iflo(2):ifhi(2), iflo(3):ifhi(3))
         real(amrex_real), intent(in   ) :: phi(philo(1):phihi(1), philo(2):phihi(2), philo(3):phihi(3))
         integer(c_int),   intent(in   ) :: tag(taglo(1):taghi(1), taglo(2):taghi(2), taglo(3):taghi(3), 3)
-
         integer :: i, j, k
 
         do k = iflo(3), ifhi(3)
@@ -276,7 +275,7 @@ contains
                    ! print *, " center ",cent
                     pos = (/ (i+0.5)*dx(1), (j+0.5)*dx(2), (k+0.5)*dx(3) /)
                    ! print *," ori ", ori1
-                    vect=cent-pos !part_info%pos
+                    vect=pos-cent !part_info%pos
                     dot=ori1(1)*vect(1)+ori1(2)*vect(2)+ori1(3)*vect(3)
                     ! if we are on the interface and on the " bottom half " of the particle (with respect to the orientation  ie dot <=0) then there is catalyst present in this cell, otherwise there isn't
                     !if (iface(i,j,k)==1) then 

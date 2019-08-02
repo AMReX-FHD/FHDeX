@@ -11,7 +11,7 @@
   prob_type = 0
 
   ! number of cells in domain
-  n_cells(1:3) =  32 32 32 !16 16 16 
+  n_cells(1:3) =  32 32 32 !64 64 64  !16 16 16 
   ! max number of cells in a box
   max_grid_size(1:3) = 16 16 16
 
@@ -21,8 +21,8 @@
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
-  max_step = 10 !00 !000
-  plot_int = 1
+  max_step = 500! 1000! 0 !000
+  plot_int = 10
 
 
 
@@ -53,17 +53,17 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic
-  bc_lo(1:3) = 2 -2 -1
-  bc_hi(1:3) = 2 -2 -1
+  bc_lo(1:3) = -1 -1 -1 ! 2 -1 -2 
+  bc_hi(1:3) = -1 -1 -1 ! 2 -1 -2 
 
-  p_lo(1:3)  = 0 0 0
-  p_hi(1:3)  = 0 0 0
+  p_lo(1:3)  = 0 0 0 !0  0 -1 
+  p_hi(1:3)  = 0 0 0 ! 0  0  1
 
 !  Chemical solver parameters
   solve_chem       = 1
-  diffcoeff        = 0.01
+  diffcoeff        = 0.1
   scaling_factor   = 0.1
-  source_strength  = 0.01
+  source_strength  = 0.1
   !amr.regrid_int      = 2  
   do_reflux = 0
 !
