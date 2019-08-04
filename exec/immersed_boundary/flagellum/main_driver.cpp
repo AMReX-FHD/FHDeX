@@ -330,11 +330,21 @@ void main_driver(const char * argv) {
 
     BL_PROFILE_VAR("main_create markers", createmarkers);
 
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+    Real min_dx = dx[0];
+    for (int d=1; d<AMREX_SPACEDIM; ++d)
+	    min_dx = std::min(min_dx, dx[d]);
+
+    Real l_db = 0.05;
+    int min_nghost = 2*l_db/min_dx;
+
+    int ib_nghost = std::max(10, min_nghost);
+    Print() << "Initializing IBMarkerContainer with " << ib_nghost << " ghost cells" << std::endl;
+
+    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
 
     Vector<RealVect> marker_positions(20);
     for (int i=0; i<marker_positions.size(); ++i)
-        marker_positions[i] = RealVect{0.05+i*0.05, 0.5, 0.5};
+        marker_positions[i] = RealVect{l_db+i*l_db, 0.5, 0.5};
 
     Vector<Real> marker_radii(20);
     for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = .10;
