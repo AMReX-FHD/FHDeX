@@ -152,7 +152,7 @@ void IBMarkerContainer::InitList(int lev,
     }
 
     ParallelDescriptor::ReduceIntSum(total_np, ParallelDescriptor::IOProcessorNumber());
-    std::cout << "Total number of generated particles: " << total_np << std::endl;
+    Print() << "Total number of generated particles: " << total_np << std::endl;
 
 
 
