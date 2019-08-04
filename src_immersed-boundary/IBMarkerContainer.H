@@ -95,16 +95,6 @@ public:
 
 };
 
-// class IBMarIter
-//     : public ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
-// {
-//
-// public:
-//
-//     using ParIter<IBM_realData::count, IBM_intData::count, 0, 0>::ParIter;
-// };
-
-
 
 
 class IBMarkerContainer

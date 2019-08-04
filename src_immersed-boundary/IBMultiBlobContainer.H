@@ -12,6 +12,68 @@ using namespace amrex;
 
 
 
+struct Blob_realData {
+    enum {
+        radius = 0,
+        velx,
+        vely,
+        velz,
+        forcex,
+        forcey,
+        forcez,
+        pred_posx,
+        pred_posy,
+        pred_posz,
+        pred_velx,
+        pred_vely,
+        pred_velz,
+        pred_forcex,
+        pred_forcey,
+        pred_forcez,
+        ref_delx,
+        ref_dely,
+        ref_delz,
+        count
+    };
+};
+
+
+
+using Blob_intData = IBM_intData;
+
+
+class BlobIter
+    : public IBMarIterBase<Blob_realData::count, Blob_intData::count>
+{
+
+// public:
+//     using IBMarIterBase<Blob_realData::count, Blob_intData::count>::IBMarIterBase;
+
+};
+
+
+class BlobContainer
+    : public IBMarkerContainerBase<Blob_realData, Blob_intData>
+{
+
+public:
+
+    using IBMarkerContainerBase<Blob_realData, Blob_intData>
+        ::IBMarkerContainerBase;
+
+
+    BlobContainer(AmrCore * amr_core, int n_nbhd);
+    BlobContainer(const Geometry & geom, const DistributionMapping & dmap,
+                  const BoxArray & ba, int n_nbhd);
+
+    virtual ~BlobContainer() {};
+
+
+    void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
+};
+
+
+
 //TODO: Check members lables with "Audit"
 
 
@@ -167,7 +229,7 @@ private:
     Vector<IBMarkerMap> marker_ref_pos;
 
     // IB marker data
-    IBMarkerContainer markers;
+    BlobContainer markers;
 
 
 
