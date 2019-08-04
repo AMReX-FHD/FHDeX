@@ -87,7 +87,7 @@ void IBMarkerContainer::InitList(int lev,
         auto & particles = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
 
-        for(int i = 0; i < pos.size(); i++) {
+        for(int i=0; i<pos.size(); i++) {
             // IntVect representing particle's position in the tile_box grid.
             RealVect pos_grid = pos[i];
             pos_grid *= inv_dx;
@@ -151,7 +151,7 @@ void IBMarkerContainer::InitList(int lev,
         total_np += np;
     }
 
-    ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
+    ParallelDescriptor::ReduceIntSum(total_np, ParallelDescriptor::IOProcessorNumber());
     std::cout << "Total number of generated particles: " << total_np << std::endl;
 
 
@@ -196,7 +196,7 @@ void IBMarkerContainer::InitList(int lev,
             // Check neighbor particles
             for (int j=0; j<nn; ++j) {
 
-                const ParticleType & other = markers[j];
+                const ParticleType & other = nbhd_data[j];
                 if (mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1) {
                     mark.idata(IBM_intData::id_0)  = other.id();
                     mark.idata(IBM_intData::cpu_0) = other.cpu();

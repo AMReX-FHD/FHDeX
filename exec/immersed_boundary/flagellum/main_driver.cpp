@@ -372,15 +372,15 @@ void main_driver(const char * argv) {
                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                      geom.ProbLo(), geom.ProbHi(), & d,
                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-           
+
         BL_PROFILE_VAR_STOP(markerv);
 
-           BL_PROFILE_VAR("main_initialize tracer",tracer);
+        BL_PROFILE_VAR("main_initialize tracer",tracer);
         // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(tracer[mfi]),
                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-            BL_PROFILE_VAR_STOP(tracer);
+        BL_PROFILE_VAR_STOP(tracer);
     }
 
 
@@ -467,7 +467,7 @@ void main_driver(const char * argv) {
  //         //           ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
             //      }
             //    // structFact.FortStructure(struct_in_cc,geom);
-          
+
        // }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
