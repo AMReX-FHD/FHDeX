@@ -109,7 +109,7 @@ void main_driver(const char* argv)
     const int proc = ParallelDescriptor::MyProc();
 
     // NOTE: only fhdSeed is used currently
-    int fhdSeed = 1;
+    int fhdSeed = seed_diffusion;
     int particleSeed = 1;
     int selectorSeed = 1;
     int thetaSeed = 1;
