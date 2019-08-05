@@ -108,19 +108,13 @@ void main_driver(const char* argv)
 
     const int proc = ParallelDescriptor::MyProc();
 
-    int fhdSeed = 0;
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 0;
-
-    //fhdSeed += 10000*proc;
-    particleSeed += 20000*proc;
-    selectorSeed += 30000*proc;
-    thetaSeed += 40000*proc;
-    phiSeed += 50000*proc;
-    //generalSeed += 60000*proc;
+    // NOTE: only fhdSeed is used currently
+    int fhdSeed = 1;
+    int particleSeed = 1;
+    int selectorSeed = 1;
+    int thetaSeed = 1;
+    int phiSeed = 1;
+    int generalSeed = 1;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
