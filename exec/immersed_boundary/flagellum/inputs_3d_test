@@ -97,12 +97,15 @@
 &immbdy
 
   n_immbdy = 2
+  contains_flagellum = true
 
 /
 
 
-&ib_markers
+&ib_flagellum
 
-  n_marker(1:2) = 20 10
+  n_marker(1:2)  = 20 10
+  offset_0(1, :) = .5 .3 .5
+  offset_0(2, :) = .5 .8 .5
 
 /

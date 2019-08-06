@@ -1,7 +1,8 @@
 module immbdy_namelist_module
 
-    use iso_c_binding, only: c_char
+    use iso_c_binding,       only: c_char
     use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
+    use amrex_fort_module,   only: amrex_real
 
     implicit none
 
@@ -10,12 +11,17 @@ module immbdy_namelist_module
     integer, parameter :: IBMC_MIN_NGHOST = 4
 
 
-    integer,              save :: n_immbdy
-    integer, allocatable, save :: n_marker(:) ! n_immbdy large
+    integer,                       save :: n_immbdy
+    logical,                       save :: contains_flagellum
+    integer,          allocatable, save :: n_marker(:)
+    real(amrex_real), allocatable, save :: offset_0(:, :)
 
-    namelist /immbdy/     n_immbdy
-    namelist /ib_markers/ n_marker
 
+    namelist /immbdy/ n_immbdy
+    namelist /immbdy/ contains_flagellum
+
+    namelist /ib_flagellum/ n_marker
+    namelist /ib_flagellum/ offset_0
 
 contains
 
@@ -25,10 +31,9 @@ contains
         integer,                intent(in), value :: length
         character(kind=c_char), intent(in)        :: inputs_file(length)
 
-
         ! default values
-        n_immbdy = 0
-
+        n_immbdy           = 0
+        contains_flagellum = .false.
 
         ! read in immbdy namelist
         open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -36,18 +41,20 @@ contains
         close(unit=100)
 
 
-        allocate(n_marker(1:n_immbdy))
+        if (contains_flagellum) then
 
-        ! default values
-        n_marker(1:n_immbdy) = 0
+            allocate(n_marker(n_immbdy))
+            allocate(offset_0(n_immbdy, AMREX_SPACEDIM))
 
-        ! read in immbdy namelist
-        open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
-        read(unit=100, nml=ib_markers)
-        close(unit=100)
+            ! default values
+            n_marker(:)    = 0
+            offset_0(:, :) = 0
 
-
-        write(*,*) n_marker
+            ! read in immbdy namelist
+            open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
+            read(unit=100, nml=ib_flagellum)
+            close(unit=100)
+        end if
 
     end subroutine read_immbdy_namelist
 
