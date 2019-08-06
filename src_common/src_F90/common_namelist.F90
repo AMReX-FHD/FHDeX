@@ -84,6 +84,8 @@ module common_namelist_module
 
   integer,            save :: struct_fact_int
   integer,            save :: n_steps_skip
+  integer,            save :: project_dir
+  integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
@@ -137,6 +139,8 @@ module common_namelist_module
 
   integer,            save :: solve_chem
   double precision,   save :: diffcoeff
+  double precision,   save :: scaling_factor
+  double precision,   save :: source_strength
   integer,            save :: regrid_int
   integer,            save :: do_reflux
 
@@ -274,6 +278,10 @@ module common_namelist_module
   namelist /common/ struct_fact_int
   namelist /common/ n_steps_skip
 
+  ! projection
+  namelist /common/ project_dir
+  namelist /common/ max_grid_projection
+
   ! These are mostly used for reaction-diffusion:
   namelist /common/ histogram_unit
   namelist /common/ density_weights
@@ -316,6 +324,8 @@ module common_namelist_module
   ! chemistry
   namelist /common/ solve_chem
   namelist /common/ diffcoeff
+  namelist /common/ source_strength
+  namelist /common/ scaling_factor
   namelist /common/ regrid_int
   namelist /common/ do_reflux
 
@@ -397,6 +407,8 @@ contains
     potential_hi(:) = 0
     struct_fact_int = 0
     n_steps_skip = 0
+    project_dir = -1
+    max_grid_projection(:) = 1
     histogram_unit = 0
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
@@ -408,6 +420,8 @@ contains
     pkernel_es = 4
     solve_chem = 0
     diffcoeff  = 0.001
+    scaling_factor = 0.1
+    source_strength = 0.1
     regrid_int = 25
     do_reflux  = 0
     particle_motion = 0    
@@ -477,11 +491,19 @@ contains
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
                                          struct_fact_int_in, n_steps_skip_in, &
+                                         project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, thermostat_tog_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, solve_chem_in, diffcoeff_in, regrid_int_in, do_reflux_in, particle_motion_in) &
+                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
+                                         cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
+                                         poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, &
+                                         fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
+                                         dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
+                                         thermostat_tog_in, images_in, eamp_in, efreq_in, ephase_in, &
+                                         plot_ascii_in, solve_chem_in, diffcoeff_in, scaling_factor_in, &
+                                         source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -576,6 +598,8 @@ contains
 
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: n_steps_skip_in
+    integer,                intent(inout) :: project_dir_in
+    integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
@@ -614,6 +638,8 @@ contains
     integer,                intent(inout) :: plot_ascii_in
     integer,                intent(inout) :: solve_chem_in
     double precision,       intent(inout) :: diffcoeff_in
+    double precision,       intent(inout) :: scaling_factor_in
+    double precision,       intent(inout) :: source_strength_in
     integer,                intent(inout) :: regrid_int_in
     integer,                intent(inout) :: do_reflux_in
     integer,                intent(inout) :: particle_motion_in
@@ -696,6 +722,8 @@ contains
 
     struct_fact_int_in = struct_fact_int
     n_steps_skip_in = n_steps_skip
+    project_dir_in = project_dir
+    max_grid_projection_in = max_grid_projection
     histogram_unit_in = histogram_unit
     density_weights_in = density_weights
     shift_cc_to_boundary_in = shift_cc_to_boundary
@@ -740,10 +768,21 @@ contains
     plot_ascii_in = plot_ascii
     solve_chem_in = solve_chem
     diffcoeff_in  = diffcoeff
+    scaling_factor_in  = scaling_factor
+    source_strength_in  = source_strength
+
     regrid_int_in = regrid_int
     do_reflux_in  = do_reflux
     particle_motion_in = particle_motion
 
   end subroutine initialize_common_namespace
+
+  subroutine set_max_step(max_step_in) bind(C, name="set_max_step")
+
+    integer, intent(in   ) :: max_step_in
+
+    max_step = max_step_in
+    
+  end subroutine set_max_step
 
 end module common_namelist_module

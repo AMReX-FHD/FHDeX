@@ -22,7 +22,7 @@
   ! max_step = 200000
   ! plot_int = 200000
 
-  max_step = 200000
+  max_step = 100000
   plot_int = 100
 
   ! Viscous friction L phi operator

@@ -6,7 +6,7 @@
 #include "hydro_functions_F.H"
 
 #include "StochMFlux.H"
-#include "StructFact.H"
+//#include "StructFact.H"
 
 #include "rng_functions_F.H"
 
@@ -317,7 +317,7 @@ void main_driver(const char* argv)
     MacProj(umac,rho,geom,true);
 
     // initial guess for new solution
-    for (int i; i<AMREX_SPACEDIM; i++) {
+    for (int i=0; i<AMREX_SPACEDIM; i++) {
       MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 0);
     }
 

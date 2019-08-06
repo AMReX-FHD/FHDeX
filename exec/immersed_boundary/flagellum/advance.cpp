@@ -36,7 +36,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              IBMarkerContainer & ib_mc,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-             const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                   std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
              const MultiFab& beta, const MultiFab& gamma,
              const std::array< MultiFab, NUM_EDGE >& beta_ed,
              const Geometry geom, const Real& dt, Real time)
@@ -174,7 +174,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     RealVect driv_u = {0, 0, 1};
 
     // Real driv_period = 100;  //This is actually angular frequency =  2*pi/T
-    Real driv_period = 10;  //This is actually angular frequency =  2*pi/T
+    Real driv_period = 100;  //This is actually angular frequency =  2*pi/T
     Real length_flagellum = 0.5;
     // Real driv_amp = 15 * std::min(time*10, 1.);
     Real driv_amp = 10 * std::min(time*10, 1.);

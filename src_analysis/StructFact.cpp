@@ -576,15 +576,3 @@ void StructFact::ShiftFFT(MultiFab& dft_out, const int zero_avg) {
   }
 
 }
-
-void StructFact::SqrtMF(MultiFab& struct_out) {
-  for (MFIter mfi(struct_out); mfi.isValid(); ++mfi) {
-
-    // Note: Make sure that multifab is cell-centered
-    const Box& validBox = mfi.validbox();
-
-    sqrt_mf(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-	    BL_TO_FORTRAN_FAB(struct_out[mfi]));
-
-  }
-}

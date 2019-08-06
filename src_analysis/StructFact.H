@@ -72,7 +72,6 @@ public:
   void ComputeFFT(      const amrex::MultiFab&, amrex::MultiFab&,
 			amrex::MultiFab&, const amrex::Geometry);
   void ShiftFFT(        amrex::MultiFab&, const int zero_avg=1);
-  void SqrtMF(          amrex::MultiFab&);
 
 };
 

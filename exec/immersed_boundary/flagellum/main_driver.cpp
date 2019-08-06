@@ -328,37 +328,26 @@ void main_driver(const char * argv) {
     // Initialize velocities (fluid and tracers)
     // Make sure that the nghost (last argument) is big enough!
 
-    // add the approximate equilibrium sin-wave shape
-    BL_PROFILE_VAR("main_create markers",createmarkers);
-    Real rr = 1; // for step 1e-5 
+    BL_PROFILE_VAR("main_create markers", createmarkers);
 
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+    Real min_dx = dx[0];
+    for (int d=1; d<AMREX_SPACEDIM; ++d)
+	    min_dx = std::min(min_dx, dx[d]);
 
-    Vector<RealVect> marker_positions(10);
-    // marker_positions[0] = RealVect{0.05, 0.5+0.002*rr, 0.5};
-    // marker_positions[1] = RealVect{0.10, 0.5-0.015*rr, 0.5};
-    // marker_positions[2] = RealVect{0.15, 0.5-0.025*rr, 0.5};
-    // marker_positions[3] = RealVect{0.20, 0.5-0.024*rr, 0.5};
-    // marker_positions[4] = RealVect{0.25, 0.5-0.014*rr, 0.5};
-    // marker_positions[5] = RealVect{0.30, 0.5+0.000*rr, 0.5};
-    // marker_positions[6] = RealVect{0.35, 0.5+0.012*rr, 0.5};
-    // marker_positions[7] = RealVect{0.40, 0.5+0.017*rr, 0.5};
-    // marker_positions[8] = RealVect{0.45, 0.5+0.012*rr, 0.5};
-    // marker_positions[9] = RealVect{0.50, 0.5-0.002*rr, 0.5};
-    marker_positions[0] = RealVect{0.05, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.10, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.15, 0.5, 0.5};
-    marker_positions[3] = RealVect{0.20, 0.5, 0.5};
-    marker_positions[4] = RealVect{0.25, 0.5, 0.5};
-    marker_positions[5] = RealVect{0.30, 0.5, 0.5};
-    marker_positions[6] = RealVect{0.35, 0.5, 0.5};
-    marker_positions[7] = RealVect{0.40, 0.5, 0.5};
-    marker_positions[8] = RealVect{0.45, 0.5, 0.5};
-    marker_positions[9] = RealVect{0.50, 0.5, 0.5};
+    Real l_db = 0.05;
+    int min_nghost = 2*l_db/min_dx;
 
+    int ib_nghost = std::max(10, min_nghost);
+    Print() << "Initializing IBMarkerContainer with " << ib_nghost << " ghost cells" << std::endl;
 
-    Vector<Real> marker_radii(10);
-    for (int i=0; i<10; ++i) marker_radii[i] = .10;
+    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
+
+    Vector<RealVect> marker_positions(20);
+    for (int i=0; i<marker_positions.size(); ++i)
+        marker_positions[i] = RealVect{l_db+i*l_db, 0.5, 0.5};
+
+    Vector<Real> marker_radii(20);
+    for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = .10;
 
     ib_mc.InitList(0, marker_radii, marker_positions);
 
@@ -383,15 +372,15 @@ void main_driver(const char * argv) {
                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                      geom.ProbLo(), geom.ProbHi(), & d,
                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-           
+
         BL_PROFILE_VAR_STOP(markerv);
 
-           BL_PROFILE_VAR("main_initialize tracer",tracer);
+        BL_PROFILE_VAR("main_initialize tracer",tracer);
         // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(tracer[mfi]),
                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-            BL_PROFILE_VAR_STOP(tracer);
+        BL_PROFILE_VAR_STOP(tracer);
     }
 
 
@@ -478,7 +467,7 @@ void main_driver(const char * argv) {
  //         //           ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
             //      }
             //    // structFact.FortStructure(struct_in_cc,geom);
-          
+
        // }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;

@@ -51,6 +51,9 @@ void main_driver(const char* argv)
     //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
     get_hc_gas();
 
+    //initialize boundary condition switches for mass, temperature, & velocity
+    setup_bc();
+
     //compute wall concentrations if BCs call for it
     if (algorithm_type == 2) // if multispecies
       setup_cwall();
@@ -105,19 +108,13 @@ void main_driver(const char* argv)
 
     const int proc = ParallelDescriptor::MyProc();
 
-    int fhdSeed = 0;
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 0;
-
-    //fhdSeed += 10000*proc;
-    particleSeed += 20000*proc;
-    selectorSeed += 30000*proc;
-    thetaSeed += 40000*proc;
-    phiSeed += 50000*proc;
-    //generalSeed += 60000*proc;
+    // NOTE: only fhdSeed is used currently
+    int fhdSeed = seed_diffusion;
+    int particleSeed = 1;
+    int selectorSeed = 1;
+    int thetaSeed = 1;
+    int phiSeed = 1;
+    int generalSeed = 1;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -161,8 +158,6 @@ void main_driver(const char* argv)
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
 
-    MultiFab cuVertAvg;
-
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
 
@@ -192,23 +187,8 @@ void main_driver(const char* argv)
 
     for(int i=0;i<nspecies;i++)
     {
-        prim.setVal(rhobar[i],6+i,1,ngc);
-        cu.setVal(rho0*rhobar[i],5+i,1,ngc);
-
         massvec[i] = rhobar[i];
     }
-
-    get_energy(&intEnergy, massvec, &T0);
-
-    cu.setVal(rho0,0,1,ngc);
-    cu.setVal(0,1,1,ngc);
-    cu.setVal(0,2,1,ngc);
-    cu.setVal(0,3,1,ngc);
-    cu.setVal(rho0*intEnergy,4,1,ngc);
-
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
 
     //fluxes
     std::array< MultiFab, AMREX_SPACEDIM > flux;
@@ -428,18 +408,44 @@ void main_driver(const char* argv)
 
     //Initialize everything
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-      const Box& bx = mfi.validbox();
+    for(int i=0;i<nspecies;i++)
+    {
+        prim.setVal(rhobar[i],6+i,1,ngc);
+        cu.setVal(rho0*rhobar[i],5+i,1,ngc);
 
-      init_consvar(BL_TO_FORTRAN_BOX(bx),
-    	       BL_TO_FORTRAN_FAB(cu[mfi]),
-    	       dx, 
-    	       // geom.ProbLo(), geom.ProbHi(),
-    	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+        massvec[i] = rhobar[i];
+    }
 
+    get_energy(&intEnergy, massvec, &T0);
+
+    cu.setVal(rho0,0,1,ngc);
+    cu.setVal(0,1,1,ngc);
+    cu.setVal(0,2,1,ngc);
+    cu.setVal(0,3,1,ngc);
+    cu.setVal(rho0*intEnergy,4,1,ngc);
+
+    cup.setVal(rho0,0,1,ngc);
+    cup2.setVal(rho0,0,1,ngc);
+    cup3.setVal(rho0,0,1,ngc);
+    
+    if (prob_type > 1) {
+      for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+	const Box& bx = mfi.validbox();
+
+	init_consvar(BL_TO_FORTRAN_BOX(bx),
+		     BL_TO_FORTRAN_ANYD(cu[mfi]),
+		     BL_TO_FORTRAN_ANYD(prim[mfi]),
+		     dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+      }
     }
 	    
     statsCount = 1;
+    
+    // Write initial plotfile
+    conservedToPrimitive(prim, cu);
+    if (plot_int > 0)
+	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -458,11 +464,13 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-	// if (step > n_steps_skip) {
-	//   evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
+	if (step > n_steps_skip) {
+	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
 
-	//   ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
-	// }
+	  // ComputeVerticalAverage(cu, geom, 2, 5, 1);
+
+	  // amrex::Abort("End");
+	}
  
 	///////////////////////////////////////////
 	// Update structure factor

@@ -110,6 +110,10 @@ public:
     const iMultiFab & get_TagInterface() const {
         return * tag_interface;
     }
+    
+   const iMultiFab & get_TagCatalyst() const {
+        return * tag_catalyst;
+    }
 
     const MultiFab & get_LevelSet() const {
         return * ls;
@@ -180,6 +184,9 @@ private:
 
     // Stores the IB node velocity corresponding to the closest point on IB
     std::unique_ptr<MultiFab>  ls_vel;
+
+    // Tags all catalyst points on IB interface
+    std::unique_ptr<iMultiFab> tag_catalyst;
 
 
     /****************************************************************************

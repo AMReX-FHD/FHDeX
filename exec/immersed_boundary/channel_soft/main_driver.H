@@ -33,7 +33,7 @@ void advance( AmrCoreAdv & amr_core_adv,
              IBMarkerMap & ib_forces,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_correct,
-             const std::array< MultiFab, AMREX_SPACEDIM > & alpha_fc,
+             std::array< MultiFab, AMREX_SPACEDIM > & alpha_fc,
              const MultiFab & beta, const MultiFab & gamma,
 # if (AMREX_SPACEDIM == 2)
              const std::array< MultiFab, 1 > & beta_ed,

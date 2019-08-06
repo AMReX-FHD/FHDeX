@@ -43,3 +43,5 @@ exec/**/ib_*_data.*
 
 exec/**/*_D_*
 exec/**/*_H
+
+exec/**/*.png
