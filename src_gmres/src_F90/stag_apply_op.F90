@@ -399,66 +399,6 @@ contains
 
 
     if (visc_type .eq. 1) then
-
-       term1 = 2.d0*bt*(dxsqinv+dysqinv+dzsqinv)
-       term2 = bt*dxsqinv
-       term3 = bt*dysqinv
-       term4 = bt*dzsqinv
-       
-       if (do_x) then
-
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1)+1,offset
-
-                   Lphix(i,j,k) = phix(i,j,k)*(alphax(i,j,k) + term1) &
-                        -(phix(i+1,j,k)+phix(i-1,j,k))*term2 &
-                        -(phix(i,j+1,k)+phix(i,j-1,k))*term3 &
-                        -(phix(i,j,k+1)+phix(i,j,k-1))*term4                   
-                enddo
-             enddo
-          enddo
-
-       end if
-
-       if (do_y) then
-
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)+1
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset
-
-                   Lphiy(i,j,k) = phiy(i,j,k)*(alphay(i,j,k) + term1) &
-                        -(phiy(i+1,j,k)+phiy(i-1,j,k))*term2 &
-                        -(phiy(i,j+1,k)+phiy(i,j-1,k))*term3 &
-                        -(phiy(i,j,k+1)+phiy(i,j,k-1))*term4                   
-                enddo
-             enddo
-          enddo
-
-       end if
-
-       if (do_z) then
-
-          do k = lo(3), hi(3)+1
-             do j = lo(2), hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset                  
-
-                   Lphiz(i,j,k) = phiz(i,j,k)*(alphaz(i,j,k) + term1) &
-                        -(phiz(i+1,j,k)+phiz(i-1,j,k))*term2 &
-                        -(phiz(i,j+1,k)+phiz(i,j-1,k))*term3 &
-                        -(phiz(i,j,k+1)+phiz(i,j,k-1))*term4                   
-                enddo
-             enddo
-          enddo
-
-       end if
-
     end if
 
     !Type 2
