@@ -27,7 +27,7 @@ void WritePlotFile(int step,
     amrex::MultiFab plotfile(ba, dmap, nplot, 0);
 
     std::string x;
-    std::string plotfilename = amrex::Concatenate("plt",step,9);
+    std::string plotfilename = amrex::Concatenate(plot_base_name,step,9);
     amrex::Vector<std::string> varNames(nplot);
 
     // Load into plotfile MF
