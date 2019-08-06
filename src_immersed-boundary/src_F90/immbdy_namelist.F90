@@ -77,5 +77,41 @@ contains
     end subroutine read_immbdy_namelist
 
 
+    subroutine initialize_immbdy_namespace (n_immbdy_in, contains_flagellum_in) &
+            bind(C, name="initialize_immbdy_namespace")
+
+        integer, intent(inout) :: n_immbdy_in
+        integer, intent(inout) :: contains_flagellum_in
+
+        n_immbdy_in = n_immbdy
+
+        contains_flagellum_in = 0
+        if (contains_flagellum) contains_flagellum_in = 1
+
+    end subroutine initialize_immbdy_namespace
+
+
+    subroutine initialize_ib_flagellum_namespace (n_immbdy, n_marker_in, offset_0_in,    &
+            &                                     amplitude_in, frequency_in, length_in, &
+            &                                     wavelength_in                        ) &
+            bind(C, name="initialize_ib_flagellum_namespace")
+
+        integer, value, intent(in) :: n_immbdy
+
+        integer,          intent(inout) :: n_marker_in(n_immbdy)
+        real(amrex_real), intent(inout) :: offset_0_in(n_immbdy, AMREX_SPACEDIM)
+        real(amrex_real), intent(inout) :: amplitude_in(n_immbdy)
+        real(amrex_real), intent(inout) :: frequency_in(n_immbdy)
+        real(amrex_real), intent(inout) :: length_in(n_immbdy)
+        real(amrex_real), intent(inout) :: wavelength_in(n_immbdy)
+
+        n_marker_in   = n_marker;
+        offset_0_in   = offset_0;
+        amplitude_in  = amplitude;
+        frequency_in  = frequency;
+        length_in     = length;
+        wavelength_in = wavelength;
+
+    end subroutine initialize_ib_flagellum_namespace
 
 end module immbdy_namelist_module

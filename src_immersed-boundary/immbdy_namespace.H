@@ -1,3 +1,7 @@
+#ifndef _immbdy_namespace_H_
+#define _immbdy_namespace_H_
+
+
 namespace immbdy {
 
     extern int n_immbdy;
@@ -17,3 +21,6 @@ namespace ib_flagellum {
     extern amrex::Vector<amrex::Real>     wavelength;
 
 }
+
+
+#endif

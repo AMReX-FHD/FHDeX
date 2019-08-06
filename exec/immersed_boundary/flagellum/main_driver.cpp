@@ -1,26 +1,31 @@
-#include "main_driver.H"
-#include "main_driver_F.H"
+#include <main_driver.H>
+#include <main_driver_F.H>
 
-#include "hydro_functions.H"
-#include "hydro_functions_F.H"
+#include <hydro_functions.H>
+#include <hydro_functions_F.H>
 
-//#include "analysis_functions_F.H"
-#include "StochMFlux.H"
-//#include "StructFact.H"
+//#include <analysis_functions_F.H>
+#include <StochMFlux.H>
+//#include <StructFact.H>
 
-#include "rng_functions_F.H"
+#include <rng_functions_F.H>
 
-#include "common_functions.H"
-#include "common_functions_F.H"
+#include <common_functions.H>
+#include <common_functions_F.H>
 
-#include "gmres_functions.H"
-#include "gmres_functions_F.H"
+#include <gmres_functions.H>
+#include <gmres_functions_F.H>
 
-#include "common_namespace.H"
-#include "common_namespace_declarations.H"
+#include <ib_functions.H>
 
-#include "gmres_namespace.H"
-#include "gmres_namespace_declarations.H"
+#include <common_namespace.H>
+#include <common_namespace_declarations.H>
+
+#include <gmres_namespace.H>
+#include <gmres_namespace_declarations.H>
+
+#include <immbdy_namespace.H>
+#include <immbdy_namespace_declarations.H>
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -96,6 +101,8 @@ void main_driver(const char * argv) {
     // global settings in fortran/c++ after this point need to be synchronized
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+    InitializeImmbdyNamespace();
+    InitializeIBFlagellumNamespace();
 
 
     //___________________________________________________________________________
