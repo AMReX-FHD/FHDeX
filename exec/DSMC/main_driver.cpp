@@ -36,10 +36,12 @@ void main_driver(const char* argv)
   
     Real strt_time = ParallelDescriptor::second();
 
-    //for(int omg; omg<101;omg++)
-    //  {
-    std::string inputs_file = argv;
-
+    for(int omg; omg<101;omg++)
+      {
+	std::string inputs_file = argv;
+	Print() << argv << std::endl;
+	//Abort();
+    
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
@@ -394,7 +396,9 @@ void main_driver(const char* argv)
     double time = 0;
     //Time stepping loop
 	//remove("out.txt");
-	//surfaceList[5].omg=omg;
+	surfaceList[5].omg=omg;
+	surfaceList[5].bgraph=0;
+	surfaceList[5].bgraph=0;
     for(int step=1;step<=max_step;++step)
     {
 
@@ -442,7 +446,7 @@ void main_driver(const char* argv)
         time = time + dt;
 
     }
-    //       }
+           }
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;

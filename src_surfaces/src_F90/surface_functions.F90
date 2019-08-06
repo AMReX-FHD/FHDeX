@@ -435,12 +435,12 @@
 
     pi=3.1415926535897932
 
-    interval=3/100
-    !omega=(12.5+interval*surf%omg)*(10**6)*pi*2
-    omega=13d0*(10**6)*pi*2
+    interval=3.0/100
+    omega=(11+interval*surf%omg)*(10**6)*pi*2
+    !omega=12.5*(10**6)*pi*2
     resomega=12.5*(10**6)*pi*2
 
-    lstrength=3*10e-16*cos(omega*time)
+    lstrength=9*10e-14*cos(omega*time)
     !lstrength=0
     t=time
     dt=t+fixed_dt
@@ -449,7 +449,7 @@
         surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 0d0)*cos(resomega*time)
         t=t+fixed_dt
      !end do
-     !print*, 'A', surf%agraph, surf%bgraph 
+     !print*, 'A',omega, surf%omg, interval 
      
   end subroutine laser
   

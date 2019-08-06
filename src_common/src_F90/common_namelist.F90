@@ -325,8 +325,15 @@ contains
   subroutine read_common_namelist(inputs_file,length) bind(C, name="read_common_namelist")
 
     integer               , value         :: length
+    integer                               :: narg, farg
     character(kind=c_char), intent(in   ) :: inputs_file(length)
+    character(len=128) :: fname
 
+!    narg = command_argument_count()
+!    narg=narg+3
+!    print*, narg
+!    stop
+    
     ! default values
     prob_lo(:) = 0.d0
     prob_hi(:) = 1.d0
@@ -413,6 +420,29 @@ contains
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
     close(unit=100)
+    
+    !  farg = 1
+    !  do while ( farg <= narg )
+    !      !print*, narg
+    !     call get_command_argument(farg, value = fname)
+    !     print*, fname
+    !    select case (fname)
+          
+    !    case ('--max_step')
+    !       farg = farg + 1
+    !       call get_command_argument(farg, value = fname)
+    !       read(fname, *) max_step
+    !              !print*, fname
+
+    !    case ('--')
+    !       farg = farg + 1
+    !       exit
+    !    case default
+
+    !    end select
+    !    farg = farg + 1
+    ! end do
+
 
   end subroutine read_common_namelist
 
