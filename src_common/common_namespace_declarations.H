@@ -92,6 +92,8 @@ amrex::Vector<amrex::Real> common::potential_hi;
 
 int                        common::struct_fact_int;
 int                        common::n_steps_skip;
+int                        common::project_dir;
+amrex::Vector<int>         common::max_grid_projection;
 int                        common::histogram_unit;
 amrex::Vector<amrex::Real> common::density_weights;
 amrex::Vector<int>         common::shift_cc_to_boundary;
