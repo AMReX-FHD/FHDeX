@@ -8,6 +8,8 @@ CEXE_headers += MFUtil.H
 CEXE_headers += IBParticleInfo.H
 CEXE_headers += ib_functions.H
 CEXE_headers += ib_functions_F.H
+CEXE_headers += immbdy_namespace_declarations.H
+CEXE_headers += immbdy_namespace.H
 
 
 CEXE_sources += IBCore.cpp

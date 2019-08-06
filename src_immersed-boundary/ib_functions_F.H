@@ -1,3 +1,6 @@
+#ifndef _ib_functions_F_H_
+#define _ib_functions_F_H_
+
 #include <AMReX_REAL.H>
 
 #ifdef BL_SINGLE_PRECISION_PARTICLES
@@ -10,6 +13,13 @@ typedef double amrex_particle_real;
 extern "C"
 {
 #endif
+
+
+    //__________________________________________________________________________
+    // IN: src_F90/immbdy_namelist.F90
+
+    // read fortran namelist into immbdy_namelist_module
+    void read_immbdy_namelist(const char * inputs_file, const int length);
 
     void test_interface(
             void * particle_info, int * np
@@ -176,4 +186,6 @@ extern "C"
 
 #ifdef __cplusplus
 }
+#endif
+
 #endif

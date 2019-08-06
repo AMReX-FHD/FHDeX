@@ -1,5 +1,5 @@
 module compressible_namelist_module
- 
+
   use iso_c_binding, only: c_char
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
 
@@ -7,7 +7,7 @@ module compressible_namelist_module
 
   integer, parameter :: MAX_SPECIES = 10
   integer, parameter :: LOHI = 2
-  
+
   integer,            save :: mass_bc_lo(AMREX_SPACEDIM)
   integer,            save :: mass_bc_hi(AMREX_SPACEDIM)
   integer,            save :: therm_bc_lo(AMREX_SPACEDIM)
@@ -16,7 +16,7 @@ module compressible_namelist_module
   integer,            save :: vel_bc_hi(AMREX_SPACEDIM)
   double precision,   save :: Yk_bc(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
   double precision,   save :: Xk_bc(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
-  
+
   ! Boundary conditions
   namelist /compressible/ mass_bc_lo  ! mass boundary conditions
   namelist /compressible/ mass_bc_hi
@@ -60,7 +60,7 @@ contains
                                                 bind(C, name="initialize_compressible_namespace")
 
     double precision,       intent(inout) :: mass_bc_lo_in(AMREX_SPACEDIM), mass_bc_hi_in(AMREX_SPACEDIM), therm_bc_lo_in(AMREX_SPACEDIM), therm_bc_hi_in(AMREX_SPACEDIM), vel_bc_lo_in(AMREX_SPACEDIM), vel_bc_hi_in(AMREX_SPACEDIM),Yk_bc_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES), Xk_bc_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
-    
+
     mass_bc_lo_in = mass_bc_lo
     mass_bc_hi_in = mass_bc_hi
     therm_bc_lo_in = therm_bc_lo

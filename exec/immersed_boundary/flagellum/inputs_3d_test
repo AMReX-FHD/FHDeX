@@ -92,3 +92,17 @@
   gmres_min_iter = 1                    ! min number of gmres iterations
 
 /
+
+
+&immbdy
+
+  n_immbdy = 2
+
+/
+
+
+&ib_markers
+
+  n_marker(1:2) = 20 10
+
+/
