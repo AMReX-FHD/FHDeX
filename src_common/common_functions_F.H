@@ -57,11 +57,22 @@ extern "C"
                                      int* shift_cc_to_boundary,
                                      int* particle_placement, int* particle_count,
                                      amrex::Real* particle_neff, amrex::Real* particle_n0,
-                                     amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permitivitty, amrex::Real* cut_off, amrex::Real* rmin,
-                                     amrex::Real* eepsilon, amrex::Real* sigma, int* poisson_verbose, int* poisson_bottom_verbose,
+                                     amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permitivitty,
+                                     amrex::Real* cut_off, amrex::Real* rmin,
+                                     amrex::Real* eepsilon, amrex::Real* sigma, int* poisson_verbose,
+                                     int* poisson_bottom_verbose,
                                      int* poisson_max_iter, amrex::Real* poisson_rel_tol,
-                                     amrex::Real* particle_grid_refine, amrex::Real* es_grid_refine, amrex::Real* diff, int* fluid_tog, int* es_tog, int* drag_tog,
-                                     int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog, int* graphene_tog, int* crange, int* thermostat_tog, int* images, amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase, int* plot_ascii, int* solve_chem, amrex::Real* diffcoeff, amrex::Real* scaling_factor, amrex::Real* source_strength, int* regrid_int, int* do_reflux, int* particle_motion);
+                                     amrex::Real* particle_grid_refine, amrex::Real* es_grid_refine,
+                                     amrex::Real* diff, int* fluid_tog, int* es_tog, int* drag_tog,
+                                     int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog,
+                                     int* graphene_tog, int* crange, int* thermostat_tog, int* images,
+                                     amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase,
+                                     int* plot_ascii, int* solve_chem, amrex::Real* diffcoeff,
+                                     amrex::Real* scaling_factor, amrex::Real* source_strength,
+                                     int* regrid_int, int* do_reflux, int* particle_motion);
+
+    void set_max_step(int* max_step);
+    
 ///////////////////////////
 
 ///////////////////////////

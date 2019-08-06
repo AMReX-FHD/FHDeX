@@ -2,6 +2,8 @@
 #include "common_functions_F.H"
 #include "common_namespace.H"
 
+#include <AMReX_ParmParse.H>
+
 using namespace common;
 
 void InitializeCommonNamespace() {
@@ -117,7 +119,8 @@ void InitializeCommonNamespace() {
                                 &seed_init_momentum, &visc_coef, &visc_type,
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
-                                &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(), bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
+                                &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(),
+                                bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
                                 p_lo.dataPtr(), p_hi.dataPtr(),
                                 t_lo.dataPtr(), t_hi.dataPtr(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
@@ -127,11 +130,25 @@ void InitializeCommonNamespace() {
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
                                 &particle_placement, particle_count.dataPtr(), &particle_neff,
-                                particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(), &permitivitty,&cut_off,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
-                                &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter, &poisson_rel_tol, &particle_grid_refine, &es_grid_refine, diff.dataPtr(),
-                                &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog, &dry_move_tog, &sr_tog, &graphene_tog, &crange, &thermostat_tog, &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(), &plot_ascii, &solve_chem, &diffcoeff, &scaling_factor,&source_strength, &regrid_int, &do_reflux, &particle_motion);
+                                particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(), &permitivitty,
+                                &cut_off,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
+                                &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
+                                &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
+                                diff.dataPtr(), &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
+                                &dry_move_tog, &sr_tog, &graphene_tog, &crange, &thermostat_tog,
+                                &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(),
+                                &plot_ascii, &solve_chem, &diffcoeff, &scaling_factor,
+                                &source_strength, &regrid_int, &do_reflux, &particle_motion);
 
     plot_base_name = temp_plot_base_name;
     chk_base_name = temp_chk_base_name;
+
+    ParmParse pp;
+
+    // read in from command line
+    pp.query("max_step",max_step);
+
+    // copy value into fortran namelist
+    set_max_step(&max_step);
     
 }
