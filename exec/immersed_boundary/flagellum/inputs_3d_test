@@ -97,6 +97,7 @@
 &immbdy
 
   n_immbdy = 2
+
   contains_flagellum = true
 
 /
@@ -107,5 +108,10 @@
   n_marker(1:2)  = 20 10
   offset_0(1, :) = .5 .3 .5
   offset_0(2, :) = .5 .8 .5
+
+  amplitude(1:2)  = 10 10
+  frequency(1:2)  = 20 10
+  length(1:2)     = .8 .4
+  wavelength(1:2) = .4 .2
 
 /

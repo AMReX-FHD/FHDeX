@@ -15,6 +15,11 @@ module immbdy_namelist_module
     logical,                       save :: contains_flagellum
     integer,          allocatable, save :: n_marker(:)
     real(amrex_real), allocatable, save :: offset_0(:, :)
+    real(amrex_real), allocatable, save :: amplitude(:)
+    real(amrex_real), allocatable, save :: frequency(:)
+    real(amrex_real), allocatable, save :: length(:)
+    real(amrex_real), allocatable, save :: wavelength(:)
+
 
 
     namelist /immbdy/ n_immbdy
@@ -22,14 +27,18 @@ module immbdy_namelist_module
 
     namelist /ib_flagellum/ n_marker
     namelist /ib_flagellum/ offset_0
+    namelist /ib_flagellum/ amplitude
+    namelist /ib_flagellum/ frequency
+    namelist /ib_flagellum/ length
+    namelist /ib_flagellum/ wavelength
 
 contains
 
-    subroutine read_immbdy_namelist(inputs_file, length) &
+    subroutine read_immbdy_namelist(inputs_file, f_length) &
             bind(C, name="read_immbdy_namelist")
 
-        integer,                intent(in), value :: length
-        character(kind=c_char), intent(in)        :: inputs_file(length)
+        integer,                intent(in), value :: f_length
+        character(kind=c_char), intent(in)        :: inputs_file(f_length)
 
         ! default values
         n_immbdy           = 0
@@ -45,15 +54,24 @@ contains
 
             allocate(n_marker(n_immbdy))
             allocate(offset_0(n_immbdy, AMREX_SPACEDIM))
+            allocate(amplitude(n_immbdy))
+            allocate(frequency(n_immbdy))
+            allocate(length(n_immbdy))
+            allocate(wavelength(n_immbdy))
 
             ! default values
             n_marker(:)    = 0
             offset_0(:, :) = 0
+            amplitude(:)   = 0
+            frequency(:)   = 0
+            length(:)      = 0
+            wavelength(:)  = 0
 
             ! read in immbdy namelist
             open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
             read(unit=100, nml=ib_flagellum)
             close(unit=100)
+
         end if
 
     end subroutine read_immbdy_namelist
