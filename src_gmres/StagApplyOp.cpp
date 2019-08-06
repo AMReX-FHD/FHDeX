@@ -259,11 +259,8 @@ void StagApplyOp(const MultiFab& beta_cc,
             bt = beta_cc_fab (lo.x,lo.y,lo.z);
             gt = gamma_cc_fab(lo.x,lo.y,lo.z);
         }
-        
-        if (visc_type == -1) {
 
-        }
-        else if (visc_type == 1) {
+        if (visc_type == 1) {
             
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
@@ -275,12 +272,6 @@ void StagApplyOp(const MultiFab& beta_cc,
                                      bt, gt, offset, color, dx);
             });
             
-        }
-        else if (visc_type == -2) {
-
-        }
-        else if (visc_type == 2) {
-
         }
         else {
         
