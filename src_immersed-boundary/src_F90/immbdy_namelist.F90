@@ -13,8 +13,8 @@ module immbdy_namelist_module
     integer,              save :: n_immbdy
     integer, allocatable, save :: n_marker(:) ! n_immbdy large
 
-    namelist /immbdy/ n_immbdy
-    namelist /immbdy/ n_marker
+    namelist /immbdy/     n_immbdy
+    namelist /ib_markers/ n_marker
 
 
 contains
@@ -29,12 +29,25 @@ contains
         ! default values
         n_immbdy = 0
 
-        allocate(n_marker(n_immbdy))
 
-        ! read in compressible namelist
+        ! read in immbdy namelist
         open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
         read(unit=100, nml=immbdy)
         close(unit=100)
+
+
+        allocate(n_marker(1:n_immbdy))
+
+        ! default values
+        n_marker(1:n_immbdy) = 0
+
+        ! read in immbdy namelist
+        open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
+        read(unit=100, nml=ib_markers)
+        close(unit=100)
+
+
+        write(*,*) n_marker
 
     end subroutine read_immbdy_namelist
 
