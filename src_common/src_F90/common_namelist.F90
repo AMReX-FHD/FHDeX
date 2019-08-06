@@ -84,6 +84,8 @@ module common_namelist_module
 
   integer,            save :: struct_fact_int
   integer,            save :: n_steps_skip
+  integer,            save :: project_dir
+  integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
@@ -276,6 +278,10 @@ module common_namelist_module
   namelist /common/ struct_fact_int
   namelist /common/ n_steps_skip
 
+  ! projection
+  namelist /common/ project_dir
+  namelist /common/ max_grid_projection
+
   ! These are mostly used for reaction-diffusion:
   namelist /common/ histogram_unit
   namelist /common/ density_weights
@@ -394,6 +400,8 @@ contains
     potential_hi(:) = 0
     struct_fact_int = 0
     n_steps_skip = 0
+    project_dir = -1
+    max_grid_projection(:) = 1
     histogram_unit = 0
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
@@ -453,6 +461,7 @@ contains
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
                                          struct_fact_int_in, n_steps_skip_in, &
+                                         project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
@@ -552,6 +561,8 @@ contains
 
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: n_steps_skip_in
+    integer,                intent(inout) :: project_dir_in
+    integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
@@ -674,6 +685,8 @@ contains
 
     struct_fact_int_in = struct_fact_int
     n_steps_skip_in = n_steps_skip
+    project_dir_in = project_dir
+    max_grid_projection_in = max_grid_projection
     histogram_unit_in = histogram_unit
     density_weights_in = density_weights
     shift_cc_to_boundary_in = shift_cc_to_boundary

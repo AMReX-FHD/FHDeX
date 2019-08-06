@@ -14,10 +14,10 @@ namespace common {
     // Below are items that are read in from the common namelist
 
     // Problem specification
-    extern amrex::Vector<amrex::Real> prob_lo;       // physical lo coordinate
-    extern amrex::Vector<amrex::Real> prob_hi;       // physical hi coordinate
-    extern amrex::Vector<int>         n_cells;       // number of cells in domain
-    extern amrex::Vector<int>         max_grid_size; // max number of cells in a box
+    extern amrex::Vector<amrex::Real> prob_lo;              // physical lo coordinate
+    extern amrex::Vector<amrex::Real> prob_hi;              // physical hi coordinate
+    extern amrex::Vector<int>         n_cells;              // number of cells in domain
+    extern amrex::Vector<int>         max_grid_size;        // max number of cells in a box
     extern amrex::Real                cell_depth;
 
     extern amrex::IntVect             ngc;           //number of chost cells
@@ -144,14 +144,17 @@ namespace common {
     // structure factor analysis
     extern int                        struct_fact_int;
     extern int                        n_steps_skip;
-/*
-  extern int                        project_dir;
-  extern amrex::Vector<int>         max_grid_projection;
-  extern int                        stats_int;
-  extern int                        n_steps_save_stats;
-  extern bool                       analyze_conserved;
-  extern bool                       center_snapshots;
-*/
+
+    // projection 
+    extern int                        project_dir;
+    extern amrex::Vector<int>         max_grid_projection;
+
+  /*
+    extern int                        stats_int;
+    extern int                        n_steps_save_stats;
+    extern bool                       analyze_conserved;
+    extern bool                       center_snapshots;
+  */
 
     // These are mostly used for reaction-diffusion:
     extern int                        histogram_unit;

@@ -1,5 +1,5 @@
 namespace compressible {
- 
+
   // Boundary conditions
   
   extern amrex::Vector<int> mass_bc_lo;   // mass boundary conditions
