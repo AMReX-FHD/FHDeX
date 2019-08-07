@@ -349,6 +349,18 @@ void main_driver(const char * argv) {
 
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
         if (n_marker[i_ib] <= 0) continue;
+
+        int N  = n_marker[i_ib];
+        Real L = ib_flagellum::length[i_ib];
+
+        Real l_link = L/N;
+
+        const RealVect & x_0 = offset_0[i_ib];
+
+        Print() << "N=    " << N << std::endl;
+        Print() << "L=    " << L << std::endl;
+        Print() << "l_lb= " << l_link << std::endl;
+        Print() << "x_0=  " << x_0 << std::endl;
     }
 
     Real l_db = 0.05;
@@ -376,14 +388,14 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+    BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
 
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
+        const Box & bx = mfi.validbox();
 
-        BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
         // initialize velocity
         for (int d=0; d<AMREX_SPACEDIM; ++d)
              init_vel(BL_TO_FORTRAN_BOX(bx),
@@ -398,8 +410,9 @@ void main_driver(const char * argv) {
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(tracer[mfi]),
                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-        BL_PROFILE_VAR_STOP(tracer);
     }
+
+    BL_PROFILE_VAR_STOP(tracer);
 
 
     //___________________________________________________________________________
@@ -414,6 +427,7 @@ void main_driver(const char * argv) {
         MultiFABPhysBCDomainVel(umac[i], i, geom, i);
         MultiFABPhysBCMacVel(umac[i], i, geom, i);
     }
+
     BL_PROFILE_VAR_STOP(ICwork);
 
 

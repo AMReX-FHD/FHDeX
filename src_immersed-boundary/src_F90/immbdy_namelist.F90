@@ -53,7 +53,7 @@ contains
         if (contains_flagellum) then
 
             allocate(n_marker(n_immbdy))
-            allocate(offset_0(n_immbdy, AMREX_SPACEDIM))
+            allocate(offset_0(AMREX_SPACEDIM, n_immbdy))
             allocate(amplitude(n_immbdy))
             allocate(frequency(n_immbdy))
             allocate(length(n_immbdy))
@@ -99,7 +99,7 @@ contains
         integer, value, intent(in) :: n_immbdy
 
         integer,          intent(inout) :: n_marker_in(n_immbdy)
-        real(amrex_real), intent(inout) :: offset_0_in(n_immbdy, AMREX_SPACEDIM)
+        real(amrex_real), intent(inout) :: offset_0_in(AMREX_SPACEDIM, n_immbdy)
         real(amrex_real), intent(inout) :: amplitude_in(n_immbdy)
         real(amrex_real), intent(inout) :: frequency_in(n_immbdy)
         real(amrex_real), intent(inout) :: length_in(n_immbdy)
