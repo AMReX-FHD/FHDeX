@@ -30,6 +30,7 @@ IBMarkerContainer::IBMarkerContainer(const Geometry & geom,
     : IBMarkerContainerBase<IBM_realData, IBM_intData>(
             geom, dmap, ba, n_nbhd
         )
+      , n_list(0)
 {
     InitInternals(n_nbhd);
     nghost = n_nbhd;
@@ -41,6 +42,7 @@ IBMarkerContainer::IBMarkerContainer(AmrCore * amr_core, int n_nbhd)
     : IBMarkerContainerBase<IBM_realData, IBM_intData>(
             amr_core->GetParGDB(), n_nbhd
         )
+      , n_list(0)
 {
     InitInternals(n_nbhd);
     nghost     = n_nbhd;
@@ -140,7 +142,7 @@ void IBMarkerContainer::InitList(int lev,
 
                 // ID_1 remembers the particle's position in the linked list
                 p_new.idata(IBM_intData::id_1)  = i;
-                p_new.idata(IBM_intData::cpu_1) = -1;
+                p_new.idata(IBM_intData::cpu_1) = n_list; // label immersed boundaries
 
                 // Add to the data structure
                 particles.push_back(p_new);
@@ -204,6 +206,10 @@ void IBMarkerContainer::InitList(int lev,
             }
         }
     }
+
+
+    // Update n_list counter (to discriminate between different immersed boundaries)
+    n_list ++;
 }
 
 

@@ -245,6 +245,11 @@ public:
                 <= 4.0*p1.rdata(0)*p1.rdata(0);
         }
     } CheckPair;
+
+
+private:
+
+    int n_list;
 };
 
 

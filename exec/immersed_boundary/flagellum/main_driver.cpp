@@ -37,9 +37,13 @@
 
 
 using namespace amrex;
+
 using namespace common;
 using namespace gmres;
+
+using namespace immbdy;
 using namespace immbdy_md;
+using namespace ib_flagellum;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -333,7 +337,7 @@ void main_driver(const char * argv) {
      ***************************************************************************/
 
     //___________________________________________________________________________
-    // Initialize velocities (fluid and tracers)
+    // Initialize immersed boundaries
     // Make sure that the nghost (last argument) is big enough!
 
     BL_PROFILE_VAR("main_create markers", createmarkers);
@@ -342,11 +346,17 @@ void main_driver(const char * argv) {
     for (int d=1; d<AMREX_SPACEDIM; ++d)
 	    min_dx = std::min(min_dx, dx[d]);
 
+
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+        if (n_marker[i_ib] <= 0) continue;
+    }
+
     Real l_db = 0.05;
     int min_nghost = 2*l_db/min_dx;
 
     int ib_nghost = std::max(10, min_nghost);
-    Print() << "Initializing IBMarkerContainer with " << ib_nghost << " ghost cells" << std::endl;
+    Print() << "Initializing IBMarkerContainer with "
+            << ib_nghost << " ghost cells" << std::endl;
 
     IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
 
