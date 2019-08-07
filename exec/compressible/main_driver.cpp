@@ -146,6 +146,8 @@ void main_driver(const char* argv)
     MultiFab cuMeansAv(ba,dmap,nvars,ngc);
     MultiFab cuVarsAv(ba,dmap,nvars,ngc);
 
+    MultiFab cuVertAvg;
+
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
     MultiFab primVars(ba,dmap,nprimvars + 5,ngc);
 
@@ -401,8 +403,34 @@ void main_driver(const char* argv)
       s_pairB[d] = d;
     }
 
+    // cu.setVal(0.0);
+    // ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
+    // BoxArray ba_flat = cuVertAvg.boxArray();
+    // const DistributionMapping& dmap_flat = cuVertAvg.DistributionMap();
+    // Geometry geom_flat;
+    // {
+    //     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    //     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    // 	dom_hi[project_dir] = 0;
+    //     Box domain(dom_lo, dom_hi);
+	
+    // 	// This defines the physical box
+    // 	IntVect projected_hi(AMREX_SPACEDIM);
+    // 	for (int d=0; d<AMREX_SPACEDIM; d++) {
+    // 	  projected_hi[d] = prob_hi[d];
+    // 	}
+    // 	projected_hi[project_dir] = prob_lo[project_dir];
+    //     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+    //                      {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+
+    //     // This defines a Geometry object
+    //     geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    // }
+
     StructFact structFact(ba,dmap,var_names,eqmvars);
     // StructFact structFact(ba,dmap,var_names,eqmvars,s_pairA,s_pairB);
+
+    // StructFact structFact(ba_flat,dmap_flat,var_names,eqmvars);
 
     ///////////////////////////////////////////
 
@@ -427,7 +455,7 @@ void main_driver(const char* argv)
     cup.setVal(rho0,0,1,ngc);
     cup2.setVal(rho0,0,1,ngc);
     cup3.setVal(rho0,0,1,ngc);
-    
+
     if (prob_type > 1) {
       for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
 	const Box& bx = mfi.validbox();
@@ -439,9 +467,9 @@ void main_driver(const char* argv)
 
       }
     }
-	    
+
     statsCount = 1;
-    
+
     // Write initial plotfile
     conservedToPrimitive(prim, cu);
     if (plot_int > 0)
@@ -464,13 +492,15 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
+	/*
 	if (step > n_steps_skip) {
-	  evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
+	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
 
-	  // ComputeVerticalAverage(cu, geom, 2, 5, 1);
+	  // ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
 
 	  // amrex::Abort("End");
 	}
+	*/
  
 	///////////////////////////////////////////
 	// Update structure factor
@@ -478,6 +508,7 @@ void main_driver(const char* argv)
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
 	  structFact.FortStructure(struct_in_cc,geom);
+	  // structFact.FortStructure(cuVertAvg,geom_flat);
         }
 	///////////////////////////////////////////
 
