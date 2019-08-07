@@ -47,7 +47,6 @@ public:
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const amrex::Real&, Geometry);
-  void SqrtMF(                amrex::MultiFab&);
   void writeMFs(              std::array< MultiFab, AMREX_SPACEDIM >&);
 
 };

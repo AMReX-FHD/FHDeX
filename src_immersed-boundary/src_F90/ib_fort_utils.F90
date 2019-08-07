@@ -1778,7 +1778,7 @@ contains
 
         ! ** IN:  `n_marker`-many marker positions (pos_marker). The `pos_marker` and
         !         `v_marker` arrays are `Vector<RealVecr>` in c-land.
-        integer(c_int), intent(in   ) :: n_marker
+        integer(c_int),   intent(in   ) :: n_marker
         real(amrex_real), intent(in   ) :: pos_marker(AMREX_SPACEDIM, n_marker);
         ! ** OUT: each marker vector `v_marker` is interpolated from the stagged
         !         MultiFabs `mf_*`

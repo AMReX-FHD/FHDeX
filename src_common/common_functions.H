@@ -45,6 +45,10 @@ void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM
 void PrintMF(const MultiFab& MF);
 
 ///////////////////////////
+// in SqrtMF.cpp
+void SqrtMF(MultiFab& MF);
+
+///////////////////////////
 // in FindCoords.cpp
 
 void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,

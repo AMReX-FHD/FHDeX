@@ -85,7 +85,6 @@ contains
                      +(betaxy(i,j)+betaxy(i,j+1))*dysqinv) &
                      +(-phix(i+1,j)*betacc(i,j)-phix(i-1,j)*betacc(i-1,j))*dxsqinv &
                      +(-phix(i,j+1)*betaxy(i,j+1)-phix(i,j-1)*betaxy(i,j))*dysqinv
-
              enddo
           enddo
 
@@ -102,8 +101,7 @@ contains
                      +(betacc(i,j)+betacc(i,j-1))*dysqinv &
                      +(betaxy(i+1,j)+betaxy(i,j))*dxsqinv) &
                      +(-phiy(i,j+1)*betacc(i,j)-phiy(i,j-1)*betacc(i,j-1))*dysqinv &
-                     +(-phiy(i+1,j)*betaxy(i+1,j)-phiy(i-1,j)*betaxy(i,j))*dxsqinv
-                
+                     +(-phiy(i+1,j)*betaxy(i+1,j)-phiy(i-1,j)*betaxy(i,j))*dxsqinv                
              enddo
           enddo
 
@@ -127,7 +125,6 @@ contains
                 Lphix(i,j) = phix(i,j)*(alphax(i,j) + term1) &
                                -(phix(i+1,j)+phix(i-1,j))*term2 &
                                -(phix(i,j+1)+phix(i,j-1))*term3
-
              enddo
           enddo
 
@@ -161,18 +158,19 @@ contains
              if ( offset .eq. 2 .and. mod(lo(1)+j,2) .ne. mod(color+1,2) ) ioff = 1
              do i=lo(1)+ioff,hi(1)+1,offset
 
-                Lphix(i,j) = +phix(i,j)*(alphax(i,j) + &
-                               (betacc(i,j)+betacc(i-1,j))*2.d0*dxsqinv+(betaxy(i,j+1)+betaxy(i,j))*dysqinv) &
-
-                               -( (2.d0*phix(i+1,j)*betacc(i,j) &
-                               +2.d0*phix(i-1,j)*betacc(i-1,j))*dxsqinv &
-                               +(+phix(i,j+1)*betaxy(i,j+1) &
-                               +phix(i,j-1)*betaxy(i,j))*dysqinv &
-
-                               +(+phiy(i,j+1)*betaxy(i,j+1) &
-                               -phiy(i,j)*betaxy(i,j) &
-                               -phiy(i-1,j+1)*betaxy(i,j+1) &
-                               +phiy(i-1,j)*betaxy(i,j))*dxdyinv)
+                Lphix(i,j) = phix(i,j)*(alphax(i,j) + &
+                     2.d0*(betacc(i,j)+betacc(i-1,j))*dxsqinv&
+                     + (betaxy(i,j+1)+betaxy(i,j))*dysqinv) &
+                     
+                     -2.d0*phix(i+1,j)*betacc(i,j)*dxsqinv &
+                     -2.d0*phix(i-1,j)*betacc(i-1,j)*dxsqinv &
+                     -phix(i,j+1)*betaxy(i,j+1)*dysqinv &
+                     -phix(i,j-1)*betaxy(i,j)*dysqinv &
+                     
+                     -phiy(i,j+1)*betaxy(i,j+1)*dxdyinv &
+                     +phiy(i,j)*betaxy(i,j)*dxdyinv &
+                     +phiy(i-1,j+1)*betaxy(i,j+1)*dxdyinv &
+                     -phiy(i-1,j)*betaxy(i,j)*dxdyinv 
              enddo
           enddo
 
@@ -185,18 +183,19 @@ contains
              if ( offset .eq. 2 .and. mod(lo(1)+j,2) .ne. mod(color+1,2) ) ioff = 1
              do i=lo(1)+ioff,hi(1),offset
 
-                Lphiy(i,j) = +phiy(i,j)*(alphay(i,j) + &
-                               (betacc(i,j)+betacc(i,j-1))*2.d0*dysqinv+(betaxy(i+1,j)+betaxy(i,j))*dxsqinv) &
-
-                               -( (2.d0*phiy(i,j+1)*betacc(i,j) &
-                               +2.d0*phiy(i,j-1)*betacc(i,j-1))*dysqinv &
-                               +(+phiy(i+1,j)*betaxy(i+1,j) &
-                               +phiy(i-1,j)*betaxy(i,j))*dxsqinv &
-
-                               +(+phix(i+1,j)*betaxy(i+1,j) &
-                               -phix(i,j)*betaxy(i,j) &
-                               -phix(i+1,j-1)*betaxy(i+1,j) &
-                               +phix(i,j-1)*betaxy(i,j))*dxdyinv)
+                Lphiy(i,j) = phiy(i,j)*(alphay(i,j) + &
+                     2.d0*(betacc(i,j)+betacc(i,j-1))*dysqinv &
+                     + (betaxy(i+1,j)+betaxy(i,j))*dxsqinv) &
+                        
+                     -2.d0*phiy(i,j+1)*betacc(i,j)*dysqinv &
+                     -2.d0*phiy(i,j-1)*betacc(i,j-1)*dysqinv &
+                     -phiy(i+1,j)*betaxy(i+1,j)*dxsqinv &
+                     -phiy(i-1,j)*betaxy(i,j)*dxsqinv &
+                        
+                     -phix(i+1,j)*betaxy(i+1,j)*dxdyinv &
+                     +phix(i,j)*betaxy(i,j)*dxdyinv &
+                     +phix(i+1,j-1)*betaxy(i+1,j)*dxdyinv &
+                     -phix(i,j-1)*betaxy(i,j)*dxdyinv
              enddo
           enddo
 
@@ -348,8 +347,7 @@ contains
                         +(betaxz(i,j,k)+betaxz(i,j,k+1))*dzsqinv) &
                         +(-phix(i+1,j,k)*betacc(i,j,k)-phix(i-1,j,k)*betacc(i-1,j,k))*dxsqinv &
                         +(-phix(i,j+1,k)*betaxy(i,j+1,k)-phix(i,j-1,k)*betaxy(i,j,k))*dysqinv &
-                        +(-phix(i,j,k+1)*betaxz(i,j,k+1)-phix(i,j,k-1)*betaxz(i,j,k))*dysqinv
-                   
+                        +(-phix(i,j,k+1)*betaxz(i,j,k+1)-phix(i,j,k-1)*betaxz(i,j,k))*dysqinv                   
                 enddo
              enddo
           enddo
@@ -369,8 +367,7 @@ contains
                         +(betayz(i,j,k)+betayz(i,j,k+1))*dzsqinv) &
                         +(-phiy(i,j+1,k)*betacc(i,j,k)-phiy(i,j-1,k)*betacc(i,j-1,k))*dysqinv &
                         +(-phiy(i+1,j,k)*betaxy(i+1,j,k)-phiy(i-1,j,k)*betaxy(i,j,k))*dxsqinv &
-                        +(-phiy(i,j,k+1)*betayz(i,j,k+1)-phiy(i,j,k-1)*betayz(i,j,k))*dzsqinv
-                   
+                        +(-phiy(i,j,k+1)*betayz(i,j,k+1)-phiy(i,j,k-1)*betayz(i,j,k))*dzsqinv                   
                 enddo
              enddo
           enddo
@@ -391,8 +388,7 @@ contains
                         +(betayz(i,j,k)+betayz(i,j+1,k))*dysqinv) &
                         +(-phiz(i,j,k+1)*betacc(i,j,k)-phiz(i,j,k-1)*betacc(i,j,k-1))*dzsqinv &
                         +(-phiz(i+1,j,k)*betaxz(i+1,j,k)-phiz(i-1,j,k)*betaxz(i,j,k))*dxsqinv &
-                        +(-phiz(i,j+1,k)*betayz(i,j+1,k)-phiz(i,j-1,k)*betayz(i,j,k))*dysqinv
-                   
+                        +(-phiz(i,j+1,k)*betayz(i,j+1,k)-phiz(i,j-1,k)*betayz(i,j,k))*dysqinv                   
                 enddo
              enddo
           enddo
@@ -403,69 +399,6 @@ contains
 
 
     if (visc_type .eq. 1) then
-
-       term1 = 2.d0*bt*(dxsqinv+dysqinv+dzsqinv)
-       term2 = bt*dxsqinv
-       term3 = bt*dysqinv
-       term4 = bt*dzsqinv
-       
-       if (do_x) then
-
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1)+1,offset
-
-                   Lphix(i,j,k) = phix(i,j,k)*(alphax(i,j,k) + term1) &
-                        -(phix(i+1,j,k)+phix(i-1,j,k))*term2 &
-                        -(phix(i,j+1,k)+phix(i,j-1,k))*term3 &
-                        -(phix(i,j,k+1)+phix(i,j,k-1))*term4
-                   
-                enddo
-             enddo
-          enddo
-
-       end if
-
-       if (do_y) then
-
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)+1
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset
-
-                   Lphiy(i,j,k) = phiy(i,j,k)*(alphay(i,j,k) + term1) &
-                        -(phiy(i+1,j,k)+phiy(i-1,j,k))*term2 &
-                        -(phiy(i,j+1,k)+phiy(i,j-1,k))*term3 &
-                        -(phiy(i,j,k+1)+phiy(i,j,k-1))*term4
-                   
-                enddo
-             enddo
-          enddo
-
-       end if
-
-       if (do_z) then
-
-          do k = lo(3), hi(3)+1
-             do j = lo(2), hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset                  
-
-                   Lphiz(i,j,k) = phiz(i,j,k)*(alphaz(i,j,k) + term1) &
-                        -(phiz(i+1,j,k)+phiz(i-1,j,k))*term2 &
-                        -(phiz(i,j+1,k)+phiz(i,j-1,k))*term3 &
-                        -(phiz(i,j,k+1)+phiz(i,j,k-1))*term4
-                   
-                enddo
-             enddo
-          enddo
-
-       end if
-
     end if
 
     !Type 2
@@ -519,6 +452,7 @@ contains
                         2.d0*(betacc(i,j,k)+betacc(i,j-1,k))*dysqinv &
                         + (betaxy(i,j,k)+betaxy(i+1,j,k))*dxsqinv &
                         + (betayz(i,j,k)+betayz(i,j,k+1))*dzsqinv ) &
+                        
                         -2.d0*phiy(i,j+1,k)*betacc(i,j,k)*dysqinv &
                         -2.d0*phiy(i,j-1,k)*betacc(i,j-1,k)*dysqinv &
                         -phiy(i+1,j,k)*betaxy(i+1,j,k)*dxsqinv &
@@ -570,7 +504,6 @@ contains
                         +phiy(i,j,k)*betayz(i,j,k)*dydzinv &
                         +phiy(i,j+1,k-1)*betayz(i,j+1,k)*dydzinv &
                         -phiy(i,j,k-1)*betayz(i,j,k)*dydzinv
-
                 enddo
              enddo
           enddo
@@ -614,25 +547,12 @@ contains
                 if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
                 do i=lo(1)+ioff,hi(1),offset
 
-                   Lphiy(i,j,k) = phiy(i,j,k)*( alphay(i,j,k) + &
-                                    2.d0*(betacc(i,j,k)+betacc(i,j-1,k))*dysqinv + (betaxy(i,j,k)+betaxy(i+1,j,k))*dxsqinv + (betayz(i,j,k)+betayz(i,j,k+1))*dzsqinv ) &
-
-                                    -2.d0*phiy(i,j+1,k)*betacc(i,j,k)*dysqinv &
-                                    -2.d0*phiy(i,j-1,k)*betacc(i,j-1,k)*dysqinv &
-                                    -phiy(i+1,j,k)*betaxy(i+1,j,k)*dxsqinv &
-                                    -phiy(i-1,j,k)*betaxy(i,j,k)*dxsqinv &
-                                    -phiy(i,j,k+1)*betayz(i,j,k+1)*dzsqinv &
-                                    -phiy(i,j,k-1)*betayz(i,j,k)*dzsqinv &
-
-                                    -phix(i+1,j,k)*betaxy(i+1,j,k)*dxdyinv &
-                                    +phix(i,j,k)*betaxy(i,j,k)*dxdyinv &
-                                    +phix(i+1,j-1,k)*betaxy(i+1,j,k)*dxdyinv &
-                                    -phix(i,j-1,k)*betaxy(i,j,k)*dxdyinv &
-
-                                    -phiz(i,j,k+1)*betayz(i,j,k+1)*dydzinv &
-                                    +phiz(i,j,k)*betayz(i,j,k)*dydzinv &
-                                    +phiz(i,j-1,k+1)*betayz(i,j,k+1)*dydzinv &
-                                    -phiz(i,j-1,k)*betayz(i,j,k)*dydzinv
+                   Lphiy(i,j,k) = phiy(i,j,k)*( alphay(i,j,k) + term1) &
+                        -bt*( (phiy(i,j+1,k)+phiy(i,j-1,k))*2.d0*dysqinv &
+                             +(phiy(i+1,j,k)+phiy(i-1,j,k))*dxsqinv &
+                             +(phiy(i,j,k+1)+phiy(i,j,k-1))*dzsqinv &
+                             +(phix(i+1,j,k)-phix(i,j,k)-phix(i+1,j-1,k)+phix(i,j-1,k))*dxdyinv &
+                             +(phiz(i,j,k+1)-phiz(i,j,k)-phiz(i,j-1,k+1)+phiz(i,j-1,k))*dydzinv)
                 enddo
              enddo
           enddo
@@ -649,25 +569,12 @@ contains
                 if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
                 do i=lo(1)+ioff,hi(1),offset
 
-                   Lphiz(i,j,k) = phiz(i,j,k)*( alphaz(i,j,k) + &
-                                    2.d0*(betacc(i,j,k)+betacc(i,j,k-1))*dzsqinv + (betaxz(i,j,k)+betaxz(i+1,j,k))*dxsqinv + (betayz(i,j,k)+betayz(i,j+1,k))*dysqinv ) &
-
-                                    -2.d0*phiz(i,j,k+1)*betacc(i,j,k)*dzsqinv &
-                                    -2.d0*phiz(i,j,k-1)*betacc(i,j,k-1)*dzsqinv &
-                                    -phiz(i+1,j,k)*betaxz(i+1,j,k)*dxsqinv &
-                                    -phiz(i-1,j,k)*betaxz(i,j,k)*dxsqinv &
-                                    -phiz(i,j+1,k)*betayz(i,j+1,k)*dysqinv &
-                                    -phiz(i,j-1,k)*betayz(i,j,k)*dysqinv &
-
-                                    -phix(i+1,j,k)*betaxz(i+1,j,k)*dxdzinv &
-                                    +phix(i,j,k)*betaxz(i,j,k)*dxdzinv &
-                                    +phix(i+1,j,k-1)*betaxz(i+1,j,k)*dxdzinv &
-                                    -phix(i,j,k-1)*betaxz(i,j,k)*dxdzinv &
-
-                                    -phiy(i,j+1,k)*betayz(i,j+1,k)*dydzinv &
-                                    +phiy(i,j,k)*betayz(i,j,k)*dydzinv &
-                                    +phiy(i,j+1,k-1)*betayz(i,j+1,k)*dydzinv &
-                                    -phiy(i,j,k-1)*betayz(i,j,k)*dydzinv
+                   Lphiz(i,j,k) = phiz(i,j,k)*( alphaz(i,j,k) + term1) &
+                        -bt*( (phiz(i,j,k+1)+phiz(i,j,k-1))*2.d0*dzsqinv &
+                             +(phiz(i+1,j,k)+phiz(i-1,j,k))*dxsqinv &
+                             +(phiz(i,j+1,k)+phiz(i,j-1,k))*dysqinv &
+                             +(phix(i+1,j,k)-phix(i,j,k)-phix(i+1,j,k-1)+phix(i,j,k-1))*dxdzinv &
+                             +(phiy(i,j+1,k)-phiy(i,j,k)-phiy(i,j+1,k-1)+phiy(i,j,k-1))*dydzinv)
                 enddo
              enddo
           enddo
