@@ -53,7 +53,8 @@ IBMarkerContainer::IBMarkerContainer(AmrCore * amr_core, int n_nbhd)
 
 void IBMarkerContainer::InitList(int lev,
                                  const Vector<Real> & radius,
-                                 const Vector<RealVect> & pos) {
+                                 const Vector<RealVect> & pos,
+                                 int i_ib) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -143,7 +144,7 @@ void IBMarkerContainer::InitList(int lev,
 
                 // ID_1 remembers the particle's position in the linked list
                 p_new.idata(IBM_intData::id_1)  = i;
-                p_new.idata(IBM_intData::cpu_1) = n_list; // label immersed boundaries
+                p_new.idata(IBM_intData::cpu_1) = i_ib; // label immersed boundaries
 
                 // Add to the data structure
                 particles.push_back(p_new);
@@ -211,10 +212,6 @@ void IBMarkerContainer::InitList(int lev,
             }
         }
     }
-
-
-    // Update n_list counter (to discriminate between different immersed boundaries)
-    n_list ++;
 }
 
 

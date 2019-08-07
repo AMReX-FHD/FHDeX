@@ -391,7 +391,7 @@ void main_driver(const char * argv) {
         Vector<Real> marker_radii(N);
         for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
 
-        ib_mc.InitList(0, marker_radii, marker_positions);
+        ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
     }
 
     ib_mc.fillNeighbors();
@@ -504,16 +504,16 @@ void main_driver(const char * argv) {
 
 
 
-        //_______________________________________________________________________
-        // Update structure factor
+        // //_______________________________________________________________________
+        // // Update structure factor
 
- //       if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
- //         for(int d=0; d<AMREX_SPACEDIM; d++)
- //         //           ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-            //      }
-            //    // structFact.FortStructure(struct_in_cc,geom);
+        // if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        //     for(int d=0; d<AMREX_SPACEDIM; d++) {
+        //         ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+        //     }
+        //     structFact.FortStructure(struct_in_cc,geom);
 
-       // }
+        // }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -529,23 +529,23 @@ void main_driver(const char * argv) {
     }
 
     ///////////////////////////////////////////
-//    if (struct_fact_int > 0) {
-//        Real dVol = dx[0]*dx[1];
-//        int tot_n_cells = n_cells[0]*n_cells[1];
-//        if (AMREX_SPACEDIM == 2) {
-//            dVol *= cell_depth;
-//        } else if (AMREX_SPACEDIM == 3) {
-//            dVol *= dx[2];
-//            tot_n_cells = n_cells[2]*tot_n_cells;
-//        }
+    // if (struct_fact_int > 0) {
+    //     Real dVol = dx[0]*dx[1];
+    //     int tot_n_cells = n_cells[0]*n_cells[1];
+    //     if (AMREX_SPACEDIM == 2) {
+    //         dVol *= cell_depth;
+    //     } else if (AMREX_SPACEDIM == 3) {
+    //         dVol *= dx[2];
+    //         tot_n_cells = n_cells[2]*tot_n_cells;
+    //     }
 
-        // let rho = 1
-        //Real SFscale = dVol/(k_B*temp_const);
-        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+    //     let rho = 1
+    //     Real SFscale = dVol/(k_B*temp_const);
+    //     Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-     //   structFact.Finalize(SFscale);
-     //     structFact.WritePlotFile(step,time,geom);
-     // }
+    //     structFact.Finalize(SFscale);
+    //     structFact.WritePlotFile(step,time,geom);
+    // }
 
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors
