@@ -19,7 +19,8 @@ module immbdy_namelist_module
     real(amrex_real), allocatable, save :: frequency(:)
     real(amrex_real), allocatable, save :: length(:)
     real(amrex_real), allocatable, save :: wavelength(:)
-
+    real(amrex_real), allocatable, save :: k_spring(:)
+    real(amrex_real), allocatable, save :: k_driving(:)
 
 
     namelist /immbdy/ n_immbdy
@@ -31,6 +32,10 @@ module immbdy_namelist_module
     namelist /ib_flagellum/ frequency
     namelist /ib_flagellum/ length
     namelist /ib_flagellum/ wavelength
+    namelist /ib_flagellum/ k_spring
+    namelist /ib_flagellum/ k_driving
+
+
 
 contains
 
@@ -58,6 +63,8 @@ contains
             allocate(frequency(n_immbdy))
             allocate(length(n_immbdy))
             allocate(wavelength(n_immbdy))
+            allocate(k_spring(n_immbdy))
+            allocate(k_driving(n_immbdy))
 
             ! default values
             n_marker(:)    = 0
@@ -66,6 +73,8 @@ contains
             frequency(:)   = 0
             length(:)      = 0
             wavelength(:)  = 0
+            k_spring(:)    = 0
+            k_driving(:)   = 0
 
             ! read in immbdy namelist
             open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -91,9 +100,9 @@ contains
     end subroutine initialize_immbdy_namespace
 
 
-    subroutine initialize_ib_flagellum_namespace (n_immbdy, n_marker_in, offset_0_in,    &
-            &                                     amplitude_in, frequency_in, length_in, &
-            &                                     wavelength_in                        ) &
+    subroutine initialize_ib_flagellum_namespace (n_immbdy, n_marker_in, offset_0_in,       &
+            &                                     amplitude_in, frequency_in, length_in,    &
+            &                                     wavelength_in, k_spring_in, k_driving_in) &
             bind(C, name="initialize_ib_flagellum_namespace")
 
         integer, value, intent(in) :: n_immbdy
@@ -104,6 +113,9 @@ contains
         real(amrex_real), intent(inout) :: frequency_in(n_immbdy)
         real(amrex_real), intent(inout) :: length_in(n_immbdy)
         real(amrex_real), intent(inout) :: wavelength_in(n_immbdy)
+        real(amrex_real), intent(inout) :: k_spring_in(n_immbdy)
+        real(amrex_real), intent(inout) :: k_driving_in(n_immbdy)
+
 
         n_marker_in   = n_marker;
         offset_0_in   = offset_0;
@@ -111,6 +123,8 @@ contains
         frequency_in  = frequency;
         length_in     = length;
         wavelength_in = wavelength;
+        k_spring_in   = k_spring;
+        k_driving_in  = k_driving;
 
     end subroutine initialize_ib_flagellum_namespace
 

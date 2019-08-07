@@ -24,9 +24,9 @@ extern "C"
     void initialize_immbdy_namespace(int * n_immbdy, int * contains_flagellum);
 
     void initialize_ib_flagellum_namespace(
-            int          n_immbdy,  int *        n_markers, void *       offset_0,
-            amrex_real * amplitude, amrex_real * frequency, amrex_real * length,
-            amrex_real * wavelength
+            int          n_immbdy,   int *        n_markers, void *       offset_0,
+            amrex_real * amplitude,  amrex_real * frequency, amrex_real * length,
+            amrex_real * wavelength, amrex_real * k_spring,  amrex_real * k_driving
         );
 
     void test_interface(

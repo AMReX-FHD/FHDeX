@@ -168,10 +168,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     int ib_lev = 0;
 
-    // Parameters for spring force calculation
-    Real spr_k  = 10000.0; // spring constant
-    Real driv_k = 10000.0; // bending stiffness
-
     // Parameters for calling bending force calculation
     RealVect driv_u = {0, 0, 1};
 
@@ -332,6 +328,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real amplitude  = ib_flagellum::amplitude[i_ib];
             Real l_link     = L/N;
 
+            Real k_spr  = ib_flagellum::k_spring[i_ib];
+            Real k_driv = ib_flagellum::k_driving[i_ib];
+
+
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
@@ -358,8 +358,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                          - (mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d));
                 }
 
-                Real lp_m = r_m.vectorLength(),       lp_p = r_p.vectorLength();
-                Real fm_0 = spr_k * (lp_m-l_link)/lp_m, fp_0 = spr_k * (lp_p-l_link)/lp_p;
+                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
+                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     prev_marker->rdata(IBM_realData::pred_forcex + d) += fm_0 * r_m[d];
@@ -396,7 +396,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
                              + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
 
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
+                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
 
                 // updating the force on the minus, current, and plus particles.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -621,6 +621,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real frequency  = ib_flagellum::frequency[i_ib];
             Real l_link     = L/N;
 
+            Real k_spr  = ib_flagellum::k_spring[i_ib];
+            Real k_driv = ib_flagellum::k_driving[i_ib];
+
+
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
@@ -646,8 +650,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     r_p[d] = next_marker->pos(d) - mark.pos(d);
                 }
 
-                Real lp_m = r_m.vectorLength(),       lp_p = r_p.vectorLength();
-                Real fm_0 = spr_k * (lp_m-l_link)/lp_m, fp_0 = spr_k * (lp_p-l_link)/lp_p;
+                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
+                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     prev_marker->rdata(IBM_realData::forcex + d) += fm_0 * r_m[d];
@@ -682,7 +686,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
                             + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
 
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
+                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
 
                 // updating the force on the minus, current, and plus particles.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {

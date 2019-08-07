@@ -29,6 +29,8 @@ void InitializeIBFlagellumNamespace() {
     ib_flagellum::frequency.resize(n_immbdy);
     ib_flagellum::length.resize(n_immbdy);
     ib_flagellum::wavelength.resize(n_immbdy);
+    ib_flagellum::k_spring.resize(n_immbdy);
+    ib_flagellum::k_driving.resize(n_immbdy);
 
     initialize_ib_flagellum_namespace(n_immbdy,
                                       ib_flagellum::n_marker.dataPtr(),
@@ -36,6 +38,8 @@ void InitializeIBFlagellumNamespace() {
                                       ib_flagellum::amplitude.dataPtr(),
                                       ib_flagellum::frequency.dataPtr(),
                                       ib_flagellum::length.dataPtr(),
-                                      ib_flagellum::wavelength.dataPtr());
+                                      ib_flagellum::wavelength.dataPtr(),
+                                      ib_flagellum::k_spring.dataPtr(),
+                                      ib_flagellum::k_driving.dataPtr());
 
 }
