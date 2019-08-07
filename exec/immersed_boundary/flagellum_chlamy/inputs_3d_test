@@ -16,13 +16,13 @@
   max_grid_size(1:3) = 16 16 16
 
   ! Time-step control
-  fixed_dt = 1e-6
+  fixed_dt = 1.e-5
 
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
 
-  max_step = 26000
+  max_step = 30000
   plot_int = 100
 
   ! Viscous friction L phi operator
@@ -32,8 +32,8 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
 
-  ! visc_coef = 1.
-  visc_coef = 1e-2
+   visc_coef = 1.
+  ! visc_coef = 1e-2
 
   visc_type = 2
 
