@@ -19,7 +19,7 @@ void WritePlotFile(int step,
 {
 
     int cnt, numvars, i = 0;
-    int nplot = 3*5 + 3*6 + 2*1 + 3*nspecies;
+    int nplot = 4*5 + 2*6 + 2*1 + 3*nspecies;
 
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
@@ -54,7 +54,7 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
     cnt+=numvars;
 
-    numvars = 6;
+    numvars = 5;
     amrex::MultiFab::Copy(plotfile,primVars,0,cnt,numvars,0);
     cnt+=numvars;
 
