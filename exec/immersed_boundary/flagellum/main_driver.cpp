@@ -342,12 +342,33 @@ void main_driver(const char * argv) {
 
     BL_PROFILE_VAR("main_create markers", createmarkers);
 
+    // Find the optimal number of ghost cells for the IBMarkerContainer
+
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
 	    min_dx = std::min(min_dx, dx[d]);
 
+    int ib_nghost = 8; // min of 8 is a HACK: something large enough but not too large
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
+        if (n_marker[i_ib] <= 0) continue;
+
+        int N       = n_marker[i_ib];
+        Real L      = ib_flagellum::length[i_ib];
+        Real l_link = L/N;
+
+        int min_nghost = 2*l_link/min_dx;
+        ib_nghost      = std::max(ib_nghost, min_nghost);
+    }
+
+    Print() << "Initializing IBMarkerContainer with "
+            << ib_nghost << " ghost cells" << std::endl;
+
+    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
+
 
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
         if (n_marker[i_ib] <= 0) continue;
 
         int N  = n_marker[i_ib];
@@ -357,29 +378,21 @@ void main_driver(const char * argv) {
 
         const RealVect & x_0 = offset_0[i_ib];
 
-        Print() << "N=    " << N << std::endl;
-        Print() << "L=    " << L << std::endl;
-        Print() << "l_lb= " << l_link << std::endl;
-        Print() << "x_0=  " << x_0 << std::endl;
+        Print() << "Initializing flagellum:" << std::endl;
+        Print() << "N=      " << N           << std::endl;
+        Print() << "L=      " << L           << std::endl;
+        Print() << "l_link= " << l_link      << std::endl;
+        Print() << "x_0=    " << x_0         << std::endl;
+
+        Vector<RealVect> marker_positions(N);
+        for (int i=0; i<marker_positions.size(); ++i)
+            marker_positions[i] = RealVect{x_0[0] + i*l_link, x_0[1], x_0[2]};
+
+        Vector<Real> marker_radii(N);
+        for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
+
+        ib_mc.InitList(0, marker_radii, marker_positions);
     }
-
-    Real l_db = 0.05;
-    int min_nghost = 2*l_db/min_dx;
-
-    int ib_nghost = std::max(10, min_nghost);
-    Print() << "Initializing IBMarkerContainer with "
-            << ib_nghost << " ghost cells" << std::endl;
-
-    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
-
-    Vector<RealVect> marker_positions(20);
-    for (int i=0; i<marker_positions.size(); ++i)
-        marker_positions[i] = RealVect{l_db+i*l_db, 0.5, 0.5};
-
-    Vector<Real> marker_radii(20);
-    for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = .10;
-
-    ib_mc.InitList(0, marker_radii, marker_positions);
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);

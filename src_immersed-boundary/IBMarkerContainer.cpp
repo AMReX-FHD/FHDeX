@@ -100,6 +100,7 @@ void IBMarkerContainer::InitList(int lev,
             // Add particle at position pos iff it's vector index is contained
             // within tile_box.
             if(tile_box.contains(pos_ind)) {
+
                 pcount ++;
 
                 ParticleType p_new;
@@ -189,7 +190,9 @@ void IBMarkerContainer::InitList(int lev,
             for (int j=0; j<np; ++j) {
 
                 const ParticleType & other = markers[j];
-                if (mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1) {
+                if ((mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1)
+                    && (mark.idata(IBM_intData::cpu_1) == other.idata(IBM_intData::cpu_1)))
+                {
                     mark.idata(IBM_intData::id_0)  = other.id();
                     mark.idata(IBM_intData::cpu_0) = other.cpu();
                 }
@@ -199,7 +202,9 @@ void IBMarkerContainer::InitList(int lev,
             for (int j=0; j<nn; ++j) {
 
                 const ParticleType & other = nbhd_data[j];
-                if (mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1) {
+                if ((mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1)
+                    && (mark.idata(IBM_intData::cpu_1) == other.idata(IBM_intData::cpu_1)))
+                {
                     mark.idata(IBM_intData::id_0)  = other.id();
                     mark.idata(IBM_intData::cpu_0) = other.cpu();
                 }

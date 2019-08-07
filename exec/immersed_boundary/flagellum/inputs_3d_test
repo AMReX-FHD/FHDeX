@@ -107,7 +107,7 @@
 
   n_marker(1:2)  = 20 10
   offset_0(:, 1) = .1 .3 .5
-  offset_0(:, 2) = .1 .8 .5
+  offset_0(:, 2) = .1 .7 .5
 
   amplitude(1:2)  = 10 10
   frequency(1:2)  = 20 10
