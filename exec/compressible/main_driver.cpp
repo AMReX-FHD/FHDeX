@@ -65,7 +65,6 @@ void main_driver(const char* argv)
             is_periodic[i] = 1;
             Print() << "Periodic: " << is_periodic[i] << "\n";
         }
-        //is_periodic[i] = 0;
     }
 
     // make BoxArray and Geometry
@@ -89,6 +88,10 @@ void main_driver(const char* argv)
 
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+
+	// Print() << "HACK: " << real_box << std::endl << domain << std::endl << geom << std::endl;
+	// amrex::Abort("THE END");
+
     }
 
     // Print() << "Hack: boxarray = " << ba << "\n";
@@ -129,6 +132,12 @@ void main_driver(const char* argv)
     MultiFab kappa(ba,dmap,1,ngc);
     MultiFab chi(ba,dmap,nspecies,ngc);
     MultiFab D(ba,dmap,nspecies*nspecies,ngc);
+
+    eta.setVal(1.0,0,1,ngc);
+    zeta.setVal(1.0,0,1,ngc);
+    kappa.setVal(1.0,0,1,ngc);
+    chi.setVal(1.0,0,nspecies,ngc);
+    D.setVal(1.0,0,nspecies*nspecies,ngc);
 
     //conserved quantaties
     MultiFab cu  (ba,dmap,nvars,ngc);
@@ -175,12 +184,6 @@ void main_driver(const char* argv)
     source.setVal(0.0);
 
     //Initialize physical parameters from input vals
-
-    prim.setVal(rho0,0,1,ngc);
-    prim.setVal(0,1,1,ngc);
-    prim.setVal(0,2,1,ngc);
-    prim.setVal(0,3,1,ngc);
-    prim.setVal(T_init[0],4,1,ngc);
 
     double massvec[nspecies];
     double intEnergy, T0;
@@ -254,7 +257,7 @@ void main_driver(const char* argv)
     molmix = 1.0/molmix;                // molar mass of mixture
     P_bar = rho0*(Runiv/molmix)*T0;     // eqm pressure
     c_v  = 1.5*(Runiv/molmix);          // Assuming all gases are monoatomic (dof=3)
-    c_v2 = c_v*c_v;                         
+    c_v2 = c_v*c_v;
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
 	dVol *= cell_depth;
@@ -308,13 +311,6 @@ void main_driver(const char* argv)
     beqmvars[cnt++] = Eeqmvar;                    // rhoE,rhoE
     beqmvars[cnt++] = MEeqmcovar;                 // rho_k,rhoE   - scaled by mass fracs later
     beqmvars[cnt++] = Meqmvar;                    // rho_k,rho_l  - scaled by mass fracs later
-
-    // for (int d=0; d<nbcov_sf; d++) {
-    //   Print() << "Hack: " << beqmvars[d] << std::endl;
-    //   beqmvars[d] = 1.0;
-    // }
-    // Print() << "Hack: " << avgmolmass/molmix << std::endl;
-    // exit(0);
     
     // loop over lower triangular block matrix
     cnt = 0;
@@ -357,7 +353,6 @@ void main_driver(const char* argv)
 	      
 	    }
 
-	    // Print() << "Hack: " << ig+i << " " << jg+j << " " << cnt << " " << eqmvars[cnt] << std::endl;
 	  }
 	}
 	bcnt++;
@@ -365,11 +360,6 @@ void main_driver(const char* argv)
       }
       jg += blocks[jb];
     }
-    
-    // for (int d=0; d<ncov_sf; d++) {
-    //   Print() << "Hack: scaling = " << eqmvars[d] << " " << d << std::endl;
-    // }
-    // exit(0);
 
     ////////////////////////////////
 
@@ -402,39 +392,56 @@ void main_driver(const char* argv)
       s_pairA[d] = d;
       s_pairB[d] = d;
     }
-
-    // cu.setVal(0.0);
-    // ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-    // BoxArray ba_flat = cuVertAvg.boxArray();
-    // const DistributionMapping& dmap_flat = cuVertAvg.DistributionMap();
-    // Geometry geom_flat;
-    // {
-    //     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-    //     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    // 	dom_hi[project_dir] = 0;
-    //     Box domain(dom_lo, dom_hi);
-	
-    // 	// This defines the physical box
-    // 	IntVect projected_hi(AMREX_SPACEDIM);
-    // 	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    // 	  projected_hi[d] = prob_hi[d];
-    // 	}
-    // 	projected_hi[project_dir] = prob_lo[project_dir];
-    //     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-    //                      {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
-
-    //     // This defines a Geometry object
-    //     geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    // }
-
+    
     StructFact structFact(ba,dmap,var_names,eqmvars);
     // StructFact structFact(ba,dmap,var_names,eqmvars,s_pairA,s_pairB);
 
-    // StructFact structFact(ba_flat,dmap_flat,var_names,eqmvars);
+    Geometry geom_flat;
+    if(project_dir > -1){
+
+      cu.setVal(0.0);
+      ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
+      BoxArray ba_flat = cuVertAvg.boxArray();
+      const DistributionMapping& dmap_flat = cuVertAvg.DistributionMap();
+      {
+        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    	dom_hi[project_dir] = 0;
+        Box domain(dom_lo, dom_hi);
+	
+    	// This defines the physical box
+    	Vector<Real> projected_hi(AMREX_SPACEDIM);
+    	for (int d=0; d<AMREX_SPACEDIM; d++) {
+    	  projected_hi[d] = prob_hi[d];
+    	}
+    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+
+        // This defines a Geometry object
+        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+
+	// Print() << "HACK: " << real_box << std::endl << domain << std::endl << geom_flat << std::endl;
+	// amrex::Abort("THE END");
+      }
+
+      structFact.~StructFact(); // destruct
+      new(&structFact) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
+
+      // StructFact structFact(ba_flat,dmap_flat,var_names,eqmvars);
+    
+    }
 
     ///////////////////////////////////////////
 
     //Initialize everything
+
+    prim.setVal(0.0,0,nprimvars,ngc);
+    prim.setVal(rho0,0,1,ngc);
+    prim.setVal(0,1,1,ngc);
+    prim.setVal(0,2,1,ngc);
+    prim.setVal(0,3,1,ngc);
+    prim.setVal(T_init[0],4,1,ngc);
 
     for(int i=0;i<nspecies;i++)
     {
@@ -446,11 +453,16 @@ void main_driver(const char* argv)
 
     get_energy(&intEnergy, massvec, &T0);
 
+    cu.setVal(0.0,0,nvars,ngc);
     cu.setVal(rho0,0,1,ngc);
     cu.setVal(0,1,1,ngc);
     cu.setVal(0,2,1,ngc);
     cu.setVal(0,3,1,ngc);
     cu.setVal(rho0*intEnergy,4,1,ngc);
+    
+    cup.setVal(0.0,0,nvars,ngc);
+    cup2.setVal(0.0,0,nvars,ngc);
+    cup3.setVal(0.0,0,nvars,ngc);
 
     cup.setVal(rho0,0,1,ngc);
     cup2.setVal(rho0,0,1,ngc);
@@ -496,9 +508,6 @@ void main_driver(const char* argv)
 	if (step > n_steps_skip) {
 	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
 
-	  // ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-
-	  // amrex::Abort("End");
 	}
 	*/
  
@@ -506,9 +515,14 @@ void main_driver(const char* argv)
 	// Update structure factor
 	///////////////////////////////////////////
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-	  structFact.FortStructure(struct_in_cc,geom);
-	  // structFact.FortStructure(cuVertAvg,geom_flat);
+	  if(project_dir > -1) {
+	    ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
+	    structFact.FortStructure(cuVertAvg,geom_flat);
+	  } else {
+	    MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+	    structFact.FortStructure(struct_in_cc,geom);
+	  }
+	  
         }
 	///////////////////////////////////////////
 
@@ -523,8 +537,15 @@ void main_driver(const char* argv)
            // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, etaMeanAv, kappaMeanAv);
 
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
-	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int)
+	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int) {
+
+	     if(project_dir > -1) {
+	       structFact.WritePlotFile(step,time,geom_flat);
+	     } else {
 	       structFact.WritePlotFile(step,time,geom);
+	     }
+
+	   }
         }
 
         time = time + dt;
