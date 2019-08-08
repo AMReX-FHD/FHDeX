@@ -13,7 +13,7 @@ StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 		       const Vector< int >& s_pairA_in,
 		       const Vector< int >& s_pairB_in,
 		       const int verbosity_in) {
-  
+
   BL_PROFILE_VAR("StructFact::StructFact()",StructFact);
 
   if (s_pairA_in.size() != s_pairA_in.size())
@@ -317,6 +317,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
   DistributionMapping dmap = variables_dft_real.DistributionMap();
 
+  Print() << "HACK FFT: " << ba << std::endl << dmap << std::endl << dm << std::endl;
+
   for (int ib = 0; ib < nboxes; ++ib)
     {
       int i = ba[ib].smallEnd(0) / nx;
@@ -380,6 +382,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	a.resize(nx*ny*nz);
 	b.resize(nx*ny*nz);
 
+	Print() << "HACK FFT: got here" << std::endl;
+
 	dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
 
 	// *******************************************
@@ -395,6 +399,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	      complex_t temp(variables[mfi].dataPtr(dim)[local_indx],0.);
 	      a[local_indx] = temp;
 	      local_indx++;
+
+	      Print() << "HACK FFT: a[" << local_indx << "] = \t " << variables[mfi].dataPtr(dim)[local_indx] << std::endl;
 
 	    }
 	  }

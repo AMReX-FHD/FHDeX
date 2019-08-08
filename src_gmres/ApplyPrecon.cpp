@@ -168,7 +168,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
     ////////////////////
 
     // subtract off mean value: Single level only! No need for ghost cells
-    SumStag(x_u,0,mean_val_umac,true);
+    SumStag(geom,x_u,0,mean_val_umac,true);
     SumCC(x_p,0,mean_val_pres,true);
 
     // The pressure Poisson problem is always singular:

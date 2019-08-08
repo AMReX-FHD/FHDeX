@@ -315,7 +315,7 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
     // Ensure zero total momentum
     Vector<Real> av_mom;
     // take staggered sum & divide by number of cells
-    SumStag(m_old,0,av_mom,true);
+    SumStag(geom,m_old,0,av_mom,true);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       // subtract off average
       m_old[d].plus(-av_mom[d],1);
