@@ -14,10 +14,8 @@ void factor(int,int*,int);
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir, 
 			    const int incomp, const int ncomp,
-			    const int findredist=0)
+			    const int findredist)
 {
-  
-  int findredist = 0;
 
   bool write_data = false;
   std::string plotname;
