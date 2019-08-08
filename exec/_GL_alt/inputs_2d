@@ -55,10 +55,10 @@
  alpha=1.5  !spring constant scaling parameter
  r1=1.0 !phi0 step parameter, see overleaf notes
  r2=1.0  !overlap parameter, see overleaf notes
- umbrella_max=2000.0
- umbrella_min=50.0
- adaptive=0
- Reverse=0
+ umbrella_max=2000.0 ! The adaptive method stops scaling the spring constant up after a value greater than or equal to this is reached
+ umbrella_min=100.0 ! The adaptive method stops scaling the spring constant down after a value less than or equal to this is reached
+ adaptive=1   ! 1= adaptive method used, 0= uniform phi_0 step method
+ Reverse=0    ! 1= "forward" direction (i.e phi_0) is increased, 0= "backward" direction (i.e phi_0) is decreased
 
 
 
