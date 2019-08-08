@@ -9,7 +9,8 @@
 
 using namespace amrex;
 
-void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void SumStag(const Geometry& geom,
+             const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 	     const int& comp,
 	     amrex::Vector<amrex::Real>& sum,
 	     const bool& divide_by_ncells)
@@ -63,7 +64,8 @@ void SumCC(const amrex::MultiFab& m1,
   }
 }
 
-void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void StagInnerProd(const Geometry& geom,
+                   const std::array<MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp1,
                    const std::array<MultiFab, AMREX_SPACEDIM>& m2,
                    const int& comp2,
@@ -81,7 +83,7 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   }
   
   std::fill(prod_val.begin(), prod_val.end(), 0.);
-  SumStag(prod_temp,0,prod_val,false);
+  SumStag(geom,prod_temp,0,prod_val,false);
 }
 
 void CCInnerProd(const amrex::MultiFab& m1,
@@ -103,7 +105,8 @@ void CCInnerProd(const amrex::MultiFab& m1,
   SumCC(prod_temp,0,prod_val,false);
 }
 
-void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void StagL2Norm(const Geometry& geom,
+                const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
 		Real& norm_l2)
 {
@@ -111,7 +114,7 @@ void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
     BL_PROFILE_VAR("StagL2Norm()",StagL2Norm);
 
     Vector<Real> inner_prod(AMREX_SPACEDIM);
-    StagInnerProd(m1, comp, m1, comp, inner_prod);
+    StagInnerProd(geom, m1, comp, m1, comp, inner_prod);
     norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
 }
 

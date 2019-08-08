@@ -98,7 +98,8 @@ void CCApplyOp(MultiFab & phi,
                const Geometry & geom);
 
 // In NormInnerProduct.cpp
-void SumStag(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+void SumStag(const Geometry& geom,
+             const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 	     const int & comp,
 	     Vector<Real> & sum,
 	     const bool & divide_by_ncells=false);
@@ -108,7 +109,8 @@ void SumCC(const MultiFab & m1,
 	   Real & sum,
 	   const bool & divide_by_ncells=false);
 
-void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+void StagInnerProd(const Geometry& geom,
+                   const std::array<MultiFab, AMREX_SPACEDIM> & m1,
                    const int & comp1,
                    const std::array<MultiFab, AMREX_SPACEDIM> & m2,
                    const int & comp2,
@@ -120,7 +122,8 @@ void CCInnerProd(const MultiFab & m1,
 		 const int & comp2,
 		 Real & prod_val);
 
-void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM> & m1,
+void StagL2Norm(const Geometry& geom,
+                const std::array<MultiFab, AMREX_SPACEDIM> & m1,
 		const int & comp,
 		Real & norm_l2);
 
