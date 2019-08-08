@@ -326,7 +326,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real wavelength = ib_flagellum::wavelength[i_ib];
             Real frequency  = ib_flagellum::frequency[i_ib];
             Real amplitude  = ib_flagellum::amplitude[i_ib];
-            Real l_link     = L/N;
+            Real l_link     = L/(N-1);
 
             Real k_spr  = ib_flagellum::k_spring[i_ib];
             Real k_driv = ib_flagellum::k_driving[i_ib];
@@ -619,7 +619,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             Real wavelength = ib_flagellum::wavelength[i_ib];
             Real amplitude  = ib_flagellum::amplitude[i_ib];
             Real frequency  = ib_flagellum::frequency[i_ib];
-            Real l_link     = L/N;
+            Real l_link     = L/(N-1);
 
             Real k_spr  = ib_flagellum::k_spring[i_ib];
             Real k_driv = ib_flagellum::k_driving[i_ib];

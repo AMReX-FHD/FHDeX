@@ -355,7 +355,7 @@ void main_driver(const char * argv) {
 
         int N       = n_marker[i_ib];
         Real L      = ib_flagellum::length[i_ib];
-        Real l_link = L/N;
+        Real l_link = L/(N-1);
 
         int min_nghost = 2*l_link/min_dx;
         ib_nghost      = std::max(ib_nghost, min_nghost);
@@ -374,7 +374,7 @@ void main_driver(const char * argv) {
         int N  = n_marker[i_ib];
         Real L = ib_flagellum::length[i_ib];
 
-        Real l_link = L/N;
+        Real l_link = L/(N-1);
 
         const RealVect & x_0 = offset_0[i_ib];
 
