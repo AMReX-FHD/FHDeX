@@ -68,7 +68,9 @@ void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & va
 ///////////////////////////
 // in ComputeAverages.cpp
 
-void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp);
+void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
+
+// void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
 
 ///////////////////////////
 // in MultiFABPhysBC.cpp

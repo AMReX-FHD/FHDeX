@@ -68,17 +68,11 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 
     conservedToPrimitive(prim, cu);
 
+    // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
-
-    eta.FillBoundary(geom.periodicity());
-    zeta.FillBoundary(geom.periodicity());
-    kappa.FillBoundary(geom.periodicity());
-    chi.FillBoundary(geom.periodicity());
-    D.FillBoundary(geom.periodicity());
-    
     setBC(prim, cu);
-    
+
     // Compute transport coefs after setting BCs
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
@@ -130,18 +124,11 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
       	           ZFILL(dx), &dt);   
     }
 
-    cup.FillBoundary(geom.periodicity());
-
     conservedToPrimitive(prim, cup);
+    
+    // Set BC: 1) fill boundary 2) physical
     cup.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
-    
-    eta.FillBoundary(geom.periodicity());
-    zeta.FillBoundary(geom.periodicity());
-    kappa.FillBoundary(geom.periodicity());
-    chi.FillBoundary(geom.periodicity());
-    D.FillBoundary(geom.periodicity());
-
     setBC(prim, cup);
 
     // Compute transport coefs after setting BCs
@@ -195,19 +182,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
 #endif
       	           ZFILL(dx), &dt);
     }
-    
-    cup2.FillBoundary(geom.periodicity());
-    
+        
     conservedToPrimitive(prim, cup2);
+
+    // Set BC: 1) fill boundary 2) physical
     cup2.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
-
-    eta.FillBoundary(geom.periodicity());
-    zeta.FillBoundary(geom.periodicity());
-    kappa.FillBoundary(geom.periodicity());
-    chi.FillBoundary(geom.periodicity());
-    D.FillBoundary(geom.periodicity());
-
     setBC(prim, cup2);
 
     // Compute transport coefs after setting BCs

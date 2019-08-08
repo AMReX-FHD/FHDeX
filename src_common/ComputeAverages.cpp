@@ -11,7 +11,7 @@ int greatest_common_factor(int,int);
 void factor(int,int*,int);
 
 //Computes divergence at cell centres from velcocities at cell faces
-void ComputeVerticalAverage(const MultiFab& mf,
+void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir, 
 			    const int incomp, const int ncomp,
 			    const int findredist)
@@ -23,7 +23,7 @@ void ComputeVerticalAverage(const MultiFab& mf,
   int outcomp = 0;
   int inputcomp = 0;
 
-  MultiFab mf_pencil, mf_avg;
+  MultiFab mf_pencil;
 
   BoxArray ba_in = mf.boxArray();
   BoxArray ba_pencil;
@@ -80,8 +80,8 @@ void ComputeVerticalAverage(const MultiFab& mf,
 
   } else {
     
-    // mx[0] = ;
-    // mx[1] = ;
+    mx[0] = max_grid_projection[0];
+    mx[1] = max_grid_projection[1];
 
   }
 
@@ -90,20 +90,23 @@ void ComputeVerticalAverage(const MultiFab& mf,
 
   Print() << "2D redist: " << mbx[0] << "x" << mbx[1] << ", grids: " << mx[0] << "x" << mx[1] << std::endl;
 
+  // Print() << "HACK: dmap = " << dmap << std::endl;
+
   max_grid_size_pencil[indlo] = mx[0];
   max_grid_size_pencil[indhi] = mx[1];
   max_grid_size_pencil[dir]   = domain.length(dir);
   ba_pencil.define(domain);
   ba_pencil.maxSize(IntVect(max_grid_size_pencil));
-  mf_pencil.define(ba_pencil,dmap,ncomp,0);
+  DistributionMapping dmap_pencil(ba_pencil);
+  mf_pencil.define(ba_pencil,dmap_pencil,ncomp,0);
 
   max_grid_size_flat      = max_grid_size_pencil;
   max_grid_size_flat[dir] = 1;
   ba_flat.define(domain_flat);
   ba_flat.maxSize(IntVect(max_grid_size_flat));
-  mf_avg.define(ba_flat,dmap,ncomp,0);
+  mf_avg.define(ba_flat,dmap_pencil,ncomp,0);
 
-  // Copy/redistrubute to pencils
+  // copy/redistrubute to pencils
 
   mf_pencil.ParallelCopy(mf, incomp, 0, ncomp);
 

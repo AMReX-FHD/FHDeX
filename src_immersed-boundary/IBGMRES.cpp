@@ -193,7 +193,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
     // preconditioned norm_b: norm_pre_b
-    StagL2Norm(tmp_u, 0, norm_u);
+    StagL2Norm(geom, tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
     MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, tmp_lambda, norm_lambda);
     norm_p       = p_norm_weight*norm_p;
@@ -203,7 +203,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
     // calculate the l2 norm of rhs
-    StagL2Norm(b_u, 0, norm_u);
+    StagL2Norm(geom, b_u, 0, norm_u);
     CCL2Norm(b_p, 0, norm_p);
     MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, b_lambda, norm_lambda);
     norm_p      = p_norm_weight*norm_p;
@@ -273,7 +273,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         //_______________________________________________________________________
         // un-preconditioned residuals
-        StagL2Norm(tmp_u, 0, norm_u_noprecon);
+        StagL2Norm(geom, tmp_u, 0, norm_u_noprecon);
         CCL2Norm(tmp_p, 0, norm_p_noprecon);
         MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos,
                      tmp_lambda, norm_lambda_noprecon);
@@ -316,7 +316,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
         // resid = sqrt(dot_product(r, r))
-        StagL2Norm(r_u, 0, norm_u);
+        StagL2Norm(geom, r_u, 0, norm_u);
         CCL2Norm(r_p, 0, norm_p);
         MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, r_lambda, norm_lambda);
         norm_p      = p_norm_weight*norm_p;
@@ -472,7 +472,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             for (int k=0; k<=i; ++k) {
                 // H(k,i) = dot_product(w, V(k))
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
-                StagInnerProd(w_u, 0, V_u, k, inner_prod_vel);
+                StagInnerProd(geom, w_u, 0, V_u, k, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
                 MarkerInnerProd(part_indices, k, dummy_iter, geom, marker_pos,
                                 w_lambda, V_lambda, inner_prod_lambda);
@@ -499,7 +499,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             }
 
             // H(i+1,i) = norm(w)
-            StagL2Norm(w_u, 0, norm_u);
+            StagL2Norm(geom, w_u, 0, norm_u);
             CCL2Norm(w_p, 0, norm_p);
             MarkerL2Norm(part_indices, dummy_iter, geom, marker_pos, w_lambda, norm_lambda);
             norm_p      = p_norm_weight*norm_p;
@@ -1095,7 +1095,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     ////////////////////
 
     // subtract off mean value: Single level only! No need for ghost cells
-    SumStag(x_u, 0, mean_val_umac, true);
+    SumStag(geom, x_u, 0, mean_val_umac, true);
     SumCC(x_p, 0, mean_val_pres, true);
 
     // The pressure Poisson problem is always singular:
@@ -1166,8 +1166,8 @@ void ApplyIBM(      std::array<MultiFab, AMREX_SPACEDIM>            & b_u,
 
     Real norm_sl = 0;
     Real norm_bu = 0;
-    StagL2Norm(SLambda, 0, norm_sl);
-    StagL2Norm(b_u, 0, norm_bu);
+    StagL2Norm(geom, SLambda, 0, norm_sl);
+    StagL2Norm(geom, b_u, 0, norm_bu);
     Print() << "norm SLambda = " << norm_sl <<  " norm bu = " << norm_bu << std::endl;
 
 

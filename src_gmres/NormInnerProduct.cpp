@@ -9,7 +9,8 @@
 
 using namespace amrex;
 
-void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void SumStag(const Geometry& geom,
+             const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 	     const int& comp,
 	     amrex::Vector<amrex::Real>& sum,
 	     const bool& divide_by_ncells)
@@ -19,23 +20,71 @@ void SumStag(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   // Initialize to zero
   std::fill(sum.begin(), sum.end(), 0.);
 
-  // Loop over boxes
-  for (MFIter mfi(m1[0]); mfi.isValid(); ++mfi) {   
-    
-    // Create cell-centered box from semi-nodal box
-    const Box& validBox_cc = enclosedCells(mfi.validbox());
+  Box domain_bx(geom.Domain());
+  
+  MultiFab AMREX_D_DECL(xmf,ymf,zmf);
 
-    sum_stag(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
-	     BL_TO_FORTRAN_N_ANYD(m1[0][mfi],comp),
-	     BL_TO_FORTRAN_N_ANYD(m1[1][mfi],comp),
-#if (AMREX_SPACEDIM == 3)
-	     BL_TO_FORTRAN_N_ANYD(m1[2][mfi],comp),
-#endif
-	     sum.dataPtr());
+  // these face-centered masks are 1 on all faces, except for faces at
+  // grid boundaries where they equal 2
+  // we use this since we want half-weighting toward the sum at all grid boundaries
+  AMREX_D_TERM(auto xmask = m1[0].OverlapMask(Periodicity(domain_bx.size()));,
+               auto ymask = m1[1].OverlapMask(Periodicity(domain_bx.size()));,
+               auto zmask = m1[2].OverlapMask(Periodicity(domain_bx.size()));)
+  
+  ReduceOps<ReduceOpSum> reduce_op;
+  ReduceData<Real> reduce_data(reduce_op);
+  using ReduceTuple = typename decltype(reduce_data)::Type;
+
+  for (MFIter mfi(m1[0]); mfi.isValid(); ++mfi)
+  {
+      const Box& bx = mfi.validbox();
+      auto const& fab = m1[0].array(mfi);
+      auto const& msk = xmask->array(mfi);
+      reduce_op.eval(bx, reduce_data,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+      {
+          return {fab(i,j,k) / msk(i,j,k)};
+      });
   }
 
-  ParallelDescriptor::ReduceRealSum(sum.dataPtr(),AMREX_SPACEDIM);
+  sum[0] = amrex::get<0>(reduce_data.value());
+  ParallelDescriptor::ReduceRealSum(sum[0]);
 
+  for (MFIter mfi(m1[1]); mfi.isValid(); ++mfi)
+  {
+      const Box& bx = mfi.validbox();
+      auto const& fab = m1[1].array(mfi);
+      auto const& msk = ymask->array(mfi);
+      reduce_op.eval(bx, reduce_data,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+      {
+          return {fab(i,j,k) / msk(i,j,k)};
+      });
+  }
+
+  sum[1] = amrex::get<0>(reduce_data.value());
+  ParallelDescriptor::ReduceRealSum(sum[1]);
+
+#if (AMREX_SPACEDIM == 3)
+
+
+  for (MFIter mfi(m1[2]); mfi.isValid(); ++mfi)
+  {
+      const Box& bx = mfi.validbox();
+      auto const& fab = m1[2].array(mfi);
+      auto const& msk = zmask->array(mfi);
+      reduce_op.eval(bx, reduce_data,
+      [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+      {
+          return {fab(i,j,k) / msk(i,j,k)};
+      });
+  }
+
+  sum[2] = amrex::get<0>(reduce_data.value());
+  ParallelDescriptor::ReduceRealSum(sum[2]);
+
+#endif
+  
   if (divide_by_ncells == true) {
     BoxArray ba_temp = m1[0].boxArray();
     ba_temp.enclosedCells();
@@ -63,7 +112,8 @@ void SumCC(const amrex::MultiFab& m1,
   }
 }
 
-void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void StagInnerProd(const Geometry& geom,
+                   const std::array<MultiFab, AMREX_SPACEDIM>& m1,
                    const int& comp1,
                    const std::array<MultiFab, AMREX_SPACEDIM>& m2,
                    const int& comp2,
@@ -81,7 +131,7 @@ void StagInnerProd(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
   }
   
   std::fill(prod_val.begin(), prod_val.end(), 0.);
-  SumStag(prod_temp,0,prod_val,false);
+  SumStag(geom,prod_temp,0,prod_val,false);
 }
 
 void CCInnerProd(const amrex::MultiFab& m1,
@@ -103,7 +153,8 @@ void CCInnerProd(const amrex::MultiFab& m1,
   SumCC(prod_temp,0,prod_val,false);
 }
 
-void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
+void StagL2Norm(const Geometry& geom,
+                const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
 		Real& norm_l2)
 {
@@ -111,7 +162,7 @@ void StagL2Norm(const std::array<MultiFab, AMREX_SPACEDIM>& m1,
     BL_PROFILE_VAR("StagL2Norm()",StagL2Norm);
 
     Vector<Real> inner_prod(AMREX_SPACEDIM);
-    StagInnerProd(m1, comp, m1, comp, inner_prod);
+    StagInnerProd(geom, m1, comp, m1, comp, inner_prod);
     norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
 }
 

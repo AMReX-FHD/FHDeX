@@ -12,6 +12,8 @@ amrex::Vector<amrex::Real>     ib_flagellum::amplitude;
 amrex::Vector<amrex::Real>     ib_flagellum::frequency;
 amrex::Vector<amrex::Real>     ib_flagellum::length;
 amrex::Vector<amrex::Real>     ib_flagellum::wavelength;
+amrex::Vector<amrex::Real>     ib_flagellum::k_spring;
+amrex::Vector<amrex::Real>     ib_flagellum::k_driving;
 
 
 #endif
