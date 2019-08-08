@@ -3,6 +3,7 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, bc_lo, bc_hi, n_cells, prob_type, molmass, Runiv, grav, membrane_cell
+  use compressible_namelist_module, only : Yk_bc
   use conv_module, only : get_energy, get_pressure_gas
 
   implicit none
@@ -17,6 +18,7 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
   double precision :: pos(3),center(3),itVec(3),relpos(3)
   double precision :: L_hlf, pi
   double precision :: massvec(nspecies), intEnergy, pamb, molmix, rgasmix, alpha
+  double precision :: Ygrad
 
   center = (realhi - reallo)/2d0
   L_hlf = (realhi(1) - reallo(1))/2d0
@@ -37,6 +39,7 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
            ! Total density must be pre-set
            
            if (prob_type.eq.2) then ! Rayleigh-Taylor
+              
               if (relpos(3) .ge. 0) then
                  massvec = (/0.4, 0.4, 0.1, 0.1/)
               else
@@ -64,8 +67,20 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
               call get_energy(intEnergy, massvec, pu(i,j,k,5))
               cu(i,j,k,5) = cu(i,j,k,1)*intEnergy + 0.5*cu(i,j,k,1)*(pu(i,j,k,2)**2 + &
                    pu(i,j,k,3)**2 + pu(i,j,k,4)**2)
-           endif
+              
+           elseif (prob_type.eq.3) then ! diffusion barrier
+                                          
+              do l = 1,nspecies
+                 Ygrad = (Yk_bc(2,2,l) - Yk_bc(2,1,l))/(realhi(2) - reallo(2))
+                 massvec(l) = Ygrad*pos(2) + Yk_bc(2,1,l)
+                 cu(i,j,k,5+l) = cu(i,j,k,1)*massvec(l)
+              enddo
 
+              call get_energy(intEnergy, massvec, pu(i,j,k,5))
+              cu(i,j,k,5) = cu(i,j,k,1)*intEnergy + 0.5*cu(i,j,k,1)*(pu(i,j,k,2)**2 + &
+                   pu(i,j,k,3)**2 + pu(i,j,k,4)**2)
+
+           endif
 
         end do
      end do

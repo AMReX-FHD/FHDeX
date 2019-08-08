@@ -419,7 +419,7 @@ contains
     membrane_cell = -1
     cross_cell = 0
 
-    pkernel_fluid = 4    
+    pkernel_fluid = 4
     pkernel_es = 4
     solve_chem = 0
     diffcoeff  = 0.001
@@ -427,11 +427,11 @@ contains
     source_strength = 0.1
     regrid_int = 25
     do_reflux  = 0
-    particle_motion = 0    
+    particle_motion = 0
 
     graphene_tog = 0
     thermostat_tog = 0
-        
+
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')

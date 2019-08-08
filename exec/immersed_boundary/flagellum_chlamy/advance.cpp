@@ -13,6 +13,8 @@
 
 #include "gmres_namespace.H"
 
+#include <immbdy_namespace.H>
+
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
@@ -24,6 +26,8 @@ using namespace amrex;
 using namespace common;
 using namespace gmres;
 using namespace immbdy_md;
+using namespace immbdy;
+using namespace ib_flagellum;
 
 
 using ParticleVector = typename IBMarkerContainer::ParticleVector;
@@ -165,20 +169,17 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Parameters for spring force calculation
     Real spr_k = 10000.0 ; // spring constant
 
-    // initial distance btw markers. TODO: Need to update depending on initial
-    // coordinates.
-    Real l_db = 0.025;
-
     // Parameters for calling bending force calculation
     Real driv_k = 10000.0; //bending stiffness
     RealVect driv_u = {0, 0, 1};
 
     //Real driv_period = 100;  //This is actually angular frequency =  2*pi/T
-    Real driv_period = 0.0133;  // corresponding to beat frequency of 75.2 Hz
-    Real length_flagellum = 0.5;
-    //Real driv_amp = 15 * std::min(time*10, 1.);
-    Real driv_amp = 50 * std::min(time*10, 1.);
-    Print() << "driv_amp = " << driv_amp << std::endl;
+    //Real driv_period = 1.33/2.0;  // This is 50 times larger than the actual period
+    //Real length_flagellum = 0.5;
+
+    // slowly ramp up driving amplitude
+    Real driv_amp = 1.; //std::min(time*10, 1.);
+    //Print() << "driv_amp = " << driv_amp << std::endl;
 
 
     /****************************************************************************
@@ -332,6 +333,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             ParticleType & mark = markers[i];
 
+            int i_ib        = mark.idata(IBM_intData::cpu_1);
+            int N           = ib_flagellum::n_marker[i_ib];
+            Real L          = ib_flagellum::length[i_ib];
+            Real wavelength = ib_flagellum::wavelength[i_ib];
+            Real frequency  = ib_flagellum::frequency[i_ib];
+            Real amplitude  = ib_flagellum::amplitude[i_ib];
+            Real l_link     = L/(N-1);
+
+
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
@@ -359,7 +369,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 }
 
                 Real lp_m = r_m.vectorLength(),       lp_p = r_p.vectorLength();
-                Real fm_0 = spr_k * (lp_m-l_db)/lp_m, fp_0 = spr_k * (lp_p-l_db)/lp_p;
+                Real fm_0 = spr_k * (lp_m-l_link)/lp_m, fp_0 = spr_k * (lp_p-l_link)/lp_p;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     prev_marker->rdata(IBM_realData::pred_forcex + d) += fm_0 * r_m[d];
@@ -393,44 +403,30 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 // calling the active bending force calculation
                 // This a simple since wave imposed
-                //Real theta = l_db*driv_amp*sin(driv_period*time
-                //             + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
+                //Real theta = l_link*driv_amp*sin(driv_period*time
+                //             + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_link);
 
 
-                //Fourier series parameters based on normalized axial location (0.05-1)
-                Real s = mark.idata(IBM_intData::id_1)/20; //note: id_1 = 0 for first marker created
+                //Fourier series parameters based on normalized axial location (0.06-0.96)
+                Real s = mark.idata(IBM_intData::id_1)/20+0.01; //note: id_1 = 0 for first marker created
 
-                Real a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
-                Real a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
-                Real a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
-                Real a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
-                Real b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
-                Real b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
-                Real b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
+		Real a0 = -0.2194*s*s*s*s + 0.5067*s*s*s - 0.3265*s*s + 0.1561*s - 0.1626;
+		Real a1 = -0.1155*s*s*s*s + 1.0627*s*s*s - 1.8144*s*s + 0.4139*s + 0.1751;
+		Real b1 = 0.2912*s*s*s*s - 0.712*s*s*s - 1.075*s*s + 1.6789*s - 0.3073;
+		Real a2 = -0.1537*s*s*s*s - 0.1021*s*s*s + 0.1863*s*s + 0.08*s - 0.041;
+		Real b2 = 0.1462*s*s*s*s - 0.6082*s*s*s + 1.0747*s*s - 0.5667*s + 0.0623;
+		Real a3 = -0.2303*s*s*s*s + 0.5034*s*s*s - 0.5192*s*s + 0.268*s - 0.0419;
+		Real b3 = 0.1073*s*s*s*s - 0.1903*s*s*s + 0.1145*s*s + 0.0115*s - 0.022;
 
-                Real w  = 2*M_PI; //for normailized beat period of 1
+                Real w  = 0.; //2*M_PI; //for normailized beat period of 1
 
-                Real T = driv_period;  // T=13.3 ms for 75.2Hz beating
+                //Real T = driv_period;  // T=13.3 ms for 75.2Hz beating
 
-                Real theta_raw = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
-                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
-                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
+                Real theta_raw = a0 + a1*cos(w*time*frequency)   + b1*sin(w*time*frequency)
+                                    + a2*cos(2*w*time*frequency) + b2*sin(2*w*time*frequency)
+                                    + a3*cos(3*w*time*frequency) + b3*sin(3*w*time*frequency);
 
-                s = (mark.idata(IBM_intData::id_1)+1)/20;
-
-                a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
-                a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
-                a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
-                a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
-                b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
-                b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
-                b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
-
-                Real theta_raw_next = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
-                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
-                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
-
-                Real theta = l_db*driv_amp*(theta_raw - theta_raw_next);
+                Real theta = l_link*driv_amp*amplitude*theta_raw;
 
 		//std::cout << "predictor theta = " << theta << std::endl;
 
@@ -469,6 +465,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             // Zero z-force only
             mark.rdata(IBM_realData::pred_forcez) = 0.;
+
+            // fix the first marker in x and y as well. can also use id_1==0
+            if (mark.idata(IBM_intData::id_0) == -1) {
+                mark.rdata(IBM_realData::pred_forcex) = 0.;
+                mark.rdata(IBM_realData::pred_forcey) = 0.;
+            }
+
         }
 
         BL_PROFILE_VAR_STOP(CONSTRAINZPRED);
@@ -657,6 +660,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             ParticleType & mark = markers[i];
 
+            int i_ib        = mark.idata(IBM_intData::cpu_1);
+            int N           = ib_flagellum::n_marker[i_ib];
+            Real L          = ib_flagellum::length[i_ib];
+            Real wavelength = ib_flagellum::wavelength[i_ib];
+            Real amplitude  = ib_flagellum::amplitude[i_ib];
+            Real frequency  = ib_flagellum::frequency[i_ib];
+            Real l_link     = L/N;
+
+
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
@@ -683,7 +695,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 }
 
                 Real lp_m = r_m.vectorLength(),       lp_p = r_p.vectorLength();
-                Real fm_0 = spr_k * (lp_m-l_db)/lp_m, fp_0 = spr_k * (lp_p-l_db)/lp_p;
+                Real fm_0 = spr_k * (lp_m-l_link)/lp_m, fp_0 = spr_k * (lp_p-l_link)/lp_p;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     prev_marker->rdata(IBM_realData::forcex + d) += fm_0 * r_m[d];
@@ -715,45 +727,29 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 RealVect f_m = RealVect{0., 0., 0.};
 
                 // calling the active bending force calculation
-                //Real theta = l_db*driv_amp*sin(driv_period*time
-                //            + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_db);
+                //Real theta = l_link*driv_amp*sin(driv_period*time
+                //            + 2*M_PI/length_flagellum*mark.idata(IBM_intData::id_1)*l_link);
 
-                //Fourier series parameters based on normalized axial location (0.05-1)
-                Real s = mark.idata(IBM_intData::id_1)/20; //note: id_1 = 0 for first marker created
+                //Fourier series parameters based on normalized axial location (0.06-0.96)
+                Real s = mark.idata(IBM_intData::id_1)/20+0.01; //note: id_1 = 0 for first marker created
 
-                Real a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
-                Real a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
-                Real a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
-                Real a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
-                Real b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
-                Real b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
-                Real b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
+                Real a0 = -0.2194*s*s*s*s + 0.5067*s*s*s - 0.3265*s*s + 0.1561*s - 0.1626;
+                Real a1 = -0.1155*s*s*s*s + 1.0627*s*s*s - 1.8144*s*s + 0.4139*s + 0.1751;
+                Real b1 = 0.2912*s*s*s*s - 0.712*s*s*s - 1.075*s*s + 1.6789*s - 0.3073;
+                Real a2 = -0.1537*s*s*s*s - 0.1021*s*s*s + 0.1863*s*s + 0.08*s - 0.041;
+                Real b2 = 0.1462*s*s*s*s - 0.6082*s*s*s + 1.0747*s*s - 0.5667*s + 0.0623;
+                Real a3 = -0.2303*s*s*s*s + 0.5034*s*s*s - 0.5192*s*s + 0.268*s - 0.0419;
+                Real b3 = 0.1073*s*s*s*s - 0.1903*s*s*s + 0.1145*s*s + 0.0115*s - 0.022;
 
-                Real w  = 2*M_PI; //for normailized beat period of 1
+                Real w  = 0.; // 2*M_PI; //for normailized beat period of 1
 
-                Real T = driv_period;  // T=13.3 ms for 75.2Hz beating
+                //Real T = driv_period;  // T=13.3 ms for 75.2Hz beating
 
-                Real theta_raw = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
-                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
-                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
+                Real theta_raw = a0 + a1*cos(w*time*frequency)   + b1*sin(w*time*frequency)
+                                    + a2*cos(2*w*time*frequency) + b2*sin(2*w*time*frequency)
+                                    + a3*cos(3*w*time*frequency) + b3*sin(3*w*time*frequency);
 
-                s = (mark.idata(IBM_intData::id_1)+1)/20;
-
-                a0 = 5.979*s*s*s*s - 20.969*s*s*s + 16.229*s*s - 0.7861*s - 0.7402;
-                a1 = -3.4386*s*s*s*s + 14.471*s*s*s - 11.596*s*s - 0.2674*s + 0.8171;
-                a2 = -2.3251*s*s*s*s + 6.0159*s*s*s - 3.8686*s*s + 0.4714*s + 0.038;
-                a3 = -0.2153*s*s*s*s + 0.4819*s*s*s - 0.7644*s*s + 0.5822*s - 0.1149;
-                b1 = 2.2601*s*s*s*s + 4.017*s*s*s - 14.262*s*s + 7.1863*s - 0.0507;
-                b2 = 0.9559*s*s*s*s + 0.8517*s*s*s - 2.9389*s*s + 1.2036*s - 0.0165;
-                b3 = 0.1762*s*s*s*s - 1.3385*s*s*s + 1.8047*s*s - 0.647*s + 0.0394;
-
-                Real theta_raw_next = a0 + a1*cos(w*time/T)   + b1*sin(w*time/T)
-                                    + a2*cos(2*w*time/T) + b2*sin(2*w*time/T)
-                                    + a3*cos(3*w*time/T) + b3*sin(3*w*time/T);
-
-                Real theta = l_db*driv_amp*(theta_raw - theta_raw_next);
-
-                //std::cout << "corrector theta = " << theta << std::endl;
+                Real theta = l_link*driv_amp*amplitude*theta_raw;
 
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, driv_k);
 
@@ -791,6 +787,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             // Zero z-force only
             mark.rdata(IBM_realData::forcez) = 0.;
+
+            // fix the first marker in x and y as well. can also use id_1==0
+            if (mark.idata(IBM_intData::id_0) == -1) {
+                mark.rdata(IBM_realData::forcex) = 0.;
+                mark.rdata(IBM_realData::forcey) = 0.;
+            }
+
         }
 
     }

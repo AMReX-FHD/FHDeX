@@ -18,4 +18,4 @@ CEXE_sources += MultiFABPhysBC.cpp
 CEXE_sources += outputAscii.cpp
 CEXE_sources += SqrtMF.cpp
 
-!CEXE_sources += ComputeAverages.cpp
+CEXE_sources += ComputeAverages.cpp

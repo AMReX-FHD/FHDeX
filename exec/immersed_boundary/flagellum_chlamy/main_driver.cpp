@@ -16,8 +16,13 @@
 #include "gmres_functions.H"
 #include "gmres_functions_F.H"
 
+#include <ib_functions.H>
+
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
+
+#include <immbdy_namespace.H>
+#include <immbdy_namespace_declarations.H>
 
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
@@ -35,6 +40,8 @@ using namespace amrex;
 using namespace common;
 using namespace gmres;
 using namespace immbdy_md;
+using namespace immbdy;
+using namespace ib_flagellum;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -95,6 +102,8 @@ void main_driver(const char * argv) {
     // global settings in fortran/c++ after this point need to be synchronized
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+    InitializeImmbdyNamespace();
+    InitializeIBFlagellumNamespace();
 
 
     //___________________________________________________________________________
@@ -323,65 +332,91 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
-    //___________________________________________________________________________
-    // Initialize velocities (fluid and tracers)
-    // Make sure that the nghost (last argument) is big enough!
+    // Find the optimal number of ghost cells for the IBMarkerContainer
 
-    // add the approximate equilibrium sin-wave shape
-    BL_PROFILE_VAR("main_create markers", createmarkers);
+    Real min_dx = dx[0];
+    for (int d=1; d<AMREX_SPACEDIM; ++d)
+            min_dx = std::min(min_dx, dx[d]);
 
-    int nm = 21; //total number of markers used to represent a flagellum
-    Real l_db = 0.025; //initial distance between markers
+    int ib_nghost = 8; // min of 8 is a HACK: something large enough but not too large
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+        if (n_marker[i_ib] <= 0) continue;
 
-    Vector<RealVect> marker_positions(nm);
-    Vector<Real> marker_radii(nm);
+        int N       = n_marker[i_ib];
+        Real L      = ib_flagellum::length[i_ib];
+        Real l_link = L/N;
 
-    for (int i=0; i<nm; ++i) {
-        marker_radii[i] = .1;
-
-        // This is for initially horizontal straight shape
-        marker_positions[i] = RealVect{0.05 + i*l_db, 0.5, 0.5};
+        int min_nghost = 2*l_link/min_dx;
+        ib_nghost      = std::max(ib_nghost, min_nghost);
     }
 
-    // This is a realistic initial waveform normalized to length of 0.5
-    // but doesn't work!!!!
-    //marker_positions[0]  = RealVect{0.0500, 0.5000, 0.5};
-    //marker_positions[1]  = RealVect{0.0636, 0.4791, 0.5};
-    //marker_positions[2]  = RealVect{0.0768, 0.4579, 0.5};
-    //marker_positions[3]  = RealVect{0.0899, 0.4367, 0.5};
-    //marker_positions[4]  = RealVect{0.3400, 0.4158, 0.5};
-    //marker_positions[5]  = RealVect{0.1176, 0.3952, 0.5};
-    //marker_positions[6]  = RealVect{0.1324, 0.3752, 0.5};
-    //marker_positions[7]  = RealVect{0.1479, 0.3556, 0.5};
-    //marker_positions[8]  = RealVect{0.1637, 0.3363, 0.5};
-    //marker_positions[9]  = RealVect{0.1797, 0.3172, 0.5};
-    //marker_positions[10] = RealVect{0.1954, 0.2978, 0.5};
-    //marker_positions[11] = RealVect{0.2400, 0.2780, 0.5};
-    //marker_positions[12] = RealVect{0.2244, 0.2573, 0.5};
-    //marker_positions[13] = RealVect{0.2366, 0.2356, 0.5};
-    //marker_positions[14] = RealVect{0.2462, 0.2126, 0.5};
-    //marker_positions[15] = RealVect{0.2523, 0.1884, 0.5};
-    //marker_positions[16] = RealVect{0.2542, 0.1636, 0.5};
-    //marker_positions[17] = RealVect{0.2508, 0.1389, 0.5};
-    //marker_positions[18] = RealVect{0.2414, 0.1159, 0.5};
-    //marker_positions[19] = RealVect{0.2259, 0.0965, 0.5};
-    //marker_positions[20] = RealVect{0.2049, 0.0833, 0.5};
+    Print() << "Initializing IBMarkerContainer with "
+            << ib_nghost << " ghost cells" << std::endl;
+
+    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
 
 
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
-    ib_mc.InitList(0, marker_radii, marker_positions);
+        if (n_marker[i_ib] <= 0) continue;
 
+        int N  = n_marker[i_ib];
+        Real L = ib_flagellum::length[i_ib];
+
+        Real l_link = L/N;
+
+        const RealVect & x_0 = offset_0[i_ib];
+
+        Print() << "Initializing flagellum:" << std::endl;
+        Print() << "N=      " << N           << std::endl;
+        Print() << "L=      " << L           << std::endl;
+        Print() << "l_link= " << l_link      << std::endl;
+        Print() << "x_0=    " << x_0         << std::endl;
+
+        Vector<RealVect> marker_positions(N);
+        //for (int i=0; i<marker_positions.size(); ++i)
+        //    marker_positions[i] = RealVect{x_0[0] + i*l_link, x_0[1], x_0[2]};
+	
+	// This is a realistic initial waveform normalized to length of 0.5
+   	marker_positions[0]  = RealVect{0.0500, 0.5000, 0.5};
+    	marker_positions[1]  = RealVect{0.0636, 0.4791, 0.5};
+    	marker_positions[2]  = RealVect{0.0768, 0.4579, 0.5};
+    	marker_positions[3]  = RealVect{0.0899, 0.4367, 0.5};
+    	marker_positions[4]  = RealVect{0.1034, 0.4158, 0.5};
+    	marker_positions[5]  = RealVect{0.1176, 0.3952, 0.5};
+    	marker_positions[6]  = RealVect{0.1324, 0.3752, 0.5};
+    	marker_positions[7]  = RealVect{0.1479, 0.3556, 0.5};
+    	marker_positions[8]  = RealVect{0.1637, 0.3363, 0.5};
+    	marker_positions[9]  = RealVect{0.1797, 0.3172, 0.5};
+    	marker_positions[10] = RealVect{0.1954, 0.2978, 0.5};
+    	marker_positions[11] = RealVect{0.2104, 0.2780, 0.5};
+    	marker_positions[12] = RealVect{0.2244, 0.2573, 0.5};
+    	marker_positions[13] = RealVect{0.2366, 0.2356, 0.5};
+    	marker_positions[14] = RealVect{0.2462, 0.2126, 0.5};
+    	marker_positions[15] = RealVect{0.2523, 0.1884, 0.5};
+    	marker_positions[16] = RealVect{0.2542, 0.1636, 0.5};
+    	marker_positions[17] = RealVect{0.2508, 0.1389, 0.5};
+    	marker_positions[18] = RealVect{0.2414, 0.1159, 0.5};
+    	marker_positions[19] = RealVect{0.2259, 0.0965, 0.5};
+    	marker_positions[20] = RealVect{0.2049, 0.0833, 0.5};
+
+
+        Vector<Real> marker_radii(N);
+        for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
+
+        ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
+    }
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
-
     BL_PROFILE_VAR_STOP(createmarkers);
-
+ 
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+
+    BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;

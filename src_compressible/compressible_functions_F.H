@@ -1,10 +1,10 @@
 #ifndef _compressible_functions_F_H_
-#define compressible_functions_F_H_
+#define _compressible_functions_F_H_
 
 #include <AMReX_MultiFab.H>
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
@@ -13,7 +13,7 @@ extern "C"
 ///////////////////////////
 // in compressible_namelist.F90
 
-  // read in fortran namelist into compressible_params_module
+  // read in fortran namelist into compressible_namelist_module
   void read_compressible_namelist (const char* inputs_file, const int length);
 
   // copy contents of compressible_params_module to C++ compressible namespace
@@ -197,5 +197,5 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
- 
+
 #endif

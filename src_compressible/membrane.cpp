@@ -16,12 +16,12 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
         const Box& bx = mfi.validbox();
 
         //do_ssa(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-        //         cons[mfi].dataPtr(),  
+        //         cons[mfi].dataPtr(),
         //           prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);
 
         do_langevin(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                  cons[mfi].dataPtr(),  
-                   prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);          
+                  cons[mfi].dataPtr(),
+                   prim[mfi].dataPtr(), flux[0][mfi].dataPtr(), dx, &dt);
     }
 
     flux[0].OverrideSync(geom.periodicity());
@@ -31,8 +31,8 @@ void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACE
         const Box& bx = mfi.validbox();
 
         apply_effusion(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cons[mfi].dataPtr(),  
-                   flux[0][mfi].dataPtr(), dx, &dt);       
+                   cons[mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(), dx, &dt);
     }
 
     conservedToPrimitive(prim, cons);

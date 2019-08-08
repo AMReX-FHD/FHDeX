@@ -6,4 +6,3 @@ amrex::Vector<int> compressible::vel_bc_lo;
 amrex::Vector<int> compressible::vel_bc_hi;
 amrex::Vector<amrex::Real> compressible::Yk_bc;
 amrex::Vector<amrex::Real> compressible::Xk_bc;
- 
