@@ -18,7 +18,7 @@
   fixed_dt = 10e-11
 
   ! Controls for number of steps between actions
-  max_step =15000
+  max_step =15
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = 1
@@ -62,6 +62,7 @@
   k_B = 1.38064852e-16
   T_init(1) = 295.00
   variance_coef_mom = 0
+  domega=11.0e6
    
 
   ! Boundary conditions

@@ -423,7 +423,7 @@
     use cell_sorted_particle_module, only: particle_t
     use surfaces_module
     use rng_functions_module
-     use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0, max_step
+     use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0, max_step, domega
     
     implicit none
 
@@ -435,12 +435,9 @@
 
     pi=3.1415926535897932
 
-    interval=3.0/100
-    omega=(11+interval*surf%omg)*(10**6)*pi*2
-    !omega=12.5*(10**6)*pi*2
     resomega=12.5*(10**6)*pi*2
 
-    lstrength=9*10e-14*cos(omega*time)
+    lstrength=3*10e-15*cos(domega*time)
     !lstrength=0
     t=time
     dt=t+fixed_dt
@@ -449,7 +446,7 @@
         surf%bgraph=surf%bgraph+lstrength*bessel_jn(0, 0d0)*cos(resomega*time)
         t=t+fixed_dt
      !end do
-     !print*, 'A',omega, surf%omg, interval 
+     !print*, 'A',domega 
      
   end subroutine laser
   

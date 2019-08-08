@@ -36,8 +36,6 @@ void main_driver(const char* argv)
   
     Real strt_time = ParallelDescriptor::second();
 
-    for(int omg; omg<101;omg++)
-      {
 	std::string inputs_file = argv;
 	Print() << argv << std::endl;
 	//Abort();
@@ -55,19 +53,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+//    int fhdSeed = 0;
+//    int particleSeed = 0;
+//    int selectorSeed = 0;
+//    int thetaSeed = 0;
+//    int phiSeed = 0;
+//    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -396,7 +394,6 @@ void main_driver(const char* argv)
     double time = 0;
     //Time stepping loop
 	//remove("out.txt");
-	surfaceList[5].omg=omg;
 	surfaceList[5].bgraph=0;
 	surfaceList[5].bgraph=0;
     for(int step=1;step<=max_step;++step)
@@ -440,13 +437,12 @@ void main_driver(const char* argv)
 
         if(step%1 == 0)
         {    
-	  amrex::Print() << "Advanced step " << step<<", " << surfaceList[5].omg << "\n";
+	  amrex::Print() << "Advanced step " << step<<", " << domega<< "\n";
         }
         
         time = time + dt;
 
     }
-           }
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;

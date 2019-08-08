@@ -53,6 +53,7 @@ void InitializeCommonNamespace() {
     rhobar.resize(MAX_SPECIES);
     u_init.resize(2);
     T_init.resize(2);
+    //domega.resize(AMREX_SPACEDIM);
 
     // boundary condition flags
     bc_lo.resize(AMREX_SPACEDIM);
@@ -119,7 +120,7 @@ void InitializeCommonNamespace() {
                                 &seed_init_momentum, &visc_coef, &visc_type,
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
-                                &initial_variance_mass, bc_lo.dataPtr(), bc_hi.dataPtr(),
+                                &initial_variance_mass, &domega, bc_lo.dataPtr(), bc_hi.dataPtr(),
                                 bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
                                 p_lo.dataPtr(), p_hi.dataPtr(),
                                 t_lo.dataPtr(), t_hi.dataPtr(),
@@ -150,5 +151,12 @@ void InitializeCommonNamespace() {
 
     // copy value into fortran namelist
     set_max_step(&max_step);
+
+    // read in from command line
+    pp.query("domega",domega);
+    Print() << "HACK" << domega << "/n";
+
+    // copy value into fortran namelist
+    set_domega(&domega);
     
 }
