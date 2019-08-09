@@ -107,6 +107,7 @@ namespace common {
     extern amrex::Real                smoothing_width;
     extern amrex::Real                initial_variance_mom;
     extern amrex::Real                initial_variance_mass;
+    extern amrex::Real                domega;
 
     // Boundary conditions
     // ----------------------

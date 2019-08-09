@@ -66,6 +66,7 @@ module common_namelist_module
   double precision,   save :: smoothing_width
   double precision,   save :: initial_variance_mom
   double precision,   save :: initial_variance_mass
+  double precision,   save :: domega
   integer,            save :: bc_lo(AMREX_SPACEDIM)
   integer,            save :: bc_hi(AMREX_SPACEDIM)
   integer,            save :: bc_es_lo(AMREX_SPACEDIM)
@@ -250,6 +251,7 @@ module common_namelist_module
   namelist /common/ smoothing_width
   namelist /common/ initial_variance_mom
   namelist /common/ initial_variance_mass
+  namelist /common/ domega
 
   ! Boundary conditions
   namelist /common/ bc_lo
@@ -335,8 +337,15 @@ contains
   subroutine read_common_namelist(inputs_file,length) bind(C, name="read_common_namelist")
 
     integer               , value         :: length
+    integer                               :: narg, farg
     character(kind=c_char), intent(in   ) :: inputs_file(length)
+    character(len=128) :: fname
 
+!    narg = command_argument_count()
+!    narg=narg+3
+!    print*, narg
+!    stop
+    
     ! default values
     prob_lo(:) = 0.d0
     prob_hi(:) = 1.d0
@@ -385,6 +394,7 @@ contains
     smoothing_width = 1.
     initial_variance_mom = 0.
     initial_variance_mass = 0.
+    domega=0.d0
     bc_lo(:) = 0
     bc_hi(:) = 0
     bc_es_lo(:) = 0
@@ -427,6 +437,7 @@ contains
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
     close(unit=100)
+    
 
   end subroutine read_common_namelist
 
@@ -454,8 +465,8 @@ contains
                                          filtering_width_in, stoch_stress_form_in, &
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
-                                         bc_lo_in, bc_hi_in, &
-                                         bc_es_lo_in, bc_es_hi_in, &
+                                         domega_in, bc_lo_in, bc_hi_in, &
+                                         bc_es_lo_in, bc_es_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
@@ -551,6 +562,7 @@ contains
     double precision,       intent(inout) :: smoothing_width_in
     double precision,       intent(inout) :: initial_variance_mom_in
     double precision,       intent(inout) :: initial_variance_mass_in
+    double precision,       intent(inout) :: domega_in
     integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_lo_in(AMREX_SPACEDIM)
@@ -675,6 +687,7 @@ contains
     smoothing_width_in = smoothing_width
     initial_variance_mom_in = initial_variance_mom
     initial_variance_mass_in = initial_variance_mass
+    domega_in=domega
     bc_lo_in = bc_lo
     bc_hi_in = bc_hi
     bc_es_lo_in = bc_es_lo
@@ -754,5 +767,13 @@ contains
     max_step = max_step_in
     
   end subroutine set_max_step
+
+  subroutine set_domega(domega_in) bind(C, name="set_domega")
+
+    double precision, intent(in   ) :: domega_in
+
+    domega = domega_in
+    
+  end subroutine set_domega  
 
 end module common_namelist_module

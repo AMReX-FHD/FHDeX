@@ -45,6 +45,7 @@ extern "C"
                                      amrex::Real* smoothing_width,
                                      amrex::Real* initial_variance_mom,
                                      amrex::Real* initial_variance_mass,
+				     amrex::Real* domega,
                                      int* bc_lo, int* bc_hi,
                                      int* bc_es_lo, int* bc_es_hi,
                                      amrex::Real * p_lo, amrex::Real * p_hi,
@@ -72,6 +73,7 @@ extern "C"
                                      int* regrid_int, int* do_reflux, int* particle_motion);
 
     void set_max_step(int* max_step);
+    void set_domega(amrex::Real* domega);
     
 ///////////////////////////
 
