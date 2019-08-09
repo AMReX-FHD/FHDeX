@@ -9,6 +9,44 @@ module multifab_fill_random_module
 
 contains
 
+#if (AMREX_SPACEDIM == 1)
+
+    subroutine multifab_fill_random(lo,hi, &
+                                    mf,mflo,mfhi, &
+                                    ncomp,comp) bind(C,name="multifab_fill_random")
+
+      integer         , intent(in   ) :: lo(1),hi(1)
+      integer         , intent(in   ) :: mflo(1),mfhi(1)
+      double precision, intent(inout) :: mf(mflo(1):mfhi(1),ncomp)
+      integer         , intent(in   ) :: ncomp,comp
+      
+      ! local
+      integer :: i
+
+      !=============================
+      ! fill elements of array with random numbers
+      !=============================
+
+      ! print*, "F90 hack: comp = ", comp, "/", ncomp
+
+      do i=lo(1),hi(1)
+         mf(i,comp+1) = get_fhd_normal_func()
+      end do
+
+      !! Hack:
+      ! print*, "box lo & hi: ", lo, hi
+      ! print*, "mf lo & hi: ", mflo, mfhi
+      ! print*, "mf x-lo bound: ", mf(mflo(1),mflo(2):mfhi(2))
+      ! print*, "mf x-hi bound: ", mf(mfhi(1),mflo(2):mfhi(2))
+      ! print*, "mf y-lo bound: ", mf(mflo(1):mfhi(1),mflo(2))
+      ! print*, "mf y-hi bound: ", mf(mflo(1):mfhi(1),mfhi(2))
+
+    end subroutine multifab_fill_random
+
+#endif
+
+
+
 #if (AMREX_SPACEDIM == 2)
 
     subroutine multifab_fill_random(lo,hi, &

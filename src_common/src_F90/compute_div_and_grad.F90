@@ -9,6 +9,15 @@ module compute_div_and_grad_module
 
 contains
 
+
+#if (AMREX_SPACEDIM == 1)
+subroutine compute_div
+
+end subroutine compute_div
+  
+#endif
+
+
   ! Computes divergence at cell centres from face values
 #if (AMREX_SPACEDIM == 2)
 subroutine compute_div(lo, hi, phix, phixlo, phixhi, phiy, phiylo, phiyhi, &
@@ -98,6 +107,14 @@ end subroutine compute_div
 #endif
 
 ! Computes gradient of cell centred scalar field at cell faces
+
+#if (AMREX_SPACEDIM == 1)
+subroutine compute_grad
+
+end subroutine compute_grad
+  
+#endif
+
 #if (AMREX_SPACEDIM==2)
 subroutine compute_grad(lo, hi, gphix, gphixlo, gphixhi, gphiy, gphiylo, gphiyhi, &
                         phi, philo, phihi, dx) bind(C, name="compute_grad")

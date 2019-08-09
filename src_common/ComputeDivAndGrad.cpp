@@ -7,6 +7,7 @@ void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi
                 int start_incomp, int start_outcomp, int ncomp,
                 const Geometry & geom, int increment)
 {
+#if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
 
     BL_PROFILE_VAR("ComputeDiv()",ComputeDiv);
 
@@ -27,6 +28,7 @@ void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi
                         geom.CellSize(), & increment);
         }
     }
+#endif
 }
 
 
@@ -35,6 +37,8 @@ void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi
 void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
                  int start_incomp, int start_outcomp, int ncomp, const Geometry& geom)
 {
+    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
+
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
@@ -52,11 +56,13 @@ void ComputeGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi
                          geom.CellSize());
         }
     }
+    #endif
 }
 
 //Computes gradient at cell centres from cell centred data - oututs to a three component mf.
 void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, const Geometry& geom)
 {
+    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
@@ -70,4 +76,5 @@ void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM
                          BL_TO_FORTRAN_3D(phi[mfi]),
                          geom.CellSize());
         }    
+    #endif
 }
