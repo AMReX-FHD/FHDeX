@@ -1,0 +1,67 @@
+&common
+
+  ! Problem specification
+  prob_lo(1:2) = 0.0 0.0      ! physical lo coordinate
+  prob_hi(1:2) = 4.0 4.0      ! physical hi coordinate
+
+  ! Number of ghost cells, conserved, and primitive variables
+  ! ---------------------
+  ngc = 1 1
+  nvars = 1
+    
+  ! number of cells in domain
+  n_cells(1:2) = 128 128
+  ! max number of cells in a box
+  max_grid_size(1:2) = 64 64
+
+  ! Time-step control
+  cfl =0.1
+
+  ! Controls for number of steps between actions
+  max_step = 6000000
+  plot_int  = 1000
+  n_steps_skip = 0
+
+  ! Boundary conditions
+  ! ----------------------
+  ! BC specifications:
+  ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
+  bc_lo(1:2) = -1 -1
+  bc_hi(1:2) = -1 -1
+
+/
+
+&GL_params
+
+ acoef = 0.
+ bcoef = 100.
+ ccoef = -216.
+ dcoef = 112.
+
+ diff_coef = 1.0  !1.
+ noise_coef = .01 !
+ umbrella = 150.00 ! starting umbrella value/fixed value when not using adaptive method
+ ! umbrella = 00.
+
+ !phi0 = .5
+ phi0 =0.00286481020
+ rad = .4
+ n_inc_phi = 300000
+ phi_inc =0.1 !0.00014747000000000024 ! increment parameter used when adaptive is off
+
+ Plot_Skip=30   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
+ Number_of_Samples=150  ! Number of samples per umbrella
+ Equil=21000  !number of equilibration steps per umbrella
+ alpha=1.5  !spring constant scaling parameter
+ r1=1.0 !phi0 step parameter, see overleaf notes
+ r2=1.0  !overlap parameter, see overleaf notes
+ umbrella_max=2000.0
+ umbrella_min=50.0
+ adaptive=0
+ Reverse=0
+
+
+
+/
+
+
