@@ -48,12 +48,12 @@ void stag_applyop_visc_p1 (Box const& tbx,
 {
     // xbx, ybx, and zbx are the face-centered boxes
 
-    // if running on the host    
+    // if running on the host
     // tlo is the minimal box containins the union of the face-centered grid boxes
 
     // if running on the gpu, tlo is a box with a single point that comes
-    // from the union of the face-centered grid boxes  
-    
+    // from the union of the face-centered grid boxes
+
     const auto tlo = lbound(tbx);
     const auto thi = ubound(tbx);
 
@@ -68,12 +68,12 @@ void stag_applyop_visc_p1 (Box const& tbx,
     AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
                  const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
                  const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
-    
+
     AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
                  const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
                  const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
 
-    int ioff;    
+    int ioff;
 
     Real dxsqinv = 1./(dx[0]*dx[0]);
     Real dysqinv = 1./(dx[1]*dx[1]);
@@ -98,7 +98,7 @@ void stag_applyop_visc_p1 (Box const& tbx,
 #endif
 
     if (do_x) {
-    
+
         for (int k = xlo.z; k <= xhi.z; ++k) {
         for (int j = xlo.y; j <= xhi.y; ++j) {
         ioff = 0;
@@ -121,7 +121,7 @@ void stag_applyop_visc_p1 (Box const& tbx,
     }
 
     if (do_y) {
-              
+
         for (int k = ylo.z; k <= yhi.z; ++k) {
         for (int j = ylo.y; j <= yhi.y; ++j) {
         ioff = 0;
@@ -129,8 +129,8 @@ void stag_applyop_visc_p1 (Box const& tbx,
 	  ioff = 1;
 	}
         AMREX_PRAGMA_SIMD
-        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {        
-            
+        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
+
             Lphiy(i,j,k) = phiy(i,j,k)*(alphay(i,j,k) + term1)
                 -(phiy(i+1,j,k)+phiy(i-1,j,k))*term2
                 -(phiy(i,j+1,k)+phiy(i,j-1,k))*term3
@@ -164,9 +164,9 @@ void stag_applyop_visc_p1 (Box const& tbx,
         }
     }
 #endif
-    
+
 }
-    
+
 
 void StagApplyOp(const MultiFab& beta_cc,
                  const MultiFab& gamma_cc,
@@ -190,7 +190,7 @@ void StagApplyOp(const MultiFab& beta_cc,
                      do_y = true,;
                      do_z = true;);
 
-    }    
+    }
     else if (color == 1 || color == 2) {
         AMREX_D_TERM(do_x = true;,
                      do_y = false;,
@@ -214,7 +214,7 @@ void StagApplyOp(const MultiFab& beta_cc,
     else {
         Abort("StagApplyOp: Invalid Color");
     }
-    
+
     // multiply alpha by theta_alpha
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         alpha_fc[d].mult(theta_alpha);
@@ -224,7 +224,7 @@ void StagApplyOp(const MultiFab& beta_cc,
     for (MFIter mfi(beta_cc); mfi.isValid(); ++mfi) {
 
         const Box & bx = mfi.validbox();
-        
+
         Array4<Real const> const& beta_cc_fab = beta_cc.array(mfi);
         Array4<Real const> const& gamma_cc_fab = gamma_cc.array(mfi);
 
@@ -233,15 +233,15 @@ void StagApplyOp(const MultiFab& beta_cc,
         Array4<Real const> const& beta_xz_fab = beta_ed[1].array(mfi);
         Array4<Real const> const& beta_yz_fab = beta_ed[2].array(mfi);
 #endif
-        
+
         AMREX_D_TERM(Array4<Real const> const& phix_fab = phi[0].array(mfi);,
                      Array4<Real const> const& phiy_fab = phi[1].array(mfi);,
                      Array4<Real const> const& phiz_fab = phi[2].array(mfi););
-        
+
         AMREX_D_TERM(Array4<Real> const& Lphix_fab = Lphi[0].array(mfi);,
                      Array4<Real> const& Lphiy_fab = Lphi[1].array(mfi);,
                      Array4<Real> const& Lphiz_fab = Lphi[2].array(mfi););
-        
+
         AMREX_D_TERM(Array4<Real> const& alphax_fab = alpha_fc[0].array(mfi);,
                      Array4<Real> const& alphay_fab = alpha_fc[1].array(mfi);,
                      Array4<Real> const& alphaz_fab = alpha_fc[2].array(mfi););
@@ -261,7 +261,7 @@ void StagApplyOp(const MultiFab& beta_cc,
         }
 
         if (visc_type == 1) {
-            
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_applyop_visc_p1(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
@@ -271,10 +271,10 @@ void StagApplyOp(const MultiFab& beta_cc,
                                      AMREX_D_DECL(do_x,do_y,do_z),
                                      bt, gt, offset, color, dx);
             });
-            
+
         }
         else {
-        
+
             stag_apply_op(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                           BL_TO_FORTRAN_ANYD(beta_cc[mfi]),
                           BL_TO_FORTRAN_ANYD(gamma_cc[mfi]),
@@ -308,4 +308,3 @@ void StagApplyOp(const MultiFab& beta_cc,
         alpha_fc[d].mult(1./theta_alpha);
     }
 }
-

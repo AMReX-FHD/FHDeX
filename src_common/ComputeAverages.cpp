@@ -12,7 +12,7 @@ void factor(int,int*,int);
 
 //Computes divergence at cell centres from velcocities at cell faces
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
-			    const Geometry& geom, const int dir, 
+			    const Geometry& geom, const int dir,
 			    const int incomp, const int ncomp,
 			    const int findredist)
 {
@@ -41,13 +41,13 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 
   int nxprod, indlo, indhi, a, b, c;
 
-  // We assume that all grids have the same size hence 
+  // We assume that all grids have the same size hence
   // we have the same nx,ny,nz on all ranks
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     nx[d]  = ba_in[0].size()[d];
     nbx[d] = domain.length(d) / nx[d];
   }
-  if (nbx[0]*nbx[1]*nbx[2] != ba_in.size()) 
+  if (nbx[0]*nbx[1]*nbx[2] != ba_in.size())
     amrex::Error("ALL GRIDS DO NOT HAVE SAME SIZE");
 
   indlo = (dir-1+AMREX_SPACEDIM)%AMREX_SPACEDIM;
@@ -75,11 +75,11 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
     mx[0] = a/mx[0];
     mx[1] = b/mx[1];
 
-    if (mx[0]*mx[1] != nxprod) 
+    if (mx[0]*mx[1] != nxprod)
       amrex::Error("FACTORING NOT POSSIBLE DUE TO UNCOMMON PRIME FACTOR");
 
   } else {
-    
+
     mx[0] = max_grid_projection[0];
     mx[1] = max_grid_projection[1];
 
@@ -119,7 +119,7 @@ void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
   for ( MFIter mfi(mf_pencil); mfi.isValid(); ++mfi ) {
     const Box& bx = mfi.validbox();
     compute_vert_average(BL_TO_FORTRAN_BOX(bx),
-			 BL_TO_FORTRAN_FAB(mf_pencil[mfi]),BL_TO_FORTRAN_FAB(mf_avg[mfi]), 
+			 BL_TO_FORTRAN_FAB(mf_pencil[mfi]),BL_TO_FORTRAN_FAB(mf_avg[mfi]),
                          &dir, &inputcomp, &outcomp, &ncomp);
   }
 
@@ -140,31 +140,31 @@ void factor(int num, int* factors, int nf) {
   int n = num;
   int cnt = 0;
 
-  for (int i=0; i<nf; i++)  
+  for (int i=0; i<nf; i++)
     factors[i]=1;
 
-  while (n%2 == 0) { // factor out powers of 2 
-      n /= 2; 
+  while (n%2 == 0) { // factor out powers of 2
+      n /= 2;
       factors[cnt%nf]*=2;
       cnt++;
-  } 
+  }
   for (int i=3; i<=sqrt(n); i+=2) { // find other odd factors
      while (n % i == 0) {
-	  n /= i;  
+	  n /= i;
 	  factors[cnt%nf]*=i;
 	  cnt++;
-     }  
-  }   
-  if (n > 2)  { // check if n is a prime number greater than 2 
+     }
+  }
+  if (n > 2)  { // check if n is a prime number greater than 2
     amrex::Error("CANNOT FACTOR PRIME NUMBER");
   }
-  
+
   // check:
   n = 1;
-  for (int i=0; i<nf; i++)  
+  for (int i=0; i<nf; i++)
     n *= factors[i];
 
   if (n != num)  {
     amrex::Error("ERROR IN FACTORING");
   }
-}  
+}
