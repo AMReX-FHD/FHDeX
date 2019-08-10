@@ -2,9 +2,9 @@ module flux_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type, algorithm_type
+  use compressible_namelist_module, only :  mass_bc_lo, mass_bc_hi, therm_bc_lo, therm_bc_hi, vel_bc_lo, vel_bc_hi
   use conv_module, only : get_temperature, get_pressure_gas, get_energy, get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
   use multispec_module, only : cholesky_decomp
-
   implicit none
 
   private
@@ -33,18 +33,20 @@ contains
     real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, specden(nspecies), Yk(nspecies), rho, temp, pt
 
     integer :: i,j,k,l,n
-
-    wgt2 = 1.0/12.0 !fourth order interpolation
+    
+    ! fourth order interpolation
+    wgt2 = 1.0/12.0
     wgt1 = 0.5 + wgt2 
-
+    
+    ! ! second order interpolation
     ! wgt2 = 0
-    ! wgt1 = 0.5 + wgt2 !second order
+    ! wgt1 = 0.5 + wgt2
 
     ! ! adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
     ! wgt2 = (sqrt(7d0)-1d0)/4d0
     ! wgt1 = (sqrt(7d0)+1d0)/4d0
 
-    !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
+    ! Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
     !x flux
 
@@ -73,12 +75,6 @@ contains
                 ! Yk(n) = specden(n)/rho
              enddo
              
-             ! if (i.eq.0 .and. j.eq.0 .and. k.eq.0) then
-             !    print*, Yk
-             !    print*, specden/rho
-             !    ! stop
-             ! endif
-
              call get_energy(intenergy, Yk, temp)
              ! call get_energy_gas(pt, intenergy)
 
@@ -237,17 +233,18 @@ contains
     real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, Yk(nspecies), temp, pt
 
     integer :: i,j,k,l,n
-
-    wgt2 = 1.0/12.0 !fourth order interpolation
-    wgt1 = 0.5 + wgt2 
-
+    
+    ! ! fourth order interpolation
+    wgt2 = 1.0/12.0
+    wgt1 = 0.5 + wgt2
+    
+    ! ! second order interpolation
     ! wgt2 = 0
-    ! wgt1 = 0.5 + wgt2 !second order
+    ! wgt1 = 0.5 + wgt2
 
     ! ! adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
     ! wgt2 = (sqrt(7d0)-1d0)/4d0
     ! wgt1 = (sqrt(7d0)+1d0)/4d0
-
 
     !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
@@ -1035,190 +1032,411 @@ contains
 
     real(amrex_real) :: sqrtTwo
 
+    integer :: bc_iter, bc_tmp, indx_lo, indx_hi
+    integer :: mass_ind_lo,mass_ind_hi, therm_ind_lo,therm_ind_hi, vel_ind_lo,vel_ind_hi
+
     integer :: i,j,k,l
 
     sqrtTwo = sqrt(2.0)
+    
+    ! Set index ranges
+
+    mass_ind_lo = 3 + AMREX_SPACEDIM
+    mass_ind_hi = 2 + AMREX_SPACEDIM + nspecies
+
+    therm_ind_lo = 2 + AMREX_SPACEDIM
+    therm_ind_hi = 2 + AMREX_SPACEDIM
+
+    vel_ind_lo = 2
+    vel_ind_hi = 1 + AMREX_SPACEDIM
+
+!!!!!!!!
+
+    !! Template:
+
+    ! do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+    !    SELECT CASE (bc_iter)
+    !    CASE (1) ! mass boundary conditions
+    !       bc_tmp = mass_bc_()
+    !       indx_lo = mass_ind_lo
+    !       indx_hi = mass_ind_hi
+    !    CASE (2) ! temperature boundary conditions
+    !       bc_tmp = therm_bc_()
+    !       indx_lo = therm_ind_lo
+    !       indx_hi = therm_ind_hi
+    !    CASE (3) ! velocity boundary conditions
+    !       bc_tmp = vel_bc_()
+    !       indx_lo = vel_ind_lo
+    !       indx_hi = vel_ind_hi
+    !    END SELECT
+
+    !    if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+    !       do l = indx_lo,indx_hi
+    !          if(l.ne.) then ! neumann if not normal velocity
+    !          else           ! dirichlet if normal velocity
+    !          endif
+    !       enddo
+    !    elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+    !       do l = indx_lo,indx_hi
+    !       enddo
+    !    endif
+
+    ! enddo
 
 !!!!!!!!!!!!!! x-flux BCs !!!!!!!!!!!!!!
 
-    !if on lower bound and specular
-    if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
-                
-                if(l.eq.2) then
-                   xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
-                else 
-                   xflux(0,j,k,l) = 0
+    !if on lower bound
+    if(lo(1) .eq. 0) then !lower x bound
+       
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+          
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_lo(1)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_lo(1)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_lo(1)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.2) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(0,j,k,l) = 0
+                      end do
+                   end do
+                else            ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+                      end do
+                   end do
                 endif
 
              end do
-          end do
-       end do
-    endif
-    !if on upper bound and specular
-    if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
 
-                if(l.eq.2) then
-                   xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)
-                else 
-                   xflux(hi(1)+1,j,k,l) = 0
-                endif     
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do k = lo(3),hi(3)
+                   do j = lo(2),hi(2)
+                      xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+                   end do
+                end do
 
              end do
-          end do
-       end do
+
+          endif
+
+       enddo
+
     endif
 
-    !if on lower bound and diff
-    if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
+    !if on upper bound
+    if(hi(1) .eq. n_cells(1)-1) then
 
-                xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+          
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_hi(1)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_hi(1)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_hi(1)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
 
-             end do
-          end do
-       end do
-    endif
-    !if on upper bound and diff
-    if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
 
-                xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
+             do l = indx_lo,indx_hi
 
-             end do
-          end do
-       end do
+                if(l.ne.2) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(hi(1)+1,j,k,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
+                      end do
+                   end do
+                endif
+
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do k = lo(3),hi(3)
+                   do j = lo(2),hi(2)
+                      xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
 
 !!!!!!!!!!!!!! y-flux BCs !!!!!!!!!!!!!!
 
-    !if on lower bound and specular
-    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
-                
-                if(l.eq.3) then
-                   yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
-                else
-                   yflux(i,0,k,l) = 0
+    !if on lower bound
+    if(lo(2) .eq. 0) then
+       
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_lo(2)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_lo(2)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_lo(2)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.3) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,0,k,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+                      end do
+                   end do
                 endif
 
-             end do
-          end do
-       end do
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do k = lo(3),hi(3)
+                   do i = lo(1),hi(1)
+                      yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
-    !if on upper bound and specular
-    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
-                
-                if(l.eq.3) then
-                   yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)
-                else
-                   yflux(i,hi(2)+1,k,l) = 0
+
+    !if on upper bound
+    if(hi(2) .eq. n_cells(2)-1) then
+
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_hi(2)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_hi(2)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_hi(2)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.3) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,hi(2)+1,k,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
+                      end do
+                   end do
                 endif
-                
-             end do
-          end do
-       end do
-    endif
 
-    !if on lower bound and diff
-    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
+             enddo
 
-                yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
 
-             end do
-          end do
-       end do
-    endif
-    !if on upper bound and diff
-    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
+             do l = indx_lo,indx_hi
 
-                yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
+                do k = lo(3),hi(3)
+                   do i = lo(1),hi(1)
+                      yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
+                   end do
+                end do
 
-             end do
-          end do
-       end do
+             enddo
+
+          endif
+
+       enddo
+
     endif
 
 !!!!!!!!!!!!!! z-flux BCs !!!!!!!!!!!!!!
 
-    !if on lower bound and specular
-    if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 1)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
+    !if on lower bound
+    if(lo(3) .eq. 0) then
 
-                if(l.eq.4) then
-                   zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
-                else
-                   zflux(i,j,0,l) = 0
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_lo(3)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_lo(3)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_lo(3)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.4) then ! neumann if not normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,0,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
+                      end do
+                   end do
                 endif
 
-             end do
-          end do
-       end do
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do j = lo(2),hi(2)
+                   do i = lo(1),hi(1)
+                      zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
-    !if on upper bound and specular
-    if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 1)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-                
-                if(l.eq.4) then
-                   zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)
-                else
-                   zflux(i,j,hi(3)+1,l) = 0
+
+    !if on upper bound
+    if(hi(3) .eq. n_cells(3)-1) then
+
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_hi(3)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_hi(3)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_hi(3)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.4) then ! neumann if not normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,hi(3)+1,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
+                      end do
+                   end do
                 endif
-                
-             end do
-          end do
-       end do
+
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do j = lo(2),hi(2)
+                   do i = lo(1),hi(1)
+                      zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
-
-    !if on lower bound and diff
-    if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 2)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-
-                zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
-
-             end do
-          end do
-       end do
-    endif
-    !if on upper bound and diff
-    if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 2)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-
-                zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
-
-             end do
-          end do
-       end do
-    endif
-
 
   end subroutine stoch_flux_BC
 

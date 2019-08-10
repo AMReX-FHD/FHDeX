@@ -62,14 +62,18 @@
 
   ! Boundary conditions
   ! ----------------------
-  ! BC specifications:
+  ! ...
   !  BC spec.   =   Species density       Velocity        Temperature             
   !    ----               ----              ----              ----
+  !      0*     |       indiv BCs*         indiv BCs*       indiv BCs*
   !     -1      |       periodic           periodic         periodic 
   !      1      |         wall               slip           adiabatic
   !      2      |       reservoir           no slip         isothermal
   !      3      |         wall              no slip         isothermal
   !      4      |         wall              no slip         adiabatic
+  ! ...
+  ! *: if bc=0, refer to individual mass, temperature, and velocity BCs 
+  !    specified in compressible namespace
 
   bc_lo(1:3) = -1 2 -1
   bc_hi(1:3) = -1 2 -1
@@ -95,7 +99,13 @@
 
 &compressible
 
-  ! -1 = periodic, 1 = neumann, 2 = dirichlet
+  ! Boundary conditions:
+  
+  ! These are updated by bc_lo & bc_hi. When bc_lo or bc_hi is not set to zero.
+  ! When bc_lo or bc_hi is set to zero: mass, temp., and vel. can be set individually.
+  ! (indiv. BCs = 0 by default)
+  ! ...
+  ! 1 = neumann, 2 = dirichlet (periodic only makes sense for all quantities)
   mass_bc_lo(1:3) = 0 0 0
   mass_bc_hi(1:3) = 0 0 0	
   therm_bc_lo(1:3) = 0 0 0

@@ -1,0 +1,76 @@
+# Created by Octave 3.8.1, Wed Aug 07 10:20:13 2019 PDT <gmoore@cs-it-6989373>
+# name: y
+# type: function handle
+@<anonymous>
+@(z) z .* yp + yc
+# length: 2
+# name: yc
+# type: matrix
+# rows: 3
+# columns: 1
+ 0.25
+ 0.25
+ 0.5
+
+
+# name: yp
+# type: matrix
+# rows: 3
+# columns: 1
+ 28.935
+ 90.76000000000001
+ -119.695
+
+
+
+
+# name: y_bounds
+# type: function handle
+@<anonymous>
+@(h) y ([-h, h] / 2)
+# length: 1
+# name: y
+# type: function handle
+@<anonymous>
+@(z) z .* yp + yc
+# length: 2
+# name: yc
+# type: matrix
+# rows: 3
+# columns: 1
+ 0.25
+ 0.25
+ 0.5
+
+
+# name: yp
+# type: matrix
+# rows: 3
+# columns: 1
+ 28.935
+ 90.76000000000001
+ -119.695
+
+
+
+
+
+
+# name: yp
+# type: matrix
+# rows: 3
+# columns: 1
+ 28.935
+ 90.76000000000001
+ -119.695
+
+
+# name: yc
+# type: matrix
+# rows: 3
+# columns: 1
+ 0.25
+ 0.25
+ 0.5
+
+

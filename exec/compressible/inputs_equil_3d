@@ -3,7 +3,6 @@
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
   prob_hi(1:3) = 5.12e-4 5.12e-4 5.12e-4 ! physical hi coordinate
-  prob_hi(1:3) = 2.56e-4 2.56e-4 2.56e-4 ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -12,17 +11,17 @@
   nprimvars = 14
 
   ! number of cells in domain
-  n_cells(1:3) = 8 8 1
+  n_cells(1:3) = 64 64 64
   ! max number of cells in a box
-  max_grid_size(1:3) = 8 8 1
+  max_grid_size(1:3) = 32 32 16
 
   ! Time-step control
   fixed_dt = 1e-12
 
   ! Controls for number of steps between actions
 
-  max_step = 10
-  plot_int = 10
+  max_step = 500000
+  plot_int = 50000
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
@@ -43,6 +42,7 @@
   ! Problem specification
   ! if prob_type = 1, constant species concentration
   ! if prob_type = 2, Rayleigh-Taylor instability
+  ! if prob_type = 3, diffusion barrier
   prob_type = 1
 
   ! Initial parameters
@@ -51,34 +51,34 @@
   T_init(1) = 300
   rho0 = 4.83e-4
 
-  struct_fact_int = 0
-  n_steps_skip = 0
+  struct_fact_int = 10
+  n_steps_skip = 50000
 
   ! Boundary conditions
   ! ----------------------
-  ! BC specifications:
+  ! ...
   !  BC spec.   =   Species density       Velocity        Temperature             
   !    ----               ----              ----              ----
+  !      0*     |       indiv BCs*         indiv BCs*       indiv BCs*
   !     -1      |       periodic           periodic         periodic 
   !      1      |         wall               slip           adiabatic
   !      2      |       reservoir           no slip         isothermal
   !      3      |         wall              no slip         isothermal
   !      4      |         wall              no slip         adiabatic
+  ! ...
+  ! *: if bc=0, refer to individual mass, temperature, and velocity BCs 
+  !    specified in compressible namespace
 
   bc_lo(1:3) = -1 -1 -1
   bc_hi(1:3) = -1 -1 -1
 
   ! Temperature if thermal BC specified
-  t_hi(1:3) = 200 200 200
-  t_lo(1:3) = 400 400 400
+  t_hi(1:3) = 300 300 300
+  t_lo(1:3) = 300 300 300
 
   !Kinetic species info
   !--------------
   nspecies = 4
-  
-  molmass = 39.948, 39.948, 39.948, 39.948
-  diameter =  3.66e-8, 3.66e-8, 3.66e-8, 3.66e-8
-  rhobar =  0.25, 0.25, 0.25, 0.25
 
   molmass = 4.0026, 20.1797, 39.9480, 83.8000
   diameter = 2.18e-8, 2.58e-8, 3.63e-8, 4.16e-8
@@ -92,8 +92,14 @@
 /
 
 &compressible
-
-  ! -1 = periodic, 1 = neumann, 2 = dirichlet
+  
+  ! Boundary conditions:
+  
+  ! These are updated by bc_lo & bc_hi. When bc_lo or bc_hi is not set to zero.
+  ! When bc_lo or bc_hi is set to zero: mass, temp., and vel. can be set individually.
+  ! (indiv. BCs = 0 by default)
+  ! ...
+  ! 1 = neumann, 2 = dirichlet (periodic only makes sense for all quantities)
   mass_bc_lo(1:3) = 0 0 0
   mass_bc_hi(1:3) = 0 0 0	
   therm_bc_lo(1:3) = 0 0 0
