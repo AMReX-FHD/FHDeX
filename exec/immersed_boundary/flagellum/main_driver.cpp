@@ -357,7 +357,7 @@ void main_driver(const char * argv) {
         Real L      = ib_flagellum::length[i_ib];
         Real l_link = L/(N-1);
 
-        int min_nghost = 2*l_link/min_dx;
+        int min_nghost = 4*l_link/min_dx;
         ib_nghost      = std::max(ib_nghost, min_nghost);
     }
 

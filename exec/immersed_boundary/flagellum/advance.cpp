@@ -172,8 +172,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     RealVect driv_u = {0, 0, 1};
 
     // Slowly ramp up driving amplitude
-    Real driv_amp = std::min(time*10, 1.);
-    Print() << "driv_amp = " << driv_amp << std::endl;
+    // Real driv_amp = std::min(time*10, 1.);
+    // Print() << "driv_amp = " << driv_amp << std::endl;
+    //
+    // I'm too impatient to wait... -JPB
+    Real driv_amp = 1.;
 
 
     /****************************************************************************
@@ -248,7 +251,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
 
     // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+                umac, Lumac, alpha_fc_0, dx, theta_alpha);
+
 
     //___________________________________________________________________________
     // Interpolate immersed boundary predictor
@@ -280,7 +285,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             mark.rdata(IBM_realData::pred_velz) = 0.;
         }
     }
-
 
 
     //___________________________________________________________________________
@@ -440,28 +444,31 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.sumNeighbors(IBM_realData::pred_forcex, AMREX_SPACEDIM, 0, 0);
 
 
-    //___________________________________________________________________________
-    // Spread forces to predictor
-    BL_PROFILE_VAR("adv_spread forces to predictor", spreadpredfor);
+    // NOTE: Don't couple predictors as this results in unstable code for small
+    // lenght scales. I don't know know why (yet) -JPB
 
-    std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
-    for (int d=0; d<AMREX_SPACEDIM; ++d){
-        fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-        fc_force_pred[d].setVal(0.);
-    }
+    // //___________________________________________________________________________
+    // // Spread forces to predictor
+    // BL_PROFILE_VAR("adv_spread forces to predictor", spreadpredfor);
 
-    BL_PROFILE_VAR_STOP(spreadpredfor);
+    // std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
+    // for (int d=0; d<AMREX_SPACEDIM; ++d){
+    //     fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+    //     fc_force_pred[d].setVal(0.);
+    // }
 
-	BL_PROFILE_VAR("adv_spread predictor forces", SREADPREDICTORFORCES);
+    // BL_PROFILE_VAR_STOP(spreadpredfor);
 
-    ib_mc.SpreadPredictor(0, fc_force_pred);
-    for (int d=0; d<AMREX_SPACEDIM; ++d){
-        fc_force_pred[d].SumBoundary(geom.periodicity());
-	}
+    // BL_PROFILE_VAR("adv_spread predictor forces", SREADPREDICTORFORCES);
 
-	BL_PROFILE_VAR_STOP(SREADPREDICTORFORCES);
+    // ib_mc.SpreadPredictor(0, fc_force_pred);
+    // for (int d=0; d<AMREX_SPACEDIM; ++d)
+    //     fc_force_pred[d].SumBoundary(geom.periodicity());
 
-	BL_PROFILE_VAR("adv_fill neighbors", filltheneighbors);
+    // BL_PROFILE_VAR_STOP(SREADPREDICTORFORCES);
+
+
+    BL_PROFILE_VAR("adv_fill neighbors", filltheneighbors);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         Lumac[d].FillBoundary(geom.periodicity());
@@ -472,10 +479,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
+        // MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
     }
 
-	BL_PROFILE_VAR_STOP(filltheneighbors);
+    BL_PROFILE_VAR_STOP(filltheneighbors);
 
 
     std::array< MultiFab, AMREX_SPACEDIM > pg;
@@ -503,7 +510,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
 
-	BL_PROFILE_VAR("adv_compute predictor advective", computepredictorad);
+    BL_PROFILE_VAR("adv_compute predictor advective", computepredictorad);
 
     // Compute predictor advective term
     // let rho = 1
@@ -523,7 +530,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     BL_PROFILE_VAR_STOP(computepredictorad);
 
 
-    MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
+    MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
 
     // ADVANCE STEP (crank-nicolson + heun's method)
 
@@ -536,8 +543,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
-
+    // StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+    //             umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
 
     //___________________________________________________________________________
@@ -723,7 +730,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // Zero z-force only
             mark.rdata(IBM_realData::forcez) = 0.;
         }
-
     }
 
     BL_PROFILE_VAR_STOP(CONSTRAINZ);
@@ -731,7 +737,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
-
 
 
     // Apply Heun's Method time stepping to marker forces
@@ -747,14 +752,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             ParticleType & mark = markers[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                mark.rdata(IBM_realData::forcex + d) = 0.5*mark.rdata(IBM_realData::forcex + d)
+                mark.rdata(IBM_realData::forcex + d) =
+                      0.5*mark.rdata(IBM_realData::forcex + d)
                     + 0.5*mark.rdata(IBM_realData::pred_forcex + d);
             }
         }
-
     }
-
-
 
 
     //___________________________________________________________________________
@@ -766,7 +769,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
         fc_force_corr[d].setVal(0.);
-
     }
 
     // Spread to the `fc_force` multifab
