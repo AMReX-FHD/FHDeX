@@ -41,6 +41,7 @@
   ! Problem specification
   ! if prob_type = 1, constant species concentration
   ! if prob_type = 2, Rayleigh-Taylor instability
+  ! if prob_type = 3, diffusion barrier
   prob_type = 2
 
   ! Initial parameters
