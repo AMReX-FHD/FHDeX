@@ -35,6 +35,154 @@ using namespace ib_flagellum;
 using ParticleVector = typename IBMarkerContainer::ParticleVector;
 
 
+void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
+
+    BL_PROFILE_VAR("constrain_ibm_marker", Constrain);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+            // Zero component only
+            mark.rdata(component) = 0.;
+        }
+    }
+
+    BL_PROFILE_VAR_STOP(Constrain);
+}
+
+
+
+void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
+                       IBMarkerContainer & ib_mc, int ib_lev,
+                       int component, bool pred_pos) {
+
+    BL_PROFILE_VAR("update_ibm_marker", UpdateForces);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        // Get neighbor marker data (from neighboring threads)
+        ParticleVector & nbhd_data = ib_mc.GetNeighbors(
+                    ib_lev, pti.index(), pti.LocalTileIndex()
+                );
+
+        // Get neighbor list (for collision checking)
+        const Vector<int> & nbhd = ib_mc.GetNeighborList(
+                    ib_lev, pti.index(), pti.LocalTileIndex()
+                );
+
+        long np        = markers.size();
+        int nbhd_index = 0;
+
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            int i_ib        = mark.idata(IBM_intData::cpu_1);
+            int N           = ib_flagellum::n_marker[i_ib];
+            Real L          = ib_flagellum::length[i_ib];
+            Real wavelength = ib_flagellum::wavelength[i_ib];
+            Real frequency  = ib_flagellum::frequency[i_ib];
+            Real amplitude  = ib_flagellum::amplitude[i_ib];
+            Real l_link     = L/(N-1);
+
+            Real k_spr  = ib_flagellum::k_spring[i_ib];
+            Real k_driv = ib_flagellum::k_driving[i_ib];
+
+
+            // Get previous and next markers connected to current marker (if they exist)
+            ParticleType * next_marker = NULL;
+            ParticleType * prev_marker = NULL;
+
+            int status = ib_mc.FindConnectedMarkers(markers, mark,
+                                                    nbhd_data, nbhd,
+                                                    nbhd_index,
+                                                    prev_marker, next_marker);
+
+
+            if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
+
+            // position vectors
+            RealVect prev_pos, pos, next_pos;
+            if (status == 0) {
+                for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_pos[d] = prev_marker->pos(d);
+                    pos[d]      =         mark.pos(d);
+                    next_pos[d] = next_marker->pos(d);
+
+                    if (pred_pos) {
+                        prev_pos[d] += prev_marker->rdata(IBM_realData::pred_posx + d);
+                        pos[d]      += mark.rdata(IBM_realData::pred_posx + d);
+                        next_pos[d] += next_marker->rdata(IBM_realData::pred_posx + d);
+                    }
+                }
+            }
+
+            // update spring forces
+            if (status == 0) { // has next (p) and prev (m)
+
+                RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
+
+                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
+                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(component + d) += fm_0 * r_m[d];
+                    mark.rdata(component + d)         -= fm_0 * r_m[d];
+
+                    mark.rdata(component + d)         += fp_0 * r_p[d];
+                    next_marker->rdata(component + d) -= fp_0 * r_p[d];
+                }
+            }
+
+            // update bending forces for curent, minus/prev, and next/plus
+            if (status == 0) { // has next (p) and prev (m)
+
+                // position vectors
+                const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
+
+                // Set bending forces to zero
+                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
+
+                // calling the active bending force calculation
+                // This a simple since wave imposed
+                Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
+                             + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
+
+                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
+
+                // updating the force on the minus, current, and plus particles.
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(component + d) += f_m[d];
+                    mark.rdata(component + d)         +=   f[d];
+                    next_marker->rdata(component + d) += f_p[d];
+                }
+            }
+
+            // Increment neighbor list
+            int nn      = nbhd[nbhd_index];
+            nbhd_index += nn + 1; // +1 <= because the first field contains nn
+        }
+    }
+    BL_PROFILE_VAR_STOP(UpdateForces);
+};
+
+
+
+
 // argv contains the name of the inputs file entered at the command line
 void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
@@ -264,27 +412,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac_buffer[d].FillBoundary(geom.periodicity());
     }
 
-
     ib_mc.ResetPredictor(0);
     ib_mc.InterpolatePredictor(0, umac_buffer);
 
-
     // Constrain it to move in the z = constant plane only
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-            // Zero z-velocity only
-            mark.rdata(IBM_realData::pred_velz) = 0.;
-        }
-    }
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
 
 
     //___________________________________________________________________________
@@ -300,145 +432,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.fillNeighbors(); // Does ghost cells
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
-
-
-        // Get neighbor list (for collision checking)
-        const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
-                                                         pti.LocalTileIndex());
-        long np = markers.size();
-        int nbhd_index = 0;
-
-        for (int i=0; i<np; ++i) {
-
-            BL_PROFILE_VAR("adv_find neighbors", PREDFINDNEIGBORS);
-
-            ParticleType & mark = markers[i];
-
-            int i_ib        = mark.idata(IBM_intData::cpu_1);
-            int N           = ib_flagellum::n_marker[i_ib];
-            Real L          = ib_flagellum::length[i_ib];
-            Real wavelength = ib_flagellum::wavelength[i_ib];
-            Real frequency  = ib_flagellum::frequency[i_ib];
-            Real amplitude  = ib_flagellum::amplitude[i_ib];
-            Real l_link     = L/(N-1);
-
-            Real k_spr  = ib_flagellum::k_spring[i_ib];
-            Real k_driv = ib_flagellum::k_driving[i_ib];
-
-
-            // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
-
-            int status = ib_mc.FindConnectedMarkers(markers, mark,
-                                                    nbhd_data, nbhd,
-                                                    nbhd_index,
-                                                    prev_marker, next_marker);
-
-            BL_PROFILE_VAR_STOP(PREDFINDNEIGBORS);
-
-            if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
-
-            // update spring forces
-            if (status == 0) { // has next (p) and prev (m)
-                BL_PROFILE_VAR("adv_updating predictor spring forces", PREDUPDATESPRINGFORCES);
-
-                RealVect r_p, r_m;
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r_m[d] = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d)
-                         - (prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d));
-
-                    r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d)
-                         - (mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d));
-                }
-
-                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
-                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::pred_forcex + d) += fm_0 * r_m[d];
-                    mark.rdata(IBM_realData::pred_forcex + d)         -= fm_0 * r_m[d];
-
-                    mark.rdata(IBM_realData::pred_forcex + d)         += fp_0 * r_p[d];
-                    next_marker->rdata(IBM_realData::pred_forcex + d) -= fp_0 * r_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(PREDUPDATESPRINGFORCES);
-            }
-
-            // update bending forces for curent, minus/prev, and next/plus
-            if (status == 0) { // has next (p) and prev (m)
-
-                BL_PROFILE_VAR("adv_Predictor bending forces",predictorbendingforces);
-
-                // position vectors
-                RealVect r, r_m, r_p;
-                for(int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r[d]   = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d);
-                    r_m[d] = prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d);
-                    r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d);
-                }
-
-
-                // Set bending forces to zero
-                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
-
-                // calling the active bending force calculation
-                // This a simple since wave imposed
-                Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
-                             + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
-
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
-
-                // updating the force on the minus, current, and plus particles.
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::pred_forcex + d) += f_m[d];
-                    mark.rdata(IBM_realData::pred_forcex + d)         +=   f[d];
-                    next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(predictorbendingforces);
-            }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
-        }
-    }
-
+    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::pred_forcex, true);
     // Constrain it to move in the z = constant plane only
     // Set the forces in the z direction to zero
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        BL_PROFILE_VAR("adv_Constrain z pred", CONSTRAINZPRED);
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-
-            // Zero z-force only
-            mark.rdata(IBM_realData::pred_forcez) = 0.;
-        }
-
-        BL_PROFILE_VAR_STOP(CONSTRAINZPRED);
-    }
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_forcez);
 
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBM_realData::pred_forcex, AMREX_SPACEDIM, 0, 0);
@@ -542,11 +539,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         advFluxdivPred[d].mult(0.5, 1);
     }
 
-    // crank-nicolson terms
-    // StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
-    //             umac, Lumac, alpha_fc_0, dx, theta_alpha);
-
-
     //___________________________________________________________________________
     // Interpolate immersed boundary
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
@@ -559,23 +551,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.ResetMarkers(0);
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
 
-
     // Constrain it to move in the z = constant plane only
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-            // Zero z-velocity only
-            mark.rdata(IBM_realData::velz) = 0.;
-        }
-    }
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
 
 
     //___________________________________________________________________________
@@ -592,148 +569,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
 
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        BL_PROFILE_VAR("adv_grab marker data", grabmarkerdata);
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
-
-
-        // Get neighbor list (for collision checking)
-        const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
-                                                         pti.LocalTileIndex());
-
-        long np = markers.size();
-        int nbhd_index = 0;
-
-        BL_PROFILE_VAR_STOP(grabmarkerdata);
-
-        for (int i=0; i<np; ++i) {
-
-            BL_PROFILE_VAR("adv_match markers", matchmarkerdata);
-
-            ParticleType & mark = markers[i];
-
-            int i_ib        = mark.idata(IBM_intData::cpu_1);
-            int N           = ib_flagellum::n_marker[i_ib];
-            Real L          = ib_flagellum::length[i_ib];
-            Real wavelength = ib_flagellum::wavelength[i_ib];
-            Real amplitude  = ib_flagellum::amplitude[i_ib];
-            Real frequency  = ib_flagellum::frequency[i_ib];
-            Real l_link     = L/(N-1);
-
-            Real k_spr  = ib_flagellum::k_spring[i_ib];
-            Real k_driv = ib_flagellum::k_driving[i_ib];
-
-
-            // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
-
-            int status = ib_mc.FindConnectedMarkers(markers, mark,
-                                                    nbhd_data, nbhd,
-                                                    nbhd_index,
-                                                    prev_marker, next_marker);
-
-            BL_PROFILE_VAR_STOP(matchmarkerdata);
-
-            if (status == -1) Abort("status -1 particle detected in corrector!!! flee for your life!");
-
-            // update spring forces
-            if (status == 0) { // has next (p) and prev (m)
-
-                BL_PROFILE_VAR("adv_updatingspringforces", UPDATESRPINGFORCES);
-
-                RealVect r_p, r_m;
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r_m[d] = mark.pos(d) - prev_marker->pos(d);
-
-                    r_p[d] = next_marker->pos(d) - mark.pos(d);
-                }
-
-                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
-                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::forcex + d) += fm_0 * r_m[d];
-                    mark.rdata(IBM_realData::forcex + d)         -= fm_0 * r_m[d];
-
-                    mark.rdata(IBM_realData::forcex + d)         += fp_0 * r_p[d];
-                    next_marker->rdata(IBM_realData::forcex + d) -= fp_0 * r_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(UPDATESRPINGFORCES);
-            }
-
-            // update bending forces for curent, minus/prev, and next/plus
-            if (status == 0) { // has next (p) and prev (m)
-
-                BL_PROFILE_VAR("adv_update bending forces", UPDATEBENDINGFORCES);
-                //
-                // position vectors
-                RealVect r, r_m, r_p;
-                for(int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r[d]   = mark.pos(d);
-                    r_m[d] = prev_marker->pos(d);
-                    r_p[d] = next_marker->pos(d);
-                }
-
-                // Set bending forces to zero
-                RealVect f_p = RealVect{0., 0., 0.};
-                RealVect f   = RealVect{0., 0., 0.};
-                RealVect f_m = RealVect{0., 0., 0.};
-
-                // calling the active bending force calculation
-                Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
-                            + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
-
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
-
-                // updating the force on the minus, current, and plus particles.
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::forcex + d) += f_m[d];
-                    mark.rdata(IBM_realData::forcex + d)         +=   f[d];
-                    next_marker->rdata(IBM_realData::forcex + d) += f_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(UPDATEBENDINGFORCES);
-            }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
-         }
-    }
-
-
+    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::forcex, false);
     // Constrain it to move in the z = constant plane only
     // Set the forces in the z direction to zero
-    BL_PROFILE_VAR("adv_contstrain z", CONSTRAINZ);
-
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-
-            // Zero z-force only
-            mark.rdata(IBM_realData::forcez) = 0.;
-        }
-    }
-
-    BL_PROFILE_VAR_STOP(CONSTRAINZ);
-
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::forcez);
 
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);

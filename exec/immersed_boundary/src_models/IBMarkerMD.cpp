@@ -309,6 +309,8 @@ void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                const RealVect & u, Real theta, Real Kw) {
 
+    BL_PROFILE_VAR("immbdy_md::driving_f", BendingForce);
+
     Real delta = 100*DBL_EPSILON;
 
     RealVect dx = {AMREX_D_DECL(delta, 0.0, 0.0)};
@@ -355,6 +357,8 @@ void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
     f   += f_loc;
     f_p += f_p_loc;
     f_m += f_m_loc;
+
+    BL_PROFILE_VAR_STOP(BendingForce);
 }
 
 };
