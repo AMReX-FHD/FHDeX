@@ -18,6 +18,12 @@ extern "C"
 			void* part2,
                         const amrex_real* domsize);
 
+                void near_wall_check(void* part, const int* dir, int* near_wall); 
+
+                void calc_im_charge_loc(void* part, const int* dir, amrex_real* im_charge_pos); 
+
+                void compute_p3m_force_mag(const amrex_real* r, amrex_real* mag, const amrex_real* dx); 
+
 		void calculate_force(void* particles,
                         const int *np,
                         const int *lo,

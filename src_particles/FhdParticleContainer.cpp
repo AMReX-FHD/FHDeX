@@ -35,6 +35,7 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 #pragma omp parallel
 #endif
     for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
+      
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
         int Np = particles.size();
