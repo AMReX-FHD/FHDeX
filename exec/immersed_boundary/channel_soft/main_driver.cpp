@@ -428,7 +428,6 @@ void main_driver(const char * argv) {
         pp.addarr("n_cell", n_cells);
     }
 
-    // AmrCoreAdv amr_core_adv;
 
 
     IBCore ib_core;
@@ -449,15 +448,9 @@ void main_driver(const char * argv) {
 
     amr_core_adv.InitData( ba, dmap);
 
-    Print() << "distribution mapping after init = " << dmap << std::endl;
 
     // Need to have only one level for now
     int lev =0;
-    // if (solve_chem==1)
-    // {
-    //   amr_core_adv.InitData();
-    //     amrex::Print()<< "Solving for chemical fields"<< std::endl;
-    // }
 
 
     /****************************************************************************
@@ -545,8 +538,7 @@ void main_driver(const char * argv) {
 
 
         //_______________________________________________________________________
-        // Advance umac
-
+        // Advance umac and chemistry
  
         advance(amr_core_adv,
                 umac, umacNew, pres, tracer,
@@ -589,7 +581,7 @@ void main_driver(const char * argv) {
 
             for(int d=0; d<AMREX_SPACEDIM; d++)
                 ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-
+          //  Have to comment this out for now
           //  structFact.FortStructure(struct_in_cc,geom);
         }
 
@@ -619,6 +611,7 @@ void main_driver(const char * argv) {
 
         // let rho = 1
         Real SFscale = dVol/(k_B*temp_const);
+        // Have to comment this out for now
         // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
         //structFact.Finalize(SFscale);

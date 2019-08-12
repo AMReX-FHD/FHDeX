@@ -30,6 +30,7 @@ IBMarkerContainer::IBMarkerContainer(const Geometry & geom,
     : IBMarkerContainerBase<IBM_realData, IBM_intData>(
             geom, dmap, ba, n_nbhd
         )
+      , n_list(0)
 {
     InitInternals(n_nbhd);
     nghost = n_nbhd;
@@ -41,6 +42,7 @@ IBMarkerContainer::IBMarkerContainer(AmrCore * amr_core, int n_nbhd)
     : IBMarkerContainerBase<IBM_realData, IBM_intData>(
             amr_core->GetParGDB(), n_nbhd
         )
+      , n_list(0)
 {
     InitInternals(n_nbhd);
     nghost     = n_nbhd;
@@ -51,7 +53,8 @@ IBMarkerContainer::IBMarkerContainer(AmrCore * amr_core, int n_nbhd)
 
 void IBMarkerContainer::InitList(int lev,
                                  const Vector<Real> & radius,
-                                 const Vector<RealVect> & pos) {
+                                 const Vector<RealVect> & pos,
+                                 int i_ib) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -61,6 +64,13 @@ void IBMarkerContainer::InitList(int lev,
 
 
     int total_np = 0;
+
+
+
+    //__________________________________________________________________________
+    // First sweep: generate particles in their respective cores. Do not link
+    // yet because linkage target could be a neighbor particle (which aren't
+    // filled yet)
 
     // This uses the particle tile size. Note that the default is to tile so if
     // we remove the true and don't explicitly add false it will still tile.
@@ -80,13 +90,9 @@ void IBMarkerContainer::InitList(int lev,
         auto & particles = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
 
-        int prev_id  = -1;
-        int prev_cpu = -1;
-        int p_seq    =  0;
-
-        for(int i = 0; i < pos.size(); i++) {
+        for(int i=0; i<pos.size(); i++) {
             // IntVect representing particle's position in the tile_box grid.
-            RealVect pos_grid = pos[0]; // Important: need to initialize on same CPU
+            RealVect pos_grid = pos[i];
             pos_grid *= inv_dx;
             IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
                                                    (int) pos_grid[1],
@@ -95,6 +101,7 @@ void IBMarkerContainer::InitList(int lev,
             // Add particle at position pos iff it's vector index is contained
             // within tile_box.
             if(tile_box.contains(pos_ind)) {
+
                 pcount ++;
 
                 ParticleType p_new;
@@ -131,19 +138,16 @@ void IBMarkerContainer::InitList(int lev,
                 p_new.rdata(IBM_realData::pred_forcey) = 0.;
                 p_new.rdata(IBM_realData::pred_forcez) = 0.;
 
-                p_new.idata(IBM_intData::id_0)  = prev_id;
-                p_new.idata(IBM_intData::cpu_0) = prev_cpu;
+                // These are filled in the next sweep:
+                p_new.idata(IBM_intData::id_0)  = -1;
+                p_new.idata(IBM_intData::cpu_0) = -1;
 
-                p_new.idata(IBM_intData::id_1)  = p_seq;
-                p_new.idata(IBM_intData::cpu_1) = -1;
+                // ID_1 remembers the particle's position in the linked list
+                p_new.idata(IBM_intData::id_1)  = i;
+                p_new.idata(IBM_intData::cpu_1) = i_ib; // label immersed boundaries
 
                 // Add to the data structure
                 particles.push_back(p_new);
-
-                prev_id  = p_new.id();
-                prev_cpu = p_new.cpu();
-
-                p_seq ++;
             }
         }
 
@@ -151,13 +155,63 @@ void IBMarkerContainer::InitList(int lev,
         total_np += np;
     }
 
-    ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
-    std::cout << "Total number of generated particles: " << total_np << std::endl;
+    ParallelDescriptor::ReduceIntSum(total_np, ParallelDescriptor::IOProcessorNumber());
+    Print() << "Total number of generated particles: " << total_np << std::endl;
 
-    // We shouldn't need this if the particles are tiled with one tile per
-    // grid, but otherwise we do need this to move particles from tile 0 to the
-    // correct tile.
+
+
+    //__________________________________________________________________________
+    // Second Sweep: At this point, each particle's position in the original
+    // list is its linkage identifier => sweep list to link up particles
+    // properly
+
+
     Redistribute();
+    clearNeighbors();
+    fillNeighbors();
+
+    for (IBMarIter pti(*this, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = GetParticles(lev).at(index).GetArrayOfStructs();
+
+        // Get neighbor marker data (from neighboring threads)
+        ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
+
+        long np = markers.size();
+        long nn = nbhd_data.size();
+
+        // Sweep over particles, check N^2 candidates for previous list member
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            // Check other (real) particles in tile
+            for (int j=0; j<np; ++j) {
+
+                const ParticleType & other = markers[j];
+                if ((mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1)
+                    && (mark.idata(IBM_intData::cpu_1) == other.idata(IBM_intData::cpu_1)))
+                {
+                    mark.idata(IBM_intData::id_0)  = other.id();
+                    mark.idata(IBM_intData::cpu_0) = other.cpu();
+                }
+            }
+
+            // Check neighbor particles
+            for (int j=0; j<nn; ++j) {
+
+                const ParticleType & other = nbhd_data[j];
+                if ((mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1)
+                    && (mark.idata(IBM_intData::cpu_1) == other.idata(IBM_intData::cpu_1)))
+                {
+                    mark.idata(IBM_intData::id_0)  = other.id();
+                    mark.idata(IBM_intData::cpu_0) = other.cpu();
+                }
+            }
+        }
+    }
 }
 
 
@@ -341,7 +395,6 @@ int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
 
     bool prev_set = false;
     bool next_set = false;
-
 
     // Loops over neighbor list
     for (int j=0; j < nn; ++j) {

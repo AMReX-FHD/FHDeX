@@ -1,26 +1,31 @@
-#include "main_driver.H"
-#include "main_driver_F.H"
+#include <main_driver.H>
+#include <main_driver_F.H>
 
-#include "hydro_functions.H"
-#include "hydro_functions_F.H"
+#include <hydro_functions.H>
+#include <hydro_functions_F.H>
 
-//#include "analysis_functions_F.H"
-#include "StochMFlux.H"
-//#include "StructFact.H"
+//#include <analysis_functions_F.H>
+#include <StochMFlux.H>
+//#include <StructFact.H>
 
-#include "rng_functions_F.H"
+#include <rng_functions_F.H>
 
-#include "common_functions.H"
-#include "common_functions_F.H"
+#include <common_functions.H>
+#include <common_functions_F.H>
 
-#include "gmres_functions.H"
-#include "gmres_functions_F.H"
+#include <gmres_functions.H>
+#include <gmres_functions_F.H>
 
-#include "common_namespace.H"
-#include "common_namespace_declarations.H"
+#include <ib_functions.H>
 
-#include "gmres_namespace.H"
-#include "gmres_namespace_declarations.H"
+#include <common_namespace.H>
+#include <common_namespace_declarations.H>
+
+#include <gmres_namespace.H>
+#include <gmres_namespace_declarations.H>
+
+#include <immbdy_namespace.H>
+#include <immbdy_namespace_declarations.H>
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -32,9 +37,13 @@
 
 
 using namespace amrex;
+
 using namespace common;
 using namespace gmres;
+
+using namespace immbdy;
 using namespace immbdy_md;
+using namespace ib_flagellum;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -88,13 +97,16 @@ void main_driver(const char * argv) {
 
     // read in parameters from inputs file into F90 modules NOTE: we use "+1"
     // because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(), inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(), inputs_file.size()+1);
+    read_common_namelist(inputs_file.c_str(), inputs_file.size() + 1);
+    read_gmres_namelist(inputs_file.c_str(), inputs_file.size() + 1);
+    read_immbdy_namelist(inputs_file.c_str(), inputs_file.size() + 1);
 
     // copy contents of F90 modules to C++ namespaces NOTE: any changes to
     // global settings in fortran/c++ after this point need to be synchronized
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+    InitializeImmbdyNamespace();
+    InitializeIBFlagellumNamespace();
 
 
     //___________________________________________________________________________
@@ -108,7 +120,7 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Make BoxArray, DistributionMapping, and Geometry
-    
+
     BoxArray ba;
     Geometry geom;
     {
@@ -325,42 +337,62 @@ void main_driver(const char * argv) {
      ***************************************************************************/
 
     //___________________________________________________________________________
-    // Initialize velocities (fluid and tracers)
+    // Initialize immersed boundaries
     // Make sure that the nghost (last argument) is big enough!
 
-    // add the approximate equilibrium sin-wave shape
-    BL_PROFILE_VAR("main_create markers",createmarkers);
-    Real rr = 1; // for step 1e-5 
+    BL_PROFILE_VAR("main_create markers", createmarkers);
 
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
+    // Find the optimal number of ghost cells for the IBMarkerContainer
 
-    Vector<RealVect> marker_positions(10);
-    // marker_positions[0] = RealVect{0.05, 0.5+0.002*rr, 0.5};
-    // marker_positions[1] = RealVect{0.10, 0.5-0.015*rr, 0.5};
-    // marker_positions[2] = RealVect{0.15, 0.5-0.025*rr, 0.5};
-    // marker_positions[3] = RealVect{0.20, 0.5-0.024*rr, 0.5};
-    // marker_positions[4] = RealVect{0.25, 0.5-0.014*rr, 0.5};
-    // marker_positions[5] = RealVect{0.30, 0.5+0.000*rr, 0.5};
-    // marker_positions[6] = RealVect{0.35, 0.5+0.012*rr, 0.5};
-    // marker_positions[7] = RealVect{0.40, 0.5+0.017*rr, 0.5};
-    // marker_positions[8] = RealVect{0.45, 0.5+0.012*rr, 0.5};
-    // marker_positions[9] = RealVect{0.50, 0.5-0.002*rr, 0.5};
-    marker_positions[0] = RealVect{0.05, 0.5, 0.5};
-    marker_positions[1] = RealVect{0.10, 0.5, 0.5};
-    marker_positions[2] = RealVect{0.15, 0.5, 0.5};
-    marker_positions[3] = RealVect{0.20, 0.5, 0.5};
-    marker_positions[4] = RealVect{0.25, 0.5, 0.5};
-    marker_positions[5] = RealVect{0.30, 0.5, 0.5};
-    marker_positions[6] = RealVect{0.35, 0.5, 0.5};
-    marker_positions[7] = RealVect{0.40, 0.5, 0.5};
-    marker_positions[8] = RealVect{0.45, 0.5, 0.5};
-    marker_positions[9] = RealVect{0.50, 0.5, 0.5};
+    Real min_dx = dx[0];
+    for (int d=1; d<AMREX_SPACEDIM; ++d)
+	    min_dx = std::min(min_dx, dx[d]);
+
+    int ib_nghost = 8; // min of 8 is a HACK: something large enough but not too large
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
+        if (n_marker[i_ib] <= 0) continue;
+
+        int N       = n_marker[i_ib];
+        Real L      = ib_flagellum::length[i_ib];
+        Real l_link = L/(N-1);
+
+        int min_nghost = 4*l_link/min_dx;
+        ib_nghost      = std::max(ib_nghost, min_nghost);
+    }
+
+    Print() << "Initializing IBMarkerContainer with "
+            << ib_nghost << " ghost cells" << std::endl;
+
+    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
 
 
-    Vector<Real> marker_radii(10);
-    for (int i=0; i<10; ++i) marker_radii[i] = .10;
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
-    ib_mc.InitList(0, marker_radii, marker_positions);
+        if (n_marker[i_ib] <= 0) continue;
+
+        int N  = n_marker[i_ib];
+        Real L = ib_flagellum::length[i_ib];
+
+        Real l_link = L/(N-1);
+
+        const RealVect & x_0 = offset_0[i_ib];
+
+        Print() << "Initializing flagellum:" << std::endl;
+        Print() << "N=      " << N           << std::endl;
+        Print() << "L=      " << L           << std::endl;
+        Print() << "l_link= " << l_link      << std::endl;
+        Print() << "x_0=    " << x_0         << std::endl;
+
+        Vector<RealVect> marker_positions(N);
+        for (int i=0; i<marker_positions.size(); ++i)
+            marker_positions[i] = RealVect{x_0[0] + i*l_link, x_0[1], x_0[2]};
+
+        Vector<Real> marker_radii(N);
+        for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
+
+        ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
+    }
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
@@ -369,30 +401,31 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+    BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
 
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
+        const Box & bx = mfi.validbox();
 
-        BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
         // initialize velocity
         for (int d=0; d<AMREX_SPACEDIM; ++d)
              init_vel(BL_TO_FORTRAN_BOX(bx),
                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                      geom.ProbLo(), geom.ProbHi(), & d,
                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-           
+
         BL_PROFILE_VAR_STOP(markerv);
 
-           BL_PROFILE_VAR("main_initialize tracer",tracer);
+        BL_PROFILE_VAR("main_initialize tracer",tracer);
         // initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
                    BL_TO_FORTRAN_ANYD(tracer[mfi]),
                    dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-            BL_PROFILE_VAR_STOP(tracer);
     }
+
+    BL_PROFILE_VAR_STOP(tracer);
 
 
     //___________________________________________________________________________
@@ -407,6 +440,7 @@ void main_driver(const char * argv) {
         MultiFABPhysBCDomainVel(umac[i], i, geom, i);
         MultiFABPhysBCMacVel(umac[i], i, geom, i);
     }
+
     BL_PROFILE_VAR_STOP(ICwork);
 
 
@@ -470,16 +504,16 @@ void main_driver(const char * argv) {
 
 
 
-        //_______________________________________________________________________
-        // Update structure factor
+        // //_______________________________________________________________________
+        // // Update structure factor
 
- //       if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
- //         for(int d=0; d<AMREX_SPACEDIM; d++)
- //         //           ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-            //      }
-            //    // structFact.FortStructure(struct_in_cc,geom);
-          
-       // }
+        // if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        //     for(int d=0; d<AMREX_SPACEDIM; d++) {
+        //         ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
+        //     }
+        //     structFact.FortStructure(struct_in_cc,geom);
+
+        // }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -495,23 +529,23 @@ void main_driver(const char * argv) {
     }
 
     ///////////////////////////////////////////
-//    if (struct_fact_int > 0) {
-//        Real dVol = dx[0]*dx[1];
-//        int tot_n_cells = n_cells[0]*n_cells[1];
-//        if (AMREX_SPACEDIM == 2) {
-//            dVol *= cell_depth;
-//        } else if (AMREX_SPACEDIM == 3) {
-//            dVol *= dx[2];
-//            tot_n_cells = n_cells[2]*tot_n_cells;
-//        }
+    // if (struct_fact_int > 0) {
+    //     Real dVol = dx[0]*dx[1];
+    //     int tot_n_cells = n_cells[0]*n_cells[1];
+    //     if (AMREX_SPACEDIM == 2) {
+    //         dVol *= cell_depth;
+    //     } else if (AMREX_SPACEDIM == 3) {
+    //         dVol *= dx[2];
+    //         tot_n_cells = n_cells[2]*tot_n_cells;
+    //     }
 
-        // let rho = 1
-        //Real SFscale = dVol/(k_B*temp_const);
-        // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+    //     let rho = 1
+    //     Real SFscale = dVol/(k_B*temp_const);
+    //     Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
-     //   structFact.Finalize(SFscale);
-     //     structFact.WritePlotFile(step,time,geom);
-     // }
+    //     structFact.Finalize(SFscale);
+    //     structFact.WritePlotFile(step,time,geom);
+    // }
 
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors

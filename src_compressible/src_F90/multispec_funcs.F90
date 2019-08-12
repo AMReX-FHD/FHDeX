@@ -1,7 +1,7 @@
 module multispec_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, k_b, Runiv, nprimvars, nspecies, molmass, diameter, hcp, hcv
+  use common_namelist_module, only : n_cells, ngc, k_b, Runiv, nprimvars, nspecies, molmass, diameter, hcp, hcv
   use conv_module, only : get_molfrac
 
   implicit none
@@ -94,69 +94,52 @@ contains
     integer i, j, k, ll, kk, ns, d
     integer kbounds
     integer iwrk
-    integer lo_list(1:3,1:7), hi_list(1:3,1:7)
     real(amrex_real) rwrk, sumYk
     real(amrex_real) :: Yk_fixed(1:nspecies)
     real(amrex_real) :: Xk_fixed(1:nspecies)
 
     real(amrex_real) etaf,kappaf,zetaf,DF(1:nspecies,1:nspecies),chif(1:nspecies),Yf(nspecies),Xf(nspecies)
     
-    ! create arrays for storing lo & hi indices of: valid region + ghost cell blocks
-    do d = 1,7
-       lo_list(1:3,d) = lo(1:3)
-       hi_list(1:3,d) = hi(1:3)
-    enddo
-    do d = 1,3
-       lo_list(d,d) = lo(d)-ngc(d)
-       hi_list(d,d) = lo(d)-1
-    enddo
-    do d = 1,3
-       lo_list(d,d+3) = hi(d)+1
-       hi_list(d,d+3) = hi(d)+ngc(d)
-    enddo
+    if(n_cells(3).eq.1)then
+       kbounds = 0
+    else
+       kbounds = ngc(3)
+    endif
     
-    ! loop over each block
-    do d = 1,7
-       do k = lo_list(3,d),hi_list(3,d)
-          do j = lo_list(2,d),hi_list(2,d)
-             do i = lo_list(1,d),hi_list(1,d)
+    do k = lo(3)-kbounds,hi(3)+kbounds
+       do j = lo(2)-ngc(2),hi(2)+ngc(2)
+          do i = lo(1)-ngc(1),hi(1)+ngc(1)
 
-                ! do k = lo(3)-ngc(3),hi(3)+ngc(3)
-                ! do j = lo(2)-ngc(2),hi(2)+ngc(2)
-                ! do i = lo(1)-ngc(1),hi(1)+ngc(1)
-
-                ! print*, "Hack loc = ", i,j,k,d
-                ! print*, "Hack: p1 = ", prim(i,j,k,:)
-
-                sumYk = 0.d0
-                do ns = 1, nspecies
-                   Yk_fixed(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
-                   sumYk = sumYk + Yk_fixed(ns)
-
-                enddo
-
-                Yk_fixed(:) = Yk_fixed(:)/sumYk
-
-                call get_molfrac(Yk_fixed, Xk_fixed)
-
-                call ideal_mixture_transport(prim(i,j,k,1), prim(i,j,k,5), prim(i,j,k,6), &
-                     Yk_fixed,Xk_fixed, &
-                     eta(i,j,k), kappa(i,j,k), zeta(i,j,k), Dij(i,j,k,1:nspecies,1:nspecies),chi(i,j,k,1:nspecies))
-
-                !   want this multiplied by rho for all times
-                do kk = 1,nspecies
-                   do ll = 1,nspecies
-                      Dij(i,j,k,kk,ll) = Dij(i,j,k,kk,ll)*prim(i,j,k,1)
-
-                      if ( isnan(Dij(i,j,k,kk,ll)) ) then
-                         print*, "Hack 1, (makecoef) ", i,j,k, Dij(i,j,k,:,:)
-                         stop
-                      end if
-
-                   enddo
-                enddo
+             sumYk = 0.d0
+             do ns = 1, nspecies
+                Yk_fixed(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
+                sumYk = sumYk + Yk_fixed(ns)
 
              enddo
+
+             Yk_fixed(:) = Yk_fixed(:)/sumYk
+
+             call get_molfrac(Yk_fixed, Xk_fixed)
+
+             call ideal_mixture_transport(prim(i,j,k,1), prim(i,j,k,5), prim(i,j,k,6), &
+                  Yk_fixed,Xk_fixed, &
+                  eta(i,j,k), kappa(i,j,k), zeta(i,j,k), Dij(i,j,k,1:nspecies,1:nspecies),chi(i,j,k,1:nspecies))
+
+             !   want this multiplied by rho for all times
+             do kk = 1,nspecies
+                do ll = 1,nspecies
+                   Dij(i,j,k,kk,ll) = Dij(i,j,k,kk,ll)*prim(i,j,k,1)
+
+                   if ( isnan(Dij(i,j,k,kk,ll)) ) then
+                      print*, "Hack 1, (makecoef) ", i,j,k, Dij(i,j,k,:,:)
+                      print*, prim(i,j,k,1:6), Yk_fixed,Xk_fixed, &
+                           eta(i,j,k), kappa(i,j,k), zeta(i,j,k)
+                      stop
+                   end if
+
+                enddo
+             enddo
+
           enddo
        enddo
     enddo

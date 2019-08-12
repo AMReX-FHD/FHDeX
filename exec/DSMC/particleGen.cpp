@@ -43,7 +43,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 //                p.pos(2) = plo[2] + get_uniform_func()*(phi[2]-plo[2]);
 //#endif
                 rad = 1;
-                while(rad > 0.99*(2.5e-5))
+                while(rad > 0.99*(2.5e-4))
                 {                
                     p.pos(0) = plo[0] + get_uniform_func()*(phi[0]-plo[0]);
                     p.pos(1) = plo[1] + get_uniform_func()*(phi[1]-plo[1]);

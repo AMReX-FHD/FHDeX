@@ -95,16 +95,6 @@ public:
 
 };
 
-// class IBMarIter
-//     : public ParIter<IBM_realData::count, IBM_intData::count, 0, 0>
-// {
-//
-// public:
-//
-//     using ParIter<IBM_realData::count, IBM_intData::count, 0, 0>::ParIter;
-// };
-
-
 
 
 class IBMarkerContainer
@@ -133,7 +123,7 @@ public:
         ::PairIndex;
 
 
-    void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos);
+    void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos, int i);
     void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
 
 
@@ -255,6 +245,11 @@ public:
                 <= 4.0*p1.rdata(0)*p1.rdata(0);
         }
     } CheckPair;
+
+
+private:
+
+    int n_list;
 };
 
 

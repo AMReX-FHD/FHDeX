@@ -18,7 +18,6 @@
 using namespace common;
 using namespace gmres;
 
-// ADAPTED FROM MAESTROeX
 // umac enters with face-centered, time-centered Utilde^* and should leave with Utilde
 // macphi is the solution to the elliptic solve
 
@@ -36,7 +35,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     grids = grids.enclosedCells();
     DistributionMapping dmap = umac[0].DistributionMap();
 
-    MultiFab solverrhs; // this will hold solver RHS = macrhs - div(beta0*umac)
+    MultiFab solverrhs; // this will hold solver RHS = macrhs - div(umac)
     solverrhs.define(grids, dmap, 1, 0);
 
     MultiFab macphi(grids,dmap,1,1);
@@ -58,25 +57,10 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // set cell-centered A coefficient to zero
     acoef.setVal(0.);
 
-    // OR 1) average face-centered B coefficients to rho
+    // 1) average face-centered B coefficients to rho
     AverageCCToFace(rho, 0, face_bcoef, 0, 1);
 
-    // TODO: Cleanup after debug:
-    // for (int d=0; d<AMREX_SPACEDIM; ++d) {
-
-    //     // initialize phi_fc_mg = phi_fc as an initial guess
-
-    //     // fill periodic ghost cells
-    //     face_bcoef[d].FillBoundary(geom.periodicity());
-
-    //     // fill boundary cells
-    //     MultiFABPhysBC(face_bcoef[d], d, geom);
-    //     // TODO: are these the correct BC?
-    //     //MultiFABPhysBCDomainVel(face_bcoef[d], d, geom);
-    //     //MultiFABPhysBCMacVel(face_bcoef[d], d, geom);
-    // }
-
-    // AND 2) invert B coefficients to 1/rho
+    // 2) invert B coefficients to 1/rho
     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
       face_bcoef[idim].invert(1.0,0,1);
     }
@@ -146,7 +130,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 }
 
-// compute the RHS for the solve, RHS = macrhs - div(beta0*umac)
+// compute the RHS for the solve, solverrhs = macrhs - div(umac)
 void ComputeMACSolverRHS (MultiFab& solverrhs,
 			  const MultiFab& macrhs,
 			  const std::array< MultiFab, AMREX_SPACEDIM >& umac,
@@ -155,38 +139,27 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
     // timer for profiling
     BL_PROFILE_VAR("ComputeMACSolverRHS()",ComputeMACSolverRHS);
 
-    // Note that umac = beta0*mac
-    // get references to the MultiFabs
-    MultiFab& solverrhs_mf = solverrhs;
-    const MultiFab& macrhs_mf = macrhs;
-    const MultiFab& uedge_mf = umac[0];
-#if (AMREX_SPACEDIM >= 2)
-    const MultiFab& vedge_mf = umac[1];
-#if (AMREX_SPACEDIM == 3)
-    const MultiFab& wedge_mf = umac[2];
-#endif
-#endif
+    const Real* dx = geom.CellSize();
+    
+    for ( MFIter mfi(solverrhs); mfi.isValid(); ++mfi) {
 
-    int lev = 0;
-    // loop over boxes
-    for ( MFIter mfi(solverrhs_mf); mfi.isValid(); ++mfi) {
+      const Box& bx = mfi.validbox();
 
-      // Get the index space of valid region
-      const Box& validBox = mfi.validbox();
-      const Real* dx = geom.CellSize();
+      AMREX_D_TERM(Array4<Real const> const& umac_fab = umac[0].array(mfi);,
+                   Array4<Real const> const& vmac_fab = umac[1].array(mfi);,
+                   Array4<Real const> const& wmac_fab = umac[2].array(mfi););
 
-      // call fortran subroutine
-      mac_solver_rhs(&lev,ARLIM_3D(validBox.loVect()),ARLIM_3D(validBox.hiVect()),
-		     BL_TO_FORTRAN_3D(solverrhs_mf[mfi]),
-		     BL_TO_FORTRAN_3D(macrhs_mf[mfi]),
-		     BL_TO_FORTRAN_3D(uedge_mf[mfi]),
-#if (AMREX_SPACEDIM >= 2)
-		     BL_TO_FORTRAN_3D(vedge_mf[mfi]),
-#if (AMREX_SPACEDIM == 3)
-		     BL_TO_FORTRAN_3D(wedge_mf[mfi]),
-#endif
-#endif
-		     dx);
+
+      Array4<Real>       const& solverrhs_fab = solverrhs.array(mfi);
+      Array4<Real const> const&    macrhs_fab =    macrhs.array(mfi);
+
+      AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            solverrhs_fab(i,j,k) = macrhs_fab(i,j,k) -
+                AMREX_D_TERM(   ( umac_fab(i+1,j,k) - umac_fab(i,j,k) ) / dx[0],
+                              - ( vmac_fab(i,j+1,k) - vmac_fab(i,j,k) ) / dx[1],
+                              - ( wmac_fab(i,j,k+1) - wmac_fab(i,j,k) ) / dx[2] );;
+        });
 
     }
 }

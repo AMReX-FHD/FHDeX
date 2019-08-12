@@ -17,9 +17,8 @@ void InitializeCommonNamespace();
 ///////////////////////////
 // in ConvertStag.cpp
 
-void AverageFaceToCC(const MultiFab& face, int face_comp,
-                     MultiFab& cc, int cc_comp,
-                     int ncomp);
+void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
+                     MultiFab& cc, int cc_comp);
 
 void AverageCCToFace(const MultiFab& cc, int cc_comp,
                      std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
@@ -46,6 +45,10 @@ void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM
 void PrintMF(const MultiFab& MF);
 
 ///////////////////////////
+// in SqrtMF.cpp
+void SqrtMF(MultiFab& MF);
+
+///////////////////////////
 // in FindCoords.cpp
 
 void FindFaceCoords(std::array<MultiFab, AMREX_SPACEDIM> & RealFaceCoords,
@@ -65,7 +68,9 @@ void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & va
 ///////////////////////////
 // in ComputeAverages.cpp
 
-void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp);
+void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
+
+// void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
 
 ///////////////////////////
 // in MultiFABPhysBC.cpp

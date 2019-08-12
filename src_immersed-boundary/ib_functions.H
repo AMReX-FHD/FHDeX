@@ -8,12 +8,29 @@
 
 #include <IBParticleContainer.H>
 
+
+#ifndef _num_edge_
+#define _num_edge_
+#if (AMREX_SPACEDIM == 2)
+    const int NUM_EDGE = 1;
+#elif (AMREX_SPACEDIM == 3)
+    const int NUM_EDGE = 3;
+#endif
+#endif
+
+
+
+void InitializeImmbdyNamespace();
+void InitializeIBFlagellumNamespace();
+
+
+
 // In IBGMRES.cpp
 void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
              const MultiFab & b_p,
              std::array<MultiFab, AMREX_SPACEDIM> & x_u,
              MultiFab & x_p,
-             const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+             std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
              MultiFab & beta,
              std::array<MultiFab, NUM_EDGE> & beta_ed,
              MultiFab & gamma,
@@ -25,7 +42,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
 
 void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
-               const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+               std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                const MultiFab & gamma, const Real & theta_alpha,
                const IBParticleContainer & ib_pc,

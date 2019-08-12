@@ -31,15 +31,15 @@ using namespace std;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-    remove("out.txt");
+    remove("out.csv");
     // store the current time so we can later compute total run time.
   
     Real strt_time = ParallelDescriptor::second();
 
-    //for(int omg; omg<101;omg++)
-    //  {
-    std::string inputs_file = argv;
-
+	std::string inputs_file = argv;
+	Print() << argv << std::endl;
+	//Abort();
+    
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
@@ -53,19 +53,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 1;
-    int particleSeed = 1;
-    int selectorSeed = 1;
-    int thetaSeed = 1;
-    int phiSeed = 1;
-    int generalSeed = 1;
+//    int fhdSeed = 0;
+//    int particleSeed = 0;
+//    int selectorSeed = 0;
+//    int thetaSeed = 0;
+//    int phiSeed = 0;
+//    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -288,10 +288,12 @@ void main_driver(const char* argv)
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
             dsmcParticle[i].total = (int)ceil(particle_n0[i]*effectiveVol/particle_neff);
+                Print() << "TOTAL: " << dsmcParticle[i].total << ", " << particle_n0[i] << "\n";
+
             // adjust number of particles up so there is the same number per box  
             dsmcParticle[i].ppb = (int)ceil((double)dsmcParticle[i].total/(double)ba.size());
             dsmcParticle[i].total = dsmcParticle[i].ppb*ba.size();
-            dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
+            dsmcParticle[i].n0 = (dsmcParticle[i].total/effectiveVol)*particle_neff;
 
             Print() << "Species " << i << " n0 adjusted to " << dsmcParticle[i].n0 << "\n";
             Print() << "Effective volume: " << effectiveVol << "\n";
@@ -299,8 +301,8 @@ void main_driver(const char* argv)
 
         Print() << "Species " << i << " particles per box: " <<  dsmcParticle[i].ppb << "\n";
 
-        realParticles = realParticles + dsmcParticle[i].total;
-        simParticles = simParticles + dsmcParticle[i].total*particle_neff;
+        realParticles = realParticles + dsmcParticle[i].total*particle_neff;
+        simParticles = simParticles + dsmcParticle[i].total;
     }
     
     Print() << "Total real particles: " << realParticles << "\n";
@@ -392,7 +394,8 @@ void main_driver(const char* argv)
     double time = 0;
     //Time stepping loop
 	//remove("out.txt");
-	//surfaceList[5].omg=omg;
+	surfaceList[5].bgraph=0;
+	surfaceList[5].bgraph=0;
     for(int step=1;step<=max_step;++step)
     {
 
@@ -434,13 +437,12 @@ void main_driver(const char* argv)
 
         if(step%1 == 0)
         {    
-	  amrex::Print() << "Advanced step " << step<<", " << surfaceList[5].omg << "\n";
+	  amrex::Print() << "Advanced step " << step<<", " << domega<< "\n";
         }
         
         time = time + dt;
 
     }
-    //       }
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
     Real stop_time = ParallelDescriptor::second() - strt_time;

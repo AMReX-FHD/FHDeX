@@ -682,7 +682,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
   use surfaces_module
-  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog, mass, k_b, particle_count, particle_n0, t_init
+  use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog, mass, k_b, particle_count, particle_n0, t_init, particle_neff
   
   implicit none
 
@@ -884,7 +884,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                surf=>surfaces(6)
 
                pi=3.1415926535897932
-               numcoll=floor(pi*(prob_hi(1)**2)*fixed_dt*particle_n0(1)*sqrt((k_b*t_init(1))/(2*pi*mass(1))))
+               numcoll=floor(pi*(prob_hi(1)**2)*fixed_dt*(particle_n0(1)/particle_neff)*sqrt((k_b*t_init(1))/(2*pi*mass(1))))
                         !print *, "topnum: ", numcoll, prob_hi(1), fixed_dt
 
                do count=1,  numcoll
@@ -899,7 +899,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                radius=0
                bJ1 = bessel_jn(1,2.4048)
                prefact = 9144**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
-               omega=14*(10**6)*2*3.1415926535897932
+               omega=12.5*(10**6)*2*3.1415926535897932
                surf=>surfaces(6)
                do ii=1, 1
                  radius=interval*ii
@@ -913,7 +913,7 @@ subroutine move_particles_dsmc(particles, np, lo, hi, &
                ! print*,'position',part%pos
                ! print*,'vel',part%vel
                ! print*,'fortran move', surf%velz, part%id
-               ! print*, 'a', surf%agraph
+               ! print*, 'a', surf%a0graph
                ! print*, sin((time*omega))
                ! print*, surf%velz
                ! print*, 'velocity',part%vel
@@ -2006,11 +2006,11 @@ subroutine spread_op_scalar_cc(weights, indicies, &
 
   if(pkernel_es .eq. 3) then 
     !pvol = 6.28319
-    pvol = 0.5
+    pvol = 1
   elseif(pkernel_es .eq. 4) then  
-    pvol = 0.5
+    pvol = 1
   elseif(pkernel_es .eq. 6) then  
-    pvol = 0.5
+    pvol = 1
   endif
 
 
@@ -2934,6 +2934,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
           call calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, p) !pairwise coulomb calc
 
+          !print *, "Coulomb force: ", part%force
           potential = potential + part%potential
       endif
       !print *, "start weights", p

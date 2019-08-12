@@ -72,6 +72,7 @@ amrex::Real                common::perturb_width;
 amrex::Real                common::smoothing_width;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
+amrex::Real                common::domega;
 amrex::Vector<int>         common::bc_lo;
 amrex::Vector<int>         common::bc_hi;
 
@@ -92,6 +93,8 @@ amrex::Vector<amrex::Real> common::potential_hi;
 
 int                        common::struct_fact_int;
 int                        common::n_steps_skip;
+int                        common::project_dir;
+amrex::Vector<int>         common::max_grid_projection;
 int                        common::histogram_unit;
 amrex::Vector<amrex::Real> common::density_weights;
 amrex::Vector<int>         common::shift_cc_to_boundary;
@@ -140,6 +143,8 @@ int                        common::plot_ascii;
 int                        common::particle_motion;
 int                        common::solve_chem;
 amrex::Real                common::diffcoeff;
+amrex::Real                common::scaling_factor;
+amrex::Real                common::source_strength;
 int                        common::regrid_int;
 int                        common::do_reflux;
 

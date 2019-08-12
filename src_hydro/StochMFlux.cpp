@@ -315,7 +315,7 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
     // Ensure zero total momentum
     Vector<Real> av_mom;
     // take staggered sum & divide by number of cells
-    SumStag(m_old,0,av_mom,true);
+    SumStag(geom,m_old,0,av_mom,true);
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       // subtract off average
       m_old[d].plus(-av_mom[d],1);
@@ -328,17 +328,6 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
       m_old[i].FillBoundary(geom.periodicity());
       MultiFABPhysBCDomainVel(m_old[i], i, geom,i);
       MultiFABPhysBCMacVel(m_old[i], i, geom,i);
-  }
-}
-
-void StochMFlux::SqrtMF(amrex::MultiFab& mf) {
-  for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-
-    // Note: Make sure that multifab is cell-centered
-    const Box& validBox_cc = enclosedCells(mfi.validbox());
-
-    sqrt_mf(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
-	    BL_TO_FORTRAN_FAB(mf[mfi]));
   }
 }
 

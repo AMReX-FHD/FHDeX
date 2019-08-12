@@ -170,7 +170,7 @@ BL_PROFILE_VAR_START(particle_move);
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-
+ 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
@@ -181,7 +181,7 @@ BL_PROFILE_VAR_START(particle_move);
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-	 //Print() << "FHD\n";
+	// Print() << "FHD\n";
 
         move_particles_dsmc(particles.data(), &np,
                        ARLIM_3D(tile_box.loVect()), 
@@ -215,11 +215,12 @@ BL_PROFILE_VAR_START(particle_move);
     
     if(graphene_tog==1)
       {
-	//	char num[21];
-	//	std::string txt=".txt";
-	//	sprintf(num, "%f", surfaceList[5].omg);
-	//	outfile.open(num + txt, std::ios_base::app);
-        outfile.open("out.txt", std::ios_base::app);
+		char num[21];
+		std::string txt=".txt";
+		std::string text="test";
+		sprintf(num, "%f", domega);
+		outfile.open(text+num + txt, std::ios_base::app);
+        //      outfile.open("out.csv", std::ios_base::app);
   for (i=0;i<1;i++)
 	  {
 	    outfile << surfaceList[5].dbesslist[i] << ", ";

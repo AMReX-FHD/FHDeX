@@ -66,6 +66,7 @@ module common_namelist_module
   double precision,   save :: smoothing_width
   double precision,   save :: initial_variance_mom
   double precision,   save :: initial_variance_mass
+  double precision,   save :: domega
   integer,            save :: bc_lo(AMREX_SPACEDIM)
   integer,            save :: bc_hi(AMREX_SPACEDIM)
   integer,            save :: bc_es_lo(AMREX_SPACEDIM)
@@ -84,6 +85,8 @@ module common_namelist_module
 
   integer,            save :: struct_fact_int
   integer,            save :: n_steps_skip
+  integer,            save :: project_dir
+  integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
@@ -137,6 +140,8 @@ module common_namelist_module
 
   integer,            save :: solve_chem
   double precision,   save :: diffcoeff
+  double precision,   save :: scaling_factor
+  double precision,   save :: source_strength
   integer,            save :: regrid_int
   integer,            save :: do_reflux
 
@@ -246,6 +251,7 @@ module common_namelist_module
   namelist /common/ smoothing_width
   namelist /common/ initial_variance_mom
   namelist /common/ initial_variance_mass
+  namelist /common/ domega
 
   ! Boundary conditions
   namelist /common/ bc_lo
@@ -273,6 +279,10 @@ module common_namelist_module
   ! structure factor analysis
   namelist /common/ struct_fact_int
   namelist /common/ n_steps_skip
+
+  ! projection
+  namelist /common/ project_dir
+  namelist /common/ max_grid_projection
 
   ! These are mostly used for reaction-diffusion:
   namelist /common/ histogram_unit
@@ -316,6 +326,8 @@ module common_namelist_module
   ! chemistry
   namelist /common/ solve_chem
   namelist /common/ diffcoeff
+  namelist /common/ source_strength
+  namelist /common/ scaling_factor
   namelist /common/ regrid_int
   namelist /common/ do_reflux
 
@@ -325,8 +337,15 @@ contains
   subroutine read_common_namelist(inputs_file,length) bind(C, name="read_common_namelist")
 
     integer               , value         :: length
+    integer                               :: narg, farg
     character(kind=c_char), intent(in   ) :: inputs_file(length)
+    character(len=128) :: fname
 
+!    narg = command_argument_count()
+!    narg=narg+3
+!    print*, narg
+!    stop
+    
     ! default values
     prob_lo(:) = 0.d0
     prob_hi(:) = 1.d0
@@ -375,6 +394,7 @@ contains
     smoothing_width = 1.
     initial_variance_mom = 0.
     initial_variance_mass = 0.
+    domega=0.d0
     bc_lo(:) = 0
     bc_hi(:) = 0
     bc_es_lo(:) = 0
@@ -390,6 +410,8 @@ contains
     potential_hi(:) = 0
     struct_fact_int = 0
     n_steps_skip = 0
+    project_dir = -1
+    max_grid_projection(:) = 1
     histogram_unit = 0
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
@@ -397,22 +419,25 @@ contains
     membrane_cell = -1
     cross_cell = 0
 
-    pkernel_fluid = 4    
+    pkernel_fluid = 4
     pkernel_es = 4
     solve_chem = 0
     diffcoeff  = 0.001
+    scaling_factor = 0.1
+    source_strength = 0.1
     regrid_int = 25
     do_reflux  = 0
-    particle_motion = 0    
+    particle_motion = 0
 
     graphene_tog = 0
     thermostat_tog = 0
-        
+
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
     close(unit=100)
+    
 
   end subroutine read_common_namelist
 
@@ -440,18 +465,26 @@ contains
                                          filtering_width_in, stoch_stress_form_in, &
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
-                                         bc_lo_in, bc_hi_in, &
-                                         bc_es_lo_in, bc_es_hi_in, &
+                                         domega_in, bc_lo_in, bc_hi_in, &
+                                         bc_es_lo_in, bc_es_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
                                          struct_fact_int_in, n_steps_skip_in, &
+                                         project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, thermostat_tog_in, images_in, eamp_in, efreq_in, ephase_in, plot_ascii_in, solve_chem_in, diffcoeff_in, regrid_int_in, do_reflux_in, particle_motion_in) &
+                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
+                                         cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
+                                         poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, &
+                                         fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
+                                         dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
+                                         thermostat_tog_in, images_in, eamp_in, efreq_in, ephase_in, &
+                                         plot_ascii_in, solve_chem_in, diffcoeff_in, scaling_factor_in, &
+                                         source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in) &
                                          bind(C, name="initialize_common_namespace")
 
 
@@ -529,6 +562,7 @@ contains
     double precision,       intent(inout) :: smoothing_width_in
     double precision,       intent(inout) :: initial_variance_mom_in
     double precision,       intent(inout) :: initial_variance_mass_in
+    double precision,       intent(inout) :: domega_in
     integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_lo_in(AMREX_SPACEDIM)
@@ -546,6 +580,8 @@ contains
 
     integer,                intent(inout) :: struct_fact_int_in
     integer,                intent(inout) :: n_steps_skip_in
+    integer,                intent(inout) :: project_dir_in
+    integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
     double precision,       intent(inout) :: density_weights_in(MAX_SPECIES)
     integer,                intent(inout) :: shift_cc_to_boundary_in(AMREX_SPACEDIM,LOHI)
@@ -584,6 +620,8 @@ contains
     integer,                intent(inout) :: plot_ascii_in
     integer,                intent(inout) :: solve_chem_in
     double precision,       intent(inout) :: diffcoeff_in
+    double precision,       intent(inout) :: scaling_factor_in
+    double precision,       intent(inout) :: source_strength_in
     integer,                intent(inout) :: regrid_int_in
     integer,                intent(inout) :: do_reflux_in
     integer,                intent(inout) :: particle_motion_in
@@ -649,6 +687,7 @@ contains
     smoothing_width_in = smoothing_width
     initial_variance_mom_in = initial_variance_mom
     initial_variance_mass_in = initial_variance_mass
+    domega_in=domega
     bc_lo_in = bc_lo
     bc_hi_in = bc_hi
     bc_es_lo_in = bc_es_lo
@@ -666,6 +705,8 @@ contains
 
     struct_fact_int_in = struct_fact_int
     n_steps_skip_in = n_steps_skip
+    project_dir_in = project_dir
+    max_grid_projection_in = max_grid_projection
     histogram_unit_in = histogram_unit
     density_weights_in = density_weights
     shift_cc_to_boundary_in = shift_cc_to_boundary
@@ -710,10 +751,29 @@ contains
     plot_ascii_in = plot_ascii
     solve_chem_in = solve_chem
     diffcoeff_in  = diffcoeff
+    scaling_factor_in  = scaling_factor
+    source_strength_in  = source_strength
+
     regrid_int_in = regrid_int
     do_reflux_in  = do_reflux
     particle_motion_in = particle_motion
 
   end subroutine initialize_common_namespace
+
+  subroutine set_max_step(max_step_in) bind(C, name="set_max_step")
+
+    integer, intent(in   ) :: max_step_in
+
+    max_step = max_step_in
+    
+  end subroutine set_max_step
+
+  subroutine set_domega(domega_in) bind(C, name="set_domega")
+
+    double precision, intent(in   ) :: domega_in
+
+    domega = domega_in
+    
+  end subroutine set_domega  
 
 end module common_namelist_module

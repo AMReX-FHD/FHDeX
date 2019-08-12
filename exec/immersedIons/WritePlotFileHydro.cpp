@@ -70,10 +70,8 @@ void WritePlotFileHydro(int step,
     cnt = 0;
 
     // average staggered velocities to cell-centers and copy into plotfile
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        AverageFaceToCC(umac[i],0,plotfile,cnt,1);
-        cnt++;
-    }
+    AverageFaceToCC(umac,plotfile,cnt);
+    cnt+=AMREX_SPACEDIM;
 
     // shift staggered velocities to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -91,16 +89,12 @@ void WritePlotFileHydro(int step,
     cnt++;
 
     // average staggered means to cell-centers and copy into plotfile
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        AverageFaceToCC(umacM[i],0,plotfile,cnt,1);
-        cnt++;
-    }
+    AverageFaceToCC(umacM,plotfile,cnt);
+    cnt+=AMREX_SPACEDIM;
 
     // average staggered vars to cell-centers and copy into plotfile
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        AverageFaceToCC(umacV[i],0,plotfile,cnt,1);
-        cnt++;
-    }
+    AverageFaceToCC(umacV,plotfile,cnt);
+    cnt+=AMREX_SPACEDIM;
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);

@@ -51,6 +51,9 @@ void main_driver(const char* argv)
     //if gas heat capacities are negative, calculate using dofs. This will only update the Fortran values.
     get_hc_gas();
 
+    //initialize boundary condition switches for mass, temperature, & velocity
+    setup_bc();
+
     //compute wall concentrations if BCs call for it
     if (algorithm_type == 2) // if multispecies
       setup_cwall();
@@ -62,7 +65,6 @@ void main_driver(const char* argv)
             is_periodic[i] = 1;
             Print() << "Periodic: " << is_periodic[i] << "\n";
         }
-        //is_periodic[i] = 0;
     }
 
     // make BoxArray and Geometry
@@ -86,6 +88,10 @@ void main_driver(const char* argv)
 
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+
+	// Print() << "HACK: " << real_box << std::endl << domain << std::endl << geom << std::endl;
+	// amrex::Abort("THE END");
+
     }
 
     // Print() << "Hack: boxarray = " << ba << "\n";
@@ -105,19 +111,13 @@ void main_driver(const char* argv)
 
     const int proc = ParallelDescriptor::MyProc();
 
-    int fhdSeed = 0;
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 0;
-
-    //fhdSeed += 10000*proc;
-    particleSeed += 20000*proc;
-    selectorSeed += 30000*proc;
-    thetaSeed += 40000*proc;
-    phiSeed += 50000*proc;
-    //generalSeed += 60000*proc;
+    // NOTE: only fhdSeed is used currently
+    int fhdSeed = seed_diffusion;
+    int particleSeed = 1;
+    int selectorSeed = 1;
+    int thetaSeed = 1;
+    int phiSeed = 1;
+    int generalSeed = 1;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -132,6 +132,12 @@ void main_driver(const char* argv)
     MultiFab kappa(ba,dmap,1,ngc);
     MultiFab chi(ba,dmap,nspecies,ngc);
     MultiFab D(ba,dmap,nspecies*nspecies,ngc);
+
+    eta.setVal(1.0,0,1,ngc);
+    zeta.setVal(1.0,0,1,ngc);
+    kappa.setVal(1.0,0,1,ngc);
+    chi.setVal(1.0,0,nspecies,ngc);
+    D.setVal(1.0,0,nspecies*nspecies,ngc);
 
     //conserved quantaties
     MultiFab cu  (ba,dmap,nvars,ngc);
@@ -149,6 +155,8 @@ void main_driver(const char* argv)
     MultiFab cuMeansAv(ba,dmap,nvars,ngc);
     MultiFab cuVarsAv(ba,dmap,nvars,ngc);
 
+    MultiFab cuVertAvg;
+
     MultiFab primMeans(ba,dmap,nprimvars,ngc);
     MultiFab primVars(ba,dmap,nprimvars + 5,ngc);
 
@@ -160,8 +168,6 @@ void main_driver(const char* argv)
 
     MultiFab etaMeanAv(ba,dmap,1,ngc);
     MultiFab kappaMeanAv(ba,dmap,1,ngc);
-
-    MultiFab cuVertAvg;
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -179,12 +185,6 @@ void main_driver(const char* argv)
 
     //Initialize physical parameters from input vals
 
-    prim.setVal(rho0,0,1,ngc);
-    prim.setVal(0,1,1,ngc);
-    prim.setVal(0,2,1,ngc);
-    prim.setVal(0,3,1,ngc);
-    prim.setVal(T_init[0],4,1,ngc);
-
     double massvec[nspecies];
     double intEnergy, T0;
 
@@ -192,23 +192,8 @@ void main_driver(const char* argv)
 
     for(int i=0;i<nspecies;i++)
     {
-        prim.setVal(rhobar[i],6+i,1,ngc);
-        cu.setVal(rho0*rhobar[i],5+i,1,ngc);
-
         massvec[i] = rhobar[i];
     }
-
-    get_energy(&intEnergy, massvec, &T0);
-
-    cu.setVal(rho0,0,1,ngc);
-    cu.setVal(0,1,1,ngc);
-    cu.setVal(0,2,1,ngc);
-    cu.setVal(0,3,1,ngc);
-    cu.setVal(rho0*intEnergy,4,1,ngc);
-
-    cup.setVal(rho0,0,1,ngc);
-    cup2.setVal(rho0,0,1,ngc);
-    cup3.setVal(rho0,0,1,ngc);
 
     //fluxes
     std::array< MultiFab, AMREX_SPACEDIM > flux;
@@ -272,7 +257,7 @@ void main_driver(const char* argv)
     molmix = 1.0/molmix;                // molar mass of mixture
     P_bar = rho0*(Runiv/molmix)*T0;     // eqm pressure
     c_v  = 1.5*(Runiv/molmix);          // Assuming all gases are monoatomic (dof=3)
-    c_v2 = c_v*c_v;                         
+    c_v2 = c_v*c_v;
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
 	dVol *= cell_depth;
@@ -326,13 +311,6 @@ void main_driver(const char* argv)
     beqmvars[cnt++] = Eeqmvar;                    // rhoE,rhoE
     beqmvars[cnt++] = MEeqmcovar;                 // rho_k,rhoE   - scaled by mass fracs later
     beqmvars[cnt++] = Meqmvar;                    // rho_k,rho_l  - scaled by mass fracs later
-
-    // for (int d=0; d<nbcov_sf; d++) {
-    //   Print() << "Hack: " << beqmvars[d] << std::endl;
-    //   beqmvars[d] = 1.0;
-    // }
-    // Print() << "Hack: " << avgmolmass/molmix << std::endl;
-    // exit(0);
     
     // loop over lower triangular block matrix
     cnt = 0;
@@ -375,7 +353,6 @@ void main_driver(const char* argv)
 	      
 	    }
 
-	    // Print() << "Hack: " << ig+i << " " << jg+j << " " << cnt << " " << eqmvars[cnt] << std::endl;
 	  }
 	}
 	bcnt++;
@@ -383,11 +360,6 @@ void main_driver(const char* argv)
       }
       jg += blocks[jb];
     }
-    
-    // for (int d=0; d<ncov_sf; d++) {
-    //   Print() << "Hack: scaling = " << eqmvars[d] << " " << d << std::endl;
-    // }
-    // exit(0);
 
     ////////////////////////////////
 
@@ -420,26 +392,100 @@ void main_driver(const char* argv)
       s_pairA[d] = d;
       s_pairB[d] = d;
     }
-
+    
     StructFact structFact(ba,dmap,var_names,eqmvars);
     // StructFact structFact(ba,dmap,var_names,eqmvars,s_pairA,s_pairB);
+
+    Geometry geom_flat;
+    if(project_dir > -1){
+
+      cu.setVal(0.0);
+      ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
+      BoxArray ba_flat = cuVertAvg.boxArray();
+      const DistributionMapping& dmap_flat = cuVertAvg.DistributionMap();
+      {
+        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    	dom_hi[project_dir] = 0;
+        Box domain(dom_lo, dom_hi);
+	
+    	// This defines the physical box
+    	Vector<Real> projected_hi(AMREX_SPACEDIM);
+    	for (int d=0; d<AMREX_SPACEDIM; d++) {
+    	  projected_hi[d] = prob_hi[d];
+    	}
+    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                         {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
+
+        // This defines a Geometry object
+        geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+
+	// Print() << "HACK: " << real_box << std::endl << domain << std::endl << geom_flat << std::endl;
+	// amrex::Abort("THE END");
+      }
+
+      structFact.~StructFact(); // destruct
+      new(&structFact) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
+
+      // StructFact structFact(ba_flat,dmap_flat,var_names,eqmvars);
+    
+    }
 
     ///////////////////////////////////////////
 
     //Initialize everything
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-      const Box& bx = mfi.validbox();
+    prim.setVal(0.0,0,nprimvars,ngc);
+    prim.setVal(rho0,0,1,ngc);
+    prim.setVal(0,1,1,ngc);
+    prim.setVal(0,2,1,ngc);
+    prim.setVal(0,3,1,ngc);
+    prim.setVal(T_init[0],4,1,ngc);
 
-      init_consvar(BL_TO_FORTRAN_BOX(bx),
-    	       BL_TO_FORTRAN_FAB(cu[mfi]),
-    	       dx, 
-    	       // geom.ProbLo(), geom.ProbHi(),
-    	       ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+    for(int i=0;i<nspecies;i++)
+    {
+        prim.setVal(rhobar[i],6+i,1,ngc);
+        cu.setVal(rho0*rhobar[i],5+i,1,ngc);
 
+        massvec[i] = rhobar[i];
     }
-	    
+
+    get_energy(&intEnergy, massvec, &T0);
+
+    cu.setVal(0.0,0,nvars,ngc);
+    cu.setVal(rho0,0,1,ngc);
+    cu.setVal(0,1,1,ngc);
+    cu.setVal(0,2,1,ngc);
+    cu.setVal(0,3,1,ngc);
+    cu.setVal(rho0*intEnergy,4,1,ngc);
+    
+    cup.setVal(0.0,0,nvars,ngc);
+    cup2.setVal(0.0,0,nvars,ngc);
+    cup3.setVal(0.0,0,nvars,ngc);
+
+    cup.setVal(rho0,0,1,ngc);
+    cup2.setVal(rho0,0,1,ngc);
+    cup3.setVal(rho0,0,1,ngc);
+
+    if (prob_type > 1) {
+      for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+	const Box& bx = mfi.validbox();
+
+	init_consvar(BL_TO_FORTRAN_BOX(bx),
+		     BL_TO_FORTRAN_ANYD(cu[mfi]),
+		     BL_TO_FORTRAN_ANYD(prim[mfi]),
+		     dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+
+      }
+    }
+
     statsCount = 1;
+
+    // Write initial plotfile
+    conservedToPrimitive(prim, cu);
+    if (plot_int > 0)
+	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
 
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -458,18 +504,25 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-	// if (step > n_steps_skip) {
-	//   evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
+	/*
+	if (step > n_steps_skip) {
+	  // evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, eta, etaMean, kappa, kappaMean, statsCount, dx);
 
-	//   ComputeVerticalAverage(cu, cuVertAvg, geom, 2, 0,0,1);
-	// }
+	}
+	*/
  
 	///////////////////////////////////////////
 	// Update structure factor
 	///////////////////////////////////////////
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-	  MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-	  structFact.FortStructure(struct_in_cc,geom);
+	  if(project_dir > -1) {
+	    ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
+	    structFact.FortStructure(cuVertAvg,geom_flat);
+	  } else {
+	    MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+	    structFact.FortStructure(struct_in_cc,geom);
+	  }
+	  
         }
 	///////////////////////////////////////////
 
@@ -484,8 +537,15 @@ void main_driver(const char* argv)
            // WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv, prim, primMeansAv, primVarsAv, etaMeanAv, kappaMeanAv);
 
            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
-	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int)
+	   if (step > n_steps_skip && struct_fact_int > 0 && plot_int > struct_fact_int) {
+
+	     if(project_dir > -1) {
+	       structFact.WritePlotFile(step,time,geom_flat);
+	     } else {
 	       structFact.WritePlotFile(step,time,geom);
+	     }
+
+	   }
         }
 
         time = time + dt;

@@ -15,11 +15,11 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                  MultiFab                             & b_p,
                  std::array<MultiFab, AMREX_SPACEDIM> & x_u,
                  MultiFab                             & x_p,
-                 const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                 const MultiFab                             & beta,
-                 const std::array<MultiFab, NUM_EDGE>       & beta_ed,
-                 const MultiFab                             & gamma,
-                 const Real                                 & theta_alpha,
+                 std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                 const MultiFab                       & beta,
+                 const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                 const MultiFab                       & gamma,
+                 const Real                           & theta_alpha,
                  const Geometry & geom) {
 
     BL_PROFILE_VAR("ApplyMatrix()", ApplyMatrix);

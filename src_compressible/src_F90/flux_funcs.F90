@@ -2,9 +2,9 @@ module flux_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type, algorithm_type
+  use compressible_namelist_module, only :  mass_bc_lo, mass_bc_hi, therm_bc_lo, therm_bc_hi, vel_bc_lo, vel_bc_hi
   use conv_module, only : get_temperature, get_pressure_gas, get_energy, get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
   use multispec_module, only : cholesky_decomp
-
   implicit none
 
   private
@@ -33,19 +33,20 @@ contains
     real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, specden(nspecies), Yk(nspecies), rho, temp, pt
 
     integer :: i,j,k,l,n
-
-    wgt2 = 1.0/12.0 !fourth order interpolation
+    
+    ! fourth order interpolation
+    wgt2 = 1.0/12.0
     wgt1 = 0.5 + wgt2 
-
+    
+    ! ! second order interpolation
     ! wgt2 = 0
-    ! wgt1 = 0.5 + wgt2 !second order
+    ! wgt1 = 0.5 + wgt2
 
     ! ! adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
     ! wgt2 = (sqrt(7d0)-1d0)/4d0
     ! wgt1 = (sqrt(7d0)+1d0)/4d0
 
-
-    !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
+    ! Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
     !x flux
 
@@ -74,12 +75,6 @@ contains
                 ! Yk(n) = specden(n)/rho
              enddo
              
-             ! if (i.eq.0 .and. j.eq.0 .and. k.eq.0) then
-             !    print*, Yk
-             !    print*, specden/rho
-             !    ! stop
-             ! endif
-
              call get_energy(intenergy, Yk, temp)
              ! call get_energy_gas(pt, intenergy)
 
@@ -238,17 +233,18 @@ contains
     real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, Yk(nspecies), temp, pt
 
     integer :: i,j,k,l,n
-
-    wgt2 = 1.0/12.0 !fourth order interpolation
-    wgt1 = 0.5 + wgt2 
-
+    
+    ! ! fourth order interpolation
+    wgt2 = 1.0/12.0
+    wgt1 = 0.5 + wgt2
+    
+    ! ! second order interpolation
     ! wgt2 = 0
-    ! wgt1 = 0.5 + wgt2 !second order
+    ! wgt1 = 0.5 + wgt2
 
     ! ! adjusted for correct variance fourth order interpolation - this apparently makes the overall spectrum worse
     ! wgt2 = (sqrt(7d0)-1d0)/4d0
     ! wgt1 = (sqrt(7d0)+1d0)/4d0
-
 
     !Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
@@ -461,38 +457,38 @@ contains
 
     sFac = 2d0*4d0*k_b*volinv*dtinv/3d0
     qFac = 2d0*k_b*volinv*dtinv
-
-    if (abs(visc_type) .gt. 1) then
-
+    
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!! JB's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+    
 !!!!!!!!!!!!!!!!!!! x-flux !!!!!!!!!!!!!!!!!!!
+    
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)
+          do i = lo(1),hi(1)+1
 
-       do k = lo(3),hi(3)
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)+1
+             muxp = (eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5))
+             kxp = (kappa(i,j,k)*prim(i,j,k,5)**2 + kappa(i-1,j,k)*prim(i-1,j,k,5)**2)
 
-                muxp = (eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5))
-                kxp = (kappa(i,j,k)*prim(i,j,k,5)**2 + kappa(i-1,j,k)*prim(i-1,j,k,5)**2)
+             !! Look into: zeta*p is not used in this function (original FluctHydro)
+             ! if (abs(visc_type) .eq. 3) then 
+             !    zetaxp = (zeta(i,j,k)*prim(i,j,k,5) + zeta(i-1,j,k)*prim(i-1,j,k,5))
+             ! else
+             !    zetaxp = 0.0
+             ! endif
 
-                !! Look into: zeta*p is not used in this function (original FluctHydro)
-                ! if (abs(visc_type) .eq. 3) then 
-                !    zetaxp = (zeta(i,j,k)*prim(i,j,k,5) + zeta(i-1,j,k)*prim(i-1,j,k,5))
-                ! else
-                !    zetaxp = 0.0
-                ! endif
+             meanT = 0.5d0*(prim(i,j,k,5)+prim(i-1,j,k,5))
 
-                meanT = 0.5d0*(prim(i,j,k,5)+prim(i-1,j,k,5))
+             ! Weights for facial fluxes:
+             fweights(1) = 0 ! No mass flux
+             fweights(2:4)=sqrt(k_b*muxp*volinv*dtinv)
+             fweights(5)=sqrt(k_b*kxp*volinv*dtinv)
 
-                ! Weights for facial fluxes:
-                fweights(1) = 0 ! No mass flux
-                fweights(2:4)=sqrt(k_b*muxp*volinv*dtinv)
-                fweights(5)=sqrt(k_b*kxp*volinv*dtinv)
+             ! Construct the random increments
+             weiner(1:5) = fweights(1:5)*ranfluxx(i,j,k,1:5)
 
-                ! Construct the random increments
-                weiner(1:5) = fweights(1:5)*ranfluxx(i,j,k,1:5)
+             nweight=sqrt(k_b*volinv*dtinv)
 
-                nweight=sqrt(k_b*volinv*dtinv)
+             if(n_cells(3).gt.1) then
 
                 ! Corner viscosity coefficients in 3D
                 muzepp = 0.25d0*(eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) + &
@@ -537,136 +533,160 @@ contains
                      sqrt(muzemp)*rancorn(i,j,k+1) + sqrt(muzepm)* rancorn(i,j+1,k)+  &
                      sqrt(muzemm)*rancorn(i,j,k)) ! Random "divergence" stress
 
-                fluxx(i,j,k,2:5) = fluxx(i,j,k,2:5) + weiner(2:5)
+             elseif(n_cells(3).eq.1) then
 
-                ! Viscous heating:
-                phiflx =  weiner(2)*(prim(i-1,j,k,2)+prim(i,j,k,2)) +           &
-                     weiner(3)*(prim(i-1,j,k,3)+prim(i,j,k,3)) + &
-                     weiner(4)*(prim(i-1,j,k,4)+prim(i,j,k,4))
-                phiflx =  - 0.5d0*phiflx
+                ! Corner viscosity coefficients in 2D
+                muzepp = 0.5d0*(eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) + &
+                     eta(i,j+1,k)*prim(i,j+1,k,5) + eta(i-1,j+1,k)*prim(i-1,j+1,k,5) )/3.d0
+                muzemp = 0.5d0*(eta(i,j-1,k)*prim(i,j-1,k,5) + eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + &
+                     eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) )/3.d0
 
-                fluxx(i,j,k,5) = fluxx(i,j,k,5) - phiflx
+                if (abs(visc_type) .eq. 3) then
 
-                ! print*, "Hack 1, (stochflux) in x = ", fluxx(i,j,k,5), fweights(5), kxp
-                ! stop
+                   muzepp = muzepp + 0.25d0*(zeta(i,j,k)*prim(i,j,k,5) + zeta(i-1,j,k)*prim(i-1,j,k,5) + &
+                        zeta(i,j+1,k)*prim(i,j+1,k,5) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,5) )
+                   muzemp = muzemp + 0.25d0*(zeta(i,j-1,k)*prim(i,j-1,k,5) + zeta(i-1,j-1,k)*prim(i-1,j-1,k,5) + &
+                        zeta(i,j,k)*prim(i,j,k,5) + zeta(i-1,j,k)*prim(i-1,j,k,5) )
 
-                if(algorithm_type.eq.2) then
+                endif
 
-                   weiner(6:5+nspecies) = 0.0d0
+                weiner(2) = weiner(2) + 0.5d0*nweight*(sqrt(muzepp)*rancorn(i,j+1,k)+ &
+                     sqrt(muzemp)*rancorn(i,j,k)) ! Random "divergence" stress
 
-                   do ns = 1,nspecies
+             endif
 
-                      yy(ns) = max(0.d0,min(1.d0,prim(i-1,j,k,6+ns)))
-                      yyp(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
+             fluxx(i,j,k,2:5) = fluxx(i,j,k,2:5) + weiner(2:5)
+
+             ! Viscous heating:
+             phiflx =  weiner(2)*(prim(i-1,j,k,2)+prim(i,j,k,2)) +           &
+                  weiner(3)*(prim(i-1,j,k,3)+prim(i,j,k,3)) + &
+                  weiner(4)*(prim(i-1,j,k,4)+prim(i,j,k,4))
+             phiflx =  - 0.5d0*phiflx
+
+             fluxx(i,j,k,5) = fluxx(i,j,k,5) - phiflx
+
+             ! print*, "Hack 1, (stochflux) in x = ", fluxx(i,j,k,5), fweights(5), kxp
+             ! stop
+
+             if(algorithm_type.eq.2) then
+
+                weiner(6:5+nspecies) = 0.0d0
+
+                do ns = 1,nspecies
+
+                   yy(ns) = max(0.d0,min(1.d0,prim(i-1,j,k,6+ns)))
+                   yyp(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
+
+                enddo
+                sumy = sum(yy(:))
+                sumyp = sum(yyp(:))
+                yy(:) = yy(:)/sumy
+                yyp(:) = yyp(:)/sumyp
+
+                MWmix = 0.d0
+
+                do ns = 1, nspecies
+
+                   MWmix = MWmix + 0.5d0*(yy(ns)+yyp(ns))/molmass(ns)
+
+                   do ll = 1, nspecies
+
+                      DijY_edge(ns,ll) = 0.5d0*(Dij(i-1,j,k,ns,ll)*yy(ll) + &
+                           Dij(i,j,k,ns,ll)*yyp(ll) &
+                           + (Dij(i-1,j,k,ll,ns)*yy(ns) + &
+                           Dij(i,j,k,ll,ns)*yyp(ns) ))
 
                    enddo
-                   sumy = sum(yy(:))
-                   sumyp = sum(yyp(:))
-                   yy(:) = yy(:)/sumy
-                   yyp(:) = yyp(:)/sumyp
 
-                   MWmix = 0.d0
+                enddo
 
-                   do ns = 1, nspecies
+                do ns=1,nspecies
+                   if(abs(yy(ns)) + abs(yyp(ns)) .le. 1.d-12)then
+                      DijY_edge(ns,1:nspecies)=0.d0
+                      DijY_edge(1:nspecies,ns)=0.d0
+                   endif
+                enddo
 
-                      MWmix = MWmix + 0.5d0*(yy(ns)+yyp(ns))/molmass(ns)
+                MWmix = 1.d0 / MWmix
 
-                      do ll = 1, nspecies
+                call cholesky_decomp(DijY_edge,nspecies,sqD)
 
-                         DijY_edge(ns,ll) = 0.5d0*(Dij(i-1,j,k,ns,ll)*yy(ll) + &
-                              Dij(i,j,k,ns,ll)*yyp(ll) &
-                              + (Dij(i-1,j,k,ll,ns)*yy(ns) + &
-                              Dij(i,j,k,ll,ns)*yyp(ns) ))
+                do ns = 1, nspecies
 
-                      enddo
+                   do ll = 1, ns
 
-                   enddo
-
-                   do ns=1,nspecies
-                      if(abs(yy(ns)) + abs(yyp(ns)) .le. 1.d-12)then
-                         DijY_edge(ns,1:nspecies)=0.d0
-                         DijY_edge(1:nspecies,ns)=0.d0
-                      endif
-                   enddo
-
-                   MWmix = 1.d0 / MWmix
-
-                   call cholesky_decomp(DijY_edge,nspecies,sqD)
-
-                   do ns = 1, nspecies
-
-                      do ll = 1, ns
-
-                         fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
-                         weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxx(i,j,k,5+ll)
-
-                         ! if ((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
-                         !    print*, "Hack = ", ll, ns, MWmix, volinv, Runiv, dt, sqD(ns,ll)
-                         ! endif
-
-                      enddo
-
-
-                      fluxx(i,j,k,5+ns) = weiner(5+ns)
+                      fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
+                      weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxx(i,j,k,5+ll)
 
                       ! if ((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
-                      !    print*, "Hack, massflux in x = ", weiner(5+ns), ns
+                      !    print*, "Hack = ", ll, ns, MWmix, volinv, Runiv, dt, sqD(ns,ll)
                       ! endif
 
                    enddo
 
-                   call get_enthalpies(meanT, hk)
 
-                   soret = 0.d0
+                   fluxx(i,j,k,5+ns) = weiner(5+ns)
 
-                   do ns = 1, nspecies
-                      soret = soret + (hk(ns) + Runiv*meanT/molmass(ns) & 
-                           *0.5d0*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner(5+ns)
-                   enddo
-                   fluxx(i,j,k,5) = fluxx(i,j,k,5) +  soret
+                   ! if ((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
+                   !    print*, "Hack, massflux in x = ", weiner(5+ns), ns
+                   ! endif
 
-                end if
+                enddo
 
-                ! do ll = 1, nvars
-                !    if ( isnan(fluxx(i,j,k,ll)) ) then
-                !       print*, "Hack 1, (stochflux) in x = ", i,j,k, fluxx(i,j,k,:), fweights
-                !       stop
-                !    end if
-                ! end do
+                call get_enthalpies(meanT, hk)
 
-             end do
+                soret = 0.d0
+
+                do ns = 1, nspecies
+                   soret = soret + (hk(ns) + Runiv*meanT/molmass(ns) & 
+                        *0.5d0*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner(5+ns)
+                enddo
+                fluxx(i,j,k,5) = fluxx(i,j,k,5) +  soret
+
+             end if
+
+             ! do ll = 1, nvars
+             !    if ( isnan(fluxx(i,j,k,ll)) ) then
+             !       print*, "Hack 1, (stochflux) in x = ", i,j,k, fluxx(i,j,k,:), fweights
+             !       stop
+             !    end if
+             ! end do
+
           end do
        end do
+    end do
 
-       ! print*, "Hack: got here (end) stochflux"
+    ! print*, "Hack: got here (end) stochflux"
 
 !!!!!!!!!!!!!!!!!!! y-flux !!!!!!!!!!!!!!!!!!!
 
-       do k = lo(3),hi(3)
-          do j = lo(2),hi(2)+1
-             do i = lo(1),hi(1)
+    do k = lo(3),hi(3)
+       do j = lo(2),hi(2)+1
+          do i = lo(1),hi(1)
 
-                muyp = eta(i,j,k)*prim(i,j,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5)
-                kyp = kappa(i,j,k)*prim(i,j,k,5)**2 + kappa(i,j-1,k)*prim(i,j-1,k,5)**2
+             muyp = eta(i,j,k)*prim(i,j,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5)
+             kyp = kappa(i,j,k)*prim(i,j,k,5)**2 + kappa(i,j-1,k)*prim(i,j-1,k,5)**2
 
-                !! Look into: zeta*p is not used in this function (original FluctHydro)
-                ! if (abs(visc_type) .eq. 3) then 
-                !    zetayp = (zeta(i,j,k)*prim(i,j,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5))
-                ! else
-                !    zetayp = 0.0
-                ! endif
+             !! Look into: zeta*p is not used in this function (original FluctHydro)
+             ! if (abs(visc_type) .eq. 3) then 
+             !    zetayp = (zeta(i,j,k)*prim(i,j,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5))
+             ! else
+             !    zetayp = 0.0
+             ! endif
 
-                meanT = 0.5d0*(prim(i,j,k,5)+prim(i,j-1,k,5))
+             meanT = 0.5d0*(prim(i,j,k,5)+prim(i,j-1,k,5))
 
-                ! Weights for facial fluxes:
-                fweights(1)=0 ! No mass flux
-                fweights(2:4)=sqrt(k_b*muyp*volinv*dtinv)
-                fweights(5)=sqrt(k_b*kyp*volinv*dtinv)
+             ! Weights for facial fluxes:
+             fweights(1)=0 ! No mass flux
+             fweights(2:4)=sqrt(k_b*muyp*volinv*dtinv)
+             fweights(5)=sqrt(k_b*kyp*volinv*dtinv)
 
-                ! Construct the random increments
-                weiner(1:5) = fweights(1:5)*ranfluxy(i,j,k,1:5)
+             ! Construct the random increments
+             weiner(1:5) = fweights(1:5)*ranfluxy(i,j,k,1:5)
 
-                nweight=sqrt(k_b*volinv*dtinv)
+             nweight=sqrt(k_b*volinv*dtinv)
+
+             if(n_cells(3).gt.1) then
 
                 ! Corner viscosity coefficients 3D
                 muzepp = 0.25d0*(eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
@@ -718,87 +738,113 @@ contains
                      (sqrt(muzepp)*rancorn(i+1,j,k+1)+ sqrt(muzemp)*rancorn(i,j,k+1) +  &
                      sqrt(muzepm)* rancorn(i+1,j,k)+ sqrt(muzemm)*rancorn(i,j,k)) ! Random "divergence" stress
 
-                fluxy(i,j,k,2:5) = fluxy(i,j,k,2:5) + weiner(2:5)
+             elseif(n_cells(3).eq.1) then
 
-                ! Viscous heating:
-                phiflx =  weiner(2)*(prim(i,j-1,k,2)+prim(i,j,k,2)) +          &
-                     weiner(3)*(prim(i,j-1,k,3)+prim(i,j,k,3)) + &
-                     weiner(4)*(prim(i,j-1,k,4)+prim(i,j,k,4))
-                phiflx =  - 0.5d0*phiflx
+                ! Corner viscosity coefficients 2D
+                muzepp = 0.5d0*(eta(i+1,j-1,k)*prim(i+1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) + &
+                     eta(i+1,j,k)*prim(i+1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) )/3.d0
 
-                fluxy(i,j,k,5) = fluxy(i,j,k,5) - phiflx
+                muzemp = 0.5d0*(eta(i-1,j,k)*prim(i-1,j,k,5) + eta(i,j,k)*prim(i,j,k,5) + &
+                     eta(i-1,j-1,k)*prim(i-1,j-1,k,5) + eta(i,j-1,k)*prim(i,j-1,k,5) )/3.d0
 
-                if(algorithm_type.eq.2) then
+                if (abs(visc_type) .eq. 3) then
 
-                   weiner(6:5+nspecies) = 0.0d0
+                   muzepp = muzepp + 0.25d0*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) + &
+                        zeta(i+1,j,k)*prim(i+1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) )
 
-                   do ns = 1,nspecies
+                   muzemp = muzemp + 0.25d0*(zeta(i-1,j,k)*prim(i-1,j,k,5) + zeta(i,j,k)*prim(i,j,k,5) + &
+                        zeta(i-1,j-1,k)*prim(i-1,j-1,k,5) + zeta(i,j-1,k)*prim(i,j-1,k,5) )
 
-                      yy(ns) = max(0.d0,min(1.d0,prim(i,j-1,k,6+ns)))
-                      yyp(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
+                endif
 
-                   enddo
-                   sumy = sum(yy(:))
-                   sumyp = sum(yyp(:))
-                   yy(:) = yy(:)/sumy
-                   yyp(:) = yyp(:)/sumyp
+                weiner(3) = weiner(3) + 0.5d0*nweight*    &
+                     (sqrt(muzepp)*rancorn(i+1,j,k) + sqrt(muzemp)*rancorn(i,j,k)) ! Random "divergence" stress
 
-                   MWmix = 0.d0
+             endif
 
-                   do ns = 1, nspecies
+             fluxy(i,j,k,2:5) = fluxy(i,j,k,2:5) + weiner(2:5)
 
-                      MWmix = MWmix + 0.5d0*(yy(ns)+yyp(ns))/molmass(ns)
+             ! Viscous heating:
+             phiflx =  weiner(2)*(prim(i,j-1,k,2)+prim(i,j,k,2)) +          &
+                  weiner(3)*(prim(i,j-1,k,3)+prim(i,j,k,3)) + &
+                  weiner(4)*(prim(i,j-1,k,4)+prim(i,j,k,4))
+             phiflx =  - 0.5d0*phiflx
 
-                      do ll = 1, nspecies
+             fluxy(i,j,k,5) = fluxy(i,j,k,5) - phiflx
 
-                         DijY_edge(ns,ll) = 0.5d0*(Dij(i,j-1,k,ns,ll)*yy(ll) + &
-                              Dij(i,j,k,ns,ll)*yyp(ll) &
-                              + (Dij(i,j-1,k,ll,ns)*yy(ns) + &
-                              Dij(i,j,k,ll,ns)*yyp(ns) ))
+             if(algorithm_type.eq.2) then
 
-                      enddo
+                weiner(6:5+nspecies) = 0.0d0
 
-                   enddo
+                do ns = 1,nspecies
 
-                   do ns=1,nspecies
-                      if(abs(yy(ns)) + abs(yyp(ns)) .le. 1.d-12)then
-                         DijY_edge(ns,1:nspecies)=0.d0
-                         DijY_edge(1:nspecies,ns)=0.d0
-                      endif
-                   enddo
+                   yy(ns) = max(0.d0,min(1.d0,prim(i,j-1,k,6+ns)))
+                   yyp(ns) = max(0.d0,min(1.d0,prim(i,j,k,6+ns)))
 
-                   MWmix = 1.d0 / MWmix
+                enddo
+                sumy = sum(yy(:))
+                sumyp = sum(yyp(:))
+                yy(:) = yy(:)/sumy
+                yyp(:) = yyp(:)/sumyp
 
-                   call cholesky_decomp(DijY_edge,nspecies,sqD)
+                MWmix = 0.d0
 
-                   do ns = 1, nspecies
+                do ns = 1, nspecies
 
-                      do ll = 1, ns
+                   MWmix = MWmix + 0.5d0*(yy(ns)+yyp(ns))/molmass(ns)
 
-                         fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
-                         weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxy(i,j,k,5+ll)
+                   do ll = 1, nspecies
 
-                      enddo
-
-                      fluxy(i,j,k,5+ns) = weiner(5+ns)
+                      DijY_edge(ns,ll) = 0.5d0*(Dij(i,j-1,k,ns,ll)*yy(ll) + &
+                           Dij(i,j,k,ns,ll)*yyp(ll) &
+                           + (Dij(i,j-1,k,ll,ns)*yy(ns) + &
+                           Dij(i,j,k,ll,ns)*yyp(ns) ))
 
                    enddo
 
-                   call get_enthalpies(meanT, hk)
+                enddo
 
-                   soret = 0.d0
+                do ns=1,nspecies
+                   if(abs(yy(ns)) + abs(yyp(ns)) .le. 1.d-12)then
+                      DijY_edge(ns,1:nspecies)=0.d0
+                      DijY_edge(1:nspecies,ns)=0.d0
+                   endif
+                enddo
 
-                   do ns = 1, nspecies
-                      soret = soret + (hk(ns) + Runiv*meanT/molmass(ns) & 
-                           *0.5d0*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*weiner(5+ns)
+                MWmix = 1.d0 / MWmix
+
+                call cholesky_decomp(DijY_edge,nspecies,sqD)
+
+                do ns = 1, nspecies
+
+                   do ll = 1, ns
+
+                      fweights(5+ll)=sqrt(k_b*MWmix*volinv/(Runiv*dt))*sqD(ns,ll)
+                      weiner(5+ns) = weiner(5+ns) + fweights(5+ll)*ranfluxy(i,j,k,5+ll)
+
                    enddo
-                   fluxy(i,j,k,5) = fluxy(i,j,k,5) +  soret
 
-                end if
+                   fluxy(i,j,k,5+ns) = weiner(5+ns)
 
-             end do
+                enddo
+
+                call get_enthalpies(meanT, hk)
+
+                soret = 0.d0
+
+                do ns = 1, nspecies
+                   soret = soret + (hk(ns) + Runiv*meanT/molmass(ns) & 
+                        *0.5d0*(chi(i,j-1,k,ns)+chi(i,j,k,ns)))*weiner(5+ns)
+                enddo
+                fluxy(i,j,k,5) = fluxy(i,j,k,5) +  soret
+
+             end if
+
           end do
        end do
+    end do
+
+    if(n_cells(3).gt.1) then
 
 !!!!!!!!!!!!!!!!!!! z-flux !!!!!!!!!!!!!!!!!!!
 
@@ -959,8 +1005,6 @@ contains
           end do
        end do
 
-    else
-
     endif
 
 !!!!!!!!!!!!! Enforce flux boundary conditions !!!!!!!!!!!!!
@@ -988,190 +1032,411 @@ contains
 
     real(amrex_real) :: sqrtTwo
 
+    integer :: bc_iter, bc_tmp, indx_lo, indx_hi
+    integer :: mass_ind_lo,mass_ind_hi, therm_ind_lo,therm_ind_hi, vel_ind_lo,vel_ind_hi
+
     integer :: i,j,k,l
 
     sqrtTwo = sqrt(2.0)
+    
+    ! Set index ranges
+
+    mass_ind_lo = 3 + AMREX_SPACEDIM
+    mass_ind_hi = 2 + AMREX_SPACEDIM + nspecies
+
+    therm_ind_lo = 2 + AMREX_SPACEDIM
+    therm_ind_hi = 2 + AMREX_SPACEDIM
+
+    vel_ind_lo = 2
+    vel_ind_hi = 1 + AMREX_SPACEDIM
+
+!!!!!!!!
+
+    !! Template:
+
+    ! do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+    !    SELECT CASE (bc_iter)
+    !    CASE (1) ! mass boundary conditions
+    !       bc_tmp = mass_bc_()
+    !       indx_lo = mass_ind_lo
+    !       indx_hi = mass_ind_hi
+    !    CASE (2) ! temperature boundary conditions
+    !       bc_tmp = therm_bc_()
+    !       indx_lo = therm_ind_lo
+    !       indx_hi = therm_ind_hi
+    !    CASE (3) ! velocity boundary conditions
+    !       bc_tmp = vel_bc_()
+    !       indx_lo = vel_ind_lo
+    !       indx_hi = vel_ind_hi
+    !    END SELECT
+
+    !    if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+    !       do l = indx_lo,indx_hi
+    !          if(l.ne.) then ! neumann if not normal velocity
+    !          else           ! dirichlet if normal velocity
+    !          endif
+    !       enddo
+    !    elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+    !       do l = indx_lo,indx_hi
+    !       enddo
+    !    endif
+
+    ! enddo
 
 !!!!!!!!!!!!!! x-flux BCs !!!!!!!!!!!!!!
 
-    !if on lower bound and specular
-    if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
-                
-                if(l.eq.2) then
-                   xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
-                else 
-                   xflux(0,j,k,l) = 0
+    !if on lower bound
+    if(lo(1) .eq. 0) then !lower x bound
+       
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+          
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_lo(1)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_lo(1)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_lo(1)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.2) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(0,j,k,l) = 0
+                      end do
+                   end do
+                else            ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+                      end do
+                   end do
                 endif
 
              end do
-          end do
-       end do
-    endif
-    !if on upper bound and specular
-    if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
 
-                if(l.eq.2) then
-                   xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)
-                else 
-                   xflux(hi(1)+1,j,k,l) = 0
-                endif     
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do k = lo(3),hi(3)
+                   do j = lo(2),hi(2)
+                      xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+                   end do
+                end do
 
              end do
-          end do
-       end do
+
+          endif
+
+       enddo
+
     endif
 
-    !if on lower bound and diff
-    if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
+    !if on upper bound
+    if(hi(1) .eq. n_cells(1)-1) then
 
-                xflux(0,j,k,l) = sqrtTwo*xflux(0,j,k,l)
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+          
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_hi(1)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_hi(1)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_hi(1)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
 
-             end do
-          end do
-       end do
-    endif
-    !if on upper bound and diff
-    if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do j = lo(2),hi(2)
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
 
-                xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
+             do l = indx_lo,indx_hi
 
-             end do
-          end do
-       end do
+                if(l.ne.2) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(hi(1)+1,j,k,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do j = lo(2),hi(2)
+                         xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
+                      end do
+                   end do
+                endif
+
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do k = lo(3),hi(3)
+                   do j = lo(2),hi(2)
+                      xflux(hi(1)+1,j,k,l) = sqrtTwo*xflux(hi(1)+1,j,k,l)        
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
 
 !!!!!!!!!!!!!! y-flux BCs !!!!!!!!!!!!!!
 
-    !if on lower bound and specular
-    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
-                
-                if(l.eq.3) then
-                   yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
-                else
-                   yflux(i,0,k,l) = 0
+    !if on lower bound
+    if(lo(2) .eq. 0) then
+       
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_lo(2)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_lo(2)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_lo(2)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.3) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,0,k,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+                      end do
+                   end do
                 endif
 
-             end do
-          end do
-       end do
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do k = lo(3),hi(3)
+                   do i = lo(1),hi(1)
+                      yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
-    !if on upper bound and specular
-    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
-                
-                if(l.eq.3) then
-                   yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)
-                else
-                   yflux(i,hi(2)+1,k,l) = 0
+
+    !if on upper bound
+    if(hi(2) .eq. n_cells(2)-1) then
+
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_hi(2)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_hi(2)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_hi(2)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.3) then ! neumann if not normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,hi(2)+1,k,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do k = lo(3),hi(3)
+                      do i = lo(1),hi(1)
+                         yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
+                      end do
+                   end do
                 endif
-                
-             end do
-          end do
-       end do
-    endif
 
-    !if on lower bound and diff
-    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
+             enddo
 
-                yflux(i,0,k,l) = sqrtTwo*yflux(i,0,k,l)
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
 
-             end do
-          end do
-       end do
-    endif
-    !if on upper bound and diff
-    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
-       do l = 2,nvars
-          do k = lo(3),hi(3)
-             do i = lo(1),hi(1)
+             do l = indx_lo,indx_hi
 
-                yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
+                do k = lo(3),hi(3)
+                   do i = lo(1),hi(1)
+                      yflux(i,hi(2)+1,k,l) = sqrtTwo*yflux(i,hi(2)+1,k,l)        
+                   end do
+                end do
 
-             end do
-          end do
-       end do
+             enddo
+
+          endif
+
+       enddo
+
     endif
 
 !!!!!!!!!!!!!! z-flux BCs !!!!!!!!!!!!!!
 
-    !if on lower bound and specular
-    if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 1)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
+    !if on lower bound
+    if(lo(3) .eq. 0) then
 
-                if(l.eq.4) then
-                   zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
-                else
-                   zflux(i,j,0,l) = 0
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_lo(3)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_lo(3)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_lo(3)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.4) then ! neumann if not normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,0,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
+                      end do
+                   end do
                 endif
 
-             end do
-          end do
-       end do
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do j = lo(2),hi(2)
+                   do i = lo(1),hi(1)
+                      zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
-    !if on upper bound and specular
-    if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 1)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-                
-                if(l.eq.4) then
-                   zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)
-                else
-                   zflux(i,j,hi(3)+1,l) = 0
+
+    !if on upper bound
+    if(hi(3) .eq. n_cells(3)-1) then
+
+       do bc_iter = 1,3 ! iterate over 1) mass, 2) temperature, and 3) velocity BCs
+
+          SELECT CASE (bc_iter)
+          CASE (1) ! mass boundary conditions
+             bc_tmp = mass_bc_hi(3)
+             indx_lo = mass_ind_lo
+             indx_hi = mass_ind_hi
+          CASE (2) ! temperature boundary conditions
+             bc_tmp = therm_bc_hi(3)
+             indx_lo = therm_ind_lo
+             indx_hi = therm_ind_hi
+          CASE (3) ! velocity boundary conditions
+             bc_tmp = vel_bc_hi(3)
+             indx_lo = vel_ind_lo
+             indx_hi = vel_ind_hi
+          END SELECT
+
+          if(bc_tmp .eq. 1) then ! neumann (0 scaling)
+
+             do l = indx_lo,indx_hi
+
+                if(l.ne.4) then ! neumann if not normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,hi(3)+1,l) = 0
+                      end do
+                   end do
+                else           ! dirichlet if normal velocity
+                   do j = lo(2),hi(2)
+                      do i = lo(1),hi(1)
+                         zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
+                      end do
+                   end do
                 endif
-                
-             end do
-          end do
-       end do
+
+             enddo
+
+          elseif(bc_tmp .eq. 2) then ! dirichlet (root 2 scaling) 
+
+             do l = indx_lo,indx_hi
+
+                do j = lo(2),hi(2)
+                   do i = lo(1),hi(1)
+                      zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
+                   end do
+                end do
+
+             enddo
+
+          endif
+
+       enddo
+
     endif
-
-    !if on lower bound and diff
-    if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 2)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-
-                zflux(i,j,0,l) = sqrtTwo*zflux(i,j,0,l)
-
-             end do
-          end do
-       end do
-    endif
-    !if on upper bound and diff
-    if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 2)) then
-       do l = 2,nvars
-          do j = lo(2),hi(2)
-             do i = lo(1),hi(1)
-
-                zflux(i,j,hi(3)+1,l) = sqrtTwo*zflux(i,j,hi(3)+1,l)        
-
-             end do
-          end do
-       end do
-    endif
-
 
   end subroutine stoch_flux_BC
 
@@ -1395,6 +1660,7 @@ contains
     end do
 
 #if (AMREX_SPACEDIM == 3)
+    if(n_cells(3).gt.1) then
     !z flux
     do k = lo(3),hi(3)+1
        do j = lo(2),hi(2)
@@ -1465,55 +1731,108 @@ contains
           end do
        end do
     end do
+    endif
 #endif
 
+    if(n_cells(3).gt.1) then
 
-    do k = lo(3),hi(3)+1
-       do j = lo(2),hi(2)+1
-          do i = lo(1),hi(1)+1
+       do k = lo(3),hi(3)+1
+          do j = lo(2),hi(2)+1
+             do i = lo(1),hi(1)+1
 
-             ! Corner viscosity
-             muxp = 0.125d0*(eta(i,j-1,k-1) + eta(i-1,j-1,k-1) + eta(i,j,k-1) + eta(i-1,j,k-1)+ &
-                  eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k))
-             if (abs(visc_type) .eq. 3) then
-                zetaxp = 0.125d0*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+ &
-                     zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k))
-             else
-                zetaxp = 0.0
-             endif
+                ! Corner viscosity
+                muxp = 0.125d0*(eta(i,j-1,k-1) + eta(i-1,j-1,k-1) + eta(i,j,k-1) + eta(i-1,j,k-1)+ &
+                     eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k))
+                if (abs(visc_type) .eq. 3) then
+                   zetaxp = 0.125d0*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+ &
+                        zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k))
+                else
+                   zetaxp = 0.0
+                endif
 
-             cornux(i,j,k) = 0.25d0*muxp*(prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i-1,j,k-1,2)+ &
-                  prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1)
-             cornvx(i,j,k) = 0.25d0*muxp*(prim(i,j-1,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i-1,j,k-1,3)+ &
-                  prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/dx(1)
-             cornwx(i,j,k) = 0.25d0*muxp*(prim(i,j-1,k-1,4)-prim(i-1,j-1,k-1,4) + prim(i,j,k-1,4)-prim(i-1,j,k-1,4)+ &
-                  prim(i,j-1,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i-1,j,k,4))/dx(1)
+                cornux(i,j,k) = 0.25d0*muxp*(prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i-1,j,k-1,2)+ &
+                     prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1)
+                cornvx(i,j,k) = 0.25d0*muxp*(prim(i,j-1,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i-1,j,k-1,3)+ &
+                     prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/dx(1)
+                cornwx(i,j,k) = 0.25d0*muxp*(prim(i,j-1,k-1,4)-prim(i-1,j-1,k-1,4) + prim(i,j,k-1,4)-prim(i-1,j,k-1,4)+ &
+                     prim(i,j-1,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i-1,j,k,4))/dx(1)
 
-             cornuy(i,j,k) = 0.25d0*muxp* (prim(i-1,j,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i,j-1,k-1,2) + &
-                  prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/dx(2)
-             cornvy(i,j,k) = 0.25d0*muxp* (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i,j-1,k-1,3) + &
-                  prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2)
-             cornwy(i,j,k) = 0.25d0*muxp* (prim(i-1,j,k-1,4)-prim(i-1,j-1,k-1,4) + prim(i,j,k-1,4)-prim(i,j-1,k-1,4) + &
-                  prim(i-1,j,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i,j-1,k,4))/dx(2)
+                cornuy(i,j,k) = 0.25d0*muxp* (prim(i-1,j,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i,j-1,k-1,2) + &
+                     prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/dx(2)
+                cornvy(i,j,k) = 0.25d0*muxp* (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i,j-1,k-1,3) + &
+                     prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2)
+                cornwy(i,j,k) = 0.25d0*muxp* (prim(i-1,j,k-1,4)-prim(i-1,j-1,k-1,4) + prim(i,j,k-1,4)-prim(i,j-1,k-1,4) + &
+                     prim(i-1,j,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i,j-1,k,4))/dx(2)
 
-             cornuz(i,j,k) = 0.25d0*muxp*(prim(i-1,j-1,k,2)-prim(i-1,j-1,k-1,2) + prim(i,j-1,k,2)-prim(i,j-1,k-1,2) + &
-                  prim(i-1,j,k,2)-prim(i-1,j,k-1,2) + prim(i,j,k,2)-prim(i,j,k-1,2))/dx(3)
-             cornvz(i,j,k) = 0.25d0*muxp*(prim(i-1,j-1,k,3)-prim(i-1,j-1,k-1,3) + prim(i,j-1,k,3)-prim(i,j-1,k-1,3) + &
-                  prim(i-1,j,k,3)-prim(i-1,j,k-1,3) + prim(i,j,k,3)-prim(i,j,k-1,3))/dx(3)
-             cornwz(i,j,k) = 0.25d0*muxp*(prim(i-1,j-1,k,4)-prim(i-1,j-1,k-1,4) + prim(i,j-1,k,4)-prim(i,j-1,k-1,4) + &
-                  prim(i-1,j,k,4)-prim(i-1,j,k-1,4) + prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3)
+                cornuz(i,j,k) = 0.25d0*muxp*(prim(i-1,j-1,k,2)-prim(i-1,j-1,k-1,2) + prim(i,j-1,k,2)-prim(i,j-1,k-1,2) + &
+                     prim(i-1,j,k,2)-prim(i-1,j,k-1,2) + prim(i,j,k,2)-prim(i,j,k-1,2))/dx(3)
+                cornvz(i,j,k) = 0.25d0*muxp*(prim(i-1,j-1,k,3)-prim(i-1,j-1,k-1,3) + prim(i,j-1,k,3)-prim(i,j-1,k-1,3) + &
+                     prim(i-1,j,k,3)-prim(i-1,j,k-1,3) + prim(i,j,k,3)-prim(i,j,k-1,3))/dx(3)
+                cornwz(i,j,k) = 0.25d0*muxp*(prim(i-1,j-1,k,4)-prim(i-1,j-1,k-1,4) + prim(i,j-1,k,4)-prim(i,j-1,k-1,4) + &
+                     prim(i-1,j,k,4)-prim(i-1,j,k-1,4) + prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3)
 
-             visccorn(i,j,k) =  (muxp/12d0+zetaxp/4d0)*( & ! Divergence stress
-                  (prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,k-1,2)-prim(i-1,j,k-1,2))/dx(1) + &
-                  (prim(i,j-1,k,2)-prim(i-1,j-1,k,2))/dx(1) + (prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1) + &
-                  (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,k-1,3)-prim(i,j-1,k-1,3))/dx(2) + &
-                  (prim(i-1,j,k,3)-prim(i-1,j-1,k,3))/dx(2) + (prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2) + &
-                  (prim(i-1,j-1,k,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,4)-prim(i,j-1,k-1,4))/dx(3) + &
-                  (prim(i-1,j,k,4)-prim(i-1,j,k-1,4))/dx(3) + (prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3))
+                visccorn(i,j,k) =  (muxp/12d0+zetaxp/4d0)*( & ! Divergence stress
+                     (prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,k-1,2)-prim(i-1,j,k-1,2))/dx(1) + &
+                     (prim(i,j-1,k,2)-prim(i-1,j-1,k,2))/dx(1) + (prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1) + &
+                     (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,k-1,3)-prim(i,j-1,k-1,3))/dx(2) + &
+                     (prim(i-1,j,k,3)-prim(i-1,j-1,k,3))/dx(2) + (prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2) + &
+                     (prim(i-1,j-1,k,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,4)-prim(i,j-1,k-1,4))/dx(3) + &
+                     (prim(i-1,j,k,4)-prim(i-1,j,k-1,4))/dx(3) + (prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3))
 
+             end do
           end do
        end do
-    end do
+
+    elseif(n_cells(3).eq.1) then
+       
+       do k = lo(3),hi(3)
+          do j = lo(2),hi(2)+1
+             do i = lo(1),hi(1)+1
+
+                ! Corner viscosity
+                muxp = 0.25d0*(eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k))
+                if (abs(visc_type) .eq. 3) then
+                   zetaxp = 0.25d0*(zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k))
+                else
+                   zetaxp = 0.0
+                endif
+
+                cornux(i,j,k) = 0.5d0*muxp*(prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1)
+                cornvx(i,j,k) = 0.5d0*muxp*(prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/dx(1)
+                cornwx(i,j,k) = 0.5d0*muxp*(prim(i,j-1,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i-1,j,k,4))/dx(1)
+
+                cornuy(i,j,k) = 0.5d0*muxp* (prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/dx(2)
+                cornvy(i,j,k) = 0.5d0*muxp* (prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2)
+                cornwy(i,j,k) = 0.5d0*muxp* (prim(i-1,j,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i,j-1,k,4))/dx(2)
+
+                cornuz(i,j,k) = 0.d0
+                cornvz(i,j,k) = 0.d0
+                cornwz(i,j,k) = 0.d0
+
+                visccorn(i,j,k) =  (muxp/6d0+zetaxp/2d0)*( & ! Divergence stress
+                     (prim(i,j-1,k,2)-prim(i-1,j-1,k,2))/dx(1) + (prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1) + &
+                     (prim(i-1,j,k,3)-prim(i-1,j-1,k,3))/dx(2) + (prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2))
+
+                ! Copy along z direction
+                cornux(i,j,k+1) = cornux(i,j,k)
+                cornvx(i,j,k+1) = cornvx(i,j,k)
+                cornwx(i,j,k+1) = cornwx(i,j,k)
+
+                cornuy(i,j,k+1) = cornuy(i,j,k)
+                cornvy(i,j,k+1) = cornvy(i,j,k)
+                cornwy(i,j,k+1) = cornwy(i,j,k)
+
+                cornuz(i,j,k+1) = cornuz(i,j,k)
+                cornvz(i,j,k+1) = cornvz(i,j,k)
+                cornwz(i,j,k+1) = cornwz(i,j,k)
+
+                visccorn(i,j,k+1) = visccorn(i,j,k)
+
+             end do
+          end do
+       end do
+
+    endif
 
     !x flux
     do k = lo(3),hi(3)
@@ -1592,6 +1911,7 @@ contains
     end do
 
     !z flux
+    if(n_cells(3).gt.1) then
     do k = lo(3),hi(3)+1
        do j = lo(2),hi(2)
           do i = lo(1),hi(1)
@@ -1627,6 +1947,7 @@ contains
           end do
        end do
     end do
+    endif
 
   end subroutine diff_flux
 

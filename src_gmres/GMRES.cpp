@@ -13,7 +13,7 @@ using namespace gmres;
 
 void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
            std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
-           const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+           std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
            MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
            MultiFab & gamma,
            Real theta_alpha,
@@ -115,7 +115,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
     // preconditioned norm_b: norm_pre_b
-    StagL2Norm(tmp_u, 0, norm_u);
+    StagL2Norm(geom, tmp_u, 0, norm_u);
     CCL2Norm(tmp_p, 0, norm_p);
     norm_p       = p_norm_weight*norm_p;
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
@@ -123,7 +123,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
     // calculate the l2 norm of rhs
-    StagL2Norm(b_u, 0, norm_u);
+    StagL2Norm(geom, b_u, 0, norm_u);
     CCL2Norm(b_p, 0, norm_p);
     norm_p = p_norm_weight*norm_p;
     norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
@@ -180,7 +180,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         //_______________________________________________________________________
         // un-preconditioned residuals
-        StagL2Norm(tmp_u, 0, norm_u_noprecon);
+        StagL2Norm(geom, tmp_u, 0, norm_u_noprecon);
         CCL2Norm(tmp_p, 0, norm_p_noprecon);
         norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
@@ -211,7 +211,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
         // resid = sqrt(dot_product(r, r))
-        StagL2Norm(r_u, 0, norm_u);
+        StagL2Norm(geom, r_u, 0, norm_u);
         CCL2Norm(r_p, 0, norm_p);
         norm_p     = p_norm_weight*norm_p;
         norm_resid = sqrt(norm_u*norm_u + norm_p*norm_p);
@@ -344,7 +344,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             for (int k=0; k<=i; ++k) {
                 // H(k,i) = dot_product(w, V(k))
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
-                StagInnerProd(w_u, 0, V_u, k, inner_prod_vel);
+                StagInnerProd(geom,w_u, 0, V_u, k, inner_prod_vel);
                 CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
@@ -363,7 +363,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             }
 
             // H(i+1,i) = norm(w)
-            StagL2Norm(w_u, 0, norm_u);
+            StagL2Norm(geom, w_u, 0, norm_u);
             CCL2Norm(w_p, 0, norm_p);
             norm_p    = p_norm_weight*norm_p;
             H[i+1][i] = sqrt(norm_u*norm_u + norm_p*norm_p);
