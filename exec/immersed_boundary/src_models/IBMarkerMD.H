@@ -9,6 +9,14 @@
 using namespace amrex;
 
 
+/********************************************************************************
+ *                                                                              *
+ * NAMESPACE immbdy_geom: a namspace containing classes to characterize the     *
+ *                        geometry of immersed boundaries                       *
+ *                                                                              *
+ *******************************************************************************/
+
+
 namespace immbdy_geom{
 
 struct Vertex {
@@ -57,34 +65,31 @@ private:
     Real m_length_0;
 };
 
-
-
-// struct Curve {
-//  Edge * edges;
-//  int length;
-//  int capacity;
-// };
-
 };
 
 
 
-typedef enum {
-	ARG_r_m,
-	ARG_r,
-	ARG_r_p //,
-	// ARG_bn_m,
-	// ARG_bn_p,
-	// ARG_t_m,
-	// ARG_t,
-	// ARG_t_p
-} NDERIV__coordinate;
+/********************************************************************************
+ *                                                                              *
+ * NAMESPACE immbdy_md: a namespace containign function to time-step (MD) the   *
+ *                      immersed boundary markers                               *
+ *                                                                              *
+ *******************************************************************************/
+
 
 
 namespace immbdy_md {
 
+typedef enum {
+    ARG_r_m,
+    ARG_r,
+    ARG_r_p //,
+} NDERIV__coordinate;
+
+
 using namespace immbdy_geom;
 
+// Bending rigidity model
 void add_bending_forces(Edge & e_ref, Edge & e, Real k, Real cos_theta_0);
 
 void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
@@ -92,6 +97,7 @@ void bending_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                Real k, Real cos_theta_0);
 
 
+// Active driving model
 Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
         const RealVect & u, Real theta);
 
@@ -102,7 +108,7 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                const RealVect & u, Real theta, Real k);
-
 }
+
 
 #endif

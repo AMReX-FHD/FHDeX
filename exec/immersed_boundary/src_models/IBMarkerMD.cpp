@@ -265,9 +265,9 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 
     RealVect r_dx;
 
-    if      (arg == ARG_r_m) r_dx = r_m + dx; //vadd(&r_dx, &r_m, &dx);
-    else if (arg == ARG_r)   r_dx = r   + dx; //vadd(&r_dx, &r, &dx);
-    else if (arg == ARG_r_p) r_dx = r_p + dx; //vadd(&r_dx, &r_p, &dx);
+    if      (arg == ARG_r_m) r_dx = r_m + dx;
+    else if (arg == ARG_r)   r_dx = r   + dx;
+    else if (arg == ARG_r_p) r_dx = r_p + dx;
 
     else {
         Abort();
@@ -283,9 +283,9 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
         Abort();
     }
 
-    if      (arg == ARG_r_m) r_dx = r_m - dx; //vsub(&r_dx, &r_m, &dx);
-    else if (arg == ARG_r)   r_dx = r   - dx; //vsub(&r_dx, &r, &dx);
-    else if (arg == ARG_r_p) r_dx = r_p - dx; //vsub(&r_dx, &r_p, &dx);
+    if      (arg == ARG_r_m) r_dx = r_m - dx;
+    else if (arg == ARG_r)   r_dx = r   - dx;
+    else if (arg == ARG_r_p) r_dx = r_p - dx;
 
     else {
         Abort();
