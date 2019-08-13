@@ -47,61 +47,57 @@ contains
     k = 0
 
     do j=lo_f(2),hi_f(2)
-    do i=lo_f(1),hi_f(1)+1
+    do i=lo_f(1),hi_f(1)+1,2
 
-       if (mod(j,2) .eq. 0) then
-          joff = -1
-       else
-          joff = 1
-       end if
-
-       if (mod(i,2) .eq. 0) then
+       joff = (-1)**(mod(j,2)+1)
 
           ! linear interpolation
           phix_f(i,j,k) = phix_f(i,j,k) &
                + 0.75d0*phix_c(i/2,j/2     ,k) &
                + 0.25d0*phix_c(i/2,j/2+joff,k)
 
-       else
+    end do
+    end do
 
-          ! bilinear interpolation
-          phix_f(i,j,k) = phix_f(i,j,k) &
-               + 0.375d0*phix_c(i/2  ,j/2     ,k) &
-               + 0.125d0*phix_c(i/2  ,j/2+joff,k) &
-               + 0.375d0*phix_c(i/2+1,j/2     ,k) &
-               + 0.125d0*phix_c(i/2+1,j/2+joff,k)
+    do j=lo_f(2),hi_f(2)
+    do i=lo_f(1)+1,hi_f(1),2
 
-       end if
+       joff = (-1)**(mod(j,2)+1)
+
+       ! bilinear interpolation
+       phix_f(i,j,k) = phix_f(i,j,k) &
+            + 0.375d0*phix_c(i/2  ,j/2     ,k) &
+            + 0.125d0*phix_c(i/2  ,j/2+joff,k) &
+            + 0.375d0*phix_c(i/2+1,j/2     ,k) &
+            + 0.125d0*phix_c(i/2+1,j/2+joff,k)
 
     end do
     end do
 
-    do j=lo_f(2),hi_f(2)+1
+    do j=lo_f(2),hi_f(2)+1,2
     do i=lo_f(1),hi_f(1)
 
-       if (mod(i,2) .eq. 0) then
-          ioff = -1
-       else
-          ioff = 1
-       end if
+       ioff = (-1)**(mod(i,2)+1)
+       
+       ! linear interpolation
+       phiy_f(i,j,k) = phiy_f(i,j,k) &
+            + 0.75d0*phiy_c(i/2     ,j/2,k) &
+            + 0.25d0*phiy_c(i/2+ioff,j/2,k)
 
-       if (mod(j,2) .eq. 0) then
+    end do
+    end do
 
-          ! linear interpolation
-          phiy_f(i,j,k) = phiy_f(i,j,k) &
-               + 0.75d0*phiy_c(i/2     ,j/2,k) &
-               + 0.25d0*phiy_c(i/2+ioff,j/2,k)
+    do j=lo_f(2)+1,hi_f(2),2
+    do i=lo_f(1),hi_f(1)
 
-       else
+       ioff = (-1)**(mod(i,2)+1)
 
-          ! bilinear interpolation
-          phiy_f(i,j,k) = phiy_f(i,j,k) &
-               + 0.375d0*phiy_c(i/2     ,j/2  ,k) &
-               + 0.125d0*phiy_c(i/2+ioff,j/2  ,k) &
-               + 0.375d0*phiy_c(i/2     ,j/2+1,k) &
-               + 0.125d0*phiy_c(i/2+ioff,j/2+1,k)
-
-       end if
+       ! bilinear interpolation
+       phiy_f(i,j,k) = phiy_f(i,j,k) &
+            + 0.375d0*phiy_c(i/2     ,j/2  ,k) &
+            + 0.125d0*phiy_c(i/2+ioff,j/2  ,k) &
+            + 0.375d0*phiy_c(i/2     ,j/2+1,k) &
+            + 0.125d0*phiy_c(i/2+ioff,j/2+1,k)
 
     end do
     end do
@@ -118,119 +114,119 @@ contains
 
     do k=lo_f(3),hi_f(3)
     do j=lo_f(2),hi_f(2)
-    do i=lo_f(1),hi_f(1)+1
+    do i=lo_f(1),hi_f(1)+1,2
 
-       if (mod(j,2) .eq. 0) then
-          joff = -1
-       else
-          joff = 1
-       end if
+       joff = (-1)**(mod(j,2)+1)
+       koff = (-1)**(mod(k,2)+1)
+       
+       ! bilinear in the yz plane
+       phix_f(i,j,k) = phix_f(i,j,k) &
+            + nine16 *phix_c(i/2,j/2     ,k/2     ) &
+            + three16*phix_c(i/2,j/2+joff,k/2     ) &
+            + three16*phix_c(i/2,j/2     ,k/2+koff) &
+            + one16  *phix_c(i/2,j/2+joff,k/2+koff)
 
-       if (mod(k,2) .eq. 0) then
-          koff = -1
-       else
-          koff = 1
-       end if
+    end do
+    end do
+    end do
+ 
+    do k=lo_f(3),hi_f(3)
+    do j=lo_f(2),hi_f(2)
+    do i=lo_f(1)+1,hi_f(1),2
 
-       if (mod(i,2) .eq. 0) then
-          ! bilinear in the yz plane
-          phix_f(i,j,k) = phix_f(i,j,k) &
-               + nine16 *phix_c(i/2,j/2     ,k/2     ) &
-               + three16*phix_c(i/2,j/2+joff,k/2     ) &
-               + three16*phix_c(i/2,j/2     ,k/2+koff) &
-               + one16  *phix_c(i/2,j/2+joff,k/2+koff)
-       else
-          ! bilinear in the yz plane, linear in x
-          phix_f(i,j,k) = phix_f(i,j,k) &
-               + nine32 *phix_c(i/2  ,j/2     ,k/2     ) &
-               + three32*phix_c(i/2  ,j/2+joff,k/2     ) &
-               + three32*phix_c(i/2  ,j/2     ,k/2+koff) &
-               + one32  *phix_c(i/2  ,j/2+joff,k/2+koff) &
-               + nine32 *phix_c(i/2+1,j/2     ,k/2     ) &
-               + three32*phix_c(i/2+1,j/2+joff,k/2     ) &
-               + three32*phix_c(i/2+1,j/2     ,k/2+koff) &
-               + one32  *phix_c(i/2+1,j/2+joff,k/2+koff)
-       end if
+       joff = (-1)**(mod(j,2)+1)
+       koff = (-1)**(mod(k,2)+1)
+       
+       ! bilinear in the yz plane, linear in x
+       phix_f(i,j,k) = phix_f(i,j,k) &
+            + nine32 *phix_c(i/2  ,j/2     ,k/2     ) &
+            + three32*phix_c(i/2  ,j/2+joff,k/2     ) &
+            + three32*phix_c(i/2  ,j/2     ,k/2+koff) &
+            + one32  *phix_c(i/2  ,j/2+joff,k/2+koff) &
+            + nine32 *phix_c(i/2+1,j/2     ,k/2     ) &
+            + three32*phix_c(i/2+1,j/2+joff,k/2     ) &
+            + three32*phix_c(i/2+1,j/2     ,k/2+koff) &
+            + one32  *phix_c(i/2+1,j/2+joff,k/2+koff)
 
     end do
     end do
     end do
 
     do k=lo_f(3),hi_f(3)
-    do j=lo_f(2),hi_f(2)+1
+    do j=lo_f(2),hi_f(2)+1,2
     do i=lo_f(1),hi_f(1)
-
-       if (mod(i,2) .eq. 0) then
-          ioff = -1
-       else
-          ioff = 1
-       end if
-
-       if (mod(k,2) .eq. 0) then
-          koff = -1
-       else
-          koff = 1
-       end if
-
-       if (mod(j,2) .eq. 0) then
-          ! bilinear in the xz plane
-          phiy_f(i,j,k) = phiy_f(i,j,k) &
-               + nine16* phiy_c(i/2     ,j/2,k/2     ) &
-               + three16*phiy_c(i/2+ioff,j/2,k/2     ) &
-               + three16*phiy_c(i/2     ,j/2,k/2+koff) &
-               + one16*  phiy_c(i/2+ioff,j/2,k/2+koff)
-       else
-          ! bilinear in the yz plane, linear in y
-          phiy_f(i,j,k) = phiy_f(i,j,k) &
-               + nine32* phiy_c(i/2     ,j/2  ,k/2     ) &
-               + three32*phiy_c(i/2+ioff,j/2  ,k/2     ) &
-               + three32*phiy_c(i/2     ,j/2  ,k/2+koff) &
-               + one32*  phiy_c(i/2+ioff,j/2  ,k/2+koff) &
-               + nine32* phiy_c(i/2     ,j/2+1,k/2     ) &
-               + three32*phiy_c(i/2+ioff,j/2+1,k/2     ) &
-               + three32*phiy_c(i/2     ,j/2+1,k/2+koff) &
-               + one32*  phiy_c(i/2+ioff,j/2+1,k/2+koff)
-       end if
+       
+       ioff = (-1)**(mod(i,2)+1)
+       koff = (-1)**(mod(k,2)+1)
+       
+       ! bilinear in the xz plane
+       phiy_f(i,j,k) = phiy_f(i,j,k) &
+            + nine16* phiy_c(i/2     ,j/2,k/2     ) &
+            + three16*phiy_c(i/2+ioff,j/2,k/2     ) &
+            + three16*phiy_c(i/2     ,j/2,k/2+koff) &
+            + one16*  phiy_c(i/2+ioff,j/2,k/2+koff)
 
     end do
     end do
     end do
 
-    do k=lo_f(3),hi_f(3)+1
+    do k=lo_f(3),hi_f(3)
+    do j=lo_f(2)+1,hi_f(2),2
+    do i=lo_f(1),hi_f(1)
+       
+       ioff = (-1)**(mod(i,2)+1)
+       koff = (-1)**(mod(k,2)+1)
+
+       ! bilinear in the yz plane, linear in y
+       phiy_f(i,j,k) = phiy_f(i,j,k) &
+            + nine32* phiy_c(i/2     ,j/2  ,k/2     ) &
+            + three32*phiy_c(i/2+ioff,j/2  ,k/2     ) &
+            + three32*phiy_c(i/2     ,j/2  ,k/2+koff) &
+            + one32*  phiy_c(i/2+ioff,j/2  ,k/2+koff) &
+            + nine32* phiy_c(i/2     ,j/2+1,k/2     ) &
+            + three32*phiy_c(i/2+ioff,j/2+1,k/2     ) &
+            + three32*phiy_c(i/2     ,j/2+1,k/2+koff) &
+            + one32*  phiy_c(i/2+ioff,j/2+1,k/2+koff)
+
+    end do
+    end do
+    end do
+
+    do k=lo_f(3),hi_f(3)+1,2
     do j=lo_f(2),hi_f(2)
     do i=lo_f(1),hi_f(1)
+       
+       ioff = (-1)**(mod(i,2)+1)
+       joff = (-1)**(mod(j,2)+1)
 
-       if (mod(i,2) .eq. 0) then
-          ioff = -1
-       else
-          ioff = 1
-       end if
+       ! bilinear in the xy plane
+       phiz_f(i,j,k) = phiz_f(i,j,k) &
+            + nine16* phiz_c(i/2     ,j/2     ,k/2) &
+            + three16*phiz_c(i/2+ioff,j/2     ,k/2) &
+            + three16*phiz_c(i/2     ,j/2+joff,k/2) &
+            + one16*  phiz_c(i/2+ioff,j/2+joff,k/2)
 
-       if (mod(j,2) .eq. 0) then
-          joff = -1
-       else
-          joff = 1
-       end if
+    end do
+    end do
+    end do
 
-       if (mod(k,2) .eq. 0) then
-          ! bilinear in the xy plane
-          phiz_f(i,j,k) = phiz_f(i,j,k) &
-               + nine16* phiz_c(i/2     ,j/2     ,k/2) &
-               + three16*phiz_c(i/2+ioff,j/2     ,k/2) &
-               + three16*phiz_c(i/2     ,j/2+joff,k/2) &
-               + one16*  phiz_c(i/2+ioff,j/2+joff,k/2)
-       else
-          ! bilinear in the xy plane, linear in z
-          phiz_f(i,j,k) = phiz_f(i,j,k) &
-               + nine32* phiz_c(i/2     ,j/2     ,k/2  ) &
-               + three32*phiz_c(i/2+ioff,j/2     ,k/2  ) &
-               + three32*phiz_c(i/2     ,j/2+joff,k/2  ) &
-               + one32*  phiz_c(i/2+ioff,j/2+joff,k/2  ) &
-               + nine32* phiz_c(i/2     ,j/2     ,k/2+1) &
-               + three32*phiz_c(i/2+ioff,j/2     ,k/2+1) &
-               + three32*phiz_c(i/2     ,j/2+joff,k/2+1) &
-               + one32*  phiz_c(i/2+ioff,j/2+joff,k/2+1)
-       end if
+    do k=lo_f(3)+1,hi_f(3),2
+    do j=lo_f(2),hi_f(2)
+    do i=lo_f(1),hi_f(1)
+       
+       ioff = (-1)**(mod(i,2)+1)
+       joff = (-1)**(mod(j,2)+1)
+       
+       ! bilinear in the xy plane, linear in z
+       phiz_f(i,j,k) = phiz_f(i,j,k) &
+            + nine32* phiz_c(i/2     ,j/2     ,k/2  ) &
+            + three32*phiz_c(i/2+ioff,j/2     ,k/2  ) &
+            + three32*phiz_c(i/2     ,j/2+joff,k/2  ) &
+            + one32*  phiz_c(i/2+ioff,j/2+joff,k/2  ) &
+            + nine32* phiz_c(i/2     ,j/2     ,k/2+1) &
+            + three32*phiz_c(i/2+ioff,j/2     ,k/2+1) &
+            + three32*phiz_c(i/2     ,j/2+joff,k/2+1) &
+            + one32*  phiz_c(i/2+ioff,j/2+joff,k/2+1)
 
     end do
     end do
