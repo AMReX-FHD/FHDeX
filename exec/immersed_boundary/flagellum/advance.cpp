@@ -382,25 +382,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // PREDICTOR STEP (heun's method: part 1)
     // compute advective term
 
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        MultiFab::Copy(uMom[i], umac[i], 0, 0, 1, 1);
 
-    // let rho = 1
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        uMom[d].mult(1.0, 1);
-    }
-
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], i, geom, i);
-        MultiFABPhysBCMacVel(uMom[i], i, geom, i);
-    }
-
-    MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
-
-    // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
-                umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
 
     //___________________________________________________________________________
@@ -441,46 +423,51 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.sumNeighbors(IBM_realData::pred_forcex, AMREX_SPACEDIM, 0, 0);
 
 
-    // NOTE: Don't couple predictors as this results in unstable code for small
-    // lenght scales. I don't know know why (yet) -JPB
+    //___________________________________________________________________________
+    // Spread forces to predictor
+    std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        fc_force_pred[d].setVal(0.);
+    }
 
-    // //___________________________________________________________________________
-    // // Spread forces to predictor
-    // BL_PROFILE_VAR("adv_spread forces to predictor", spreadpredfor);
-
-    // std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
-    // for (int d=0; d<AMREX_SPACEDIM; ++d){
-    //     fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-    //     fc_force_pred[d].setVal(0.);
-    // }
-
-    // BL_PROFILE_VAR_STOP(spreadpredfor);
-
-    // BL_PROFILE_VAR("adv_spread predictor forces", SREADPREDICTORFORCES);
-
-    // ib_mc.SpreadPredictor(0, fc_force_pred);
-    // for (int d=0; d<AMREX_SPACEDIM; ++d)
-    //     fc_force_pred[d].SumBoundary(geom.periodicity());
-
-    // BL_PROFILE_VAR_STOP(SREADPREDICTORFORCES);
+    ib_mc.SpreadPredictor(0, fc_force_pred);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        fc_force_pred[d].SumBoundary(geom.periodicity());
 
 
-    BL_PROFILE_VAR("adv_fill neighbors", filltheneighbors);
+
+
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 1);
+
+        // let rho = 1
+        uMom[d].mult(1.0, 1);
+
+        uMom[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+    }
+
+    MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
+
+    // crank-nicolson terms
+    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+                umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         Lumac[d].FillBoundary(geom.periodicity());
 
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
-
         gmres_rhs_u[d].mult(dtinv, 1);
+
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
         MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        // MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
     }
-
-    BL_PROFILE_VAR_STOP(filltheneighbors);
-
 
     std::array< MultiFab, AMREX_SPACEDIM > pg;
     for (int i=0; i<AMREX_SPACEDIM; i++)
@@ -492,6 +479,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ComputeGrad(pres, pg, 0, 0, 1, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
+
         pg[i].FillBoundary(geom.periodicity());
         gmres_rhs_u[i].FillBoundary(geom.periodicity());
 
@@ -507,16 +495,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
 
-    BL_PROFILE_VAR("adv_compute predictor advective", computepredictorad);
-
-    // Compute predictor advective term
-    // let rho = 1
     for (int d=0; d<AMREX_SPACEDIM; d++) {
+
         umacNew[d].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
         MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+    }
+
+    // ADVANCE STEP (crank-nicolson + heun's method)
+
+
+    // Compute predictor advective term
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
+
+        // let rho = 1
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
@@ -524,12 +519,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFABPhysBCMacVel(uMom[d], d, geom, d);
     }
 
-    BL_PROFILE_VAR_STOP(computepredictorad);
-
 
     MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
 
-    // ADVANCE STEP (crank-nicolson + heun's method)
 
     // Compute gmres_rhs
 
@@ -538,6 +530,48 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         advFluxdiv[d].mult(0.5, 1);
         advFluxdivPred[d].mult(0.5, 1);
     }
+
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
+
+        gmres_rhs_u[d].mult(dtinv, 1);
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
+
+        gmres_rhs_u[d].FillBoundary(geom.periodicity());
+
+        MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
+
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
+    }
+
+
+    pres.setVal(0.);  // initial guess
+    SetPressureBC(pres, geom);
+
+    // call GMRES here
+    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
+          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+          geom, norm_pre_rhs);
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        umacNew[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+    }
+
+
+
+    for (int i=0; i<AMREX_SPACEDIM; i++)
+        MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);
+
+
+
 
     //___________________________________________________________________________
     // Interpolate immersed boundary
@@ -550,7 +584,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     ib_mc.ResetMarkers(0);
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
-
     // Constrain it to move in the z = constant plane only
     constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
 
@@ -601,8 +634,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Spread forces to corrector
-    BL_PROFILE_VAR("adv_spread forces to corrector", corrector);
-
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
 
@@ -617,10 +648,96 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_corr[d].SumBoundary(geom.periodicity());
 
-    BL_PROFILE_VAR_STOP(corrector);
 
 
-    BL_PROFILE_VAR("adv_fillboundary", fillboundary);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 1);
+
+        // let rho = 1
+        uMom[d].mult(1.0, 1);
+
+        uMom[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+    }
+
+    MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
+
+    // crank-nicolson terms
+    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+                umac, Lumac, alpha_fc_0, dx, theta_alpha);
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        Lumac[d].FillBoundary(geom.periodicity());
+
+        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
+        gmres_rhs_u[d].mult(dtinv, 1);
+
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_corr[d],    0, 0, 1, 0);
+    }
+
+    pres.setVal(0.);  // initial guess
+    SetPressureBC(pres, geom);
+
+    ComputeGrad(pres, pg, 0, 0, 1, geom);
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        pg[d].FillBoundary(geom.periodicity());
+        gmres_rhs_u[d].FillBoundary(geom.periodicity());
+
+        MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
+    }
+
+    // initial guess for new solution
+    for (int d=0; d<AMREX_SPACEDIM; d++)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
+
+    // call GMRES to compute predictor
+    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
+          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+          geom, norm_pre_rhs);
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        umacNew[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+    }
+
+    // ADVANCE STEP (crank-nicolson + heun's method)
+
+
+    // Compute predictor advective term
+
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
+
+        // let rho = 1
+        uMom[d].mult(1.0, 1);
+
+        uMom[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+    }
+
+
+    MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
+
+
+    // Compute gmres_rhs
+
+    // trapezoidal advective terms
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        advFluxdiv[d].mult(0.5, 1);
+        advFluxdivPred[d].mult(0.5, 1);
+    }
+
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
@@ -639,8 +756,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
     }
 
-    BL_PROFILE_VAR_STOP(fillboundary);
-
 
     pres.setVal(0.);  // initial guess
     SetPressureBC(pres, geom);
@@ -650,8 +765,16 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
 
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+        umacNew[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+    }
+
+
+    for (int d=0; d<AMREX_SPACEDIM; d++)
+        MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
 
     BL_PROFILE_VAR_STOP(advance);
 }
