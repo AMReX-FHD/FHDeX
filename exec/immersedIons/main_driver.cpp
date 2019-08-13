@@ -83,9 +83,15 @@ void main_driver(const char* argv)
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
+            is_periodic_c[i] = 1;
+        }
+        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
+            is_periodic_p[i] = 1;
         }
     }
 
@@ -158,8 +164,8 @@ void main_driver(const char* argv)
 
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
-    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic.data());
+    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
+    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
@@ -761,6 +767,16 @@ void main_driver(const char* argv)
             //        const int* hi = bx.hiVect();
             //        const FArrayBox& MF_charge = charge[mfi];
             //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_charge), &iloc, &jloc, &kloc);
+
+        if (plot_int > 0 && step%plot_int == 0)
+        {
+
+            //This write particle data and associated fields and electrostatic fields
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
+
+            //Writes instantaneous flow field and some other stuff? Check with Guy.
+            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+        }
             //}
         }
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
@@ -851,15 +867,16 @@ void main_driver(const char* argv)
 //	      structFact.FortStructure(struct_in_cc,geomP);
   //      }
 
-        if (plot_int > 0 && step%plot_int == 0)
-        {
-           
-            //This write particle data and associated fields and electrostatic fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
+            Print() << "Here!\n";
+//        if (plot_int > 0 && step%plot_int == 0)
+//        {
 
-            //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
-        }
+//            //This write particle data and associated fields and electrostatic fields
+//            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
+
+//            //Writes instantaneous flow field and some other stuff? Check with Guy.
+//            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+//        }
 
         if(step%1 == 0)
         {    

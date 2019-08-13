@@ -19,22 +19,31 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
             LinOpBCType hibc[3];
 
             for (int i=0; i<AMREX_SPACEDIM; ++i) {
-                if (bc_lo[i] == -1 && bc_hi[i] == -1) {
+                if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
                     lobc[i] = LinOpBCType::Periodic;
                     hibc[i] = LinOpBCType::Periodic;
                 }
-                if(bc_lo[i] == 2)
+                if(bc_es_lo[i] == 2)
                 {
                     lobc[i] = LinOpBCType::Neumann;
                 }
-                if(bc_hi[i] == 2)
+                if(bc_es_hi[i] == 2)
                 {
                     hibc[i] = LinOpBCType::Neumann;
                 }
+                if(bc_es_lo[i] == 1)
+                {                 
+                    lobc[i] = LinOpBCType::Dirichlet;
+                }
+                if(bc_es_hi[i] == 1)
+                {
+                    hibc[i] = LinOpBCType::Dirichlet;
+                }
             }
 
+            charge.FillBoundary(geom.periodicity());
 
-            MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
+            //MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
 
             const BoxArray& ba = potential.boxArray();
             const DistributionMapping& dmap = potential.DistributionMap();
