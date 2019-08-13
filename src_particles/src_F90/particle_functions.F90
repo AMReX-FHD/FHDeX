@@ -97,6 +97,170 @@ subroutine force_function2(part1,part2,domsize) &
 
 end subroutine force_function2
 
+
+! check if particle is near a boundary--assumes boundary is parallel to either xy,xz,yz plane
+! inputs: particle p     : just need the particles position and p3m radius 
+!         int dir        : either +-1,+-2,+-3
+!         int near_wall  : output, 0=part's p3m_radius/2 does not overlap with wall, 1=yes    
+subroutine near_wall_check(part, dir, near_wall) &
+     bind(c, name="near_wall_check")
+
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only : particle_t
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use common_namelist_module, only: pkernel_es, prob_lo, prob_hi
+
+  implicit none
+  type(particle_t), intent(in   ) :: part
+  integer,          intent(in   ) :: dir
+  integer,          intent(inout) :: near_wall
+
+  integer :: abs_dir
+  abs_dir = abs(dir)
+
+  if ((abs_dir.eq.1) .or. (abs_dir.eq.2) .or. (abs_dir.eq.3)) then 
+    if (dir .gt. 0) then
+       if ((part%pos(abs_dir) + 0.5*part%p3m_radius) .gt. prob_hi(abs_dir)) then 
+          near_wall = 1
+       endif 
+    else
+       if ((part%pos(abs_dir) - 0.5*part%p3m_radius) .lt. prob_lo(abs_dir)) then 
+          near_wall = 1
+       endif 
+    endif
+  else 
+    print*, "Incorrect function call!!!!" 
+    ! throw error!
+  endif 
+
+end subroutine near_wall_check
+
+! calculate location of an image charge reflected across some plane--assumes boundary is parallel to either xy,xz,yz plane
+! inputs: particle p             : just need the particles position 
+!         int dir                : either +-1,+-2,+-3
+!         real(3) im_charge_pos  : output, 0=part's p3m_radius does not overlap with wall, 1=yes    
+!
+!         abs(dir) > 0 means reflect part pos across plane of x(dir) = prob_hi(dir)
+!                  < 0 means reflect part pos across plane of x(dir) = prob_lo(dir)
+subroutine calc_im_charge_loc(part, dir, im_charge_pos) &
+     bind(c, name="calc_im_charge_loc")
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only : particle_t
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use common_namelist_module, only: pkernel_es, prob_lo, prob_hi
+
+  implicit none
+  type(particle_t), intent(in   ) :: part
+  integer,          intent(in   ) :: dir
+  real(amrex_real), intent(inout) :: im_charge_pos(3)
+  
+  integer :: abs_dir
+  abs_dir = abs(dir)
+
+  if (abs_dir.eq.1) then 
+    if (dir .gt. 0) then 
+       ! place image charge to the right
+       im_charge_pos(2) = part%pos(2)
+       im_charge_pos(3) = part%pos(3)
+       im_charge_pos(1) = part%pos(1) + 2.d0*(prob_hi(1)-part%pos(1))
+    else 
+       ! place image charge to the left
+       im_charge_pos(2) = part%pos(2)
+       im_charge_pos(3) = part%pos(3)
+       im_charge_pos(1) = part%pos(1) - 2.d0*(part%pos(1)-prob_lo(1))
+    endif 
+  else if (abs_dir.eq.2) then 
+    if (dir .gt. 0) then 
+       ! place image charge above
+       im_charge_pos(1) = part%pos(1)
+       im_charge_pos(3) = part%pos(3)
+       im_charge_pos(2) = part%pos(2) + 2.d0*(prob_hi(2)-part%pos(2))
+    else 
+       ! place image charge below
+       im_charge_pos(1) = part%pos(1)
+       im_charge_pos(3) = part%pos(3)
+       im_charge_pos(2) = part%pos(2) - 2.d0*(part%pos(2)-prob_lo(2))
+    endif 
+  else if (abs_dir.eq.3) then 
+    if (dir .gt. 0) then 
+       ! place image charge behind
+       im_charge_pos(1) = part%pos(1)
+       im_charge_pos(2) = part%pos(2)
+       im_charge_pos(3) = part%pos(3) + 2.d0*(prob_hi(3)-part%pos(3))
+    else 
+       ! place image charge in front
+       im_charge_pos(1) = part%pos(1)
+       im_charge_pos(2) = part%pos(2)
+       im_charge_pos(3) = part%pos(3) - 2.d0*(part%pos(3)-prob_lo(3))
+    endif 
+  else 
+    print*, "Incorrect function call!!!!" 
+    ! throw error!
+  endif 
+
+end subroutine calc_im_charge_loc
+
+subroutine compute_p3m_force_mag(r, mag, dx) &
+     bind(c, name="compute_p3m_force_mag")
+  use amrex_fort_module, only: amrex_real
+  use cell_sorted_particle_module, only : particle_t
+  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use common_namelist_module, only: pkernel_es, prob_lo, prob_hi
+
+  implicit none
+  real(amrex_real), intent(in   ) :: r  
+  real(amrex_real), intent(inout) :: mag
+  real(amrex_real), intent(in   ) :: dx(3)
+
+  real(amrex_real) :: vals(70), points(70), r_cell_frac, m, r_norm
+  integer          :: r_cell
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! p6 tables:
+  !!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  ! this is force per dx**2
+  vals =(/0., 0.0130335, 0.0259347, 0.0384891, 0.0507132, 0.0624416, 0.0735093, &
+          0.0837511, 0.0931669, 0.101922, 0.109521, 0.116293, 0.121745, &
+          0.126535, 0.130335, 0.132978, 0.134134, 0.135621, 0.13529, 0.134629, &
+          0.133308, 0.130995, 0.129343, 0.126205, 0.122075, 0.118276, 0.115137, &
+          0.110677, 0.106547, 0.102748, 0.0979574, 0.0936624, 0.0898631, &
+          0.0860637, 0.0816036, 0.0782998, 0.0745005, 0.0707011, 0.0680581, &
+          0.0645891, 0.0616157, 0.0586423, 0.0561644, 0.0535214, 0.0513739, &
+          0.0487309, 0.0469138, 0.0450967, 0.0431145, 0.0414626, 0.0399759, &
+          0.038324, 0.0366721, 0.0355157, 0.034029, 0.0328727, 0.0317164, &
+          0.0307252, 0.0295689, 0.0285778, 0.0275866, 0.0267607, 0.0259347, &
+          0.0251088, 0.0242829, 0.0236221, 0.0229613, 0.0221354, 0.0214746, &
+          0.0209791/)
+  ! these are fractions of cell size dx
+  points =(/0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, &
+            1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, &
+            2.8, 2.9, 3., 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4., 4.1, &
+            4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5., 5.1, 5.2, 5.3, 5.4, 5.5, &
+            5.6, 5.7, 5.8, 5.9, 6., 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9/)
+
+  ! Divison/multiplication by 0.1 below is bc the spacing in the table above is 0.1
+  r_norm = r/dx(1)                ! separation dist in units of dx=dy=dz
+  r_cell = floor(r_norm/0.1)      ! scaling by 10 allows r_cell to index the points/val arrays above 
+  r_cell = r_cell + 1             ! shift simply bc points/val array indices begin at 1, but first val=0.0
+  r_cell_frac = r_norm/0.1-r_cell !  
+  r_cell_frac = r_cell_frac*0.1   ! for use in point-slope formula below
+  !print *, "r: ", r_cell_frac
+  !print *, "cr: ", r_cell
+  !print *, "r_cell_frac: ", r_cell_frac
+  if (pkernel_es .eq. 6) then 
+  
+    ! do linear interpolation of force between vals(i+1) and val(i) 
+    m = (vals(r_cell+1)-vals(r_cell))/(points(r_cell+1)-points(r_cell))
+
+    mag  = m*r_cell_frac + vals(r_cell)
+  else 
+    print*, "P3M not implemented for pkernel \ne 6!"
+    ! throw error
+  endif 
+
+end subroutine compute_p3m_force_mag
+
 subroutine calculate_force(particles, np, lo, hi, &
      cell_part_ids, cell_part_cnt, clo, chi, plo, phi, partno) &
      bind(c,name="calculate_force")
@@ -148,7 +312,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cut_off, rmin, pkernel_es, permitivitty
+    use common_namelist_module, only: cut_off, rmin, pkernel_es, permitivitty, bc_es_lo, bc_es_hi, prob_lo, prob_hi
         
     integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3), coordslo(3), coordshi(3), lo(3), hi(3)
     real(amrex_real), intent(in   ) :: dx(3)
@@ -161,18 +325,24 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
     real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70), dx2_inv, r_cell_frac,m, r_norm
+    real(amrex_real) :: p3m_radius, im_charge_pos(3)
     integer :: i, j, index, nneighbors, store, ks, lookup_idx, k,  r_cell
+    integer :: near_wall_below, near_wall_above
+    integer :: near_wall_below_NL_part, near_wall_above_NL_part
 
     type(particle_t)                    :: particles(np+nn)
 
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
 
-   ! initialize to 0 in case pkernel doesn't equal 6
-   correction_force_mag=0.d0
+    ! initialize to 0 in case pkernel doesn't equal 6
+    correction_force_mag=0.d0
 
-   ee = 1.d0/(permitivitty*4*3.142) 
-   dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
+    ! so that we only reference the p3m radius once (assuming it's the same forall particles)
+    p3m_radius = particles(1)%p3m_radius
+
+    ee = 1.d0/(permitivitty*4*3.142) 
+    dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
   
 
     particles(    1:np) = rparticles
@@ -204,30 +374,116 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     
     index = 1
     do i = 1, np
+       print*, "particle w charge ", int(particles(i)%q/abs(particles(i)%q)), " pos: " , particles(i)%pos
+       near_wall_below = 0 ! reset for each particle
+       near_wall_above = 0 ! reset for each particle
+
+       !!!!!!!!!!!!!!!!!!!!!!!!!!
+       ! Peform correction in the presence of walls. 
+       ! 
+       ! Current implementation only works if a particle can be in the nbhd of one wall,
+       ! in other words NO corners are allowed
+       !
+       ! Furthermore, it is assumed that the walls are in the x-z plane. 
+       !!!!!!!!!!!!!!!!!!!!!!!!!!
+
+       ! check if wall below 
+       if (bc_es_lo(2) .ne. (-1)) then 
+          call near_wall_check(particles(i), -2, near_wall_below)
+       endif 
+       ! check if wall above
+       if (bc_es_hi(2) .ne. (-1)) then 
+          call near_wall_check(particles(i), 2, near_wall_above)
+       endif 
+       print*, 'near wall below: ',   near_wall_below
+       print*, 'near wall above: ',  near_wall_above
+
+       ! image charge interactions for wall below
+       if (near_wall_below.eq.1) then
+          ! compute image charge location
+          call calc_im_charge_loc(particles(i), -2, im_charge_pos)
+          print*, 'im charge loc = ', im_charge_pos
+
+          ! compute sep vector btwn charge and its image
+          dr(1) = particles(i)%pos(1) - im_charge_pos(1)
+          dr(2) = particles(i)%pos(2) - im_charge_pos(2)
+          dr(3) = particles(i)%pos(3) - im_charge_pos(3)
+
+          r2 = dot_product(dr,dr) 
+          r = sqrt(r2)                    ! separation dist
+
+          ! perform coulomb and p3m interaction with image charge
+          if (bc_es_lo(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+
+             ! coulomb
+             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             ! p3m 
+             call compute_p3m_force_mag(r, correction_force_mag, dx)
+             particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
+
+          else if (bc_es_lo(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+
+             ! coulomb
+             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             ! p3m 
+             call compute_p3m_force_mag(r, correction_force_mag, dx)
+             particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
+
+          endif 
+       endif 
+
+       ! image charge interactions for wall above
+       if (near_wall_above.eq.1) then
+          ! compute image charge location
+          call calc_im_charge_loc(particles(i), 2, im_charge_pos)
+          print*, 'im charge loc = ', im_charge_pos
+          ! compute sep vector btwn charge and its image
+          dr(1) = particles(i)%pos(1) - im_charge_pos(1)
+          dr(2) = particles(i)%pos(2) - im_charge_pos(2)
+          dr(3) = particles(i)%pos(3) - im_charge_pos(3)
+
+          r2 = dot_product(dr,dr) 
+          r = sqrt(r2)                    ! separation dist
+
+          ! perform coulomb and p3m interaction with image charge
+          if (bc_es_hi(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+             ! coulomb
+             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             ! p3m 
+             call compute_p3m_force_mag(r, correction_force_mag, dx)
+             particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
+
+          else if (bc_es_hi(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+             ! coulomb
+             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             ! p3m 
+             call compute_p3m_force_mag(r, correction_force_mag, dx)
+             particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
+          endif 
+       endif 
 
        nneighbors = nl(index)
        index = index + 1
 
       ! print *, "particle ", i, " has ", nneighbors, " neighbours."
 
+
+       ! loop through neighbor list
        do j = index, index + nneighbors - 1
+          near_wall_above_NL_part = 0 
+          near_wall_below_NL_part = 0 
 
           dr(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
           dr(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
           dr(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
-          ! Divison/multiplication by 0.1 below is bc the spacing in the table above is 0.1
           r2 = dot_product(dr,dr) 
           r = sqrt(r2)                    ! separation dist
-          r_norm = r/dx(1)                ! separation dist in units of dx=dy=dz
-          r_cell = floor(r_norm/0.1)      ! scaling by 10 allows r_cell to index the points/val arrays above 
-          r_cell = r_cell + 1             ! shift simply bc points/val array indices begin at 1, but first val=0.0
-          r_cell_frac = r_norm/0.1-r_cell !  
-          r_cell_frac = r_cell_frac*0.1   ! for use in point-slope formula below
 
-          !print *, "r: ", r_cell_frac
-          !print *, "cr: ", r_cell
-          !print *, "r_cell_frac: ", r_cell_frac
 
          if (r .lt. (particles(i)%p3m_radius)) then 
 
@@ -235,6 +491,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             ! Do local (short range) coulomb interaction within coulombRadiusFactor
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
+            print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
             !print *, "particle ", i, " force ", particles(i)%force
 
@@ -244,29 +501,104 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             !
             ! Currently only implemented for pkernel=6
             !!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (pkernel_es .eq. 6) then 
-            
-              ! do linear interpolation of force between vals(i+1) and val(i) 
-              m = (vals(r_cell+1)-vals(r_cell))/(points(r_cell+1)-points(r_cell))
+            call compute_p3m_force_mag(r, correction_force_mag, dx)
 
-              correction_force_mag = m*r_cell_frac + vals(r_cell)
-    
-            endif 
             ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
             particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv
+
+            !!!!!!!!!!!!!!!!!!!!!!!!!!
+            ! If part near wall, check if NL part also near wall
+            !!!!!!!!!!!!!!!!!!!!!!!!!!
+            if (near_wall_below.eq.1) then
+               call near_wall_check(particles(nl(j)), -2, near_wall_below_NL_part)
+               if (near_wall_below_NL_part.eq.1) then 
+                  ! compute NL particle's image charge location
+                  call calc_im_charge_loc(particles(nl(j)), -2, im_charge_pos)
+                  print*, 'im charge loc = ', im_charge_pos
+
+                  ! compute sep vector btwn charge and NL's image
+                  dr(1) = particles(i)%pos(1) - im_charge_pos(1)
+                  dr(2) = particles(i)%pos(2) - im_charge_pos(2)
+                  dr(3) = particles(i)%pos(3) - im_charge_pos(3)
+
+                  r2 = dot_product(dr,dr) 
+                  r = sqrt(r2)                    ! separation dist
+
+                  ! perform coulomb and p3m interaction with NL particle's image charge
+                  if (bc_es_lo(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+
+                     ! coulomb
+                     particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+
+                     ! p3m 
+                     call compute_p3m_force_mag(r, correction_force_mag, dx)
+                     particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
+
+                  else if (bc_es_lo(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+
+                     ! coulomb
+                     particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+
+                     ! p3m 
+                     call compute_p3m_force_mag(r, correction_force_mag, dx)
+                     particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
+
+                  endif 
+
+               endif 
+            endif 
+            if (near_wall_above.eq.1) then
+               call near_wall_check(particles(nl(j)), 2, near_wall_above_NL_part)
+               if (near_wall_above_NL_part.eq.1) then 
+                  ! compute NL particle's image charge location
+                  call calc_im_charge_loc(particles(nl(j)), 2, im_charge_pos)
+                  print*, 'im charge loc = ', im_charge_pos
+
+                  ! compute sep vector btwn charge and NL's image
+                  dr(1) = particles(i)%pos(1) - im_charge_pos(1)
+                  dr(2) = particles(i)%pos(2) - im_charge_pos(2)
+                  dr(3) = particles(i)%pos(3) - im_charge_pos(3)
+            
+                  r2 = dot_product(dr,dr) 
+                  r = sqrt(r2)                    ! separation dist
+
+                  ! perform coulomb and p3m interaction with NL particle's image charge
+                  if (bc_es_hi(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+
+                     ! coulomb
+                     particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+                     ! p3m 
+                     call compute_p3m_force_mag(r, correction_force_mag, dx)
+                     particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
+                  else if (bc_es_hi(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+
+                     ! coulomb
+                     particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+                     ! p3m 
+                     call compute_p3m_force_mag(r, correction_force_mag, dx)
+                     particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
+
+                  endif 
+               endif
+            endif 
 
             !print *, "Corr:", ee*particles(i)%q*particles(nl(j))%q*correction_force_mag*dx2_inv
             !print *, "norm:", correction_force_mag
 
-            ! SC:  update potential here as well? 
-
          end if 
-
 
 
        end do
 
+
+       print *, "particle ", i, " force after p3m     ", particles(i)%force
+
        index = index + nneighbors
+
 
     end do
 
@@ -2551,6 +2883,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
   double precision, allocatable :: weights(:,:,:,:)
   integer, allocatable :: indicies(:,:,:,:,:)
+  real(amrex_real) poisson_force(3)
 
   if(pkernel_fluid .gt. pkernel_es) then
     if(pkernel_fluid .eq. 3) then
@@ -2647,7 +2980,8 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
         call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
                         cellcenters, cellcenterslo, cellcentershi, &
                         part, ks, lo, hi, plof, store)
-
+        print*, "particle ", p, " force before emf:   ", part%force
+        poisson_force = -1.d0*part%force
         call emf(weights, indicies, &
                           sourcex, sourcexlo, sourcexhi, &
                           sourcey, sourceylo, sourceyhi, &
@@ -2661,6 +2995,9 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 #endif
                           part, ks, dxe)
 
+        poisson_force = poisson_force + part%force
+        print*, "Poisson force on particle ", p, "is: ", poisson_force
+        print*, "particle ", p, " force after emf:    ", part%force
 !------------------
 
       call get_weights(dxf, dxfinv, weights, indicies, &
@@ -2705,7 +3042,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                         sourcez, sourcezlo, sourcezhi, &
 #endif
                         part, ks, dxf)
-
+      print*, 'Part force at end of spread_ions: ', part%force
       p = p + 1
 
    end do

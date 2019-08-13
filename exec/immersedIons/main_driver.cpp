@@ -34,6 +34,9 @@
 
 //#include "electrostatic.H"
 
+#include "debug_functions_F.H"
+#include "AMReX_ArrayLim.H"
+
 using namespace gmres;
 using namespace common;
 //using namespace amrex;
@@ -748,10 +751,33 @@ void main_driver(const char* argv)
         {
             //Spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+            // print charge multifab 
+            //int jloc = 1; // printing location
+            //int iloc = 27; // printing location
+            //int kloc = 27; // printing location
+            //for(MFIter mfi(charge); mfi.isValid(); ++mfi){
+            //        const Box& bx = mfi.validbox();
+            //        const int* lo = bx.loVect();
+            //        const int* hi = bx.hiVect();
+            //        const FArrayBox& MF_charge = charge[mfi];
+            //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_charge), &iloc, &jloc, &kloc);
+            //}
         }
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
-        
+
+        // print potential multifab 
+        //int jloc = 1; // printing location
+        //int iloc = 27; // printing location
+        //int kloc = 27; // printing location
+        //for(MFIter mfi(potential); mfi.isValid(); ++mfi){
+        //        const Box& bx = mfi.validbox();
+        //        const int* lo = bx.loVect();
+        //        const int* hi = bx.hiVect();
+        //        const FArrayBox& MF_pot = potential[mfi];
+        //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_pot), &iloc, &jloc, &kloc);
+        //}
+
 
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);

@@ -154,7 +154,6 @@ void InitializeCommonNamespace() {
 
     // read in from command line
     pp.query("domega",domega);
-    Print() << "HACK" << domega << "/n";
 
     // copy value into fortran namelist
     set_domega(&domega);
