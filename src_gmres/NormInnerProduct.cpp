@@ -20,17 +20,6 @@ void SumStag(const Geometry& geom,
   // Initialize to zero
   std::fill(sum.begin(), sum.end(), 0.);
 
-  Box domain_bx(geom.Domain());
-  
-  MultiFab AMREX_D_DECL(xmf,ymf,zmf);
-
-  // these face-centered masks are 1 on all faces, except for faces at
-  // grid boundaries where they equal 2
-  // we use this since we want half-weighting toward the sum at all grid boundaries
-  AMREX_D_TERM(auto xmask = m1[0].OverlapMask(Periodicity(domain_bx.size()));,
-               auto ymask = m1[1].OverlapMask(Periodicity(domain_bx.size()));,
-               auto zmask = m1[2].OverlapMask(Periodicity(domain_bx.size()));)
-  
   ReduceOps<ReduceOpSum> reduce_op;
   ReduceData<Real> reduce_data(reduce_op);
   using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -39,11 +28,15 @@ void SumStag(const Geometry& geom,
   {
       const Box& bx = mfi.validbox();
       auto const& fab = m1[0].array(mfi);
-      auto const& msk = xmask->array(mfi);
+
+      int xlo = bx.smallEnd(0);
+      int xhi = bx.bigEnd(0);
+      
       reduce_op.eval(bx, reduce_data,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
-          return {fab(i,j,k) / msk(i,j,k)};
+          Real weight = (i>xlo && i<xhi) ? 1.0 : 0.5;
+          return {fab(i,j,k)*weight};
       });
   }
 
@@ -54,11 +47,15 @@ void SumStag(const Geometry& geom,
   {
       const Box& bx = mfi.validbox();
       auto const& fab = m1[1].array(mfi);
-      auto const& msk = ymask->array(mfi);
+
+      int ylo = bx.smallEnd(1);
+      int yhi = bx.bigEnd(1);
+      
       reduce_op.eval(bx, reduce_data,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
-          return {fab(i,j,k) / msk(i,j,k)};
+          Real weight = (j>ylo && j<yhi) ? 1.0 : 0.5;
+          return {fab(i,j,k)*weight};
       });
   }
 
@@ -67,16 +64,19 @@ void SumStag(const Geometry& geom,
 
 #if (AMREX_SPACEDIM == 3)
 
-
   for (MFIter mfi(m1[2]); mfi.isValid(); ++mfi)
   {
       const Box& bx = mfi.validbox();
       auto const& fab = m1[2].array(mfi);
-      auto const& msk = zmask->array(mfi);
+
+      int zlo = bx.smallEnd(2);
+      int zhi = bx.bigEnd(2);
+      
       reduce_op.eval(bx, reduce_data,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
-          return {fab(i,j,k) / msk(i,j,k)};
+          Real weight = (k>zlo && k<zhi) ? 1.0 : 0.5;
+          return {fab(i,j,k)*weight};
       });
   }
 

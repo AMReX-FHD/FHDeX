@@ -38,35 +38,6 @@ extern "C"
 ///////////////////////////
 // in stag_mg_solver.F90
 
-    void cc_restriction (const int* lo_c, const int* hi_c,
-                         const amrex::Real* phi_c,
-                         const int* c_lo, const int* c_hi,
-                         const amrex::Real* phi_f,
-                         const int* f_lo, const int* f_hi);
-
-    void stag_restriction (const int* lo_c, const int* hi_c,
-                           const amrex::Real* phi_cx,
-                           const int* cx_lo, const int* cx_hi,
-                           const amrex::Real* phix_f,
-                           const int* fx_lo, const int* fx_hi,
-                           const amrex::Real* phi_cy,
-                           const int* cy_lo, const int* cy_hi,
-                           const amrex::Real* phiy_f,
-                           const int* fy_lo, const int* fy_hi,
-#if (AMREX_SPACEDIM == 3)
-                           const amrex::Real* phi_cz,
-                           const int* cz_lo, const int* cz_hi,
-                           const amrex::Real* phiz_f,
-                           const int* fz_lo, const int* fz_hi,
-#endif
-                           const int* simple_stencil);
-
-    void nodal_restriction (const int* lo_c, const int* hi_c,
-                            const amrex::Real* phi_c,
-                            const int* c_lo, const int* c_hi,
-                            const amrex::Real* phi_f,
-                            const int* f_lo, const int* f_hi);
-
     void edge_restriction (const int* lo_c, const int* hi_c,
                            const amrex::Real* phi_cxy,
                            const int* cxy_lo, const int* cxy_hi,

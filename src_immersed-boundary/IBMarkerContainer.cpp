@@ -388,6 +388,8 @@ int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
                                             ParticleType *& prev_marker,
                                             ParticleType *& next_marker) const {
 
+    BL_PROFILE_VAR("IBMarkerContainer::FindConnectedMarkers", FindNeighbors);
+
     long np = particles.size();
     int nn  = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
     nbhd_index ++; // pointing at first neighbor
@@ -436,6 +438,8 @@ int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
     } else {
         return -1;
     }
+
+    BL_PROFILE_VAR_STOP(FindNeighbors);
 }
 
 
