@@ -10,61 +10,6 @@ module stag_solver_module
 
 contains
 
-  subroutine edge_restriction(lo_c,hi_c, &
-                              phixy_c, cxy_lo, cxy_hi, &
-                              phixy_f, fxy_lo, fxy_hi, &
-                              phixz_c, cxz_lo, cxz_hi, &
-                              phixz_f, fxz_lo, fxz_hi, &
-                              phiyz_c, cyz_lo, cyz_hi, &
-                              phiyz_f, fyz_lo, fyz_hi) &
-                              bind (C,name="edge_restriction")
-
-    integer         , intent(in   ) :: lo_c(3), hi_c(3)
-    integer         , intent(in   ) :: cxy_lo(3), cxy_hi(3)
-    integer         , intent(in   ) :: fxy_lo(3), fxy_hi(3)
-    double precision, intent(inout) :: phixy_c(cxy_lo(1):cxy_hi(1),cxy_lo(2):cxy_hi(2),cxy_lo(3):cxy_hi(3))
-    double precision, intent(in   ) :: phixy_f(fxy_lo(1):fxy_hi(1),fxy_lo(2):fxy_hi(2),fxy_lo(3):fxy_hi(3))
-    integer         , intent(in   ) :: cxz_lo(3), cxz_hi(3)
-    integer         , intent(in   ) :: fxz_lo(3), fxz_hi(3)
-    double precision, intent(inout) :: phixz_c(cxz_lo(1):cxz_hi(1),cxz_lo(2):cxz_hi(2),cxz_lo(3):cxz_hi(3))
-    double precision, intent(in   ) :: phixz_f(fxz_lo(1):fxz_hi(1),fxz_lo(2):fxz_hi(2),fxz_lo(3):fxz_hi(3))
-    integer         , intent(in   ) :: cyz_lo(3), cyz_hi(3)
-    integer         , intent(in   ) :: fyz_lo(3), fyz_hi(3)
-    double precision, intent(inout) :: phiyz_c(cyz_lo(1):cyz_hi(1),cyz_lo(2):cyz_hi(2),cyz_lo(3):cyz_hi(3))
-    double precision, intent(in   ) :: phiyz_f(fyz_lo(1):fyz_hi(1),fyz_lo(2):fyz_hi(2),fyz_lo(3):fyz_hi(3))
-
-    ! local
-    integer :: i,j,k
-
-    ! xy edges
-    do k=lo_c(3),hi_c(3)
-    do j=lo_c(2),hi_c(2)+1
-    do i=lo_c(1),hi_c(1)+1
-       phixy_c(i,j,k) = 0.5d0*(phixy_f(2*i,2*j,2*k)+phixy_f(2*i,2*j,2*k+1))
-    end do
-    end do
-    end do
-
-    ! xz edges
-    do k=lo_c(3),hi_c(3)+1
-    do j=lo_c(2),hi_c(2)
-    do i=lo_c(1),hi_c(1)+1
-       phixz_c(i,j,k) =  0.5d0*(phixz_f(2*i,2*j,2*k)+phixz_f(2*i,2*j+1,2*k))
-    end do
-    end do
-    end do
-
-    ! yz edges
-    do k=lo_c(3),hi_c(3)+1
-    do j=lo_c(2),hi_c(2)+1
-    do i=lo_c(1),hi_c(1)
-       phiyz_c(i,j,k) =  0.5d0*(phiyz_f(2*i,2*j,2*k)+phiyz_f(2*i+1,2*j,2*k))
-    end do
-    end do
-    end do
-
-  end subroutine edge_restriction
-
   subroutine stag_prolongation(lo_f,hi_f, &
                                phix_c, cx_lo, cx_hi, &
                                phix_f, fx_lo, fx_hi, &

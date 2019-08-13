@@ -38,20 +38,6 @@ extern "C"
 ///////////////////////////
 // in stag_mg_solver.F90
 
-    void edge_restriction (const int* lo_c, const int* hi_c,
-                           const amrex::Real* phi_cxy,
-                           const int* cxy_lo, const int* cxy_hi,
-                           const amrex::Real* phixy_f,
-                           const int* fxy_lo, const int* fxy_hi,
-                           const amrex::Real* phi_cxz,
-                           const int* cxz_lo, const int* cxz_hi,
-                           const amrex::Real* phixz_f,
-                           const int* fxz_lo, const int* fxz_hi,
-                           const amrex::Real* phi_cyz,
-                           const int* cyz_lo, const int* cyz_hi,
-                           const amrex::Real* phiyz_f,
-                           const int* fyz_lo, const int* fyz_hi);
-
     void stag_prolongation (const int* lo_f, const int* hi_f,
                             const amrex::Real* phi_cx,
                             const int* cx_lo, const int* cx_hi,

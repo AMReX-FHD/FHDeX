@@ -1076,6 +1076,76 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     }
 }
 
+
+
+AMREX_GPU_HOST_DEVICE
+inline
+void edge_restriction (const Box & tbx,
+                       const Box & xybx,
+                       const Box & xzbx,
+                       const Box & yzbx,
+                       const Array4<Real> & phixy_c,
+                       const Array4<Real> & phixz_c,
+                       const Array4<Real> & phiyz_c,
+                       const Array4<Real const> & phixy_f,
+                       const Array4<Real const> & phixz_f,
+                       const Array4<Real const> & phiyz_f) noexcept {
+
+    // xybx, xzbx, and yzbx are the edge-centered boxes
+
+    // if running on the host: tlo is the minimal box contains the union of the
+    // fedge-centered grid boxes
+
+    // if running on the gpu: tlo is a box with a single point that comes from
+    // the union of the edge-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, xylo/hi  are set to the lower/upper
+    // bounds of xybx
+
+    // if running on the gpu, xylo/hi, etc., are set to the single point
+    // defined by tlo, unless tlo is outside of the union of the edge-centered
+    // grid boxes, in which case they are set to values that make sure the loop
+    // is not entered
+
+    const auto xylo = amrex::elemwiseMax(tlo, lbound(xybx));
+    const auto xzlo = amrex::elemwiseMax(tlo, lbound(xzbx));
+    const auto yzlo = amrex::elemwiseMax(tlo, lbound(yzbx));
+    
+    const auto xyhi = amrex::elemwiseMin(thi, ubound(xybx));
+    const auto xzhi = amrex::elemwiseMin(thi, ubound(xzbx));
+    const auto yzhi = amrex::elemwiseMin(thi, ubound(yzbx));
+
+    for (int k=xylo.z; k<=xyhi.z; ++k) {
+    for (int j=xylo.y; j<=xyhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xylo.x; i<=xyhi.x; ++i) {        
+        phixy_c(i,j,k) = 0.5*(phixy_f(2*i,2*j,2*k)+phixy_f(2*i,2*j,2*k+1));
+    }
+    }
+    }
+
+    for (int k = xzlo.z; k <= xzhi.z; ++k) {
+    for (int j = xzlo.y; j <= xzhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = xzlo.x; i <= xzhi.x; ++i) {
+        phixz_c(i,j,k) =  0.5*(phixz_f(2*i,2*j,2*k)+phixz_f(2*i,2*j+1,2*k));
+    }
+    }
+    }
+
+    for (int k = yzlo.z; k <= yzhi.z; ++k) {
+    for (int j = yzlo.y; j <= yzhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = yzlo.x; i <= yzhi.x; ++i) {
+        phiyz_c(i,j,k) =  0.5*(phiyz_f(2*i,2*j,2*k)+phiyz_f(2*i+1,2*j,2*k));
+    }
+    }
+    }
+}
+
 void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
                      const std::array< MultiFab, NUM_EDGE >& phi_f)
 {
@@ -1089,15 +1159,26 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
         // Get the index space of the valid region
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
-        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+        Box bx_xy = amrex::enclosedCells(mfi.validbox()).growHi(0).growHi(1);
+        Box bx_xz = amrex::enclosedCells(mfi.validbox()).growHi(0).growHi(2);
+        Box bx_yz = amrex::enclosedCells(mfi.validbox()).growHi(1).growHi(2);
+        
+        const Box& index_bounds = amrex::getIndexBounds(bx_xy, bx_xz, bx_yz);
 
-        edge_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                         BL_TO_FORTRAN_3D(phi_c[0][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[0][mfi]),
-                         BL_TO_FORTRAN_3D(phi_c[1][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[1][mfi]),
-                         BL_TO_FORTRAN_3D(phi_c[2][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[2][mfi]));
+        Array4<Real> const& phixy_c_fab = phi_c[0].array(mfi);
+        Array4<Real> const& phixz_c_fab = phi_c[1].array(mfi);
+        Array4<Real> const& phiyz_c_fab = phi_c[2].array(mfi);
+        
+        Array4<Real const> const& phixy_f_fab = phi_f[0].array(mfi);
+        Array4<Real const> const& phixz_f_fab = phi_f[1].array(mfi);
+        Array4<Real const> const& phiyz_f_fab = phi_f[2].array(mfi);
+        
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+        {
+            edge_restriction(tbx, bx_xy, bx_xz, bx_yz,
+                             phixy_c_fab, phixz_c_fab, phiyz_c_fab,
+                             phixy_f_fab, phixz_f_fab, phiyz_f_fab);
+        });
     }
 }
 
