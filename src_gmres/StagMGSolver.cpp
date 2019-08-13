@@ -773,11 +773,26 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
     for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
-        const Box& validBox = mfi.validbox();
+        const Box& bx = mfi.validbox();
 
-        cc_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                       BL_TO_FORTRAN_3D(phi_c[mfi]),
-                       BL_TO_FORTRAN_3D(phi_f[mfi]));
+        Array4<Real      > const& phi_c_fab = phi_c.array(mfi);
+        Array4<Real const> const& phi_f_fab = phi_f.array(mfi);
+
+#if (AMREX_SPACEDIM==2)
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            phi_c_fab(i,j,k) = 0.25*(  phi_f_fab(2*i,2*j  ,k) + phi_f_fab(2*i+1,2*j  ,k)
+                                     + phi_f_fab(2*i,2*j+1,k) + phi_f_fab(2*i+1,2*j+1,k) );
+        });
+#elif (AMREX_SPACEDIM == 3)
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            phi_c_fab(i,j,k) = 0.125*(  phi_f_fab(2*i,2*j  ,2*k  ) + phi_f_fab(2*i+1,2*j  ,2*k  )
+                                      + phi_f_fab(2*i,2*j+1,2*k  ) + phi_f_fab(2*i+1,2*j+1,2*k  )
+                                      + phi_f_fab(2*i,2*j  ,2*k+1) + phi_f_fab(2*i+1,2*j  ,2*k+1)
+                                      + phi_f_fab(2*i,2*j+1,2*k+1) + phi_f_fab(2*i+1,2*j+1,2*k+1) );
+        });
+#endif
     }
 
     phi_c.FillBoundary(geom_c.periodicity());
