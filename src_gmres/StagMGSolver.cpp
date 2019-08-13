@@ -1182,6 +1182,251 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
     }
 }
 
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_prolongation (const Box & tbx,
+                        const Box & xbx,
+                        const Box & ybx,
+#if (AMREX_SPACEDIM == 3)
+                        const Box & zbx,
+#endif
+                        const Array4<Real const> & phix_c,
+                        const Array4<Real const> & phiy_c,
+#if (AMREX_SPACEDIM == 3)
+                        const Array4<Real const> & phiz_c,
+#endif
+                        const Array4<Real> & phix_f,
+                        const Array4<Real> & phiy_f
+#if (AMREX_SPACEDIM == 3)
+                        , const Array4<Real> & phiz_f
+#endif
+                        ) noexcept {
+
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host: tlo is the minimal box contains the union of the
+    // face-centered grid boxes
+
+    // if running on the gpu: tlo is a box with a single point that comes from
+    // the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to the lower/upper
+    // bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to the single point
+    // defined by tlo, unless tlo is outside of the union of the face-centered
+    // grid boxes, in which case they are set to values that make sure the loop
+    // is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+#if (AMREX_SPACEDIM == 2)
+
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; i+=2) {
+
+        int joff = pow(-1,j%2+1);
+        
+        // linear interpolation
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + 0.75*phix_c(i/2,j/2     ,k)
+            + 0.25*phix_c(i/2,j/2+joff,k);        
+    }
+    }
+    }
+
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x+1; i<=xhi.x-1; i+=2) {
+
+        int joff = pow(-1,j%2+1);
+
+        // bilinear interpolation
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + 0.375*phix_c(i/2  ,j/2     ,k)
+            + 0.125*phix_c(i/2  ,j/2+joff,k)
+            + 0.375*phix_c(i/2+1,j/2     ,k)
+            + 0.125*phix_c(i/2+1,j/2+joff,k);        
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+       
+        // linear interpolation
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + 0.75*phiy_c(i/2     ,j/2,k)
+            + 0.25*phiy_c(i/2+ioff,j/2,k);        
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y+1; j <= yhi.y-1; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+        
+        // bilinear interpolation
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + 0.375*phiy_c(i/2     ,j/2  ,k)
+            + 0.125*phiy_c(i/2+ioff,j/2  ,k)
+            + 0.375*phiy_c(i/2     ,j/2+1,k)
+            + 0.125*phiy_c(i/2+ioff,j/2+1,k);        
+    }
+    }
+    }
+    
+#elif (AMREX_SPACEDIM == 3)
+    
+    Real nine16 = 9./16.;
+    Real three16 = 3./16.;
+    Real one16 = 1./16.;
+    Real nine32 = 9./32.;
+    Real three32 = 3./32.;
+    Real one32 = 1./32.;
+        
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; i+=2) {
+        
+        int joff = pow(-1,j%2+1);
+        int koff = pow(-1,k%2+1);
+       
+        // bilinear in the yz plane
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + nine16 *phix_c(i/2,j/2     ,k/2     )
+            + three16*phix_c(i/2,j/2+joff,k/2     )
+            + three16*phix_c(i/2,j/2     ,k/2+koff)
+            + one16  *phix_c(i/2,j/2+joff,k/2+koff);
+    }
+    }
+    }
+    
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x+1; i<=xhi.x-1; i+=2) {
+        
+        int joff = pow(-1,j%2+1);
+        int koff = pow(-1,k%2+1);
+        
+        // bilinear in the yz plane, linear in x
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + nine32 *phix_c(i/2  ,j/2     ,k/2     )
+            + three32*phix_c(i/2  ,j/2+joff,k/2     )
+            + three32*phix_c(i/2  ,j/2     ,k/2+koff)
+            + one32  *phix_c(i/2  ,j/2+joff,k/2+koff)
+            + nine32 *phix_c(i/2+1,j/2     ,k/2     )
+            + three32*phix_c(i/2+1,j/2+joff,k/2     )
+            + three32*phix_c(i/2+1,j/2     ,k/2+koff)
+            + one32  *phix_c(i/2+1,j/2+joff,k/2+koff);
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+        int koff = pow(-1,k%2+1);
+       
+        // bilinear in the xz plane
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + nine16* phiy_c(i/2     ,j/2,k/2     )
+            + three16*phiy_c(i/2+ioff,j/2,k/2     )
+            + three16*phiy_c(i/2     ,j/2,k/2+koff)
+            + one16*  phiy_c(i/2+ioff,j/2,k/2+koff);
+    }
+    }
+    }
+
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y+1; j <= yhi.y-1; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+        int koff = pow(-1,k%2+1);
+
+        // bilinear in the yz plane, linear in y
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + nine32* phiy_c(i/2     ,j/2  ,k/2     )
+            + three32*phiy_c(i/2+ioff,j/2  ,k/2     )
+            + three32*phiy_c(i/2     ,j/2  ,k/2+koff)
+            + one32*  phiy_c(i/2+ioff,j/2  ,k/2+koff)
+            + nine32* phiy_c(i/2     ,j/2+1,k/2     )
+            + three32*phiy_c(i/2+ioff,j/2+1,k/2     )
+            + three32*phiy_c(i/2     ,j/2+1,k/2+koff)
+            + one32*  phiy_c(i/2+ioff,j/2+1,k/2+koff);
+    }
+    }
+    }
+
+    for (int k = zlo.z; k <= zhi.z; k+=2) {
+    for (int j = zlo.y; j <= zhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = zlo.x; i <= zhi.x; ++i) {
+        
+        int ioff = pow(-1,i%2+1);
+        int joff = pow(-1,j%2+1);
+
+        // bilinear in the xy plane
+        phiz_f(i,j,k) = phiz_f(i,j,k)
+            + nine16* phiz_c(i/2     ,j/2     ,k/2)
+            + three16*phiz_c(i/2+ioff,j/2     ,k/2)
+            + three16*phiz_c(i/2     ,j/2+joff,k/2)
+            + one16*  phiz_c(i/2+ioff,j/2+joff,k/2);
+    }
+    }
+    }
+
+    for (int k = zlo.z+1; k <= zhi.z-1; k+=2) {
+    for (int j = zlo.y; j <= zhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = zlo.x; i <= zhi.x; ++i) {
+        
+        int ioff = pow(-1,i%2+1);
+        int joff = pow(-1,j%2+1);
+       
+        // bilinear in the xy plane, linear in z
+        phiz_f(i,j,k) = phiz_f(i,j,k)
+            + nine32* phiz_c(i/2     ,j/2     ,k/2  )
+            + three32*phiz_c(i/2+ioff,j/2     ,k/2  )
+            + three32*phiz_c(i/2     ,j/2+joff,k/2  )
+            + one32*  phiz_c(i/2+ioff,j/2+joff,k/2  )
+            + nine32* phiz_c(i/2     ,j/2     ,k/2+1)
+            + three32*phiz_c(i/2+ioff,j/2     ,k/2+1)
+            + three32*phiz_c(i/2     ,j/2+joff,k/2+1)
+            + one32*  phiz_c(i/2+ioff,j/2+joff,k/2+1);
+    }
+    }
+    }
+#endif
+}
+
 void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                       std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
 {
@@ -1192,6 +1437,29 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
         // Get the index space of the valid region
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
+        AMREX_D_TERM(Box bx_x = amrex::enclosedCells(mfi.validbox()).growHi(0);,
+                     Box bx_y = amrex::enclosedCells(mfi.validbox()).growHi(1);,
+                     Box bx_z = amrex::enclosedCells(mfi.validbox()).growHi(2););
+
+        const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
+        
+        AMREX_D_TERM(Array4<Real const> const& phix_c_fab = phi_c[0].array(mfi);,
+                     Array4<Real const> const& phiy_c_fab = phi_c[1].array(mfi);,
+                     Array4<Real const> const& phiz_c_fab = phi_c[2].array(mfi););
+        
+        AMREX_D_TERM(Array4<Real> const& phix_f_fab = phi_f[0].array(mfi);,
+                     Array4<Real> const& phiy_f_fab = phi_f[1].array(mfi);,
+                     Array4<Real> const& phiz_f_fab = phi_f[2].array(mfi););
+        
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+        {
+            stag_prolongation(tbx, AMREX_D_DECL(bx_x, bx_y, bx_z),
+                              AMREX_D_DECL(phix_c_fab, phiy_c_fab, phiz_c_fab),
+                              AMREX_D_DECL(phix_f_fab, phiy_f_fab, phiz_f_fab));
+        });
+
+        
+/*        
         const Box& validBox = amrex::enclosedCells(mfi.validbox());
 
         stag_prolongation(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
@@ -1204,6 +1472,7 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                           BL_TO_FORTRAN_3D(phi_f[2][mfi])
 #endif
                           );
+*/
     }
 
 }

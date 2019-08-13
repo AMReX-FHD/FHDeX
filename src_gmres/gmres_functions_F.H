@@ -38,23 +38,6 @@ extern "C"
 ///////////////////////////
 // in stag_mg_solver.F90
 
-    void stag_prolongation (const int* lo_f, const int* hi_f,
-                            const amrex::Real* phi_cx,
-                            const int* cx_lo, const int* cx_hi,
-                            const amrex::Real* phix_f,
-                            const int* fx_lo, const int* fx_hi,
-                            const amrex::Real* phi_cy,
-                            const int* cy_lo, const int* cy_hi,
-                            const amrex::Real* phiy_f,
-                            const int* fy_lo, const int* fy_hi
-#if (AMREX_SPACEDIM == 3)
-                          , const amrex::Real* phi_cz,
-                            const int* cz_lo, const int* cz_hi,
-                            const amrex::Real* phiz_f,
-                            const int* fz_lo, const int* fz_hi
-#endif
-                            );
-
            void sum_stag(const int* lo, const int* hi,
 			 const amrex_real* m1x, const int* m1xlo, const int* m1xhi,
                          const amrex_real* m1y, const int* m1ylo, const int* m1yhi,
