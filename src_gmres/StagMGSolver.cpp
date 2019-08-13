@@ -100,7 +100,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             // compute dx at this level of multigrid
             dx_mg[n][d] = dx[d] * pow(2,n);
         }
-
+        
         // create the problem domain for this multigrid level
         Box pd(pd_base);
         pd.coarsen(pow(2,n));
@@ -179,7 +179,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         }
 
 #if (AMREX_SPACEDIM == 2)
-        // nodal_restriction on beta_ed_mg
+        // nodal_restriction on beta_ed_mg        
         NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
 
         beta_ed_mg[n][0].FillBoundary(geom_mg[n].periodicity());
@@ -811,7 +811,7 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
         const Box& validBox = amrex::enclosedCells(mfi.validbox());
-
+        
         stag_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
                          BL_TO_FORTRAN_3D(phi_c[0][mfi]),
                          BL_TO_FORTRAN_3D(phi_f[0][mfi]),
@@ -827,18 +827,21 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
 
 void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 {
+    IntVect nodal(AMREX_D_DECL(1,1,1));
+    
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
 
-        // Get the index space of the valid region
-        // there are no cell-centered MultiFabs so use this to get
-        // a cell-centered box
-        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+        // note this is NODAL
+        const Box& bx = mfi.validbox();
+        
+        Array4<Real      > const& phi_c_fab = phi_c.array(mfi);
+        Array4<Real const> const& phi_f_fab = phi_f.array(mfi);
 
-        nodal_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                          BL_TO_FORTRAN_3D(phi_c[mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[mfi]));
-
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            phi_c_fab(i,j,k) = phi_f_fab(2*i,2*j,2*k);
+        });
     }
 }
 

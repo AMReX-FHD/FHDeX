@@ -55,12 +55,6 @@ extern "C"
 #endif
                            const int* simple_stencil);
 
-    void nodal_restriction (const int* lo_c, const int* hi_c,
-                            const amrex::Real* phi_c,
-                            const int* c_lo, const int* c_hi,
-                            const amrex::Real* phi_f,
-                            const int* f_lo, const int* f_hi);
-
     void edge_restriction (const int* lo_c, const int* hi_c,
                            const amrex::Real* phi_cxy,
                            const int* cxy_lo, const int* cxy_hi,
