@@ -167,15 +167,9 @@ void main_driver(const char* argv)
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
-        Print() << "GEOMOUT: " << geomP << "\n";
-        Print() << "VEC: " << is_periodic_p[1] << "\n";
-
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
     DistributionMapping dmap(ba);
-
-    Print() << geom << "\n";
-    Print() << domain << "\n";
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();

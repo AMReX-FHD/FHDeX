@@ -18,7 +18,7 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 5
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = -1
@@ -108,8 +108,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no slip stationary
-  bc_lo(1:3) = -1 1 -1
-  bc_hi(1:3) = -1 1 -1
+  bc_lo(1:3) = -1 -1 -1
+  bc_hi(1:3) = -1 -1 -1
 
   !wallspeed_lo(1:3) = 0 0 0 !Not implemented yet.
   !wallspeed_hi(1:3) = 0 0 0 !Not implemented yet.

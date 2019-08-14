@@ -374,7 +374,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     
     index = 1
     do i = 1, np
-       print*, "particle w charge ", int(particles(i)%q/abs(particles(i)%q)), " pos: " , particles(i)%pos
+       !print*, "particle w charge ", int(particles(i)%q/abs(particles(i)%q)), " pos: " , particles(i)%pos
        near_wall_below = 0 ! reset for each particle
        near_wall_above = 0 ! reset for each particle
 
@@ -395,8 +395,8 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        if (bc_es_hi(2) .ne. (-1)) then 
           call near_wall_check(particles(i), 2, near_wall_above)
        endif 
-       print*, 'near wall below: ',   near_wall_below
-       print*, 'near wall above: ',  near_wall_above
+      ! print*, 'near wall below: ',   near_wall_below
+       !print*, 'near wall above: ',  near_wall_above
 
        ! image charge interactions for wall below
        if (near_wall_below.eq.1) then
@@ -417,7 +417,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -426,7 +426,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -451,7 +451,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           if (bc_es_hi(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -459,7 +459,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           else if (bc_es_hi(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -491,7 +491,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             ! Do local (short range) coulomb interaction within coulombRadiusFactor
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
-            print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
+           ! print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
             !print *, "particle ", i, " force ", particles(i)%force
 
@@ -529,7 +529,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
 
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
@@ -539,7 +539,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
 
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
@@ -569,7 +569,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
                      particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -577,7 +577,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
                      particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -595,7 +595,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        end do
 
 
-       print *, "particle ", i, " force after p3m     ", particles(i)%force
+       !print *, "particle ", i, " force after p3m     ", particles(i)%force
 
        index = index + nneighbors
 
@@ -1675,7 +1675,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   fr(2) = (part%pos(2) - plof(2))*dxfinv(2)
   fr(3) = (part%pos(3) - plof(3))*dxfinv(3)
 
-  !print*, "Real pos: ", part%pos
+  print*, "Real pos: ", fr, part%q
 
   fi(1) = floor(fr(1))
   fi(2) = floor(fr(2))
@@ -2980,7 +2980,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
         call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
                         cellcenters, cellcenterslo, cellcentershi, &
                         part, ks, lo, hi, plof, store)
-        print*, "particle ", p, " force before emf:   ", part%force
+        !print*, "particle ", p, " force before emf:   ", part%force
         poisson_force = -1.d0*part%force
         call emf(weights, indicies, &
                           sourcex, sourcexlo, sourcexhi, &
@@ -2996,8 +2996,8 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                           part, ks, dxe)
 
         poisson_force = poisson_force + part%force
-        print*, "Poisson force on particle ", p, "is: ", poisson_force
-        print*, "particle ", p, " force after emf:    ", part%force
+        !print*, "Poisson force on particle ", p, "is: ", poisson_force
+        !print*, "particle ", p, " force after emf:    ", part%force
 !------------------
 
       call get_weights(dxf, dxfinv, weights, indicies, &
@@ -3042,7 +3042,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                         sourcez, sourcezlo, sourcezhi, &
 #endif
                         part, ks, dxf)
-      print*, 'Part force at end of spread_ions: ', part%force
+      !print*, 'Part force at end of spread_ions: ', part%force
       p = p + 1
 
    end do

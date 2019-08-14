@@ -17,7 +17,7 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 5
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = -1

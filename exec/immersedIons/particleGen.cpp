@@ -46,11 +46,11 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(IntData::sorted) = 0;
                 
-//                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
-//                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
-//#endif
+                p.pos(0) = smallEnd[0]*dx[0] + get_uniform_func()*dx[0]*(bigEnd[0]-smallEnd[0]+1);
+                p.pos(1) = smallEnd[1]*dx[1] + get_uniform_func()*dx[1]*(bigEnd[1]-smallEnd[1]+1);
+#if (BL_SPACEDIM == 3)
+                p.pos(2) = smallEnd[2]*dx[2] + get_uniform_func()*dx[2]*(bigEnd[2]-smallEnd[2]+1);
+#endif
 
 // SC p3m testing:  two particles near each other and both near the wall
                 //p.pos(0) = (geom.ProbHi(0) - geom.ProbLo(0))*0.5 + i_spec*1.82*dxp[0]; 
@@ -80,17 +80,17 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 ////                     reflected across y=0 line. Make sure prob_lo(2) = -1*prob_hi(2) 
 ////                     Make sure particle count = 2 2 
 ////                     Make sure bc_es_lo/hi(2) = -1  aka periodic 
-                int ref = 4;
-                p.pos(0) = (geom.ProbHi(0) - geom.ProbLo(0))*0.5; // + i_spec*1.82*dxp[0]; 
-                std::cout << "i_part = "<< i_part << " i_spec = " << i_spec << std::endl; 
-                if (i_part == 0) 
-		{
-                	p.pos(1) = 2.5*ref*dxp[0] + ref*i_spec*1.82*dxp[0]; 
-		}
-		else 
-		{
-                	p.pos(1) = (-1.)*(ref*2.5*dxp[0] + ref*i_spec*1.82*dxp[0]); 
-		}
+//                int ref = 4;
+//                p.pos(0) = (geom.ProbHi(0) - geom.ProbLo(0))*0.5; // + i_spec*1.82*dxp[0]; 
+//                std::cout << "i_part = "<< i_part << " i_spec = " << i_spec << std::endl; 
+//                if (i_part == 0) 
+//		{
+//                	p.pos(1) = 2.5*ref*dxp[0] + ref*i_spec*1.82*dxp[0]; 
+//		}
+//		else 
+//		{
+//                	p.pos(1) = (-1.)*(ref*2.5*dxp[0] + ref*i_spec*1.82*dxp[0]); 
+//		}
 
 //#if (BL_SPACEDIM == 3)
 //                p.pos(2) = (geom.ProbHi(2) - geom.ProbLo(2))*0.5; 
