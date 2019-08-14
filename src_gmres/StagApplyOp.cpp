@@ -17,34 +17,22 @@ using namespace common;
 AMREX_GPU_HOST_DEVICE
 inline
 void stag_applyop_visc_p1 (Box const& tbx,
-                           Box const& xbx,
-                           Box const& ybx,
-#if (AMREX_SPACEDIM == 3)
-                           Box const& zbx,
-#endif
-                           Array4<Real const> const& alphax,
-                           Array4<Real const> const& alphay,
-#if (AMREX_SPACEDIM == 3)
-                           Array4<Real const> const& alphaz,
-#endif
-                           Array4<Real const> const& phix,
-                           Array4<Real const> const& phiy,
-#if (AMREX_SPACEDIM == 3)
-                           Array4<Real const> const& phiz,
-#endif
-                           Array4<Real> const& Lphix,
-                           Array4<Real> const& Lphiy,
-#if (AMREX_SPACEDIM == 3)
-                           Array4<Real> const& Lphiz,
-#endif
-			   bool do_x,
-			   bool do_y,
-#if (AMREX_SPACEDIM == 3)
-			   bool do_z,
-#endif
-			   Real bt,  Real gt,
-			   int offset,  int color,
-                           
+			   AMREX_D_DECL(Box const& xbx,
+					Box const& ybx,
+					Box const& zbx),
+                           AMREX_D_DECL(Array4<Real const> const& alphax,
+					Array4<Real const> const& alphay,
+					Array4<Real const> const& alphaz),
+                           AMREX_D_DECL(Array4<Real const> const& phix,
+					Array4<Real const> const& phiy,
+					Array4<Real const> const& phiz),
+                           AMREX_D_DECL(Array4<Real> const& Lphix,
+					Array4<Real> const& Lphiy,
+					Array4<Real> const& Lphiz),
+			   AMREX_D_DECL(bool do_x,
+					bool do_y,
+					bool do_z),
+			   Real bt,  Real gt, int offset,  int color,
 			   const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
 {
     // xbx, ybx, and zbx are the face-centered boxes
