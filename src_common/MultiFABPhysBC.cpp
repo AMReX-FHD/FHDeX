@@ -4,12 +4,21 @@
 
 
 void MultiFABPhysBC(MultiFab & data, const Geometry & geom) {
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }  
+  
     MultiFABPhysBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }
 
 
 
 void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
@@ -22,7 +31,12 @@ void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) 
 
 void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
                     const Geometry & geom) {
-    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
+    
+#if (AMREX_SPACEDIM==2 || AMREX_SPACEDIM==3)
     Box dom(geom.Domain());
 
     for (MFIter mfi(data); mfi.isValid(); ++mfi) {
@@ -33,7 +47,7 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
                    BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
                    dim_fill_ghost.getVect());
     }
-    #endif
+#endif
 }
 
 void MultiFABElectricBC(MultiFab & data, const Geometry & geom) {
@@ -140,6 +154,11 @@ void MultiFABChargeBC(MultiFab & data, const IntVect & dim_fill_ghost,
 
 
 void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int dim) {
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
+    
     MultiFABPhysBCDomainVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
@@ -147,6 +166,10 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int d
 
 void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost,
                              const Geometry & geom, int dim) {
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
@@ -159,7 +182,12 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost,
 
 void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
                              const Geometry & geom, int dim) {
-    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
+    
+#if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
 
     for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
@@ -170,12 +198,17 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
                              BL_TO_FORTRAN_FAB(vel[mfi]), vel.nGrow(),
                              dim_fill_ghost.getVect(), &dim);
     }
-    #endif
+#endif
 }
 
 
 
 void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim) {
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
+    
     MultiFABPhysBCMacVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
@@ -183,6 +216,10 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim) {
 
 void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost,
                           const Geometry & geom, int dim) {
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
@@ -194,7 +231,11 @@ void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost,
 
 
 void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost,
-        const Geometry & geom, int dim) {
+			  const Geometry & geom, int dim) {
+
+    if (geom.isAllPeriodic()) {
+      return;
+    }
 
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());

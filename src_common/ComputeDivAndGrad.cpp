@@ -11,7 +11,6 @@ void ComputeDiv(MultiFab& div,
 
     BL_PROFILE_VAR("ComputeDiv()",ComputeDiv);
 
-    // const Real* dx = geom.CellSize();
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
 
@@ -61,7 +60,7 @@ void compute_grad (const Box & tbx,
                    const Array4<Real> & gz,
 #endif
                    const Array4<Real const> & phi,
-                   const GpuArray<Real, AMREX_SPACEDIM> & dx,
+                   const GpuArray<Real, AMREX_SPACEDIM>& dx,
                    int start_incomp, int start_outcomp, int ncomp) noexcept {
 
     // xbx, ybx, and zbx are the face-centered boxes

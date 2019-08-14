@@ -798,22 +798,16 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
 AMREX_GPU_HOST_DEVICE
 inline
 void stag_restriction_simple0 (const Box & tbx,
-                               const Box & xbx,
-                               const Box & ybx,
-#if (AMREX_SPACEDIM == 3)
-                               const Box & zbx,
-#endif
-                               const Array4<Real> & phix_c,
-                               const Array4<Real> & phiy_c,
-#if (AMREX_SPACEDIM == 3)
-                               const Array4<Real> & phiz_c,
-#endif
-                               const Array4<Real const> & phix_f,
-                               const Array4<Real const> & phiy_f
-#if (AMREX_SPACEDIM == 3)
-                               , const Array4<Real const> & phiz_f
-#endif
-                              ) noexcept {
+                               AMREX_D_DECL(const Box & xbx,
+					    const Box & ybx,
+					    const Box & zbx),
+                               AMREX_D_DECL(const Array4<Real> & phix_c,
+					    const Array4<Real> & phiy_c,
+					    const Array4<Real> & phiz_c),
+                               AMREX_D_DECL(const Array4<Real const> & phix_f,
+					    const Array4<Real const> & phiy_f,
+					    const Array4<Real const> & phiz_f)
+			       ) noexcept {
 
     // xbx, ybx, and zbx are the face-centered boxes
 
@@ -915,21 +909,15 @@ void stag_restriction_simple0 (const Box & tbx,
 AMREX_GPU_HOST_DEVICE
 inline
 void stag_restriction_simple1 (const Box & tbx,
-                               const Box & xbx,
-                               const Box & ybx,
-#if (AMREX_SPACEDIM == 3)
-                               const Box & zbx,
-#endif
-                               const Array4<Real> & phix_c,
-                               const Array4<Real> & phiy_c,
-#if (AMREX_SPACEDIM == 3)
-                               const Array4<Real> & phiz_c,
-#endif
-                               const Array4<Real const> & phix_f,
-                               const Array4<Real const> & phiy_f
-#if (AMREX_SPACEDIM == 3)
-                               , const Array4<Real const> & phiz_f
-#endif
+                               AMREX_D_DECL(const Box & xbx,
+					    const Box & ybx,
+					    const Box & zbx),
+                               AMREX_D_DECL(const Array4<Real> & phix_c,
+					    const Array4<Real> & phiy_c,
+					    const Array4<Real> & phiz_c),
+                               AMREX_D_DECL(const Array4<Real const> & phix_f,
+					    const Array4<Real const> & phiy_f,
+					    const Array4<Real const> & phiz_f)
                               ) noexcept {
 
     // xbx, ybx, and zbx are the face-centered boxes
@@ -1185,21 +1173,15 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
 AMREX_GPU_HOST_DEVICE
 inline
 void stag_prolongation (const Box & tbx,
-                        const Box & xbx,
-                        const Box & ybx,
-#if (AMREX_SPACEDIM == 3)
-                        const Box & zbx,
-#endif
-                        const Array4<Real const> & phix_c,
-                        const Array4<Real const> & phiy_c,
-#if (AMREX_SPACEDIM == 3)
-                        const Array4<Real const> & phiz_c,
-#endif
-                        const Array4<Real> & phix_f,
-                        const Array4<Real> & phiy_f
-#if (AMREX_SPACEDIM == 3)
-                        , const Array4<Real> & phiz_f
-#endif
+                        AMREX_D_DECL(const Box & xbx,
+				     const Box & ybx,
+				     const Box & zbx),
+                        AMREX_D_DECL(const Array4<Real const> & phix_c,
+				     const Array4<Real const> & phiy_c,
+				     const Array4<Real const> & phiz_c),
+                        AMREX_D_DECL(const Array4<Real> & phix_f,
+				     const Array4<Real> & phiy_f,
+				     const Array4<Real> & phiz_f)
                         ) noexcept {
 
     // xbx, ybx, and zbx are the face-centered boxes
@@ -1457,24 +1439,7 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                               AMREX_D_DECL(phix_c_fab, phiy_c_fab, phiz_c_fab),
                               AMREX_D_DECL(phix_f_fab, phiy_f_fab, phiz_f_fab));
         });
-
-        
-/*        
-        const Box& validBox = amrex::enclosedCells(mfi.validbox());
-
-        stag_prolongation(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                          BL_TO_FORTRAN_3D(phi_c[0][mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[0][mfi]),
-                          BL_TO_FORTRAN_3D(phi_c[1][mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[1][mfi])
-#if (AMREX_SPACEDIM == 3)
-                        , BL_TO_FORTRAN_3D(phi_c[2][mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[2][mfi])
-#endif
-                          );
-*/
     }
-
 }
 
 void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
@@ -1494,28 +1459,19 @@ void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
         // Get the index space of the valid region
         const Box& validBox = mfi.validbox();
 
-
         stag_mg_update(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                       BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(phi_fc[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(rhs_fc[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(Lphi_fc[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(alpha_fc[2][mfi]),
-#endif
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(phi_fc[2][mfi])),
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(rhs_fc[2][mfi])),
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(Lphi_fc[2][mfi])),
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(alpha_fc[2][mfi])),
                        BL_TO_FORTRAN_3D(beta_cc[mfi]),
 #if (AMREX_SPACEDIM == 2)
                        BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
