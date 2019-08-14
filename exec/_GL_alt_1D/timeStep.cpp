@@ -41,19 +41,21 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
     {
         const Box& bx = mfi.validbox();
 
-        integrate(BL_TO_FORTRAN_BOX(bx),
-                   phi[mfi].dataPtr(),  
-      	           dx,
-                   &integral);   
+        integrate_1D(BL_TO_FORTRAN_BOX(bx),
+                phi[mfi].dataPtr(),  
+                dx,
+                &integral);   
 
     }
     ParallelDescriptor::ReduceRealSum(integral);
 
-//    if(ParallelDescriptor::MyProc() == 0 ){
-//           std::cout << "integral = "<< integral << std::endl;
-//    }
+                //    if(ParallelDescriptor::MyProc() == 0 ){
+                //           std::cout << "integral = "<< integral << std::endl;
+                //    }
 
-    // iterating over the data in phi multifab to compute phi for next time step. The function called also computes the averages of phi and some energy quantitites
+
+    // iterating over the data in phi multifab to compute phi for next time step. 
+    //The function called also computes the averages of phi and some energy quantitites
     energy =0.;
     teng =0.;
     phi_avg=0.0;
@@ -61,16 +63,16 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
     {
         const Box& bx = mfi.validbox();
 
-        rk2_stage1(BL_TO_FORTRAN_BOX(bx),
-                   phi[mfi].dataPtr(),  
-                   phin[mfi].dataPtr(),  
-                   rannums[mfi].dataPtr(),
-                   &integral,
-                   &energy, &teng,
-      	           dx, &dt,&phi_avg);   
+        rk2_stage1_1D(BL_TO_FORTRAN_BOX(bx),
+                phi[mfi].dataPtr(),  
+                phin[mfi].dataPtr(),  
+                rannums[mfi].dataPtr(),
+                &integral,
+                &energy, &teng,
+                dx, &dt,&phi_avg);   
     }
     ParallelDescriptor::ReduceRealSum(phi_avg);
-    phi_avg = phi_avg/(n_cells[0]*n_cells[1]);
+    phi_avg = phi_avg/(n_cells[0]);
     ParallelDescriptor::ReduceRealSum(energy);
     ParallelDescriptor::ReduceRealSum(teng);
 
@@ -79,50 +81,47 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
     {
         const Box& bx = mfi.validbox();
 
-        Comp_H1_semi_norm(BL_TO_FORTRAN_BOX(bx),
-                   phi[mfi].dataPtr(),  
-      	           dx,
-                   &H1_semi_norm);   
+        Comp_H1_semi_norm_1D(BL_TO_FORTRAN_BOX(bx),
+                phi[mfi].dataPtr(),  
+                dx,
+                &H1_semi_norm);   
     }
     ParallelDescriptor::ReduceRealSum(H1_semi_norm);
-    H1_semi_norm=H1_semi_norm/(n_cells[0]*n_cells[1]);
+    H1_semi_norm=H1_semi_norm/(n_cells[0]);
 
-                    //if(ParallelDescriptor::MyProc() == 0 ){
-                    //       std::cout << n << " " << energy << "  energy  " << std::endl;
-                    //       std::cout << n << " " << teng << "  teng  " << std::endl;
-                    //      // std::cout << time << " " << energy << "  energy = "<< energy << "  dphi/dt  = " << phit << std::endl;
-                // }
+                        //if(ParallelDescriptor::MyProc() == 0 ){
+                        //       std::cout << n << " " << energy << "  energy  " << std::endl;
+                        //       std::cout << n << " " << teng << "  teng  " << std::endl;
+                        //      // std::cout << time << " " << energy << "  energy = "<< energy << "  dphi/dt  = " << phit << std::endl;
+                    // }
 
-                //    phin.FillBoundary(geom.periodicity());
-                //
-                //
-                //    for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
-                //    {
-                //        const Box& bx = mfi.validbox();
-                //
-                //        rk2_stage2(ARLIM_2D(bx.loVect()), ARLIM_2D(bx.hiVect()),
-                //                   phi[mfi].dataPtr(),  
-                //                   phin[mfi].dataPtr(),  
-                //                   rannums[mfi].dataPtr(),
-                //                     &integral,
-                //      	           ZFILL(dx), &dt);
-                //    }
+                    //    phin.FillBoundary(geom.periodicity());
+                    //
+                    //
+                    //    for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
+                    //    {
+                    //        const Box& bx = mfi.validbox();
+                    //
+                    //        rk2_stage2(ARLIM_2D(bx.loVect()), ARLIM_2D(bx.hiVect()),
+                    //                   phi[mfi].dataPtr(),  
+                    //                   phin[mfi].dataPtr(),  
+                    //                   rannums[mfi].dataPtr(),
+                    //                     &integral,
+                    //      	           ZFILL(dx), &dt);
+                    //    }
 }
 
 void Init_Phi(MultiFab& phi, const amrex::Real* dx )
   {
-
-    // iterating over multifab and fill with initial condition
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
 
-        initphi(BL_TO_FORTRAN_BOX(bx),
-                   phi[mfi].dataPtr(),
-                   dx);
+        initphi_1D(BL_TO_FORTRAN_BOX(bx),
+                phi[mfi].dataPtr(),
+                dx);
     }
-
-   }
+  }
 
 void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt,
                         amrex::Real& time, int plot_int, bool Make_PltFiles,int N_Burn,int L, amrex::Real& Expec, amrex::Real& MAD, int& Plot_Num,int& Plot_Skip, int& umbrella_number)
@@ -192,7 +191,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     // The two files are the individual "umbrella" files and a file that keeps all the umbrella data in one contigous file
     std::ofstream ofs;
     std::ofstream ofs2;
-    
+
     ofs.setf(std::ios::scientific);
     ofs.setf(std::ios::showpos);
     ofs.precision(13);
@@ -294,11 +293,6 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
 }
 
 
-
-
-
-
-
 void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex::Real& MAD2,amrex::Real& r2,amrex::Real& alpha, bool& sucessful_compare, int& umbrella_size, int& Shift_Flag, bool& while_loop_comp, bool& First_Loop_Step, bool& weak_umb)
 { 
 // This function is the implementation of the algorithm detailed in the overleaf notes. This function is meant for the scenario
@@ -395,10 +389,10 @@ void Check_Overlap(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Expec2,amrex
         if(umbrella_size==2)// shift phi_0 down and reset the spring constant to a low value if there was insufficient overlap when the spring constant upper limit is reached
         {   
             r_temp=r2;
-            r2=-0.5*r2;
+            r2=-1.25*r2;
             inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
             r2=r_temp;  
-            umbrella_reset_val=150.0;
+            umbrella_reset_val=65.0;
             umbrella_reset(&umbrella_reset_val);
             umbrella_size=0;
         } 
@@ -521,10 +515,10 @@ void Check_Overlap_Backwards(amrex::Real& Expec,amrex::Real& MAD,amrex::Real& Ex
         if(umbrella_size==2)// shift phi_0 up and reset the spring constant to a low value if there was insufficient overlap when the spring constant upper limit is reached
         {   
             r_temp=r2;
-            r2=0.5*r2;
+            r2=1.25*r2;
             inc_phi0_Adapt(&Expec,&MAD,&r2,&Shift_Flag);
             r2=r_temp;  
-            umbrella_reset_val=44.44444444444;
+            umbrella_reset_val=65.0;
             umbrella_reset(&umbrella_reset_val);
             umbrella_size=0;
         } 

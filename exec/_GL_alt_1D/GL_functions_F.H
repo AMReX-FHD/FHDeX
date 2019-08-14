@@ -58,6 +58,7 @@ extern "C"
   void  initphi (const int* lo, const int* hi,
                               amrex::Real* phi,
                               const amrex::Real* dx);
+
   void Stat_Quant(const int* lo, const int* hi,
 			                        amrex::Real* phi,
                               amrex::Real* phi_avg,
@@ -68,6 +69,42 @@ extern "C"
 
   void Param_Output (amrex::Real*  umbrella_output, amrex::Real*  phi0_output);
   void umbrella_reset( amrex::Real*  umbrella_input );
+  
+
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  void Stat_Quant_1D(const int* lo, const int* hi,
+			                        amrex::Real* phi,
+                              amrex::Real* phi_avg,
+                              amrex::Real* phi_sq_avg);
+
+  void integrate_1D(const int* lo, const int* hi,
+                              amrex::Real* phi,
+                              const amrex::Real* dx,
+                              amrex::Real* integral);
+
+  void Comp_H1_semi_norm_1D(const int* lo, const int* hi,
+                              amrex::Real* phi,
+                              const amrex::Real* dx,
+                              amrex::Real* H1_semi);
+
+  void  initphi_1D (const int* lo, const int* hi,
+                              amrex::Real* phi,
+                              const amrex::Real* dx);
+
+  void rk2_stage1_1D(const int* lo, const int* hi,
+			      amrex::Real* phi,
+			      amrex::Real* phin,
+			      const amrex::Real* rannums,
+                              amrex::Real* integral,
+                              amrex::Real* energy,
+                              amrex::Real* teng,
+                              const amrex::Real* dx,
+                              const amrex::Real* dt,
+                              amrex::Real* phi_avg);
+
+  void  setdt_1D ( const amrex::Real* dx, amrex::Real* dt );
+
 
 #ifdef __cplusplus
 }

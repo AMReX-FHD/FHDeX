@@ -120,6 +120,10 @@ subroutine find_center_coords(real_lo, real_hi, centers, lo, hi, dx) bind(C, nam
   real(amrex_real), intent(inout) :: centers(lo(1):hi(1),lo(2):hi(2),1:AMREX_SPACEDIM)
 #endif
 
+#if (BL_SPACEDIM == 1)
+  real(amrex_real), intent(inout) :: centers(lo(1):hi(1),1:AMREX_SPACEDIM)
+#endif
+
 #if (BL_SPACEDIM == 3)
   integer i,j,k
 
@@ -145,6 +149,14 @@ subroutine find_center_coords(real_lo, real_hi, centers, lo, hi, dx) bind(C, nam
     end do
 #endif
 
+
+#if (BL_SPACEDIM == 1)
+  integer i
+
+      do i = lo(1), hi(1) !iterate into ghost cells
+         centers(i,1) = (i+0.5)*dx(1)+real_lo(1)
+    end do
+#endif
 
 end subroutine find_center_coords
 

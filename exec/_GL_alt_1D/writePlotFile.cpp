@@ -26,7 +26,6 @@ void WritePlotFile(int step,
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
 
-    // Add umbrella spring constant and phi_0 to plot file directory in "params.txt"
     std::string scalar_param_loc=plotfilename;
     scalar_param_loc=scalar_param_loc+ "/";
     scalar_param_loc=scalar_param_loc+"params.txt";

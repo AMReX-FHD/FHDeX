@@ -15,11 +15,11 @@
   max_grid_size(1:2) = 64 64
 
   ! Time-step control
-  cfl = .1
+  cfl =0.1
 
   ! Controls for number of steps between actions
   max_step = 6000000
-  plot_int  = 5000
+  plot_int  = 1000
   n_steps_skip = 0
 
   ! Boundary conditions
@@ -38,17 +38,27 @@
  ccoef = -216.
  dcoef = 112.
 
- diff_coef = 1.
- noise_coef = .010
- umbrella = 50.
+ diff_coef = 1.0  !1.
+ noise_coef = .01 !
+ umbrella = 150.00 ! starting umbrella value/fixed value when not using adaptive method
  ! umbrella = 00.
 
  !phi0 = .5
- phi0 = .05
+ phi0 =0.00286481020
  rad = .4
  n_inc_phi = 300000
- phi_inc = .05
+ phi_inc =0.1 !0.00014747000000000024 ! increment parameter used when adaptive is off
 
+ Plot_Skip=30   ! only plot files for [j mod(Number_of_Samples)==0] for j=1:number_ofsamples are printed
+ Number_of_Samples=150  ! Number of samples per umbrella
+ Equil=21000  !number of equilibration steps per umbrella
+ alpha=1.5  !spring constant scaling parameter
+ r1=1.0 !phi0 step parameter, see overleaf notes
+ r2=1.0  !overlap parameter, see overleaf notes
+ umbrella_max=2000.0 ! The adaptive method stops scaling the spring constant up after a value greater than or equal to this is reached
+ umbrella_min=100.0 ! The adaptive method stops scaling the spring constant down after a value less than or equal to this is reached
+ adaptive=1   ! 1= adaptive method used, 0= uniform phi_0 step method
+ Reverse=0    ! 1= "forward" direction (i.e phi_0) is increased, 0= "backward" direction (i.e phi_0) is decreased
 
 
 
