@@ -614,7 +614,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cut_off, rmin
+    use common_namelist_module, only: cut_off, rmin, p_int_tog
         
     integer,          intent(in   ) :: np, nn, size
     real(amrex_real), intent(inout) :: rcount
@@ -644,24 +644,27 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 
        do j = index, index + nneighbors - 1
 
-          dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
-          dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
-          dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
+          if((p_int_tog(particles(i)%species) .ne. 0) .and. (p_int_tog(particles(nl(j))%species) .ne. 0)) then
 
-          r2 = dx(1) * dx(1) + dx(2) * dx(2) + dx(3) * dx(3)
-          r2 = max(r2, rmin*rmin) 
-          r = sqrt(r2)
+            dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
+            dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
+            dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
-         !repulsive interaction
+            r2 = dx(1) * dx(1) + dx(2) * dx(2) + dx(3) * dx(3)
+            r2 = max(r2, rmin*rmin) 
+            r = sqrt(r2)
 
-         !print *, r , (1.122*particles(i)%sigma/2.0)
-         if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
+           !repulsive interaction
 
-            !print *, "Repulsing, ", i, r
-            rcount = rcount + 1
+           !print *, r , (1.122*particles(i)%sigma/2.0)
+            if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
-            call repulsive_force(particles(i),particles(nl(j)),dx,r2) 
-         end if
+              !print *, "Repulsing, ", i, r
+              rcount = rcount + 1
+
+              call repulsive_force(particles(i),particles(nl(j)),dx,r2) 
+            end if
+          endif
 
        end do
 
