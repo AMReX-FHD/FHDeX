@@ -22,7 +22,6 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
                 if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
                     lobc[i] = LinOpBCType::Periodic;
                     hibc[i] = LinOpBCType::Periodic;
-                                Print() << "Here!\n";
                 }
                 if(bc_es_lo[i] == 2)
                 {

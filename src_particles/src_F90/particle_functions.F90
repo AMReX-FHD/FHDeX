@@ -402,7 +402,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        if (near_wall_below.eq.1) then
           ! compute image charge location
           call calc_im_charge_loc(particles(i), -2, im_charge_pos)
-          print*, 'im charge loc = ', im_charge_pos
+          !print*, 'im charge loc = ', im_charge_pos
 
           ! compute sep vector btwn charge and its image
           dr(1) = particles(i)%pos(1) - im_charge_pos(1)
@@ -1675,7 +1675,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   fr(2) = (part%pos(2) - plof(2))*dxfinv(2)
   fr(3) = (part%pos(3) - plof(3))*dxfinv(3)
 
-  print*, "Real pos: ", fr, part%q
+  !print*, "Real pos: ", fr, part%q
 
   fi(1) = floor(fr(1))
   fi(2) = floor(fr(2))
