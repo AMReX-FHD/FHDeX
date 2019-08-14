@@ -422,6 +422,10 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
+    p_move_tog(:) = 1
+    p_force_tog(:) = 1
+    p_int_tog(:) = 1
+
     membrane_cell = -1
     cross_cell = 0
 
