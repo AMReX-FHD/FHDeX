@@ -1,13 +1,13 @@
 &common
 
   ! Problem specification
-  prob_lo(1:3) = 0.0 -1e-5 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 1e-5 1e-5 1e-5      ! physical hi coordinate
+  prob_lo(1:3) = 0.0 -0.5e-5 0.0      ! physical lo coordinate
+  prob_hi(1:3) = 1e-5 0.5e-5 1e-5      ! physical hi coordinate
     
   ! number of cells in domain
-  n_cells(1:3) = 128 256 128
+  n_cells(1:3) = 256 256 256
   ! max number of cells in a box
-  max_grid_size(1:3) = 128 256 128
+  max_grid_size(1:3) = 256 256 256
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
@@ -26,7 +26,7 @@
 
   ! Toggles 0=off, 1=on
   fluid_tog = 0 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
-  es_tog = 1 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  es_tog = 1! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 0 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
@@ -87,7 +87,7 @@
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------
-  poisson_rel_tol = 1.e-3                ! relative tolerance stopping criteria
+  poisson_rel_tol = 1.e-7                ! relative tolerance stopping criteria
   poisson_verbose =  2                   ! multigrid verbosity
   poisson_bottom_verbose =  2           ! base solver verbosity
   poisson_max_iter = 100                 
@@ -108,15 +108,15 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no slip stationary
-  bc_lo(1:3) = -1 -1 -1
-  bc_hi(1:3) = -1 -1 -1
+  bc_lo(1:3) = -1 1 -1
+  bc_hi(1:3) = -1 1 -1
 
   !wallspeed_lo(1:3) = 0 0 0 !Not implemented yet.
   !wallspeed_hi(1:3) = 0 0 0 !Not implemented yet.
 
   ! -1 = periodic, 1 = dirichlet, 2 = neumann
-  bc_es_lo(1:3) = 1 1 1
-  bc_es_hi(1:3) = 1 1 1
+  bc_es_lo(1:3) = -1 -1 -1
+  bc_es_hi(1:3) = -1 -1 -1
 
   potential_lo(1:3) = 0 0 0 ! For use with dirichlet, not fully implemented yet.
   potential_hi(1:3) = 0 0 0 !

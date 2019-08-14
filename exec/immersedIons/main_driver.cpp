@@ -167,6 +167,9 @@ void main_driver(const char* argv)
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
+        Print() << "GEOMOUT: " << geomP << "\n";
+        Print() << "VEC: " << is_periodic_p[1] << "\n";
+
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
     DistributionMapping dmap(ba);
@@ -768,16 +771,7 @@ void main_driver(const char* argv)
             //        const FArrayBox& MF_charge = charge[mfi];
             //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_charge), &iloc, &jloc, &kloc);
 
-        if (plot_int > 0 && step%plot_int == 0)
-        {
 
-            //This write particle data and associated fields and electrostatic fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
-
-            //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
-        }
-            //}
         }
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
@@ -867,16 +861,15 @@ void main_driver(const char* argv)
 //	      structFact.FortStructure(struct_in_cc,geomP);
   //      }
 
-            Print() << "Here!\n";
-//        if (plot_int > 0 && step%plot_int == 0)
-//        {
+        if (plot_int > 0 && step%plot_int == 0)
+        {
 
-//            //This write particle data and associated fields and electrostatic fields
-//            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
+            //This write particle data and associated fields and electrostatic fields
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
-//            //Writes instantaneous flow field and some other stuff? Check with Guy.
-//            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
-//        }
+            //Writes instantaneous flow field and some other stuff? Check with Guy.
+            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+        }
 
         if(step%1 == 0)
         {    
