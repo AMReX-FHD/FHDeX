@@ -37,14 +37,15 @@ void stag_applyop_visc_p1 (Box const& tbx,
 #if (AMREX_SPACEDIM == 3)
                            Array4<Real> const& Lphiz,
 #endif
-                           const bool& do_x,
-                           const bool& do_y,
+			   bool do_x,
+			   bool do_y,
 #if (AMREX_SPACEDIM == 3)
-                           const bool& do_z,
+			   bool do_z,
 #endif
-                           const Real& bt, const Real& gt,
-                           const int& offset, const int& color,
-                           const Real* dx) noexcept
+			   Real bt,  Real gt,
+			   int offset,  int color,
+                           
+			   const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
 {
     // xbx, ybx, and zbx are the face-centered boxes
 
@@ -180,7 +181,9 @@ void StagApplyOp(const MultiFab& beta_cc,
 {
 
     BL_PROFILE_VAR("StagApplyOp()",StagApplyOp);
-
+    
+    GpuArray<Real,AMREX_SPACEDIM> dx_gpu{AMREX_D_DECL(dx[0], dx[1], dx[2])};
+    
     AMREX_D_DECL(bool do_x,do_y,do_z);
 
     int offset = 1;
@@ -269,7 +272,7 @@ void StagApplyOp(const MultiFab& beta_cc,
                                      AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
                                      AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
                                      AMREX_D_DECL(do_x,do_y,do_z),
-                                     bt, gt, offset, color, dx);
+                                     bt, gt, offset, color, dx_gpu);
             });
 
         }
