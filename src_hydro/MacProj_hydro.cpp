@@ -139,7 +139,7 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
     // timer for profiling
     BL_PROFILE_VAR("ComputeMACSolverRHS()",ComputeMACSolverRHS);
 
-    const Real* dx = geom.CellSize();
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
     for ( MFIter mfi(solverrhs); mfi.isValid(); ++mfi) {
 

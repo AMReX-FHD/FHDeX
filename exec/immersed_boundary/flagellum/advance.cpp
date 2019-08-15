@@ -207,6 +207,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     const DistributionMapping & dmap = beta.DistributionMap();
 
 
+
     /****************************************************************************
      *                                                                          *
      * Define temporary MultiFabs                                               *
@@ -226,6 +227,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > advFluxdivPred;
     // Staggered momentum
     std::array< MultiFab, AMREX_SPACEDIM > uMom;
+    // Pressure gradient at inflow/outflow
+    std::array< MultiFab, AMREX_SPACEDIM > pg;
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
            gmres_rhs_u[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
@@ -233,6 +236,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             advFluxdiv[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+                    pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
     }
 
     // Tracer concentration field for predictor
@@ -244,6 +248,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Scaled alpha, beta, gamma:
+    //  * scaled by 1/2 => corrector/ crank-nicolson terms
+    //  * scaled by -1  => move implicit term (LHS) to explicit term (RHS)
 
     // alpha_fc_0 arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_0;
@@ -256,20 +262,27 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Scaled by 1/2:
     // beta_wtd cell centered
     MultiFab beta_wtd(ba, dmap, 1, 1);
+    MultiFab beta_old(ba, dmap, 1, 1);
     MultiFab::Copy(beta_wtd, beta, 0, 0, 1, 1);
+    MultiFab::Copy(beta_old, beta, 0, 0, 1, 1);
     beta_wtd.mult(0.5, 1);
 
     // beta_wtd on nodes in 2d, on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed_wtd;
+    std::array< MultiFab, NUM_EDGE > beta_ed_old;
 #if (AMREX_SPACEDIM == 2)
     beta_ed_wtd[0].define(convert(ba,nodal_flag), dmap, 1, 1);
     MultiFab::Copy(beta_ed_wtd[0], beta_ed[0], 0, 0, 1, 1);
     beta_ed_wtd[0].mult(0.5, 1);
+    beta_ed_old[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    MultiFab::Copy(beta_ed_old[0], beta_ed[0], 0, 0, 1, 1);
 #elif (AMREX_SPACEDIM == 3)
     for(int d=0; d<AMREX_SPACEDIM; d++) {
         beta_ed_wtd[d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 1);
+        beta_ed_old[d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 1);
 
         MultiFab::Copy(beta_ed_wtd[d], beta_ed[d], 0, 0, 1, 1);
+        MultiFab::Copy(beta_ed_old[d], beta_ed[d], 0, 0, 1, 1);
         beta_ed_wtd[d].mult(0.5, 1);
     }
 #endif
@@ -277,7 +290,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Scaled by 1/2:
     // gamma_wtd cell centered
     MultiFab gamma_wtd(ba, dmap, 1, 1);
+    MultiFab gamma_old(ba, dmap, 1, 1);
     MultiFab::Copy(gamma_wtd, gamma, 0, 0, 1, 1);
+    MultiFab::Copy(gamma_old, gamma, 0, 0, 1, 1);
     gamma_wtd.mult(-0.5, 1);
 
     // Scaled by -1/2:
@@ -308,6 +323,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     gamma_negwtd.mult(-0.5, 1);
 
 
+
     /****************************************************************************
      *                                                                          *
      * Immersed-Marker parameters                                               *
@@ -320,16 +336,17 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     RealVect driv_u = {0, 0, 1};
 
     // Slowly ramp up driving amplitude
-    // Real driv_amp = std::min(time*10, 1.);
-    // Print() << "driv_amp = " << driv_amp << std::endl;
-    //
+    Real driv_amp = std::min(time*10, 1.);
+    Print() << "driv_amp = " << driv_amp << std::endl;
+
     // I'm too impatient to wait... -JPB
-    Real driv_amp = 1.;
+    // Real driv_amp = 1.;
+
 
 
     /****************************************************************************
      *                                                                          *
-     * Apply non-stochastic boundary conditions                                 *
+     * Apply deterministic boundary conditions                                  *
      *                                                                          *
      ***************************************************************************/
 
@@ -340,6 +357,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
 
+
     /****************************************************************************
      *                                                                          *
      * Advance tracer                                                           *
@@ -347,7 +365,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
     // Compute tracer:
-    BL_PROFILE_VAR("adv_compute tracer",TRACER);
+    BL_PROFILE_VAR("adv_compute tracer", TRACER);
     tracer.FillBoundary(geom.periodicity());
     MultiFABPhysBC(tracer, geom);
 
@@ -379,14 +397,22 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // ADVANCE velocity field
     //////////////////////////////////////////////////
 
-    // PREDICTOR STEP (heun's method: part 1)
-    // compute advective term
 
 
+    /****************************************************************************
+     *                                                                          *
+     * PREDICTOR (midpoint) step, compute:                                      *
+     * 1. x^(n+1/2) = x^n + dt/2 J(u^n)              [x = marker positions]     *
+     * 2. F^(n+1/2) = f(x^(n+1/2))                   [f - IB force model  ]     *
+     * 3. f^(n+1/2) = S(F^(n+1/2))                                              *
+     * 4. (u^(n+1/2)-u^n)/(dt/2) + D(uu^n) + Gp = Lu^(n+1/2) + f(n+1/2)         *
+     *                               Du^(n+1/2) = 0                             *
+     *                                                                          *
+     ***************************************************************************/
 
 
     //___________________________________________________________________________
-    // Interpolate immersed boundary predictor
+    // Interpolate immersed boundary predictor: J(u^n)
     std::array<MultiFab, AMREX_SPACEDIM> umac_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umac_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
@@ -397,34 +423,31 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.ResetPredictor(0);
     ib_mc.InterpolatePredictor(0, umac_buffer);
 
-    // Constrain it to move in the z = constant plane only
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
-
 
     //___________________________________________________________________________
-    // Move markers according to predictor velocity
-    ib_mc.MovePredictor(0, dt);
+    // Move predictor using previous velocity: x^(n+1/2) = x^n + dt/2 J(u^n)
+    // (constrain it to move in the z = constant plane only)
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
+    ib_mc.MovePredictor(0, 0.5*dt);
     ib_mc.Redistribute(); // just in case (maybe can be removed)
 
 
     //___________________________________________________________________________
-    // Update forces between markers
-    // TODO: expensive => use infrequently, use updateNeighbors for most steps
+    // Update forces between markers: F^(n+1/2) = f(x^(n+1/2)) TODO: expensive
+    // => use infrequently, use updateNeighbors for most steps
     ib_mc.clearNeighbors();
     ib_mc.fillNeighbors(); // Does ghost cells
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
     update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::pred_forcex, true);
     // Constrain it to move in the z = constant plane only
-    // Set the forces in the z direction to zero
     constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_forcez);
-
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBM_realData::pred_forcex, AMREX_SPACEDIM, 0, 0);
 
 
     //___________________________________________________________________________
-    // Spread forces to predictor
+    // Spread forces to predictor f^(n+1/2) = S(F^(n+1/2))
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
@@ -436,11 +459,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         fc_force_pred[d].SumBoundary(geom.periodicity());
 
 
+    //___________________________________________________________________________
+    // Compute predictor velocity field
+    // (u^(n+1/2)-u^n)/(dt/2) + D(uu^n) + Gp = Lu^(n+1/2) + f(n+1/2)
+    //                            Du^(n+1/2) = 0
 
-
-
+    // Compute momentum fluxes: uMom = rho*u^n
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-
         MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 1);
 
         // let rho = 1
@@ -451,115 +476,43 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFABPhysBCMacVel(uMom[d], d, geom, d);
     }
 
+    // Compute advective fluxes: advFluxdiv = - D(\rho uu^n) = - D(u^n uMom)
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
 
-    // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
-                umac, Lumac, alpha_fc_0, dx, theta_alpha);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        Lumac[d].FillBoundary(geom.periodicity());
-
-        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
-        gmres_rhs_u[d].mult(dtinv, 1);
-
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
-    }
-
-    std::array< MultiFab, AMREX_SPACEDIM > pg;
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
-
-    pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
-
+    // Compute pressure gradient due to the BC: gp = Gp
+    pres.setVal(0.); // Initial guess for pressure
+    SetPressureBC(pres, geom); // Apply pressure boundary conditions
     ComputeGrad(pres, pg, 0, 0, 1, geom);
 
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-
-        pg[i].FillBoundary(geom.periodicity());
-        gmres_rhs_u[i].FillBoundary(geom.periodicity());
-
-        MultiFab::Subtract(gmres_rhs_u[i], pg[i], 0, 0, 1, 1);
-    }
-
-    // initial guess for new solution
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 1);
-
-    // call GMRES to compute predictor
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-        umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
-    }
-
-    // ADVANCE STEP (crank-nicolson + heun's method)
-
-
-    // Compute predictor advective term
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-        MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
-
-        // let rho = 1
-        uMom[d].mult(1.0, 1);
-
-        uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
-    }
-
-
-    MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
-
-
-    // Compute gmres_rhs
-
-    // trapezoidal advective terms
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        advFluxdiv[d].mult(0.5, 1);
-        advFluxdivPred[d].mult(0.5, 1);
-    }
-
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
+    // Construct RHS of Navier Stokes Equation
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
+        gmres_rhs_u[d].mult(dtinv*2, 1); // advance by dt/2
 
-        gmres_rhs_u[d].mult(dtinv, 1);
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 1);
 
+        // FillBoundary before adding boundary conditions to prevent
+        // overwriting (which are defined on ghost cells)
+        pg[d].FillBoundary(geom.periodicity());
         gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
         MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
-
-        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
     }
 
+    // Initial guess for new solution
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
 
-    pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
-
-    // call GMRES here
+    // Call GMRES to compute u^(n+1/2). Lu^(n+1/2) is computed implicitly. Note
+    // that we are using the un-weighted coefficients.
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
+          alpha_fc, beta_old, beta_ed_old, gamma_old, theta_alpha,
           geom, norm_pre_rhs);
 
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-
+    // Apply boundary conditions to the solution
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umacNew[d].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
         MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
@@ -567,14 +520,18 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
 
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);
-
-
+    /****************************************************************************
+     *                                                                          *
+     * ADVANCE (midpoint) step, compute:                                        *
+     * 1. x^(n+1) = x^n + dt J(u^(n+1/2))            [x = marker positions]     *
+     * 2. (u^(n+1)-u^n)/dt + D(uu^(n+1/2)) + Gp = L(u^n+u^(n+1))/2 + f(n+1/2)   *
+     *                                 Du^(n+1) = 0                             *
+     *                                                                          *
+     ***************************************************************************/
 
 
     //___________________________________________________________________________
-    // Interpolate immersed boundary
+    // Interpolate immersed boundary: J(u^(n+1/2))
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umacNew_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
@@ -584,138 +541,50 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     ib_mc.ResetMarkers(0);
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
-    // Constrain it to move in the z = constant plane only
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
 
 
     //___________________________________________________________________________
-    // Move markers according to velocity
+    // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
+    // (constrain it to move in the z = constant plane only)
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
     ib_mc.MoveMarkers(0, dt);
     ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
 
-    //___________________________________________________________________________
-    // Update forces between markers
-    // TODO: expensive => use infrequently, use updateNeighbors for most steps
-    ib_mc.clearNeighbors();
-    ib_mc.fillNeighbors(); // Does ghost cells
-    ib_mc.buildNeighborList(ib_mc.CheckPair);
+    // //___________________________________________________________________________
+    // // Update forces between markers: F^(n+1) = f(x^(n+1)) TODO: expensive =>
+    // // use infrequently, use updateNeighbors for most steps
+    // ib_mc.clearNeighbors();
+    // ib_mc.fillNeighbors(); // Does ghost cells
+    // ib_mc.buildNeighborList(ib_mc.CheckPair);
+
+    // update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::forcex, false);
+    // // Constrain it to move in the z = constant plane only
+    // constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::forcez);
+    // // Sum predictor forces added to neighbors back to the real markers
+    // ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
 
 
-    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::forcex, false);
-    // Constrain it to move in the z = constant plane only
-    // Set the forces in the z direction to zero
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::forcez);
+    // //___________________________________________________________________________
+    // // Spread forces to corrector: f^(n+1) = S(F^(n+1))
+    // std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
+    // for (int d=0; d<AMREX_SPACEDIM; ++d){
+    //     fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+    //     fc_force_corr[d].setVal(0.);
+    // }
 
-    // Sum predictor forces added to neighbors back to the real markers
-    ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
-
-
-    // Apply Heun's Method time stepping to marker forces
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                mark.rdata(IBM_realData::forcex + d) =
-                      0.5*mark.rdata(IBM_realData::forcex + d)
-                    + 0.5*mark.rdata(IBM_realData::pred_forcex + d);
-            }
-        }
-    }
+    // ib_mc.SpreadMarkers(0, fc_force_corr);
+    // for (int d=0; d<AMREX_SPACEDIM; ++d)
+    //     fc_force_corr[d].SumBoundary(geom.periodicity());
 
 
     //___________________________________________________________________________
-    // Spread forces to corrector
-    std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
-    for (int d=0; d<AMREX_SPACEDIM; ++d){
+    // Compute corrector velocity field
+    // (u^(n+1)-u^n)/(dt) + D(uu^(n+1/2)) + Gp = L(u^n+u^(n+1))/2 + f(n+1/2)
+    //                                Du^(n+1) = 0
 
-        fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-        fc_force_corr[d].setVal(0.);
-    }
-
-    // Spread to the `fc_force` multifab
-    //ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles
-
-    ib_mc.SpreadMarkers(0, fc_force_corr);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        fc_force_corr[d].SumBoundary(geom.periodicity());
-
-
-
+    // Compute momentum fluxes at the midpoint: uMom = rho*u^(n+1/2)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-        MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 1);
-
-        // let rho = 1
-        uMom[d].mult(1.0, 1);
-
-        uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
-    }
-
-    MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
-
-    // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
-                umac, Lumac, alpha_fc_0, dx, theta_alpha);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        Lumac[d].FillBoundary(geom.periodicity());
-
-        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
-        gmres_rhs_u[d].mult(dtinv, 1);
-
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_corr[d],    0, 0, 1, 0);
-    }
-
-    pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
-
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-        pg[d].FillBoundary(geom.periodicity());
-        gmres_rhs_u[d].FillBoundary(geom.periodicity());
-
-        MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
-    }
-
-    // initial guess for new solution
-    for (int d=0; d<AMREX_SPACEDIM; d++)
-        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
-
-    // call GMRES to compute predictor
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-        umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
-    }
-
-    // ADVANCE STEP (crank-nicolson + heun's method)
-
-
-    // Compute predictor advective term
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
 
         // let rho = 1
@@ -726,54 +595,58 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFABPhysBCMacVel(uMom[d], d, geom, d);
     }
 
-
+    // Compute advective fluxes at the midpoint:
+    // advFluxdivPred = - D(\rho uu^(n+1/2)) = - D(u^(n+1/2) uMom)
     MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
 
+    // Explicit part of the diffusive operator Lu^n/2. Note that we are using
+    // the weighted coefficients (to deal witht he 1/2 part)
+    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+                umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
-    // Compute gmres_rhs
 
-    // trapezoidal advective terms
+    // Note that the pressure gradient due to the BC is left unchanged
+    pres.setVal(0.); // Initial guess for pressure
+    SetPressureBC(pres, geom); // Apply pressure boundary conditions
+
+    // Construct RHS of Navier Stokes Equation
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        advFluxdiv[d].mult(0.5, 1);
-        advFluxdivPred[d].mult(0.5, 1);
-    }
+        Lumac[d].FillBoundary(geom.periodicity());
 
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
+        gmres_rhs_u[d].mult(dtinv, 1); // advance by dt
 
-        gmres_rhs_u[d].mult(dtinv, 1);
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_corr[d],    0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 1);
 
+        // FillBoundary before adding boundary conditions to prevent
+        // overwriting (which are defined on ghost cells)
         gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
         MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
-
-        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
     }
 
+    // Initial guess for new solution
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
 
-    pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
-
-    // call GMRES here
+    // Call GMRES to compute u^(n+1). Lu^(n+1)/2 is computed implicitly. Note
+    // that we are using the weighted coefficients (to deal witht he 1/2 part)
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
 
+    // Apply boundary conditions to the solution
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-
         umacNew[d].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
         MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
     }
 
-
-    for (int d=0; d<AMREX_SPACEDIM; d++)
+    // Update solution, and we're done!
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
         MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
 
     BL_PROFILE_VAR_STOP(advance);

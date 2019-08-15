@@ -32,10 +32,8 @@ contains
                             alphaz, az_lo, az_hi, &
 #endif
                             beta, b_lo, b_hi, &
-#if (AMREX_SPACEDIM == 2)
-                            beta_ed, w_lo, w_hi, &
-#elif (AMREX_SPACEDIM == 3)
                             beta_xy, w_lo, w_hi, &
+#if (AMREX_SPACEDIM == 3)
                             beta_xz, x_lo, x_hi, &
                             beta_yz, y_lo, y_hi, &
 #endif
@@ -78,12 +76,9 @@ contains
 #endif
     integer         , intent(in   ) :: b_lo(3), b_hi(3)
     double precision, intent(in   ) :: beta(b_lo(1):b_hi(1),b_lo(2):b_hi(2),b_lo(3):b_hi(3))
-#if (AMREX_SPACEDIM == 2)
-    integer         , intent(in   ) :: w_lo(3), w_hi(3)
-    double precision, intent(in   ) :: beta_ed(w_lo(1):w_hi(1),w_lo(2):w_hi(2),w_lo(3):w_hi(3))
-#elif (AMREX_SPACEDIM == 3)
     integer         , intent(in   ) :: w_lo(3), w_hi(3)
     double precision, intent(in   ) :: beta_xy(w_lo(1):w_hi(1),w_lo(2):w_hi(2),w_lo(3):w_hi(3))
+#if (AMREX_SPACEDIM == 3)
     integer         , intent(in   ) :: x_lo(3), x_hi(3)
     double precision, intent(in   ) :: beta_xz(x_lo(1):x_hi(1),x_lo(2):x_hi(2),x_lo(3):x_hi(3))
     integer         , intent(in   ) :: y_lo(3), y_hi(3)
@@ -125,43 +120,7 @@ contains
 
     k = 0
 
-    if (visc_type .eq. -1) then
-
-       if (do_x) then
-
-          do j=lo(2),hi(2)
-             ioff = 0
-             if ( offset .eq. 2 .and. mod(lo(1)+j,2) .ne. mod(color+1,2) ) ioff = 1
-             do i=lo(1)+ioff,hi(1)+1,offset
-
-                fac = alphax(i,j,k) + &
-                     (beta(i,j,k)+beta(i-1,j,k)+beta_ed(i,j,k)+beta_ed(i,j+1,k)) * dxsqinv
-
-                phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac
-
-             end do
-          end do
-
-       end if
-
-       if (do_y) then
-
-          do j=lo(2),hi(2)+1
-             ioff = 0
-             if ( offset .eq. 2 .and. mod(lo(1)+j,2) .ne. mod(color+1,2) ) ioff = 1
-             do i=lo(1)+ioff,hi(1),offset
-
-                fac = alphay(i,j,k) + &
-                     (beta(i,j,k)+beta(i,j-1,k)+beta_ed(i,j,k)+beta_ed(i+1,j,k)) * dxsqinv
-
-                phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac
-
-             end do
-          end do
-
-       end if
-
-    else if (visc_type .eq. 1) then
+    if (visc_type .eq. 1) then
 
        b = beta(lo(1),lo(2),k)
 
@@ -205,7 +164,7 @@ contains
              do i=lo(1)+ioff,hi(1)+1,offset
 
                 fac = alphax(i,j,k) + &
-                     (2.d0*beta(i,j,k)+2.d0*beta(i-1,j,k)+beta_ed(i,j,k)+beta_ed(i,j+1,k)) * dxsqinv
+                     (2.d0*beta(i,j,k)+2.d0*beta(i-1,j,k)+beta_xy(i,j,k)+beta_xy(i,j+1,k)) * dxsqinv
 
                 phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac
 
@@ -222,7 +181,7 @@ contains
              do i=lo(1)+ioff,hi(1),offset
 
                 fac = alphay(i,j,k) + &
-                     (2.d0*beta(i,j,k)+2.d0*beta(i,j-1,k)+beta_ed(i,j,k)+beta_ed(i+1,j,k)) * dxsqinv
+                     (2.d0*beta(i,j,k)+2.d0*beta(i,j-1,k)+beta_xy(i,j,k)+beta_xy(i+1,j,k)) * dxsqinv
 
                 phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac
 
@@ -277,7 +236,7 @@ contains
                 fac = alphax(i,j,k) + &
                      ( fourthirds*beta(i  ,j,k)+gamma(i,j,k) &
                       +fourthirds*beta(i-1,j,k)+gamma(i-1,j,k) &
-                      +beta_ed(i,j,k)+beta_ed(i,j+1,k)) * dxsqinv
+                      +beta_xy(i,j,k)+beta_xy(i,j+1,k)) * dxsqinv
 
                 phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac
 
@@ -296,7 +255,7 @@ contains
                 fac = alphay(i,j,k) + &
                      ( fourthirds*beta(i,j  ,k)+gamma(i,j,k) &
                       +fourthirds*beta(i,j-1,k)+gamma(i,j-1,k) &
-                      +beta_ed(i,j,k)+beta_ed(i+1,j,k)) * dxsqinv
+                      +beta_xy(i,j,k)+beta_xy(i+1,j,k)) * dxsqinv
 
                 phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac
 
@@ -378,72 +337,7 @@ contains
     fourthirds = 4.d0/3.d0
     twentythirds = 20.d0/3.d0
 
-    if (visc_type .eq. -1) then
-
-       if (do_x) then
-
-          do k=lo(3),hi(3)
-             do j=lo(2),hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1)+1,offset
-
-                   fac = alphax(i,j,k) + &
-                        ( beta(i,j,k)+beta(i-1,j,k) &
-                        +beta_xy(i,j,k)+beta_xy(i,j+1,k) &
-                        +beta_xz(i,j,k)+beta_xz(i,j,k+1) ) * dxsqinv
-
-                   phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac
-
-                end do
-             end do
-          end do
-
-       end if
-
-       if (do_y) then
-
-          do k=lo(3),hi(3)
-             do j=lo(2),hi(2)+1
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset
-
-                   fac = alphay(i,j,k) + &
-                        ( beta(i,j,k)+beta(i,j-1,k) &
-                        +beta_xy(i,j,k)+beta_xy(i+1,j,k) &
-                        +beta_yz(i,j,k)+beta_yz(i,j,k+1) ) * dxsqinv
-
-                   phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac
-
-                end do
-             end do
-          end do
-
-       end if
-
-       if (do_z) then
-
-          do k=lo(3),hi(3)+1
-             do j=lo(2),hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset
-
-                   fac = alphaz(i,j,k) + &
-                        ( beta(i,j,k)+beta(i,j,k-1) &
-                        +beta_xz(i,j,k)+beta_xz(i+1,j,k) &
-                        +beta_yz(i,j,k)+beta_yz(i,j+1,k) ) * dxsqinv
-
-                   phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac
-
-                end do
-             end do
-          end do
-
-       end if
-
-    else if (visc_type .eq. 1) then
+    if (visc_type .eq. 1) then
 
        b = beta(lo(1),lo(2),lo(3))
 
