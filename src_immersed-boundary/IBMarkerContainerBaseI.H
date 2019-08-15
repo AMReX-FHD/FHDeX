@@ -503,7 +503,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
         InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
 
         // Add interpolated markers back to the particles (markers)
-        for (int i = 0; i < np; ++i) {
+        for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
