@@ -35,6 +35,154 @@ using namespace ib_flagellum;
 using ParticleVector = typename IBMarkerContainer::ParticleVector;
 
 
+void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
+
+    BL_PROFILE_VAR("constrain_ibm_marker", Constrain);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        long np = markers.size();
+
+        for (int i = 0; i < np; ++i) {
+
+            ParticleType & mark = markers[i];
+            // Zero component only
+            mark.rdata(component) = 0.;
+        }
+    }
+
+    BL_PROFILE_VAR_STOP(Constrain);
+}
+
+
+
+void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
+                       IBMarkerContainer & ib_mc, int ib_lev,
+                       int component, bool pred_pos) {
+
+    BL_PROFILE_VAR("update_ibm_marker", UpdateForces);
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+
+        // Get neighbor marker data (from neighboring threads)
+        ParticleVector & nbhd_data = ib_mc.GetNeighbors(
+                    ib_lev, pti.index(), pti.LocalTileIndex()
+                );
+
+        // Get neighbor list (for collision checking)
+        const Vector<int> & nbhd = ib_mc.GetNeighborList(
+                    ib_lev, pti.index(), pti.LocalTileIndex()
+                );
+
+        long np        = markers.size();
+        int nbhd_index = 0;
+
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
+
+            int i_ib        = mark.idata(IBM_intData::cpu_1);
+            int N           = ib_flagellum::n_marker[i_ib];
+            Real L          = ib_flagellum::length[i_ib];
+            Real wavelength = ib_flagellum::wavelength[i_ib];
+            Real frequency  = ib_flagellum::frequency[i_ib];
+            Real amplitude  = ib_flagellum::amplitude[i_ib];
+            Real l_link     = L/(N-1);
+
+            Real k_spr  = ib_flagellum::k_spring[i_ib];
+            Real k_driv = ib_flagellum::k_driving[i_ib];
+
+
+            // Get previous and next markers connected to current marker (if they exist)
+            ParticleType * next_marker = NULL;
+            ParticleType * prev_marker = NULL;
+
+            int status = ib_mc.FindConnectedMarkers(markers, mark,
+                                                    nbhd_data, nbhd,
+                                                    nbhd_index,
+                                                    prev_marker, next_marker);
+
+
+            if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
+
+            // position vectors
+            RealVect prev_pos, pos, next_pos;
+            if (status == 0) {
+                for(int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_pos[d] = prev_marker->pos(d);
+                    pos[d]      =         mark.pos(d);
+                    next_pos[d] = next_marker->pos(d);
+
+                    if (pred_pos) {
+                        prev_pos[d] += prev_marker->rdata(IBM_realData::pred_posx + d);
+                        pos[d]      += mark.rdata(IBM_realData::pred_posx + d);
+                        next_pos[d] += next_marker->rdata(IBM_realData::pred_posx + d);
+                    }
+                }
+            }
+
+            // update spring forces
+            if (status == 0) { // has next (p) and prev (m)
+
+                RealVect r_p = next_pos - pos, r_m = pos - prev_pos;
+
+                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
+                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(component + d) += fm_0 * r_m[d];
+                    mark.rdata(component + d)         -= fm_0 * r_m[d];
+
+                    mark.rdata(component + d)         += fp_0 * r_p[d];
+                    next_marker->rdata(component + d) -= fp_0 * r_p[d];
+                }
+            }
+
+            // update bending forces for curent, minus/prev, and next/plus
+            if (status == 0) { // has next (p) and prev (m)
+
+                // position vectors
+                const RealVect & r = pos, & r_m = prev_pos, & r_p = next_pos;
+
+                // Set bending forces to zero
+                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
+                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
+
+                // calling the active bending force calculation
+                // This a simple since wave imposed
+                Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
+                             + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
+
+                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
+
+                // updating the force on the minus, current, and plus particles.
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    prev_marker->rdata(component + d) += f_m[d];
+                    mark.rdata(component + d)         +=   f[d];
+                    next_marker->rdata(component + d) += f_p[d];
+                }
+            }
+
+            // Increment neighbor list
+            int nn      = nbhd[nbhd_index];
+            nbhd_index += nn + 1; // +1 <= because the first field contains nn
+        }
+    }
+    BL_PROFILE_VAR_STOP(UpdateForces);
+};
+
+
+
+
 // argv contains the name of the inputs file entered at the command line
 void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
@@ -59,6 +207,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     const DistributionMapping & dmap = beta.DistributionMap();
 
 
+
     /****************************************************************************
      *                                                                          *
      * Define temporary MultiFabs                                               *
@@ -78,6 +227,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > advFluxdivPred;
     // Staggered momentum
     std::array< MultiFab, AMREX_SPACEDIM > uMom;
+    // Pressure gradient at inflow/outflow
+    std::array< MultiFab, AMREX_SPACEDIM > pg;
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
            gmres_rhs_u[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
@@ -85,6 +236,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             advFluxdiv[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+                    pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
     }
 
     // Tracer concentration field for predictor
@@ -96,6 +248,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Scaled alpha, beta, gamma:
+    //  * scaled by 1/2 => corrector/ crank-nicolson terms
+    //  * scaled by -1  => move implicit term (LHS) to explicit term (RHS)
 
     // alpha_fc_0 arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_0;
@@ -108,20 +262,27 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Scaled by 1/2:
     // beta_wtd cell centered
     MultiFab beta_wtd(ba, dmap, 1, 1);
+    MultiFab beta_old(ba, dmap, 1, 1);
     MultiFab::Copy(beta_wtd, beta, 0, 0, 1, 1);
+    MultiFab::Copy(beta_old, beta, 0, 0, 1, 1);
     beta_wtd.mult(0.5, 1);
 
     // beta_wtd on nodes in 2d, on edges in 3d
     std::array< MultiFab, NUM_EDGE > beta_ed_wtd;
+    std::array< MultiFab, NUM_EDGE > beta_ed_old;
 #if (AMREX_SPACEDIM == 2)
     beta_ed_wtd[0].define(convert(ba,nodal_flag), dmap, 1, 1);
     MultiFab::Copy(beta_ed_wtd[0], beta_ed[0], 0, 0, 1, 1);
     beta_ed_wtd[0].mult(0.5, 1);
+    beta_ed_old[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    MultiFab::Copy(beta_ed_old[0], beta_ed[0], 0, 0, 1, 1);
 #elif (AMREX_SPACEDIM == 3)
     for(int d=0; d<AMREX_SPACEDIM; d++) {
         beta_ed_wtd[d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 1);
+        beta_ed_old[d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 1);
 
         MultiFab::Copy(beta_ed_wtd[d], beta_ed[d], 0, 0, 1, 1);
+        MultiFab::Copy(beta_ed_old[d], beta_ed[d], 0, 0, 1, 1);
         beta_ed_wtd[d].mult(0.5, 1);
     }
 #endif
@@ -129,7 +290,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Scaled by 1/2:
     // gamma_wtd cell centered
     MultiFab gamma_wtd(ba, dmap, 1, 1);
+    MultiFab gamma_old(ba, dmap, 1, 1);
     MultiFab::Copy(gamma_wtd, gamma, 0, 0, 1, 1);
+    MultiFab::Copy(gamma_old, gamma, 0, 0, 1, 1);
     gamma_wtd.mult(-0.5, 1);
 
     // Scaled by -1/2:
@@ -160,6 +323,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     gamma_negwtd.mult(-0.5, 1);
 
 
+
     /****************************************************************************
      *                                                                          *
      * Immersed-Marker parameters                                               *
@@ -172,16 +336,17 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     RealVect driv_u = {0, 0, 1};
 
     // Slowly ramp up driving amplitude
-    // Real driv_amp = std::min(time*10, 1.);
-    // Print() << "driv_amp = " << driv_amp << std::endl;
-    //
+    Real driv_amp = std::min(time*10, 1.);
+    Print() << "driv_amp = " << driv_amp << std::endl;
+
     // I'm too impatient to wait... -JPB
-    Real driv_amp = 1.;
+    // Real driv_amp = 1.;
+
 
 
     /****************************************************************************
      *                                                                          *
-     * Apply non-stochastic boundary conditions                                 *
+     * Apply deterministic boundary conditions                                  *
      *                                                                          *
      ***************************************************************************/
 
@@ -192,6 +357,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
 
+
     /****************************************************************************
      *                                                                          *
      * Advance tracer                                                           *
@@ -199,7 +365,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
      ***************************************************************************/
 
     // Compute tracer:
-    BL_PROFILE_VAR("adv_compute tracer",TRACER);
+    BL_PROFILE_VAR("adv_compute tracer", TRACER);
     tracer.FillBoundary(geom.periodicity());
     MultiFABPhysBC(tracer, geom);
 
@@ -231,32 +397,22 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // ADVANCE velocity field
     //////////////////////////////////////////////////
 
-    // PREDICTOR STEP (heun's method: part 1)
-    // compute advective term
 
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        MultiFab::Copy(uMom[i], umac[i], 0, 0, 1, 1);
 
-    // let rho = 1
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        uMom[d].mult(1.0, 1);
-    }
-
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], i, geom, i);
-        MultiFABPhysBCMacVel(uMom[i], i, geom, i);
-    }
-
-    MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
-
-    // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
-                umac, Lumac, alpha_fc_0, dx, theta_alpha);
+    /****************************************************************************
+     *                                                                          *
+     * PREDICTOR (midpoint) step, compute:                                      *
+     * 1. x^(n+1/2) = x^n + dt/2 J(u^n)              [x = marker positions]     *
+     * 2. F^(n+1/2) = f(x^(n+1/2))                   [f - IB force model  ]     *
+     * 3. f^(n+1/2) = S(F^(n+1/2))                                              *
+     * 4. (u^(n+1/2)-u^n)/(dt/2) + D(uu^n) + Gp = Lu^(n+1/2) + f(n+1/2)         *
+     *                               Du^(n+1/2) = 0                             *
+     *                                                                          *
+     ***************************************************************************/
 
 
     //___________________________________________________________________________
-    // Interpolate immersed boundary predictor
+    // Interpolate immersed boundary predictor: J(u^n)
     std::array<MultiFab, AMREX_SPACEDIM> umac_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umac_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
@@ -264,262 +420,55 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac_buffer[d].FillBoundary(geom.periodicity());
     }
 
-
     ib_mc.ResetPredictor(0);
     ib_mc.InterpolatePredictor(0, umac_buffer);
 
 
-    // Constrain it to move in the z = constant plane only
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-            // Zero z-velocity only
-            mark.rdata(IBM_realData::pred_velz) = 0.;
-        }
-    }
-
-
     //___________________________________________________________________________
-    // Move markers according to predictor velocity
-    ib_mc.MovePredictor(0, dt);
+    // Move predictor using previous velocity: x^(n+1/2) = x^n + dt/2 J(u^n)
+    // (constrain it to move in the z = constant plane only)
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
+    ib_mc.MovePredictor(0, 0.5*dt);
     ib_mc.Redistribute(); // just in case (maybe can be removed)
 
 
     //___________________________________________________________________________
-    // Update forces between markers
-    // TODO: expensive => use infrequently, use updateNeighbors for most steps
+    // Update forces between markers: F^(n+1/2) = f(x^(n+1/2)) TODO: expensive
+    // => use infrequently, use updateNeighbors for most steps
     ib_mc.clearNeighbors();
     ib_mc.fillNeighbors(); // Does ghost cells
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
-
-
-        // Get neighbor list (for collision checking)
-        const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
-                                                         pti.LocalTileIndex());
-        long np = markers.size();
-        int nbhd_index = 0;
-
-        for (int i=0; i<np; ++i) {
-
-            BL_PROFILE_VAR("adv_find neighbors", PREDFINDNEIGBORS);
-
-            ParticleType & mark = markers[i];
-
-            int i_ib        = mark.idata(IBM_intData::cpu_1);
-            int N           = ib_flagellum::n_marker[i_ib];
-            Real L          = ib_flagellum::length[i_ib];
-            Real wavelength = ib_flagellum::wavelength[i_ib];
-            Real frequency  = ib_flagellum::frequency[i_ib];
-            Real amplitude  = ib_flagellum::amplitude[i_ib];
-            Real l_link     = L/(N-1);
-
-            Real k_spr  = ib_flagellum::k_spring[i_ib];
-            Real k_driv = ib_flagellum::k_driving[i_ib];
-
-
-            // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
-
-            int status = ib_mc.FindConnectedMarkers(markers, mark,
-                                                    nbhd_data, nbhd,
-                                                    nbhd_index,
-                                                    prev_marker, next_marker);
-
-            BL_PROFILE_VAR_STOP(PREDFINDNEIGBORS);
-
-            if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
-
-            // update spring forces
-            if (status == 0) { // has next (p) and prev (m)
-                BL_PROFILE_VAR("adv_updating predictor spring forces", PREDUPDATESPRINGFORCES);
-
-                RealVect r_p, r_m;
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r_m[d] = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d)
-                         - (prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d));
-
-                    r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d)
-                         - (mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d));
-                }
-
-                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
-                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::pred_forcex + d) += fm_0 * r_m[d];
-                    mark.rdata(IBM_realData::pred_forcex + d)         -= fm_0 * r_m[d];
-
-                    mark.rdata(IBM_realData::pred_forcex + d)         += fp_0 * r_p[d];
-                    next_marker->rdata(IBM_realData::pred_forcex + d) -= fp_0 * r_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(PREDUPDATESPRINGFORCES);
-            }
-
-            // update bending forces for curent, minus/prev, and next/plus
-            if (status == 0) { // has next (p) and prev (m)
-
-                BL_PROFILE_VAR("adv_Predictor bending forces",predictorbendingforces);
-
-                // position vectors
-                RealVect r, r_m, r_p;
-                for(int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r[d]   = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d);
-                    r_m[d] = prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d);
-                    r_p[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d);
-                }
-
-
-                // Set bending forces to zero
-                RealVect f_p = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                RealVect f   = RealVect{AMREX_D_DECL(0., 0., 0.)};
-                RealVect f_m = RealVect{AMREX_D_DECL(0., 0., 0.)};
-
-                // calling the active bending force calculation
-                // This a simple since wave imposed
-                Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
-                             + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
-
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
-
-                // updating the force on the minus, current, and plus particles.
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::pred_forcex + d) += f_m[d];
-                    mark.rdata(IBM_realData::pred_forcex + d)         +=   f[d];
-                    next_marker->rdata(IBM_realData::pred_forcex + d) += f_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(predictorbendingforces);
-            }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
-        }
-    }
-
+    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::pred_forcex, true);
     // Constrain it to move in the z = constant plane only
-    // Set the forces in the z direction to zero
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        BL_PROFILE_VAR("adv_Constrain z pred", CONSTRAINZPRED);
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-
-            // Zero z-force only
-            mark.rdata(IBM_realData::pred_forcez) = 0.;
-        }
-
-        BL_PROFILE_VAR_STOP(CONSTRAINZPRED);
-    }
-
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_forcez);
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBM_realData::pred_forcex, AMREX_SPACEDIM, 0, 0);
 
 
-    // NOTE: Don't couple predictors as this results in unstable code for small
-    // lenght scales. I don't know know why (yet) -JPB
-
-    // //___________________________________________________________________________
-    // // Spread forces to predictor
-    // BL_PROFILE_VAR("adv_spread forces to predictor", spreadpredfor);
-
-    // std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
-    // for (int d=0; d<AMREX_SPACEDIM; ++d){
-    //     fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-    //     fc_force_pred[d].setVal(0.);
-    // }
-
-    // BL_PROFILE_VAR_STOP(spreadpredfor);
-
-    // BL_PROFILE_VAR("adv_spread predictor forces", SREADPREDICTORFORCES);
-
-    // ib_mc.SpreadPredictor(0, fc_force_pred);
-    // for (int d=0; d<AMREX_SPACEDIM; ++d)
-    //     fc_force_pred[d].SumBoundary(geom.periodicity());
-
-    // BL_PROFILE_VAR_STOP(SREADPREDICTORFORCES);
-
-
-    BL_PROFILE_VAR("adv_fill neighbors", filltheneighbors);
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        Lumac[d].FillBoundary(geom.periodicity());
-
-        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
-
-        gmres_rhs_u[d].mult(dtinv, 1);
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        // MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
+    //___________________________________________________________________________
+    // Spread forces to predictor f^(n+1/2) = S(F^(n+1/2))
+    std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        fc_force_pred[d].setVal(0.);
     }
 
-    BL_PROFILE_VAR_STOP(filltheneighbors);
+    ib_mc.SpreadPredictor(0, fc_force_pred);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        fc_force_pred[d].SumBoundary(geom.periodicity());
 
 
-    std::array< MultiFab, AMREX_SPACEDIM > pg;
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+    //___________________________________________________________________________
+    // Compute predictor velocity field
+    // (u^(n+1/2)-u^n)/(dt/2) + D(uu^n) + Gp = Lu^(n+1/2) + f(n+1/2)
+    //                            Du^(n+1/2) = 0
 
-    pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
-
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
-
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        pg[i].FillBoundary(geom.periodicity());
-        gmres_rhs_u[i].FillBoundary(geom.periodicity());
-
-        MultiFab::Subtract(gmres_rhs_u[i], pg[i], 0, 0, 1, 1);
-    }
-
-    // initial guess for new solution
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 1);
-
-    // call GMRES to compute predictor
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
-
-    BL_PROFILE_VAR("adv_compute predictor advective", computepredictorad);
-
-    // Compute predictor advective term
-    // let rho = 1
+    // Compute momentum fluxes: uMom = rho*u^n
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-        umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+        MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 1);
 
-        MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
+        // let rho = 1
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
@@ -527,28 +476,62 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFABPhysBCMacVel(uMom[d], d, geom, d);
     }
 
-    BL_PROFILE_VAR_STOP(computepredictorad);
+    // Compute advective fluxes: advFluxdiv = - D(\rho uu^n) = - D(u^n uMom)
+    MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
 
+    // Compute pressure gradient due to the BC: gp = Gp
+    pres.setVal(0.); // Initial guess for pressure
+    SetPressureBC(pres, geom); // Apply pressure boundary conditions
+    ComputeGrad(pres, pg, 0, 0, 1, geom);
 
-    MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
+    // Construct RHS of Navier Stokes Equation
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
+        gmres_rhs_u[d].mult(dtinv*2, 1); // advance by dt/2
 
-    // ADVANCE STEP (crank-nicolson + heun's method)
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 1);
 
-    // Compute gmres_rhs
+        // FillBoundary before adding boundary conditions to prevent
+        // overwriting (which are defined on ghost cells)
+        pg[d].FillBoundary(geom.periodicity());
+        gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
-    // trapezoidal advective terms
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        advFluxdiv[d].mult(0.5, 1);
-        advFluxdivPred[d].mult(0.5, 1);
+        MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
     }
 
-    // crank-nicolson terms
-    // StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
-    //             umac, Lumac, alpha_fc_0, dx, theta_alpha);
+    // Initial guess for new solution
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
+
+    // Call GMRES to compute u^(n+1/2). Lu^(n+1/2) is computed implicitly. Note
+    // that we are using the un-weighted coefficients.
+    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
+          alpha_fc, beta_old, beta_ed_old, gamma_old, theta_alpha,
+          geom, norm_pre_rhs);
+
+    // Apply boundary conditions to the solution
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umacNew[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+    }
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * ADVANCE (midpoint) step, compute:                                        *
+     * 1. x^(n+1) = x^n + dt J(u^(n+1/2))            [x = marker positions]     *
+     * 2. (u^(n+1)-u^n)/dt + D(uu^(n+1/2)) + Gp = L(u^n+u^(n+1))/2 + f(n+1/2)   *
+     *                                 Du^(n+1) = 0                             *
+     *                                                                          *
+     ***************************************************************************/
 
 
     //___________________________________________________________________________
-    // Interpolate immersed boundary
+    // Interpolate immersed boundary: J(u^(n+1/2))
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umacNew_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
@@ -560,259 +543,111 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.InterpolateMarkers(0, umacNew_buffer);
 
 
-    // Constrain it to move in the z = constant plane only
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-            // Zero z-velocity only
-            mark.rdata(IBM_realData::velz) = 0.;
-        }
-    }
-
-
     //___________________________________________________________________________
-    // Move markers according to velocity
+    // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
+    // (constrain it to move in the z = constant plane only)
+    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
     ib_mc.MoveMarkers(0, dt);
     ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
 
-    //___________________________________________________________________________
-    // Update forces between markers
-    // TODO: expensive => use infrequently, use updateNeighbors for most steps
-    ib_mc.clearNeighbors();
-    ib_mc.fillNeighbors(); // Does ghost cells
-    ib_mc.buildNeighborList(ib_mc.CheckPair);
+    // //___________________________________________________________________________
+    // // Update forces between markers: F^(n+1) = f(x^(n+1)) TODO: expensive =>
+    // // use infrequently, use updateNeighbors for most steps
+    // ib_mc.clearNeighbors();
+    // ib_mc.fillNeighbors(); // Does ghost cells
+    // ib_mc.buildNeighborList(ib_mc.CheckPair);
+
+    // update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::forcex, false);
+    // // Constrain it to move in the z = constant plane only
+    // constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::forcez);
+    // // Sum predictor forces added to neighbors back to the real markers
+    // ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
 
 
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+    // //___________________________________________________________________________
+    // // Spread forces to corrector: f^(n+1) = S(F^(n+1))
+    // std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
+    // for (int d=0; d<AMREX_SPACEDIM; ++d){
+    //     fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+    //     fc_force_corr[d].setVal(0.);
+    // }
 
-        BL_PROFILE_VAR("adv_grab marker data", grabmarkerdata);
-
-        // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
-
-
-        // Get neighbor list (for collision checking)
-        const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
-                                                         pti.LocalTileIndex());
-
-        long np = markers.size();
-        int nbhd_index = 0;
-
-        BL_PROFILE_VAR_STOP(grabmarkerdata);
-
-        for (int i=0; i<np; ++i) {
-
-            BL_PROFILE_VAR("adv_match markers", matchmarkerdata);
-
-            ParticleType & mark = markers[i];
-
-            int i_ib        = mark.idata(IBM_intData::cpu_1);
-            int N           = ib_flagellum::n_marker[i_ib];
-            Real L          = ib_flagellum::length[i_ib];
-            Real wavelength = ib_flagellum::wavelength[i_ib];
-            Real amplitude  = ib_flagellum::amplitude[i_ib];
-            Real frequency  = ib_flagellum::frequency[i_ib];
-            Real l_link     = L/(N-1);
-
-            Real k_spr  = ib_flagellum::k_spring[i_ib];
-            Real k_driv = ib_flagellum::k_driving[i_ib];
-
-
-            // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
-
-            int status = ib_mc.FindConnectedMarkers(markers, mark,
-                                                    nbhd_data, nbhd,
-                                                    nbhd_index,
-                                                    prev_marker, next_marker);
-
-            BL_PROFILE_VAR_STOP(matchmarkerdata);
-
-            if (status == -1) Abort("status -1 particle detected in corrector!!! flee for your life!");
-
-            // update spring forces
-            if (status == 0) { // has next (p) and prev (m)
-
-                BL_PROFILE_VAR("adv_updatingspringforces", UPDATESRPINGFORCES);
-
-                RealVect r_p, r_m;
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r_m[d] = mark.pos(d) - prev_marker->pos(d);
-
-                    r_p[d] = next_marker->pos(d) - mark.pos(d);
-                }
-
-                Real lp_m = r_m.vectorLength(),         lp_p = r_p.vectorLength();
-                Real fm_0 = k_spr * (lp_m-l_link)/lp_m, fp_0 = k_spr * (lp_p-l_link)/lp_p;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::forcex + d) += fm_0 * r_m[d];
-                    mark.rdata(IBM_realData::forcex + d)         -= fm_0 * r_m[d];
-
-                    mark.rdata(IBM_realData::forcex + d)         += fp_0 * r_p[d];
-                    next_marker->rdata(IBM_realData::forcex + d) -= fp_0 * r_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(UPDATESRPINGFORCES);
-            }
-
-            // update bending forces for curent, minus/prev, and next/plus
-            if (status == 0) { // has next (p) and prev (m)
-
-                BL_PROFILE_VAR("adv_update bending forces", UPDATEBENDINGFORCES);
-                //
-                // position vectors
-                RealVect r, r_m, r_p;
-                for(int d=0; d<AMREX_SPACEDIM; ++d) {
-                    r[d]   = mark.pos(d);
-                    r_m[d] = prev_marker->pos(d);
-                    r_p[d] = next_marker->pos(d);
-                }
-
-                // Set bending forces to zero
-                RealVect f_p = RealVect{0., 0., 0.};
-                RealVect f   = RealVect{0., 0., 0.};
-                RealVect f_m = RealVect{0., 0., 0.};
-
-                // calling the active bending force calculation
-                Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
-                            + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
-
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
-
-                // updating the force on the minus, current, and plus particles.
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    prev_marker->rdata(IBM_realData::forcex + d) += f_m[d];
-                    mark.rdata(IBM_realData::forcex + d)         +=   f[d];
-                    next_marker->rdata(IBM_realData::forcex + d) += f_p[d];
-                }
-
-                BL_PROFILE_VAR_STOP(UPDATEBENDINGFORCES);
-            }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
-         }
-    }
-
-
-    // Constrain it to move in the z = constant plane only
-    // Set the forces in the z direction to zero
-    BL_PROFILE_VAR("adv_contstrain z", CONSTRAINZ);
-
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-
-            // Zero z-force only
-            mark.rdata(IBM_realData::forcez) = 0.;
-        }
-    }
-
-    BL_PROFILE_VAR_STOP(CONSTRAINZ);
-
-
-    // Sum predictor forces added to neighbors back to the real markers
-    ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
-
-
-    // Apply Heun's Method time stepping to marker forces
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
-
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        long np = markers.size();
-
-        for (int i = 0; i < np; ++i) {
-
-            ParticleType & mark = markers[i];
-
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                mark.rdata(IBM_realData::forcex + d) =
-                      0.5*mark.rdata(IBM_realData::forcex + d)
-                    + 0.5*mark.rdata(IBM_realData::pred_forcex + d);
-            }
-        }
-    }
+    // ib_mc.SpreadMarkers(0, fc_force_corr);
+    // for (int d=0; d<AMREX_SPACEDIM; ++d)
+    //     fc_force_corr[d].SumBoundary(geom.periodicity());
 
 
     //___________________________________________________________________________
-    // Spread forces to corrector
-    BL_PROFILE_VAR("adv_spread forces to corrector", corrector);
+    // Compute corrector velocity field
+    // (u^(n+1)-u^n)/(dt) + D(uu^(n+1/2)) + Gp = L(u^n+u^(n+1))/2 + f(n+1/2)
+    //                                Du^(n+1) = 0
 
-    std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
-    for (int d=0; d<AMREX_SPACEDIM; ++d){
-
-        fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-        fc_force_corr[d].setVal(0.);
-    }
-
-    // Spread to the `fc_force` multifab
-    //ib_mc.fillNeighbors(); // Don't forget to fill neighbor particles
-
-    ib_mc.SpreadMarkers(0, fc_force_corr);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        fc_force_corr[d].SumBoundary(geom.periodicity());
-
-    BL_PROFILE_VAR_STOP(corrector);
-
-
-    BL_PROFILE_VAR("adv_fillboundary", fillboundary);
-
+    // Compute momentum fluxes at the midpoint: uMom = rho*u^(n+1/2)
     for (int d=0; d<AMREX_SPACEDIM; d++) {
+        MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
+
+        // let rho = 1
+        uMom[d].mult(1.0, 1);
+
+        uMom[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+    }
+
+    // Compute advective fluxes at the midpoint:
+    // advFluxdivPred = - D(\rho uu^(n+1/2)) = - D(u^(n+1/2) uMom)
+    MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
+
+    // Explicit part of the diffusive operator Lu^n/2. Note that we are using
+    // the weighted coefficients (to deal witht he 1/2 part)
+    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+                umac, Lumac, alpha_fc_0, dx, theta_alpha);
+
+
+    // Note that the pressure gradient due to the BC is left unchanged
+    pres.setVal(0.); // Initial guess for pressure
+    SetPressureBC(pres, geom); // Apply pressure boundary conditions
+
+    // Construct RHS of Navier Stokes Equation
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        Lumac[d].FillBoundary(geom.periodicity());
+
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
+        gmres_rhs_u[d].mult(dtinv, 1); // advance by dt
 
-        gmres_rhs_u[d].mult(dtinv, 1);
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 0);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_corr[d],    0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 1);
 
+        // FillBoundary before adding boundary conditions to prevent
+        // overwriting (which are defined on ghost cells)
         gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
         MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
-
-        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
     }
 
-    BL_PROFILE_VAR_STOP(fillboundary);
+    // Initial guess for new solution
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
 
-
-    pres.setVal(0.);  // initial guess
-    SetPressureBC(pres, geom);
-
-    // call GMRES here
+    // Call GMRES to compute u^(n+1). Lu^(n+1)/2 is computed implicitly. Note
+    // that we are using the weighted coefficients (to deal witht he 1/2 part)
     GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
           alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
           geom, norm_pre_rhs);
 
-    for (int i=0; i<AMREX_SPACEDIM; i++)
-        MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);
+    // Apply boundary conditions to the solution
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        umacNew[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+    }
+
+    // Update solution, and we're done!
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
 
     BL_PROFILE_VAR_STOP(advance);
 }

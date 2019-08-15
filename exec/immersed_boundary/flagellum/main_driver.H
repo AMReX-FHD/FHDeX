@@ -40,6 +40,16 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
 
 
 
+void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component);
+
+
+
+void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
+                       IBMarkerContainer & ib_mc, int ib_lev,
+                       int component, bool pred_pos);
+
+
+
 /********************************************************************************
  *                                                                              *
  * Output data                                                                  *

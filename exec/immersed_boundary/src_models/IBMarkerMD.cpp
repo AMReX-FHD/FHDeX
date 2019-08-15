@@ -265,9 +265,9 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 
     RealVect r_dx;
 
-    if      (arg == ARG_r_m) r_dx = r_m + dx; //vadd(&r_dx, &r_m, &dx);
-    else if (arg == ARG_r)   r_dx = r   + dx; //vadd(&r_dx, &r, &dx);
-    else if (arg == ARG_r_p) r_dx = r_p + dx; //vadd(&r_dx, &r_p, &dx);
+    if      (arg == ARG_r_m) r_dx = r_m + dx;
+    else if (arg == ARG_r)   r_dx = r   + dx;
+    else if (arg == ARG_r_p) r_dx = r_p + dx;
 
     else {
         Abort();
@@ -283,9 +283,9 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
         Abort();
     }
 
-    if      (arg == ARG_r_m) r_dx = r_m - dx; //vsub(&r_dx, &r_m, &dx);
-    else if (arg == ARG_r)   r_dx = r   - dx; //vsub(&r_dx, &r, &dx);
-    else if (arg == ARG_r_p) r_dx = r_p - dx; //vsub(&r_dx, &r_p, &dx);
+    if      (arg == ARG_r_m) r_dx = r_m - dx;
+    else if (arg == ARG_r)   r_dx = r   - dx;
+    else if (arg == ARG_r_p) r_dx = r_p - dx;
 
     else {
         Abort();
@@ -308,6 +308,8 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
                const RealVect & r, const RealVect & r_p, const RealVect & r_m,
                const RealVect & u, Real theta, Real Kw) {
+
+    BL_PROFILE_VAR("immbdy_md::driving_f", BendingForce);
 
     Real delta = 100*DBL_EPSILON;
 
@@ -355,6 +357,8 @@ void driving_f(      RealVect & f,       RealVect & f_p,       RealVect & f_m,
     f   += f_loc;
     f_p += f_p_loc;
     f_m += f_m_loc;
+
+    BL_PROFILE_VAR_STOP(BendingForce);
 }
 
 };

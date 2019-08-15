@@ -84,6 +84,9 @@ void InitializeCommonNamespace() {
     mass.resize(MAX_SPECIES);
     nfrac.resize(MAX_SPECIES);
     particle_count.resize(MAX_SPECIES);
+    p_move_tog.resize(MAX_SPECIES);
+    p_force_tog.resize(MAX_SPECIES);
+    p_int_tog.resize(MAX_SPECIES);
     particle_n0.resize(MAX_SPECIES);
 
     eepsilon.resize(MAX_SPECIES);
@@ -130,7 +133,7 @@ void InitializeCommonNamespace() {
 				&project_dir, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),
-                                &particle_placement, particle_count.dataPtr(), &particle_neff,
+                                &particle_placement, particle_count.dataPtr(), p_move_tog.dataPtr(), p_force_tog.dataPtr(), p_int_tog.dataPtr(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(), &permitivitty,
                                 &cut_off,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
@@ -154,7 +157,6 @@ void InitializeCommonNamespace() {
 
     // read in from command line
     pp.query("domega",domega);
-    Print() << "HACK" << domega << "/n";
 
     // copy value into fortran namelist
     set_domega(&domega);

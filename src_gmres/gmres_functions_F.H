@@ -38,66 +38,6 @@ extern "C"
 ///////////////////////////
 // in stag_mg_solver.F90
 
-    void cc_restriction (const int* lo_c, const int* hi_c,
-                         const amrex::Real* phi_c,
-                         const int* c_lo, const int* c_hi,
-                         const amrex::Real* phi_f,
-                         const int* f_lo, const int* f_hi);
-
-    void stag_restriction (const int* lo_c, const int* hi_c,
-                           const amrex::Real* phi_cx,
-                           const int* cx_lo, const int* cx_hi,
-                           const amrex::Real* phix_f,
-                           const int* fx_lo, const int* fx_hi,
-                           const amrex::Real* phi_cy,
-                           const int* cy_lo, const int* cy_hi,
-                           const amrex::Real* phiy_f,
-                           const int* fy_lo, const int* fy_hi,
-#if (AMREX_SPACEDIM == 3)
-                           const amrex::Real* phi_cz,
-                           const int* cz_lo, const int* cz_hi,
-                           const amrex::Real* phiz_f,
-                           const int* fz_lo, const int* fz_hi,
-#endif
-                           const int* simple_stencil);
-
-    void nodal_restriction (const int* lo_c, const int* hi_c,
-                            const amrex::Real* phi_c,
-                            const int* c_lo, const int* c_hi,
-                            const amrex::Real* phi_f,
-                            const int* f_lo, const int* f_hi);
-
-    void edge_restriction (const int* lo_c, const int* hi_c,
-                           const amrex::Real* phi_cxy,
-                           const int* cxy_lo, const int* cxy_hi,
-                           const amrex::Real* phixy_f,
-                           const int* fxy_lo, const int* fxy_hi,
-                           const amrex::Real* phi_cxz,
-                           const int* cxz_lo, const int* cxz_hi,
-                           const amrex::Real* phixz_f,
-                           const int* fxz_lo, const int* fxz_hi,
-                           const amrex::Real* phi_cyz,
-                           const int* cyz_lo, const int* cyz_hi,
-                           const amrex::Real* phiyz_f,
-                           const int* fyz_lo, const int* fyz_hi);
-
-    void stag_prolongation (const int* lo_f, const int* hi_f,
-                            const amrex::Real* phi_cx,
-                            const int* cx_lo, const int* cx_hi,
-                            const amrex::Real* phix_f,
-                            const int* fx_lo, const int* fx_hi,
-                            const amrex::Real* phi_cy,
-                            const int* cy_lo, const int* cy_hi,
-                            const amrex::Real* phiy_f,
-                            const int* fy_lo, const int* fy_hi
-#if (AMREX_SPACEDIM == 3)
-                          , const amrex::Real* phi_cz,
-                            const int* cz_lo, const int* cz_hi,
-                            const amrex::Real* phiz_f,
-                            const int* fz_lo, const int* fz_hi
-#endif
-                            );
-
            void sum_stag(const int* lo, const int* hi,
 			 const amrex_real* m1x, const int* m1xlo, const int* m1xhi,
                          const amrex_real* m1y, const int* m1ylo, const int* m1yhi,

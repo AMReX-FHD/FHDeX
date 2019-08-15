@@ -101,6 +101,9 @@ amrex::Vector<int>         common::shift_cc_to_boundary;
 
 int                        common::particle_placement;
 amrex::Vector<int>         common::particle_count;
+amrex::Vector<int>         common::p_move_tog;
+amrex::Vector<int>         common::p_force_tog;
+amrex::Vector<int>         common::p_int_tog;
 amrex::Real                common::particle_neff;
 amrex::Vector<amrex::Real> common::particle_n0;
 amrex::Vector<amrex::Real> common::mass;

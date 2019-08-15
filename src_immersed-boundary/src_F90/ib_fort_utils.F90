@@ -1,5 +1,5 @@
-	module ib_fort_utils
-	    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    module ib_fort_utils
+        use amrex_fort_module, only: amrex_real, amrex_particle_real
     use iso_c_binding,     only: c_int
 
     implicit none
@@ -226,8 +226,8 @@ contains
 
     subroutine tag_catalyst_interface(lo,        hi,           &
                                     part_info,   np,           &
-                                    iface, iflo, ifhi,         & 
-                                    ctag,       ctaglo, ctaghi,   &
+                                    iface, iflo, ifhi,         &
+                                    ctag,       ctaglo, ctaghi,&
                                     dx                       ) &
                bind(C, name="tag_catalyst_interface")
 
@@ -236,7 +236,7 @@ contains
         integer(c_int),   dimension(3), intent(in   ) :: lo, hi
 
         ! ** IN:  particle info
-        integer(c_int),                 intent(in   ) :: np 
+        integer(c_int),                 intent(in   ) :: np
         type(particle_info_t),          intent(in   ), target :: part_info(np)
         ! type(particle_info_t),          intent(in   ), target :: part_info
         ! ** IN:  spatial discretization
@@ -260,7 +260,7 @@ contains
         ! pos1    => position of the center of the particle
         ! vect    => vector from pos1 to pos
         ! ori     => orientation of particle
-        ! dot     => dot product of the vect and ori 
+        ! dot     => dot product of the vect and ori
         integer                        :: i, j, k
         real(amrex_real) :: dot
         real(amrex_real), dimension(3) ::pos, pos1, cent, vect, ori1
@@ -279,16 +279,16 @@ contains
                     vect=cent-pos !part_info%pos
                     dot=ori1(1)*vect(1)+ori1(2)*vect(2)+ori1(3)*vect(3)
                     ! if we are on the interface and on the " bottom half " of the particle (with respect to the orientation  ie dot <=0) then there is catalyst present in this cell, otherwise there isn't
-                    !if (iface(i,j,k)==1) then 
+                    !if (iface(i,j,k)==1) then
                     !print *, iface(i,j,k)!" dot ", dot, "pos", pos(3), "vect", vect(3)
                     !end if
-                    
+
                     if ((dot<=0.) .and. (iface(i,j,k)==1)) then
                     ctag(i, j, k) = 1
 
-                    else 
+                    else
                     ctag(i,j,k)=0
-                    end if 
+                    end if
                 end do
             end do
         end do
@@ -686,14 +686,13 @@ contains
         end do
 
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 4))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 4))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 4))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 4))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 4))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 4))
 
-        ! print*, "max vspread = ", maxval(v_spread)
 
         !________________________________________________________________________
         ! x-components
@@ -712,18 +711,11 @@ contains
                         weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
-                    ! print*, " mf_x first ", mf_x(i,j,k)
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
                     weight_x(i, j, k) = weight_x(i, j, k) + weight
-                    ! print*," mf_x = ", mf_x(i,j,k), " vspread ", v_spread(1), " weight ", weight, " invvol ", invvol, " v_spread(1)*weight*invol ", v_spread(1)*weight*invvol
                 end do
             end do
         end do
-        ! print*, "max mf_x = ", maxval(mf_x)
-
-        ! if (maxval(mf_x)>0.0) then
-        !     pause
-        ! end if
 
         !________________________________________________________________________
         ! y-components
@@ -872,13 +864,13 @@ contains
 
             ! skip marker if outside tile box (prevent double-counting)
             if (pos(1) .lt. tile_lo(1)*dx(1) ) cycle
-            if (pos(1) .gt. (tile_hi(1)+1)*dx(1) ) cycle
+            if (pos(1) .ge. (tile_hi(1)+1)*dx(1) ) cycle
 
             if (pos(2) .lt. tile_lo(2)*dx(2) ) cycle
-            if (pos(2) .gt. (tile_hi(2)+1)*dx(2) ) cycle
+            if (pos(2) .ge. (tile_hi(2)+1)*dx(2) ) cycle
 
             if (pos(3) .lt. tile_lo(3)*dx(3) ) cycle
-            if (pos(3) .gt. (tile_hi(3)+1)*dx(3) ) cycle
+            if (pos(3) .ge. (tile_hi(3)+1)*dx(3) ) cycle
 
             v_spread = v_marker(:, i)
 
@@ -990,12 +982,12 @@ contains
         ! compute geometric quantity 1/dx
         invdx(:) = 1d0/dx(:)
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 4))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 4))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 4))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 4))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 4))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 4))
 
 
 
@@ -1185,13 +1177,13 @@ contains
 
             ! skip marker if outside tile box (prevent double-counting)
             if (pos(1) .lt. tile_lo(1)*dx(1) ) cycle
-            if (pos(1) .gt. (tile_hi(1)+1)*dx(1) ) cycle
+            if (pos(1) .ge. (tile_hi(1)+1)*dx(1) ) cycle
 
             if (pos(2) .lt. tile_lo(2)*dx(2) ) cycle
-            if (pos(2) .gt. (tile_hi(2)+1)*dx(2) ) cycle
+            if (pos(2) .ge. (tile_hi(2)+1)*dx(2) ) cycle
 
             if (pos(3) .lt. tile_lo(3)*dx(3) ) cycle
-            if (pos(3) .gt. (tile_hi(3)+1)*dx(3) ) cycle
+            if (pos(3) .ge. (tile_hi(3)+1)*dx(3) ) cycle
 
 
             v_spread = (/0d0, 0d0, 0d0/) ! v_marker(:, i)
@@ -1293,12 +1285,12 @@ contains
         end do
 
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 3))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 3))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 3))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 3))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 3))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - 4))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + 4))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - 4))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + 4))
+        klo = max(lo(3), int(pos(3) * invdx(3) - 4))
+        khi = min(hi(3), int(pos(3) * invdx(3) + 4))
 
 
         !________________________________________________________________________
@@ -1624,12 +1616,12 @@ contains
         ! jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
         ! klo = max(lo(3), int(pos(3) * invdx(3) - 3))
         ! khi = min(hi(3), int(pos(3) * invdx(3) + 3))
-        ilo = int(pos(1) * invdx(1) - 3)
-        ihi = int(pos(1) * invdx(1) + 3)
-        jlo = int(pos(2) * invdx(2) - 3)
-        jhi = int(pos(2) * invdx(2) + 3)
-        klo = int(pos(3) * invdx(3) - 3)
-        khi = int(pos(3) * invdx(3) + 3)
+        ilo = int(pos(1) * invdx(1) - 4)
+        ihi = int(pos(1) * invdx(1) + 4)
+        jlo = int(pos(2) * invdx(2) - 4)
+        jhi = int(pos(2) * invdx(2) + 4)
+        klo = int(pos(3) * invdx(3) - 4)
+        khi = int(pos(3) * invdx(3) + 4)
 
 
 

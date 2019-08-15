@@ -101,6 +101,9 @@ module common_namelist_module
 
   integer,            save :: particle_placement
   integer,            save :: particle_count(MAX_SPECIES)
+  integer,            save :: p_move_tog(MAX_SPECIES)
+  integer,            save :: p_force_tog(MAX_SPECIES)
+  integer,            save :: p_int_tog(MAX_SPECIES)
   double precision,   save :: particle_n0(MAX_SPECIES)
   double precision,   save :: particle_neff
 
@@ -170,6 +173,9 @@ module common_namelist_module
 
   namelist /common/ particle_placement
   namelist /common/ particle_count
+  namelist /common/ p_move_tog
+  namelist /common/ p_force_tog
+  namelist /common/ p_int_tog
   namelist /common/ particle_n0
   namelist /common/ particle_neff
 
@@ -416,6 +422,10 @@ contains
     density_weights(:) = 0.d0
     shift_cc_to_boundary(:,:) = 0
 
+    p_move_tog(:) = 1
+    p_force_tog(:) = 1
+    p_int_tog(:) = 1
+
     membrane_cell = -1
     cross_cell = 0
 
@@ -475,7 +485,7 @@ contains
                                          project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
-                                         particle_placement_in, particle_count_in, particle_neff_in,&
+                                         particle_placement_in, particle_count_in, p_move_tog_in, p_force_tog_in, p_int_tog_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
                                          cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
@@ -493,6 +503,9 @@ contains
     double precision,       intent(inout) :: particle_n0_in(MAX_SPECIES)
     double precision,       intent(inout) :: particle_neff_in
     integer,                intent(inout) :: particle_count_in(MAX_SPECIES)
+    integer,                intent(inout) :: p_move_tog_in(MAX_SPECIES)
+    integer,                intent(inout) :: p_force_tog_in(MAX_SPECIES)
+    integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
 
 
@@ -716,6 +729,9 @@ contains
     particle_n0_in = particle_n0
     particle_neff_in = particle_neff
     particle_count_in = particle_count
+    p_move_tog_in = p_move_tog
+    p_force_tog_in = p_force_tog
+    p_int_tog_in = p_int_tog
     particle_placement_in = particle_placement
 
     poisson_verbose_in = poisson_verbose
