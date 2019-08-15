@@ -765,6 +765,8 @@ int ComputeNlevsMG(const BoxArray& ba) {
 
 void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_c)
 {
+    BL_PROFILE_VAR("CCRestriction()",CCRestriction);
+    
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
 
@@ -1005,6 +1007,9 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                      const std::array< MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil)
 {
+
+    BL_PROFILE_VAR("StagRestriction()",StagRestriction);
+    
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
 
@@ -1046,6 +1051,8 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
 
 void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 {
+    BL_PROFILE_VAR("NodalRestriction()",NodalRestriction);
+    
     IntVect nodal(AMREX_D_DECL(1,1,1));
     
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
@@ -1136,10 +1143,12 @@ void edge_restriction (const Box & tbx,
 
 void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
                      const std::array< MultiFab, NUM_EDGE >& phi_f)
-{
+{  
     if (AMREX_SPACEDIM != 3) {
         Abort("Edge restriction can only be called for 3D!");
     }
+
+    BL_PROFILE_VAR("EdgeRestriction()",EdgeRestriction);
 
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
@@ -1413,6 +1422,8 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                       std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
 {
 
+    BL_PROFILE_VAR("StagProlongation()",StagProlongation);
+    
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_f[0]); mfi.isValid(); ++mfi ) {
 
@@ -1442,45 +1453,247 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
     }
 }
 
-void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
-                  const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
-                  const std::array< MultiFab, AMREX_SPACEDIM >& Lphi_fc,
-                  const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-                  const MultiFab& beta_cc,
-                  const std::array< MultiFab, NUM_EDGE >& beta_ed,
-                  const MultiFab& gamma_cc,
-                  const Real* dx,
-                  const int& color)
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_mg_update_visc_p1 (Box const& tbx,
+			   AMREX_D_DECL(Box const& xbx,
+					Box const& ybx,
+					Box const& zbx),
+                           AMREX_D_DECL(Array4<Real> const& phix,
+					Array4<Real> const& phiy,
+					Array4<Real> const& phiz),
+                           AMREX_D_DECL(Array4<Real const> const& rhsx,
+					Array4<Real const> const& rhsy,
+					Array4<Real const> const& rhsz),
+                           AMREX_D_DECL(Array4<Real const> const& Lpx,
+					Array4<Real const> const& Lpy,
+					Array4<Real const> const& Lpz),
+                           AMREX_D_DECL(Array4<Real const> const& alphax,
+					Array4<Real const> const& alphay,
+					Array4<Real const> const& alphaz),
+			   AMREX_D_DECL(bool do_x,
+					bool do_y,
+					bool do_z),
+                           Real b,  Real c, int offset,  int color, Real stag_mg_omega,
+			   const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
 {
+    // xbx, ybx, and zbx are the face-centered boxes
 
+    // if running on the host
+    // tlo is the minimal box containins the union of the face-centered grid boxes
+
+    // if running on the gpu, tlo is a box with a single point that comes
+    // from the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to
+    // the lower/uppser bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to
+    // the single point defined by tlo, unless tlo is outside of the union
+    // of the face-centered grid boxes, in which case they are set to
+    // values that make sure the loop is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+    int ioff;
+
+    Real dxsqinv = 1./(dx[0]*dx[0]);
+
+    if (do_x) {
+
+        for (int k = xlo.z; k <= xhi.z; ++k) {
+        for (int j = xlo.y; j <= xhi.y; ++j) {
+        ioff = 0;
+	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
+            Real fac = alphax(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
+            phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+    if (do_y) {
+
+        for (int k = ylo.z; k <= yhi.z; ++k) {
+        for (int j = ylo.y; j <= yhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
+            Real fac = alphay(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
+            phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+#if (AMREX_SPACEDIM == 3)
+    if (do_z) {
+
+        for (int k = zlo.z; k <= zhi.z; ++k) {
+        for (int j = zlo.y; j <= zhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
+            Real fac = alphaz(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
+            phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+#endif
+
+}
+
+void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
+                   const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
+                   const std::array< MultiFab, AMREX_SPACEDIM >& Lphi_fc,
+                   const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                   const MultiFab& beta_cc,
+                   const std::array< MultiFab, NUM_EDGE >& beta_ed,
+                   const MultiFab& gamma_cc,
+                   const Real* dx,
+                   const int& color)
+{
+    BL_PROFILE_VAR("StagMGUpdate()",StagMGUpdate);
+
+    AMREX_D_DECL(bool do_x,do_y,do_z);
+
+    int offset = 1;
+
+    if (color == 0) {
+        AMREX_D_TERM(do_x = true;,
+                     do_y = true,;
+                     do_z = true;);
+
+    }
+    else if (color == 1 || color == 2) {
+        AMREX_D_TERM(do_x = true;,
+                     do_y = false;,
+                     do_z = false;);
+        offset = 2;
+    }
+    else if (color == 3 || color == 4) {
+        AMREX_D_TERM(do_x = false;,
+                     do_y = true;,
+                     do_z = false;);
+        offset = 2;
+    }
+#if (AMREX_SPACEDIM == 3)
+    else if (color == 5 || color == 6) {
+        AMREX_D_TERM(do_x = false;,
+                     do_y = false;,
+                     do_z = true;);
+        offset = 2;
+    }
+#endif
+    else {
+        Abort("StagMGUpdate: Invalid Color");
+    }    
+
+    GpuArray<Real,AMREX_SPACEDIM> dx_gpu{AMREX_D_DECL(dx[0], dx[1], dx[2])};
+    
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(beta_cc); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
-        const Box& validBox = mfi.validbox();
+        const Box& bx = mfi.validbox();
 
-        stag_mg_update(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                       AMREX_D_DECL(BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
-				    BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
-				    BL_TO_FORTRAN_3D(phi_fc[2][mfi])),
-                       AMREX_D_DECL(BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
-				    BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
-				    BL_TO_FORTRAN_3D(rhs_fc[2][mfi])),
-                       AMREX_D_DECL(BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
-				    BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
-				    BL_TO_FORTRAN_3D(Lphi_fc[2][mfi])),
-                       AMREX_D_DECL(BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
-				    BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
-				    BL_TO_FORTRAN_3D(alpha_fc[2][mfi])),
-                       BL_TO_FORTRAN_3D(beta_cc[mfi]),
-#if (AMREX_SPACEDIM == 2)
-                       BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
-#elif (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
-                       BL_TO_FORTRAN_3D(beta_ed[1][mfi]),
-                       BL_TO_FORTRAN_3D(beta_ed[2][mfi]),
+        AMREX_D_TERM(Array4<Real> const& phix_fab = phi_fc[0].array(mfi);,
+                     Array4<Real> const& phiy_fab = phi_fc[1].array(mfi);,
+                     Array4<Real> const& phiz_fab = phi_fc[2].array(mfi););
+        
+        AMREX_D_TERM(Array4<Real const> const& rhsx_fab = rhs_fc[0].array(mfi);,
+                     Array4<Real const> const& rhsy_fab = rhs_fc[1].array(mfi);,
+                     Array4<Real const> const& rhsz_fab = rhs_fc[2].array(mfi););
+        
+        AMREX_D_TERM(Array4<Real const> const& Lphix_fab = Lphi_fc[0].array(mfi);,
+                     Array4<Real const> const& Lphiy_fab = Lphi_fc[1].array(mfi);,
+                     Array4<Real const> const& Lphiz_fab = Lphi_fc[2].array(mfi););
+        
+        AMREX_D_TERM(Array4<Real const> const& alphax_fab = alpha_fc[0].array(mfi);,
+                     Array4<Real const> const& alphay_fab = alpha_fc[1].array(mfi);,
+                     Array4<Real const> const& alphaz_fab = alpha_fc[2].array(mfi););
+
+        Array4<Real const> const& beta_cc_fab = beta_cc.array(mfi);
+        Array4<Real const> const& gamma_cc_fab = gamma_cc.array(mfi);
+        
+        Array4<Real const> const& beta_xy_fab = beta_ed[0].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+        Array4<Real const> const& beta_xz_fab = beta_ed[1].array(mfi);
+        Array4<Real const> const& beta_yz_fab = beta_ed[2].array(mfi);
 #endif
-                       BL_TO_FORTRAN_3D(gamma_cc[mfi]),
-                       dx, &color);
+
+        AMREX_D_TERM(const Box& bx_x = mfi.nodaltilebox(0);,
+                     const Box& bx_y = mfi.nodaltilebox(1);,
+                     const Box& bx_z = mfi.nodaltilebox(2););
+
+        const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x,bx_y,bx_z));
+        
+        Real b, c;
+        // for positive visc_types, the coefficients are constant in space
+        if (visc_type > 0) {
+            const auto& lo = amrex::lbound(bx);
+            b = beta_cc_fab (lo.x,lo.y,lo.z);
+            c = gamma_cc_fab(lo.x,lo.y,lo.z);
+        }
+
+        Real omega = stag_mg_omega;
+        
+        if (visc_type == 1) {
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+            {
+                stag_mg_update_visc_p1(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
+                                     AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
+                                     AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
+                                     AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
+                                     AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
+                                     AMREX_D_DECL(do_x,do_y,do_z),
+                                     b, c, offset, color, omega, dx_gpu);
+            });
+
+        }
+        else {
+            stag_mg_update(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                           AMREX_D_DECL(BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
+                                        BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
+                                        BL_TO_FORTRAN_3D(phi_fc[2][mfi])),
+                           AMREX_D_DECL(BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
+                                        BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
+                                        BL_TO_FORTRAN_3D(rhs_fc[2][mfi])),
+                           AMREX_D_DECL(BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
+                                        BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
+                                        BL_TO_FORTRAN_3D(Lphi_fc[2][mfi])),
+                           AMREX_D_DECL(BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
+                                        BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
+                                        BL_TO_FORTRAN_3D(alpha_fc[2][mfi])),
+                           BL_TO_FORTRAN_3D(beta_cc[mfi]),
+                           BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                           BL_TO_FORTRAN_3D(beta_ed[1][mfi]),
+                           BL_TO_FORTRAN_3D(beta_ed[2][mfi]),
+#endif
+                           BL_TO_FORTRAN_3D(gamma_cc[mfi]),
+                           dx, &color);
+        }
     }
 }
