@@ -2723,7 +2723,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
   domsize = phi - plo
 
-  adj = 0.99999
+  adj = 0.999999
   adjalt = 2d0*(1d0 - adj)
 
   dxinv = 1.d0/dx
@@ -2857,7 +2857,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                         sourcez, sourcezlo, sourcezhi, &
 #endif
                         part, ks, dxf)
-      !print*, 'Part force at end of spread_ions: ', part%force
+      !print*, 'Part force at end of spread_ions: ', part%force, part%q
       p = p + 1
 
    end do

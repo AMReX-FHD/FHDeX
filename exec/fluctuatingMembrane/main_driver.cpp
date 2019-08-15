@@ -790,7 +790,7 @@ void main_driver(const char* argv)
 
 
         //compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        //particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
@@ -804,8 +804,18 @@ void main_driver(const char* argv)
           }
 
         }
+        if (plot_int > 0 && step%plot_int == 0)
+        {
+
+            //This write particle data and associated fields and electrostatic fields
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
+
+            //Writes instantaneous flow field and some other stuff? Check with Guy.
+            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+        }
 
     	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+
         if(fluid_tog ==2)
         {
             advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
@@ -861,15 +871,15 @@ void main_driver(const char* argv)
 //	      structFact.FortStructure(struct_in_cc,geomP);
   //      }
 
-        if (plot_int > 0 && step%plot_int == 0)
-        {
+//        if (plot_int > 0 && step%plot_int == 0)
+//        {
 
-            //This write particle data and associated fields and electrostatic fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
+//            //This write particle data and associated fields and electrostatic fields
+//            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
-            //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
-        }
+//            //Writes instantaneous flow field and some other stuff? Check with Guy.
+//            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+//        }
 
         if(step%1 == 0)
         {    

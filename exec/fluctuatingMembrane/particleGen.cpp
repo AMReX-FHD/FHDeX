@@ -37,7 +37,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 //        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
  //       {
 
-            for(int i_spec=0; i_spec < nspecies -1; i_spec++)
+            for(int i_spec=0; i_spec < nspecies - 1; i_spec++)
             {
             for (int i_part=0; i_part<particleInfo[i_spec].ppb;i_part++)
             {
@@ -276,9 +276,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     }
 
 //    std::cout << "pcount: " << pcount << "\n";
-    Redistribute();
     UpdateCellVectors();
-
+    Redistribute();
     ReBin();
 
 }
