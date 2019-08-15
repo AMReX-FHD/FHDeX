@@ -1655,6 +1655,8 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
             b = beta_cc_fab (lo.x,lo.y,lo.z);
             c = gamma_cc_fab(lo.x,lo.y,lo.z);
         }
+
+        Real omega = stag_mg_omega;
         
         if (visc_type == 1) {
 
@@ -1666,7 +1668,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                      AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
                                      AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
                                      AMREX_D_DECL(do_x,do_y,do_z),
-                                     b, c, offset, color, stag_mg_omega, dx_gpu);
+                                     b, c, offset, color, omega, dx_gpu);
             });
 
         }
