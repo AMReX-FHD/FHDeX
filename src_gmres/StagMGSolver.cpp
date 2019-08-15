@@ -1474,7 +1474,7 @@ void stag_mg_update_visc_p1 (Box const& tbx,
 			   AMREX_D_DECL(bool do_x,
 					bool do_y,
 					bool do_z),
-			   Real b,  Real c, int offset,  int color,
+                           Real b,  Real c, int offset,  int color, Real stag_mg_omega,
 			   const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
 {
     // xbx, ybx, and zbx are the face-centered boxes
@@ -1666,7 +1666,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                      AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
                                      AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
                                      AMREX_D_DECL(do_x,do_y,do_z),
-                                     b, c, offset, color, dx_gpu);
+                                     b, c, offset, color, stag_mg_omega, dx_gpu);
             });
 
         }
