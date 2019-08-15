@@ -4,9 +4,9 @@
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
   prob_hi(1:3) = 1e-5 1e-5 1e-5      ! physical hi coordinate
     
-  n_cells(1:3) = 128 128 128
+  n_cells(1:3) = 64 64 64
   ! max number of cells in a box
-  max_grid_size(1:3) = 128 128 128
+  max_grid_size(1:3) = 32 32 64
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
@@ -28,7 +28,7 @@
   es_tog = 3 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 0 ! Apply RFD force to fluid
-  move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  move_tog = 0 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 0 ! Dry particle move
   sr_tog = 0 ! Short range forces
 
@@ -52,25 +52,28 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 1 1
+  particle_count = -1 -1 25
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e19 6.02e19
+  particle_n0 = 6.02e17 6.02e17 0
 
   !Species info
   !--------------
-  nspecies = 2
-  mass = 4e-23 4e-23
-  diameter = -2.488e-8 -2.488e-8 
+  nspecies = 3
+  mass = 4e-23 4e-23 4e-23
+  diameter = -2.488e-8 -2.488e-8 -2.488e-8 
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
-  qval = 1.6e-19 -1.6e-19
-!  qval = 4.8e-10 -4.8e-10
-  diff = 1.33e-05 1.33e-05
+  qval = 1.6e-19 -1.6e-19 0
+  diff = 1.33e-05 1.33e-05 1.33e-05
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  eepsilon = 1e-16 1e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
-  sigma = 8e-8 8e-8   !Close range repulsion diameter
+  eepsilon = 1e-16 1e-16 1e-16 !WCA potential amplitude - note that currently the first value is used for all species
+  sigma = 8e-8 8e-8 8e-8   !Close repulsion range
+
+  p_move_tog = 1 1 1
+  p_force_tog = 1 1 1
+  p_int_tog = 1 1 0
 
   !Interaction parameters
   !------------
@@ -107,15 +110,15 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no slip stationary
-  bc_lo(1:3) = -1 2 -1
-  bc_hi(1:3) = -1 2 -1
+  bc_lo(1:3) = -1 -1 -1
+  bc_hi(1:3) = -1 -1 -1
 
   !wallspeed_lo(1:3) = 0 0 0 !Not implemented yet.
   !wallspeed_hi(1:3) = 0 0 0 !Not implemented yet.
 
   ! -1 = periodic, 1 = dirichlet, 2 = neumann
-  bc_es_lo(1:3) = -1 2 -1
-  bc_es_hi(1:3) = -1 2 -1
+  bc_es_lo(1:3) = -1 -1 -1
+  bc_es_hi(1:3) = -1 -1 -1
 
   potential_lo(1:3) = 0 0 0 ! For use with dirichlet, not fully implemented yet.
   potential_hi(1:3) = 0 0 0 !

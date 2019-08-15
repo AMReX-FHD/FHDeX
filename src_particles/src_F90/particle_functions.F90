@@ -14,7 +14,7 @@ subroutine repulsive_force(part1,part2,dx, dr2) &
   real(amrex_real) :: ff
 
   !This needs to be updated to handle multispecies.
-  ff = part1%eepsilon*4*(1./(dr2*dr2*dr2*dr2))*(-12*(part1%sigma/2d0)**12/(dr2*dr2*dr2)+6*(part1%sigma/2d0)**6)
+  ff = part1%eepsilon*4*(1./(dr2*dr2*dr2*dr2))*(-12*((part1%sigma+part2%sigma)/4d0)**12/(dr2*dr2*dr2)+6*((part1%sigma+part2%sigma)/4d0)**6)
 
 
   part1%force = part1%force - dx*ff
@@ -374,7 +374,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
     
     index = 1
     do i = 1, np
-       print*, "particle w charge ", int(particles(i)%q/abs(particles(i)%q)), " pos: " , particles(i)%pos
+       !print*, "particle w charge ", int(particles(i)%q/abs(particles(i)%q)), " pos: " , particles(i)%pos
        near_wall_below = 0 ! reset for each particle
        near_wall_above = 0 ! reset for each particle
 
@@ -395,14 +395,14 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        if (bc_es_hi(2) .ne. (-1)) then 
           call near_wall_check(particles(i), 2, near_wall_above)
        endif 
-       print*, 'near wall below: ',   near_wall_below
-       print*, 'near wall above: ',  near_wall_above
+      ! print*, 'near wall below: ',   near_wall_below
+       !print*, 'near wall above: ',  near_wall_above
 
        ! image charge interactions for wall below
        if (near_wall_below.eq.1) then
           ! compute image charge location
           call calc_im_charge_loc(particles(i), -2, im_charge_pos)
-          print*, 'im charge loc = ', im_charge_pos
+          !print*, 'im charge loc = ', im_charge_pos
 
           ! compute sep vector btwn charge and its image
           dr(1) = particles(i)%pos(1) - im_charge_pos(1)
@@ -417,7 +417,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -426,7 +426,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -451,7 +451,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           if (bc_es_hi(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -459,7 +459,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
           else if (bc_es_hi(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
-             print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
+             !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -491,7 +491,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
             ! Do local (short range) coulomb interaction within coulombRadiusFactor
             !!!!!!!!!!!!!!!!!!!!!!!!!!
             particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
-            print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
+           ! print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
             !print *, "particle ", i, " force ", particles(i)%force
 
@@ -529,7 +529,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
 
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
@@ -539,7 +539,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
 
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
@@ -569,7 +569,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
                      particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -577,7 +577,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
 
                      ! coulomb
                      particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
-                     print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
+                     !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
                      ! p3m 
                      call compute_p3m_force_mag(r, correction_force_mag, dx)
                      particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
@@ -595,7 +595,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        end do
 
 
-       print *, "particle ", i, " force after p3m     ", particles(i)%force
+       !print *, "particle ", i, " force after p3m     ", particles(i)%force
 
        index = index + nneighbors
 
@@ -614,7 +614,7 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
     use iso_c_binding
     use amrex_fort_module,           only : amrex_real
     use cell_sorted_particle_module, only : particle_t
-    use common_namelist_module, only: cut_off, rmin
+    use common_namelist_module, only: cut_off, rmin, p_int_tog
         
     integer,          intent(in   ) :: np, nn, size
     real(amrex_real), intent(inout) :: rcount
@@ -644,24 +644,27 @@ subroutine amrex_compute_forces_nl(rparticles, np, neighbors, &
 
        do j = index, index + nneighbors - 1
 
-          dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
-          dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
-          dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
+          if((p_int_tog(particles(i)%species) .ne. 0) .and. (p_int_tog(particles(nl(j))%species) .ne. 0)) then
 
-          r2 = dx(1) * dx(1) + dx(2) * dx(2) + dx(3) * dx(3)
-          r2 = max(r2, rmin*rmin) 
-          r = sqrt(r2)
+            dx(1) = particles(i)%pos(1) - particles(nl(j))%pos(1)
+            dx(2) = particles(i)%pos(2) - particles(nl(j))%pos(2)
+            dx(3) = particles(i)%pos(3) - particles(nl(j))%pos(3)
 
-         !repulsive interaction
+            r2 = dx(1) * dx(1) + dx(2) * dx(2) + dx(3) * dx(3)
+            r2 = max(r2, rmin*rmin) 
+            r = sqrt(r2)
 
-         !print *, r , (1.122*particles(i)%sigma/2.0)
-         if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
+           !repulsive interaction
 
-            !print *, "Repulsing, ", i, r
-            rcount = rcount + 1
+           !print *, r , (1.122*particles(i)%sigma/2.0)
+            if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
-            call repulsive_force(particles(i),particles(nl(j)),dx,r2) 
-         end if
+              !print *, "Repulsing, ", i, r
+              rcount = rcount + 1
+
+              call repulsive_force(particles(i),particles(nl(j)),dx,r2) 
+            end if
+          endif
 
        end do
 
@@ -1242,194 +1245,6 @@ subroutine distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, so
 
 end subroutine distribute_momentum
 
-!below we'll evolve for particles with no fluid
-subroutine move_particles_dry(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, &
-                                     coordsx, coordsxlo, coordsxhi, &
-                                     coordsy, coordsylo, coordsyhi, &
-#if (BL_SPACEDIM == 3)
-                                     coordsz, coordszlo, coordszhi, &
-#endif
-                                     sourcex, sourcexlo, sourcexhi, &
-                                     sourcey, sourceylo, sourceyhi, &
-#if (BL_SPACEDIM == 3)
-                                     sourcez, sourcezlo, sourcezhi, &
-#endif
-                                     surfaces, ns)bind(c,name="move_particles_dry")
-  use amrex_fort_module, only: amrex_real
-  use iso_c_binding, only: c_ptr, c_int, c_f_pointer
-  use cell_sorted_particle_module, only: particle_t, remove_particle_from_cell
-  use common_namelist_module, only: visc_type, k_B
-  use rng_functions_module
-  use surfaces_module
-  
-  implicit none
-
-  integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3)
-  integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
-  integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
-#if (AMREX_SPACEDIM == 3)
-  integer,          intent(in   )         :: sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
-#endif
-  type(particle_t), intent(inout), target :: particles(np)
-  type(surface_t),  intent(in),    target :: surfaces(ns)
-
-  double precision, intent(in   )         :: dx(3), dt, plo(3), phi(3)
-
-  double precision, intent(in   ) :: coordsx(coordsxlo(1):coordsxhi(1),coordsxlo(2):coordsxhi(2),coordsxlo(3):coordsxhi(3),1:AMREX_SPACEDIM)
-  double precision, intent(in   ) :: coordsy(coordsylo(1):coordsyhi(1),coordsylo(2):coordsyhi(2),coordsylo(3):coordsyhi(3),1:AMREX_SPACEDIM)
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(in   ) :: coordsz(coordszlo(1):coordszhi(1),coordszlo(2):coordszhi(2),coordszlo(3):coordszhi(3),1:AMREX_SPACEDIM)
-#endif
-
-  double precision, intent(inout) :: sourcex(sourcexlo(1):sourcexhi(1),sourcexlo(2):sourcexhi(2),sourcexlo(3):sourcexhi(3))
-  double precision, intent(inout) :: sourcey(sourceylo(1):sourceyhi(1),sourceylo(2):sourceyhi(2),sourceylo(3):sourceyhi(3))
-#if (AMREX_SPACEDIM == 3)
-  double precision, intent(inout) :: sourcez(sourcezlo(1):sourcezhi(1),sourcezlo(2):sourcezhi(2),sourcezlo(3):sourcezhi(3))
-#endif
-
-  type(c_ptr),      intent(inout) :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  integer(c_int),   intent(inout) :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-  
-  integer :: i, j, k, p, cell_np, new_np, intside, intsurf, push, loopcount
-  integer :: ni(3), fi(3)
-  integer(c_int), pointer :: cell_parts(:)
-  type(particle_t), pointer :: part
-  type(surface_t), pointer :: surf
-  real(amrex_real) dxinv(3), dxfinv(3), onemdxf(3), ixf(3), localvel(3), localbeta, bfac(3), deltap(3), std, normalrand(3), nodalp, tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3)
-
-  double precision  :: cc(0:7)
-  double precision  :: rr(0:7)
-
-   
-  domsize = phi - plo
-
-  adj = 0.999999
-  adjalt = 2d0*(1d0 - adj)
-
-  dxinv = 1.d0/dx
-
-  do k = lo(3), hi(3)
-     do j = lo(2), hi(2)
-        do i = lo(1), hi(1)
-           cell_np = cell_part_cnt(i,j,k)
-           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np]) 
-
-           new_np = cell_np
-           p = 1
-
-           do while (p <= new_np)
-
-              runtime = dt
-              part => particles(cell_parts(p))
-
-                !Brownian forcing
-
-              call get_particle_normal(normalrand(1))
-              call get_particle_normal(normalrand(2))
-              call get_particle_normal(normalrand(3))
-
-              runerr = 1d0;
-
-              deltap(1) = part%vel(1)
-              deltap(2) = part%vel(1)
-#if (BL_SPACEDIM == 3)
-              deltap(3) = part%vel(1)
-#endif
-
-!this velocity update introduces a timetep error when a boundary intersection occurs. Need to use some kind of iteration to get a consistent intersection time and velocity update.
-
-       !!       std = sqrt(-part%drag_factor*localbeta*k_B*2d0*runtime*293d0)/part%mass
-              std = sqrt(part%drag_factor*k_B*2d0*runtime*293d0)
-
-              print *, "std ", std, " part ", part%drag_factor*k_B*2d0*runtime*293d0
-
-              bfac(1) = std*normalrand(1)
-              bfac(2) = std*normalrand(2)
-              bfac(3) = std*normalrand(3)
-
-              !currently this is without mid-time stepping
-
-              do while (runtime .gt. 0)
-
-                call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-
-                posalt(1) = inttime*part%vel(1)*adjalt
-                posalt(2) = inttime*part%vel(2)*adjalt
-#if (BL_SPACEDIM == 3)
-                posalt(3) = inttime*part%vel(3)*adjalt
-#endif
-
-                part%vel(1) = (runtime*part%drag_factor*part%force(1)+bfac(1))/inttime
-                part%vel(2) = (runtime*part%drag_factor*part%force(2)+bfac(2))/inttime
-                part%vel(3) = (runtime*part%drag_factor*part%force(3)+bfac(3))/inttime
-
-!                part%pos(1) = part%pos(1) + runtime*part%drag_factor*part%force(1)+bfac(1)
-!                part%pos(2) = part%pos(2) + runtime*part%drag_factor*part%force(2)+bfac(2)
-!#if (BL_SPACEDIM == 3)
-!                part%pos(3) = part%pos(3) + runtime*part%drag_factor*part%force(3)+bfac(3)
-!#endif
-!                ! move the particle in a straight line, adj factor prevents double detection of boundary intersection
-                 
-                print *, "particle ", cell_parts(p) ,"x ", part%pos(1), "y ", part%pos(2), "z " ,part%pos(3)
-                print *, "particle ", cell_parts(p) ,"x vel ", part%vel(1), "y vel ", part%vel(2), "z vel " ,part%vel(3)
-
-                part%pos(1) = part%pos(1) + inttime*part%vel(1)*adj
-                part%pos(2) = part%pos(2) + inttime*part%vel(2)*adj
-#if (BL_SPACEDIM == 3)
-                part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
-#endif
-                print *, "particle ", cell_parts(p) ,"x ", part%pos(1), "y ", part%pos(2), "z " ,part%pos(3)
-
-                runtime = runtime - inttime
-
-                if(intsurf .gt. 0) then
-
-                  surf => surfaces(intsurf)
-
-                  call apply_bc(surf, part, intside, domsize, push, 1, 1)
-
-                    if(push .eq. 1) then
-                      
-                      part%pos(1) = part%pos(1) + posalt(1)
-                      part%pos(2) = part%pos(2) + posalt(2)
-#if (BL_SPACEDIM == 3)
-                      part%pos(3) = part%pos(3) + posalt(3)
-#endif
-                    endif
-                    
-                endif
-
-              end do
-
-              ! if it has changed cells, remove from vector.
-              ! otherwise continue
-
-              ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
-              ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
-#if (BL_SPACEDIM == 3)
-              ni(3) = floor((part%pos(3) - plo(3))*dxinv(3))
-#else
-              ni(3) = 0
-#endif
-
-              if ((ni(1) /= i) .or. (ni(2) /= j) .or. (ni(3) /= k)) then
-                 part%sorted = 0
-                 call remove_particle_from_cell(cell_parts, cell_np, new_np, p)  
-              else
-                 p = p + 1
-              end if
-           end do
-
-           cell_part_cnt(i,j,k) = new_np
-    
-        end do
-     end do
-  end do
-
-  !print *, "Ending"        
-  
-end subroutine move_particles_dry
 
 !extra diffusion term when 
 subroutine dry(dt,part,dry_terms, mb)
@@ -1675,7 +1490,7 @@ subroutine get_weights(dxf, dxfinv, weights, indicies, &
   fr(2) = (part%pos(2) - plof(2))*dxfinv(2)
   fr(3) = (part%pos(3) - plof(3))*dxfinv(3)
 
-  !print*, "Real pos: ", part%pos
+  !print*, "Real pos: ", fr, part%q
 
   fi(1) = floor(fr(1))
   fi(2) = floor(fr(2))
@@ -2980,7 +2795,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
         call get_weights_scalar_cc(dxe, dxeinv, weights, indicies, &
                         cellcenters, cellcenterslo, cellcentershi, &
                         part, ks, lo, hi, plof, store)
-        print*, "particle ", p, " force before emf:   ", part%force
+        !print*, "particle ", p, " force before emf:   ", part%force
         poisson_force = -1.d0*part%force
         call emf(weights, indicies, &
                           sourcex, sourcexlo, sourcexhi, &
@@ -2996,8 +2811,8 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                           part, ks, dxe)
 
         poisson_force = poisson_force + part%force
-        print*, "Poisson force on particle ", p, "is: ", poisson_force
-        print*, "particle ", p, " force after emf:    ", part%force
+        !print*, "Poisson force on particle ", p, "is: ", poisson_force
+        !print*, "particle ", p, " force after emf:    ", part%force
 !------------------
 
       call get_weights(dxf, dxfinv, weights, indicies, &
@@ -3042,7 +2857,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                         sourcez, sourcezlo, sourcezhi, &
 #endif
                         part, ks, dxf)
-      print*, 'Part force at end of spread_ions: ', part%force
+      !print*, 'Part force at end of spread_ions: ', part%force
       p = p + 1
 
    end do

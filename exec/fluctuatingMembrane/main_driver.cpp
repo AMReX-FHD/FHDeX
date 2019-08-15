@@ -64,19 +64,19 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+//    int fhdSeed = 0;
+//    int particleSeed = 0;
+//    int selectorSeed = 0;
+//    int thetaSeed = 0;
+//    int phiSeed = 0;
+//    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -167,9 +167,15 @@ void main_driver(const char* argv)
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
+        Print() << "GEOMOUT: " << geomP << "\n";
+        Print() << "VEC: " << is_periodic_p[1] << "\n";
+
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
     DistributionMapping dmap(ba);
+
+    Print() << geom << "\n";
+    Print() << domain << "\n";
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();

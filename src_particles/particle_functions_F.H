@@ -45,31 +45,6 @@ extern "C"
                         const void* ghosts,    const int* nn,
                         const int* neighbor_list, const int* size, amrex_real* rcount);
 
-  	        void move_particles_dry(void* particles,
-                        const int *np,
-                        const int *lo,
-                        const int *hi,
-                        int** c_vectors,
-                        int* sizes,
-                        const int* clo,
-                        const int* chi,
-                        const amrex_real* plo,
-                        const amrex_real* phi,
-                        const amrex_real* dx,
-                        const amrex_real* dt,
-                         const amrex_real* coordsx, const int* coordsxlo, const int* coordsxhi,
-                         const amrex_real* coordsy, const int* coordsylo, const int* coordsyhi,
-#if (AMREX_SPACEDIM == 3)
-                         const amrex_real* coordsz, const int* coordszlo, const int* coordszhi,
-#endif
-                         const amrex_real* sourcex, const int* sourcexlo, const int* sourcexhi,
-                         const amrex_real* sourcey, const int* sourceylo, const int* sourceyhi,
-#if (AMREX_SPACEDIM == 3)
-                        const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
-#endif
-                        const void* surfaces,
-                        const int* ns);
-
 
     void move_particles_dsmc(void* particles,
                         const int *np,
