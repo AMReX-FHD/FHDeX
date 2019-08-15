@@ -45,7 +45,6 @@ contains
     ! local
     integer :: i,j
     double precision dxsqinv, dysqinv, dxdyinv
-    double precision bt, term1, term2, term3
 
     ! coloring parameters
     logical :: do_x, do_y
@@ -62,8 +61,6 @@ contains
        do_x = .false.
        offset = 2
     end if
-
-    bt = betacc(betacclo(1),betacclo(2))
 
     dxsqinv = 1.d0/(dx(1)**2)
     dysqinv = 1.d0/(dx(2)**2)
@@ -123,45 +120,6 @@ contains
 
     end if
 
-    if (visc_type .eq. 2) then
-
-       if (do_x) then
-
-          term1 =  (2.d0*bt)*2.d0*dxsqinv+(2.d0*bt)*dysqinv
-
-          do j = lo(2), hi(2)
-             ioff = 0
-             if ( offset .eq. 2 .and. mod(lo(1)+j,2) .ne. mod(color+1,2) ) ioff = 1
-             do i=lo(1)+ioff,hi(1)+1,offset
-
-                Lphix(i,j) = phix(i,j)*(alphax(i,j) + term1) &
-                     -bt*( (phix(i+1,j)+phix(i-1,j))*2.d0*dxsqinv &
-                          +(phix(i,j+1)+phix(i,j-1))*dysqinv &
-                          +(phiy(i,j+1)-phiy(i,j)-phiy(i-1,j+1)+phiy(i-1,j))*dxdyinv)
-             enddo
-          enddo
-
-       end if
-
-       if (do_y) then
-
-          term1 = (2.d0*bt)*2.d0*dysqinv+(2.d0*bt)*dxsqinv
-
-          do j = lo(2), hi(2)+1
-             ioff = 0
-             if ( offset .eq. 2 .and. mod(lo(1)+j,2) .ne. mod(color+1,2) ) ioff = 1
-             do i=lo(1)+ioff,hi(1),offset
-
-                Lphiy(i,j) = phiy(i,j)*(alphay(i,j) + term1) &
-                     -bt*( (phiy(i,j+1)+phiy(i,j-1))*2.d0*dysqinv &
-                          +(phiy(i+1,j)+phiy(i-1,j))*dxsqinv &
-                          +(phix(i+1,j)-phix(i,j)-phix(i+1,j-1)+phix(i,j-1))*dxdyinv)
-             enddo
-          enddo
-
-       end if
-    end if
-
   end subroutine stag_apply_op
 
 
@@ -214,7 +172,6 @@ contains
     integer :: i,j,k
 
     double precision dxsqinv, dysqinv, dzsqinv, dxdyinv, dxdzinv, dydzinv
-    double precision bt, term1, term2, term3, term4
     
     ! coloring parameters
     logical :: do_x, do_y, do_z
@@ -239,8 +196,6 @@ contains
        offset = 2
     end if
     
-    bt = betacc(betacclo(1),betacclo(2),betacclo(3))
-
     dxsqinv = 1.d0/(dx(1)**2)
     dysqinv = 1.d0/(dx(2)**2)
     dzsqinv = 1.d0/(dx(3)**2)
@@ -357,78 +312,6 @@ contains
        end if
 
     end if
-
-
-    if (visc_type .eq. 2) then
-
-       if (do_x) then
-          
-          term1 =  (2.d0*bt)*2.d0*dxsqinv+(2.d0*bt)*dysqinv+(2.d0*bt)*dzsqinv
-
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1)+1,offset
-
-                   Lphix(i,j,k) = phix(i,j,k)*(alphax(i,j,k) + term1) &
-                        -bt*( (phix(i+1,j,k)+phix(i-1,j,k))*2.d0*dxsqinv &
-                             +(phix(i,j+1,k)+phix(i,j-1,k))*dysqinv &
-                             +(phix(i,j,k+1)+phix(i,j,k-1))*dzsqinv &
-                             +(phiy(i,j+1,k)-phiy(i,j,k)-phiy(i-1,j+1,k)+phiy(i-1,j,k))*dxdyinv &
-                             +(phiz(i,j,k+1)-phiz(i,j,k)-phiz(i-1,j,k+1)+phiz(i-1,j,k))*dxdzinv)
-                enddo
-             enddo
-          enddo
-
-       end if
-
-       if (do_y) then
-
-          term1 = (2.d0*bt)*2.d0*dysqinv+(2.d0*bt)*dxsqinv+(2.d0*bt)*dzsqinv
-
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)+1
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset
-
-                   Lphiy(i,j,k) = phiy(i,j,k)*( alphay(i,j,k) + term1) &
-                        -bt*( (phiy(i,j+1,k)+phiy(i,j-1,k))*2.d0*dysqinv &
-                             +(phiy(i+1,j,k)+phiy(i-1,j,k))*dxsqinv &
-                             +(phiy(i,j,k+1)+phiy(i,j,k-1))*dzsqinv &
-                             +(phix(i+1,j,k)-phix(i,j,k)-phix(i+1,j-1,k)+phix(i,j-1,k))*dxdyinv &
-                             +(phiz(i,j,k+1)-phiz(i,j,k)-phiz(i,j-1,k+1)+phiz(i,j-1,k))*dydzinv)
-                enddo
-             enddo
-          enddo
-
-       end if
-
-       if (do_z) then
-          
-          term1 = (2.d0*bt)*2.d0*dzsqinv+(2.d0*bt)*dxsqinv+(2.d0*bt)*dysqinv
-
-          do k = lo(3), hi(3)+1
-             do j = lo(2), hi(2)
-                ioff = 0
-                if ( offset .eq. 2 .and. mod(lo(1)+j+k,2) .ne. mod(color+1,2) ) ioff = 1
-                do i=lo(1)+ioff,hi(1),offset
-
-                   Lphiz(i,j,k) = phiz(i,j,k)*( alphaz(i,j,k) + term1) &
-                        -bt*( (phiz(i,j,k+1)+phiz(i,j,k-1))*2.d0*dzsqinv &
-                             +(phiz(i+1,j,k)+phiz(i-1,j,k))*dxsqinv &
-                             +(phiz(i,j+1,k)+phiz(i,j-1,k))*dysqinv &
-                             +(phix(i+1,j,k)-phix(i,j,k)-phix(i+1,j,k-1)+phix(i,j,k-1))*dxdzinv &
-                             +(phiy(i,j+1,k)-phiy(i,j,k)-phiy(i,j+1,k-1)+phiy(i,j,k-1))*dydzinv)
-                enddo
-             enddo
-          enddo
-
-       end if
-
-    end if
-
 
   end subroutine stag_apply_op
 
