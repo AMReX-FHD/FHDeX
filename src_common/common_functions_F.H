@@ -56,7 +56,7 @@ extern "C"
 				     int* project_dir, int* max_grid_projection,
                                      int* histogram_unit, amrex::Real* density_weights,
                                      int* shift_cc_to_boundary,
-                                     int* particle_placement, int* particle_count,
+                                     int* particle_placement, int* particle_count, int* p_move_tog, int* p_force_tog, int* p_int_tog,
                                      amrex::Real* particle_neff, amrex::Real* particle_n0,
                                      amrex::Real* mass, amrex::Real* nfrac, amrex::Real* permitivitty,
                                      amrex::Real* cut_off, amrex::Real* rmin,

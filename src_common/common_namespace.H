@@ -164,6 +164,9 @@ namespace common {
 
     extern int                        particle_placement;
     extern amrex::Vector<int>         particle_count;
+    extern amrex::Vector<int>         p_move_tog;
+    extern amrex::Vector<int>         p_force_tog;
+    extern amrex::Vector<int>         p_int_tog;
     extern amrex::Real                particle_neff;
     extern amrex::Vector<amrex::Real> particle_n0;
     extern amrex::Vector<amrex::Real> mass;

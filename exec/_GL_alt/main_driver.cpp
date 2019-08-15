@@ -35,6 +35,18 @@ using namespace common;
 void main_driver(const char* argv)
 {
 
+
+    amrex::Real umbrella; //spring constant 
+    amrex::Real phi0; // umbrella center 
+    amrex::Real alpha; // spring constant scaling parameter
+    amrex::Real r1; //  phi0 step parameter, see overleaf notes 
+    amrex::Real r2; //  overlap parameter, see overleaf notes
+    int N_Burn; // This corresponds to  the integer "Equil" input. This is the number of time-steps taken before data collection begins
+    int L; //Integer corresponding to the "Number_of_Samples" input. This is the number of samples considered in each umbrella
+    int Plot_Skip; //An integer used to limit the number of plot files saved. See input file and overleaf for more information. 
+    int adaptive; //  1= adaptive method used, 0= uniform phi_0 step method. Specified at input
+    int Reverse; //! 1= "forward" direction (i.e phi_0) is increased, 0= "backward" direction (i.e phi_0) is decreased. Specified at input
+
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -47,8 +59,8 @@ void main_driver(const char* argv)
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
+    set_inputs(&Plot_Skip,&L,&N_Burn,&alpha,&r1,&r2,&adaptive,&Reverse); //read-in inputs added by Kevin
 
-  
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -125,8 +137,8 @@ void main_driver(const char* argv)
     statsCount = 1;
 
      Init_Phi(phi,dx);
-
-     WritePlotFile(step, time, geom, phi);
+     Param_Output(&umbrella,&phi0);
+     WritePlotFile(step, time, geom, phi,umbrella,phi0);
 
      if( proc == 0 ) {
       
@@ -136,39 +148,183 @@ void main_driver(const char* argv)
 
      }
 
-    amrex::Real integral;
 
     //Time stepping loop
-    for(step=1;step<=max_step;++step)
+
+    bool Make_PltFiles = true; //boolean used as flag for making plot files
+    int umbrella_size=0; //Serves as a flag for the spring constant strength (1=has attained smallest allowable value,2=has attained largest allowable value,0=neither too large or small)
+    amrex::Real Expec;// The average of samples collected in PREVIOUS accepted umbrella
+    amrex::Real MAD; // The median absolute deviation ( measure of spread) of the data in PREVIOUS accepted umbrella
+    amrex::Real Expec2; // The average of samples collected in CURRENT candidate umbrella
+    amrex::Real MAD2;// The median absolute deviation ( measure of spread) of the data in candidate accepted umbrella
+    bool sucessful_compare=false; // boolean that states whether there was sufficient overlap with PREVIOUS accepted umbrella
+    int Shift_Flag=0; //-Integer that indicates what "approach" is used to compute phi_0. See fortran "inc_phi0_Adapt" subroutine comments for more information
+    bool while_loop_comp=true;// boolean that is used to break the while loop under certain conditions. ( set to false to break the loop)
+    bool First_Loop_Step=true;// boolean that is used to differentiate the situation when entering the while loop after a previous sucessful umbrella comparison. (true= in first step, false=NOT in first step)
+    bool weak_umb=false; // boolean that is used to skip comparisons IF both the previous umbrella comparison and current comparison were sucessful with weakest possible spring constant
+    int Plot_Num=0;//  An integer keeping track of the contigous plot file number count
+    int umbrella_number=0; //An integer keeping track of the contigous umbrella file number count
+
+    if(adaptive==1 and Reverse==0) // adaptive algorithm in "forward" direction (i.e increasing phi_0)
     {
+        Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+        inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+        Make_PltFiles = false;
 
-        RK2step(phi, phin, rannums, geom, dx, dt, integral, step);
-
-//        if(step == n_steps_skip)
-//     {
-//     on the fly statistics setup?
-//      }
-
-//        evaluateStats(phi, dx);
-
-//        statsCount++;
-
-        inc_phi0(&step);
-
-        if(step%500 == 0)
-        {    
-                amrex::Print() << "Integral " << integral << "\n";
-                amrex::Print() << "Advanced step " << step << "\n";
-        }
-
-        if (plot_int > 0 && step > n_steps_skip && step%plot_int == 0)
+        while((Expec+r1*MAD) <1.0) // cut-off condition for adaptive method
         {
+                Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+                Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+                First_Loop_Step=false;
+            if(sucessful_compare and  while_loop_comp and !weak_umb)// If first comparson is sucessful, the adaptive algorithm tries to optimize spring constant values
+            {
+                while(sucessful_compare and  while_loop_comp and !weak_umb)// This while loop continues until a spring constant leading to an unsucessful comparsion is found
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+                }
+            }else // If first comparson is NOT sucessful, the adaptive algorithm tries to find a spring constant and phi_0 that does work. The first such pair is used. 
+            {
+                while(!sucessful_compare)// This while loop continues until a successful combination of phi_0 and spring constant is found
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+                }
+            }
+                //Below, the sucessful phi_0 and spring constant values are used to compute the accepted umbrella data. This data is written to an umbrellaxxxxx.txt file.
+                //After this, phi_0 is shifted, and all flags are reset appropriately 
+                Make_PltFiles = true;
+                Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+                Shift_Flag=1;
+                inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag); 
+                umbrella_size=0;
+                Make_PltFiles = false;
+                First_Loop_Step=true;
+                while_loop_comp=true;
+                weak_umb=false;
+                sucessful_compare=true;
 
-           WritePlotFile(step, time, geom, phi);
         }
-
-        time = time + dt;
     }
+    if(adaptive==1 and Reverse==1) // adaptive algorithm in "backward" direction (i.e decreasing phi_0)
+    {
+        Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+        r1=-r1;
+        inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+        r1=-r1;
+        Make_PltFiles = false;
+
+        while((Expec+r1*MAD)>0)
+        {
+                Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+                Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+                First_Loop_Step=false;
+            if(sucessful_compare and  while_loop_comp and !weak_umb)// If first comparson is sucessful, the adaptive algorithm tries to optimize spring constant values
+            {
+                while(sucessful_compare and  while_loop_comp and !weak_umb)// This while loop continues until a spring constant leading to an unsucessful comparsion is found
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+                }
+            }else// If first comparson is NOT sucessful, the adaptive algorithm tries to find a spring constant and phi_0 that does work. The first such pair is used. 
+            {
+                while(!sucessful_compare)// This while loop continues until a successful combination of phi_0 and spring constant is found
+                {
+                    Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+                    Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+                }
+            }
+                //Below, the sucessful phi_0 and spring constant values are used to compute the accepted umbrella data. This data is written to an umbrellaxxxxx.txt file.
+                //After this, phi_0 is shifted, and all flags are reset appropriately 
+                Make_PltFiles = true;
+                Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                        N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+                Shift_Flag=1;
+                r1=-r1;
+                inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+                r1=-r1;
+                umbrella_size=0;
+                Make_PltFiles = false;
+                First_Loop_Step=true;
+                while_loop_comp=true;
+                weak_umb=false;
+                sucessful_compare=true;
+        }
+    }
+    if(adaptive==0)// direct computation of umbrella data with uniform phi_0 steps and fixed spring constant
+    {
+        Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+        int inc_dir=1; // forward direction
+        fixed_inc_phi0(&inc_dir);
+
+        while((Expec+r1*MAD) <0.24)
+        {
+        Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+        fixed_inc_phi0(&inc_dir);
+        }
+        inc_dir=0; // forward direction
+        while((Expec+r1*MAD) >0.00286481020)
+        {
+        Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+                N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+        fixed_inc_phi0(&inc_dir);
+        }
+    }
+
+    // ****NOTE: Another portion can be added to the total "trip" by copying and pasting the while loops as done below
+    //*****NOTE: the while loop conditions should all be consistent with each other when taking as a sequence from top to bottom (i.e the exit condition for a prior while loop should allow you to enter the next loop)
+
+
+    // while((Expec+r1*MAD)>0.004)
+    // {
+    //         Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+    //                 N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+    //         Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+    //         First_Loop_Step=false;
+    //     if(sucessful_compare and  while_loop_comp and !weak_umb)
+    //     {
+    //         while(sucessful_compare and  while_loop_comp and !weak_umb)
+    //         {
+    //             Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+    //                 N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+    //             Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+    //         }
+    //     }else
+    //     {
+    //         while(!sucessful_compare)
+    //         {
+    //             Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+    //                 N_Burn,L,Expec2,MAD2,Plot_Num,Plot_Skip,umbrella_number);
+    //             Check_Overlap_Backwards(Expec,MAD,Expec2,MAD2,r2,alpha,sucessful_compare,umbrella_size,Shift_Flag,while_loop_comp,First_Loop_Step,weak_umb);
+    //         }
+    //     }
+        
+    //     Make_PltFiles = true;
+    //     Run_Steps(phi,phin,rannums,geom,dx,dt, time,plot_int,Make_PltFiles,
+    //             N_Burn,L,Expec,MAD,Plot_Num,Plot_Skip,umbrella_number);
+    //     Shift_Flag=1;
+    //     r1=-r1;
+    //     inc_phi0_Adapt(&Expec,&MAD,&r1,&Shift_Flag);
+    //     r1=-r1;
+    //     umbrella_size=0;
+    //     Make_PltFiles = false;
+    //     First_Loop_Step=true;
+    //     while_loop_comp=true;
+    //     weak_umb=false;
+    //     sucessful_compare=true;
+    // }
+
 
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

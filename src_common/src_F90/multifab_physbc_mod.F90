@@ -18,6 +18,42 @@ module multifab_physbc_module
 
 contains
 
+
+#if (AMREX_SPACEDIM == 1)
+
+subroutine fab_physbc
+
+end subroutine fab_physbc
+
+
+subroutine fab_electricbc
+   
+end subroutine fab_electricbc
+
+subroutine fab_chargebc
+   
+end subroutine fab_chargebc
+
+subroutine fab_physbc_domainvel
+   
+end subroutine fab_physbc_domainvel
+
+subroutine fab_physbc_macvel
+   
+end subroutine fab_physbc_macvel
+
+subroutine fab_physbc_domainstress
+   
+end subroutine fab_physbc_domainstress
+
+subroutine fab_physbc_macstress
+   
+end subroutine fab_physbc_macstress
+
+#endif
+
+
+
 #if (AMREX_SPACEDIM == 2)
 
   pure subroutine fab_physbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3

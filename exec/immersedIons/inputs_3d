@@ -4,10 +4,9 @@
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
   prob_hi(1:3) = 1e-5 1e-5 1e-5      ! physical hi coordinate
     
-  ! number of cells in domain
-  n_cells(1:3) = 64 64 64
+  n_cells(1:3) = 128 128 128
   ! max number of cells in a box
-  max_grid_size(1:3) = 64 64 64 
+  max_grid_size(1:3) = 128 128 128
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
@@ -18,7 +17,7 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 1
+  max_step = 5
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = -1
@@ -108,8 +107,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no slip stationary
-  bc_lo(1:3) = -1 -1 -1
-  bc_hi(1:3) = -1 -1 -1
+  bc_lo(1:3) = -1 2 -1
+  bc_hi(1:3) = -1 2 -1
 
   !wallspeed_lo(1:3) = 0 0 0 !Not implemented yet.
   !wallspeed_hi(1:3) = 0 0 0 !Not implemented yet.

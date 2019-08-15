@@ -19,29 +19,37 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
             LinOpBCType hibc[3];
 
             for (int i=0; i<AMREX_SPACEDIM; ++i) {
-                if (bc_lo[i] == -1 && bc_hi[i] == -1) {
+                if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
                     lobc[i] = LinOpBCType::Periodic;
                     hibc[i] = LinOpBCType::Periodic;
                 }
-                if(bc_lo[i] == 2)
+                if(bc_es_lo[i] == 2)
                 {
                     lobc[i] = LinOpBCType::Neumann;
                 }
-                if(bc_hi[i] == 2)
+                if(bc_es_hi[i] == 2)
                 {
                     hibc[i] = LinOpBCType::Neumann;
                 }
+                if(bc_es_lo[i] == 1)
+                {                 
+                    lobc[i] = LinOpBCType::Dirichlet;
+                }
+                if(bc_es_hi[i] == 1)
+                {
+                    hibc[i] = LinOpBCType::Dirichlet;
+                }
             }
-
 
             MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
 
-            const BoxArray& ba = potential.boxArray();
-            const DistributionMapping& dmap = potential.DistributionMap();
+            const BoxArray& ba = charge.boxArray();
+            const DistributionMapping& dmap = charge.DistributionMap();
 
             //create solver opject
             MLPoisson linop({geom}, {ba}, {dmap});
 
+ 
             //set BCs
             linop.setDomainBC({AMREX_D_DECL(lobc[0],
                                             lobc[1],
@@ -68,7 +76,7 @@ void esSolve(MultiFab& potential, MultiFab& charge, std::array< MultiFab, AMREX_
             MultiFABPotentialBC(potential, geom); //set ghost cell values so electric field is calculated properly
 
              //Find e field, gradient from cell centers to faces
-             ComputeCentredGrad(potential, efield, geom);
+            ComputeCentredGrad(potential, efield, geom);
     }
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation

@@ -7,13 +7,9 @@
 
 #include <AMReX_VisMF.H>
 
-
 using namespace amrex;
 using namespace gmres;
 using namespace common;
-
-
-
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
 // if abs(visc_type) = 1, L = div beta grad
@@ -799,29 +795,252 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
     MultiFABPhysBC(phi_c, geom_c);
 }
 
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_restriction_simple0 (const Box & tbx,
+                               AMREX_D_DECL(const Box & xbx,
+					    const Box & ybx,
+					    const Box & zbx),
+                               AMREX_D_DECL(const Array4<Real> & phix_c,
+					    const Array4<Real> & phiy_c,
+					    const Array4<Real> & phiz_c),
+                               AMREX_D_DECL(const Array4<Real const> & phix_f,
+					    const Array4<Real const> & phiy_f,
+					    const Array4<Real const> & phiz_f)
+			       ) noexcept {
+
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host: tlo is the minimal box contains the union of the
+    // face-centered grid boxes
+
+    // if running on the gpu: tlo is a box with a single point that comes from
+    // the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to the lower/upper
+    // bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to the single point
+    // defined by tlo, unless tlo is outside of the union of the face-centered
+    // grid boxes, in which case they are set to values that make sure the loop
+    // is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+#if (AMREX_SPACEDIM == 2)
+
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; ++i) {
+        phix_c(i,j,k) = 0.25*( phix_f(2*i  ,2*j,k) + phix_f(2*i  ,2*j+1,k))
+                     + 0.125*( phix_f(2*i+1,2*j,k) + phix_f(2*i+1,2*j+1,k)
+                              +phix_f(2*i-1,2*j,k) + phix_f(2*i-1,2*j+1,k));
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+        phiy_c(i,j,k) = 0.25*( phiy_f(2*i,2*j  ,k) + phiy_f(2*i+1,2*j  ,k))
+                     + 0.125*( phiy_f(2*i,2*j+1,k) + phiy_f(2*i+1,2*j+1,k)
+                              +phiy_f(2*i,2*j-1,k) + phiy_f(2*i+1,2*j-1,k));
+    }
+    }
+    }
+    
+#elif (AMREX_SPACEDIM == 3)
+    
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; ++i) {
+        phix_c(i,j,k) = 0.125* ( phix_f(2*i  ,2*j,2*k  ) + phix_f(2*i  ,2*j+1,2*k  )
+                                +phix_f(2*i  ,2*j,2*k+1) + phix_f(2*i  ,2*j+1,2*k+1) )
+                     + 0.0625* ( phix_f(2*i+1,2*j,2*k  ) + phix_f(2*i+1,2*j+1,2*k  )
+                                +phix_f(2*i+1,2*j,2*k+1) + phix_f(2*i+1,2*j+1,2*k+1) )
+                     + 0.0625* ( phix_f(2*i-1,2*j,2*k  ) + phix_f(2*i-1,2*j+1,2*k  )
+                                +phix_f(2*i-1,2*j,2*k+1) + phix_f(2*i-1,2*j+1,2*k+1) );
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+          phiy_c(i,j,k) = 0.125* ( phiy_f(2*i,2*j  ,2*k  ) + phiy_f(2*i+1,2*j  ,2*k  )
+                                  +phiy_f(2*i,2*j  ,2*k+1) + phiy_f(2*i+1,2*j  ,2*k+1) )
+                       + 0.0625* ( phiy_f(2*i,2*j+1,2*k  ) + phiy_f(2*i+1,2*j+1,2*k  )
+                                  +phiy_f(2*i,2*j+1,2*k+1) + phiy_f(2*i+1,2*j+1,2*k+1) )
+                       + 0.0625* ( phiy_f(2*i,2*j-1,2*k  ) + phiy_f(2*i+1,2*j-1,2*k  )
+                                  +phiy_f(2*i,2*j-1,2*k+1) + phiy_f(2*i+1,2*j-1,2*k+1) );
+    }
+    }
+    }
+
+    for (int k = zlo.z; k <= zhi.z; ++k) {
+    for (int j = zlo.y; j <= zhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = zlo.x; i <= zhi.x; ++i) {
+        phiz_c(i,j,k) = 0.125* ( phiz_f(2*i,2*j  ,2*k  ) + phiz_f(2*i+1,2*j  ,2*k  )
+                                +phiz_f(2*i,2*j+1,2*k  ) + phiz_f(2*i+1,2*j+1,2*k  ) )
+                     + 0.0625* ( phiz_f(2*i,2*j  ,2*k+1) + phiz_f(2*i+1,2*j  ,2*k+1)
+                                +phiz_f(2*i,2*j+1,2*k+1) + phiz_f(2*i+1,2*j+1,2*k+1) )
+                     + 0.0625* ( phiz_f(2*i,2*j  ,2*k-1) + phiz_f(2*i+1,2*j  ,2*k-1)
+                                +phiz_f(2*i,2*j+1,2*k-1) + phiz_f(2*i+1,2*j+1,2*k-1) );
+    }
+    }
+    }
+#endif
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_restriction_simple1 (const Box & tbx,
+                               AMREX_D_DECL(const Box & xbx,
+					    const Box & ybx,
+					    const Box & zbx),
+                               AMREX_D_DECL(const Array4<Real> & phix_c,
+					    const Array4<Real> & phiy_c,
+					    const Array4<Real> & phiz_c),
+                               AMREX_D_DECL(const Array4<Real const> & phix_f,
+					    const Array4<Real const> & phiy_f,
+					    const Array4<Real const> & phiz_f)
+                              ) noexcept {
+
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host: tlo is the minimal box contains the union of the
+    // face-centered grid boxes
+
+    // if running on the gpu: tlo is a box with a single point that comes from
+    // the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to the lower/upper
+    // bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to the single point
+    // defined by tlo, unless tlo is outside of the union of the face-centered
+    // grid boxes, in which case they are set to values that make sure the loop
+    // is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+#if (AMREX_SPACEDIM == 2)
+
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; ++i) {
+        phix_c(i,j,k) = 0.5*(phix_f(2*i,2*j,k) + phix_f(2*i,2*j+1,k));
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+        phiy_c(i,j,k) = 0.5*(phiy_f(2*i,2*j,k) + phiy_f(2*i+1,2*j,k));
+    }
+    }
+    }
+    
+#elif (AMREX_SPACEDIM == 3)
+    
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; ++i) {
+        phix_c(i,j,k) = 0.25* ( phix_f(2*i,2*j,2*k  ) + phix_f(2*i,2*j+1,2*k  )
+                               +phix_f(2*i,2*j,2*k+1) + phix_f(2*i,2*j+1,2*k+1) );
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+          phiy_c(i,j,k) = 0.25* ( phiy_f(2*i,2*j,2*k  ) + phiy_f(2*i+1,2*j,2*k  )
+                                 +phiy_f(2*i,2*j,2*k+1) + phiy_f(2*i+1,2*j,2*k+1) );
+    }
+    }
+    }
+
+    for (int k = zlo.z; k <= zhi.z; ++k) {
+    for (int j = zlo.y; j <= zhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = zlo.x; i <= zhi.x; ++i) {
+        phiz_c(i,j,k) = 0.25* ( phiz_f(2*i,2*j  ,2*k) + phiz_f(2*i+1,2*j  ,2*k)
+                               +phiz_f(2*i,2*j+1,2*k) + phiz_f(2*i+1,2*j+1,2*k) );
+    }
+    }
+    }
+#endif
+}
+
 void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                      const std::array< MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil)
 {
-
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
-        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+        AMREX_D_TERM(Box bx_x = amrex::enclosedCells(mfi.validbox()).growHi(0);,
+                     Box bx_y = amrex::enclosedCells(mfi.validbox()).growHi(1);,
+                     Box bx_z = amrex::enclosedCells(mfi.validbox()).growHi(2););
+
+        const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
         
-        stag_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                         BL_TO_FORTRAN_3D(phi_c[0][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[0][mfi]),
-                         BL_TO_FORTRAN_3D(phi_c[1][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(phi_c[2][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[2][mfi]),
-#endif
-                         &simple_stencil);
+        AMREX_D_TERM(Array4<Real> const& phix_c_fab = phi_c[0].array(mfi);,
+                     Array4<Real> const& phiy_c_fab = phi_c[1].array(mfi);,
+                     Array4<Real> const& phiz_c_fab = phi_c[2].array(mfi););
+        
+        AMREX_D_TERM(Array4<Real const> const& phix_f_fab = phi_f[0].array(mfi);,
+                     Array4<Real const> const& phiy_f_fab = phi_f[1].array(mfi);,
+                     Array4<Real const> const& phiz_f_fab = phi_f[2].array(mfi););
+
+        if (simple_stencil == 0) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+            {
+                stag_restriction_simple0(tbx, AMREX_D_DECL(bx_x, bx_y, bx_z),
+                                         AMREX_D_DECL(phix_c_fab, phiy_c_fab, phiz_c_fab),
+                                         AMREX_D_DECL(phix_f_fab, phiy_f_fab, phiz_f_fab));
+            });
+        }
+        else if (simple_stencil == 1) {
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+            {
+                stag_restriction_simple1(tbx, AMREX_D_DECL(bx_x, bx_y, bx_z),
+                                         AMREX_D_DECL(phix_c_fab, phiy_c_fab, phiz_c_fab),
+                                         AMREX_D_DECL(phix_f_fab, phiy_f_fab, phiz_f_fab));
+            });
+        }
     }
 }
 
@@ -845,6 +1064,76 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     }
 }
 
+
+
+AMREX_GPU_HOST_DEVICE
+inline
+void edge_restriction (const Box & tbx,
+                       const Box & xybx,
+                       const Box & xzbx,
+                       const Box & yzbx,
+                       const Array4<Real> & phixy_c,
+                       const Array4<Real> & phixz_c,
+                       const Array4<Real> & phiyz_c,
+                       const Array4<Real const> & phixy_f,
+                       const Array4<Real const> & phixz_f,
+                       const Array4<Real const> & phiyz_f) noexcept {
+
+    // xybx, xzbx, and yzbx are the edge-centered boxes
+
+    // if running on the host: tlo is the minimal box contains the union of the
+    // fedge-centered grid boxes
+
+    // if running on the gpu: tlo is a box with a single point that comes from
+    // the union of the edge-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, xylo/hi  are set to the lower/upper
+    // bounds of xybx
+
+    // if running on the gpu, xylo/hi, etc., are set to the single point
+    // defined by tlo, unless tlo is outside of the union of the edge-centered
+    // grid boxes, in which case they are set to values that make sure the loop
+    // is not entered
+
+    const auto xylo = amrex::elemwiseMax(tlo, lbound(xybx));
+    const auto xzlo = amrex::elemwiseMax(tlo, lbound(xzbx));
+    const auto yzlo = amrex::elemwiseMax(tlo, lbound(yzbx));
+    
+    const auto xyhi = amrex::elemwiseMin(thi, ubound(xybx));
+    const auto xzhi = amrex::elemwiseMin(thi, ubound(xzbx));
+    const auto yzhi = amrex::elemwiseMin(thi, ubound(yzbx));
+
+    for (int k=xylo.z; k<=xyhi.z; ++k) {
+    for (int j=xylo.y; j<=xyhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xylo.x; i<=xyhi.x; ++i) {        
+        phixy_c(i,j,k) = 0.5*(phixy_f(2*i,2*j,2*k)+phixy_f(2*i,2*j,2*k+1));
+    }
+    }
+    }
+
+    for (int k = xzlo.z; k <= xzhi.z; ++k) {
+    for (int j = xzlo.y; j <= xzhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = xzlo.x; i <= xzhi.x; ++i) {
+        phixz_c(i,j,k) =  0.5*(phixz_f(2*i,2*j,2*k)+phixz_f(2*i,2*j+1,2*k));
+    }
+    }
+    }
+
+    for (int k = yzlo.z; k <= yzhi.z; ++k) {
+    for (int j = yzlo.y; j <= yzhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = yzlo.x; i <= yzhi.x; ++i) {
+        phiyz_c(i,j,k) =  0.5*(phiyz_f(2*i,2*j,2*k)+phiyz_f(2*i+1,2*j,2*k));
+    }
+    }
+    }
+}
+
 void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
                      const std::array< MultiFab, NUM_EDGE >& phi_f)
 {
@@ -858,16 +1147,266 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
         // Get the index space of the valid region
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
-        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+        Box bx_xy = amrex::enclosedCells(mfi.validbox()).growHi(0).growHi(1);
+        Box bx_xz = amrex::enclosedCells(mfi.validbox()).growHi(0).growHi(2);
+        Box bx_yz = amrex::enclosedCells(mfi.validbox()).growHi(1).growHi(2);
+        
+        const Box& index_bounds = amrex::getIndexBounds(bx_xy, bx_xz, bx_yz);
 
-        edge_restriction(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                         BL_TO_FORTRAN_3D(phi_c[0][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[0][mfi]),
-                         BL_TO_FORTRAN_3D(phi_c[1][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[1][mfi]),
-                         BL_TO_FORTRAN_3D(phi_c[2][mfi]),
-                         BL_TO_FORTRAN_3D(phi_f[2][mfi]));
+        Array4<Real> const& phixy_c_fab = phi_c[0].array(mfi);
+        Array4<Real> const& phixz_c_fab = phi_c[1].array(mfi);
+        Array4<Real> const& phiyz_c_fab = phi_c[2].array(mfi);
+        
+        Array4<Real const> const& phixy_f_fab = phi_f[0].array(mfi);
+        Array4<Real const> const& phixz_f_fab = phi_f[1].array(mfi);
+        Array4<Real const> const& phiyz_f_fab = phi_f[2].array(mfi);
+        
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+        {
+            edge_restriction(tbx, bx_xy, bx_xz, bx_yz,
+                             phixy_c_fab, phixz_c_fab, phiyz_c_fab,
+                             phixy_f_fab, phixz_f_fab, phiyz_f_fab);
+        });
     }
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_prolongation (const Box & tbx,
+                        AMREX_D_DECL(const Box & xbx,
+				     const Box & ybx,
+				     const Box & zbx),
+                        AMREX_D_DECL(const Array4<Real const> & phix_c,
+				     const Array4<Real const> & phiy_c,
+				     const Array4<Real const> & phiz_c),
+                        AMREX_D_DECL(const Array4<Real> & phix_f,
+				     const Array4<Real> & phiy_f,
+				     const Array4<Real> & phiz_f)
+                        ) noexcept {
+
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host: tlo is the minimal box contains the union of the
+    // face-centered grid boxes
+
+    // if running on the gpu: tlo is a box with a single point that comes from
+    // the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to the lower/upper
+    // bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to the single point
+    // defined by tlo, unless tlo is outside of the union of the face-centered
+    // grid boxes, in which case they are set to values that make sure the loop
+    // is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+#if (AMREX_SPACEDIM == 2)
+
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; i+=2) {
+
+        int joff = pow(-1,j%2+1);
+        
+        // linear interpolation
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + 0.75*phix_c(i/2,j/2     ,k)
+            + 0.25*phix_c(i/2,j/2+joff,k);        
+    }
+    }
+    }
+
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x+1; i<=xhi.x-1; i+=2) {
+
+        int joff = pow(-1,j%2+1);
+
+        // bilinear interpolation
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + 0.375*phix_c(i/2  ,j/2     ,k)
+            + 0.125*phix_c(i/2  ,j/2+joff,k)
+            + 0.375*phix_c(i/2+1,j/2     ,k)
+            + 0.125*phix_c(i/2+1,j/2+joff,k);        
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+       
+        // linear interpolation
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + 0.75*phiy_c(i/2     ,j/2,k)
+            + 0.25*phiy_c(i/2+ioff,j/2,k);        
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y+1; j <= yhi.y-1; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+        
+        // bilinear interpolation
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + 0.375*phiy_c(i/2     ,j/2  ,k)
+            + 0.125*phiy_c(i/2+ioff,j/2  ,k)
+            + 0.375*phiy_c(i/2     ,j/2+1,k)
+            + 0.125*phiy_c(i/2+ioff,j/2+1,k);        
+    }
+    }
+    }
+    
+#elif (AMREX_SPACEDIM == 3)
+    
+    Real nine16 = 9./16.;
+    Real three16 = 3./16.;
+    Real one16 = 1./16.;
+    Real nine32 = 9./32.;
+    Real three32 = 3./32.;
+    Real one32 = 1./32.;
+        
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x; i<=xhi.x; i+=2) {
+        
+        int joff = pow(-1,j%2+1);
+        int koff = pow(-1,k%2+1);
+       
+        // bilinear in the yz plane
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + nine16 *phix_c(i/2,j/2     ,k/2     )
+            + three16*phix_c(i/2,j/2+joff,k/2     )
+            + three16*phix_c(i/2,j/2     ,k/2+koff)
+            + one16  *phix_c(i/2,j/2+joff,k/2+koff);
+    }
+    }
+    }
+    
+    for (int k=xlo.z; k<=xhi.z; ++k) {
+    for (int j=xlo.y; j<=xhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i=xlo.x+1; i<=xhi.x-1; i+=2) {
+        
+        int joff = pow(-1,j%2+1);
+        int koff = pow(-1,k%2+1);
+        
+        // bilinear in the yz plane, linear in x
+        phix_f(i,j,k) = phix_f(i,j,k)
+            + nine32 *phix_c(i/2  ,j/2     ,k/2     )
+            + three32*phix_c(i/2  ,j/2+joff,k/2     )
+            + three32*phix_c(i/2  ,j/2     ,k/2+koff)
+            + one32  *phix_c(i/2  ,j/2+joff,k/2+koff)
+            + nine32 *phix_c(i/2+1,j/2     ,k/2     )
+            + three32*phix_c(i/2+1,j/2+joff,k/2     )
+            + three32*phix_c(i/2+1,j/2     ,k/2+koff)
+            + one32  *phix_c(i/2+1,j/2+joff,k/2+koff);
+    }
+    }
+    }
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y; j <= yhi.y; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+        int koff = pow(-1,k%2+1);
+       
+        // bilinear in the xz plane
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + nine16* phiy_c(i/2     ,j/2,k/2     )
+            + three16*phiy_c(i/2+ioff,j/2,k/2     )
+            + three16*phiy_c(i/2     ,j/2,k/2+koff)
+            + one16*  phiy_c(i/2+ioff,j/2,k/2+koff);
+    }
+    }
+    }
+
+
+    for (int k = ylo.z; k <= yhi.z; ++k) {
+    for (int j = ylo.y+1; j <= yhi.y-1; j+=2) {
+    AMREX_PRAGMA_SIMD
+    for (int i = ylo.x; i <= yhi.x; ++i) {
+
+        int ioff = pow(-1,i%2+1);
+        int koff = pow(-1,k%2+1);
+
+        // bilinear in the yz plane, linear in y
+        phiy_f(i,j,k) = phiy_f(i,j,k)
+            + nine32* phiy_c(i/2     ,j/2  ,k/2     )
+            + three32*phiy_c(i/2+ioff,j/2  ,k/2     )
+            + three32*phiy_c(i/2     ,j/2  ,k/2+koff)
+            + one32*  phiy_c(i/2+ioff,j/2  ,k/2+koff)
+            + nine32* phiy_c(i/2     ,j/2+1,k/2     )
+            + three32*phiy_c(i/2+ioff,j/2+1,k/2     )
+            + three32*phiy_c(i/2     ,j/2+1,k/2+koff)
+            + one32*  phiy_c(i/2+ioff,j/2+1,k/2+koff);
+    }
+    }
+    }
+
+    for (int k = zlo.z; k <= zhi.z; k+=2) {
+    for (int j = zlo.y; j <= zhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = zlo.x; i <= zhi.x; ++i) {
+        
+        int ioff = pow(-1,i%2+1);
+        int joff = pow(-1,j%2+1);
+
+        // bilinear in the xy plane
+        phiz_f(i,j,k) = phiz_f(i,j,k)
+            + nine16* phiz_c(i/2     ,j/2     ,k/2)
+            + three16*phiz_c(i/2+ioff,j/2     ,k/2)
+            + three16*phiz_c(i/2     ,j/2+joff,k/2)
+            + one16*  phiz_c(i/2+ioff,j/2+joff,k/2);
+    }
+    }
+    }
+
+    for (int k = zlo.z+1; k <= zhi.z-1; k+=2) {
+    for (int j = zlo.y; j <= zhi.y; ++j) {
+    AMREX_PRAGMA_SIMD
+    for (int i = zlo.x; i <= zhi.x; ++i) {
+        
+        int ioff = pow(-1,i%2+1);
+        int joff = pow(-1,j%2+1);
+       
+        // bilinear in the xy plane, linear in z
+        phiz_f(i,j,k) = phiz_f(i,j,k)
+            + nine32* phiz_c(i/2     ,j/2     ,k/2  )
+            + three32*phiz_c(i/2+ioff,j/2     ,k/2  )
+            + three32*phiz_c(i/2     ,j/2+joff,k/2  )
+            + one32*  phiz_c(i/2+ioff,j/2+joff,k/2  )
+            + nine32* phiz_c(i/2     ,j/2     ,k/2+1)
+            + three32*phiz_c(i/2+ioff,j/2     ,k/2+1)
+            + three32*phiz_c(i/2     ,j/2+joff,k/2+1)
+            + one32*  phiz_c(i/2+ioff,j/2+joff,k/2+1);
+    }
+    }
+    }
+#endif
 }
 
 void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
@@ -880,20 +1419,27 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
         // Get the index space of the valid region
         // there are no cell-centered MultiFabs so use this to get
         // a cell-centered box
-        const Box& validBox = amrex::enclosedCells(mfi.validbox());
+        AMREX_D_TERM(Box bx_x = amrex::enclosedCells(mfi.validbox()).growHi(0);,
+                     Box bx_y = amrex::enclosedCells(mfi.validbox()).growHi(1);,
+                     Box bx_z = amrex::enclosedCells(mfi.validbox()).growHi(2););
 
-        stag_prolongation(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                          BL_TO_FORTRAN_3D(phi_c[0][mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[0][mfi]),
-                          BL_TO_FORTRAN_3D(phi_c[1][mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[1][mfi])
-#if (AMREX_SPACEDIM == 3)
-                        , BL_TO_FORTRAN_3D(phi_c[2][mfi]),
-                          BL_TO_FORTRAN_3D(phi_f[2][mfi])
-#endif
-                          );
+        const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
+        
+        AMREX_D_TERM(Array4<Real const> const& phix_c_fab = phi_c[0].array(mfi);,
+                     Array4<Real const> const& phiy_c_fab = phi_c[1].array(mfi);,
+                     Array4<Real const> const& phiz_c_fab = phi_c[2].array(mfi););
+        
+        AMREX_D_TERM(Array4<Real> const& phix_f_fab = phi_f[0].array(mfi);,
+                     Array4<Real> const& phiy_f_fab = phi_f[1].array(mfi);,
+                     Array4<Real> const& phiz_f_fab = phi_f[2].array(mfi););
+        
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+        {
+            stag_prolongation(tbx, AMREX_D_DECL(bx_x, bx_y, bx_z),
+                              AMREX_D_DECL(phix_c_fab, phiy_c_fab, phiz_c_fab),
+                              AMREX_D_DECL(phix_f_fab, phiy_f_fab, phiz_f_fab));
+        });
     }
-
 }
 
 void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
@@ -913,28 +1459,19 @@ void StagMGUpdate(std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
         // Get the index space of the valid region
         const Box& validBox = mfi.validbox();
 
-
         stag_mg_update(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-                       BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(phi_fc[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(rhs_fc[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(Lphi_fc[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
-                       BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                       BL_TO_FORTRAN_3D(alpha_fc[2][mfi]),
-#endif
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(phi_fc[2][mfi])),
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(rhs_fc[2][mfi])),
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(Lphi_fc[2][mfi])),
+                       AMREX_D_DECL(BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
+				    BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
+				    BL_TO_FORTRAN_3D(alpha_fc[2][mfi])),
                        BL_TO_FORTRAN_3D(beta_cc[mfi]),
 #if (AMREX_SPACEDIM == 2)
                        BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
