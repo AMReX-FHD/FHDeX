@@ -167,9 +167,6 @@ void main_driver(const char* argv)
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
-        Print() << "GEOMOUT: " << geomP << "\n";
-        Print() << "VEC: " << is_periodic_p[1] << "\n";
-
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
     DistributionMapping dmap(ba);
@@ -300,6 +297,25 @@ void main_driver(const char* argv)
         realParticles = realParticles + ionParticle[i].total;
         simParticles = simParticles + ionParticle[i].total*particle_neff;
     }
+
+    double* spec3xPos;
+    double* spec3yPos;
+    double* spec3zPos;
+
+    spec3xPos = new double[ionParticle[2].total];
+    spec3yPos = new double[ionParticle[2].total];
+    spec3zPos = new double[ionParticle[2].total];
+
+    double* spec3xForce;
+    double* spec3yForce;
+    double* spec3zForce;
+
+    spec3xForce = new double[ionParticle[2].total];
+    spec3yForce = new double[ionParticle[2].total];
+    spec3zForce = new double[ionParticle[2].total];
+
+    int length = ionParticle[2].total;
+
     
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
@@ -309,6 +325,8 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
+
+    
 
     // MFs for storing particle statistics
 
@@ -788,9 +806,11 @@ void main_driver(const char* argv)
         //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_pot), &iloc, &jloc, &kloc);
         //}
 
+        particles.SyncMembrane(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, length);
+
 
         //compute other forces and spread to grid
-        //particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
@@ -803,15 +823,6 @@ void main_driver(const char* argv)
              sMflux.stochMforce(stochMfluxdivC,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
           }
 
-        }
-        if (plot_int > 0 && step%plot_int == 0)
-        {
-
-            //This write particle data and associated fields and electrostatic fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
-
-            //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
 
     	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
@@ -871,15 +882,15 @@ void main_driver(const char* argv)
 //	      structFact.FortStructure(struct_in_cc,geomP);
   //      }
 
-//        if (plot_int > 0 && step%plot_int == 0)
-//        {
+        if (plot_int > 0 && step%plot_int == 0)
+        {
 
-//            //This write particle data and associated fields and electrostatic fields
-//            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
+            //This write particle data and associated fields and electrostatic fields
+            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
-//            //Writes instantaneous flow field and some other stuff? Check with Guy.
-//            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
-//        }
+            //Writes instantaneous flow field and some other stuff? Check with Guy.
+            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+        }
 
         if(step%1 == 0)
         {    
