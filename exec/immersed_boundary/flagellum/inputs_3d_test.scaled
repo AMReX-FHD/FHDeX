@@ -79,12 +79,12 @@
   stag_mg_max_bottom_nlevels = 10 ! for stag_mg_bottom_solver=4, number of additional levels of multigrid
   stag_mg_omega = 1.d0            ! weighted-jacobi omega coefficient
   stag_mg_smoother = 1            ! 0 = jacobi; 1 = 2*dm-color Gauss-Seidel
-  stag_mg_rel_tol = 1.d-14        ! relative tolerance stopping criteria
+  stag_mg_rel_tol = 1.d-12        ! relative tolerance stopping criteria
 
 
   ! GMRES solver parameters
-  gmres_rel_tol = 1.e-14          ! relative tolerance stopping criteria
-  gmres_abs_tol = 0               ! absolute tolerance stopping criteria
+  gmres_rel_tol = 1.e-12          ! relative tolerance stopping criteria
+  gmres_abs_tol = 1.e-14          ! absolute tolerance stopping criteria
   gmres_verbose = 1               ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20            ! max number of outer iterations
   gmres_max_inner = 20            ! max number of inner iterations, or restart number
@@ -106,11 +106,11 @@
 &ib_flagellum
 
   n_marker(1:1)  = 21
-  offset_0(:, 1) = .2e-3 1e-3 1e-3
+  offset_0(:, 1) = .1e-3 1e-3 1e-3
 
   amplitude(1:1)  = 1e4
-  frequency(1:1)  = 1
-  length(1:1)     = .8e-3
+  frequency(1:1)  = 5
+  length(1:1)     = 1.6e-3
   wavelength(1:1) = .4e-3
   k_spring(1:1)   = 1e-1
   k_driving(1:1)  = 1e-1
