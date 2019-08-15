@@ -688,9 +688,21 @@ void StagApplyOp(const MultiFab& beta_cc,
         Abort("StagApplyOp: Invalid Color");
     }
 
+    /* FIXME divide by zero problem later
     // multiply alpha by theta_alpha
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         alpha_fc[d].mult(theta_alpha);
+    }
+    */
+
+    // alpha_fc_temp arrays
+    const BoxArray & ba = beta_cc.boxArray();
+    const DistributionMapping & dmap = beta_cc.DistributionMap();
+    std::array< MultiFab, AMREX_SPACEDIM > alpha_fc_temp;
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        alpha_fc_temp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        MultiFab::Copy(alpha_fc_temp[d], alpha_fc[d], 0, 0, 1, 0);
+        alpha_fc_temp[d].mult(theta_alpha);
     }
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
@@ -715,9 +727,9 @@ void StagApplyOp(const MultiFab& beta_cc,
                      Array4<Real> const& Lphiy_fab = Lphi[1].array(mfi);,
                      Array4<Real> const& Lphiz_fab = Lphi[2].array(mfi););
 
-        AMREX_D_TERM(Array4<Real> const& alphax_fab = alpha_fc[0].array(mfi);,
-                     Array4<Real> const& alphay_fab = alpha_fc[1].array(mfi);,
-                     Array4<Real> const& alphaz_fab = alpha_fc[2].array(mfi););
+        AMREX_D_TERM(Array4<Real> const& alphax_fab = alpha_fc_temp[0].array(mfi);,
+                     Array4<Real> const& alphay_fab = alpha_fc_temp[1].array(mfi);,
+                     Array4<Real> const& alphaz_fab = alpha_fc_temp[2].array(mfi););
 
         AMREX_D_TERM(const Box& bx_x = mfi.nodaltilebox(0);,
                      const Box& bx_y = mfi.nodaltilebox(1);,
@@ -787,8 +799,10 @@ void StagApplyOp(const MultiFab& beta_cc,
         }
     }
 
+    /* FIXME divide by zero problem
     // divide alpha by theta_alpha
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         alpha_fc[d].mult(1./theta_alpha);
     }
+    */
 }
