@@ -31,20 +31,12 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
 AMREX_GPU_HOST_DEVICE
 inline
 void avg_cc_to_fc (const Box & tbx,
-                   const Box & xbx,
-#if (AMREX_SPACEDIM == 2)
-                   const Box & ybx,
-#endif
-#if (AMREX_SPACEDIM == 3)
-                   const Box & zbx,
-#endif
-                   const Array4<Real> & fx,
-#if (AMREX_SPACEDIM == 2)
-                   const Array4<Real> & fy,
-#endif
-#if (AMREX_SPACEDIM == 3)
-                   const Array4<Real> & fz,
-#endif
+                   AMREX_D_DECL(const Box & xbx,
+                                const Box & ybx,
+                                const Box & zbx),
+                   AMREX_D_DECL(const Array4<Real> & fx,
+                                const Array4<Real> & fy,
+                                const Array4<Real> & fz),
                    const Array4<Real const> & cc,
                    int fcomp, int ccomp, int ncomp) noexcept
 {
@@ -86,7 +78,7 @@ void avg_cc_to_fc (const Box & tbx,
     }
     }
 
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM >= 2)
     for (int n = 0; n < ncomp; ++n) {
     for (int k = ylo.z; k <= yhi.z; ++k) {
     for (int j = ylo.y; j <= yhi.y; ++j) {
