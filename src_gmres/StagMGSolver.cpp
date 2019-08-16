@@ -1505,7 +1505,7 @@ void stag_mg_update_visc_p1 (Box const& tbx,
                  const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
 
     int ioff;
-
+    Real fac;
     Real dxsqinv = 1./(dx[0]*dx[0]);
 
     if (do_x) {
@@ -1518,7 +1518,7 @@ void stag_mg_update_visc_p1 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
-            Real fac = alphax(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
+            fac = alphax(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
             phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
         }
         }
@@ -1535,7 +1535,7 @@ void stag_mg_update_visc_p1 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
-            Real fac = alphay(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
+            fac = alphay(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
             phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac;
         }
         }
@@ -1553,7 +1553,7 @@ void stag_mg_update_visc_p1 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
-            Real fac = alphaz(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
+            fac = alphaz(i,j,k) + 2.*AMREX_SPACEDIM*b * dxsqinv;
             phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
         }
         }
@@ -1621,7 +1621,7 @@ void stag_mg_update_visc_m1 (Box const& tbx,
                  const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
 
     int ioff;
-
+    Real fac;
     Real dxsqinv = 1./(dx[0]*dx[0]);
 
     if (do_x) {
@@ -1635,7 +1635,7 @@ void stag_mg_update_visc_m1 (Box const& tbx,
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
 
-            Real fac = alphax(i,j,k) +
+            fac = alphax(i,j,k) +
                 ( beta(i,j,k)+beta(i-1,j,k)
                   +beta_xy(i,j,k)+beta_xy(i,j+1,k)
 #if (AMREX_SPACEDIM == 3)
@@ -1660,7 +1660,7 @@ void stag_mg_update_visc_m1 (Box const& tbx,
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
 
-            Real fac = alphay(i,j,k) +
+            fac = alphay(i,j,k) +
                 ( beta(i,j,k)+beta(i,j-1,k)
                   +beta_xy(i,j,k)+beta_xy(i+1,j,k)
 #if (AMREX_SPACEDIM == 3)
@@ -1687,13 +1687,507 @@ void stag_mg_update_visc_m1 (Box const& tbx,
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
 
-            Real fac = alphaz(i,j,k) +
+            fac = alphaz(i,j,k) +
                 ( beta(i,j,k)+beta(i,j,k-1)
                   +beta_xz(i,j,k)+beta_xz(i+1,j,k)
                   +beta_yz(i,j,k)+beta_yz(i,j+1,k) ) * dxsqinv;
             
             phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
             
+        }
+        }
+        }
+    }
+#endif
+
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_mg_update_visc_p2 (Box const& tbx,
+                             AMREX_D_DECL(Box const& xbx,
+                                          Box const& ybx,
+                                          Box const& zbx),
+                             AMREX_D_DECL(Array4<Real> const& phix,
+                                          Array4<Real> const& phiy,
+                                          Array4<Real> const& phiz),
+                             AMREX_D_DECL(Array4<Real const> const& rhsx,
+                                          Array4<Real const> const& rhsy,
+                                          Array4<Real const> const& rhsz),
+                             AMREX_D_DECL(Array4<Real const> const& Lpx,
+                                          Array4<Real const> const& Lpy,
+                                          Array4<Real const> const& Lpz),
+                             AMREX_D_DECL(Array4<Real const> const& alphax,
+                                          Array4<Real const> const& alphay,
+                                          Array4<Real const> const& alphaz),
+                             AMREX_D_DECL(bool do_x,
+                                          bool do_y,
+                                          bool do_z),
+                             Real b,  Real c, int offset,  int color, Real stag_mg_omega,
+                             const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
+{
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host
+    // tlo is the minimal box containins the union of the face-centered grid boxes
+
+    // if running on the gpu, tlo is a box with a single point that comes
+    // from the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to
+    // the lower/uppser bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to
+    // the single point defined by tlo, unless tlo is outside of the union
+    // of the face-centered grid boxes, in which case they are set to
+    // values that make sure the loop is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+    int ioff;
+    Real fac;
+    Real dxsqinv = 1./(dx[0]*dx[0]);
+
+    if (do_x) {
+
+        for (int k = xlo.z; k <= xhi.z; ++k) {
+        for (int j = xlo.y; j <= xhi.y; ++j) {
+        ioff = 0;
+	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
+            fac = alphax(i,j,k) + 8.*b * dxsqinv;
+            phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+    if (do_y) {
+
+        for (int k = ylo.z; k <= yhi.z; ++k) {
+        for (int j = ylo.y; j <= yhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
+            fac = alphay(i,j,k) + 8.*b * dxsqinv;
+            phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac  ;
+        }
+        }
+        }
+    }
+
+#if (AMREX_SPACEDIM == 3)
+    if (do_z) {
+
+        for (int k = zlo.z; k <= zhi.z; ++k) {
+        for (int j = zlo.y; j <= zhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
+            fac = alphaz(i,j,k) + 8.*b * dxsqinv;
+            phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+#endif
+
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_mg_update_visc_m2 (Box const& tbx,
+                             AMREX_D_DECL(Box const& xbx,
+                                          Box const& ybx,
+                                          Box const& zbx),
+                             AMREX_D_DECL(Array4<Real> const& phix,
+                                          Array4<Real> const& phiy,
+                                          Array4<Real> const& phiz),
+                             AMREX_D_DECL(Array4<Real const> const& rhsx,
+                                          Array4<Real const> const& rhsy,
+                                          Array4<Real const> const& rhsz),
+                             AMREX_D_DECL(Array4<Real const> const& Lpx,
+                                          Array4<Real const> const& Lpy,
+                                          Array4<Real const> const& Lpz),
+                             AMREX_D_DECL(Array4<Real const> const& alphax,
+                                          Array4<Real const> const& alphay,
+                                          Array4<Real const> const& alphaz),
+                             Array4<Real const> const& beta,
+                             Array4<Real const> const& beta_xy,
+#if (AMREX_SPACEDIM == 3)
+                             Array4<Real const> const& beta_xz,
+                             Array4<Real const> const& beta_yz,
+#endif
+                             AMREX_D_DECL(bool do_x,
+                                          bool do_y,
+                                          bool do_z),
+                             int offset,  int color, Real stag_mg_omega,
+                             const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
+{
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host
+    // tlo is the minimal box containins the union of the face-centered grid boxes
+
+    // if running on the gpu, tlo is a box with a single point that comes
+    // from the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to
+    // the lower/uppser bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to
+    // the single point defined by tlo, unless tlo is outside of the union
+    // of the face-centered grid boxes, in which case they are set to
+    // values that make sure the loop is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+    int ioff;
+    Real fac;
+    Real dxsqinv = 1./(dx[0]*dx[0]);
+
+    if (do_x) {
+
+        for (int k = xlo.z; k <= xhi.z; ++k) {
+        for (int j = xlo.y; j <= xhi.y; ++j) {
+        ioff = 0;
+	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
+            fac = alphax(i,j,k) +
+                ( 2.*beta(i,j,k)+2.*beta(i-1,j,k)
+                  +beta_xy(i,j,k)+beta_xy(i,j+1,k)
+#if (AMREX_SPACEDIM == 3)
+                  +beta_xz(i,j,k)+beta_xz(i,j,k+1)
+#endif
+                    ) * dxsqinv;
+            phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+    if (do_y) {
+
+        for (int k = ylo.z; k <= yhi.z; ++k) {
+        for (int j = ylo.y; j <= yhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
+            fac = alphay(i,j,k) +
+                ( 2.*beta(i,j,k)+2.*beta(i,j-1,k)
+                  +beta_xy(i,j,k)+beta_xy(i+1,j,k)
+#if (AMREX_SPACEDIM == 3)
+                  +beta_yz(i,j,k)+beta_yz(i,j,k+1)
+#endif
+                    ) * dxsqinv;
+            phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+#if (AMREX_SPACEDIM == 3)
+    if (do_z) {
+
+        for (int k = zlo.z; k <= zhi.z; ++k) {
+        for (int j = zlo.y; j <= zhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
+            fac = alphaz(i,j,k) +
+                ( 2.*beta(i,j,k)+2.*beta(i,j,k-1)
+                  +beta_xz(i,j,k)+beta_xz(i+1,j,k)
+                  +beta_yz(i,j,k)+beta_yz(i,j+1,k) ) * dxsqinv;
+            phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+#endif
+
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_mg_update_visc_p3 (Box const& tbx,
+                             AMREX_D_DECL(Box const& xbx,
+                                          Box const& ybx,
+                                          Box const& zbx),
+                             AMREX_D_DECL(Array4<Real> const& phix,
+                                          Array4<Real> const& phiy,
+                                          Array4<Real> const& phiz),
+                             AMREX_D_DECL(Array4<Real const> const& rhsx,
+                                          Array4<Real const> const& rhsy,
+                                          Array4<Real const> const& rhsz),
+                             AMREX_D_DECL(Array4<Real const> const& Lpx,
+                                          Array4<Real const> const& Lpy,
+                                          Array4<Real const> const& Lpz),
+                             AMREX_D_DECL(Array4<Real const> const& alphax,
+                                          Array4<Real const> const& alphay,
+                                          Array4<Real const> const& alphaz),
+                             AMREX_D_DECL(bool do_x,
+                                          bool do_y,
+                                          bool do_z),
+                             Real b,  Real c, int offset,  int color, Real stag_mg_omega,
+                             const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
+{
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host
+    // tlo is the minimal box containins the union of the face-centered grid boxes
+
+    // if running on the gpu, tlo is a box with a single point that comes
+    // from the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to
+    // the lower/uppser bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to
+    // the single point defined by tlo, unless tlo is outside of the union
+    // of the face-centered grid boxes, in which case they are set to
+    // values that make sure the loop is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+    int ioff;
+    Real fac;
+    Real dxsqinv = 1./(dx[0]*dx[0]);
+    Real twentythirds = 20./3.;
+
+    if (do_x) {
+
+        for (int k = xlo.z; k <= xhi.z; ++k) {
+        for (int j = xlo.y; j <= xhi.y; ++j) {
+        ioff = 0;
+	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
+            fac = alphax(i,j,k)+(twentythirds*b+2.*c) * dxsqinv;
+            phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+    if (do_y) {
+
+        for (int k = ylo.z; k <= yhi.z; ++k) {
+        for (int j = ylo.y; j <= yhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
+            fac = alphay(i,j,k)+(twentythirds*b+2.*c) * dxsqinv;
+            phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+#if (AMREX_SPACEDIM == 3)
+    if (do_z) {
+
+        for (int k = zlo.z; k <= zhi.z; ++k) {
+        for (int j = zlo.y; j <= zhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
+            fac = alphaz(i,j,k)+(twentythirds*b+2.*c) * dxsqinv;
+            phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+#endif
+
+}
+
+AMREX_GPU_HOST_DEVICE
+inline
+void stag_mg_update_visc_m3 (Box const& tbx,
+                             AMREX_D_DECL(Box const& xbx,
+                                          Box const& ybx,
+                                          Box const& zbx),
+                             AMREX_D_DECL(Array4<Real> const& phix,
+                                          Array4<Real> const& phiy,
+                                          Array4<Real> const& phiz),
+                             AMREX_D_DECL(Array4<Real const> const& rhsx,
+                                          Array4<Real const> const& rhsy,
+                                          Array4<Real const> const& rhsz),
+                             AMREX_D_DECL(Array4<Real const> const& Lpx,
+                                          Array4<Real const> const& Lpy,
+                                          Array4<Real const> const& Lpz),
+                             AMREX_D_DECL(Array4<Real const> const& alphax,
+                                          Array4<Real const> const& alphay,
+                                          Array4<Real const> const& alphaz),
+                             Array4<Real const> const& beta,
+                             Array4<Real const> const& beta_xy,
+#if (AMREX_SPACEDIM == 3)
+                             Array4<Real const> const& beta_xz,
+                             Array4<Real const> const& beta_yz,
+#endif
+                             Array4<Real const> const& gamma,
+                             AMREX_D_DECL(bool do_x,
+                                          bool do_y,
+                                          bool do_z),
+                             int offset,  int color, Real stag_mg_omega,
+                             const GpuArray<Real, AMREX_SPACEDIM> & dx) noexcept
+{
+    // xbx, ybx, and zbx are the face-centered boxes
+
+    // if running on the host
+    // tlo is the minimal box containins the union of the face-centered grid boxes
+
+    // if running on the gpu, tlo is a box with a single point that comes
+    // from the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, x/y/zlo and x/y/zhi are set to
+    // the lower/uppser bounds of x/y/zbx
+
+    // if running on the gpu, x/y/zlo and x/y/zhi are set to
+    // the single point defined by tlo, unless tlo is outside of the union
+    // of the face-centered grid boxes, in which case they are set to
+    // values that make sure the loop is not entered
+
+    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
+                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
+                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
+
+    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
+                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
+                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
+
+    int ioff;
+    Real fac;
+    Real dxsqinv = 1./(dx[0]*dx[0]);
+    Real fourthirds = 4./3.;
+
+    if (do_x) {
+
+        for (int k = xlo.z; k <= xhi.z; ++k) {
+        for (int j = xlo.y; j <= xhi.y; ++j) {
+        ioff = 0;
+	if (offset == 2 && (xlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
+            
+                   fac = alphax(i,j,k) +
+                        ( fourthirds*beta(i,j,k)+gamma(i,j,k)
+                        +fourthirds*beta(i-1,j,k)+gamma(i-1,j,k)
+                        +beta_xy(i,j,k)+beta_xy(i,j+1,k)
+#if (AMREX_SPACEDIM == 3)
+                        +beta_xz(i,j,k)+beta_xz(i,j,k+1)
+#endif
+                            ) * dxsqinv;
+
+                   phix(i,j,k) = phix(i,j,k) + stag_mg_omega*(rhsx(i,j,k)-Lpx(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+    if (do_y) {
+
+        for (int k = ylo.z; k <= yhi.z; ++k) {
+        for (int j = ylo.y; j <= yhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (ylo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
+            
+                   fac = alphay(i,j,k) +
+                        ( fourthirds*beta(i,j,k)+gamma(i,j,k)
+                        +fourthirds*beta(i,j-1,k)+gamma(i,j-1,k)
+                        +beta_xy(i,j,k)+beta_xy(i+1,j,k)
+#if (AMREX_SPACEDIM == 3)
+                        +beta_yz(i,j,k)+beta_yz(i,j,k+1)
+#endif
+                            ) * dxsqinv;
+
+                   phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac;
+        }
+        }
+        }
+    }
+
+#if (AMREX_SPACEDIM == 3)
+    if (do_z) {
+
+        for (int k = zlo.z; k <= zhi.z; ++k) {
+        for (int j = zlo.y; j <= zhi.y; ++j) {
+        ioff = 0;
+        if (offset == 2 && (zlo.x+j+k)%2 != (color+1)%2 ) {
+	  ioff = 1;
+	}
+        AMREX_PRAGMA_SIMD
+        for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
+            
+                   fac = alphaz(i,j,k) +
+                        ( fourthirds*beta(i,j,k)+gamma(i,j,k)
+                        +fourthirds*beta(i,j,k-1)+gamma(i,j,k-1)
+                        +beta_xz(i,j,k)+beta_xz(i+1,j,k)
+                        +beta_yz(i,j,k)+beta_yz(i,j+1,k) ) * dxsqinv;
+
+                   phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
         }
         }
         }
@@ -1812,6 +2306,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
 
         }
         else if (visc_type == -1) {
+            
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_mg_update_visc_m1(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
@@ -1828,28 +2323,39 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
             });
 
         }
-        else {
-            stag_mg_update(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                           AMREX_D_DECL(BL_TO_FORTRAN_3D(phi_fc[0][mfi]),
-                                        BL_TO_FORTRAN_3D(phi_fc[1][mfi]),
-                                        BL_TO_FORTRAN_3D(phi_fc[2][mfi])),
-                           AMREX_D_DECL(BL_TO_FORTRAN_3D(rhs_fc[0][mfi]),
-                                        BL_TO_FORTRAN_3D(rhs_fc[1][mfi]),
-                                        BL_TO_FORTRAN_3D(rhs_fc[2][mfi])),
-                           AMREX_D_DECL(BL_TO_FORTRAN_3D(Lphi_fc[0][mfi]),
-                                        BL_TO_FORTRAN_3D(Lphi_fc[1][mfi]),
-                                        BL_TO_FORTRAN_3D(Lphi_fc[2][mfi])),
-                           AMREX_D_DECL(BL_TO_FORTRAN_3D(alpha_fc[0][mfi]),
-                                        BL_TO_FORTRAN_3D(alpha_fc[1][mfi]),
-                                        BL_TO_FORTRAN_3D(alpha_fc[2][mfi])),
-                           BL_TO_FORTRAN_3D(beta_cc[mfi]),
-                           BL_TO_FORTRAN_3D(beta_ed[0][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                           BL_TO_FORTRAN_3D(beta_ed[1][mfi]),
-                           BL_TO_FORTRAN_3D(beta_ed[2][mfi]),
-#endif
-                           BL_TO_FORTRAN_3D(gamma_cc[mfi]),
-                           dx, &color);
+        else if (visc_type == 2) {
+
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+            {
+                stag_mg_update_visc_p2(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
+                                       AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
+                                       AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
+                                       AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
+                                       AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
+                                       AMREX_D_DECL(do_x,do_y,do_z),
+                                       b, c, offset, color, omega, dx_gpu);
+            });
+
         }
+        else if (visc_type == -2) {
+            
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+            {
+                stag_mg_update_visc_m2(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
+                                       AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
+                                       AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
+                                       AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
+                                       AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
+                                       beta_cc_fab, beta_xy_fab,
+#if (AMREX_SPACEDIM == 3)
+                                       beta_xz_fab, beta_yz_fab,
+#endif          
+                                       AMREX_D_DECL(do_x,do_y,do_z),
+                                       offset, color, omega, dx_gpu);
+            });
+
+
+        }
+    
     }
 }
