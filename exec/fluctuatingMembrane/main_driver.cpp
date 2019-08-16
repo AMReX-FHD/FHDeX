@@ -272,13 +272,20 @@ void main_driver(const char* argv)
         ionParticle[i].sigma = sigma[i];
         ionParticle[i].eepsilon = eepsilon[i];
 
-        // AJN - why round up particles so there are the same number in each box?
+        // AJN - why round up particles so there are the same number in each box? DRL - Have to divide them into whole numbers of particles somehow. 
         if(particle_count[i] >= 0) {
-            // adjust number of particles up so there is the same number per box            
-            ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
-            ionParticle[i].total = ionParticle[i].ppb*ba.size();
-            ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
+            if(i != 0)
+            {         
+                ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
+                ionParticle[i].total = ionParticle[i].ppb*ba.size();
+                ionParticle[i].n0 = ionParticle[i].total/domainVol;
+            }else
+            {
+                ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
+                ionParticle[i].total = particle_count[i];
+                ionParticle[i].n0 = ionParticle[i].total/domainVol;
+            }
             Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
         }
         else {

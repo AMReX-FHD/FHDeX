@@ -3353,10 +3353,12 @@ subroutine dummy_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3y
 
   integer i
 
+  print *, "LENGTH: ", length
+
   do i = 1, length
 
-    print *, "pos: ", spec3xPos(i), spec3yPos(i), spec3zPos(i)
-    print *, "force: ", spec3xForce(i), spec3yForce(i), spec3zForce(i)
+    !print *, "pos: ", spec3xPos(i), spec3yPos(i), spec3zPos(i)
+    !print *, "force: ", spec3xForce(i), spec3yForce(i), spec3zForce(i)
 
   enddo
   

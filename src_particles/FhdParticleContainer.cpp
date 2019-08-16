@@ -448,7 +448,7 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        //force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
+        force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
 
     }
 }
