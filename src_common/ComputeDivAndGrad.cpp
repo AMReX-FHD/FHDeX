@@ -50,12 +50,16 @@ AMREX_GPU_HOST_DEVICE
 inline
 void compute_grad (const Box & tbx,
                    const Box & xbx,
+#if (AMREX_SPACEDIM == 2)
                    const Box & ybx,
+#endif
 #if (AMREX_SPACEDIM == 3)
                    const Box & zbx,
 #endif
                    const Array4<Real> & gx,
+#if (AMREX_SPACEDIM == 2)
                    const Array4<Real> & gy,
+#endif
 #if (AMREX_SPACEDIM == 3)
                    const Array4<Real> & gz,
 #endif
@@ -102,6 +106,7 @@ void compute_grad (const Box & tbx,
         }
     }
 
+#if (AMREX_SPACEDIM == 2)
     for (int n = 0; n < ncomp; ++n) {
         for (int k = ylo.z; k <= yhi.z; ++k) {
             for (int j = ylo.y; j <= yhi.y; ++j) {
@@ -113,6 +118,7 @@ void compute_grad (const Box & tbx,
             }
         }
     }
+#endif
 
 #if (AMREX_SPACEDIM == 3)
     for (int n = 0; n < ncomp; ++n) {

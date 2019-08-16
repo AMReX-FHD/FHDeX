@@ -32,12 +32,16 @@ AMREX_GPU_HOST_DEVICE
 inline
 void avg_cc_to_fc (const Box & tbx,
                    const Box & xbx,
+#if (AMREX_SPACEDIM == 2)
                    const Box & ybx,
+#endif
 #if (AMREX_SPACEDIM == 3)
                    const Box & zbx,
 #endif
                    const Array4<Real> & fx,
+#if (AMREX_SPACEDIM == 2)
                    const Array4<Real> & fy,
+#endif
 #if (AMREX_SPACEDIM == 3)
                    const Array4<Real> & fz,
 #endif
@@ -82,6 +86,7 @@ void avg_cc_to_fc (const Box & tbx,
     }
     }
 
+#if (AMREX_SPACEDIM == 2)
     for (int n = 0; n < ncomp; ++n) {
     for (int k = ylo.z; k <= yhi.z; ++k) {
     for (int j = ylo.y; j <= yhi.y; ++j) {
@@ -92,6 +97,7 @@ void avg_cc_to_fc (const Box & tbx,
     }
     }
     }
+#endif
 
 #if (AMREX_SPACEDIM == 3)
     for (int n = 0; n < ncomp; ++n) {

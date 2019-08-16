@@ -6,6 +6,29 @@ module sqrt_mf_module
 
 contains
 
+#if (AMREX_SPACEDIM == 1)
+
+  subroutine sqrt_mf(lo,hi, &
+                       mf, mflo, mfhi, ncomp) bind(C,name="sqrt_mf")
+      
+      integer         , intent(in   ) :: ncomp
+      integer         , intent(in   ) :: lo(1),hi(1)
+      integer         , intent(in   ) :: mflo(2),mfhi(1)
+      double precision, intent(inout) :: mf(mflo(1):mfhi(1),ncomp)
+
+      ! local
+      integer :: i,j,n
+      
+      do n = 1,ncomp
+      do i = lo(1),hi(1)
+         mf(i,n) = sqrt(mf(i,n))
+      end do
+      end do
+
+    end subroutine sqrt_mf
+
+#endif
+
 #if (AMREX_SPACEDIM == 2)
 
   subroutine sqrt_mf(lo,hi, &
