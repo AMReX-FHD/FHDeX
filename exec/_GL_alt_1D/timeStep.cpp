@@ -61,6 +61,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
     energy =0.;
     teng =0.;
     phi_avg=0.0;
+    H1_semi_norm = 0.;
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -89,7 +90,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                 &H1_semi_norm);   
     }
     ParallelDescriptor::ReduceRealSum(H1_semi_norm);
-    H1_semi_norm=H1_semi_norm/(n_cells[0]);
+    //H1_semi_norm=H1_semi_norm/(n_cells[0]);
 
                         //if(ParallelDescriptor::MyProc() == 0 ){
                         //       std::cout << n << " " << energy << "  energy  " << std::endl;
