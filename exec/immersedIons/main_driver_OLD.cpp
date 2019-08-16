@@ -64,34 +64,28 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-//    int fhdSeed = 0;
-//    int particleSeed = 0;
-//    int selectorSeed = 0;
-//    int thetaSeed = 0;
-//    int phiSeed = 0;
-//    int generalSeed = 0;
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
-            is_periodic_c[i] = 1;
-        }
-        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
-            is_periodic_p[i] = 1;
         }
     }
 
@@ -164,8 +158,8 @@ void main_driver(const char* argv)
 
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
-    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
+    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
+    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic.data());
 
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
@@ -297,25 +291,6 @@ void main_driver(const char* argv)
         realParticles = realParticles + ionParticle[i].total;
         simParticles = simParticles + ionParticle[i].total*particle_neff;
     }
-
-    double* spec3xPos;
-    double* spec3yPos;
-    double* spec3zPos;
-
-    spec3xPos = new double[ionParticle[2].total];
-    spec3yPos = new double[ionParticle[2].total];
-    spec3zPos = new double[ionParticle[2].total];
-
-    double* spec3xForce;
-    double* spec3yForce;
-    double* spec3zForce;
-
-    spec3xForce = new double[ionParticle[2].total];
-    spec3yForce = new double[ionParticle[2].total];
-    spec3zForce = new double[ionParticle[2].total];
-
-    int length = ionParticle[2].total;
-
     
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
@@ -325,8 +300,6 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
-
-    
 
     // MFs for storing particle statistics
 
@@ -788,8 +761,7 @@ void main_driver(const char* argv)
             //        const int* hi = bx.hiVect();
             //        const FArrayBox& MF_charge = charge[mfi];
             //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_charge), &iloc, &jloc, &kloc);
-
-
+            //}
         }
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
@@ -805,8 +777,6 @@ void main_driver(const char* argv)
         //        const FArrayBox& MF_pot = potential[mfi];
         //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_pot), &iloc, &jloc, &kloc);
         //}
-
-        particles.SyncMembrane(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, length);
 
 
         //compute other forces and spread to grid
@@ -826,7 +796,6 @@ void main_driver(const char* argv)
         }
 
     	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-
         if(fluid_tog ==2)
         {
             advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
@@ -884,7 +853,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0)
         {
-
+           
             //This write particle data and associated fields and electrostatic fields
             WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
