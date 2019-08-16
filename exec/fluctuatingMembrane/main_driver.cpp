@@ -302,19 +302,19 @@ void main_driver(const char* argv)
     double* spec3yPos;
     double* spec3zPos;
 
-    spec3xPos = new double[ionParticle[2].total];
-    spec3yPos = new double[ionParticle[2].total];
-    spec3zPos = new double[ionParticle[2].total];
+    spec3xPos = new double[ionParticle[0].total];
+    spec3yPos = new double[ionParticle[0].total];
+    spec3zPos = new double[ionParticle[0].total];
 
     double* spec3xForce;
     double* spec3yForce;
     double* spec3zForce;
 
-    spec3xForce = new double[ionParticle[2].total];
-    spec3yForce = new double[ionParticle[2].total];
-    spec3zForce = new double[ionParticle[2].total];
+    spec3xForce = new double[ionParticle[0].total];
+    spec3yForce = new double[ionParticle[0].total];
+    spec3zForce = new double[ionParticle[0].total];
 
-    int length = ionParticle[2].total;
+    int length = ionParticle[0].total;
 
     
     Print() << "Total real particles: " << realParticles << "\n";
