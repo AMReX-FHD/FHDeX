@@ -9,48 +9,47 @@ using namespace amrex;
 using namespace common;
 
 void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-		   const MultiFab& m,
-		   MultiFab& m_update,
+		   const MultiFab& s,
+		   MultiFab& s_update,
 		   const amrex::Real* dx,
 		   const Geometry& geom,
-		   const int& m_comp,
+		   const int& comp,
 		   const int& increment)
 {
 
      BL_PROFILE_VAR("MkAdvSFluxdiv()",MkAdvSFluxdiv);
 
-     std::array<MultiFab, AMREX_SPACEDIM> m_fc;
-     DistributionMapping dmap = m.DistributionMap();
-     AMREX_D_TERM(m_fc[0].define(convert(m.boxArray(),nodal_flag_x), dmap, 1, 1);,
-      	          m_fc[1].define(convert(m.boxArray(),nodal_flag_y), dmap, 1, 1);,
-	          m_fc[2].define(convert(m.boxArray(),nodal_flag_z), dmap, 1, 1););
-
-     AverageCCToFace(m, m_comp, m_fc, 0, 1);
-
-     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-         m_fc[d].FillBoundary(geom.periodicity());
-         MultiFABPhysBC(m_fc[d], d, geom);
-     }
+     Real dxinv = 1./dx[0];
+     int ncomp = 1;
 
      // Loop over boxes
-     for (MFIter mfi(umac[0]); mfi.isValid(); ++mfi) {
+     for (MFIter mfi(s); mfi.isValid(); ++mfi) {
 
          // Create cell-centered box from semi-nodal box
-         const Box& validBox_cc = enclosedCells(mfi.validbox());
+         const Box& bx = mfi.validbox();
 
-         mk_advective_s_fluxdiv(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
-                                BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-                                BL_TO_FORTRAN_ANYD(umac[1][mfi]),
+         Array4<Real const> const& s_fab = s.array(mfi);
+
+         Array4<Real> const& s_update_fab = s_update.array(mfi);
+
+         AMREX_D_TERM(Array4<Real const> const& umac_fab = umac[0].array(mfi);,
+                      Array4<Real const> const& vmac_fab = umac[1].array(mfi);,
+                      Array4<Real const> const& wmac_fab = umac[2].array(mfi););
+
+         if (increment == 1) {
+
+         }
+         else {
+             AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+             {
+                 s_update_fab(i,j,k,n+comp) = 
+                     - dxinv*( 0.5*(s_fab(i+1,j,k,n+comp)+s_fab(i,j,k,n+comp))*umac_fab(i+1,j,k) - 0.5*(s_fab(i,j,k,n+comp)+s_fab(i-1,j,k,n+comp))*umac_fab(i,j,k) )
+                     - dxinv*( 0.5*(s_fab(i,j+1,k,n+comp)+s_fab(i,j,k,n+comp))*vmac_fab(i,j+1,k) - 0.5*(s_fab(i,j,k,n+comp)+s_fab(i,j-1,k,n+comp))*vmac_fab(i,j,k) )
 #if (AMREX_SPACEDIM == 3)
-                                BL_TO_FORTRAN_ANYD(umac[2][mfi]),
+                     - dxinv*( 0.5*(s_fab(i,j,k+1,n+comp)+s_fab(i,j,k,n+comp))*wmac_fab(i,j,k+1) - 0.5*(s_fab(i,j,k,n+comp)+s_fab(i,j,k-1,n+comp))*wmac_fab(i,j,k) )
 #endif
-                                BL_TO_FORTRAN_ANYD(m_fc[0][mfi]),
-                                BL_TO_FORTRAN_ANYD(m_fc[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                                BL_TO_FORTRAN_ANYD(m_fc[2][mfi]),
-#endif
-                                BL_TO_FORTRAN_N_ANYD(m[mfi],m_comp),
-                                BL_TO_FORTRAN_N_ANYD(m_update[mfi],m_comp),
-                                dx, &increment);
-    }
+                     ;
+             });
+         }
+     }
 }

@@ -417,8 +417,7 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
     if(ParallelDescriptor::MyProc() == 0)
     {
 
-        //DONEV/SOPHIE CODE HERE
-        dummy_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length);
+        user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length);
 
     }
 
