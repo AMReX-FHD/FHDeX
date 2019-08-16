@@ -35,7 +35,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
         if(ParallelDescriptor::MyProc() == 0)
         {
-                int i_spec = 2;
+                int i_spec = 0;
 
                 int memsize = (int)sqrt(particle_count[2]);
                 double div = (geom.ProbHi(0) - geom.ProbLo(0))/(double)memsize;
@@ -123,7 +123,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 //        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
  //       {
 
-            for(int i_spec=0; i_spec < nspecies - 1; i_spec++)
+            for(int i_spec=1; i_spec < nspecies; i_spec++)
             {
             for (int i_part=0; i_part<particleInfo[i_spec].ppb;i_part++)
             {

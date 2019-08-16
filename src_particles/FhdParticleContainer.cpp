@@ -422,7 +422,6 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
 
     }
 
-    //I'm sure there is an array version of this but this will do for now.
     for(int i=0;i<length;i++)
     {
         temp = spec3xForce[i];
@@ -437,9 +436,6 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
         ParallelDescriptor::ReduceRealSum(temp);
         spec3zForce[i] = temp;
 
-        spec3xForce[i] = 0;
-        spec3yForce[i] = 0;
-        spec3zForce[i] = 0;
     }
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
@@ -452,7 +448,7 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
 
-        force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
+        //force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
 
     }
 }
