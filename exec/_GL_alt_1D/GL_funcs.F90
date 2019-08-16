@@ -293,9 +293,9 @@ subroutine Comp_H1_semi_norm_1D(lo,hi, phi, dx, H1_semi) bind(C,name="Comp_H1_se
   integer :: i
 
       do  i=lo(1),hi(1)
-      H1_semi = H1_semi + ((phi(i)-phi(i-1))**2.0)/(dx(1)**2.0)
+      ! H1_semi = H1_semi + ((phi(i)-phi(i-1))**2.0)/(dx(1)**2.0)
+      H1_semi = H1_semi - phi(i)*(phi(i)-2.d0*phi(i)+phi(i-1))/dx(1)
     enddo
-  H1_semi = (H1_semi*dx(1))**0.5
 
 end subroutine Comp_H1_semi_norm_1D
 
@@ -380,10 +380,10 @@ subroutine rk2_stage1_1D(lo,hi, phi, phin, rannums, integral, energy, teng, dx, 
           -dt*func-dt*umbrella*integral + dt*factor * rannums(i)   ! Forward euler time-step with central spatial discretization
 
           dele =  phi(i)*(acoef+bcoef*phi(i)+ccoef*phi(i)**2+dcoef*phi(i)**3) &
-            + 0.5d0*diff_coef*((phi(i)-phi(i-1))**2)
+            - 0.5d0*diff_coef*phi(i)*(phi(i+1)-2.d0*phi(i)+phi(i-1))/dx(1)**2
 
           energy = energy + dele*dx(1) !G-L free energy functional with NO umbrella contribution
-          teng = teng + ( dele + 0.5d0*umbrella*integral )*dx(1) !G-L free energy functional WITH  umbrella contribution
+          teng = teng + ( dele + 0.5d0*umbrella*integral**2 )*dx(1) !G-L free energy functional WITH  umbrella contribution
 
       enddo
 

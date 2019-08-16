@@ -80,11 +80,12 @@ contains
               -dt*func-dt*umbrella*integral + dt*factor * rannums(i,j)  ! Forward euler time-step with central spatial discretization
 
               dele =  phi(i,j)*(acoef+bcoef*phi(i,j)+ccoef*phi(i,j)**2+dcoef*phi(i,j)**3) &
-                + 0.5d0*diff_coef*((phi(i,j)-phi(i-1,j))**2+(phi(i,j)-phi(i,j-1))**2)  
+                - 0.5d0*diff_coef*phi(i,j)*((phi(i+1,j)-2.d0*phi(i,j)+phi(i-1,j))/dx(1)**2  &
+              + (phi(i,j+1)-2.d0*phi(i,j)+phi(i,j-1))/dx(2)**2)
 
               energy = energy + dele*dx(1)*dx(2) !G-L free energy functional with NO umbrella contribution
 
-              teng = teng + ( dele + 0.5d0*umbrella*integral ) *dx(1)*dx(2) !G-L free energy functional WITH  umbrella contribution
+              teng = teng + ( dele + 0.5d0*umbrella*integral**2 ) *dx(1)*dx(2) !G-L free energy functional WITH  umbrella contribution
           enddo
         enddo
 
@@ -241,11 +242,11 @@ contains
     do  j=lo(2),hi(2)
         do  i=lo(1),hi(1)
 
-        H1_semi = H1_semi + ((phi(i,j)-phi(i-1,j))**2.0)/(dx(1)**2.0) + ((phi(i,j)-phi(i,j-1))**2.0)/(dx(2)**2.0)
+        H1_semi = H1_semi - 0.5d0*diff_coef*phi(i,j)*((phi(i+1,j)-2.d0*phi(i,j)+phi(i-1,j))/dx(1)**2  &
+              + (phi(i,j+1)-2.d0*phi(i,j)+phi(i,j-1))/dx(2)**2)*dx(1)*dx(2)
 
       enddo
     enddo
-    H1_semi = (H1_semi*dx(1)*dx(2))**0.5
 
   end subroutine Comp_H1_semi_norm
 
