@@ -17,7 +17,7 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 5
+  max_step = 3
   plot_int = 1
   plot_ascii = 0
   struct_fact_int = -1
@@ -52,11 +52,11 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = -1 -1 100
+  particle_count = 9 -1 -1
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e17 6.02e17 0
+  particle_n0 = 0 6.02e17 6.02e17
 
   !Species info
   !--------------
@@ -64,7 +64,7 @@
   mass = 4e-23 4e-23 4e-23
   diameter = -2.488e-8 -2.488e-8 -2.488e-8 
   !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
-  qval = 1.6e-19 -1.6e-19 0
+  qval = 0 1.6e-19 -1.6e-19
   diff = 1.33e-05 1.33e-05 1.33e-05
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
@@ -73,7 +73,7 @@
 
   p_move_tog = 1 1 1
   p_force_tog = 1 1 1
-  p_int_tog = 1 1 0
+  p_int_tog = 0 1 1
 
   !Interaction parameters
   !------------
@@ -103,7 +103,7 @@
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
-  variance_coef_mom = 0.0000000000000001
+  variance_coef_mom = 1
    
 
   ! Boundary conditions
