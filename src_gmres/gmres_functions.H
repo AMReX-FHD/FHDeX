@@ -185,7 +185,7 @@ void StagApplyOp(const MultiFab & beta_cc,
                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
                  const std::array<MultiFab, AMREX_SPACEDIM> & umacIn,
                  std::array<MultiFab, AMREX_SPACEDIM> & umacOut,
-                 std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                 const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                  const Real * dx,
                  const Real & theta_alpha,
                  const int & color=0);
