@@ -5,7 +5,7 @@ module membrane_forces_module
 contains
 
 ! For Daniel and Andy:
-! 0) I still don't get how particle initialization (positions) works but will try to get answers from Daniel in person.
+! 0) Seems not to like boxes with no particles --- should be fixed.
 ! 1) Please confirm the particles are in their original order
 ! 2) Are the particles ordered by species also? Perhaps it is better to pass a species array here as input as well?
 ! 3) Is spec3xForce really intent(inout) or intent(in), that is, does this routine increment the fources or compute forces
@@ -34,7 +34,7 @@ subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   do i = 1, length
 
     write(*,*) "Setting force on particle=", i, " pos: ", spec3xPos(i), spec3yPos(i), spec3zPos(i)
-    spec3xForce(i)=1.0d0
+    spec3xForce(i)=1.0d-20
 
   enddo
   
