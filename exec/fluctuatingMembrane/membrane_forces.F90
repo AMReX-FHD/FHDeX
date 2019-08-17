@@ -6,28 +6,33 @@ contains
 
 ! For Daniel and Andy:
 ! 0) Seems not to like boxes with no particles --- should be fixed.
-! 1) Please confirm the particles are in their original order
+! 1) Please confirm the particles are in their original order: CHANGE: Please pass all particles here ordered
 ! 2) Are the particles ordered by species also? Perhaps it is better to pass a species array here as input as well?
-! 3) Is spec3xForce really intent(inout) or intent(in), that is, does this routine increment the fources or compute forces
 ! 4) Can we get time as an input argument of this routine also please? This should be based on the temporal integrator used, i.e., at which position in time the particle positions are.
 ! 5) I have added routines user_force_calc_init and user_force_calc_destroy here, which are to be called to initialize the user force code (e.g., read namelist with parameters for membrane) and to open files and then close them. We can adjust the interfaces as needed.
-! 6) When the particle positions are output from inside the C++ code, are they sorted in original order?
-! 7) How are namelists read in this C++/Fortran code -- see .
+! 6) When the particle positions are output from inside the C++ code, are they sorted in original order? It is only in binary in paraview
 
-subroutine user_force_calc_init(unit) bind(c,name="user_force_calc_init")
+subroutine user_force_calc_init(inputs_file) bind(c,name="user_force_calc_init")
    ! Read namelists, open files, etc.
-   integer, intent(in) :: unit ! Unit to use to read namelist from, or maybe we want to pass file name, or what?
+   character(kind=c_char), intent(in   ) :: inputs_file(length)
+   ! CHANGE: Call this routine after all the other stuff has been initialized but before time loop
+   
+   !open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
+   !read(unit=100, nml=common)
+   !close(unit=100)
+
 end subroutine user_force_calc_init
 
 subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, length) bind(c,name="user_force_calc")
   ! This routine should increment the forces supplied here
-
+  ! CHANGE: Make length an array of length nspecies
+  ! CHANGE: Add time as argument
   
   implicit none
 
   integer(c_int),          intent(in   )         :: length
   real(c_double),          intent(in   )         :: spec3xPos(length), spec3yPos(length), spec3zPos(length)
-  real(c_double),          intent(inout)         :: spec3xForce(length), spec3yForce(length), spec3zForce(length)
+  real(c_double),          intent(out  )         :: spec3xForce(length), spec3yForce(length), spec3zForce(length)
 
   integer i
 
