@@ -12,8 +12,9 @@ contains
 ! 5) I have added routines user_force_calc_init and user_force_calc_destroy here, which are to be called to initialize the user force code (e.g., read namelist with parameters for membrane) and to open files and then close them. We can adjust the interfaces as needed.
 ! 6) When the particle positions are output from inside the C++ code, are they sorted in original order? It is only in binary in paraview
 
-subroutine user_force_calc_init(inputs_file) bind(c,name="user_force_calc_init")
+subroutine user_force_calc_init(inputs_file,length) bind(c,name="user_force_calc_init")
    ! Read namelists, open files, etc.
+   integer(c_int), intent(in) :: length
    character(kind=c_char), intent(in   ) :: inputs_file(length)
    ! CHANGE: Call this routine after all the other stuff has been initialized but before time loop
    
@@ -39,9 +40,10 @@ subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   do i = 1, length
 
     write(*,*) "Setting force on particle=", i, " pos: ", spec3xPos(i), spec3yPos(i), spec3zPos(i)
-    spec3xForce(i)=1.0d-20
 
   enddo
+  spec3xForce(1)=1.0d-20
+  if(length>1) spec3xForce(2)=-spec3xForce(1) ! Equal and opposite to ensure solvability
   
 end subroutine user_force_calc
 

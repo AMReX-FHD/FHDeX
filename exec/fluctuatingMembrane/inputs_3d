@@ -49,7 +49,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 1 -1 -1
+  particle_count = 2 -1 -1
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
