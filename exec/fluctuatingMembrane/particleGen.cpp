@@ -1,6 +1,8 @@
 #include "INS_functions.H"
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
+#include <iostream>
+#include <fstream>
 
 void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
@@ -37,30 +39,41 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         {
                 int i_spec = 0;
 
-                int memsize = (int)sqrt(particle_count[2]);
-                double div = (geom.ProbHi(0) - geom.ProbLo(0))/(double)memsize;
+                  std::ifstream membraneFile("membrane.dat");
 
 
-                for(int ii=0; ii<memsize; ii++)
-                {
-                for(int jj=0; jj<memsize; jj++)
-                {
+
+//                int memsize = (int)sqrt(particle_count[0]);
+//                double div = (geom.ProbHi(0) - geom.ProbLo(0))/(double)memsize;
+
+
+//                for(int ii=0; ii<memsize; ii++)
+//                {
+//                for(int jj=0; jj<memsize; jj++)
+//                {
+                  for(int i=0; i<particle_count[0]; i++)
+                  {
 
                     ParticleType p;
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
-                    p.idata(IntData::sorted) = 0;                       
-                    p.pos(0) = div/2 + ii*div;
-                    p.pos(1) = div/2 + jj*div;
-    #if (BL_SPACEDIM == 3)
-                    p.pos(2) = (geom.ProbHi(2) - geom.ProbLo(2))*0.5;
-    #endif
+                    p.idata(IntData::sorted) = 0;
+
+                    membraneFile >> p.pos(0);                       
+                    membraneFile >> p.pos(1);
+                    membraneFile >> p.pos(2);
+
+//                    p.pos(0) = div/2 + ii*div;
+//                    p.pos(1) = div/2 + jj*div;
+//    #if (BL_SPACEDIM == 3)
+//                    p.pos(2) = (geom.ProbHi(2) - geom.ProbLo(2))*0.5;
+//    #endif
                     
                     //Print() << "ID: " << p.id() << "\n";
 
                     p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                    //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
+                    Print() << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n" ;
 
                     //original position stored for MSD calculations
                     p.rdata(RealData::ox) = p.pos(0);
@@ -116,8 +129,12 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     particle_tile.push_back(p);
 
                     pcount++;
-                }
-                }
+                  }
+
+
+                  membraneFile.close();
+//                }
+//                }
         }
 
 //        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
