@@ -69,24 +69,13 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                    phin[mfi].dataPtr(),  
                    rannums[mfi].dataPtr(),
                    &integral,
-                   &energy, &teng,
+                   &energy, &teng,&H1_semi_norm,
       	           dx, &dt,&phi_avg);   
     }
     ParallelDescriptor::ReduceRealSum(phi_avg);
     phi_avg = phi_avg/(n_cells[0]*n_cells[1]);
     ParallelDescriptor::ReduceRealSum(energy);
     ParallelDescriptor::ReduceRealSum(teng);
-
-    // iterating over the data in phi multifab to compute H1 seminorm of phi.
-    for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-
-        Comp_H1_semi_norm(BL_TO_FORTRAN_BOX(bx),
-                   phi[mfi].dataPtr(),  
-      	           dx,
-                   &H1_semi_norm);   
-    }
     ParallelDescriptor::ReduceRealSum(H1_semi_norm);
 
                     //if(ParallelDescriptor::MyProc() == 0 ){
