@@ -1,4 +1,5 @@
 #include "INS_functions.H"
+#include "INS_functions_F.H"
 #include <iostream>
 
 #include "common_functions.H"
@@ -59,8 +60,8 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-    remove("potential.dat");
-    remove("kinetic.dat");
+    //InitializeMembraneNamespace();
+
 
     const int n_rngs = 1;
 
@@ -758,6 +759,11 @@ void main_driver(const char* argv)
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, ionParticle, geom);
+
+    //READ MEMBRANE NML FILE HERE
+    int filelength = 10;
+    char filename[10] = "test";
+    //user_force_calc_init(filename, &filelength);
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -906,6 +912,7 @@ void main_driver(const char* argv)
         time = time + dt;
 
     }
+
     ///////////////////////////////////////////
     if (struct_fact_int > 0) {
 
@@ -928,6 +935,11 @@ void main_driver(const char* argv)
     //  structFact.WritePlotFile(step,time,geomP);
 
     }
+
+
+    //CLEAN UP MEMBRANE STUFF HERE
+    user_force_calc_destroy();
+
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
