@@ -763,7 +763,7 @@ void main_driver(const char* argv)
     //READ MEMBRANE NML FILE HERE
     int filelength = 10;
     char filename[10] = "test";
-    user_force_calc_init(filename, &filelength);
+    //user_force_calc_init(filename, &filelength);
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
