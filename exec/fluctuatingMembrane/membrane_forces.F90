@@ -44,14 +44,14 @@ subroutine user_force_calc_init(inputs_file,length) bind(c,name="user_force_calc
 
 end subroutine user_force_calc_init
 
-subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, length) bind(c,name="user_force_calc")
+subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, length, step) bind(c,name="user_force_calc")
   ! This routine should increment the forces supplied here
   ! CHANGE: Make length an array of length nspecies
   ! CHANGE: Add time and time_step as argument
   
   implicit none
 
-  integer(c_int),          intent(in   )         :: length
+  integer(c_int),          intent(in   )         :: length, step
   real(c_double),          intent(in   )         :: spec3xPos(length), spec3yPos(length), spec3zPos(length)
   real(c_double),          intent(out  )         :: spec3xForce(length), spec3yForce(length), spec3zForce(length)
 
