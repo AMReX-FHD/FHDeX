@@ -73,7 +73,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
                     p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                    Print() << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n" ;
+                    //Print() << p.id() << ", " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n" ;
 
                     //original position stored for MSD calculations
                     p.rdata(RealData::ox) = p.pos(0);
@@ -135,14 +135,14 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                   membraneFile.close();
 //                }
 //                }
-        }
+        
 
 //        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
  //       {
 
             for(int i_spec=1; i_spec < nspecies; i_spec++)
             {
-            for (int i_part=0; i_part<particleInfo[i_spec].ppb;i_part++)
+            for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++)
             {
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
@@ -230,7 +230,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                 
                 p.rdata(RealData::q) = particleInfo[i_spec].q;
 
-                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << ", " << p.rdata(RealData::q) << "\n" ;
+                   // std::cout << p.id() << ", " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << "\n" ;
 
                 //original position stored for MSD calculations
                 p.rdata(RealData::ox) = p.pos(0);
@@ -290,6 +290,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                 pcount++;
             }
  //           }
+        }
+
         }
 
         

@@ -3276,14 +3276,13 @@ subroutine sync_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yFo
       spec3xPos(i) = 0
       spec3yPos(i) = 0
       spec3zPos(i) = 0
-
   enddo
 
   do i = 1, np
 
     part => particles(i)
 
-    if(part%species .eq. 1) then
+    !if(part%species .eq. 1) then
 
       id = part%id
 
@@ -3293,7 +3292,7 @@ subroutine sync_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yFo
 
       !print *, "id: ", id, "zpos: ", spec3zPos(id), "real: ", part%pos(3)
 
-    endif
+    !endif
 
   enddo
   
@@ -3322,7 +3321,7 @@ subroutine force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
 
     part => particles(i)
 
-    if(part%species .eq. 1) then
+    !if(part%species .eq. 1) then
 
       id = part%id
 
@@ -3330,7 +3329,7 @@ subroutine force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
       part%force(2) = part%force(2) + spec3yForce(id)
       part%force(3) = part%force(3) + spec3zForce(id)
 
-    endif
+    !endif
 
   enddo
   

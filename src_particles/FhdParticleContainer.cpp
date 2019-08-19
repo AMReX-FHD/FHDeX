@@ -367,7 +367,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 
 }
 
-void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length, const int step)
+void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length, const int step, const species* particleInfo)
 {
     
 
@@ -417,7 +417,7 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
     if(ParallelDescriptor::MyProc() == 0)
     {
 
-        user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length, &step);
+        user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length, &step, particleInfo);
 
     }
 

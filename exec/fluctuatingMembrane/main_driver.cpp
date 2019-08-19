@@ -215,7 +215,7 @@ void main_driver(const char* argv)
     species ionParticle[nspecies];
 
     double realParticles = 0;
-    double simParticles = 0;
+    int simParticles = 0;
     double dryRad, wetRad;
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
@@ -276,17 +276,11 @@ void main_driver(const char* argv)
         // AJN - why round up particles so there are the same number in each box? DRL - Have to divide them into whole numbers of particles somehow. 
         if(particle_count[i] >= 0) {
 
-            if(i != 0)
-            {         
-                ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
-                ionParticle[i].total = ionParticle[i].ppb*ba.size();
-                ionParticle[i].n0 = ionParticle[i].total/domainVol;
-            }else
-            {
-                ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
-                ionParticle[i].total = particle_count[i];
-                ionParticle[i].n0 = ionParticle[i].total/domainVol;
-            }
+
+            ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
+            ionParticle[i].total = particle_count[i];
+            ionParticle[i].n0 = ionParticle[i].total/domainVol;
+            
             Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
         }
         else {
@@ -294,7 +288,7 @@ void main_driver(const char* argv)
             ionParticle[i].total = (int)ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
             ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
-            ionParticle[i].total = ionParticle[i].ppb*ba.size();
+            //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
             Print() << "Species " << i << " n0 adjusted to " << ionParticle[i].n0 << "\n";
@@ -302,25 +296,25 @@ void main_driver(const char* argv)
 
         Print() << "Species " << i << " particles per box: " <<  ionParticle[i].ppb << "\n";
 
-        realParticles = realParticles + ionParticle[i].total;
-        simParticles = simParticles + ionParticle[i].total*particle_neff;
+        realParticles = realParticles + ionParticle[i].total*particle_neff;
+        simParticles = simParticles + ionParticle[i].total;
     }
 
     double* spec3xPos;
     double* spec3yPos;
     double* spec3zPos;
 
-    spec3xPos = new double[ionParticle[0].total];
-    spec3yPos = new double[ionParticle[0].total];
-    spec3zPos = new double[ionParticle[0].total];
+    spec3xPos = new double[simParticles];
+    spec3yPos = new double[simParticles];
+    spec3zPos = new double[simParticles];
 
     double* spec3xForce;
     double* spec3yForce;
     double* spec3zForce;
 
-    spec3xForce = new double[ionParticle[0].total];
-    spec3yForce = new double[ionParticle[0].total];
-    spec3zForce = new double[ionParticle[0].total];
+    spec3xForce = new double[simParticles];
+    spec3yForce = new double[simParticles];
+    spec3zForce = new double[simParticles];
 
     int length = ionParticle[0].total;
 
@@ -761,9 +755,9 @@ void main_driver(const char* argv)
     ComputeDryMobility(dryMobility, ionParticle, geom);
 
     //READ MEMBRANE NML FILE HERE
-    int filelength = 10;
-    char filename[10] = "test";
-    //user_force_calc_init(filename, &filelength);
+    //int filelength = 10;
+    //char filename[10] = "test";
+    user_force_calc_init(inputs_file.c_str(),inputs_file.size()+1);
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -819,7 +813,7 @@ void main_driver(const char* argv)
         //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_pot), &iloc, &jloc, &kloc);
         //}
 
-        particles.SyncMembrane(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, length, step);
+        particles.SyncMembrane(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, simParticles, step, ionParticle);
 
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
