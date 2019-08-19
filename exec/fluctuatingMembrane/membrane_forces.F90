@@ -36,11 +36,11 @@ subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   real(c_double),          intent(in   )         :: spec3xPos(length), spec3yPos(length), spec3zPos(length)
   real(c_double),          intent(out  )         :: spec3xForce(length), spec3yForce(length), spec3zForce(length)
   
+  integer i
+
   spec3xForce=0.0d0
   spec3yForce=0.0d0
   spec3zForce=0.0d0
-
-  integer i
 
   do i = 1, length
 
