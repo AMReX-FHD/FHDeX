@@ -5,7 +5,7 @@ module membrane_forces_module
 contains
 
 ! For Daniel and Andy:
-! 0) Seems not to like boxes with no particles --- should be fixed.
+! 0) Seems not to like boxes with no particles --- should be fixed. -Fixed DRL
 ! 1) Please confirm the particles are in their original order: CHANGE: Please pass all particles here ordered
 ! 2) Are the particles ordered by species also? Perhaps it is better to pass a species array here as input as well?
 ! 4) Can we get time as an input argument of this routine also please? This should be based on the temporal integrator used, i.e., at which position in time the particle positions are.
