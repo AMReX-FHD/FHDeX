@@ -1,6 +1,7 @@
 module membrane_forces_module
   use amrex_fort_module, only: amrex_real
   use iso_c_binding
+  use HydroGridModule
    
 contains
 
@@ -34,6 +35,10 @@ subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   integer(c_int),          intent(in   )         :: length
   real(c_double),          intent(in   )         :: spec3xPos(length), spec3yPos(length), spec3zPos(length)
   real(c_double),          intent(out  )         :: spec3xForce(length), spec3yForce(length), spec3zForce(length)
+  
+  spec3xForce=0.0d0
+  spec3yForce=0.0d0
+  spec3zForce=0.0d0
 
   integer i
 
