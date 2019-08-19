@@ -4,7 +4,6 @@ AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
 FMEMBRANE = $(FHDeX)/exec/fluctuatingMembrane
 HYDROLIB_HOME := ../../../LowMachFHD/HydroGrid
-FBOXLIB_HOME := ../../../FBoxLib
 
 DEBUG     = FALSE
 USE_MPI   = TRUE

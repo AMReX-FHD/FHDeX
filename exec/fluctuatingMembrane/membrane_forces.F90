@@ -1,7 +1,11 @@
 module membrane_forces_module
-  use amrex_fort_module, only: amrex_real
   use iso_c_binding
-  use HydroGridModule
+  use amrex_fort_module, only: amrex_real
+  use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
+  !use HydroGridModule
+  public
+  
+  integer, save :: N_markers=100 ! Make the membrane out of N_markers^2 markers
    
 contains
 
@@ -19,9 +23,11 @@ subroutine user_force_calc_init(inputs_file,length) bind(c,name="user_force_calc
    character(kind=c_char), intent(in   ) :: inputs_file(length)
    ! CHANGE: Call this routine after all the other stuff has been initialized but before time loop
    
-   !open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
-   !read(unit=100, nml=common)
-   !close(unit=100)
+   namelist /FluctuatingMembrane/ N_markers
+   
+   open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
+   read(unit=100, nml=FluctuatingMembrane)
+   close(unit=100)
 
 end subroutine user_force_calc_init
 
@@ -35,12 +41,12 @@ subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   integer(c_int),          intent(in   )         :: length
   real(c_double),          intent(in   )         :: spec3xPos(length), spec3yPos(length), spec3zPos(length)
   real(c_double),          intent(out  )         :: spec3xForce(length), spec3yForce(length), spec3zForce(length)
+
+  integer :: i
   
   spec3xForce=0.0d0
   spec3yForce=0.0d0
   spec3zForce=0.0d0
-
-  integer i
 
   do i = 1, length
 
