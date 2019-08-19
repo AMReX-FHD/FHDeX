@@ -330,19 +330,19 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 //            pvec.resize(new_size);
 //        }
 
-        ParallelDescriptor::ReduceRealSum(potential);
+//        ParallelDescriptor::ReduceRealSum(potential);
 
-        if(ParallelDescriptor::ioProcessor == ParallelDescriptor::MyProc())
-        {
+//        if(ParallelDescriptor::ioProcessor == ParallelDescriptor::MyProc())
+//        {
 
-		    std::ofstream potentialFile;
-		    potentialFile.setf(ios::scientific, ios::floatfield);
-		    potentialFile.setf(ios::showpoint);
-		    potentialFile.precision(12);
-		    potentialFile.open ("potential.dat", ios::out | ios::app);
+//		    std::ofstream potentialFile;
+//		    potentialFile.setf(ios::scientific, ios::floatfield);
+//		    potentialFile.setf(ios::showpoint);
+//		    potentialFile.precision(12);
+//		    potentialFile.open ("potential.dat", ios::out | ios::app);
 
-            potentialFile << potential << std::endl;
-        }
+//            potentialFile << potential << std::endl;
+//        }
 
     }
     

@@ -815,7 +815,6 @@ void main_driver(const char* argv)
 
         particles.SyncMembrane(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, length);
 
-
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
