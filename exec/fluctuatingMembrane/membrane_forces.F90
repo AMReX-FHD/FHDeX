@@ -2,6 +2,7 @@ module membrane_forces_module
   use iso_c_binding
   use amrex_fort_module, only: amrex_real
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
+  use common_namelist_module
   use HydroGridModule
   public
   
@@ -38,8 +39,7 @@ subroutine user_force_calc_init(inputs_file,length) bind(c,name="user_force_calc
       call createHydroAnalysis (hydro_grid, &
          nCells=(/nmem,nmem,1/), nSpecies = 1, &
          isSingleFluid = .true., nVelocityDimensions = 2, nPassiveScalars = 0, &
-         systemLength = (/nmem*1.0d0, nmem*1.0d0, 1.0d0/), timestep = call_hydroGrid*1.0d0)   
-         !systemLength = (/nmem*dx, nmem*dy, 1.0d0/), timestep = call_hydroGrid*dt)   
+         systemLength = (/prob_hi(1:2)-prob_lo(1:2), 1.0d0/), timestep = call_hydroGrid*fixed_dt)   
    end if
 
 end subroutine user_force_calc_init
