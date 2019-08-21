@@ -1,6 +1,7 @@
 #include <ib_functions.H>
 #include <ib_functions_F.H>
 #include <immbdy_namespace.H>
+#include <immbdy_namespace_declarations.H>
 
 
 using namespace immbdy;
