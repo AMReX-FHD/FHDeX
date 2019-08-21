@@ -2,8 +2,6 @@
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "hydro_functions_F.H"
-//#include "analysis_functions_F.H"
-//#include "StructFact_F.H"
 #include "StochMFlux.H"
 
 #include <AMReX_MultiFabUtil.H>
@@ -25,59 +23,49 @@ StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geo
   mflux_cc.resize(n_rngs);
   mflux_ed.resize(n_rngs);
 
-  // Define mflux multifab vectors
+  // Here we store all the random number stages at all spatial locations
   for (int i=0; i<n_rngs; ++i) {
       mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, std::max(1,filtering_width));
-  }
 #if (AMREX_SPACEDIM == 2)
-  for (int i=0; i<n_rngs; ++i) {
-    mflux_ed[i][0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, 0);
-  }
+      mflux_ed[i][0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
 #elif (AMREX_SPACEDIM == 3)
-  for (int i=0; i<n_rngs; ++i) {
-    mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, 0);
-    mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, 0);
-    mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, 0);
-  }
+      mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, filtering_width);
+      mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, filtering_width);
+      mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, filtering_width);
 #endif
+  }
 
-  // Define weighted mflux multifab vectors
-  mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, 1);
+  // Temporary storage for linear combinations of random number stages
+  mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, std::max(1,filtering_width));
 #if (AMREX_SPACEDIM == 2)
-  mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, 0);
+  mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
 #elif (AMREX_SPACEDIM == 3)
-  mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, 0);
-  mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, 0);
-  mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, 0);
+  mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, filtering_width);
+  mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, filtering_width);
+  mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, filtering_width);
 #endif
 }
 
 
 void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
-  mflux_cc_weighted.setVal(0.0);
 
-  for (int i=0; i<n_rngs; ++i) {
-    MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, AMREX_SPACEDIM, 1);
-  }
-  mflux_cc_weighted.FillBoundary(geom.periodicity());
-
-  MultiFABPhysBC(mflux_cc_weighted, geom);
-
-  for (int d=0; d<NUM_EDGE; ++d) {
-    mflux_ed_weighted[d].setVal(0.0);
-    for (int i=0; i<n_rngs; ++i) {
-      MultiFab::Saxpy(mflux_ed_weighted[d], weights[i], mflux_ed[i][d], 0, 0, ncomp_ed, 0);
+    mflux_cc_weighted.setVal(0.0);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        mflux_ed_weighted[d].setVal(0.0);
     }
-    mflux_ed_weighted[d].FillBoundary(geom.periodicity());
 
-    // TODO: is this the correct BC?
-    MultiFABPhysBC(mflux_ed_weighted[d], d, geom);
-  }
+    // add weighted contribution of fluxes
+    for (int i=0; i<n_rngs; ++i) {
+        MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, AMREX_SPACEDIM, std::max(1,filtering_width));
+        for (int d=0; d<NUM_EDGE; ++d) {
+            MultiFab::Saxpy(mflux_ed_weighted[d], weights[i], mflux_ed[i][d], 0, 0, ncomp_ed, filtering_width);
+        }
+    }
 }
 
 void StochMFlux::fillMStochastic() {
 
-    BL_PROFILE_VAR("StochMFlux::StochMFlux()",StochMFlux);
+    BL_PROFILE_VAR("StochMFlux::fillMStochastic()",StochMFlux);
 
     for (int i=0; i<n_rngs; ++i) {
 
@@ -109,12 +97,10 @@ void StochMFlux::fillMStochastic() {
             break;
         }
     }
-
-    // TODO: Put stochastic BCs here ?
 }
 
 /*
-void StochMFlux:StochMBC() {
+void StochMFlux:MfluxBC() {
 
 }
 */
@@ -137,13 +123,12 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
   }
 
   // Compute variance using computed differential volume
-  Real variance = variance_coef_mom*sqrt(variance_coef_mom*2.0*k_B/(dVol*dt));
-  //Real variance = variance_coef_mom*sqrt(variance_coef_mom*2.0*k_B/(dVol));
+  Real variance = sqrt(variance_coef_mom*2.0*k_B/(dVol*dt));
 
   // Scale mflux_weighted by variance
-  mflux_cc_weighted.mult(variance, 1);
+  mflux_cc_weighted.mult(variance, filtering_width);
   for (int d=0; d<NUM_EDGE; d++) {
-    mflux_ed_weighted[d].mult(variance, 0);
+    mflux_ed_weighted[d].mult(variance, filtering_width);
   }
 
   // Multiply mflux_weighted by sqrt(eta*temperature)
@@ -173,11 +158,6 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 #endif
 			  );
   }
-
-  mflux_cc_weighted.FillBoundary(geom.periodicity());
-  for (int d=0; d<NUM_EDGE; ++d) {
-    mflux_ed_weighted[d].FillBoundary(geom.periodicity());
-  }
 }
 
 void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
@@ -195,6 +175,25 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
 
   // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
   StochMFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
+
+  // TODO - write me
+  // StochMFlux:MfluxBC()
+
+  // sync up random numbers at boundaries and ghost cells
+  for (int d=0; d<NUM_EDGE; ++d) {
+      mflux_ed_weighted[d].OverrideSync(geom.periodicity());
+      mflux_ed_weighted[d].FillBoundary(geom.periodicity());
+  }
+  mflux_cc_weighted.FillBoundary(geom.periodicity());
+
+  if (filtering_width > 0) {
+      Abort("StochMFlux: filtering_width != 0 not fully implemented yet");
+      // need calls to filter_stoch_m_flux for mflux_ed and mflux_cc
+      /*
+
+       */
+      mflux_cc_weighted.FillBoundary(geom.periodicity());
+  }
 
   const Real* dx = geom.CellSize();
 
@@ -304,9 +303,6 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
     // Fill momentum with random numbers, scaled by sqrt(var*k_B/dV)
     MultiFABFillRandom(mac_temp[d],0,variance_mom,geom);
-
-    // TODO: add stochastic BCs here?
-
 
     // Scale random momenta further by factor of sqrt(rho*temp)
     MultiFab::Multiply(mac_temp[d],variance_mfab[d],0,0,1,1);
