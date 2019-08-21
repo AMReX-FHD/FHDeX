@@ -465,7 +465,7 @@ void main_driver(const char * argv) {
     StochMFlux sMflux (ba, dmap, geom, n_rngs);
 
     // Add initial equilibrium fluctuations
-    sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+    sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
 
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap, 1, 1);

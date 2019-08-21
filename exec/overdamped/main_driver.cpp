@@ -275,7 +275,7 @@ void main_driver(const char* argv)
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
     }
 
     int step = 0;

@@ -340,7 +340,7 @@ void main_driver(const char* argv)
     }
     
     // Add initial equilibrium fluctuations
-    sMflux.addMfluctuations(umac, rhotot, temp_cc, initial_variance_mom, geom);
+    sMflux.addMfluctuations(umac, rhotot, temp_cc, initial_variance_mom);
     
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap,1,1);

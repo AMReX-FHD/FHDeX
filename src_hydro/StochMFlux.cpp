@@ -15,6 +15,10 @@ StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geo
 
   BL_PROFILE_VAR("StochMFlux::StochMFlux()",StochMFlux);
 
+  if (filtering_width != 0) {
+    Abort("StochMFlux: filtering_width != 0 not fully implemented yet");
+  }
+  
   n_rngs = n_rngs_in;
   geom = geom_in;
 
@@ -22,9 +26,8 @@ StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geo
   mflux_ed.resize(n_rngs);
 
   // Define mflux multifab vectors
-  // TEMPORARY ASSUMPTION: filtering_width = 0
   for (int i=0; i<n_rngs; ++i) {
-    mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, 1);
+      mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, std::max(1,filtering_width));
   }
 #if (AMREX_SPACEDIM == 2)
   for (int i=0; i<n_rngs; ++i) {
@@ -109,6 +112,12 @@ void StochMFlux::fillMStochastic() {
 
     // TODO: Put stochastic BCs here ?
 }
+
+/*
+void StochMFlux:StochMBC() {
+
+}
+*/
 
 void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 				      const std::array< MultiFab, NUM_EDGE >& eta_ed,
@@ -210,18 +219,16 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
 		  dx, &increment);
   }
 
+  // mfluxdiv does not have ghost cells
+  // set the value on physical boundaries to zero
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv[d].FillBoundary(geom.periodicity());
-      // TODO: is this the right BC?
-      MultiFABPhysBC(mfluxdiv[d], d, geom);
-      // MultiFABPhysBCDomainVel(mfluxdiv[d], d);
-      // MultiFABPhysBCMacVel(mfluxdiv[d], d);
+    MultiFABPhysBCDomainVel(mfluxdiv[d], geom, d);
   }
 }
 
 void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 				  const MultiFab& rhotot, const MultiFab& Temp,
-				  const amrex::Real& variance, Geometry geom) {
+				  const amrex::Real& variance) {
 
   std::array< MultiFab, AMREX_SPACEDIM > m_old;
   std::array< MultiFab, AMREX_SPACEDIM > rhotot_fc;
@@ -251,7 +258,7 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Multiply( m_old[d], rhotot_fc[d], 0, 0, 1, 1);
   }
 
-  addMfluctuations_stag(m_old, rhotot_fc, Temp_fc, variance,geom);
+  addMfluctuations_stag(m_old, rhotot_fc, Temp_fc, variance);
 
 
   // Convert momenta to umac, (1/rho)*momentum
@@ -264,7 +271,7 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
 				       const std::array< MultiFab, AMREX_SPACEDIM >& rhotot_fc,
 				       const std::array< MultiFab, AMREX_SPACEDIM >& Temp_fc,
-				       const amrex::Real& variance, Geometry geom) {
+				       const amrex::Real& variance) {
 
   const Real* dx = geom.CellSize();
   Real dVol = dx[0]*dx[1];

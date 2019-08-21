@@ -42,11 +42,11 @@ public:
 			      const amrex::Vector< amrex::Real >&, const amrex::Real&);
   void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const amrex::MultiFab&, const amrex::MultiFab&,
-			      const amrex::Real&, Geometry);
+			      const amrex::Real&);
   void addMfluctuations_stag( std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
-			      const amrex::Real&, Geometry);
+			      const amrex::Real&);
   void writeMFs(              std::array< MultiFab, AMREX_SPACEDIM >&);
 
 };
