@@ -113,12 +113,15 @@ namespace common {
     // ----------------------
     // BC specifications:
     // -1 = periodic
-
+    //  1 = slip wall
+    //  2 = no-slip wall
     extern amrex::Vector<int>          bc_lo;
     extern amrex::Vector<int>          bc_hi;
+
+      // BC specifications:
+    // -1 = periodic
     extern amrex::Vector<int>          bc_es_lo;
     extern amrex::Vector<int>          bc_es_hi;
-
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern amrex::Vector<amrex::Real>  p_lo;

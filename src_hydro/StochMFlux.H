@@ -36,17 +36,18 @@ public:
   void multbyVarSqrtEtaTemp(  const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::Real&);
-  void stochMforce(           std::array< amrex::MultiFab, AMREX_SPACEDIM >&, const amrex::MultiFab&,
+  void StochMFluxDiv(         std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+                              const int&, const amrex::MultiFab&,
 			      const std::array< amrex::MultiFab, NUM_EDGE >&, const amrex::MultiFab&,
 			      const std::array< amrex::MultiFab, NUM_EDGE >&,
 			      const amrex::Vector< amrex::Real >&, const amrex::Real&);
   void addMfluctuations(      std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const amrex::MultiFab&, const amrex::MultiFab&,
-			      const amrex::Real&, Geometry);
+			      const amrex::Real&);
   void addMfluctuations_stag( std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
 			      const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
-			      const amrex::Real&, Geometry);
+			      const amrex::Real&);
   void writeMFs(              std::array< MultiFab, AMREX_SPACEDIM >&);
 
 };
