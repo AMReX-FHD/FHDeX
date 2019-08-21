@@ -160,15 +160,16 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
   }
 }
 
-void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
-			     const MultiFab& eta_cc,
-			     const std::array< MultiFab, NUM_EDGE >& eta_ed,
-			     const MultiFab& temp_cc,
-			     const std::array< MultiFab, NUM_EDGE >& temp_ed,
-			     const Vector< amrex::Real >& weights,
-			     const amrex::Real& dt) {
+void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
+                               const int& increment,
+                               const MultiFab& eta_cc,
+                               const std::array< MultiFab, NUM_EDGE >& eta_ed,
+                               const MultiFab& temp_cc,
+                               const std::array< MultiFab, NUM_EDGE >& temp_ed,
+                               const Vector< amrex::Real >& weights,
+                               const amrex::Real& dt) {
 
-  BL_PROFILE_VAR("StochMFlux::stochMforce()",stochMforce);
+  BL_PROFILE_VAR("StochMFlux::StochMFluxDiv()",StochMFluxDiv);
 
   // Take linear combination of mflux multifabs at each stage
   StochMFlux::weightMflux(weights);
@@ -195,10 +196,11 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
       mflux_cc_weighted.FillBoundary(geom.periodicity());
   }
 
+  // calculate divergence and add to stoch_m_force
+  
   const Real* dx = geom.CellSize();
 
   // Loop over boxes
-  int increment = 0;
   for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
     // Note: Make sure that multifab is cell-centered
     const Box& validBox = mfi.validbox();
@@ -210,18 +212,18 @@ void StochMFlux::stochMforce(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv,
 		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[1][mfi]),
 		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[2][mfi]),
 #endif
-		  BL_TO_FORTRAN_ANYD(mfluxdiv[0][mfi]),
-		  BL_TO_FORTRAN_ANYD(mfluxdiv[1][mfi]),
+		  BL_TO_FORTRAN_ANYD(m_force[0][mfi]),
+		  BL_TO_FORTRAN_ANYD(m_force[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-		  BL_TO_FORTRAN_ANYD(mfluxdiv[2][mfi]),
+		  BL_TO_FORTRAN_ANYD(m_force[2][mfi]),
 #endif
 		  dx, &increment);
   }
 
-  // mfluxdiv does not have ghost cells
+  // m_force does not have ghost cells
   // set the value on physical boundaries to zero
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    MultiFABPhysBCDomainVel(mfluxdiv[d], geom, d);
+    MultiFABPhysBCDomainVel(m_force[d], geom, d);
   }
 }
 

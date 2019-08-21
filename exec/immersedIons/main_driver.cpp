@@ -790,11 +790,11 @@ void main_driver(const char* argv)
           // compute the random numbers needed for the stochastic momentum forcing
           sMflux.fillMStochastic();
 //          // compute stochastic momentum force
-          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+          sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 
           if(fluid_tog ==2)
           {
-             sMflux.stochMforce(stochMfluxdivC,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+              sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
           }
 
         }

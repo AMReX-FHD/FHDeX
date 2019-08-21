@@ -648,7 +648,7 @@ void main_driver(const char* argv)
 
 
           // compute stochastic momentum force
-          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+          sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
         }
 
     // Advance umac, source is where we add particle stresses

@@ -522,9 +522,9 @@ void main_driver(const char * argv) {
         //     sMflux.fillMStochastic();
 
         //     // Compute stochastic force terms (and apply to mfluxdiv_*)
-        //     // NOTE: StochMFlux::stochMforce fills ghost cells
-        //     sMflux.stochMforce(mfluxdiv_predict, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        //     sMflux.stochMforce(mfluxdiv_correct, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+        //     // NOTE: StochMFlux::StochMFluxDiv fills ghost cells
+        //     sMflux.StochMFluxDiv(mfluxdiv_predict, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+        //     sMflux.StochMFluxDiv(mfluxdiv_correct, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
         // }
 
 

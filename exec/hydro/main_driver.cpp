@@ -340,7 +340,7 @@ void main_driver(const char* argv)
 	  sMflux.fillMStochastic();
 
 	  // compute stochastic force terms
-	  sMflux.stochMforce(mfluxdiv_stoch,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	  sMflux.StochMFluxDiv(mfluxdiv_stoch,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	}
 
 	// Advance umac
