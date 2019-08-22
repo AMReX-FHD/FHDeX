@@ -37,6 +37,8 @@
 #include "debug_functions_F.H"
 #include "AMReX_ArrayLim.H"
 
+//#include <IBMarkerContainer.H>
+
 using namespace gmres;
 using namespace common;
 //using namespace amrex;
@@ -269,13 +271,14 @@ void main_driver(const char* argv)
         ionParticle[i].sigma = sigma[i];
         ionParticle[i].eepsilon = eepsilon[i];
 
-        // AJN - why round up particles so there are the same number in each box?
+        // AJN - why round up particles so there are the same number in each box? DRL - Have to divide them into whole numbers of particles somehow. 
         if(particle_count[i] >= 0) {
-            // adjust number of particles up so there is the same number per box            
-            ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
-            ionParticle[i].total = ionParticle[i].ppb*ba.size();
-            ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
+
+            ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
+            ionParticle[i].total = particle_count[i];
+            ionParticle[i].n0 = ionParticle[i].total/domainVol;
+            
             Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
         }
         else {
@@ -283,7 +286,7 @@ void main_driver(const char* argv)
             ionParticle[i].total = (int)ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
             ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
-            ionParticle[i].total = ionParticle[i].ppb*ba.size();
+            //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
             Print() << "Species " << i << " n0 adjusted to " << ionParticle[i].n0 << "\n";
@@ -291,8 +294,8 @@ void main_driver(const char* argv)
 
         Print() << "Species " << i << " particles per box: " <<  ionParticle[i].ppb << "\n";
 
-        realParticles = realParticles + ionParticle[i].total;
-        simParticles = simParticles + ionParticle[i].total*particle_neff;
+        realParticles = realParticles + ionParticle[i].total*particle_neff;
+        simParticles = simParticles + ionParticle[i].total;
     }
     
     Print() << "Total real particles: " << realParticles << "\n";
