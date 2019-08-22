@@ -99,11 +99,345 @@ void StochMFlux::fillMStochastic() {
     }
 }
 
-/*
-void StochMFlux:MfluxBC() {
+void StochMFlux::MfluxBC() {
 
+    // lo-x domain boundary, y-facing fluxes
+    // lo-x domain boundary, z-facing fluxes
+    if (bc_lo[0] == 1 || bc_lo[0] == 2) {
+
+        // 0 = slip wall   : multiply fluxes on wall by 0
+        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        Real factor = (bc_lo[0] == 1) ? 0. : sqrt(2.);
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
+        const Box& dom_xy = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
+
+        // this is the x-lo domain boundary box (xy nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xy_xlo = amrex::bdryNode(dom_xy, Orientation(0, Orientation::low));
+
+        for (MFIter mfi(mflux_ed_weighted[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xy_xlo;
+            Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (xz)
+        const Box& dom_xz = amrex::convert(geom.Domain(), mflux_ed_weighted[1].ixType());
+
+        // this is the x-lo domain boundary box (xz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xz_xlo = amrex::bdryNode(dom_xz, Orientation(0, Orientation::low));
+
+        for (MFIter mfi(mflux_ed_weighted[1]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xz_xlo;
+            Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+    }
+    else if (bc_lo[0] != -1) {
+        Abort("MfluxBC unsupported bc type");
+    }
+
+    // hi-x domain boundary, y-facing fluxes
+    // hi-x domain boundary, z-facing fluxes
+    if (bc_hi[0] == 1 || bc_hi[0] == 2) {
+
+        // 0 = slip wall   : multiply fluxes on wall by 0
+        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        Real factor = (bc_hi[0] == 1) ? 0. : sqrt(2.);
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
+        const Box& dom_xy = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
+
+        // this is the x-hi domain boundary box (xy nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xy_xhi = amrex::bdryNode(dom_xy, Orientation(0, Orientation::high));
+
+        for (MFIter mfi(mflux_ed_weighted[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xy_xhi;
+            Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (xz)
+        const Box& dom_xz = amrex::convert(geom.Domain(), mflux_ed_weighted[1].ixType());
+
+        // this is the x-hi domain boundary box (xz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xz_xhi = amrex::bdryNode(dom_xz, Orientation(0, Orientation::high));
+
+        for (MFIter mfi(mflux_ed_weighted[1]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xz_xhi;
+            Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+    }
+    else if (bc_hi[0] != -1) {
+        Abort("MfluxBC unsupported bc type");
+    }
+
+    // lo-y domain boundary, x-facing fluxes
+    // lo-y domain boundary, z-facing fluxes
+    if (bc_lo[1] == 1 || bc_lo[1] == 2) {
+
+        // 0 = slip wall   : multiply fluxes on wall by 0
+        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        Real factor = (bc_lo[1] == 1) ? 0. : sqrt(2.);
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
+        const Box& dom_xy = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
+
+        // this is the y-lo domain boundary box (xy nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xy_ylo = amrex::bdryNode(dom_xy, Orientation(1, Orientation::low));
+
+        for (MFIter mfi(mflux_ed_weighted[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xy_ylo;
+            Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (yz)
+        const Box& dom_yz = amrex::convert(geom.Domain(), mflux_ed_weighted[2].ixType());
+
+        // this is the y-lo domain boundary box (yz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_yz_ylo = amrex::bdryNode(dom_yz, Orientation(1, Orientation::low));
+
+        for (MFIter mfi(mflux_ed_weighted[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_yz_ylo;
+            Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+    }
+    else if (bc_lo[1] != -1) {
+        Abort("MfluxBC unsupported bc type");
+    }
+
+    // hi-y domain boundary, x-facing fluxes
+    // hi-y domain boundary, z-facing fluxes
+    if (bc_hi[1] == 1 || bc_hi[1] == 2) {
+
+        // 0 = slip wall   : multiply fluxes on wall by 0
+        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        Real factor = (bc_hi[1] == 1) ? 0. : sqrt(2.);
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
+        const Box& dom_xy = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
+
+        // this is the y-hi domain boundary box (xy nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xy_yhi = amrex::bdryNode(dom_xy, Orientation(1, Orientation::high));
+
+        for (MFIter mfi(mflux_ed_weighted[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xy_yhi;
+            Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (yz)
+        const Box& dom_yz = amrex::convert(geom.Domain(), mflux_ed_weighted[2].ixType());
+
+        // this is the y-hi domain boundary box (yz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::hiw or ::high
+        const Box& dom_yz_yhi = amrex::bdryNode(dom_yz, Orientation(1, Orientation::high));
+
+        for (MFIter mfi(mflux_ed_weighted[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_yz_yhi;
+            Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+    }
+    else if (bc_hi[1] != -1) {
+        Abort("MfluxBC unsupported bc type");
+    }
+
+    // lo-z domain boundary, x-facing fluxes
+    // lo-z domain boundary, y-facing fluxes
+    if (bc_lo[2] == 1 || bc_lo[2] == 2) {
+
+        // 0 = slip wall   : multiply fluxes on wall by 0
+        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        Real factor = (bc_lo[2] == 1) ? 0. : sqrt(2.);
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (xz)
+        const Box& dom_xz = amrex::convert(geom.Domain(), mflux_ed_weighted[1].ixType());
+
+        // this is the z-lo domain boundary box (xz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_xz_zlo = amrex::bdryNode(dom_xz, Orientation(2, Orientation::low));
+
+        for (MFIter mfi(mflux_ed_weighted[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xz_zlo;
+            Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (yz)
+        const Box& dom_yz = amrex::convert(geom.Domain(), mflux_ed_weighted[2].ixType());
+
+        // this is the y-lo domain boundary box (yz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::low or ::high
+        const Box& dom_yz_zlo = amrex::bdryNode(dom_yz, Orientation(2, Orientation::low));
+
+        for (MFIter mfi(mflux_ed_weighted[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_yz_zlo;
+            Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+    }
+    else if (bc_lo[2] != -1) {
+        Abort("MfluxBC unsupported bc type");
+    }
+
+    // hi-z domain boundary, x-facing fluxes
+    // hi-z domain boundary, y-facing fluxes
+    if (bc_hi[2] == 1 || bc_hi[2] == 2) {
+
+        // 0 = slip wall   : multiply fluxes on wall by 0
+        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        Real factor = (bc_hi[2] == 1) ? 0. : sqrt(2.);
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (xz)
+        const Box& dom_xz = amrex::convert(geom.Domain(), mflux_ed_weighted[1].ixType());
+
+        // this is the z-hi domain boundary box (xz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::hiw or ::high
+        const Box& dom_xz_zhi = amrex::bdryNode(dom_xz, Orientation(2, Orientation::high));
+
+        for (MFIter mfi(mflux_ed_weighted[0]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_xz_zhi;
+            Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+
+        // domain grown nodally based on mflux_ed_weighted[1] nodality (yz)
+        const Box& dom_yz = amrex::convert(geom.Domain(), mflux_ed_weighted[2].ixType());
+
+        // this is the y-hi domain boundary box (yz nodality)
+        // Orientation(dir,Orientation)  -- Orientation can be ::hiw or ::high
+        const Box& dom_yz_zhi = amrex::bdryNode(dom_yz, Orientation(2, Orientation::high));
+
+        for (MFIter mfi(mflux_ed_weighted[2]); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.fabbox();
+            const Box& b = bx & dom_yz_zhi;
+            Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
+            if (b.ok()) {
+                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
+            }
+        }
+
+        ////////////////////////////////////////////////
+    }
+    else if (bc_hi[2] != -1) {
+        Abort("MfluxBC unsupported bc type");
+    }
 }
-*/
+
 
 void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 				      const std::array< MultiFab, NUM_EDGE >& eta_ed,
@@ -169,7 +503,7 @@ void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
                                const Vector< amrex::Real >& weights,
                                const amrex::Real& dt) {
 
-  BL_PROFILE_VAR("StochMFlux::StochMFluxDiv()",StochMFluxDiv);
+  BL_PROFILE_VAR("StochMFlux::StochMfluxDiv()",StochMfluxDiv);
 
   // Take linear combination of mflux multifabs at each stage
   StochMFlux::weightMflux(weights);
@@ -177,8 +511,9 @@ void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
   // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
   StochMFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
 
-  // TODO - write me
-  // StochMFlux:MfluxBC()
+  // multiply noise stored in mflux_ed_weighted
+  // on walls by 0 (for slip) or sqrt(2) (for no-slip)
+  StochMFlux::MfluxBC();
 
   // sync up random numbers at boundaries and ghost cells
   for (int d=0; d<NUM_EDGE; ++d) {
