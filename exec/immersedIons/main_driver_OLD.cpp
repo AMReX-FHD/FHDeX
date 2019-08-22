@@ -1,5 +1,4 @@
 #include "INS_functions.H"
-#include "INS_functions_F.H"
 #include <iostream>
 
 #include "common_functions.H"
@@ -60,39 +59,33 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-    //InitializeMembraneNamespace();
-
+    remove("potential.dat");
+    remove("kinetic.dat");
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+//    int fhdSeed = ParallelDescriptor::MyProc() + 1;
+//    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
+//    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
+//    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
+//    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
+//    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
 
-//    int fhdSeed = 0;
-//    int particleSeed = 0;
-//    int selectorSeed = 0;
-//    int thetaSeed = 0;
-//    int phiSeed = 0;
-//    int generalSeed = 0;
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_lo[i] == -1 && bc_hi[i] == -1) {
             is_periodic[i] = 1;
-            is_periodic_c[i] = 1;
-        }
-        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
-            is_periodic_p[i] = 1;
         }
     }
 
@@ -165,8 +158,8 @@ void main_driver(const char* argv)
 
     // This defines a Geometry object
     geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
-    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
+    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic.data());
+    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic.data());
 
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
@@ -215,7 +208,7 @@ void main_driver(const char* argv)
     species ionParticle[nspecies];
 
     double realParticles = 0;
-    int simParticles = 0;
+    double simParticles = 0;
     double dryRad, wetRad;
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
@@ -273,14 +266,13 @@ void main_driver(const char* argv)
         ionParticle[i].sigma = sigma[i];
         ionParticle[i].eepsilon = eepsilon[i];
 
-        // AJN - why round up particles so there are the same number in each box? DRL - Have to divide them into whole numbers of particles somehow. 
+        // AJN - why round up particles so there are the same number in each box?
         if(particle_count[i] >= 0) {
-
-
-            ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
-            ionParticle[i].total = particle_count[i];
+            // adjust number of particles up so there is the same number per box            
+            ionParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
+            ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
-            
+
             Print() << "Species " << i << " count adjusted to " << ionParticle[i].total << "\n";
         }
         else {
@@ -288,7 +280,7 @@ void main_driver(const char* argv)
             ionParticle[i].total = (int)ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
             ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
-            //ionParticle[i].total = ionParticle[i].ppb*ba.size();
+            ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
             Print() << "Species " << i << " n0 adjusted to " << ionParticle[i].n0 << "\n";
@@ -296,28 +288,9 @@ void main_driver(const char* argv)
 
         Print() << "Species " << i << " particles per box: " <<  ionParticle[i].ppb << "\n";
 
-        realParticles = realParticles + ionParticle[i].total*particle_neff;
-        simParticles = simParticles + ionParticle[i].total;
+        realParticles = realParticles + ionParticle[i].total;
+        simParticles = simParticles + ionParticle[i].total*particle_neff;
     }
-
-    double* spec3xPos;
-    double* spec3yPos;
-    double* spec3zPos;
-
-    spec3xPos = new double[simParticles];
-    spec3yPos = new double[simParticles];
-    spec3zPos = new double[simParticles];
-
-    double* spec3xForce;
-    double* spec3yForce;
-    double* spec3zForce;
-
-    spec3xForce = new double[simParticles];
-    spec3yForce = new double[simParticles];
-    spec3zForce = new double[simParticles];
-
-    int length = ionParticle[0].total;
-
     
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
@@ -327,8 +300,6 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
-
-    
 
     // MFs for storing particle statistics
 
@@ -753,11 +724,6 @@ void main_driver(const char* argv)
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, ionParticle, geom);
-
-    //READ MEMBRANE NML FILE HERE
-    //int filelength = 10;
-    //char filename[10] = "test";
-    user_force_calc_init(inputs_file.c_str(),inputs_file.size()+1);
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -795,8 +761,7 @@ void main_driver(const char* argv)
             //        const int* hi = bx.hiVect();
             //        const FArrayBox& MF_charge = charge[mfi];
             //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_charge), &iloc, &jloc, &kloc);
-
-
+            //}
         }
         //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
@@ -813,7 +778,6 @@ void main_driver(const char* argv)
         //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_pot), &iloc, &jloc, &kloc);
         //}
 
-        particles.SyncMembrane(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, simParticles, step, ionParticle);
 
         //compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
@@ -826,13 +790,12 @@ void main_driver(const char* argv)
 
           if(fluid_tog ==2)
           {
-            sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+              sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
           }
 
         }
 
     	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-
         if(fluid_tog ==2)
         {
             advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
@@ -890,7 +853,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0)
         {
-
+           
             //This write particle data and associated fields and electrostatic fields
             WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
 
@@ -906,7 +869,6 @@ void main_driver(const char* argv)
         time = time + dt;
 
     }
-
     ///////////////////////////////////////////
     if (struct_fact_int > 0) {
 
@@ -929,11 +891,6 @@ void main_driver(const char* argv)
     //  structFact.WritePlotFile(step,time,geomP);
 
     }
-
-
-    //CLEAN UP MEMBRANE STUFF HERE
-    user_force_calc_destroy();
-
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors

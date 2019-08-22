@@ -113,7 +113,6 @@ void main_driver(const char* argv)
     rho.setVal(1.);
 
     // alpha_fc arrays
-    Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     AMREX_D_TERM(alpha_fc[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  alpha_fc[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
@@ -307,7 +306,7 @@ void main_driver(const char* argv)
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-      sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+      sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
     }
 
     // Project umac onto divergence free field
@@ -341,7 +340,7 @@ void main_driver(const char* argv)
 	  sMflux.fillMStochastic();
 
 	  // compute stochastic force terms
-	  sMflux.stochMforce(mfluxdiv_stoch,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	  sMflux.StochMFluxDiv(mfluxdiv_stoch,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	}
 
 	// Advance umac
@@ -386,7 +385,7 @@ void main_driver(const char* argv)
       }
 
       // let rho = 1
-      Real SFscale = dVol/(k_B*temp_const);
+      // Real SFscale = dVol/(k_B*temp_const);
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
 //      structFact.Finalize(SFscale);

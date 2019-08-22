@@ -303,6 +303,9 @@ extern "C"
                         amrex_real* cellVols, const int* cvlo, const int* cvhi,
                         const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps);
 
+   void sync_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce, amrex_real* spec3zForce, void* particles, const int* np, const int* length);
+
+   void force_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce, amrex_real* spec3zForce, void* particles, const int* np, const int* length);
 
 
 #ifdef __cplusplus

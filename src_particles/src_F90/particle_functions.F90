@@ -2723,7 +2723,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
 
   domsize = phi - plo
 
-  adj = 0.99999
+  adj = 0.999999
   adjalt = 2d0*(1d0 - adj)
 
   dxinv = 1.d0/dx
@@ -2857,7 +2857,7 @@ subroutine spread_ions_fhd(particles, np, lo, hi, &
                         sourcez, sourcezlo, sourcezhi, &
 #endif
                         part, ks, dxf)
-      !print*, 'Part force at end of spread_ions: ', part%force
+      !print*, 'Part force at end of spread_ions: ', part%force, part%q
       p = p + 1
 
    end do
@@ -3251,4 +3251,87 @@ subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, s
   end do
   
 end subroutine compute_dry_mobility
+
+subroutine sync_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles, np, length)bind(c,name="sync_particles")
+
+  use amrex_fort_module, only: amrex_real
+  !use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t
+  !use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies, move_tog
+  !use rng_functions_module
+  !use surfaces_module
+  
+  implicit none
+
+  integer,          intent(in   )         :: length, np
+  double precision,          intent(inout)         :: spec3xPos(length), spec3yPos(length), spec3zPos(length), spec3xForce(length), spec3yForce(length), spec3zForce(length)
+
+  type(particle_t), intent(inout), target :: particles(np)
+
+  integer i, id
+  type(particle_t), pointer :: part
+
+  do i = 1, length
+
+      spec3xPos(i) = 0
+      spec3yPos(i) = 0
+      spec3zPos(i) = 0
+  enddo
+
+  do i = 1, np
+
+    part => particles(i)
+
+    !if(part%species .eq. 1) then
+
+      id = part%id
+
+      spec3xPos(id) = part%pos(1)
+      spec3yPos(id) = part%pos(2)
+      spec3zPos(id) = part%pos(3)
+
+      !print *, "id: ", id, "zpos: ", spec3zPos(id), "real: ", part%pos(3)
+
+    !endif
+
+  enddo
+  
+end subroutine sync_particles
+
+subroutine force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles, np, length)bind(c,name="force_particles")
+
+  use amrex_fort_module, only: amrex_real
+  !use iso_c_binding, only: c_ptr, c_int, c_f_pointer
+  use cell_sorted_particle_module, only: particle_t
+  !use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies, move_tog
+  !use rng_functions_module
+  !use surfaces_module
+  
+  implicit none
+
+  integer,                   intent(in   )         :: length, np
+  double precision,          intent(inout)         :: spec3xPos(length), spec3yPos(length), spec3zPos(length), spec3xForce(length), spec3yForce(length), spec3zForce(length)
+
+  type(particle_t), intent(inout), target :: particles(np)
+
+  integer i, id
+  type(particle_t), pointer :: part
+
+  do i = 1, np
+
+    part => particles(i)
+
+    !if(part%species .eq. 1) then
+
+      id = part%id
+
+      part%force(1) = part%force(1) + spec3xForce(id)
+      part%force(2) = part%force(2) + spec3yForce(id)
+      part%force(3) = part%force(3) + spec3zForce(id)
+
+    !endif
+
+  enddo
+  
+end subroutine force_particles
 

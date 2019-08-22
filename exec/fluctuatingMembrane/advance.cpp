@@ -48,7 +48,6 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         //MultiFABPhysBCMacStress(sourceTerms[i], i, geom, i);
     }
 
-
   ////////////      
 
   if(fluid_tog ==1)
@@ -70,6 +69,8 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
           gmres_rhs_u[d].setVal(0.);
       }
 
+      
+
       //////////////////////////////////////////////////
       // ADVANCE velocity field
       //////////////////////////////////////////////////
@@ -84,6 +85,17 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
       //
       //
       //
+      Vector<Real> mean_stress_umac(AMREX_SPACEDIM);
+
+      SumStag(geom,gmres_rhs_u,0,mean_stress_umac,true);
+
+      Print() << "mean_stress_umac: " << mean_stress_umac[0] << "\n";
+
+      for (int d=0; d<AMREX_SPACEDIM; ++d) {
+          if (geom.isPeriodic(d)) {
+              gmres_rhs_u[d].plus(-mean_stress_umac[d],0,1,0);
+          }
+      }
       
       // call GMRES
       GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);

@@ -18,6 +18,7 @@ extern "C"
                               amrex::Real* integral,
                               amrex::Real* energy,
                               amrex::Real* teng,
+                              amrex::Real* H1_semi,
                               const amrex::Real* dx,
                               const amrex::Real* dt,
                               amrex::Real* phi_avg);

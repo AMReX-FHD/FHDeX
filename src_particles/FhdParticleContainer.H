@@ -4,6 +4,8 @@
 #include <AMReX_Particles.H>
 #include "AMReX_NeighborParticles.H"
 
+//#include <IBMarkerContainerBase.H>
+
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "species.H"
@@ -15,6 +17,8 @@
 
 #include "particle_functions_F.H"
 #include "rng_functions_F.H"
+
+#include "INS_functions_F.H"
 
 
 //#include "common_namespace_declarations.H"
@@ -145,6 +149,8 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
+
+    void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,

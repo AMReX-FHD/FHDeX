@@ -49,16 +49,12 @@ void ComputeDiv(MultiFab& div,
 AMREX_GPU_HOST_DEVICE
 inline
 void compute_grad (const Box & tbx,
-                   const Box & xbx,
-                   const Box & ybx,
-#if (AMREX_SPACEDIM == 3)
-                   const Box & zbx,
-#endif
-                   const Array4<Real> & gx,
-                   const Array4<Real> & gy,
-#if (AMREX_SPACEDIM == 3)
-                   const Array4<Real> & gz,
-#endif
+                   AMREX_D_DECL(const Box & xbx,
+                                const Box & ybx,
+                                const Box & zbx),
+                   AMREX_D_DECL(const Array4<Real> & gx,
+                                const Array4<Real> & gy,
+                                const Array4<Real> & gz),
                    const Array4<Real const> & phi,
                    const GpuArray<Real, AMREX_SPACEDIM>& dx,
                    int start_incomp, int start_outcomp, int ncomp) noexcept {
@@ -102,6 +98,7 @@ void compute_grad (const Box & tbx,
         }
     }
 
+#if (AMREX_SPACEDIM >= 2)
     for (int n = 0; n < ncomp; ++n) {
         for (int k = ylo.z; k <= yhi.z; ++k) {
             for (int j = ylo.y; j <= yhi.y; ++j) {
@@ -113,6 +110,7 @@ void compute_grad (const Box & tbx,
             }
         }
     }
+#endif
 
 #if (AMREX_SPACEDIM == 3)
     for (int n = 0; n < ncomp; ++n) {

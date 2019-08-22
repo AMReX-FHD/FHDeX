@@ -1,4 +1,6 @@
 
+#include "rng_functions_F.H"
+
 #include "GL_functions.H"
 #include "GL_functions_F.H"
 
@@ -59,6 +61,7 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
     energy =0.;
     teng =0.;
     phi_avg=0.0;
+    H1_semi_norm = 0.;
     for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.validbox();
@@ -68,26 +71,15 @@ void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums,
                 phin[mfi].dataPtr(),  
                 rannums[mfi].dataPtr(),
                 &integral,
-                &energy, &teng,
+                &energy, &teng,&H1_semi_norm,
                 dx, &dt,&phi_avg);   
     }
     ParallelDescriptor::ReduceRealSum(phi_avg);
     phi_avg = phi_avg/(n_cells[0]);
     ParallelDescriptor::ReduceRealSum(energy);
     ParallelDescriptor::ReduceRealSum(teng);
-
-    // iterating over the data in phi multifab to compute H1 seminorm of phi.
-    for ( MFIter mfi(phi); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.validbox();
-
-        Comp_H1_semi_norm_1D(BL_TO_FORTRAN_BOX(bx),
-                phi[mfi].dataPtr(),  
-                dx,
-                &H1_semi_norm);   
-    }
     ParallelDescriptor::ReduceRealSum(H1_semi_norm);
-    H1_semi_norm=H1_semi_norm/(n_cells[0]);
+
 
                         //if(ParallelDescriptor::MyProc() == 0 ){
                         //       std::cout << n << " " << energy << "  energy  " << std::endl;
@@ -221,6 +213,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
     for(int step=1;step<=Total_Steps+N_Burn;++step) 
     {
         // Rk2 step computes the field at the next time step and the spatial average of the field
+        H1_semi_norm = 0.;
         RK2step(phi, phin, rannums, geom, dx, dt, integral, step,Phi_Avg,energy,teng,H1_semi_norm); 
 
         if(step>N_Burn) // statistics and data are taken only after equilibration period
