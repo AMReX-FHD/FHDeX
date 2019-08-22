@@ -36,10 +36,10 @@ contains
       ! local
       integer :: i,j
 
-      double precision :: dxinv
+      double precision :: fourdxinv
       double precision :: fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo
 
-      dxinv = 1.d0/dx(1)
+      fourdxinv = 0.25d0/dx(1)
 
       !! Note: we are computing Eq (42) in 10.2140/camcos.2014.9.47
       !! Low mach number fluctuating hydrodynamics of diffusively mixing fluids.
@@ -54,21 +54,21 @@ contains
       if (increment==1) then
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
-            fluxx_hi = 0.25d0*(mx(i,j)+mx(i+1,j))*(umac(i,j)+umac(i+1,j))
-            fluxx_lo = 0.25d0*(mx(i-1,j)+mx(i,j))*(umac(i-1,j)+umac(i,j))
-            fluxy_hi = 0.25d0*(mx(i,j)+mx(i,j+1))*(vmac(i-1,j+1)+vmac(i,j+1))
-            fluxy_lo = 0.25d0*(mx(i,j-1)+mx(i,j))*(vmac(i-1,j)+vmac(i,j))               
-            m_updatex(i,j) = m_updatex(i,j) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * dxinv
+            fluxx_hi = (mx(i,j)+mx(i+1,j))*(umac(i,j)+umac(i+1,j))
+            fluxx_lo = (mx(i-1,j)+mx(i,j))*(umac(i-1,j)+umac(i,j))
+            fluxy_hi = (mx(i,j)+mx(i,j+1))*(vmac(i-1,j+1)+vmac(i,j+1))
+            fluxy_lo = (mx(i,j-1)+mx(i,j))*(vmac(i-1,j)+vmac(i,j))               
+            m_updatex(i,j) = m_updatex(i,j) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv
          end do
          end do
       else if (increment==0) then
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
-            fluxx_hi = 0.25d0*(mx(i,j)+mx(i+1,j))*(umac(i,j)+umac(i+1,j))
-            fluxx_lo = 0.25d0*(mx(i-1,j)+mx(i,j))*(umac(i-1,j)+umac(i,j))
-            fluxy_hi = 0.25d0*(mx(i,j)+mx(i,j+1))*(vmac(i-1,j+1)+vmac(i,j+1))
-            fluxy_lo = 0.25d0*(mx(i,j-1)+mx(i,j))*(vmac(i-1,j)+vmac(i,j))               
-            m_updatex(i,j) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * dxinv
+            fluxx_hi = (mx(i,j)+mx(i+1,j))*(umac(i,j)+umac(i+1,j))
+            fluxx_lo = (mx(i-1,j)+mx(i,j))*(umac(i-1,j)+umac(i,j))
+            fluxy_hi = (mx(i,j)+mx(i,j+1))*(vmac(i-1,j+1)+vmac(i,j+1))
+            fluxy_lo = (mx(i,j-1)+mx(i,j))*(vmac(i-1,j)+vmac(i,j))               
+            m_updatex(i,j) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv
          end do
          end do
       end if
@@ -79,21 +79,21 @@ contains
       if (increment==1) then
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
-            fluxx_hi = 0.25d0*(my(i,j)+my(i+1,j))*(umac(i+1,j-1)+umac(i+1,j))
-            fluxx_lo = 0.25d0*(my(i-1,j)+my(i,j))*(umac(i,j-1)+umac(i,j))
-            fluxy_hi = 0.25d0*(my(i,j)+my(i,j+1))*(vmac(i,j)+vmac(i,j+1))
-            fluxy_lo = 0.25d0*(my(i,j-1)+my(i,j))*(vmac(i,j-1)+vmac(i,j))
-            m_updatey(i,j) = m_updatey(i,j) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * dxinv
+            fluxx_hi = (my(i,j)+my(i+1,j))*(umac(i+1,j-1)+umac(i+1,j))
+            fluxx_lo = (my(i-1,j)+my(i,j))*(umac(i,j-1)+umac(i,j))
+            fluxy_hi = (my(i,j)+my(i,j+1))*(vmac(i,j)+vmac(i,j+1))
+            fluxy_lo = (my(i,j-1)+my(i,j))*(vmac(i,j-1)+vmac(i,j))
+            m_updatey(i,j) = m_updatey(i,j) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv
          end do
          end do
       else if (increment==0) then
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
-            fluxx_hi = 0.25d0*(my(i,j)+my(i+1,j))*(umac(i+1,j-1)+umac(i+1,j))
-            fluxx_lo = 0.25d0*(my(i-1,j)+my(i,j))*(umac(i,j-1)+umac(i,j))
-            fluxy_hi = 0.25d0*(my(i,j)+my(i,j+1))*(vmac(i,j)+vmac(i,j+1))
-            fluxy_lo = 0.25d0*(my(i,j-1)+my(i,j))*(vmac(i,j-1)+vmac(i,j))
-            m_updatey(i,j) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * dxinv
+            fluxx_hi = (my(i,j)+my(i+1,j))*(umac(i+1,j-1)+umac(i+1,j))
+            fluxx_lo = (my(i-1,j)+my(i,j))*(umac(i,j-1)+umac(i,j))
+            fluxy_hi = (my(i,j)+my(i,j+1))*(vmac(i,j)+vmac(i,j+1))
+            fluxy_lo = (my(i,j-1)+my(i,j))*(vmac(i,j-1)+vmac(i,j))
+            m_updatey(i,j) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv
          end do
          end do
       end if
@@ -135,10 +135,10 @@ contains
       ! local
       integer :: i,j,k
 
-      double precision :: dxinv
+      double precision :: fourdxinv
       double precision :: fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo
 
-      dxinv = 1.d0/dx(1)
+      fourdxinv = 0.25d0/dx(1)
 
       !=============================
       ! mx fluxes and divergence
@@ -147,13 +147,13 @@ contains
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
-            fluxx_hi = 0.25d0*(mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k))
-            fluxx_lo = 0.25d0*(mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k))
-            fluxy_hi = 0.25d0*(mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k))
-            fluxy_lo = 0.25d0*(mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k))
-            fluxz_hi = 0.25d0*(mx(i,j,k)+mx(i,j,k+1))*(wmac(i-1,j,k+1)+wmac(i,j,k+1))
-            fluxz_lo = 0.25d0*(mx(i,j,k-1)+mx(i,j,k))*(wmac(i-1,j,k)+wmac(i,j,k))
-            m_updatex(i,j,k) = m_updatex(i,j,k) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * dxinv
+            fluxx_hi = (mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k))
+            fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k))
+            fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k))
+            fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k))
+            fluxz_hi = (mx(i,j,k)+mx(i,j,k+1))*(wmac(i-1,j,k+1)+wmac(i,j,k+1))
+            fluxz_lo = (mx(i,j,k-1)+mx(i,j,k))*(wmac(i-1,j,k)+wmac(i,j,k))
+            m_updatex(i,j,k) = m_updatex(i,j,k) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv
          end do
          end do
          end do
@@ -161,13 +161,13 @@ contains
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)+1
-            fluxx_hi = 0.25d0*(mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k))
-            fluxx_lo = 0.25d0*(mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k))
-            fluxy_hi = 0.25d0*(mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k))
-            fluxy_lo = 0.25d0*(mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k))
-            fluxz_hi = 0.25d0*(mx(i,j,k)+mx(i,j,k+1))*(wmac(i-1,j,k+1)+wmac(i,j,k+1))
-            fluxz_lo = 0.25d0*(mx(i,j,k-1)+mx(i,j,k))*(wmac(i-1,j,k)+wmac(i,j,k))
-            m_updatex(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * dxinv
+            fluxx_hi = (mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k))
+            fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k))
+            fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k))
+            fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k))
+            fluxz_hi = (mx(i,j,k)+mx(i,j,k+1))*(wmac(i-1,j,k+1)+wmac(i,j,k+1))
+            fluxz_lo = (mx(i,j,k-1)+mx(i,j,k))*(wmac(i-1,j,k)+wmac(i,j,k))
+            m_updatex(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv
          end do
          end do
          end do
@@ -180,13 +180,13 @@ contains
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
-            fluxx_hi = 0.25d0*(my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k))
-            fluxx_lo = 0.25d0*(my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k))
-            fluxy_hi = 0.25d0*(my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k))
-            fluxy_lo = 0.25d0*(my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k))
-            fluxz_hi = 0.25d0*(my(i,j,k)+my(i,j,k+1))*(wmac(i,j-1,k+1)+wmac(i,j,k+1))
-            fluxz_lo = 0.25d0*(my(i,j,k-1)+my(i,j,k))*(wmac(i,j-1,k)+wmac(i,j,k))
-            m_updatey(i,j,k) = m_updatey(i,j,k) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * dxinv
+            fluxx_hi = (my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k))
+            fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k))
+            fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k))
+            fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k))
+            fluxz_hi = (my(i,j,k)+my(i,j,k+1))*(wmac(i,j-1,k+1)+wmac(i,j,k+1))
+            fluxz_lo = (my(i,j,k-1)+my(i,j,k))*(wmac(i,j-1,k)+wmac(i,j,k))
+            m_updatey(i,j,k) = m_updatey(i,j,k) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv
          end do
          end do
          end do
@@ -194,13 +194,13 @@ contains
          do k=lo(3),hi(3)
          do j=lo(2),hi(2)+1
          do i=lo(1),hi(1)
-            fluxx_hi = 0.25d0*(my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k))
-            fluxx_lo = 0.25d0*(my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k))
-            fluxy_hi = 0.25d0*(my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k))
-            fluxy_lo = 0.25d0*(my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k))
-            fluxz_hi = 0.25d0*(my(i,j,k)+my(i,j,k+1))*(wmac(i,j-1,k+1)+wmac(i,j,k+1))
-            fluxz_lo = 0.25d0*(my(i,j,k-1)+my(i,j,k))*(wmac(i,j-1,k)+wmac(i,j,k))
-            m_updatey(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * dxinv
+            fluxx_hi = (my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k))
+            fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k))
+            fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k))
+            fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k))
+            fluxz_hi = (my(i,j,k)+my(i,j,k+1))*(wmac(i,j-1,k+1)+wmac(i,j,k+1))
+            fluxz_lo = (my(i,j,k-1)+my(i,j,k))*(wmac(i,j-1,k)+wmac(i,j,k))
+            m_updatey(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv
          end do
          end do
          end do
@@ -213,13 +213,13 @@ contains
          do k=lo(3),hi(3)+1
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)
-            fluxx_hi = 0.25d0*(mz(i,j,k)+mz(i+1,j,k))*(umac(i+1,j,k-1)+umac(i+1,j,k))
-            fluxx_lo = 0.25d0*(mz(i-1,j,k)+mz(i,j,k))*(umac(i,j,k-1)+umac(i,j,k))
-            fluxy_hi = 0.25d0*(mz(i,j,k)+mz(i,j+1,k))*(vmac(i,j+1,k-1)+vmac(i,j+1,k))
-            fluxy_lo = 0.25d0*(mz(i,j-1,k)+mz(i,j,k))*(vmac(i,j,k-1)+vmac(i,j,k))
-            fluxz_hi = 0.25d0*(mz(i,j,k)+mz(i,j,k+1))*(wmac(i,j,k)+wmac(i,j,k+1))
-            fluxz_lo = 0.25d0*(mz(i,j,k-1)+mz(i,j,k))*(wmac(i,j,k-1)+wmac(i,j,k))
-            m_updatez(i,j,k) = m_updatez(i,j,k) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * dxinv
+            fluxx_hi = (mz(i,j,k)+mz(i+1,j,k))*(umac(i+1,j,k-1)+umac(i+1,j,k))
+            fluxx_lo = (mz(i-1,j,k)+mz(i,j,k))*(umac(i,j,k-1)+umac(i,j,k))
+            fluxy_hi = (mz(i,j,k)+mz(i,j+1,k))*(vmac(i,j+1,k-1)+vmac(i,j+1,k))
+            fluxy_lo = (mz(i,j-1,k)+mz(i,j,k))*(vmac(i,j,k-1)+vmac(i,j,k))
+            fluxz_hi = (mz(i,j,k)+mz(i,j,k+1))*(wmac(i,j,k)+wmac(i,j,k+1))
+            fluxz_lo = (mz(i,j,k-1)+mz(i,j,k))*(wmac(i,j,k-1)+wmac(i,j,k))
+            m_updatez(i,j,k) = m_updatez(i,j,k) - ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv
          end do
          end do
          end do
@@ -227,13 +227,13 @@ contains
          do k=lo(3),hi(3)+1
          do j=lo(2),hi(2)
          do i=lo(1),hi(1)
-            fluxx_hi = 0.25d0*(mz(i,j,k)+mz(i+1,j,k))*(umac(i+1,j,k-1)+umac(i+1,j,k))
-            fluxx_lo = 0.25d0*(mz(i-1,j,k)+mz(i,j,k))*(umac(i,j,k-1)+umac(i,j,k))
-            fluxy_hi = 0.25d0*(mz(i,j,k)+mz(i,j+1,k))*(vmac(i,j+1,k-1)+vmac(i,j+1,k))
-            fluxy_lo = 0.25d0*(mz(i,j-1,k)+mz(i,j,k))*(vmac(i,j,k-1)+vmac(i,j,k))
-            fluxz_hi = 0.25d0*(mz(i,j,k)+mz(i,j,k+1))*(wmac(i,j,k)+wmac(i,j,k+1))
-            fluxz_lo = 0.25d0*(mz(i,j,k-1)+mz(i,j,k))*(wmac(i,j,k-1)+wmac(i,j,k))
-            m_updatez(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * dxinv
+            fluxx_hi = (mz(i,j,k)+mz(i+1,j,k))*(umac(i+1,j,k-1)+umac(i+1,j,k))
+            fluxx_lo = (mz(i-1,j,k)+mz(i,j,k))*(umac(i,j,k-1)+umac(i,j,k))
+            fluxy_hi = (mz(i,j,k)+mz(i,j+1,k))*(vmac(i,j+1,k-1)+vmac(i,j+1,k))
+            fluxy_lo = (mz(i,j-1,k)+mz(i,j,k))*(vmac(i,j,k-1)+vmac(i,j,k))
+            fluxz_hi = (mz(i,j,k)+mz(i,j,k+1))*(wmac(i,j,k)+wmac(i,j,k+1))
+            fluxz_lo = (mz(i,j,k-1)+mz(i,j,k))*(wmac(i,j,k-1)+wmac(i,j,k))
+            m_updatez(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv
          end do
          end do
          end do
