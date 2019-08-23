@@ -3,39 +3,37 @@
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
   prob_hi(1:3) = 1e-5 1e-5 1e-5      ! physical hi coordinate
-    
+  
+  ! For the Stokes solver:  
   n_cells(1:3) = 64 64 64
   ! max number of cells in a box
   max_grid_size(1:3) = 32 32 64
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
-  particle_grid_refine = 1
-  es_grid_refine = 1
+  particle_grid_refine = 1 ! Used for near-neighbor searches
+  es_grid_refine = 1 ! Poisson grid refinement
 
   ! Time-step control
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 5
+  max_step = 3
   plot_int = 1
-  plot_ascii = 0
-  struct_fact_int = -1
+  plot_ascii = 0 ! Write ascii in addition to plotfiles
+  struct_fact_int = -1 ! Not implemented
   n_steps_skip = 1000
 
   ! Toggles 0=off, 1=on
-  fluid_tog = 0 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
-  es_tog = 3 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
+  fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
+  es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 0 ! Apply RFD force to fluid
+  rfd_tog = 1 ! Apply RFD force to fluid
   move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 1 ! Dry particle move
   sr_tog = 1 ! Short range forces
 
   
-  !solve_type = 0 ! 0=overdamped, 1=intertial
- 
-
   ! Fluid info
   !--------------
   ! Viscous friction L phi operator
@@ -46,41 +44,37 @@
   ! negative = assume spatially-varying coefficients
   visc_coef = 1e-2
   visc_type = 1
-  perm = 1.
 
   !particle initialization
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = -1 -1 100
+  particle_count = 2 -1 -1
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e17 6.02e17 0
+  particle_n0 = 0 6.02e17 6.02e17
 
   !Species info
   !--------------
   nspecies = 3
-  mass = 4e-23 4e-23 4e-23
-  diameter = -2.488e-8 -2.488e-8 -2.488e-8 
-  !nfrac =  0.5 0.5 !species fraction is ignored for now and info from particle initialization is used
-  qval = 1.6e-19 -1.6e-19 0
-  diff = 1.33e-05 1.33e-05 1.33e-05
+  mass = 4e-23 ! 4e-23 4e-23
+  diameter = -2.488e-8 -2.488e-8 -2.488e-8 ! If positive, sets the target diffusion coefficient via Stokes-Einstein
+  qval = 0 1.6e-19 -1.6e-19 ! Charge per particles
+  diff = 1.33e-05 1.33e-05 1.33e-05 ! Target diffusion coefficient (for dry diffusion correction)
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
-  eepsilon = 1e-16 1e-16 1e-16 !WCA potential amplitude - note that currently the first value is used for all species
-  sigma = 8e-8 8e-8 8e-8   !Close repulsion range
-
-  p_move_tog = 1 1 1
-  p_force_tog = 1 1 1
-  p_int_tog = 1 1 0
+  ! Lenard-Jones potential
+  eepsilon = 1e-16 1e-16 1e-16 ! WCA potential amplitude - note that currently the first value is used for all species
+  sigma = 8e-8 8e-8 8e-8   ! Close repulsion range
+  p_int_tog = 0 1 1 ! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
 
   !Interaction parameters
   !------------
   permitivitty = 692.96e-21
   !cut_off = 8.732e-8    !cutoff range for close range potential - this is being calculated off sigma now.
   rmin = 1e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
-  crange = 4       !cell depth when building neighbour lists
+  crange = 4       !cell depth when building neighbour lists (NOTE: SHOULD BE COMPUTED)
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
   eamp = 0 0 0  !external electric field properties
@@ -89,8 +83,8 @@
 
   ! Poisson solver parameters -- there are more options which we can add to the namespace later
   !-------------------
-  poisson_rel_tol = 1.e-7                ! relative tolerance stopping criteria
-  poisson_verbose =  0                   ! multigrid verbosity
+  poisson_rel_tol = 1.e-6                ! relative tolerance stopping criteria
+  poisson_verbose =  1                   ! multigrid verbosity
   poisson_bottom_verbose =  0           ! base solver verbosity
   poisson_max_iter = 100                 
 
@@ -103,23 +97,25 @@
   ! Stochastic parameters
   k_B = 1.38064852e-16
   T_init(1) = 295.00
-  variance_coef_mom = 0.0000000000000001
+  variance_coef_mom = 0
    
 
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no slip stationary
-  bc_lo(1:3) = -1 -1 -1
-  bc_hi(1:3) = -1 -1 -1
-
+  ! For Stokes:
+  bc_lo(1:3) = -1 -1 -1 ! Periodic
+  bc_hi(1:3) = -1 -1 -1 ! Periodic
+  !bc_lo(1:3) = -1 -1 2 ! Slit channel
+  !bc_hi(1:3) = -1 -1 2 ! Slit chnnel
   !wallspeed_lo(1:3) = 0 0 0 !Not implemented yet.
   !wallspeed_hi(1:3) = 0 0 0 !Not implemented yet.
 
   ! -1 = periodic, 1 = dirichlet, 2 = neumann
+  ! For Poisson:
   bc_es_lo(1:3) = -1 -1 -1
   bc_es_hi(1:3) = -1 -1 -1
-
   potential_lo(1:3) = 0 0 0 ! For use with dirichlet, not fully implemented yet.
   potential_hi(1:3) = 0 0 0 !
 
@@ -129,7 +125,7 @@
 &gmres
 
   ! GMRES solver parameters
-  gmres_rel_tol = 1.e-7                ! relative tolerance stopping criteria
+  gmres_rel_tol = 1.e-6                ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
   gmres_verbose =  2                    ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20                  ! max number of outer iterations
@@ -138,3 +134,54 @@
   gmres_min_iter = 1                    ! min number of gmres iterations
 
 /
+
+&FluctuatingMembrane
+   ! Input parameters for Sophie's fluctuating membrane (in xy plane)
+   Nmem = 1 ! Number of markers in membrane. 
+      ! Note number of particles in first species must be the square of this
+   call_hydroGrid = 1
+/
+
+&hydroAnalysisOptions
+! 2D full grid data
+! HydroGrid spectral and other analysis
+!---------------------------------------
+! The variables are numbered as:
+! 3D: 1=rho, 2-4=v, 5=T, 6 onward=rho_1-rho_n or w_1-w_n
+! 2D: 1=rho, 2-3=v, 4=T, 5 onward=rho_1-rho_n or w_1-w_n
+
+   staggeredVelocities = 0              ! Are velocities on a staggered grid or not, (0, +1, or -1)*h/2
+   storeConserved = F                   ! We are not using conserved variables here due to staggering
+
+   ! Save the flow to a VTK file:
+   writeMeansVTK = F                    ! Save the means over the averaging interval
+   writeSnapshotVTK = T                 ! Save snapshots of the instantaneous fields
+
+   ! Variances
+   writeVariancesVTK = T                ! Should we save a VTK file
+   nVariances = 3
+   ! numbering: 1=rho-rho, 2=T-T, 3=rho-T
+   variancePairs = "0 1 0 1, 0 4 0 4, 0 1 0 4"
+      ! species1 variable1 species2 variable2, species=0 for single fluid model
+
+   ! Static structure factors S(k)
+   writeSpectrumVTK = T
+   subtractMeanFT = F                   ! The means are trivial here so no need to estimate them
+   writeAbsValue = T                    ! Only write absolute values of complex values to VTK file?
+   writeTheory = -1                     ! Keep at -1
+   nStructureFactors = 3
+   ! numbering: 1=rho-rho, 2=T-T, 3=rho-T
+   structureFactorPairs = "0 1 0 1, 0 4 0 4, 0 1 0 4"
+
+   ! Dynamic structure factors:
+   nWavenumbers=0 ! Set to zero to disable S(k,w)
+   ! Shape (2,nWavenumbers):
+   selectedWavenumbers="0 1, 0 2, 2 2, 0 4, 2 4, 4 4, 0 8, 2 8, 4 8, 8 8"
+   nSavedSnapshots=2000                 ! Maximum time in S(k,t) will be (nSavedSnapshots/2)*dt*hydro_grid_int
+      
+   outputFolder = "."
+   filePrefix = "Membrane"
+   axisToPrint = 2                      ! Compute averages along this axes (1=x, 2=y, 3=z axis)
+   periodic = T                         ! Is the system periodic along the y axes
+/
+

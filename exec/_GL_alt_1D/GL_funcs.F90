@@ -8,7 +8,7 @@ module time_step_module
   private
 
   public :: inc_phi0_Adapt, Umbrella_Adjust, Param_Output,umbrella_reset,set_inputs,fixed_inc_phi0
-  public :: Stat_Quant_1D, integrate_1D, Comp_H1_semi_norm_1D, initphi_1D, rk2_stage1_1D,setdt_1D
+  public :: Stat_Quant_1D, integrate_1D,  initphi_1D, rk2_stage1_1D,setdt_1D
 
 contains
 
@@ -271,35 +271,6 @@ contains
 end subroutine integrate_1D
 
 
-
-subroutine Comp_H1_semi_norm_1D(lo,hi, phi, dx, H1_semi) bind(C,name="Comp_H1_semi_norm_1D")
-    ! This subroutine computes the H1 seminorm: \sqrt(\int \grad \phi \cdot \grad \phi dx)
-    ! Note that backward differences are used for the derivative terms. The integral is computed with the mid-point rule.
-
-    !INPUT:
-    ! lo,hi -- multifab ends
-    ! phi -- the current phi field multifab
-    ! dx -- spatial grid spacing array
-
-    !OUTPUT: 
-    ! H1_semi --  Approximation of the H^1 semi-norm
-  integer         , intent(in   ) :: lo(1),hi(1)
-  real(amrex_real), intent(in   ) :: dx(1)
-  real(amrex_real), intent(out  ) :: H1_semi
-
-  real(amrex_real), intent(inout) :: phi(lo(1)-ngc(1):hi(1)+ngc(1))
-
-  real(amrex_real) :: xloc
-  integer :: i
-
-      do  i=lo(1),hi(1)
-      H1_semi = H1_semi + ((phi(i)-phi(i-1))**2.0)/(dx(1)**2.0)
-    enddo
-  H1_semi = (H1_semi*dx(1))**0.5
-
-end subroutine Comp_H1_semi_norm_1D
-
-
 subroutine initphi_1D(lo,hi, phi, dx) bind(C,name="initphi_1D")
     ! subroutine that sets the initial conition
     ! Set to be a  zero
@@ -331,7 +302,7 @@ end subroutine initphi_1D
 
 
 
-subroutine rk2_stage1_1D(lo,hi, phi, phin, rannums, integral, energy, teng, dx, dt,phi_avg) bind(C,name="rk2_stage1_1D")
+subroutine rk2_stage1_1D(lo,hi, phi, phin, rannums, integral, energy, teng, H1_semi, dx, dt,phi_avg) bind(C,name="rk2_stage1_1D")
    ! This subroutine uses an explicit forward euler step with central finite differences to obtain the solution for the 
     ! next time step. 
 
@@ -357,7 +328,7 @@ subroutine rk2_stage1_1D(lo,hi, phi, phin, rannums, integral, energy, teng, dx, 
     ! NOTE : This subroutine calls the Stat_Quant subroutine to compute spatial averages of \phi 
   integer         , intent(in   ) :: lo(1),hi(1)
   real(amrex_real), intent(in   ) :: dx(1), dt
-  real(amrex_real), intent(inout) :: energy, teng
+  real(amrex_real), intent(inout) :: energy, teng, H1_semi
   real(amrex_real), intent(inout) :: phi_avg
 
 
@@ -380,10 +351,11 @@ subroutine rk2_stage1_1D(lo,hi, phi, phin, rannums, integral, energy, teng, dx, 
           -dt*func-dt*umbrella*integral + dt*factor * rannums(i)   ! Forward euler time-step with central spatial discretization
 
           dele =  phi(i)*(acoef+bcoef*phi(i)+ccoef*phi(i)**2+dcoef*phi(i)**3) &
-            + 0.5d0*diff_coef*((phi(i)-phi(i-1))**2)
+            - 0.5d0*diff_coef*phi(i)*(phi(i+1)-2.d0*phi(i)+phi(i-1))/dx(1)**2
 
           energy = energy + dele*dx(1) !G-L free energy functional with NO umbrella contribution
-          teng = teng + ( dele + 0.5d0*umbrella*integral )*dx(1) !G-L free energy functional WITH  umbrella contribution
+          teng = teng + ( dele + 0.5d0*umbrella*integral**2 )*dx(1) !G-L free energy functional WITH  umbrella contribution
+          H1_semi = H1_semi -0.5d0*diff_coef*phi(i)*(phi(i+1)-2.d0*phi(i)+phi(i-1))/dx(1)
 
       enddo
 

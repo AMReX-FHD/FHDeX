@@ -487,7 +487,7 @@ void main_driver(const char* argv)
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
     }
 
 
@@ -648,7 +648,7 @@ void main_driver(const char* argv)
 
 
           // compute stochastic momentum force
-          sMflux.stochMforce(stochMfluxdiv,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+          sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
         }
 
     // Advance umac, source is where we add particle stresses

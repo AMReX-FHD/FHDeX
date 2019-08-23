@@ -21,8 +21,11 @@ void SumStag(const Geometry& geom,
   std::fill(sum.begin(), sum.end(), 0.);
 
   ReduceOps<ReduceOpSum> reduce_op;
-  ReduceData<Real> reduce_data(reduce_op);
-  using ReduceTuple = typename decltype(reduce_data)::Type;
+
+  //////// x-faces
+
+  ReduceData<Real> reduce_datax(reduce_op);
+  using ReduceTuple = typename decltype(reduce_datax)::Type;
 
   for (MFIter mfi(m1[0]); mfi.isValid(); ++mfi)
   {
@@ -32,7 +35,7 @@ void SumStag(const Geometry& geom,
       int xlo = bx.smallEnd(0);
       int xhi = bx.bigEnd(0);
       
-      reduce_op.eval(bx, reduce_data,
+      reduce_op.eval(bx, reduce_datax,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
           Real weight = (i>xlo && i<xhi) ? 1.0 : 0.5;
@@ -40,8 +43,12 @@ void SumStag(const Geometry& geom,
       });
   }
 
-  sum[0] = amrex::get<0>(reduce_data.value());
+  sum[0] = amrex::get<0>(reduce_datax.value());
   ParallelDescriptor::ReduceRealSum(sum[0]);
+
+  //////// y-faces
+
+  ReduceData<Real> reduce_datay(reduce_op);
 
   for (MFIter mfi(m1[1]); mfi.isValid(); ++mfi)
   {
@@ -51,7 +58,7 @@ void SumStag(const Geometry& geom,
       int ylo = bx.smallEnd(1);
       int yhi = bx.bigEnd(1);
       
-      reduce_op.eval(bx, reduce_data,
+      reduce_op.eval(bx, reduce_datay,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
           Real weight = (j>ylo && j<yhi) ? 1.0 : 0.5;
@@ -59,10 +66,14 @@ void SumStag(const Geometry& geom,
       });
   }
 
-  sum[1] = amrex::get<0>(reduce_data.value());
+  sum[1] = amrex::get<0>(reduce_datay.value());
   ParallelDescriptor::ReduceRealSum(sum[1]);
 
 #if (AMREX_SPACEDIM == 3)
+
+  //////// z-faces
+
+  ReduceData<Real> reduce_dataz(reduce_op);
 
   for (MFIter mfi(m1[2]); mfi.isValid(); ++mfi)
   {
@@ -72,7 +83,7 @@ void SumStag(const Geometry& geom,
       int zlo = bx.smallEnd(2);
       int zhi = bx.bigEnd(2);
       
-      reduce_op.eval(bx, reduce_data,
+      reduce_op.eval(bx, reduce_dataz,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
       {
           Real weight = (k>zlo && k<zhi) ? 1.0 : 0.5;
@@ -80,7 +91,7 @@ void SumStag(const Geometry& geom,
       });
   }
 
-  sum[2] = amrex::get<0>(reduce_data.value());
+  sum[2] = amrex::get<0>(reduce_dataz.value());
   ParallelDescriptor::ReduceRealSum(sum[2]);
 
 #endif
@@ -162,6 +173,7 @@ void StagL2Norm(const Geometry& geom,
     BL_PROFILE_VAR("StagL2Norm()",StagL2Norm);
 
     Vector<Real> inner_prod(AMREX_SPACEDIM);
+
     StagInnerProd(geom, m1, comp, m1, comp, inner_prod);
     norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
 }

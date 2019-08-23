@@ -7,7 +7,7 @@
 
 using namespace common;
 
-void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
 		   const std::array<MultiFab, AMREX_SPACEDIM>& m,
 		   std::array<MultiFab, AMREX_SPACEDIM>& m_update,
 		   const amrex::Real* dx,
@@ -16,29 +16,138 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 
     BL_PROFILE_VAR("MkAdvMFluxdiv()",MkAdvMFluxdiv);
 
+    Real fourdxinv = 0.25/dx[0];
+    
     // Loop over boxes
-    for (MFIter mfi(umac[0]); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(umac_in[0]); mfi.isValid(); ++mfi) {
 
-        // Create cell-centered box from semi-nodal box
-        const Box& validBox_cc = enclosedCells(mfi.validbox());
+        AMREX_D_TERM(const Array4<Real const> & umac = (umac_in[0]).array(mfi);,
+                     const Array4<Real const> & vmac = (umac_in[1]).array(mfi);,
+                     const Array4<Real const> & wmac = (umac_in[2]).array(mfi););
+       
+        AMREX_D_TERM(const Array4<Real const> & mx = m[0].array(mfi);,
+                     const Array4<Real const> & my = m[1].array(mfi);,
+                     const Array4<Real const> & mz = m[2].array(mfi););
+        
+        AMREX_D_TERM(const Array4<Real> & m_updatex = m_update[0].array(mfi);,
+                     const Array4<Real> & m_updatey = m_update[1].array(mfi);,
+                     const Array4<Real> & m_updatez = m_update[2].array(mfi););
+        
+        AMREX_D_TERM(Box bx_x = enclosedCells(mfi.validbox());,
+                     Box bx_y = enclosedCells(mfi.validbox());,
+                     Box bx_z = enclosedCells(mfi.validbox()););
+        
+        AMREX_D_TERM(bx_x.growHi(0);,
+                     bx_y.growHi(1);,
+                     bx_z.growHi(2););
 
-        mk_advective_m_fluxdiv(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
-                   BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(umac[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                   BL_TO_FORTRAN_ANYD(umac[2][mfi]),
+#if (AMREX_SPACEDIM == 2)
+        if (increment == 1) {
+            amrex::ParallelFor(bx_x,bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo;
+                                   fluxx_hi = (mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k));
+                                   fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k));
+                                   fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k));
+                                   m_updatex(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo;
+                                   fluxx_hi = (my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k));
+                                   fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k));
+                                   fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k));
+                                   m_updatey(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                               });
+        }
+        else if (increment == 0) {
+            amrex::ParallelFor(bx_x,bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo;
+                                   fluxx_hi = (mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k));
+                                   fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k));
+                                   fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k));
+                                   m_updatex(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo;
+                                   fluxx_hi = (my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k));
+                                   fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k));
+                                   fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k));
+                                   m_updatey(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                               });
+        }
+
+#elif (AMREX_SPACEDIM == 3)
+        if (increment == 1) {
+            amrex::ParallelFor(bx_x,bx_y,bx_z,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
+                                   fluxx_hi = (mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k));
+                                   fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k));
+                                   fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k));
+                                   fluxz_hi = (mx(i,j,k)+mx(i,j,k+1))*(wmac(i-1,j,k+1)+wmac(i,j,k+1));
+                                   fluxz_lo = (mx(i,j,k-1)+mx(i,j,k))*(wmac(i-1,j,k)+wmac(i,j,k));
+                                   m_updatex(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
+                                   fluxx_hi = (my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k));
+                                   fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k));
+                                   fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k));
+                                   fluxz_hi = (my(i,j,k)+my(i,j,k+1))*(wmac(i,j-1,k+1)+wmac(i,j,k+1));
+                                   fluxz_lo = (my(i,j,k-1)+my(i,j,k))*(wmac(i,j-1,k)+wmac(i,j,k));
+                                   m_updatey(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
+                                   fluxx_hi = (mz(i,j,k)+mz(i+1,j,k))*(umac(i+1,j,k-1)+umac(i+1,j,k));
+                                   fluxx_lo = (mz(i-1,j,k)+mz(i,j,k))*(umac(i,j,k-1)+umac(i,j,k));
+                                   fluxy_hi = (mz(i,j,k)+mz(i,j+1,k))*(vmac(i,j+1,k-1)+vmac(i,j+1,k));
+                                   fluxy_lo = (mz(i,j-1,k)+mz(i,j,k))*(vmac(i,j,k-1)+vmac(i,j,k));
+                                   fluxz_hi = (mz(i,j,k)+mz(i,j,k+1))*(wmac(i,j,k)+wmac(i,j,k+1));
+                                   fluxz_lo = (mz(i,j,k-1)+mz(i,j,k))*(wmac(i,j,k-1)+wmac(i,j,k));
+                                   m_updatez(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                               });
+        }
+        else {
+            amrex::ParallelFor(bx_x,bx_y,bx_z,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
+                                   fluxx_hi = (mx(i,j,k)+mx(i+1,j,k))*(umac(i,j,k)+umac(i+1,j,k));
+                                   fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k));
+                                   fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k));
+                                   fluxz_hi = (mx(i,j,k)+mx(i,j,k+1))*(wmac(i-1,j,k+1)+wmac(i,j,k+1));
+                                   fluxz_lo = (mx(i,j,k-1)+mx(i,j,k))*(wmac(i-1,j,k)+wmac(i,j,k));
+                                   m_updatex(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
+                                   fluxx_hi = (my(i,j,k)+my(i+1,j,k))*(umac(i+1,j-1,k)+umac(i+1,j,k));
+                                   fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k));
+                                   fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k));
+                                   fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k));
+                                   fluxz_hi = (my(i,j,k)+my(i,j,k+1))*(wmac(i,j-1,k+1)+wmac(i,j,k+1));
+                                   fluxz_lo = (my(i,j,k-1)+my(i,j,k))*(wmac(i,j-1,k)+wmac(i,j,k));
+                                   m_updatey(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                                   Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo, fluxz_hi, fluxz_lo;
+                                   fluxx_hi = (mz(i,j,k)+mz(i+1,j,k))*(umac(i+1,j,k-1)+umac(i+1,j,k));
+                                   fluxx_lo = (mz(i-1,j,k)+mz(i,j,k))*(umac(i,j,k-1)+umac(i,j,k));
+                                   fluxy_hi = (mz(i,j,k)+mz(i,j+1,k))*(vmac(i,j+1,k-1)+vmac(i,j+1,k));
+                                   fluxy_lo = (mz(i,j-1,k)+mz(i,j,k))*(vmac(i,j,k-1)+vmac(i,j,k));
+                                   fluxz_hi = (mz(i,j,k)+mz(i,j,k+1))*(wmac(i,j,k)+wmac(i,j,k+1));
+                                   fluxz_lo = (mz(i,j,k-1)+mz(i,j,k))*(wmac(i,j,k-1)+wmac(i,j,k));
+                                   m_updatez(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo + fluxz_hi-fluxz_lo ) * fourdxinv;
+                               });
+        }
 #endif
-                   BL_TO_FORTRAN_ANYD(m[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(m[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                   BL_TO_FORTRAN_ANYD(m[2][mfi]),
-#endif
-                   BL_TO_FORTRAN_ANYD(m_update[0][mfi]),
-                   BL_TO_FORTRAN_ANYD(m_update[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-                   BL_TO_FORTRAN_ANYD(m_update[2][mfi]),
-#endif
-                   dx, &increment);
     }
-
 }

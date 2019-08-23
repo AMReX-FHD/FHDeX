@@ -330,19 +330,19 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 //            pvec.resize(new_size);
 //        }
 
-        ParallelDescriptor::ReduceRealSum(potential);
+//        ParallelDescriptor::ReduceRealSum(potential);
 
-        if(ParallelDescriptor::ioProcessor == ParallelDescriptor::MyProc())
-        {
+//        if(ParallelDescriptor::ioProcessor == ParallelDescriptor::MyProc())
+//        {
 
-		    std::ofstream potentialFile;
-		    potentialFile.setf(ios::scientific, ios::floatfield);
-		    potentialFile.setf(ios::showpoint);
-		    potentialFile.precision(12);
-		    potentialFile.open ("potential.dat", ios::out | ios::app);
+//		    std::ofstream potentialFile;
+//		    potentialFile.setf(ios::scientific, ios::floatfield);
+//		    potentialFile.setf(ios::showpoint);
+//		    potentialFile.precision(12);
+//		    potentialFile.open ("potential.dat", ios::out | ios::app);
 
-            potentialFile << potential << std::endl;
-        }
+//            potentialFile << potential << std::endl;
+//        }
 
     }
     
@@ -367,7 +367,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 
 }
 
-void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length)
+void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length, const int step, const species* particleInfo)
 {
     
 
@@ -417,12 +417,10 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
     if(ParallelDescriptor::MyProc() == 0)
     {
 
-        //DONEV/SOPHIE CODE HERE
-        dummy_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length);
+        user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length, &step, particleInfo);
 
     }
 
-    //I'm sure there is an array version of this but this will do for now.
     for(int i=0;i<length;i++)
     {
         temp = spec3xForce[i];
@@ -437,9 +435,6 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
         ParallelDescriptor::ReduceRealSum(temp);
         spec3zForce[i] = temp;
 
-        spec3xForce[i] = 0;
-        spec3yForce[i] = 0;
-        spec3zForce[i] = 0;
     }
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)

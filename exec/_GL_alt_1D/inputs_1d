@@ -12,7 +12,7 @@
   ! number of cells in domain
   n_cells(1:1) = 128
   ! max number of cells in a box
-  max_grid_size(1:1) = 64 
+  max_grid_size(1:1) = 128 
 
   ! Time-step control
   cfl =0.1

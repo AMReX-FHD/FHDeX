@@ -13,7 +13,8 @@ using namespace common;
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                   std::array< MultiFab, AMREX_SPACEDIM > & umac,
+                   std::array< MultiFab, AMREX_SPACEDIM > & umac_avg,
                    const MultiFab& tracer,
                    const MultiFab& pres,
                    const IBMarkerContainer & ib_pc)
@@ -41,14 +42,14 @@ void WritePlotFile(int step,
     int cnt = 0;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        std::string x = "averaged_vel";
-        x += (120+i);
+        std::string x = "cc_vel";
+        x += (120+i); // 120 is x in ASCII => 120+i = x, y, z
         varNames[cnt++] = x;
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        std::string x = "shifted_vel";
-        x += (120+i);
+        std::string x = "avg_vel";
+        x += (120+i); // 120 is x in ASCII => 120+i = x, y, z
         varNames[cnt++] = x;
     }
 
@@ -60,14 +61,13 @@ void WritePlotFile(int step,
     cnt = 0;
 
     // average staggered velocities to cell-centers and copy into plotfile
-    AverageFaceToCC(umac,plotfile,cnt);
+    AverageFaceToCC(umac, plotfile, cnt);
     cnt+=AMREX_SPACEDIM;
 
-    // shift staggered velocities to cell-centers and copy into plotfile
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        ShiftFaceToCC(umac[i],0,plotfile,cnt,1);
-        cnt++;
-    }
+    // average staggered average (in time) velocities to cell-centers and copy
+    // into plotfile
+    AverageFaceToCC(umac_avg, plotfile, cnt);
+    cnt+=AMREX_SPACEDIM;
 
     // copy tracer into plotfile
     MultiFab::Copy(plotfile, tracer, 0, cnt, 1, 0);
@@ -88,15 +88,15 @@ void WritePlotFile(int step,
                         IBM_realData::names(), IBM_intData::names());
 
 
-    // staggered velocity
-    const std::string plotfilenamex = Concatenate("stagx",step,7);
-    const std::string plotfilenamey = Concatenate("stagy",step,7);
-    const std::string plotfilenamez = Concatenate("stagz",step,7);
-
-    WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
-    WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
-#if (AMREX_SPACEDIM == 3)
-    WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
-#endif
+//     // staggered velocity
+//     const std::string plotfilenamex = Concatenate("stagx",step,7);
+//     const std::string plotfilenamey = Concatenate("stagy",step,7);
+//     const std::string plotfilenamez = Concatenate("stagz",step,7);
+//
+//     WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
+//     WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
+// #if (AMREX_SPACEDIM == 3)
+//     WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
+// #endif
 
 }
