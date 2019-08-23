@@ -659,27 +659,93 @@ void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
   }
 
   // calculate divergence and add to stoch_m_force
-  
-  const Real* dx = geom.CellSize();
-
+  Real dxinv = 1./(geom.CellSize()[0]);
+    
   // Loop over boxes
   for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
-    // Note: Make sure that multifab is cell-centered
-    const Box& validBox = mfi.validbox();
-
-    stoch_m_force(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		  BL_TO_FORTRAN_FAB(mflux_cc_weighted[mfi]),
-		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[0][mfi]),
-#if (AMREX_SPACEDIM == 3)
-		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[1][mfi]),
-		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[2][mfi]),
+    
+    const Array4<Real const> & flux_cc = mflux_cc_weighted.array(mfi);
+#if (AMREX_SPACEDIM == 2)
+    const Array4<Real const> & flux_nd = mflux_ed_weighted[0].array(mfi);
+#elif (AMREX_SPACEDIM == 3)
+    const Array4<Real const> & flux_xy = mflux_ed_weighted[0].array(mfi);
+    const Array4<Real const> & flux_xz = mflux_ed_weighted[1].array(mfi);
+    const Array4<Real const> & flux_yz = mflux_ed_weighted[2].array(mfi);
 #endif
-		  BL_TO_FORTRAN_ANYD(m_force[0][mfi]),
-		  BL_TO_FORTRAN_ANYD(m_force[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-		  BL_TO_FORTRAN_ANYD(m_force[2][mfi]),
+    
+    AMREX_D_TERM(const Array4<Real> & divx = m_force[0].array(mfi);,
+		 const Array4<Real> & divy = m_force[1].array(mfi);,
+		 const Array4<Real> & divz = m_force[2].array(mfi););
+    
+    AMREX_D_TERM(Box bx_x = mfi.validbox();,
+		 Box bx_y = mfi.validbox();,
+		 Box bx_z = mfi.validbox(););
+        
+    AMREX_D_TERM(bx_x.growHi(0);,
+		 bx_y.growHi(1);,
+		 bx_z.growHi(2););
+    
+#if (AMREX_SPACEDIM == 2)
+        if (increment == 1) {
+            amrex::ParallelFor(bx_x,bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						 flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) += (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+						 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+                               });
+	}
+	else if (increment == 0) {
+            amrex::ParallelFor(bx_x,bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) = (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+						flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+                               });
+	}
+#elif (AMREX_SPACEDIM == 3)
+        if (increment == 1) {
+            amrex::ParallelFor(bx_x,bx_y,bx_z,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						 flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+						 flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+						 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+						 flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
+						 flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+						 flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+                               });
+	}
+	else if (increment == 0) {
+            amrex::ParallelFor(bx_x,bx_y,bx_z,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+						flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) = (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+						flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+						flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divz(i,j,k) = (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
+						flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+						flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+                               });
+	}
 #endif
-		  dx, &increment);
   }
 
   // m_force does not have ghost cells

@@ -55,24 +55,6 @@ extern "C"
 ///////////////////////////
 // in stoch_m_force.F90
 
-  void stoch_m_force(const int* lo, const int* hi,
-		     const amrex_real* flux_cc, const int* fluxcclo, const int* fluxcchi, const int* ncomp_cc,
-#if (AMREX_SPACEDIM == 2)
-		     const amrex_real* flux_nd, const int* fluxndlo, const int* fluxndhi, const int* ncomp_nd,
-#endif
-#if (AMREX_SPACEDIM == 3)
-		     const amrex_real* flux_xy, const int* fluxxylo, const int* fluxxyhi, const int* ncomp_xy,
-		     const amrex_real* flux_xz, const int* fluxxzlo, const int* fluxxzhi, const int* ncomp_xz,
-		     const amrex_real* flux_yz, const int* fluxyzlo, const int* fluxyzhi, const int* ncomp_yz,
-#endif
-		     const amrex_real* divx, const int* divxlo, const int* divxhi,
-		     const amrex_real* divy, const int* divylo, const int* divyhi,
-#if (AMREX_SPACEDIM == 3)
-		     const amrex_real* divz, const int* divzlo, const int* divzhi,
-#endif
-		     const amrex_real* dx, const int* increment=0);
-
-
   void mult_by_sqrt_eta_temp(const int* lo, const int* hi,
 			     const amrex_real* flux_cc, const int* fluxcclo, const int* fluxcchi, const int* ncomp_cc,
 #if (AMREX_SPACEDIM == 2)
