@@ -43,15 +43,6 @@ inline void apply_physbc_fab(const Box & tbx,
     const Dim3 dom_lo = amrex::lbound(dom);
     const Dim3 dom_hi = amrex::ubound(dom);
 
-    // Print() << "tile:   " << tlo            << " " << thi            << std::endl
-    //         << "domain: " << dom_lo         << " " << dom_hi         << std::endl
-    //         << "bc:     " << common::bc_lo[0] << " "
-    //                       << common::bc_lo[1] << " "
-    //                       << common::bc_lo[2] << " "
-    //                       << common::bc_hi[0] << " "
-    //                       << common::bc_hi[1] << " "
-    //                       << common::bc_hi[2] << std::endl;
-
 
     //_______________________________________________________________________
     // Apply x-physbc to data
@@ -64,7 +55,6 @@ inline void apply_physbc_fab(const Box & tbx,
                     int offset = dom_lo.x - i;
                     int i_real = dom_lo.x + offset - 1;
                     data(i, j, k, n) = data(i_real, j, k, n);
-                    // Print() << data(i, j, k, n) << std::endl;
                 }
             }
         }
@@ -80,7 +70,6 @@ inline void apply_physbc_fab(const Box & tbx,
                     int offset = i - dom_hi.x;
                     int i_real = dom_hi.x - offset + 1;
                     data(i, j, k, n) = data(i_real, j, k, n);
-                    // Print() << data(i, j, k, n) << std::endl;
                 }
             }
         }
@@ -100,7 +89,6 @@ inline void apply_physbc_fab(const Box & tbx,
                     int offset = dom_lo.y - j;
                     int j_real = dom_lo.y + offset - 1;
                     data(i, j, k, n) = data(i, j_real, k, n);
-                    // Print() << data(i, j, k, n) << std::endl;
                 }
             }
         }
@@ -116,7 +104,6 @@ inline void apply_physbc_fab(const Box & tbx,
                     int offset = j - dom_hi.y;
                     int j_real = dom_hi.y - offset + 1;
                     data(i, j, k, n) = data(i, j_real, k, n);
-                    // Print() << data(i, j, k, n) << std::endl;
                 }
             }
         }
@@ -136,7 +123,6 @@ inline void apply_physbc_fab(const Box & tbx,
                     int offset = dom_lo.z - k;
                     int k_real = dom_lo.z + offset - 1;
                     data(i, j, k, n) = data(i, j, k_real, n);
-                    // Print() << data(i, j, k, n) << std::endl;
                 }
             }
         }
@@ -152,7 +138,6 @@ inline void apply_physbc_fab(const Box & tbx,
                     int offset = k - dom_hi.z;
                     int k_real = dom_hi.z - offset + 1;
                     data(i, j, k, n) = data(i, j, k_real, n);
-                    // Print() << data(i, j, k, n) << std::endl;
                 }
             }
         }
@@ -200,9 +185,6 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
         IntVect ngv = data.nGrowVect() * dim_fill_ghost;
         Box bx      = mfi.growntilebox(ngv);
 
-        // Print() << bx  << std::endl;
-        // Print() << ngv << " " << dim_fill_ghost << std::endl;
-
         const Array4<Real> & data_fab = data.array(mfi);
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
@@ -210,11 +192,6 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
             apply_physbc_fab(tbx, dom, data_fab, data.nComp());
         });
     }
-
-    // static int call_count = 0;
-    // Print() << "call_count=" << call_count << std::endl;
-    // if (call_count > 50) Abort();
-    // call_count ++;
 
 #endif
 }
