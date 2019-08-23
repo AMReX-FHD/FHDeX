@@ -25,7 +25,7 @@
 #include <gmres_namespace_declarations.H>
 
 #include <immbdy_namespace.H>
-#include <immbdy_namespace_declarations.H>
+// #include <immbdy_namespace_declarations.H>
 
 #include <AMReX_VisMF.H>
 #include <AMReX_PlotFileUtil.H>
@@ -466,11 +466,16 @@ void main_driver(const char * argv) {
     int step = 0;
     Real time = 0.;
 
+    int n_avg = 0;
+    std::array<MultiFab, AMREX_SPACEDIM> umac_avg;
+    defineFC(umac_avg, ba, dmap, 1);
+    setVal(umac_avg, 0.);
+
 
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
+        WritePlotFile(step, time, geom, umac, umac_avg, tracer, pres, ib_mc);
     }
 
 
@@ -481,14 +486,15 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
+
     for(step = 1; step <= max_step; ++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
          if(variance_coef_mom != 0.0) {
 
-        //     //___________________________________________________________________
-        //     // Fill stochastic terms
+            //___________________________________________________________________
+            // Fill stochastic terms
 
              sMflux.fillMStochastic();
 
@@ -522,9 +528,19 @@ void main_driver(const char * argv) {
 
         time = time + dt;
 
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
+            MultiFab::Add(umac_avg[d], umac[d], 0, 0, 1, 0);
+        n_avg ++;
+
         if (plot_int > 0 && step%plot_int == 0) {
-           //write out umac & pres to a plotfile
-           WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
+            // Find average umac
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                umac_avg[d].mult(1./n_avg);
+            n_avg = 0;
+
+            //write out umac & pres to a plotfile
+            WritePlotFile(step, time, geom, umac, umac_avg, tracer, pres, ib_mc);
+            setVal(umac_avg, 0.);
         }
     }
 
