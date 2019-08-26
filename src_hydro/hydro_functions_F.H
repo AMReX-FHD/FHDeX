@@ -51,59 +51,6 @@ extern "C"
 
 ///////////////////////////
 
-
-///////////////////////////
-// in stoch_m_force.F90
-
-  void stoch_m_force(const int* lo, const int* hi,
-		     const amrex_real* flux_cc, const int* fluxcclo, const int* fluxcchi, const int* ncomp_cc,
-#if (AMREX_SPACEDIM == 2)
-		     const amrex_real* flux_nd, const int* fluxndlo, const int* fluxndhi, const int* ncomp_nd,
-#endif
-#if (AMREX_SPACEDIM == 3)
-		     const amrex_real* flux_xy, const int* fluxxylo, const int* fluxxyhi, const int* ncomp_xy,
-		     const amrex_real* flux_xz, const int* fluxxzlo, const int* fluxxzhi, const int* ncomp_xz,
-		     const amrex_real* flux_yz, const int* fluxyzlo, const int* fluxyzhi, const int* ncomp_yz,
-#endif
-		     const amrex_real* divx, const int* divxlo, const int* divxhi,
-		     const amrex_real* divy, const int* divylo, const int* divyhi,
-#if (AMREX_SPACEDIM == 3)
-		     const amrex_real* divz, const int* divzlo, const int* divzhi,
-#endif
-		     const amrex_real* dx, const int* increment=0);
-
-
-  void mult_by_sqrt_eta_temp(const int* lo, const int* hi,
-			     const amrex_real* flux_cc, const int* fluxcclo, const int* fluxcchi, const int* ncomp_cc,
-#if (AMREX_SPACEDIM == 2)
-			     const amrex_real* flux_nd, const int* fluxndlo, const int* fluxndhi, const int* ncomp_nd,
-#endif
-#if (AMREX_SPACEDIM == 3)
-			     const amrex_real* flux_xy, const int* fluxxylo, const int* fluxxyhi, const int* ncomp_xy,
-			     const amrex_real* flux_xz, const int* fluxxzlo, const int* fluxxzhi, const int* ncomp_xz,
-			     const amrex_real* flux_yz, const int* fluxyzlo, const int* fluxyzhi, const int* ncomp_yz,
-#endif
-			     const amrex_real* eta, const int* etacclo, const int* etacchi,
-#if (AMREX_SPACEDIM == 2)
-			     const amrex_real* eta_nodal, const int* etandlo, const int* etandhi,
-#endif
-#if (AMREX_SPACEDIM == 3)
-			     const amrex_real* eta_xy, const int* etaxylo, const int* etaxyhi,
-			     const amrex_real* eta_xz, const int* etaxzlo, const int* etaxzhi,
-			     const amrex_real* eta_yz, const int* etayzlo, const int* etayzhi,
-#endif
-			     const amrex_real* temperature, const int* tempcclo, const int* tempcchi,
-#if (AMREX_SPACEDIM == 2)
-			     const amrex_real* temperature_nodal, const int* tempndlo, const int* tempndhi);
-#endif
-#if (AMREX_SPACEDIM == 3)
-    const amrex_real* temperature_xy, const int* tempxylo, const int* tempxyhi,
-    const amrex_real* temperature_xz, const int* tempxzlo, const int* tempxzhi,
-    const amrex_real* temperature_yz, const int* tempyzlo, const int* tempyzhi);
-#endif
-
-///////////////////////////
-
 ///////////////////////////
 // in mac_solver.F90
 void mac_solver_rhs(const int* lev, const int* lo, const int* hi,

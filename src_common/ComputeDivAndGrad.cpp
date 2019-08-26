@@ -17,7 +17,7 @@ void ComputeDiv(MultiFab& div,
     for ( MFIter mfi(div); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
-        Array4<Real> const& div_fab = div.array(mfi);
+        const Array4<Real> & div_fab = div.array(mfi);
         AMREX_D_TERM(Array4<Real const> const& phix_fab = phi_fc[0].array(mfi);,
                      Array4<Real const> const& phiy_fab = phi_fc[1].array(mfi);,
                      Array4<Real const> const& phiz_fab = phi_fc[2].array(mfi););

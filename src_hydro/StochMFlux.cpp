@@ -16,7 +16,7 @@ StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geo
   if (filtering_width != 0) {
     Abort("StochMFlux: filtering_width != 0 not fully implemented yet");
   }
-  
+
   n_rngs = n_rngs_in;
   geom = geom_in;
 
@@ -102,14 +102,14 @@ void StochMFlux::fillMStochastic() {
 void StochMFlux::MfluxBC() {
 
 #if (AMREX_SPACEDIM == 2)
-    
+
     // lo-x domain boundary
     if (bc_lo[0] == 1 || bc_lo[0] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_lo[0] == 1) ? 0. : sqrt(2.);
-        
+
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
         const Box& dom_nd = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
 
@@ -130,7 +130,8 @@ void StochMFlux::MfluxBC() {
         }
     }
     else if (bc_lo[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-x domain boundary
@@ -160,7 +161,8 @@ void StochMFlux::MfluxBC() {
         }
     }
     else if (bc_hi[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // lo-y domain boundary
@@ -169,7 +171,7 @@ void StochMFlux::MfluxBC() {
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_lo[1] == 1) ? 0. : sqrt(2.);
-        
+
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
         const Box& dom_nd = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
 
@@ -190,7 +192,8 @@ void StochMFlux::MfluxBC() {
         }
     }
     else if (bc_lo[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-y domain boundary
@@ -199,7 +202,7 @@ void StochMFlux::MfluxBC() {
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_hi[1] == 1) ? 0. : sqrt(2.);
-        
+
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
         const Box& dom_nd = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
 
@@ -220,11 +223,12 @@ void StochMFlux::MfluxBC() {
         }
     }
     else if (bc_hi[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
-    
+
 #elif (AMREX_SPACEDIM == 3)
-    
+
     // lo-x domain boundary, y-facing fluxes
     // lo-x domain boundary, z-facing fluxes
     if (bc_lo[0] == 1 || bc_lo[0] == 2) {
@@ -278,7 +282,8 @@ void StochMFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_lo[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-x domain boundary, y-facing fluxes
@@ -334,7 +339,8 @@ void StochMFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_hi[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // lo-y domain boundary, x-facing fluxes
@@ -390,7 +396,8 @@ void StochMFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_lo[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-y domain boundary, x-facing fluxes
@@ -446,7 +453,8 @@ void StochMFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_hi[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // lo-z domain boundary, x-facing fluxes
@@ -502,7 +510,8 @@ void StochMFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_lo[2] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-z domain boundary, x-facing fluxes
@@ -558,13 +567,133 @@ void StochMFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_hi[2] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        // DEBUGING deterministic boundary conditions
+        // Abort("MfluxBC unsupported bc type");
     }
-    
+
 #endif
-    
+
 }
 
+
+AMREX_GPU_HOST_DEVICE
+inline
+void mult_by_sqrt_eta_temp (const Box & tbx,
+			    const Box& bx,
+			    const Box& bx_xy,
+#if (AMREX_SPACEDIM == 3)
+			    const Box& bx_xz,
+			    const Box& bx_yz,
+#endif
+			    const Array4<Real> mflux_cc,
+			    const Array4<Real> mflux_xy,
+#if (AMREX_SPACEDIM == 3)
+			    const Array4<Real> mflux_xz,
+			    const Array4<Real> mflux_yz,
+#endif
+			    const Array4<Real const> eta_cc,
+			    const Array4<Real const> eta_xy,
+#if (AMREX_SPACEDIM == 3)
+			    const Array4<Real const> eta_xz,
+			    const Array4<Real const> eta_yz,
+#endif
+			    const Array4<Real const> temp_cc,
+			    const Array4<Real const> temp_xy
+#if (AMREX_SPACEDIM == 3)
+			    , const Array4<Real const> temp_xz,
+			    const Array4<Real const> temp_yz
+#endif
+			    ) noexcept {
+
+    // bx is the cell-centered box grown with 1 ghost cell
+    // bx_xy, bx_xz, and bx_yz are the doubly nodal boxes
+
+    // if running on the host: tlo is the minimal box contains the union of the
+    // face-centered grid boxes
+
+    // if running on the gpu: tlo is a box with a single point that comes from
+    // the union of the face-centered grid boxes
+
+    const auto tlo = lbound(tbx);
+    const auto thi = ubound(tbx);
+
+    // if running on the host, lo and hi are set to the lower/upper
+    // bounds of the box of interest
+
+    // if running on the gpu, lo and hi are set to the single point
+    // defined by tlo, unless tlo is outside of the box of interest,
+    // in which case they are set to values that make sure the loop
+    // is not entered
+
+    {
+      const auto lo = amrex::elemwiseMax(tlo, lbound(bx));
+      const auto hi = amrex::elemwiseMin(thi, ubound(bx));
+
+      for (int n=0; n<AMREX_SPACEDIM; ++n) {
+      for (int k=lo.z; k<=hi.z; ++k) {
+      for (int j=lo.y; j<=hi.y; ++j) {
+      AMREX_PRAGMA_SIMD
+      for (int i=lo.x; i<=hi.x; ++i) {
+	mflux_cc(i,j,k,n) *= sqrt(eta_cc(i,j,k)*temp_cc(i,j,k));
+	}
+	}
+        }
+	}
+    }
+
+    {
+      const auto lo = amrex::elemwiseMax(tlo, lbound(bx_xy));
+      const auto hi = amrex::elemwiseMin(thi, ubound(bx_xy));
+
+      for (int n=0; n<2; ++n) {
+      for (int k=lo.z; k<=hi.z; ++k) {
+      for (int j=lo.y; j<=hi.y; ++j) {
+      AMREX_PRAGMA_SIMD
+      for (int i=lo.x; i<=hi.x; ++i) {
+	mflux_xy(i,j,k,n) *= sqrt(eta_xy(i,j,k)*temp_xy(i,j,k));
+      }
+      }
+      }
+      }
+    }
+
+#if (AMREX_SPACEDIM == 3)
+
+    {
+      const auto lo = amrex::elemwiseMax(tlo, lbound(bx_xz));
+      const auto hi = amrex::elemwiseMin(thi, ubound(bx_xz));
+
+      for (int n=0; n<2; ++n) {
+      for (int k=lo.z; k<=hi.z; ++k) {
+      for (int j=lo.y; j<=hi.y; ++j) {
+      AMREX_PRAGMA_SIMD
+      for (int i=lo.x; i<=hi.x; ++i) {
+	mflux_xz(i,j,k,n) *= sqrt(eta_xz(i,j,k)*temp_xz(i,j,k));
+      }
+      }
+      }
+      }
+    }
+
+    {
+      const auto lo = amrex::elemwiseMax(tlo, lbound(bx_yz));
+      const auto hi = amrex::elemwiseMin(thi, ubound(bx_yz));
+
+      for (int n=0; n<2; ++n) {
+      for (int k=lo.z; k<=hi.z; ++k) {
+      for (int j=lo.y; j<=hi.y; ++j) {
+      AMREX_PRAGMA_SIMD
+      for (int i=lo.x; i<=hi.x; ++i) {
+	mflux_yz(i,j,k,n) *= sqrt(eta_yz(i,j,k)*temp_yz(i,j,k));
+      }
+      }
+      }
+      }
+    }
+
+#endif
+
+}
 
 void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 				      const std::array< MultiFab, NUM_EDGE >& eta_ed,
@@ -596,28 +725,55 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
   // Loop over boxes
   for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
     // Note: Make sure that multifab is cell-centered
-    const Box& validBox = mfi.validbox();
+    const Box& bx = mfi.growntilebox(1);
 
-    mult_by_sqrt_eta_temp(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-			  BL_TO_FORTRAN_FAB(mflux_cc_weighted[mfi]),
-			  BL_TO_FORTRAN_FAB(mflux_ed_weighted[0][mfi]),
+    const Box & bx_xy = mfi.tilebox(nodal_flag_xy);
 #if (AMREX_SPACEDIM == 3)
-			  BL_TO_FORTRAN_FAB(mflux_ed_weighted[1][mfi]),
-			  BL_TO_FORTRAN_FAB(mflux_ed_weighted[2][mfi]),
+    const Box & bx_xz = mfi.tilebox(nodal_flag_xz);
+    const Box & bx_yz = mfi.tilebox(nodal_flag_yz);
 #endif
-			  BL_TO_FORTRAN_ANYD(eta_cc[mfi]),
-			  BL_TO_FORTRAN_ANYD(eta_ed[0][mfi]),
+
+    const Array4<Real> & mflux_cc_fab = mflux_cc_weighted.array(mfi);
+    const Array4<Real> & mflux_xy_fab = mflux_ed_weighted[0].array(mfi);
 #if (AMREX_SPACEDIM == 3)
-			  BL_TO_FORTRAN_ANYD(eta_ed[1][mfi]),
-			  BL_TO_FORTRAN_ANYD(eta_ed[2][mfi]),
+    const Array4<Real> & mflux_xz_fab = mflux_ed_weighted[1].array(mfi);
+    const Array4<Real> & mflux_yz_fab = mflux_ed_weighted[2].array(mfi);
 #endif
-			  BL_TO_FORTRAN_ANYD(temp_cc[mfi]),
-			  BL_TO_FORTRAN_ANYD(temp_ed[0][mfi])
+
+    const Array4<Real const> & eta_cc_fab = eta_cc.array(mfi);
+    const Array4<Real const> & eta_xy_fab = eta_ed[0].array(mfi);
 #if (AMREX_SPACEDIM == 3)
-			  , BL_TO_FORTRAN_ANYD(temp_ed[1][mfi]),
-			  BL_TO_FORTRAN_ANYD(temp_ed[2][mfi])
+    const Array4<Real const> & eta_xz_fab = eta_ed[1].array(mfi);
+    const Array4<Real const> & eta_yz_fab = eta_ed[2].array(mfi);
 #endif
-			  );
+
+    const Array4<Real const> & temp_cc_fab = temp_cc.array(mfi);
+    const Array4<Real const> & temp_xy_fab = temp_ed[0].array(mfi);
+#if (AMREX_SPACEDIM == 3)
+    const Array4<Real const> & temp_xz_fab = temp_ed[1].array(mfi);
+    const Array4<Real const> & temp_yz_fab = temp_ed[2].array(mfi);
+#endif
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+    {
+      mult_by_sqrt_eta_temp(tbx, bx, bx_xy,
+#if (AMREX_SPACEDIM == 3)
+			    bx_xz, bx_yz,
+#endif
+			    mflux_cc_fab, mflux_xy_fab,
+#if (AMREX_SPACEDIM == 3)
+			    mflux_xz_fab, mflux_yz_fab,
+#endif
+			    eta_cc_fab, eta_xy_fab,
+#if (AMREX_SPACEDIM == 3)
+			    eta_xz_fab, eta_yz_fab,
+#endif
+			    temp_cc_fab, temp_xy_fab
+#if (AMREX_SPACEDIM == 3)
+			    , temp_xz_fab, temp_yz_fab
+#endif
+			    );
+    });
   }
 }
 
@@ -659,27 +815,93 @@ void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
   }
 
   // calculate divergence and add to stoch_m_force
-  
-  const Real* dx = geom.CellSize();
+  Real dxinv = 1./(geom.CellSize()[0]);
 
   // Loop over boxes
   for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
-    // Note: Make sure that multifab is cell-centered
-    const Box& validBox = mfi.validbox();
 
-    stoch_m_force(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-		  BL_TO_FORTRAN_FAB(mflux_cc_weighted[mfi]),
-		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[0][mfi]),
-#if (AMREX_SPACEDIM == 3)
-		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[1][mfi]),
-		  BL_TO_FORTRAN_FAB(mflux_ed_weighted[2][mfi]),
+    const Array4<Real const> & flux_cc = mflux_cc_weighted.array(mfi);
+#if (AMREX_SPACEDIM == 2)
+    const Array4<Real const> & flux_nd = mflux_ed_weighted[0].array(mfi);
+#elif (AMREX_SPACEDIM == 3)
+    const Array4<Real const> & flux_xy = mflux_ed_weighted[0].array(mfi);
+    const Array4<Real const> & flux_xz = mflux_ed_weighted[1].array(mfi);
+    const Array4<Real const> & flux_yz = mflux_ed_weighted[2].array(mfi);
 #endif
-		  BL_TO_FORTRAN_ANYD(m_force[0][mfi]),
-		  BL_TO_FORTRAN_ANYD(m_force[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-		  BL_TO_FORTRAN_ANYD(m_force[2][mfi]),
+
+    AMREX_D_TERM(const Array4<Real> & divx = m_force[0].array(mfi);,
+		 const Array4<Real> & divy = m_force[1].array(mfi);,
+		 const Array4<Real> & divz = m_force[2].array(mfi););
+
+    AMREX_D_TERM(Box bx_x = mfi.validbox();,
+		 Box bx_y = mfi.validbox();,
+		 Box bx_z = mfi.validbox(););
+
+    AMREX_D_TERM(bx_x.growHi(0);,
+		 bx_y.growHi(1);,
+		 bx_z.growHi(2););
+
+#if (AMREX_SPACEDIM == 2)
+        if (increment == 1) {
+            amrex::ParallelFor(bx_x,bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						 flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) += (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+						 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+                               });
+	}
+	else if (increment == 0) {
+            amrex::ParallelFor(bx_x,bx_y,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) = (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
+						flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
+                               });
+	}
+#elif (AMREX_SPACEDIM == 3)
+        if (increment == 1) {
+            amrex::ParallelFor(bx_x,bx_y,bx_z,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						 flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+						 flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+						 flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+						 flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
+						 flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+						 flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+                               });
+	}
+	else if (increment == 0) {
+            amrex::ParallelFor(bx_x,bx_y,bx_z,
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
+						flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
+						flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divy(i,j,k) = (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
+						flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
+						flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
+                               },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+				 divz(i,j,k) = (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
+						flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
+						flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
+                               });
+	}
 #endif
-		  dx, &increment);
   }
 
   // m_force does not have ghost cells
