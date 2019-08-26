@@ -768,10 +768,10 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
     BL_PROFILE_VAR("CCRestriction()",CCRestriction);
     
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
         Array4<Real      > const& phi_c_fab = phi_c.array(mfi);
         Array4<Real const> const& phi_f_fab = phi_f.array(mfi);
@@ -1011,15 +1011,14 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
     BL_PROFILE_VAR("StagRestriction()",StagRestriction);
     
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
-    for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_c[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
-        // Get the index space of the valid region
-        // there are no cell-centered MultiFabs so use this to get
-        // a cell-centered box
-        AMREX_D_TERM(Box bx_x = amrex::enclosedCells(mfi.validbox()).growHi(0);,
-                     Box bx_y = amrex::enclosedCells(mfi.validbox()).growHi(1);,
-                     Box bx_z = amrex::enclosedCells(mfi.validbox()).growHi(2););
-
+        // since the MFIter is built on a nodal MultiFab we need to build the
+        // nodal tileboxes for each direction in this way
+        AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
+                     Box bx_y = mfi.tilebox(nodal_flag_y);,
+                     Box bx_z = mfi.tilebox(nodal_flag_z););
+        
         const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
         
         AMREX_D_TERM(Array4<Real> const& phix_c_fab = phi_c[0].array(mfi);,
@@ -1056,10 +1055,10 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     IntVect nodal(AMREX_D_DECL(1,1,1));
     
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
-    for ( MFIter mfi(phi_c); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // note this is NODAL
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
         
         Array4<Real      > const& phi_c_fab = phi_c.array(mfi);
         Array4<Real const> const& phi_f_fab = phi_f.array(mfi);
@@ -1151,14 +1150,13 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
     BL_PROFILE_VAR("EdgeRestriction()",EdgeRestriction);
 
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
-    for ( MFIter mfi(phi_c[0]); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_c[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
-        // Get the index space of the valid region
-        // there are no cell-centered MultiFabs so use this to get
-        // a cell-centered box
-        Box bx_xy = amrex::enclosedCells(mfi.validbox()).growHi(0).growHi(1);
-        Box bx_xz = amrex::enclosedCells(mfi.validbox()).growHi(0).growHi(2);
-        Box bx_yz = amrex::enclosedCells(mfi.validbox()).growHi(1).growHi(2);
+        // since the MFIter is built on a nodal MultiFab we need to build the
+        // nodal tileboxes for each edge in this way
+        Box bx_xy = mfi.tilebox(nodal_flag_xy);
+        Box bx_xz = mfi.tilebox(nodal_flag_xz);
+        Box bx_yz = mfi.tilebox(nodal_flag_yz);
         
         const Box& index_bounds = amrex::getIndexBounds(bx_xy, bx_xz, bx_yz);
 
@@ -1427,12 +1425,11 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_f[0]); mfi.isValid(); ++mfi ) {
 
-        // Get the index space of the valid region
-        // there are no cell-centered MultiFabs so use this to get
-        // a cell-centered box
-        AMREX_D_TERM(Box bx_x = amrex::enclosedCells(mfi.validbox()).growHi(0);,
-                     Box bx_y = amrex::enclosedCells(mfi.validbox()).growHi(1);,
-                     Box bx_z = amrex::enclosedCells(mfi.validbox()).growHi(2););
+        // since the MFIter is built on a nodal MultiFab we need to build the
+        // nodal tileboxes for each direction in this way
+        AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
+                     Box bx_y = mfi.tilebox(nodal_flag_y);,
+                     Box bx_z = mfi.tilebox(nodal_flag_z););
 
         const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
         
@@ -2245,10 +2242,10 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
     GpuArray<Real,AMREX_SPACEDIM> dx_gpu{AMREX_D_DECL(dx[0], dx[1], dx[2])};
     
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for ( MFIter mfi(beta_cc); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(beta_cc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // Get the index space of the valid region
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
         AMREX_D_TERM(Array4<Real> const& phix_fab = phi_fc[0].array(mfi);,
                      Array4<Real> const& phiy_fab = phi_fc[1].array(mfi);,

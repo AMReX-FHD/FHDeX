@@ -19,7 +19,7 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
     Real fourdxinv = 0.25/dx[0];
 
     // Loop over boxes
-    for (MFIter mfi(umac_in[0]); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(umac_in[0],TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         AMREX_D_TERM(const Array4<Real const> & umac = (umac_in[0]).array(mfi);,
                      const Array4<Real const> & vmac = (umac_in[1]).array(mfi);,
@@ -33,13 +33,11 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                      const Array4<Real> & m_updatey = m_update[1].array(mfi);,
                      const Array4<Real> & m_updatez = m_update[2].array(mfi););
 
-        AMREX_D_TERM(Box bx_x = enclosedCells(mfi.validbox());,
-                     Box bx_y = enclosedCells(mfi.validbox());,
-                     Box bx_z = enclosedCells(mfi.validbox()););
-
-        AMREX_D_TERM(bx_x.growHi(0);,
-                     bx_y.growHi(1);,
-                     bx_z.growHi(2););
+        // since the MFIter is built on a nodal MultiFab we need to build the
+        // nodal tileboxes for each direction in this way
+        AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
+                     Box bx_y = mfi.tilebox(nodal_flag_y);,
+                     Box bx_z = mfi.tilebox(nodal_flag_z););
 
 #if (AMREX_SPACEDIM == 2)
         if (increment == 1) {
