@@ -270,13 +270,9 @@ void main_driver(const char * argv) {
     defineFC(mfluxdiv_correct, ba, dmap, 1);
     setVal(mfluxdiv_correct, 0.);
 
-    Vector< amrex::Real > weights;
+    Vector<Real> weights;
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
-
-    // tracer
-    MultiFab tracer(ba, dmap, 1,1);
-    tracer.setVal(0.);
 
 
     //___________________________________________________________________________
@@ -400,8 +396,8 @@ void main_driver(const char * argv) {
 
 
     //___________________________________________________________________________
-    // Initialize velocities (fluid and tracers)
-    BL_PROFILE_VAR("main_initalize velocity of marker",markerv);
+    // Initialize fluid velocities
+    BL_PROFILE_VAR("main_initalize velocity of marker", initfv);
 
     const RealBox& realDomain = geom.ProbDomain();
     int dm;
@@ -415,17 +411,9 @@ void main_driver(const char * argv) {
                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
                      geom.ProbLo(), geom.ProbHi(), & d,
                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
-        BL_PROFILE_VAR_STOP(markerv);
-
-        BL_PROFILE_VAR("main_initialize tracer",tracer);
-        // initialize tracer
-        init_s_vel(BL_TO_FORTRAN_BOX(bx),
-                   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-                   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
     }
 
-    BL_PROFILE_VAR_STOP(tracer);
+    BL_PROFILE_VAR_STOP(initfv);
 
 
     //___________________________________________________________________________
@@ -475,7 +463,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, umac_avg, tracer, pres, ib_mc);
+        WritePlotFile(step, time, geom, umac, umac_avg, pres, ib_mc);
     }
 
 
@@ -505,7 +493,7 @@ void main_driver(const char * argv) {
 
         //___________________________________________________________________
         // Advance umac
-        advance(umac, umacNew, pres, tracer, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+        advance(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
                 alpha_fc, beta, gamma, beta_ed, geom, dt, time);
 
 
@@ -539,7 +527,7 @@ void main_driver(const char * argv) {
             n_avg = 0;
 
             //write out umac & pres to a plotfile
-            WritePlotFile(step, time, geom, umac, umac_avg, tracer, pres, ib_mc);
+            WritePlotFile(step, time, geom, umac, umac_avg, pres, ib_mc);
             setVal(umac_avg, 0.);
         }
     }
