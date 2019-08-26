@@ -24,7 +24,7 @@ using AoS          = IBMarkerContainer::AoS;
 
 void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
              std::array< MultiFab, AMREX_SPACEDIM > & umacNew,
-             MultiFab & pres, MultiFab & tracer,
+             MultiFab & pres,
              IBMarkerContainer & ib_mc,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_correct,
@@ -62,7 +62,6 @@ void WritePlotFile(const int step,
                    const Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac_avg,
-                   const MultiFab & tracer,
                    const MultiFab & pres,
                    const IBMarkerContainer & ib_pc);
 
