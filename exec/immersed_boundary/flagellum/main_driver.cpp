@@ -493,8 +493,8 @@ void main_driver(const char * argv) {
 
         //___________________________________________________________________
         // Advance umac
-        advance(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
-                alpha_fc, beta, gamma, beta_ed, geom, dt, time);
+        advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+                   alpha_fc, beta, gamma, beta_ed, geom, dt, time);
 
 
 

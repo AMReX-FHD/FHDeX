@@ -22,13 +22,13 @@ using AoS          = IBMarkerContainer::AoS;
  *                                                                              *
  *******************************************************************************/
 
-void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
-             std::array< MultiFab, AMREX_SPACEDIM > & umacNew,
+void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
+             std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
              MultiFab & pres,
              IBMarkerContainer & ib_mc,
-             const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_predict,
-             const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_correct,
-                   std::array< MultiFab, AMREX_SPACEDIM > & alpha_fc,
+             const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
+             const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
+                   std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
              const MultiFab& beta, const MultiFab & gamma,
 # if (AMREX_SPACEDIM == 2)
              const std::array< MultiFab, 1 > & beta_ed,
@@ -37,6 +37,24 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
              const std::array< MultiFab, 3 > & beta_ed,
 # endif
              const Geometry geom, const Real & dt, Real time);
+
+
+
+void advance_CN(std::array<MultiFab, AMREX_SPACEDIM> & umac,
+                std::array<MultiFab, AMREX_SPACEDIM> & umacNew,
+                MultiFab & pres,
+                IBMarkerContainer & ib_mc,
+                const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_predict,
+                const std::array<MultiFab, AMREX_SPACEDIM> & mfluxdiv_correct,
+                      std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                const MultiFab& beta, const MultiFab & gamma,
+# if (AMREX_SPACEDIM == 2)
+                const std::array<MultiFab, 1> & beta_ed,
+# endif
+# if (AMREX_SPACEDIM == 3)
+                const std::array<MultiFab, 3> & beta_ed,
+# endif
+                const Geometry geom, const Real & dt, Real time);
 
 
 
