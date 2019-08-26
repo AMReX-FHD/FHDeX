@@ -27,9 +27,9 @@ void SumStag(const Geometry& geom,
   ReduceData<Real> reduce_datax(reduce_op);
   using ReduceTuple = typename decltype(reduce_datax)::Type;
 
-  for (MFIter mfi(m1[0]); mfi.isValid(); ++mfi)
+  for (MFIter mfi(m1[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
-      const Box& bx = mfi.validbox();
+      const Box& bx = mfi.tilebox();
       auto const& fab = m1[0].array(mfi);
 
       int xlo = bx.smallEnd(0);
@@ -50,9 +50,9 @@ void SumStag(const Geometry& geom,
 
   ReduceData<Real> reduce_datay(reduce_op);
 
-  for (MFIter mfi(m1[1]); mfi.isValid(); ++mfi)
+  for (MFIter mfi(m1[1],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
-      const Box& bx = mfi.validbox();
+      const Box& bx = mfi.tilebox();
       auto const& fab = m1[1].array(mfi);
 
       int ylo = bx.smallEnd(1);
@@ -75,9 +75,9 @@ void SumStag(const Geometry& geom,
 
   ReduceData<Real> reduce_dataz(reduce_op);
 
-  for (MFIter mfi(m1[2]); mfi.isValid(); ++mfi)
+  for (MFIter mfi(m1[2],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
-      const Box& bx = mfi.validbox();
+      const Box& bx = mfi.tilebox();
       auto const& fab = m1[2].array(mfi);
 
       int zlo = bx.smallEnd(2);
