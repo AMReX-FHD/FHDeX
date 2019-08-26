@@ -13,9 +13,9 @@ void ComputeDiv(MultiFab& div,
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-
-    for ( MFIter mfi(div); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
+    for ( MFIter mfi(div,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+        const Box& bx = mfi.tilebox();
 
         const Array4<Real> & div_fab = div.array(mfi);
         AMREX_D_TERM(Array4<Real const> const& phix_fab = phi_fc[0].array(mfi);,
@@ -134,7 +134,7 @@ void ComputeGrad(const MultiFab & phi, std::array<MultiFab, AMREX_SPACEDIM> & gp
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         const Array4<Real const> & phi_fab = phi.array(mfi);
 
@@ -168,8 +168,9 @@ void ComputeCentredGrad(const MultiFab & phi,
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
+    for ( MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
 
         Array4<Real const> const& phi_fab = phi.array(mfi);
 

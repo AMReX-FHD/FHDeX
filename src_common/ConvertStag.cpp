@@ -8,9 +8,9 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
     BL_PROFILE_VAR("AverageFaceToCC()",AverageFaceToCC);
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
         AMREX_D_TERM(Array4<Real const> const& facex_fab = face[0].array(mfi);,
                      Array4<Real const> const& facey_fab = face[1].array(mfi);,
@@ -114,9 +114,7 @@ void AverageCCToFace(const MultiFab& cc, int cc_comp,
     BL_PROFILE_VAR("AverageCCToFace()",AverageCCToFace);
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
-
-        const Box & bx = mfi.validbox();
+    for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Array4<Real const> & cc_fab = cc.array(mfi);
 
@@ -155,9 +153,9 @@ void ShiftFaceToCC(const MultiFab& face, int face_comp,
     }
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for (MFIter mfi(cc); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
         Array4<Real const> const& face_fab = face.array(mfi);
 

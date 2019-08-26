@@ -2,12 +2,13 @@
 #include "common_functions_F.H"
 
 void SqrtMF(MultiFab& mf) {
-  for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+    
+    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
-    // Note: Make sure that multifab is cell-centered
-    const Box& validBox_cc = enclosedCells(mfi.validbox());
-
-    sqrt_mf(ARLIM_3D(validBox_cc.loVect()), ARLIM_3D(validBox_cc.hiVect()),
-	    BL_TO_FORTRAN_FAB(mf[mfi]));
-  }
+      const Box& bx = mfi.tilebox();
+      
+      sqrt_mf(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+              BL_TO_FORTRAN_FAB(mf[mfi]));
+    }
+    
 }
