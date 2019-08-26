@@ -1423,7 +1423,7 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
     BL_PROFILE_VAR("StagProlongation()",StagProlongation);
     
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
-    for ( MFIter mfi(phi_f[0]); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi_f[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // since the MFIter is built on a nodal MultiFab we need to build the
         // nodal tileboxes for each direction in this way
