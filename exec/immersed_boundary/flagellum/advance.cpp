@@ -186,7 +186,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 // argv contains the name of the inputs file entered at the command line
 void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-             MultiFab& pres, MultiFab& tracer,
+             MultiFab& pres,
              IBMarkerContainer & ib_mc,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
@@ -355,47 +355,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFABPhysBCDomainVel(umac[i], i, geom, i);
         MultiFABPhysBCMacVel(umac[i], i, geom, i);
     }
-
-
-
-    /****************************************************************************
-     *                                                                          *
-     * Advance tracer                                                           *
-     *                                                                          *
-     ***************************************************************************/
-
-    // Compute tracer:
-    BL_PROFILE_VAR("adv_compute tracer", TRACER);
-    tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBC(tracer, geom);
-
-    MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
-    advFluxdivS.mult(dt, 1);
-    BL_PROFILE_VAR_STOP(TRACER);
-
-    // compute predictor
-    BL_PROFILE_VAR("adv_compute predictor",PRED);
-
-    MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
-    MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
-
-    tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBC(tracerPred, geom);
-
-    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
-    advFluxdivS.mult(dt, 1);
-    BL_PROFILE_VAR_STOP(PRED);
-    // advance in time
-    MultiFab::Add(tracer, tracerPred,  0, 0, 1, 0);
-    MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
-    tracer.mult(0.5, 1);
-
-    // amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
-    //////////////////////////
-
-    //////////////////////////////////////////////////
-    // ADVANCE velocity field
-    //////////////////////////////////////////////////
 
 
 

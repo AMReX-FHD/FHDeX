@@ -15,7 +15,6 @@ void WritePlotFile(int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac_avg,
-                   const MultiFab& tracer,
                    const MultiFab& pres,
                    const IBMarkerContainer & ib_pc)
 {
@@ -30,9 +29,8 @@ void WritePlotFile(int step,
     // plot all the velocity variables (averaged)
     // plot all the velocity variables (shifted)
     // plot pressure
-    // plot tracer
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM+3;
+    int nPlot = 2*AMREX_SPACEDIM + 2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -53,7 +51,6 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
-    varNames[cnt++] = "tracer";
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
@@ -68,10 +65,6 @@ void WritePlotFile(int step,
     // into plotfile
     AverageFaceToCC(umac_avg, plotfile, cnt);
     cnt+=AMREX_SPACEDIM;
-
-    // copy tracer into plotfile
-    MultiFab::Copy(plotfile, tracer, 0, cnt, 1, 0);
-    cnt++;
 
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
@@ -89,14 +82,14 @@ void WritePlotFile(int step,
 
 
 //     // staggered velocity
-//     const std::string plotfilenamex = Concatenate("stagx",step,7);
-//     const std::string plotfilenamey = Concatenate("stagy",step,7);
-//     const std::string plotfilenamez = Concatenate("stagz",step,7);
+//     const std::string plotfilenamex = Concatenate("stagx", step, 7);
+//     const std::string plotfilenamey = Concatenate("stagy", step, 7);
+//     const std::string plotfilenamez = Concatenate("stagz", step, 7);
 //
-//     WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
-//     WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
+//     WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"}, geom, time, step);
+//     WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"}, geom, time, step);
 // #if (AMREX_SPACEDIM == 3)
-//     WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
+//     WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"}, geom, time, step);
 // #endif
 
 }
