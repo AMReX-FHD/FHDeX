@@ -1,5 +1,0 @@
-CEXE_sources += writePlotFile.cpp
-F90EXE_sources += init_consvar.F90
-
-CEXE_headers += exec_functions.H
-CEXE_headers += compressible_test_functions_F.H

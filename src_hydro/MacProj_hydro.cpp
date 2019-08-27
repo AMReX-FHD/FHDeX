@@ -30,10 +30,8 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // timer for profiling
     BL_PROFILE_VAR("MacProj()",MacProj);
 
-    BoxArray grids = umac[0].boxArray();
-    // Cell-centered grids based on velocity (staggered) grids
-    grids = grids.enclosedCells();
-    DistributionMapping dmap = umac[0].DistributionMap();
+    BoxArray grids = rho.boxArray();
+    DistributionMapping dmap = rho.DistributionMap();
 
     MultiFab solverrhs; // this will hold solver RHS = macrhs - div(umac)
     solverrhs.define(grids, dmap, 1, 0);
