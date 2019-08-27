@@ -67,7 +67,7 @@ public:
   void Finalize(        amrex::MultiFab&, amrex::MultiFab&, 
 			const int zero_avg=1);
   void WritePlotFile(   const int, const amrex::Real, const amrex::Geometry, 
-			const int zero_avg=1);
+			std::string, const int zero_avg=1);
   void StructOut(       amrex::MultiFab&);
   void ComputeFFT(      const amrex::MultiFab&, amrex::MultiFab&,
 			amrex::MultiFab&, const amrex::Geometry);

@@ -368,9 +368,9 @@ void main_driver(const char* argv)
     }
     
     StructFact structFact(ba,dmap,var_names,eqmvars);
-
+    
     Geometry geom_flat;
-    if(project_dir > -1){
+    if(project_dir >= 0){
 
       cu.setVal(0.0);
       ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
@@ -439,29 +439,28 @@ void main_driver(const char* argv)
     cup2.setVal(rho0,0,1,ngc);
     cup3.setVal(rho0,0,1,ngc);
 
+    // initialize conserved variables
     if (prob_type > 1) {
-      for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-	const Box& bx = mfi.validbox();
-
-	init_consvar(BL_TO_FORTRAN_BOX(bx),
-		     BL_TO_FORTRAN_ANYD(cu[mfi]),
-		     BL_TO_FORTRAN_ANYD(prim[mfi]),
-		     dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
-      }
+        for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
+            const Box& bx = mfi.validbox();
+            init_consvar(BL_TO_FORTRAN_BOX(bx),
+                         BL_TO_FORTRAN_ANYD(cu[mfi]),
+                         BL_TO_FORTRAN_ANYD(prim[mfi]),
+                         dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+        }
     }
 
     statsCount = 1;
 
     // Write initial plotfile
     conservedToPrimitive(prim, cu);
-    if (plot_int > 0)
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars, prim, primMeans,
-                      primVars, eta, kappa);
+    if (plot_int > 0) {
+	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+                      prim, primMeans, primVars, eta, kappa);
+    }
 
     //Time stepping loop
-    for(step=1;step<=max_step;++step)
-    {
+    for(step=1;step<=max_step;++step) {
 
         // timer
         Real ts1 = ParallelDescriptor::second();
@@ -485,12 +484,13 @@ void main_driver(const char* argv)
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-            WritePlotFile(step, time, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, eta, kappa);
+            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
+                          prim, primMeans, primVars, eta, kappa);
         }
  
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            if(project_dir > -1) {
+            if(project_dir >= 0) {
                 ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
                 structFact.FortStructure(cuVertAvg,geom_flat);
             } else {
@@ -501,10 +501,10 @@ void main_driver(const char* argv)
 
         // write out structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
-            if(project_dir > -1) {
-                structFact.WritePlotFile(step,time,geom_flat);
+            if(project_dir >= 0) {
+                structFact.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
             } else {
-                structFact.WritePlotFile(step,time,geom);
+                structFact.WritePlotFile(step,time,geom,"plt_SF");
             }
         }
         
@@ -516,6 +516,7 @@ void main_driver(const char* argv)
         time = time + dt;
     }
 
+    // timer
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;

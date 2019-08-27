@@ -216,7 +216,7 @@ void StructFact::FortStructure(const MultiFab& variables, const Geometry geom) {
   const DistributionMapping& dm = variables.DistributionMap();
 
   if (ba.size() != ParallelDescriptor::NProcs()) {
-    Abort("Need same number of MPI processes as grids");
+    Abort("StructFact::FortStructure - Need same number of MPI processes as grids");
     exit(0);
   }
 
@@ -445,7 +445,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 }
 
 void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom,
-			       const int zero_avg) {
+                               std::string plotfile_base,
+                               const int zero_avg) {
   
   BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
 
@@ -467,14 +468,17 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   //////////////////////////////////////////////////////////////////////////////////
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename1 = amrex::Concatenate("plt_structure_factor_mag_",step,9);
+
+  std::string name = plotfile_base;
+  name += "_mag";
+  
+  const std::string plotfilename1 = amrex::Concatenate(name,step,9);
   nPlot = NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
 
-  int cnt = 0; // keep a counter for plotfile variables
   for (int n=0; n<NCOV; n++) {
-    varNames[cnt++] = cov_names[cnt];
+    varNames[n] = cov_names[n];
   }
   
   MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
@@ -485,21 +489,23 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename2 = amrex::Concatenate("plt_structure_factor_real_imag_",step,9);
+
+  name = plotfile_base;
+  name += "_real_imag";
+  
+  const std::string plotfilename2 = amrex::Concatenate(name,step,9);
   nPlot = 2*NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
 
-  cnt = 0; // keep a counter for plotfile variables
-  int index = 0;
+  int cnt = 0; // keep a counter for plotfile variables
   for (int n=0; n<NCOV; n++) {
     varNames[cnt] = cov_names[cnt];
     varNames[cnt] += "_real";
-    index++;
     cnt++;
   }
 
-  index = 0;
+  int index = 0;
   for (int n=0; n<NCOV; n++) {
     varNames[cnt] = cov_names[index];
     varNames[cnt] += "_imag";
