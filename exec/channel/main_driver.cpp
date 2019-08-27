@@ -476,7 +476,7 @@ void main_driver(const char * argv) {
     //     // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
 
     //     structFact.Finalize(SFscale);
-    //     structFact.WritePlotFile(step,time,geom);
+    //     structFact.WritePlotFile(step,time,geom,"plt_SF");
     // }
 
     // Call the timer again and compute the maximum difference between the start

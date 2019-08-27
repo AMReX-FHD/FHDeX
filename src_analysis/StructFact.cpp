@@ -445,7 +445,8 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 }
 
 void StructFact::WritePlotFile(const int step, const Real time, const Geometry geom,
-			       const int zero_avg) {
+                               std::string plotfile_base,
+                               const int zero_avg) {
   
   BL_PROFILE_VAR("StructFact::WritePlotFile()",WritePlotFile);
 
@@ -467,7 +468,11 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   //////////////////////////////////////////////////////////////////////////////////
   // Write out structure factor magnitude to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename1 = amrex::Concatenate("plt_structure_factor_mag_",step,9);
+
+  std::string name = plotfile_base;
+  name += "_mag";
+  
+  const std::string plotfilename1 = amrex::Concatenate(name,step,9);
   nPlot = NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);
@@ -484,7 +489,11 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
   //////////////////////////////////////////////////////////////////////////////////
-  const std::string plotfilename2 = amrex::Concatenate("plt_structure_factor_real_imag_",step,9);
+
+  name = plotfile_base;
+  name += "_real_imag";
+  
+  const std::string plotfilename2 = amrex::Concatenate(name,step,9);
   nPlot = 2*NCOV;
   plotfile.define(cov_mag.boxArray(), cov_mag.DistributionMap(), nPlot, 0);
   varNames.resize(nPlot);

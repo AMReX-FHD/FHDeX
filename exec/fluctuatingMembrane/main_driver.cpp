@@ -926,7 +926,7 @@ void main_driver(const char* argv)
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
     //  structFact.Finalize(SFscale);
-    //  structFact.WritePlotFile(step,time,geomP);
+    //  structFact.WritePlotFile(step,time,geomP,"plt_SF");
 
     }
 

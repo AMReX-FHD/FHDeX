@@ -343,7 +343,7 @@ void main_driver(const char* argv)
         Real SFscale = dVol/(k_B*temp_const);
 
         structFact.Finalize(SFscale);
-        structFact.WritePlotFile(step,time,geom);
+        structFact.WritePlotFile(step,time,geom,"plt_SF");
     }
     ///////////////////////////////////////////
 
