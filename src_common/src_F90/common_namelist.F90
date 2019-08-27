@@ -416,7 +416,7 @@ contains
     potential_hi(:) = 0
     struct_fact_int = 0
     n_steps_skip = 0
-    project_dir = 0
+    project_dir = -1
     max_grid_projection(:) = 1
     histogram_unit = 0
     density_weights(:) = 0.d0

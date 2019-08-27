@@ -370,10 +370,15 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names,eqmvars);
     
     Geometry geom_flat;
-    if(project_dir != 0){
+    if(project_dir >= 0){
 
       cu.setVal(0.0);
       ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
+
+      VisMF::Write(cu,"a_cu");
+      VisMF::Write(cuVertAvg,"a_va");
+      Abort("HERE");
+      
       BoxArray ba_flat = cuVertAvg.boxArray();
       const DistributionMapping& dmap_flat = cuVertAvg.DistributionMap();
       {
@@ -490,7 +495,7 @@ void main_driver(const char* argv)
  
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            if(project_dir != 0) {
+            if(project_dir >= 0) {
                 ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
                 structFact.FortStructure(cuVertAvg,geom_flat);
             } else {
@@ -501,7 +506,7 @@ void main_driver(const char* argv)
 
         // write out structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
-            if(project_dir != 0) {
+            if(project_dir >= 0) {
                 structFact.WritePlotFile(step,time,geom_flat);
             } else {
                 structFact.WritePlotFile(step,time,geom);
