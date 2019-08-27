@@ -867,7 +867,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Construct RHS of Navier Stokes Equation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
-        gmres_rhs_u[d].mult(dtinv*2, 1); // advance by dt/2
+        gmres_rhs_u[d].mult(dtinv, 1); // advance by dt
 
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 1);
         MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
