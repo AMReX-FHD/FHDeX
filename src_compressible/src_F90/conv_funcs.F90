@@ -1,12 +1,15 @@
 module conv_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b, nspecies, hcv, hcp, runiv, dof
+  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, &
+       molmass, k_b, nspecies, hcv, hcp, runiv, dof
   implicit none
 
   private
 
-  public :: cons_to_prim, get_temperature, get_density, get_energy, get_molfrac, get_massfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, get_temperature_gas, get_energy_gas
+  public :: cons_to_prim, get_temperature, get_density, get_energy, get_molfrac, &
+       get_massfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, &
+       get_temperature_gas, get_energy_gas
 
 contains
 

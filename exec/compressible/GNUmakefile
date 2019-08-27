@@ -14,10 +14,8 @@ USE_PARTICLES = FALSE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
-
 
 include ../../src_compressible/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_compressible/src_F90

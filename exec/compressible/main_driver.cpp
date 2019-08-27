@@ -14,8 +14,6 @@
 #include "compressible_namespace.H"
 #include "compressible_namespace_declarations.H"
 
-#include "exec_functions.H"
-
 #include "StructFact.H"
 
 #include <AMReX_VisMF.H>
@@ -24,8 +22,6 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_MultiFab.H>
 
-#include "compressible_test_functions_F.H"
-
 using namespace amrex;
 using namespace common;
 using namespace compressible;
@@ -33,7 +29,6 @@ using namespace compressible;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -89,12 +84,7 @@ void main_driver(const char* argv)
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
 
-	// Print() << "HACK: " << real_box << std::endl << domain << std::endl << geom << std::endl;
-	// amrex::Abort("THE END");
-
     }
-
-    // Print() << "Hack: boxarray = " << ba << "\n";
 
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
@@ -554,8 +544,5 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
-
-    // amrex::Finalize();
-
 }
 
