@@ -26,6 +26,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     /////////////////////////////////////////////////////
     // Initialize white noise fields
 
+    // weights for stochastic fluxes; swgt2 changes each stage
     amrex::Vector< amrex::Real > stoch_weights;
     amrex::Real swgt1, swgt2;
     swgt1 = 1.0;
@@ -60,15 +61,13 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                  stochFlux_B[2].setVal(0.0););
     rancorn_B.setVal(0.0);
 
-    // Fill random (only momentum and energy)
-    for(int d=0;d<AMREX_SPACEDIM;d++)
-      {
-    	for(int i=1;i<nvars;i++)
-    	  {
+    // fill random numbers (can skip density component 0)
+    for(int d=0;d<AMREX_SPACEDIM;d++) {
+    	for(int i=1;i<nvars;i++) {
     	    MultiFABFillRandom(stochFlux_A[d], i, 1.0, geom);
 	    MultiFABFillRandom(stochFlux_B[d], i, 1.0, geom);
-	  }
-      }
+        }
+    }
 
     MultiFABFillRandom(rancorn_A, 0, 1.0, geom);
     MultiFABFillRandom(rancorn_B, 0, 1.0, geom);
@@ -115,7 +114,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     ///////////////////////////////////////////////////////////
 
-    calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, stoch_weights, dx, dt);
+    calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
+                  visccorn, rancorn, geom, stoch_weights, dx, dt);
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
@@ -125,10 +125,10 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                    cu[mfi].dataPtr(),  
                    cup[mfi].dataPtr(),  
                    source[mfi].dataPtr(),
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
       	           ZFILL(dx), &dt);   
     }
@@ -173,7 +173,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     ///////////////////////////////////////////////////////////
 
-    calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, stoch_weights, dx, dt);
+    calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
+                  visccorn, rancorn, geom, stoch_weights, dx, dt);
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
@@ -184,10 +185,10 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                    cup[mfi].dataPtr(),  
                    cup2[mfi].dataPtr(), 
                    source[mfi].dataPtr(),
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
       	           ZFILL(dx), &dt);
     }
@@ -232,7 +233,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     ///////////////////////////////////////////////////////////
 
-    calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, stoch_weights, dx, dt);
+    calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
+                  visccorn, rancorn, geom, stoch_weights, dx, dt);
 
     for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
     {
@@ -243,10 +245,10 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                    cup[mfi].dataPtr(),
                    cup2[mfi].dataPtr(), 
                    source[mfi].dataPtr(),
-      		       flux[0][mfi].dataPtr(),
-       		       flux[1][mfi].dataPtr(),
+                   flux[0][mfi].dataPtr(),
+                   flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-       		       flux[2][mfi].dataPtr(),
+                   flux[2][mfi].dataPtr(),
 #endif
       	           ZFILL(dx), &dt);
     

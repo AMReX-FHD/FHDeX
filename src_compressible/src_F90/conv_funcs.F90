@@ -259,17 +259,12 @@ contains
 
     do i=1, nspecies
        if(hcv(i) .lt. 0) then   
-
           hcv(i) = 0.5d0*dof(i)*Runiv/molmass(i)
-          hcp(i) = 0.5d0*(2+dof(i))*Runiv/molmass(i)
-
-          !print *, hcv(i)
-
        endif
-
+       if (hcp(i) .lt. 0) then
+          hcp(i) = 0.5d0*(2+dof(i))*Runiv/molmass(i)
+       end if
     enddo
-
-    !print *, hcv
 
   end subroutine get_hc_gas
 

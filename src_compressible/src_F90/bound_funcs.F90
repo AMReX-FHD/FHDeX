@@ -1083,14 +1083,6 @@ contains
 
     enddo
 
-    ! print*, "Hack: mass bc lo = ", mass_bc_lo
-    ! print*, "Hack: mass bc hi = ", mass_bc_hi
-    ! print*, "Hack: temp bc lo = ", therm_bc_lo
-    ! print*, "Hack: temp bc hi = ", therm_bc_hi
-    ! print*, "Hack: vel  bc lo = ", vel_bc_lo
-    ! print*, "Hack: vel  bc hi = ", vel_bc_hi
-    ! stop
-
   end subroutine setup_bc
 
   subroutine setup_cwall() bind(C,name="setup_cwall")

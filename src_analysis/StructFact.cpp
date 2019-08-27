@@ -317,7 +317,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 
   DistributionMapping dmap = variables_dft_real.DistributionMap();
 
-  Print() << "HACK FFT: " << ba << std::endl << dmap << std::endl << dm << std::endl;
+//  Print() << "HACK FFT: " << ba << std::endl << dmap << std::endl << dm << std::endl;
 
   for (int ib = 0; ib < nboxes; ++ib)
     {
@@ -382,7 +382,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	a.resize(nx*ny*nz);
 	b.resize(nx*ny*nz);
 
-	Print() << "HACK FFT: got here" << std::endl;
+	// Print() << "HACK FFT: got here" << std::endl;
 
 	dfft.makePlans(&a[0],&b[0],&a[0],&b[0]);
 
@@ -400,7 +400,7 @@ void StructFact::ComputeFFT(const MultiFab& variables,
 	      a[local_indx] = temp;
 	      local_indx++;
 
-	      Print() << "HACK FFT: a[" << local_indx << "] = \t " << variables[mfi].dataPtr(dim)[local_indx] << std::endl;
+	      // Print() << "HACK FFT: a[" << local_indx << "] = \t " << variables[mfi].dataPtr(dim)[local_indx] << std::endl;
 
 	    }
 	  }
