@@ -10,7 +10,6 @@ using namespace common;
 int greatest_common_factor(int,int);
 void factor(int,int*,int);
 
-//Computes divergence at cell centres from velcocities at cell faces
 void ComputeVerticalAverage(const MultiFab& mf, MultiFab& mf_avg,
 			    const Geometry& geom, const int dir,
 			    const int incomp, const int ncomp,

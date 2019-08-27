@@ -52,6 +52,8 @@
   rho0 = 4.83e-4
 
   struct_fact_int = 0
+  project_dir = 0
+  
   n_steps_skip = 0
 
   ! Boundary conditions
