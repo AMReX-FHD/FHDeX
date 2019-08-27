@@ -366,12 +366,16 @@ void main_driver(const char* argv)
       s_pairA[d] = d;
       s_pairB[d] = d;
     }
-    
+
+    // structure factor class for full dataset
     StructFact structFact(ba,dmap,var_names,eqmvars);
     
+    // structure factor class for vertically-averaged dataset
+    StructFact structFactVA;
+    
     Geometry geom_flat;
-    if(project_dir >= 0){
 
+    if(project_dir >= 0){
       cu.setVal(0.0);
       ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
       BoxArray ba_flat = cuVertAvg.boxArray();
@@ -388,16 +392,15 @@ void main_driver(const char* argv)
     	  projected_hi[d] = prob_hi[d];
     	}
     	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
-        RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+        RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
                          {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
 
         // This defines a Geometry object
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-        
       }
 
-      structFact.~StructFact(); // destruct
-      new(&structFact) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
+      structFactVA.~StructFact(); // destruct
+      new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
     
     }
 
@@ -490,21 +493,19 @@ void main_driver(const char* argv)
  
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+            MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+            structFact.FortStructure(struct_in_cc,geom);
             if(project_dir >= 0) {
                 ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-                structFact.FortStructure(cuVertAvg,geom_flat);
-            } else {
-                MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-                structFact.FortStructure(struct_in_cc,geom);
-            }  
+                structFactVA.FortStructure(cuVertAvg,geom_flat);
+            }
         }
 
         // write out structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
+            structFact.WritePlotFile(step,time,geom,"plt_SF");
             if(project_dir >= 0) {
-                structFact.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
-            } else {
-                structFact.WritePlotFile(step,time,geom,"plt_SF");
+                structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
             }
         }
         

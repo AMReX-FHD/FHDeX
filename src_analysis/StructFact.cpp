@@ -7,6 +7,9 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_BoxArray.H"
 
+StructFact::StructFact()
+{}
+
 StructFact::StructFact(const BoxArray ba_in, const DistributionMapping dmap_in,
 		       const Vector< std::string >& var_names,
 		       const Vector< Real >& var_scaling_in,
