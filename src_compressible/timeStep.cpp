@@ -9,10 +9,19 @@
 
 #include "common_namespace.H"
 
+#include "AMReX_VisMF.H"
+
 using namespace common;
 
-void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa, MultiFab& chi, MultiFab& D, std::array<MultiFab, AMREX_SPACEDIM>& flux, std::array<MultiFab, AMREX_SPACEDIM>& stochFlux, 
-                                                 std::array<MultiFab, AMREX_SPACEDIM>& cornx, std::array<MultiFab, AMREX_SPACEDIM>& corny, std::array<MultiFab, AMREX_SPACEDIM>& cornz, MultiFab& visccorn, MultiFab& rancorn, const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
+void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
+             MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
+             MultiFab& chi, MultiFab& D, std::array<MultiFab, AMREX_SPACEDIM>& flux,
+             std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
+             std::array<MultiFab, AMREX_SPACEDIM>& cornx,
+             std::array<MultiFab, AMREX_SPACEDIM>& corny,
+             std::array<MultiFab, AMREX_SPACEDIM>& cornz,
+             MultiFab& visccorn, MultiFab& rancorn,
+             const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
 {
     /////////////////////////////////////////////////////
     // Initialize white noise fields
@@ -73,7 +82,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3, MultiF
     prim.FillBoundary(geom.periodicity());
     setBC(prim, cu);
 
-    // Compute transport coefs after setting BCs
+    // Compute transport coefs after setting BCs    
     calculateTransportCoeffs(prim, eta, zeta, kappa, chi, D);
 
     ///////////////////////////////////////////////////////////

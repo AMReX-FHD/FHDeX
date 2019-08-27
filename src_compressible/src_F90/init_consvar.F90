@@ -2,7 +2,8 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
      , reallo, realhi) bind(C, name="init_consvar")
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, bc_lo, bc_hi, n_cells, prob_type, molmass, Runiv, grav, membrane_cell
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, bc_lo, bc_hi, &
+       n_cells, prob_type, molmass, Runiv, grav, membrane_cell
   use compressible_namelist_module, only : Yk_bc
   use conv_module, only : get_energy, get_pressure_gas
 
