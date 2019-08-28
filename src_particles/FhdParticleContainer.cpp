@@ -23,7 +23,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
 
-    BL_PROFILE("FhdParticleContainer::computeForcesNL");
+    BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
 
     double rcount = 0;
     const int lev = 0;
@@ -46,34 +46,35 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
         if(sr_tog==1) 
         {
-                amrex_compute_forces_nl(particles.data(), &Np, 
-                                        neighbors[lev][index].dataPtr(), &Nn,
-                                        neighbor_list[lev][index].dataPtr(), &size, &rcount);
+            amrex_compute_forces_nl(particles.data(), &Np, 
+                                    neighbors[lev][index].dataPtr(), &Nn,
+                                    neighbor_list[lev][index].dataPtr(), &size, &rcount);
         }
         if(es_tog==3)
         {
-
-                amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
-                                        neighbors[lev][index].dataPtr(), &Nn,
-                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
-                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx)); 
+            amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
+                                               neighbors[lev][index].dataPtr(), &Nn,
+                                               neighbor_list[lev][index].dataPtr(), &size, &rcount,
+                                               BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]),
+                                               ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()),
+                                               ZFILL(dx)); 
         }
     }
 
     if(sr_tog==1) 
     {
-            ParallelDescriptor::ReduceRealSum(rcount);
-
-            Print() << rcount/2 << " close range interactions.\n";
+        ParallelDescriptor::ReduceRealSum(rcount);
+        Print() << rcount/2 << " close range interactions.\n";
     }
 }
 
 
 
-void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount, Real time, int* flux)
+void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList,
+                                             const int surfaceCount, Real time, int* flux)
 {
 
-  // Print() << "HERE MoveParticlesDSMC" << std::endline
+    BL_PROFILE_VAR("MoveParticlesDSMC()",MoveParticlesDSMC);
   
     UpdateCellVectors();
     int i; int lFlux = 0; int rFlux = 0;
@@ -81,10 +82,6 @@ void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfa
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
-
-BL_PROFILE_VAR_NS("particle_move", particle_move);
-
-BL_PROFILE_VAR_START(particle_move);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -148,9 +145,6 @@ BL_PROFILE_VAR_START(particle_move);
 	  outfile.close();
       }
 	    
-
-BL_PROFILE_VAR_STOP(particle_move);
-
 }
 
 void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -160,6 +154,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
                                            const MultiFab& mobility,
                                            const surface* surfaceList, const int surfaceCount, int sw)
 {
+    BL_PROFILE_VAR("MoveIons()",MoveIons);
     
     UpdateCellVectors();
 
@@ -262,8 +257,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw)
 {
-    
-
+    BL_PROFILE_VAR("SpreadIons()",SpreadIons);
 
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
@@ -367,9 +361,11 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 
 }
 
-void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length, const int step, const species* particleInfo)
+void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos,
+                                        double* spec3xForce, double* spec3yForce, double* spec3zForce,
+                                        const int length, const int step, const species* particleInfo)
 {
-    
+    BL_PROFILE_VAR("SyncMembrane()",SyncMembrane);    
 
     const int lev = 0;
     double temp;
@@ -459,6 +455,7 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw)
 {
+    BL_PROFILE_VAR("DoRFD()",DoRFD);
     
     UpdateCellVectors();
 
@@ -543,8 +540,8 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
                                          const MultiFab& RealCenterCoords, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp,
                                          MultiFab& mass, MultiFab& massTemp)
 {
+    BL_PROFILE_VAR("collectFields()",collectFields);
     
-
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
@@ -599,6 +596,7 @@ void FhdParticleContainer::InitCollisionCells(
                               MultiFab& collisionFactor, 
                               MultiFab& cellVols, const species particleInfo, const Real delt)
 {
+    BL_PROFILE_VAR("InitCollisionCells()",InitCollisionCells);
 
     UpdateCellVectors();
     const int lev = 0;
@@ -627,11 +625,12 @@ void FhdParticleContainer::InitCollisionCells(
     }
 }
 
-void FhdParticleContainer::CollideParticles(
-                              MultiFab& collisionPairs,
-                              MultiFab& collisionFactor, 
-                              MultiFab& cellVols, const species particleInfo, const Real delt)
+void FhdParticleContainer::CollideParticles(MultiFab& collisionPairs,
+                                            MultiFab& collisionFactor, 
+                                            MultiFab& cellVols, const species particleInfo, const Real delt)
 {
+    BL_PROFILE_VAR("CollideParticles()",CollideParticles);
+    
     const int lev = 0;
 
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
@@ -659,8 +658,9 @@ void FhdParticleContainer::CollideParticles(
 }
 
 void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
-                              MultiFab& cellVols, const species particleInfo)
+                                            MultiFab& cellVols, const species particleInfo)
 {
+    BL_PROFILE_VAR("InitializeFields()",InitializeFields);  
 
     UpdateCellVectors();
     const int lev = 0;
@@ -935,7 +935,7 @@ void FhdParticleContainer::EvaluateStats(
 void
 FhdParticleContainer::UpdateCellVectors()
 {
-    BL_PROFILE("CellSortedParticleContainer::UpdateCellVectors");
+    BL_PROFILE_VAR("UpdateCellVectors()",UpdateCellVectors);
     
     const int lev = 0;
 
@@ -999,7 +999,7 @@ FhdParticleContainer::UpdateCellVectors()
 void
 FhdParticleContainer::UpdateFortranStructures()
 {
-    BL_PROFILE("CellSortedParticleContainer::UpdateFortranStructures");
+    BL_PROFILE_VAR("UpdateFortranStructures()",UpdateFortranStructures);
     
     const int lev = 0;
 
@@ -1021,7 +1021,7 @@ FhdParticleContainer::UpdateFortranStructures()
 void
 FhdParticleContainer::ReBin()
 {
-    BL_PROFILE("CellSortedParticleContainer::ReBin()");
+    BL_PROFILE_VAR("ReBin()",ReBin);
     
     const int lev = 0;
 
@@ -1057,6 +1057,8 @@ void
 FhdParticleContainer::correctCellVectors(int old_index, int new_index, 
 						int grid, const ParticleType& p)
 {
+    BL_PROFILE_VAR("correctCellVectors()",correctCellVectors);
+    
     if (not p.idata(IntData::sorted)) return;
     IntVect iv(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k));
     //IntVect iv(AMREX_D_DECL(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k)));
@@ -1071,6 +1073,8 @@ FhdParticleContainer::correctCellVectors(int old_index, int new_index,
 
 void FhdParticleContainer::WriteParticlesAscii(std::string asciiName)
 {
+    BL_PROFILE_VAR("WriteParticlesAscii()",WriteParticlesAscii);
+    
     WriteAsciiFile(asciiName);
 }
 
@@ -1078,6 +1082,8 @@ void FhdParticleContainer::WriteParticlesAscii(std::string asciiName)
 int
 FhdParticleContainer::numWrongCell()
 {
+    BL_PROFILE_VAR("numWrongCell()",numWrongCell);
+    
     const int lev = 0;
     int num_wrong = 0;
     
