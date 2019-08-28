@@ -8,6 +8,8 @@ using namespace common;
 
 void InitializeCommonNamespace() {
 
+    BL_PROFILE_VAR("InitializeCommonNamespace()",InitializeCommonNameSpace);
+    
     nodal_flag_dir.resize(AMREX_SPACEDIM);
     nodal_flag_edge.resize(AMREX_SPACEDIM);
 

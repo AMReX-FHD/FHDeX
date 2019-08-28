@@ -3,6 +3,8 @@
 
 void SqrtMF(MultiFab& mf) {
     
+    BL_PROFILE_VAR("SqrtMF()",SqrtMF);
+    
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
       const Box& bx = mfi.tilebox();
