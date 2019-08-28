@@ -2,10 +2,11 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
-FMEMBRANE = $(FHDeX)/exec/fluctuatingMembrane
+FIONS = $(FHDeX)/exec/immersedIons
 HYDROLIB_HOME := ../../../LowMachFHD/HydroGrid
 
-DEBUG     = FALSE
+DEBUG     = TRUE
+PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
@@ -20,10 +21,10 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
 
-VPATH_LOCATIONS   += $(FMEMBRANE)
-INCLUDE_LOCATIONS += $(FMEMBRANE)
+VPATH_LOCATIONS   += $(FIONS)
+INCLUDE_LOCATIONS += $(FIONS)
 
-include $(FMEMBRANE)/Make.package
+
 
 include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
@@ -90,18 +91,19 @@ VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
 
 include $(FHDeX)/src_immersed-boundary/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_immersed-boundary/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_immersed-boundary/src_F90
+VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary/src_F90
+INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary/src_F90
 
-include $(FHDeX)/src_immersed-boundary/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_immersed-boundary
-INCLUDE_LOCATIONS += $(FHDeX)/src_immersed-boundary
+include $(FHDeX)/src_immersed-boundary/MakeBase.package
+VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
+INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
 
 include $(HYDROLIB_HOME)/GPackage_noRNG.mak
 VPATH_LOCATIONS += $(HYDROLIB_HOME)
 
-include $(FMEMBRANE)/Make_precheck.package
-include $(FMEMBRANE)/Make_debug.package
+include $(FIONS)/Make.package
+include $(FIONS)/Make_precheck.package
+include $(FIONS)/Make_debug.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

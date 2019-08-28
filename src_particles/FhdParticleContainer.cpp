@@ -12,13 +12,22 @@ using namespace amrex;
 using namespace common;
 using namespace std;
 
+bool FhdParticleContainer::use_neighbor_list  {true};
+bool FhdParticleContainer::sort_neighbor_list {false};
+
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
                               const DistributionMapping & dmap,
                               const BoxArray            & ba,
                               int ncells)
-    : NeighborParticleContainer<RealData::ncomps, IntData::ncomps> (geom, dmap, ba, ncells)
+    : IBMarkerContainerBase<RealData, IntData> (geom, dmap, ba, ncells)
 {}
 
+//FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
+//                              const DistributionMapping & dmap,
+//                              const BoxArray            & ba,
+//                              int ncells)
+//    : NeighborParticleContainer<RealData::count, IntData::count> (geom, dmap, ba, ncells)
+//{}
 
 
 void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
@@ -28,13 +37,15 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
     double rcount = 0;
     const int lev = 0;
 
+    cout << ParallelDescriptor::MyProc() << " Here5!\n";
     buildNeighborList(CheckPair);
 
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
-    for (MyParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
+
+   for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
       
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
@@ -44,6 +55,7 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
         const Box& tile_box  = pti.tilebox();
 
+
         if(sr_tog==1) 
         {
                 amrex_compute_forces_nl(particles.data(), &Np, 
@@ -52,7 +64,6 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
         }
         if(es_tog==3)
         {
-
                 amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
                                         neighbor_list[lev][index].dataPtr(), &size, &rcount,
@@ -67,8 +78,6 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
             Print() << rcount/2 << " close range interactions.\n";
     }
 }
-
-
 
 void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount, Real time, int* flux)
 {
@@ -186,6 +195,8 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 //    sourceTemp[2].setVal(0.0);
 //#endif
 
+    int loops = 0;
+
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
@@ -195,8 +206,13 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
+
+        loops++;
+
+        Print() << "Counts: " << RealData::count << ", " << IntData::count << "\n";
         
-        //Print() << "FHD\n"; 
+        Print() << "PTI: " << pti.isValid() << ", " << pti.index() << ", " << pti.LocalTileIndex() <<"\n"; 
+
         move_ions_fhd(particles.data(), &np,
                          ARLIM_3D(tile_box.loVect()),
                          ARLIM_3D(tile_box.hiVect()),
@@ -239,19 +255,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         }
     }
 
-        ParallelDescriptor::ReduceRealSum(kinetic);
-
-        if(ParallelDescriptor::ioProcessor == ParallelDescriptor::MyProc())
-        {
-
-//		    std::ofstream kineticFile;
-//		    kineticFile.setf(ios::scientific, ios::floatfield);
-//		    kineticFile.setf(ios::showpoint);
-//		    kineticFile.open ("kinetic.dat", ios::out | ios::app);
-
-//            kineticFile << kinetic << std::endl;
-        }
-
+    Print() << "Looped " << loops << " times.\n";
 }
 
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -459,7 +463,6 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw)
 {
-    
     UpdateCellVectors();
 
     const int lev = 0;
@@ -483,6 +486,8 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
     sourceTemp[2].setVal(0.0);
 #endif
 
+    std::cout << ParallelDescriptor::MyProc() << " Here1!" << std::endl;
+
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
     {
         const int grid_id = pti.index();
@@ -492,6 +497,8 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
+
+    std::cout << ParallelDescriptor::MyProc() << " is looping " << np << " particles." << std::endl;
         
         //Print() << "FHD\n"; 
         do_rfd(particles.data(), &np,
@@ -528,13 +535,15 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
 
 
         // resize particle vectors after call to move_particles
-        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-        {
-            const auto new_size = m_vector_size[grid_id](iv);
-            auto& pvec = m_cell_vectors[grid_id](iv);
-            pvec.resize(new_size);
-        }
+//        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+//        {
+//            const auto new_size = m_vector_size[grid_id](iv);
+//            auto& pvec = m_cell_vectors[grid_id](iv);
+//            pvec.resize(new_size);
+//        }
     }
+
+    std::cout << ParallelDescriptor::MyProc() << " Here2!" << std::endl;
 
 }
 
