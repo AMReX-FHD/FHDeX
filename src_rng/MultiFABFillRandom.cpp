@@ -14,27 +14,36 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 {
 
     BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
-
+    
+#ifdef AMREX_USE_CUDA
+    // generate on GPU
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-
-        const Box& validBox = mfi.validbox();
-
-	multifab_fill_random(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-			     BL_TO_FORTRAN_FAB(mf[mfi]), &comp);
+        const Box& bx = mfi.validbox();
+        const Array4<Real>& mf_fab = mf.array(mfi);
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            mf_fab(i,j,k,comp) = amrex::Random();
+        });
     }
+#else
+    // generate on host
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+	multifab_fill_random(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+			     BL_TO_FORTRAN_FAB(mf[mfi]), &comp);
+    }    
+#endif
 
 //----------------------------------------
 
     // Scale standard gaussian samples by standard deviation
     mf.mult(sqrt(variance), comp, 1, 0);
 
-    // Enforce boundary conditions on nodal boundaries & ghost cells
+    // sync up random numbers of faces/nodes that are at the same physical location
     mf.OverrideSync(geom.periodicity());
 
+    // fill interior and periodic ghost cells
     mf.FillBoundary(geom.periodicity());
-
-    //TODO: is this the correct BC? And fix corner case
-    MultiFABPhysBC(mf, geom);
 
 //----------------------------------------
 }

@@ -149,10 +149,6 @@ extern "C"
 			      const amrex::Real* cons,
 			      amrex::Real* prim);
 
-  void prim_to_cons(const int* lo, const int* hi,
-			      amrex::Real* cons,
-			      const amrex::Real* prim);
-
   void set_bc(const int* lo, const int* hi,
 	      amrex::Real* cons,
 	      amrex::Real* prim);
@@ -168,8 +164,14 @@ extern "C"
 
   void get_hc_gas();
 
-  void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans, const amrex::Real* prim, amrex::Real* primmeans, const int* steps, amrex::Real* totalmass);
-  void evaluate_corrs(const int* lo, const int* hi, const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars, const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars, const int* steps);
+  void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans,
+                      const amrex::Real* prim, amrex::Real* primmeans,
+                      const int* steps, amrex::Real* totalmass);
+    
+  void evaluate_corrs(const int* lo, const int* hi,
+                      const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars,
+                      const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars,
+                      const int* steps);
 
 
   void multifab_yzav(const int* lo, const int* hi, const amrex::Real* fabin, amrex::Real* fabout, const int* comps);
@@ -194,6 +196,12 @@ extern "C"
                               const amrex::Real* dx,
                               const amrex::Real* dt);
 
+  void init_consvar(const int* lo, const int* hi, 
+                    const amrex_real* cu, const int* culo, const int* cuhi,
+                    const amrex_real* pu, const int* pulo, const int* puhi,
+                    const amrex_real* dx, 
+                    const amrex_real* reallo, const amrex_real* realhi);
+    
 #ifdef __cplusplus
 }
 #endif

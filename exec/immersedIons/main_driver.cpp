@@ -762,7 +762,7 @@ void main_driver(const char* argv)
         if(es_tog==1 || es_tog==3)
         {
             //Spreads charge density from ions onto multifab 'charge'.
-            //particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+            particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
 
 
 
@@ -785,7 +785,7 @@ void main_driver(const char* argv)
 
 
         //compute other forces and spread to grid
-        //particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
@@ -838,7 +838,7 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
        
-        //particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
+        particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
@@ -893,7 +893,7 @@ void main_driver(const char* argv)
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
     //  structFact.Finalize(SFscale);
-    //  structFact.WritePlotFile(step,time,geomP);
+    //  structFact.WritePlotFile(step,time,geomP,"plt_SF");
 
     }
 

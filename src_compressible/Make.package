@@ -5,6 +5,7 @@ CEXE_sources += timeStep.cpp
 CEXE_sources += conservedPrimitiveConversions.cpp
 CEXE_sources += boundary.cpp
 CEXE_sources += membrane.cpp
+CEXE_sources += writePlotFile.cpp
 
 CEXE_sources += compressible_functions.cpp
 CEXE_headers += compressible_functions.H

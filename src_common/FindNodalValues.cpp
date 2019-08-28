@@ -4,7 +4,6 @@
 
 void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& ccFab)
 {
-
     BL_PROFILE_VAR("FindNodalValues()",FindNodalValues);
 
     const int* hiVectIn;
@@ -25,18 +24,13 @@ void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& cc
         hiVectIn = inFab[mfi].hiVect();
         loVectIn = inFab[mfi].loVect();
 
-//This can be simplified with macros..
-
+        // Minus 2 is for ghost cells
+        xCheck = (hiVectIn[0] - loVectIn[0]) - (hiVectCC[0] - loVectCC[0]) - 2;
+        yCheck = (hiVectIn[1] - loVectIn[1]) - (hiVectCC[1] - loVectCC[1]) - 2;
 #if (AMREX_SPACEDIM == 3)
-        xCheck = (hiVectIn[0] - loVectIn[0]) - (hiVectCC[0] - loVectCC[0]) - 2;  //Minus 2 is for ghost cells
-        yCheck = (hiVectIn[1] - loVectIn[1]) - (hiVectCC[1] - loVectCC[1]) - 2;  
         zCheck = (hiVectIn[2] - loVectIn[2]) - (hiVectCC[2] - loVectCC[2]) - 2;
 #endif
-
-#if (AMREX_SPACEDIM == 2)
-        xCheck = (hiVectIn[0] - loVectIn[0]) - (hiVectCC[0] - loVectCC[0]) - 2;
-        yCheck = (hiVectIn[1] - loVectIn[1]) - (hiVectCC[1] - loVectCC[1]) - 2;  
-#endif
+        
         find_nodal_values(loVectCC, hiVectCC, 
                           BL_TO_FORTRAN_3D(inFab[mfi]),
                           BL_TO_FORTRAN_3D(outFab[mfi]),

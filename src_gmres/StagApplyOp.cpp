@@ -692,9 +692,9 @@ void StagApplyOp(const MultiFab& beta_cc,
     }
 
     // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
-    for (MFIter mfi(beta_cc); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(beta_cc,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
-        const Box & bx = mfi.validbox();
+        const Box & bx = mfi.tilebox();
 
         Array4<Real const> const& beta_cc_fab = beta_cc.array(mfi);
         Array4<Real const> const& gamma_cc_fab = gamma_cc.array(mfi);

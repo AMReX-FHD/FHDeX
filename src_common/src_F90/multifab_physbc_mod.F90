@@ -27,27 +27,27 @@ end subroutine fab_physbc
 
 
 subroutine fab_electricbc
-   
+
 end subroutine fab_electricbc
 
 subroutine fab_chargebc
-   
+
 end subroutine fab_chargebc
 
 subroutine fab_physbc_domainvel
-   
+
 end subroutine fab_physbc_domainvel
 
 subroutine fab_physbc_macvel
-   
+
 end subroutine fab_physbc_macvel
 
 subroutine fab_physbc_domainstress
-   
+
 end subroutine fab_physbc_domainstress
 
 subroutine fab_physbc_macstress
-   
+
 end subroutine fab_physbc_macstress
 
 #endif
@@ -1045,7 +1045,7 @@ end subroutine fab_physbc_macstress
        if (bc_es_hi(1) .eq. 2) then !Neumann
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = 1, ngc 
+                do i = 1, ngc
 
                    data(hi(1)+1-i, j, k, :) = data(hi(1)+1-i, j, k, :) + data(hi(1)+i, j, k, :)
 
@@ -1097,7 +1097,7 @@ end subroutine fab_physbc_macstress
     if (hi(2) .eq. dom_hi(2)) then ! upper bound
        if (bc_es_hi(2) .eq. 2) then ! Neumann
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = 1, ngc 
+             do j = 1, ngc
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    data(i, hi(2)+1-j, k, :) = data(i, hi(2)+1-j, k, :) + data(i, hi(2)+j, k, :)
@@ -1107,7 +1107,7 @@ end subroutine fab_physbc_macstress
           end do
        elseif (bc_es_hi(2) .eq. 1) then ! Dirichlet
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = 1, ngc 
+             do j = 1, ngc
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    data(i, hi(2)+1-j, k, :) = data(i, hi(2)+1-j, k, :) - data(i, hi(2)+j, k, :)
@@ -1124,7 +1124,7 @@ end subroutine fab_physbc_macstress
 
     if (lo(3) .eq. dom_lo(3)) then ! lower bound
        if (bc_es_lo(3) .eq. 2) then ! Neumann
-          do k = 1, ngc 
+          do k = 1, ngc
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
@@ -1149,7 +1149,7 @@ end subroutine fab_physbc_macstress
 
     if (hi(3) .eq. dom_hi(3)) then ! upper bound
        if (bc_es_hi(3) .eq. 2) then ! no slip thermal
-          do k = 1, ngc 
+          do k = 1, ngc
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
@@ -1159,7 +1159,7 @@ end subroutine fab_physbc_macstress
              end do
           end do
        elseif (bc_es_hi(3) .eq. 1) then ! no slip thermal
-          do k = 1, ngc 
+          do k = 1, ngc
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
@@ -1327,7 +1327,7 @@ end subroutine fab_physbc_macstress
 
     !____________________________________________________________________________
     ! Apply BC to X faces
-    
+
     if(dd .eq.  0) then
     if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
@@ -1345,7 +1345,7 @@ end subroutine fab_physbc_macstress
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
                    ! Normal face-centered indices are symmetric
- 
+
                   stress(lo(1)+i, j, :) = stress(lo(1)+i, j, :) - stress(lo(1)-i, j, :)
 
                 end do
@@ -1368,7 +1368,7 @@ end subroutine fab_physbc_macstress
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
                    stress(hi(1)-i, j, :) = stress(hi(1)-i, j, :) - stress(hi(1)+i, j, :)
- 
+
                 end do
              end do
 
@@ -1456,7 +1456,7 @@ end subroutine fab_physbc_macstress
 
     !____________________________________________________________________________
     ! Apply BC to X faces
-    
+
     if(dd .eq.  0) then
     if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
@@ -1650,7 +1650,7 @@ end subroutine fab_physbc_macstress
 
     !____________________________________________________________________________
     ! Apply BC to X faces
-    
+
     if(dd .eq.  0) then
     if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_lo(1) .eq. 2) then ! no slip thermal
@@ -1668,7 +1668,7 @@ end subroutine fab_physbc_macstress
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
                    ! Normal face-centered indices are symmetric
- 
+
                   stress(lo(1)+i, j, k, :) = stress(lo(1)+i, j, k, :) - stress(lo(1)-i, j, k, :)
 
                 end do
@@ -1694,7 +1694,7 @@ end subroutine fab_physbc_macstress
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
                    stress(hi(1)-i, j, k, :) = stress(hi(1)-i, j, k, :) - stress(hi(1)+i, j, k, :)
- 
+
                 end do
              end do
           end do

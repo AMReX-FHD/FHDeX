@@ -1,12 +1,15 @@
 module conv_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, molmass, k_b, nspecies, hcv, hcp, runiv, dof
+  use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, &
+       molmass, k_b, nspecies, hcv, hcp, runiv, dof
   implicit none
 
   private
 
-  public :: cons_to_prim, get_temperature, get_density, get_energy, get_molfrac, get_massfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, get_temperature_gas, get_energy_gas
+  public :: cons_to_prim, get_temperature, get_density, get_energy, get_molfrac, &
+       get_massfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, &
+       get_temperature_gas, get_energy_gas
 
 contains
 
@@ -256,17 +259,12 @@ contains
 
     do i=1, nspecies
        if(hcv(i) .lt. 0) then   
-
           hcv(i) = 0.5d0*dof(i)*Runiv/molmass(i)
-          hcp(i) = 0.5d0*(2+dof(i))*Runiv/molmass(i)
-
-          !print *, hcv(i)
-
        endif
-
+       if (hcp(i) .lt. 0) then
+          hcp(i) = 0.5d0*(2+dof(i))*Runiv/molmass(i)
+       end if
     enddo
-
-    !print *, hcv
 
   end subroutine get_hc_gas
 

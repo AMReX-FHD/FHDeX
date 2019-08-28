@@ -3,6 +3,8 @@
 
 void PrintMF (const MultiFab& MF)
 {
+    BL_PROFILE_VAR("PrintMF()",PrintMF);
+    
     const BoxArray& ba = MF.boxArray();
     const DistributionMapping& dm = MF.DistributionMap();
     const int myProc = ParallelDescriptor::MyProc();
@@ -27,4 +29,18 @@ void PrintMF (const MultiFab& MF)
         // add this barrier so only one grid gets printed out at a time
         ParallelDescriptor::Barrier();
     }
+}
+
+void outputMFAscii(const MultiFab& output, std::string filename)
+{
+    BL_PROFILE_VAR("outputMFAscii()",outputMFAscii);
+
+    std::string plotfilename = std::to_string(ParallelDescriptor::MyProc()) + "_" + filename;
+
+    std::ofstream ofs(plotfilename, std::ofstream::out);
+    
+    for (MFIter mfi(output); mfi.isValid(); ++mfi) {
+        ofs<<(output[mfi])<<std::endl;                                              
+    }
+
 }

@@ -36,6 +36,7 @@ public:
   void multbyVarSqrtEtaTemp(  const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::Real&);
+  void MfluxBC                ();
   void StochMFluxDiv(         std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
                               const int&, const amrex::MultiFab&,
 			      const std::array< amrex::MultiFab, NUM_EDGE >&, const amrex::MultiFab&,

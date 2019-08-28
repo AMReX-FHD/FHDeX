@@ -8,16 +8,15 @@ void ComputeDiv(MultiFab& div,
                 int start_incomp, int start_outcomp, int ncomp,
                 const Geometry& geom, int increment)
 {
-
     BL_PROFILE_VAR("ComputeDiv()",ComputeDiv);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
+    for ( MFIter mfi(div,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+        
+        const Box& bx = mfi.tilebox();
 
-    for ( MFIter mfi(div); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
-
-        Array4<Real> const& div_fab = div.array(mfi);
+        const Array4<Real> & div_fab = div.array(mfi);
         AMREX_D_TERM(Array4<Real const> const& phix_fab = phi_fc[0].array(mfi);,
                      Array4<Real const> const& phiy_fab = phi_fc[1].array(mfi);,
                      Array4<Real const> const& phiz_fab = phi_fc[2].array(mfi););
@@ -56,7 +55,7 @@ void compute_grad (const Box & tbx,
                                 const Array4<Real> & gy,
                                 const Array4<Real> & gz),
                    const Array4<Real const> & phi,
-                   const GpuArray<Real, AMREX_SPACEDIM>& dx,
+                   const GpuArray<Real, AMREX_SPACEDIM> & dx,
                    int start_incomp, int start_outcomp, int ncomp) noexcept {
 
     // xbx, ybx, and zbx are the face-centered boxes
@@ -130,11 +129,13 @@ void compute_grad (const Box & tbx,
 
 //Computes gradient at cell faces of cell centred scalar
 void ComputeGrad(const MultiFab & phi, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
-                 int start_incomp, int start_outcomp, int ncomp, const Geometry & geom) {
+                 int start_incomp, int start_outcomp, int ncomp, const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeGrad()",ComputeGrad);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
+    for ( MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         const Array4<Real const> & phi_fab = phi.array(mfi);
 
@@ -164,12 +165,15 @@ void ComputeGrad(const MultiFab & phi, std::array<MultiFab, AMREX_SPACEDIM> & gp
 //component mf.
 void ComputeCentredGrad(const MultiFab & phi,
                         std::array<MultiFab, AMREX_SPACEDIM> & gphi,
-                        const Geometry & geom) {
+                        const Geometry & geom)
+{
+    BL_PROFILE_VAR("ComputeCentredGrad()",ComputeCentredGrad);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    for ( MFIter mfi(phi); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
+    for ( MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+
+        const Box& bx = mfi.tilebox();
 
         Array4<Real const> const& phi_fab = phi.array(mfi);
 

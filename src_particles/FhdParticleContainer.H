@@ -193,6 +193,25 @@ public:
 
     void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
+    void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomF, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
+
+    void InitCollisionCells(              MultiFab& collisionPairs,
+                                          MultiFab& collisionFactor, 
+                                          MultiFab& cellVols, const species particleInfo, const Real delt);
+
+    void CollideParticles(              MultiFab& collisionPairs,
+                                          MultiFab& collisionFactor, 
+                                          MultiFab& cellVols, const species particleInfo, const Real delt);
+
+
+    void InitializeFields(    MultiFab& particleInstant,
+                              MultiFab& cellVols, const species particleInfo);
+
+    void EvaluateStats(
+                              MultiFab& particleInstant,
+                              MultiFab& particleMeans,
+                              MultiFab& particleVars,
+                              MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
     /****************************************************************************
      *                                                                          *
