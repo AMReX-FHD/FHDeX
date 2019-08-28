@@ -55,9 +55,8 @@ void compute_grad (const Box & tbx,
                                 const Array4<Real> & gy,
                                 const Array4<Real> & gz),
                    const Array4<Real const> & phi,
-                   const GpuArray<Real, AMREX_SPACEDIM>& dx,
-                   int start_incomp, int start_outcomp, int ncomp) noexcept
-{
+                   const GpuArray<Real, AMREX_SPACEDIM> & dx,
+                   int start_incomp, int start_outcomp, int ncomp) noexcept {
 
     // xbx, ybx, and zbx are the face-centered boxes
 
