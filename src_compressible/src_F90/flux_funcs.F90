@@ -2,7 +2,7 @@ module flux_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type, algorithm_type
-  use compressible_namelist_module, only :  mass_bc_lo, mass_bc_hi, therm_bc_lo, therm_bc_hi, vel_bc_lo, vel_bc_hi
+  use compressible_namelist_module, only :  bc_mass_lo, bc_mass_hi, bc_therm_lo, bc_therm_hi, bc_vel_lo, bc_vel_hi
   use conv_module, only : get_temperature, get_pressure_gas, get_energy, get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
   use multispec_module, only : cholesky_decomp
   implicit none
@@ -1058,15 +1058,15 @@ contains
 
     !    SELECT CASE (bc_iter)
     !    CASE (1) ! mass boundary conditions
-    !       bc_tmp = mass_bc_()
+    !       bc_tmp = bc_mass_()
     !       indx_lo = mass_ind_lo
     !       indx_hi = mass_ind_hi
     !    CASE (2) ! temperature boundary conditions
-    !       bc_tmp = therm_bc_()
+    !       bc_tmp = bc_therm_()
     !       indx_lo = therm_ind_lo
     !       indx_hi = therm_ind_hi
     !    CASE (3) ! velocity boundary conditions
-    !       bc_tmp = vel_bc_()
+    !       bc_tmp = bc_vel_()
     !       indx_lo = vel_ind_lo
     !       indx_hi = vel_ind_hi
     !    END SELECT
@@ -1093,15 +1093,15 @@ contains
           
           SELECT CASE (bc_iter)
           CASE (1) ! mass boundary conditions
-             bc_tmp = mass_bc_lo(1)
+             bc_tmp = bc_mass_lo(1)
              indx_lo = mass_ind_lo
              indx_hi = mass_ind_hi
           CASE (2) ! temperature boundary conditions
-             bc_tmp = therm_bc_lo(1)
+             bc_tmp = bc_therm_lo(1)
              indx_lo = therm_ind_lo
              indx_hi = therm_ind_hi
           CASE (3) ! velocity boundary conditions
-             bc_tmp = vel_bc_lo(1)
+             bc_tmp = bc_vel_lo(1)
              indx_lo = vel_ind_lo
              indx_hi = vel_ind_hi
           END SELECT
@@ -1151,15 +1151,15 @@ contains
           
           SELECT CASE (bc_iter)
           CASE (1) ! mass boundary conditions
-             bc_tmp = mass_bc_hi(1)
+             bc_tmp = bc_mass_hi(1)
              indx_lo = mass_ind_lo
              indx_hi = mass_ind_hi
           CASE (2) ! temperature boundary conditions
-             bc_tmp = therm_bc_hi(1)
+             bc_tmp = bc_therm_hi(1)
              indx_lo = therm_ind_lo
              indx_hi = therm_ind_hi
           CASE (3) ! velocity boundary conditions
-             bc_tmp = vel_bc_hi(1)
+             bc_tmp = bc_vel_hi(1)
              indx_lo = vel_ind_lo
              indx_hi = vel_ind_hi
           END SELECT
@@ -1211,15 +1211,15 @@ contains
 
           SELECT CASE (bc_iter)
           CASE (1) ! mass boundary conditions
-             bc_tmp = mass_bc_lo(2)
+             bc_tmp = bc_mass_lo(2)
              indx_lo = mass_ind_lo
              indx_hi = mass_ind_hi
           CASE (2) ! temperature boundary conditions
-             bc_tmp = therm_bc_lo(2)
+             bc_tmp = bc_therm_lo(2)
              indx_lo = therm_ind_lo
              indx_hi = therm_ind_hi
           CASE (3) ! velocity boundary conditions
-             bc_tmp = vel_bc_lo(2)
+             bc_tmp = bc_vel_lo(2)
              indx_lo = vel_ind_lo
              indx_hi = vel_ind_hi
           END SELECT
@@ -1269,15 +1269,15 @@ contains
 
           SELECT CASE (bc_iter)
           CASE (1) ! mass boundary conditions
-             bc_tmp = mass_bc_hi(2)
+             bc_tmp = bc_mass_hi(2)
              indx_lo = mass_ind_lo
              indx_hi = mass_ind_hi
           CASE (2) ! temperature boundary conditions
-             bc_tmp = therm_bc_hi(2)
+             bc_tmp = bc_therm_hi(2)
              indx_lo = therm_ind_lo
              indx_hi = therm_ind_hi
           CASE (3) ! velocity boundary conditions
-             bc_tmp = vel_bc_hi(2)
+             bc_tmp = bc_vel_hi(2)
              indx_lo = vel_ind_lo
              indx_hi = vel_ind_hi
           END SELECT
@@ -1329,15 +1329,15 @@ contains
 
           SELECT CASE (bc_iter)
           CASE (1) ! mass boundary conditions
-             bc_tmp = mass_bc_lo(3)
+             bc_tmp = bc_mass_lo(3)
              indx_lo = mass_ind_lo
              indx_hi = mass_ind_hi
           CASE (2) ! temperature boundary conditions
-             bc_tmp = therm_bc_lo(3)
+             bc_tmp = bc_therm_lo(3)
              indx_lo = therm_ind_lo
              indx_hi = therm_ind_hi
           CASE (3) ! velocity boundary conditions
-             bc_tmp = vel_bc_lo(3)
+             bc_tmp = bc_vel_lo(3)
              indx_lo = vel_ind_lo
              indx_hi = vel_ind_hi
           END SELECT
@@ -1387,15 +1387,15 @@ contains
 
           SELECT CASE (bc_iter)
           CASE (1) ! mass boundary conditions
-             bc_tmp = mass_bc_hi(3)
+             bc_tmp = bc_mass_hi(3)
              indx_lo = mass_ind_lo
              indx_hi = mass_ind_hi
           CASE (2) ! temperature boundary conditions
-             bc_tmp = therm_bc_hi(3)
+             bc_tmp = bc_therm_hi(3)
              indx_lo = therm_ind_lo
              indx_hi = therm_ind_hi
           CASE (3) ! velocity boundary conditions
-             bc_tmp = vel_bc_hi(3)
+             bc_tmp = bc_vel_hi(3)
              indx_lo = vel_ind_lo
              indx_hi = vel_ind_hi
           END SELECT

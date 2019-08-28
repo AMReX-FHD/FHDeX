@@ -2,13 +2,13 @@ namespace compressible {
 
   // Boundary conditions
 
-  extern amrex::Vector<int> mass_bc_lo;   // mass boundary conditions
-  extern amrex::Vector<int> mass_bc_hi;
-  extern amrex::Vector<int> therm_bc_lo;  // temperature boundary conditions
-  extern amrex::Vector<int> therm_bc_hi;
-  extern amrex::Vector<int> vel_bc_lo;    // velocity field boundary conditions
-  extern amrex::Vector<int> vel_bc_hi;
-  extern amrex::Vector<amrex::Real> Yk_bc;   // wall mass fractions
-  extern amrex::Vector<amrex::Real> Xk_bc;   // wall mole fractions
+  extern amrex::Vector<int> bc_mass_lo;   // mass boundary conditions
+  extern amrex::Vector<int> bc_mass_hi;
+  extern amrex::Vector<int> bc_therm_lo;  // temperature boundary conditions
+  extern amrex::Vector<int> bc_therm_hi;
+  extern amrex::Vector<int> bc_vel_lo;    // velocity field boundary conditions
+  extern amrex::Vector<int> bc_vel_hi;
+  extern amrex::Vector<amrex::Real> bc_Yk;   // wall mass fractions
+  extern amrex::Vector<amrex::Real> bc_Xk;   // wall mole fractions
 
 }

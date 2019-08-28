@@ -8,24 +8,24 @@ module compressible_namelist_module
   integer, parameter :: MAX_SPECIES = 10
   integer, parameter :: LOHI = 2
 
-  integer,            save :: mass_bc_lo(AMREX_SPACEDIM)
-  integer,            save :: mass_bc_hi(AMREX_SPACEDIM)
-  integer,            save :: therm_bc_lo(AMREX_SPACEDIM)
-  integer,            save :: therm_bc_hi(AMREX_SPACEDIM)
-  integer,            save :: vel_bc_lo(AMREX_SPACEDIM)
-  integer,            save :: vel_bc_hi(AMREX_SPACEDIM)
-  double precision,   save :: Yk_bc(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
-  double precision,   save :: Xk_bc(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
+  integer,            save :: bc_mass_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_mass_hi(AMREX_SPACEDIM)
+  integer,            save :: bc_therm_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_therm_hi(AMREX_SPACEDIM)
+  integer,            save :: bc_vel_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_vel_hi(AMREX_SPACEDIM)
+  double precision,   save :: bc_Yk(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
+  double precision,   save :: bc_Xk(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 
   ! Boundary conditions
-  namelist /compressible/ mass_bc_lo  ! mass boundary conditions
-  namelist /compressible/ mass_bc_hi
-  namelist /compressible/ therm_bc_lo ! temperature boundary conditions
-  namelist /compressible/ therm_bc_hi
-  namelist /compressible/ vel_bc_lo   ! velocity field boundary conditions
-  namelist /compressible/ vel_bc_hi
-  namelist /compressible/ Yk_bc       ! mass fraction wall boundary value
-  namelist /compressible/ Xk_bc       ! mole fraction wall boundary value
+  namelist /compressible/ bc_mass_lo  ! mass boundary conditions
+  namelist /compressible/ bc_mass_hi
+  namelist /compressible/ bc_therm_lo ! temperature boundary conditions
+  namelist /compressible/ bc_therm_hi
+  namelist /compressible/ bc_vel_lo   ! velocity field boundary conditions
+  namelist /compressible/ bc_vel_hi
+  namelist /compressible/ bc_Yk       ! mass fraction wall boundary value
+  namelist /compressible/ bc_Xk       ! mole fraction wall boundary value
 
 contains
 
@@ -36,14 +36,14 @@ contains
     character(kind=c_char), intent(in   ) :: inputs_file(length)
 
     ! default values
-    mass_bc_lo(:) = 0
-    mass_bc_hi(:) = 0
-    therm_bc_lo(:) = 0
-    therm_bc_hi(:) = 0
-    vel_bc_lo(:) = 0
-    vel_bc_hi(:) = 0
-    Yk_bc(:,:,:) = 0.d0
-    Xk_bc(:,:,:) = 0.d0
+    bc_mass_lo(:) = 0
+    bc_mass_hi(:) = 0
+    bc_therm_lo(:) = 0
+    bc_therm_hi(:) = 0
+    bc_vel_lo(:) = 0
+    bc_vel_hi(:) = 0
+    bc_Yk(:,:,:) = 0.d0
+    bc_Xk(:,:,:) = 0.d0
 
     ! read in compressible namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -53,22 +53,22 @@ contains
   end subroutine read_compressible_namelist
 
   ! copy contents of compressible_params_module to C++ compressible namespace
-  subroutine initialize_compressible_namespace( mass_bc_lo_in, mass_bc_hi_in, &
-                                                therm_bc_lo_in, therm_bc_hi_in, &
-                                                vel_bc_lo_in, vel_bc_hi_in, &
-                                                Yk_bc_in, Xk_bc_in) &
+  subroutine initialize_compressible_namespace( bc_mass_lo_in, bc_mass_hi_in, &
+                                                bc_therm_lo_in, bc_therm_hi_in, &
+                                                bc_vel_lo_in, bc_vel_hi_in, &
+                                                bc_Yk_in, bc_Xk_in) &
                                                 bind(C, name="initialize_compressible_namespace")
 
-    double precision,       intent(inout) :: mass_bc_lo_in(AMREX_SPACEDIM), mass_bc_hi_in(AMREX_SPACEDIM), therm_bc_lo_in(AMREX_SPACEDIM), therm_bc_hi_in(AMREX_SPACEDIM), vel_bc_lo_in(AMREX_SPACEDIM), vel_bc_hi_in(AMREX_SPACEDIM),Yk_bc_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES), Xk_bc_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
+    double precision,       intent(inout) :: bc_mass_lo_in(AMREX_SPACEDIM), bc_mass_hi_in(AMREX_SPACEDIM), bc_therm_lo_in(AMREX_SPACEDIM), bc_therm_hi_in(AMREX_SPACEDIM), bc_vel_lo_in(AMREX_SPACEDIM), bc_vel_hi_in(AMREX_SPACEDIM),bc_Yk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES), bc_Xk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 
-    mass_bc_lo_in = mass_bc_lo
-    mass_bc_hi_in = mass_bc_hi
-    therm_bc_lo_in = therm_bc_lo
-    therm_bc_hi_in = therm_bc_hi
-    vel_bc_lo_in = vel_bc_lo
-    vel_bc_hi_in = vel_bc_hi
-    Yk_bc_in = Yk_bc
-    Xk_bc_in = Xk_bc
+    bc_mass_lo_in = bc_mass_lo
+    bc_mass_hi_in = bc_mass_hi
+    bc_therm_lo_in = bc_therm_lo
+    bc_therm_hi_in = bc_therm_hi
+    bc_vel_lo_in = bc_vel_lo
+    bc_vel_hi_in = bc_vel_hi
+    bc_Yk_in = bc_Yk
+    bc_Xk_in = bc_Xk
 
   end subroutine initialize_compressible_namespace
 
