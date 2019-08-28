@@ -4,13 +4,18 @@
 void SqrtMF(MultiFab& mf) {
     
     BL_PROFILE_VAR("SqrtMF()",SqrtMF);
+
+    int ncomp = mf.nComp();
     
     for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
       const Box& bx = mfi.tilebox();
       
-      sqrt_mf(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-              BL_TO_FORTRAN_FAB(mf[mfi]));
+      const Array4<Real> & mf_fab = mf.array(mfi);
+        
+      AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+      {
+          mf_fab(i,j,k,n) = sqrt(mf_fab(i,j,k,n));
+      });
     }
-    
 }
