@@ -438,7 +438,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
        if (near_wall_above.eq.1) then
           ! compute image charge location
           call calc_im_charge_loc(particles(i), 2, im_charge_pos)
-          print*, 'im charge loc = ', im_charge_pos
+          !print*, 'im charge loc = ', im_charge_pos
           ! compute sep vector btwn charge and its image
           dr(1) = particles(i)%pos(1) - im_charge_pos(1)
           dr(2) = particles(i)%pos(2) - im_charge_pos(2)
@@ -514,7 +514,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
                if (near_wall_below_NL_part.eq.1) then 
                   ! compute NL particle's image charge location
                   call calc_im_charge_loc(particles(nl(j)), -2, im_charge_pos)
-                  print*, 'im charge loc = ', im_charge_pos
+                  !print*, 'im charge loc = ', im_charge_pos
 
                   ! compute sep vector btwn charge and NL's image
                   dr(1) = particles(i)%pos(1) - im_charge_pos(1)
@@ -554,7 +554,7 @@ subroutine amrex_compute_p3m_sr_correction_nl(rparticles, np, neighbors, &
                if (near_wall_above_NL_part.eq.1) then 
                   ! compute NL particle's image charge location
                   call calc_im_charge_loc(particles(nl(j)), 2, im_charge_pos)
-                  print*, 'im charge loc = ', im_charge_pos
+                  !print*, 'im charge loc = ', im_charge_pos
 
                   ! compute sep vector btwn charge and NL's image
                   dr(1) = particles(i)%pos(1) - im_charge_pos(1)
@@ -2360,6 +2360,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
   speed = 0
 
   kinetic = 0
+
+        print *, "I see ", np, " particles."
 
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
