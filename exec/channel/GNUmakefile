@@ -42,13 +42,13 @@ include ../../src_hydro/Make.package
 VPATH_LOCATIONS   += ../../src_hydro/
 INCLUDE_LOCATIONS += ../../src_hydro/
 
-include ../../src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/src_F90
-INCLUDE_LOCATIONS += ../../src_analysis/src_F90
-
-include ../../src_analysis/Make.package
-VPATH_LOCATIONS   += ../../src_analysis/
-INCLUDE_LOCATIONS += ../../src_analysis/
+# include ../../src_analysis/src_F90/Make.package
+# VPATH_LOCATIONS   += ../../src_analysis/src_F90
+# INCLUDE_LOCATIONS += ../../src_analysis/src_F90
+#
+# include ../../src_analysis/Make.package
+# VPATH_LOCATIONS   += ../../src_analysis/
+# INCLUDE_LOCATIONS += ../../src_analysis/
 
 include ../../src_rng/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_rng/src_F90
@@ -94,6 +94,6 @@ include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
 VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
 
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
+# LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
