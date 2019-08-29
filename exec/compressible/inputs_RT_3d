@@ -97,7 +97,7 @@
   ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
   ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
     
-  Yk_bc(3,1,1:4) = 0.1 0.1 0.4 0.4
-  Yk_bc(3,2,1:4) = 0.4 0.4 0.1 0.1
+  bc_Yk(3,1,1:4) = 0.1 0.1 0.4 0.4
+  bc_Yk(3,2,1:4) = 0.4 0.4 0.1 0.1
   
 /

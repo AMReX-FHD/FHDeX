@@ -87,7 +87,7 @@
   ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
 
 ! for Dirichlet bc's use this
-!  Yk_bc(3,1,1:4) = 0.1 0.1 0.4 0.4
-!  Yk_bc(3,2,1:4) = 0.4 0.4 0.1 0.1
+!  bc_Yk(3,1,1:4) = 0.1 0.1 0.4 0.4
+!  bc_Yk(3,2,1:4) = 0.4 0.4 0.1 0.1
   
 /
