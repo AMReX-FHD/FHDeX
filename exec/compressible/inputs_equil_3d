@@ -78,8 +78,8 @@
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
   ! bc_vel:   -1 = periodic  
-  !            1 = slip wall
-  !            2 = no-slip wall
+  !            1 = slip
+  !            2 = no-slip
   ! bc_mass:  -1 = periodic
   !            1 = wall
   !            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
