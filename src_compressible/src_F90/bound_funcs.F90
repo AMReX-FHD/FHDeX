@@ -1,7 +1,7 @@
 module bound_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, algorithm_type, membrane_cell, MAX_SPECIES
+  use common_namelist_module, only : ngc, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, algorithm_type, membrane_cell, MAX_SPECIES
   use compressible_namelist_module, only : bc_mass_lo, bc_mass_hi, bc_therm_lo, bc_therm_hi, bc_vel_lo, bc_vel_hi, bc_Yk, bc_Xk
   use conv_module
   use trans_module
@@ -953,133 +953,18 @@ contains
 
     integer :: d
 
+    ! if bc_vel_lo/hi are periodic, set everything else to periodic
     do d=1,AMREX_SPACEDIM
-       
-       ! Species concentration BCs
-       if (bc_mass_lo(d).eq.0) then
-          if (bc_lo(d).ne.0) then
-             SELECT CASE (bc_lo(d))
-             CASE (1) ! slip, adiabatic, wall
-                bc_mass_lo(d) = 1
-             CASE (2) ! no slip, isothermal, reservoir
-                bc_mass_lo(d) = 2
-             CASE (3) ! no slip, isothermal, wall
-                bc_mass_lo(d) = 1
-             CASE (4) ! no slip, adiabatic, wall
-                bc_mass_lo(d) = 1
-             CASE (-1) ! periodic
-                bc_mass_lo(d) = -1
-             CASE DEFAULT
-                call bl_error('Invalid BC condition')
-             END SELECT
-          else
-             call bl_error('Must specify BC condition')
-          endif
-       endif
-       if (bc_mass_hi(d).eq.0) then
-          if (bc_hi(d).ne.0) then
-             SELECT CASE (bc_hi(d))
-             CASE (1) ! slip, adiabatic, wall
-                bc_mass_hi(d) = 1
-             CASE (2) ! no slip, isothermal, reservoir
-                bc_mass_hi(d) = 2
-             CASE (3) ! no slip, isothermal, wall
-                bc_mass_hi(d) = 1
-             CASE (4) ! no slip, adiabatic, wall
-                bc_mass_hi(d) = 1
-             CASE (-1) ! periodic
-                bc_mass_hi(d) = -1
-             CASE DEFAULT
-                call bl_error('Invalid BC condition')
-             END SELECT
-          else
-             call bl_error('Must specify BC condition')
-          endif
-       endif
 
-       ! Temperature BCs
-       if (bc_therm_lo(d).eq.0) then
-          if (bc_lo(d).ne.0) then
-             SELECT CASE (bc_lo(d))
-             CASE (1) ! slip, adiabatic, wall
-                bc_therm_lo(d) = 1
-             CASE (2) ! no slip, isothermal, reservoir
-                bc_therm_lo(d) = 2
-             CASE (3) ! no slip, isothermal, wall
-                bc_therm_lo(d) = 2
-             CASE (4) ! no slip, adiabatic, wall
-                bc_therm_lo(d) = 1
-             CASE (-1) ! periodic
-                bc_therm_lo(d) = -1
-             CASE DEFAULT
-                call bl_error('Invalid BC condition')
-             END SELECT
-          else
-             call bl_error('Must specify BC condition')
-          endif
-       endif
-       if (bc_therm_hi(d).eq.0) then
-          if (bc_hi(d).ne.0) then
-             SELECT CASE (bc_hi(d))
-             CASE (1) ! slip, adiabatic, wall
-                bc_therm_hi(d) = 1
-             CASE (2) ! no slip, isothermal, reservoir
-                bc_therm_hi(d) = 2
-             CASE (3) ! no slip, isothermal, wall
-                bc_therm_hi(d) = 2
-             CASE (4) ! no slip, adiabatic, wall
-                bc_therm_hi(d) = 1
-             CASE (-1) ! periodic
-                bc_therm_hi(d) = -1
-             CASE DEFAULT
-                call bl_error('Invalid BC condition')
-             END SELECT
-          else
-             call bl_error('Must specify BC condition')
-          endif
-       endif
+       if (bc_vel_lo(d) .eq. -1) then
+          bc_mass_lo(d) = -1
+          bc_therm_lo(d) = -1
+       end if
 
-       ! Velocity BCs
-       if (bc_vel_lo(d).eq.0) then
-          if (bc_lo(d).ne.0) then
-             SELECT CASE (bc_lo(d))
-             CASE (1) ! slip, adiabatic, wall
-                bc_vel_lo(d) = 1
-             CASE (2) ! no slip, isothermal, reservoir
-                bc_vel_lo(d) = 2
-             CASE (3) ! no slip, isothermal, wall
-                bc_vel_lo(d) = 2
-             CASE (4) ! no slip, adiabatic, wall
-                bc_vel_lo(d) = 2
-             CASE (-1) ! periodic
-                bc_vel_lo(d) = -1
-             CASE DEFAULT
-                call bl_error('Invalid BC condition')
-             END SELECT
-          else
-             call bl_error('Must specify BC condition')
-          endif
-       endif
-       if (bc_vel_hi(d).eq.0) then
-          if (bc_hi(d).ne.0) then
-             SELECT CASE (bc_hi(d))
-             CASE (1) ! slip, adiabatic, wall
-                bc_vel_hi(d) = 1
-             CASE (2) ! no slip, isothermal, reservoir
-                bc_vel_hi(d) = 2
-             CASE (3) ! no slip, isothermal, wall
-                bc_vel_hi(d) = 2
-             CASE (4) ! no slip, adiabatic, wall
-                bc_vel_hi(d) = 2
-             CASE (-1) ! periodic
-                bc_vel_hi(d) = -1
-             CASE DEFAULT
-                call bl_error('Invalid BC condition')
-             END SELECT
-          else
-             call bl_error('Must specify BC condition')
-          endif
-       endif
+       if (bc_vel_hi(d) .eq. -1) then
+          bc_mass_hi(d) = -1
+          bc_therm_hi(d) = -1
+       end if
 
     enddo
 
@@ -1095,7 +980,7 @@ contains
     ! Compute Xk or Yk at the wall, depending on which is defined
     do d=1,AMREX_SPACEDIM
        
-       if(bc_lo(d).eq.2)then
+       if(bc_mass_lo(d).eq.2)then
 
           sumxb = 0
           sumyb = 0
@@ -1115,7 +1000,7 @@ contains
 
        endif
        
-       if(bc_hi(d).eq.2)then
+       if(bc_mass_hi(d).eq.2)then
 
           sumxt = 0
           sumyt = 0

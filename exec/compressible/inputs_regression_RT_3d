@@ -53,13 +53,6 @@
   struct_fact_int = 0
   n_steps_skip = 0
 
-  ! Boundary conditions
-  ! ----------------------
-  ! BC specifications:
-  ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  bc_lo(1:3) = -1 -1 1
-  bc_hi(1:3) = -1 -1 1
-
   ! Temperature if thermal BC specified
   t_hi(1:3) = 300 300 300
   t_lo(1:3) = 300 300 300
@@ -82,12 +75,19 @@
 /
 
 &compressible
-
-  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
-  ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
-
-! for Dirichlet bc's use this
-!  bc_Yk(3,1,1:4) = 0.1 0.1 0.4 0.4
-!  bc_Yk(3,2,1:4) = 0.4 0.4 0.1 0.1
+  
+  ! Boundary conditions:
+  ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+  ! bc_vel:   -1 = periodic  
+  !            1 = slip wall
+  !            2 = no-slip wall
+  ! bc_mass:  -1 = periodic
+  !            1 = wall
+  !            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  ! bc_therm: -1 = periodic
+  !            1 = adiabatic
+  !            2 = isothermal (set with t_lo/hi in common namelist)
+  bc_vel_lo(1:3) = -1 -1 -1
+  bc_vel_hi(1:3) = -1 -1 -1
   
 /

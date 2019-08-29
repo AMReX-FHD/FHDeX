@@ -59,12 +59,12 @@ contains
                                                 bc_Yk_in, bc_Xk_in) &
                                                 bind(C, name="initialize_compressible_namespace")
 
-    double precision, intent(inout) :: bc_mass_lo_in(AMREX_SPACEDIM)
-    double precision, intent(inout) :: bc_mass_hi_in(AMREX_SPACEDIM)
-    double precision, intent(inout) :: bc_therm_lo_in(AMREX_SPACEDIM)
-    double precision, intent(inout) :: bc_therm_hi_in(AMREX_SPACEDIM)
-    double precision, intent(inout) :: bc_vel_lo_in(AMREX_SPACEDIM)
-    double precision, intent(inout) :: bc_vel_hi_in(AMREX_SPACEDIM)
+    integer         , intent(inout) :: bc_mass_lo_in(AMREX_SPACEDIM)
+    integer         , intent(inout) :: bc_mass_hi_in(AMREX_SPACEDIM)
+    integer         , intent(inout) :: bc_therm_lo_in(AMREX_SPACEDIM)
+    integer         , intent(inout) :: bc_therm_hi_in(AMREX_SPACEDIM)
+    integer         , intent(inout) :: bc_vel_lo_in(AMREX_SPACEDIM)
+    integer         , intent(inout) :: bc_vel_hi_in(AMREX_SPACEDIM)
     double precision, intent(inout) :: bc_Yk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
     double precision, intent(inout) :: bc_Xk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 

@@ -54,24 +54,6 @@
   struct_fact_int = 10
   n_steps_skip = 40000
 
-  ! Boundary conditions
-  ! ----------------------
-  ! ...
-  !  BC spec.   =   Species density       Velocity        Temperature             
-  !    ----               ----              ----              ----
-  !      0*     |       indiv BCs*         indiv BCs*       indiv BCs*
-  !     -1      |       periodic           periodic         periodic 
-  !      1      |         wall               slip           adiabatic
-  !      2      |       reservoir           no slip         isothermal
-  !      3      |         wall              no slip         isothermal
-  !      4      |         wall              no slip         adiabatic
-  ! ...
-  ! *: if bc=0, refer to individual mass, temperature, and velocity BCs 
-  !    specified in compressible namespace
-
-  bc_lo(1:3) = -1 -1 -1
-  bc_hi(1:3) = -1 -1 -1
-
   ! Temperature if thermal BC specified
   t_hi(1:3) = 300 300 300
   t_lo(1:3) = 300 300 300
@@ -94,27 +76,17 @@
 &compressible
   
   ! Boundary conditions:
-  
-  ! These are updated by bc_lo & bc_hi. When bc_lo or bc_hi is not set to zero.
-  ! When bc_lo or bc_hi is set to zero: mass, temp., and vel. can be set individually.
-  ! (indiv. BCs = 0 by default)
-  ! ...
-  ! 1 = neumann, 2 = dirichlet (periodic only makes sense for all quantities)
-  bc_mass_lo(1:3) = 0 0 0
-  bc_mass_hi(1:3) = 0 0 0	
-  bc_therm_lo(1:3) = 0 0 0
-  bc_therm_hi(1:3) = 0 0 0
-  bc_vel_lo(1:3) = 0 0 0
-  bc_vel_hi(1:3) = 0 0 0
-
-  ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
-  ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
-  
-  bc_Yk(1,1,1:4) = 0.1 0.2 0.3 0.4
-  bc_Yk(2,1,1:4) = 0.2 0.3 0.4 0.1
-  bc_Yk(3,1,1:4) = 0.3 0.4 0.1 0.2
-  bc_Yk(1,2,1:4) = 0.2 0.3 0.4 0.1
-  bc_Yk(2,2,1:4) = 0.3 0.4 0.1 0.2
-  bc_Yk(3,2,1:4) = 0.4 0.1 0.2 0.3
+  ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+  ! bc_vel:   -1 = periodic  
+  !            1 = slip wall
+  !            2 = no-slip wall
+  ! bc_mass:  -1 = periodic
+  !            1 = wall
+  !            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  ! bc_therm: -1 = periodic
+  !            1 = adiabatic
+  !            2 = isothermal (set with t_lo/hi in common namelist)
+  bc_vel_lo(1:3) = -1 -1 -1
+  bc_vel_hi(1:3) = -1 -1 -1
   
 /

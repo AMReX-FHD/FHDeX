@@ -1,7 +1,8 @@
 module stats_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, hcv, cross_cell
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, &
+       n_cells, hcv, cross_cell
   use conv_module
   implicit none
 

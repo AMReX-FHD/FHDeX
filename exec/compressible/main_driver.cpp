@@ -29,6 +29,9 @@ void main_driver(const char* argv)
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
     read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
 
+    // if periodic, set all the bc_X types to periodic
+    setup_bc();
+    
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeCompressibleNamespace();
@@ -36,22 +39,24 @@ void main_driver(const char* argv)
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     get_hc_gas();
-
-    //initialize boundary condition switches for mass, temperature, & velocity
-    setup_bc();
+  
+    // check bc_vel_lo/hi to determine the periodicity
+    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {        
+        if (bc_vel_lo[i] == -1 || bc_vel_hi[i] == -1) {
+            if (bc_vel_lo[i] != bc_vel_hi[i]) {
+                Abort("Inconsistent periodicity definition in bc_vel_lo/hi");
+            }
+            else {
+                is_periodic[i] = 1;
+            }
+        }
+    }
 
     // compute wall concentrations if BCs call for it
     if (algorithm_type == 2) {
         // if multispecies
         setup_cwall();
-    }
-  
-    // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_lo[i] == -1 && bc_hi[i] == -1) {
-            is_periodic[i] = 1;
-        }
     }
 
     // make BoxArray and Geometry
