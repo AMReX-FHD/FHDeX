@@ -50,7 +50,6 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0)
         {
-                Print() << "Gen!\n";
 
             for(int i_spec=0; i_spec < nspecies; i_spec++)
             {
@@ -206,16 +205,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         }
     }
 
-//    std::cout << "pcount: " << pcount << "\n";
-std::cout << "Rank " << ParallelDescriptor::MyProc() << " redist!\n";
     Redistribute();
-std::cout << "Rank " << ParallelDescriptor::MyProc() << " updateCellVecs!\n";
-   // UpdateCellVectors();
-std::cout << "Rank " << ParallelDescriptor::MyProc() << " rebin!\n";
-   // ReBin();
-
-    //clearNeighbors();
-    std::cout << "Rank " << ParallelDescriptor::MyProc() << " filling!\n";
+    UpdateCellVectors();
+    ReBin();
+    clearNeighbors();
     fillNeighbors();
-    std::cout << "Rank " << ParallelDescriptor::MyProc() << " filled!\n";
+
 }
