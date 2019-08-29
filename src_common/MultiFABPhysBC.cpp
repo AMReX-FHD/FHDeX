@@ -196,10 +196,10 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
         Box bx      = mfi.growntilebox(ngv);
 
         const Array4<Real> & data_fab = data.array(mfi);
-
+	int n_comp = data.nComp();
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            apply_physbc_fab(tbx, dom, data_fab, data.nComp(), bc_lo, bc_hi);
+            apply_physbc_fab(tbx, dom, data_fab, n_comp, bc_lo, bc_hi);
         });
     }
 
