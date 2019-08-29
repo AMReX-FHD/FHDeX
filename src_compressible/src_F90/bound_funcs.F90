@@ -2,7 +2,7 @@ module bound_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, algorithm_type, membrane_cell, MAX_SPECIES
-  use compressible_namelist_module, only : mass_bc_lo, mass_bc_hi, therm_bc_lo, therm_bc_hi, vel_bc_lo, vel_bc_hi, Yk_bc, Xk_bc
+  use compressible_namelist_module, only : bc_mass_lo, bc_mass_hi, bc_therm_lo, bc_therm_hi, bc_vel_lo, bc_vel_hi, bc_Yk, bc_Xk
   use conv_module
   use trans_module
 
@@ -31,7 +31,7 @@ contains
 
     if(lo(1) .eq. 0) then !lower x bound
 
-       if(mass_bc_lo(1) .eq. 1) then ! wall
+       if(bc_mass_lo(1) .eq. 1) then ! wall
 
           if(algorithm_type.eq.2) then
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
@@ -45,12 +45,12 @@ contains
              enddo
           endif
 
-       elseif(mass_bc_lo(1) .eq. 2) then ! reservoir
+       elseif(bc_mass_lo(1) .eq. 2) then ! reservoir
 
           if(algorithm_type.eq.2) then
 
-             Ywall(1:nspecies) = Yk_bc(1,1,1:nspecies)
-             Xwall(1:nspecies) = Xk_bc(1,1,1:nspecies)
+             Ywall(1:nspecies) = bc_Yk(1,1,1:nspecies)
+             Xwall(1:nspecies) = bc_Xk(1,1,1:nspecies)
 
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -68,7 +68,7 @@ contains
 
        endif
 
-       if(therm_bc_lo(1) .eq. 1) then ! adiabatic
+       if(bc_therm_lo(1) .eq. 1) then ! adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -81,7 +81,7 @@ contains
              enddo
           enddo
 
-       elseif(therm_bc_lo(1) .eq. 2) then ! isothermal
+       elseif(bc_therm_lo(1) .eq. 2) then ! isothermal
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -96,7 +96,7 @@ contains
 
        endif
 
-      if(vel_bc_lo(1) .eq. 1) then ! slip
+      if(bc_vel_lo(1) .eq. 1) then ! slip
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -137,7 +137,7 @@ contains
              enddo
           enddo
 
-       elseif(vel_bc_lo(1) .eq. 2) then ! no slip
+       elseif(bc_vel_lo(1) .eq. 2) then ! no slip
  
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -183,7 +183,7 @@ contains
 
     if(hi(1) .eq. (n_cells(1)-1)) then !upper x bound
 
-       if(mass_bc_hi(1) .eq. 1) then ! wall
+       if(bc_mass_hi(1) .eq. 1) then ! wall
 
           if(algorithm_type.eq.2) then
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
@@ -197,12 +197,12 @@ contains
              enddo
           endif
 
-       elseif(mass_bc_hi(1) .eq. 2) then ! reservoir
+       elseif(bc_mass_hi(1) .eq. 2) then ! reservoir
 
           if(algorithm_type.eq.2) then
 
-             Ywall(1:nspecies) = Yk_bc(1,2,1:nspecies)
-             Xwall(1:nspecies) = Xk_bc(1,2,1:nspecies)
+             Ywall(1:nspecies) = bc_Yk(1,2,1:nspecies)
+             Xwall(1:nspecies) = bc_Xk(1,2,1:nspecies)
 
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -221,7 +221,7 @@ contains
 
        endif
 
-       if(therm_bc_hi(1) .eq. 1) then ! adiabatic
+       if(bc_therm_hi(1) .eq. 1) then ! adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -234,7 +234,7 @@ contains
              enddo
           enddo
 
-       elseif(therm_bc_hi(1) .eq. 2) then ! isothermal
+       elseif(bc_therm_hi(1) .eq. 2) then ! isothermal
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -249,7 +249,7 @@ contains
 
        endif
 
-       if(vel_bc_hi(1) .eq. 1) then ! slip
+       if(bc_vel_hi(1) .eq. 1) then ! slip
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -290,7 +290,7 @@ contains
              enddo
           enddo
 
-       elseif(vel_bc_hi(1) .eq. 2) then ! no slip
+       elseif(bc_vel_hi(1) .eq. 2) then ! no slip
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -338,7 +338,7 @@ contains
 
     if(lo(2) .eq. 0) then !lower y bound
 
-       if(mass_bc_lo(2) .eq. 1) then ! wall
+       if(bc_mass_lo(2) .eq. 1) then ! wall
 
           if(algorithm_type.eq.2) then
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
@@ -352,12 +352,12 @@ contains
              enddo
           endif
 
-       elseif(mass_bc_lo(2) .eq. 2) then ! reservoir
+       elseif(bc_mass_lo(2) .eq. 2) then ! reservoir
 
           if(algorithm_type.eq.2) then
 
-             Ywall(1:nspecies) = Yk_bc(2,1,1:nspecies)
-             Xwall(1:nspecies) = Xk_bc(2,1,1:nspecies)
+             Ywall(1:nspecies) = bc_Yk(2,1,1:nspecies)
+             Xwall(1:nspecies) = bc_Xk(2,1,1:nspecies)
 
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
                 do j = 1,ngc(2)
@@ -376,7 +376,7 @@ contains
 
        endif
 
-       if(therm_bc_lo(2) .eq. 1) then ! adiabatic
+       if(bc_therm_lo(2) .eq. 1) then ! adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -389,7 +389,7 @@ contains
              enddo
           enddo
 
-       elseif(therm_bc_lo(2) .eq. 2) then ! isothermal
+       elseif(bc_therm_lo(2) .eq. 2) then ! isothermal
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -404,7 +404,7 @@ contains
 
        endif
 
-       if(vel_bc_lo(2) .eq. 1) then ! slip
+       if(bc_vel_lo(2) .eq. 1) then ! slip
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -444,7 +444,7 @@ contains
              enddo
           enddo
 
-       elseif(vel_bc_lo(2) .eq. 2) then ! no slip
+       elseif(bc_vel_lo(2) .eq. 2) then ! no slip
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -490,7 +490,7 @@ contains
 
     if(hi(2) .eq. (n_cells(2)-1)) then !upper y bound
 
-       if(mass_bc_hi(2) .eq. 1) then ! wall
+       if(bc_mass_hi(2) .eq. 1) then ! wall
 
           if(algorithm_type.eq.2) then
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
@@ -504,12 +504,12 @@ contains
              enddo
           endif
 
-       elseif(mass_bc_hi(2) .eq. 2) then ! reservoir
+       elseif(bc_mass_hi(2) .eq. 2) then ! reservoir
 
           if(algorithm_type.eq.2) then
              
-             Ywall(1:nspecies) = Yk_bc(2,2,1:nspecies)
-             Xwall(1:nspecies) = Xk_bc(2,2,1:nspecies)
+             Ywall(1:nspecies) = bc_Yk(2,2,1:nspecies)
+             Xwall(1:nspecies) = bc_Xk(2,2,1:nspecies)
 
              do k = lo(3)-ngc(3),hi(3)+ngc(3)
                 do j = 1,ngc(2)
@@ -527,7 +527,7 @@ contains
 
        endif
 
-       if(therm_bc_hi(2) .eq. 1) then ! adiabatic
+       if(bc_therm_hi(2) .eq. 1) then ! adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -540,7 +540,7 @@ contains
              enddo
           enddo
 
-       elseif(therm_bc_hi(2) .eq. 2) then ! isothermal
+       elseif(bc_therm_hi(2) .eq. 2) then ! isothermal
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -555,7 +555,7 @@ contains
 
        endif
 
-       if(vel_bc_hi(2) .eq. 1) then ! slip
+       if(bc_vel_hi(2) .eq. 1) then ! slip
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -595,7 +595,7 @@ contains
              enddo
           enddo
 
-       elseif(vel_bc_hi(2) .eq. 2) then ! no slip
+       elseif(bc_vel_hi(2) .eq. 2) then ! no slip
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
              do j = 1,ngc(2)
@@ -643,7 +643,7 @@ contains
 
        if(lo(3) .eq. 0) then !lower z bound
 
-          if(mass_bc_lo(3) .eq. 1) then ! wall
+          if(bc_mass_lo(3) .eq. 1) then ! wall
 
              if(algorithm_type.eq.2) then
                 do k = 1,ngc(3)
@@ -657,12 +657,12 @@ contains
                 enddo
              endif
 
-          elseif(mass_bc_lo(3) .eq. 2) then ! reservoir
+          elseif(bc_mass_lo(3) .eq. 2) then ! reservoir
 
              if(algorithm_type.eq.2) then
 
-                Ywall(1:nspecies) = Yk_bc(3,1,1:nspecies)
-                Xwall(1:nspecies) = Xk_bc(3,1,1:nspecies)
+                Ywall(1:nspecies) = bc_Yk(3,1,1:nspecies)
+                Xwall(1:nspecies) = bc_Xk(3,1,1:nspecies)
 
                 do k = 1,ngc(3)
                    do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -681,7 +681,7 @@ contains
 
           endif
 
-          if(therm_bc_lo(3) .eq. 1) then ! adiabatic
+          if(bc_therm_lo(3) .eq. 1) then ! adiabatic
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -694,7 +694,7 @@ contains
                 enddo
              enddo
 
-          elseif(therm_bc_lo(3) .eq. 2) then ! isothermal
+          elseif(bc_therm_lo(3) .eq. 2) then ! isothermal
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -710,7 +710,7 @@ contains
 
           endif
 
-          if(vel_bc_lo(3) .eq. 1) then ! slip
+          if(bc_vel_lo(3) .eq. 1) then ! slip
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -750,7 +750,7 @@ contains
                 enddo
              enddo
 
-          elseif(vel_bc_lo(3) .eq. 2) then ! no slip
+          elseif(bc_vel_lo(3) .eq. 2) then ! no slip
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -796,7 +796,7 @@ contains
 
        if(hi(3) .eq. (n_cells(3)-1)) then !upper z bound
 
-          if(mass_bc_hi(3) .eq. 1) then ! wall
+          if(bc_mass_hi(3) .eq. 1) then ! wall
 
              if(algorithm_type.eq.2) then
                 do k = 1,ngc(3)
@@ -810,12 +810,12 @@ contains
                 enddo
              endif
 
-          elseif(mass_bc_hi(3) .eq. 2) then ! reservoir
+          elseif(bc_mass_hi(3) .eq. 2) then ! reservoir
 
              if(algorithm_type.eq.2) then
 
-                Ywall(1:nspecies) = Yk_bc(3,2,1:nspecies)
-                Xwall(1:nspecies) = Xk_bc(3,2,1:nspecies)
+                Ywall(1:nspecies) = bc_Yk(3,2,1:nspecies)
+                Xwall(1:nspecies) = bc_Xk(3,2,1:nspecies)
 
                 do k = 1,ngc(3)
                    do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -833,7 +833,7 @@ contains
 
           endif
 
-          if(therm_bc_hi(3) .eq. 1) then ! adiabatic
+          if(bc_therm_hi(3) .eq. 1) then ! adiabatic
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -846,7 +846,7 @@ contains
                 enddo
              enddo
 
-          elseif(therm_bc_hi(3) .eq. 2) then ! isothermal
+          elseif(bc_therm_hi(3) .eq. 2) then ! isothermal
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -861,7 +861,7 @@ contains
 
           endif
 
-          if(vel_bc_hi(3) .eq. 1) then ! slip
+          if(bc_vel_hi(3) .eq. 1) then ! slip
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -901,7 +901,7 @@ contains
                 enddo
              enddo
 
-          elseif(vel_bc_hi(3) .eq. 2) then ! no slip
+          elseif(bc_vel_hi(3) .eq. 2) then ! no slip
 
              do k = 1,ngc(3)
                 do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -956,19 +956,19 @@ contains
     do d=1,AMREX_SPACEDIM
        
        ! Species concentration BCs
-       if (mass_bc_lo(d).eq.0) then
+       if (bc_mass_lo(d).eq.0) then
           if (bc_lo(d).ne.0) then
              SELECT CASE (bc_lo(d))
              CASE (1) ! slip, adiabatic, wall
-                mass_bc_lo(d) = 1
+                bc_mass_lo(d) = 1
              CASE (2) ! no slip, isothermal, reservoir
-                mass_bc_lo(d) = 2
+                bc_mass_lo(d) = 2
              CASE (3) ! no slip, isothermal, wall
-                mass_bc_lo(d) = 1
+                bc_mass_lo(d) = 1
              CASE (4) ! no slip, adiabatic, wall
-                mass_bc_lo(d) = 1
+                bc_mass_lo(d) = 1
              CASE (-1) ! periodic
-                mass_bc_lo(d) = -1
+                bc_mass_lo(d) = -1
              CASE DEFAULT
                 call bl_error('Invalid BC condition')
              END SELECT
@@ -976,19 +976,19 @@ contains
              call bl_error('Must specify BC condition')
           endif
        endif
-       if (mass_bc_hi(d).eq.0) then
+       if (bc_mass_hi(d).eq.0) then
           if (bc_hi(d).ne.0) then
              SELECT CASE (bc_hi(d))
              CASE (1) ! slip, adiabatic, wall
-                mass_bc_hi(d) = 1
+                bc_mass_hi(d) = 1
              CASE (2) ! no slip, isothermal, reservoir
-                mass_bc_hi(d) = 2
+                bc_mass_hi(d) = 2
              CASE (3) ! no slip, isothermal, wall
-                mass_bc_hi(d) = 1
+                bc_mass_hi(d) = 1
              CASE (4) ! no slip, adiabatic, wall
-                mass_bc_hi(d) = 1
+                bc_mass_hi(d) = 1
              CASE (-1) ! periodic
-                mass_bc_hi(d) = -1
+                bc_mass_hi(d) = -1
              CASE DEFAULT
                 call bl_error('Invalid BC condition')
              END SELECT
@@ -998,19 +998,19 @@ contains
        endif
 
        ! Temperature BCs
-       if (therm_bc_lo(d).eq.0) then
+       if (bc_therm_lo(d).eq.0) then
           if (bc_lo(d).ne.0) then
              SELECT CASE (bc_lo(d))
              CASE (1) ! slip, adiabatic, wall
-                therm_bc_lo(d) = 1
+                bc_therm_lo(d) = 1
              CASE (2) ! no slip, isothermal, reservoir
-                therm_bc_lo(d) = 2
+                bc_therm_lo(d) = 2
              CASE (3) ! no slip, isothermal, wall
-                therm_bc_lo(d) = 2
+                bc_therm_lo(d) = 2
              CASE (4) ! no slip, adiabatic, wall
-                therm_bc_lo(d) = 1
+                bc_therm_lo(d) = 1
              CASE (-1) ! periodic
-                therm_bc_lo(d) = -1
+                bc_therm_lo(d) = -1
              CASE DEFAULT
                 call bl_error('Invalid BC condition')
              END SELECT
@@ -1018,19 +1018,19 @@ contains
              call bl_error('Must specify BC condition')
           endif
        endif
-       if (therm_bc_hi(d).eq.0) then
+       if (bc_therm_hi(d).eq.0) then
           if (bc_hi(d).ne.0) then
              SELECT CASE (bc_hi(d))
              CASE (1) ! slip, adiabatic, wall
-                therm_bc_hi(d) = 1
+                bc_therm_hi(d) = 1
              CASE (2) ! no slip, isothermal, reservoir
-                therm_bc_hi(d) = 2
+                bc_therm_hi(d) = 2
              CASE (3) ! no slip, isothermal, wall
-                therm_bc_hi(d) = 2
+                bc_therm_hi(d) = 2
              CASE (4) ! no slip, adiabatic, wall
-                therm_bc_hi(d) = 1
+                bc_therm_hi(d) = 1
              CASE (-1) ! periodic
-                therm_bc_hi(d) = -1
+                bc_therm_hi(d) = -1
              CASE DEFAULT
                 call bl_error('Invalid BC condition')
              END SELECT
@@ -1040,19 +1040,19 @@ contains
        endif
 
        ! Velocity BCs
-       if (vel_bc_lo(d).eq.0) then
+       if (bc_vel_lo(d).eq.0) then
           if (bc_lo(d).ne.0) then
              SELECT CASE (bc_lo(d))
              CASE (1) ! slip, adiabatic, wall
-                vel_bc_lo(d) = 1
+                bc_vel_lo(d) = 1
              CASE (2) ! no slip, isothermal, reservoir
-                vel_bc_lo(d) = 2
+                bc_vel_lo(d) = 2
              CASE (3) ! no slip, isothermal, wall
-                vel_bc_lo(d) = 2
+                bc_vel_lo(d) = 2
              CASE (4) ! no slip, adiabatic, wall
-                vel_bc_lo(d) = 2
+                bc_vel_lo(d) = 2
              CASE (-1) ! periodic
-                vel_bc_lo(d) = -1
+                bc_vel_lo(d) = -1
              CASE DEFAULT
                 call bl_error('Invalid BC condition')
              END SELECT
@@ -1060,19 +1060,19 @@ contains
              call bl_error('Must specify BC condition')
           endif
        endif
-       if (vel_bc_hi(d).eq.0) then
+       if (bc_vel_hi(d).eq.0) then
           if (bc_hi(d).ne.0) then
              SELECT CASE (bc_hi(d))
              CASE (1) ! slip, adiabatic, wall
-                vel_bc_hi(d) = 1
+                bc_vel_hi(d) = 1
              CASE (2) ! no slip, isothermal, reservoir
-                vel_bc_hi(d) = 2
+                bc_vel_hi(d) = 2
              CASE (3) ! no slip, isothermal, wall
-                vel_bc_hi(d) = 2
+                bc_vel_hi(d) = 2
              CASE (4) ! no slip, adiabatic, wall
-                vel_bc_hi(d) = 2
+                bc_vel_hi(d) = 2
              CASE (-1) ! periodic
-                vel_bc_hi(d) = -1
+                bc_vel_hi(d) = -1
              CASE DEFAULT
                 call bl_error('Invalid BC condition')
              END SELECT
@@ -1102,15 +1102,15 @@ contains
 
           do ns=1,nspecies
 
-             sumxb = sumxb + Xk_bc(d,1,ns)
-             sumyb = sumyb + Yk_bc(d,1,ns)
+             sumxb = sumxb + bc_Xk(d,1,ns)
+             sumyb = sumyb + bc_Yk(d,1,ns)
 
           enddo
 
           if(abs(sumxb-1).lt.1.d-10)then
-             call get_massfrac(Xk_bc(d,1,1:nspecies),Yk_bc(d,1,1:nspecies))
+             call get_massfrac(bc_Xk(d,1,1:nspecies),bc_Yk(d,1,1:nspecies))
           elseif(abs(sumyb-1).lt.1d-10)then
-             call get_molfrac(Yk_bc(d,1,1:nspecies),Xk_bc(d,1,1:nspecies))
+             call get_molfrac(bc_Yk(d,1,1:nspecies),bc_Xk(d,1,1:nspecies))
           endif
 
        endif
@@ -1122,15 +1122,15 @@ contains
 
           do ns=1,nspecies
 
-             sumxt = sumxt + Xk_bc(d,2,ns)
-             sumyt = sumyt + Yk_bc(d,2,ns)
+             sumxt = sumxt + bc_Xk(d,2,ns)
+             sumyt = sumyt + bc_Yk(d,2,ns)
  
           enddo
 
           if(abs(sumxt-1).lt.1.d-10)then
-             call get_massfrac(Xk_bc(d,2,1:nspecies),Yk_bc(d,2,1:nspecies))
+             call get_massfrac(bc_Xk(d,2,1:nspecies),bc_Yk(d,2,1:nspecies))
           elseif(abs(sumyt-1).lt.1d-10)then
-             call get_molfrac(Yk_bc(d,2,1:nspecies),Xk_bc(d,2,1:nspecies))
+             call get_molfrac(bc_Yk(d,2,1:nspecies),bc_Xk(d,2,1:nspecies))
           endif
 
        endif

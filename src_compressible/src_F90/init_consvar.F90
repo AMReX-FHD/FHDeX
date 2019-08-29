@@ -4,7 +4,7 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, bc_lo, bc_hi, &
        n_cells, prob_type, molmass, Runiv, grav, membrane_cell
-  use compressible_namelist_module, only : Yk_bc
+  use compressible_namelist_module, only : bc_Yk
   use conv_module, only : get_energy, get_pressure_gas
 
   implicit none
@@ -72,8 +72,8 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx &
            elseif (prob_type.eq.3) then ! diffusion barrier
                                           
               do l = 1,nspecies
-                 Ygrad = (Yk_bc(2,2,l) - Yk_bc(2,1,l))/(realhi(2) - reallo(2))
-                 massvec(l) = Ygrad*pos(2) + Yk_bc(2,1,l)
+                 Ygrad = (bc_Yk(2,2,l) - bc_Yk(2,1,l))/(realhi(2) - reallo(2))
+                 massvec(l) = Ygrad*pos(2) + bc_Yk(2,1,l)
                  cu(i,j,k,5+l) = cu(i,j,k,1)*massvec(l)
               enddo
 

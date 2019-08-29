@@ -37,18 +37,18 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
     mlabec.setScalars(0.0, -1.0);
 
     // build array of boundary conditions needed by MLABecLaplacian
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> lo_mlmg_bc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> hi_mlmg_bc;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (geom.isPeriodic(i)) {
-            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;
+            lo_mlmg_bc[i] = hi_mlmg_bc[i] = LinOpBCType::Periodic;
         } else {
             // Abort("ApplyPrecon only works for periodic");
-            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Neumann;
+            lo_mlmg_bc[i] = hi_mlmg_bc[i] = LinOpBCType::Neumann;
         }
     }
-    mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
+    mlabec.setDomainBC(lo_mlmg_bc,hi_mlmg_bc);
     mlabec.setLevelBC(lev, &phi);
 
     // coefficients for solver (alpha already set to zero via setScalars)
@@ -113,18 +113,18 @@ void CCApplyOp(MultiFab& phi,
     mlabec.setScalars(0.0, 1.0);
 
     // build array of boundary conditions needed by MLABecLaplacian
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_lobc;
-    std::array<LinOpBCType,AMREX_SPACEDIM> mlmg_hibc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> lo_mlmg_bc;
+    std::array<LinOpBCType,AMREX_SPACEDIM> hi_mlmg_bc;
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (geom.isPeriodic(i)) {
-            mlmg_lobc[i] = mlmg_hibc[i] = LinOpBCType::Periodic;
+            lo_mlmg_bc[i] = hi_mlmg_bc[i] = LinOpBCType::Periodic;
         }
         else {
             Abort("ApplyPrecon only works for periodic");
         }
     }
-    mlabec.setDomainBC(mlmg_lobc,mlmg_hibc);
+    mlabec.setDomainBC(lo_mlmg_bc,hi_mlmg_bc);
     mlabec.setLevelBC(lev, &phi);
 
     // coefficients for solver
