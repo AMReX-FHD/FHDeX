@@ -52,35 +52,35 @@ void AmrCoreAdv::Initialize( )
     bcs.resize(1);
    
     // periodic boundaries
-    int bc_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
-    int bc_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    int bc_con_lo[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
+    int bc_con_hi[] = {BCType::int_dir, BCType::int_dir, BCType::int_dir};
 
 /*
     // walls (Neumann)
-    int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
-    int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_con_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_con_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
 */
 //    bcs.resize(1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
         // lo-side BCs
-        if (bc_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
-            bc_lo[idim] == BCType::foextrap ||  // first-order extrapolation
-            bc_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs[0].setLo(idim, bc_lo[idim]);
+        if (bc_con_lo[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
+            bc_con_lo[idim] == BCType::foextrap ||  // first-order extrapolation
+            bc_con_lo[idim] == BCType::ext_dir ) {  // external Dirichlet
+            bcs[0].setLo(idim, bc_con_lo[idim]);
         }
         else {
-            amrex::Abort("Invalid bc_lo");
+            amrex::Abort("Invalid bc_con_lo");
         }
 
         // hi-side BCSs
-        if (bc_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
-            bc_hi[idim] == BCType::foextrap ||  // first-order extrapolation
-            bc_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
-            bcs[0].setHi(idim, bc_hi[idim]);
+        if (bc_con_hi[idim] == BCType::int_dir  ||  // periodic uses "internal Dirichlet"
+            bc_con_hi[idim] == BCType::foextrap ||  // first-order extrapolation
+            bc_con_hi[idim] == BCType::ext_dir ) {  // external Dirichlet
+            bcs[0].setHi(idim, bc_con_hi[idim]);
         }
         else {
-            amrex::Abort("Invalid bc_hi");
+            amrex::Abort("Invalid bc_con_hi");
         }
     }
 

@@ -170,26 +170,14 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
         for (int d=0; d<AMREX_SPACEDIM; d++) {
             alpha_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
-            // TODO: are these the correct BC?
-            MultiFABPhysBC(alpha_fc_mg[n][d], geom_mg[n]);
         }
 
 #if (AMREX_SPACEDIM == 2)
         // nodal_restriction on beta_ed_mg        
         NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
-
-        beta_ed_mg[n][0].FillBoundary(geom_mg[n].periodicity());
-        // TODO: are these the correct BC?
-        MultiFABPhysBC(beta_ed_mg[n][0], geom_mg[n]);
 #elif (AMREX_SPACEDIM == 3)
         // edge_restriction on beta_ed_mg
         EdgeRestriction(beta_ed_mg[n],beta_ed_mg[n-1]);
-
-        for (int d=0; d<AMREX_SPACEDIM; d++) {
-            beta_ed_mg[n][d].FillBoundary(geom_mg[n].periodicity());
-            // TODO: are these the correct BC?
-            MultiFABPhysBC(beta_ed_mg[n][d], d, geom_mg[n]);
-        }
 #endif
     }
 
@@ -202,13 +190,14 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         // initialize phi_fc_mg = phi_fc as an initial guess
         MultiFab::Copy(phi_fc_mg[0][d],phi_fc[d],0,0,1,0);
 
+        // set values on physical boundaries
+        MultiFABPhysBCDomainVel(phi_fc_mg[0][d], d, geom_mg[0],d);
+        
         // fill periodic ghost cells
         phi_fc_mg[0][d].FillBoundary(geom_mg[0].periodicity());
 
-        // fill boundary cells
-        // TODO: are these the correct BC?
-        MultiFABPhysBCDomainVel(phi_fc_mg[0][d], d, geom_mg[0],d);
-        MultiFABPhysBCMacVel(phi_fc_mg[0][d], d, geom_mg[0],d);
+        // fill physical ghost cells
+        MultiFABPhysBCMacVel(phi_fc_mg[0][d], d, geom_mg[0], d);
 
         // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
         MultiFab::Copy(rhs_fc_mg[0][d], rhs_fc[d], 0, 0, 1, 0);
@@ -307,13 +296,15 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     StagMGUpdate(phi_fc_mg[n],rhs_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],
                                  beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
-                    // fill boundary cells
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
+
+                        // set values on physical boundaries
+                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                        
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-                        // TODO: are these the correct BC?
-                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                        // fill physical ghost cells
                         MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
                     }
 
@@ -351,18 +342,19 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 // compute Lphi - rhs, and then multiply by -1
                 MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
                 Lphi_fc_mg[n][d].mult(-1.,0,1,0);
-
                 if (stag_mg_verbosity >= 3) {
                     resid_temp = Lphi_fc_mg[n][d].norm0();
                     Print() << "Residual for comp " << d << " after all smooths at level "
                             << n << " " << resid_temp << std::endl;
                 }
 
+                // set values on physical boundaries
+                MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
+                
                 // fill periodic ghost cells
                 Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-                // TODO: are these the correct BC?
-                MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
+                // fill physical ghost cells                
                 MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
             }
 
@@ -370,12 +362,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             StagRestriction(rhs_fc_mg[n+1],Lphi_fc_mg[n]);
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
-                rhs_fc_mg[n+1][d].FillBoundary(geom_mg[n+1].periodicity());
-
-                // TODO: are these the correct BC?
-                MultiFABPhysBC(rhs_fc_mg[n+1][d], d, geom_mg[n+1]);
-                // MultiFABPhysBCDomainVel(rhs_fc_mg[n+1][d], d, geom_mg[n+1]);
-                // MultiFABPhysBCMacVel(rhs_fc_mg[n+1][d], d, geom_mg[n+1]);
+                // set residual to zero on physical boundaries
+                MultiFABPhysBCDomainVel(rhs_fc_mg[n+1][d], d, geom_mg[n+1], d);
             }
 
         }  // end loop over nlevs_mg (bottom of V-cycle)
@@ -426,32 +414,18 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                              beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
                 for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+                    // set values on physical boundaires
+                    MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                    
                     // fill periodic ghost cells
                     phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-                    // TODO: are these the correct BC?
-                    MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                    // fill physical ghost cells
                     MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
                 }
 
             } // end loop over colors
-
-            // print out residual
-            if (stag_mg_verbosity >= 4) {
-
-                // compute Lphi
-                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
-                            phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
-
-                // now subtract the rest of the RHS from Lphi.
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    // compute Lphi - rhs, and report residual
-                    MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
-                    resid_temp = Lphi_fc_mg[n][d].norm0();
-                    Print() << "Residual for comp " << d << " after    smooth " << m << " at level "
-                            << n << " " << resid_temp << std::endl;
-                }
-            }
 
         } // end loop over nsmooths
 
@@ -474,20 +448,15 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                         << n << " " << resid_temp << std::endl;
             }
 
+            // set values on physical boundaries
+            MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
+            
             // fill periodic ghost cells
             Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-            // TODO: are these the correct BC?
-            MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
+            // fill physical ghost cells
             MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
         }
-
-        // for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-        //     // TODO: are these the correct BC?
-        //     MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
-        //     MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n]);
-        // }
 
         if (stag_mg_verbosity >= 3) {
             Print() << "End bottom solve" << std::endl;
@@ -501,20 +470,15 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
+                // set values on physical boundaries
+                MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                
                 // fill periodic ghost cells
                 phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-                // TODO: are these the correct BC?
-                MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                // fill physical ghost cells
                 MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
             }
-
-            // for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-            //     // TODO: are these the correct BC?
-            //     MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n]);
-            //     MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n]);
-            // }
 
             // print out residual
             if (stag_mg_verbosity >= 3) {
@@ -551,11 +515,14 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                                  beta_cc_mg[n],beta_ed_mg[n],gamma_cc_mg[n],dx_mg[n].data(),color);
 
                     for (int d=0; d<AMREX_SPACEDIM; d++) {
+
+                        // set values on physical boundaries
+                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                        
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-                        // TODO: are these the correct BC?
-                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
+                        // fill physical ghost cells
                         MultiFABPhysBCMacVel(phi_fc_mg[n][d], d, geom_mg[n],d);
                     }
 
@@ -586,7 +553,6 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
-                // now subtract the rest of the RHS from Lphi.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     // compute Lphi - rhs, and report residual
                     MultiFab::Subtract(Lphi_fc_mg[n][d],rhs_fc_mg[n][d],0,0,1,0);
@@ -613,45 +579,6 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             // compute Lphi - rhs
             MultiFab::Subtract(Lphi_fc_mg[0][d],rhs_fc_mg[0][d],0,0,1,0);
         }
-
-	//////// TEST INNER PROD /////////////////////
-	// Print() << "\t TEST INNER PROD: \n";
-
-	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	//   phi_fc_mg[0][d].setVal(1.);
-	//   Lphi_fc_mg[0][d].setVal(2.);
-	//   beta_cc_mg[0].setVal(3.);
-	//   gamma_cc_mg[0].setVal(1.5);
-	// }
-
-	// StagInnerProd(phi_fc_mg[0],0,Lphi_fc_mg[0],0,resid_l2);
-	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	//   Print() << "\t stag_inner_prod " << "along dim " << d << " = " << resid_l2[d] << "\n";
-	// }
-
-	// SumStag(phi_fc_mg[0],0,resid_l2,true);
-	// for (int d=0; d<AMREX_SPACEDIM; ++d) {
-	//   Print() << "\t sum_stag " << "along dim " << d << " = " << resid_l2[d] << "\n";
-	// }
-
-        // double sum_cc = 0.;
-	// SumCC(beta_cc_mg[0],0,sum_cc,1);
-	// Print() << "\t sum_cc = " << sum_cc << "\n";
-
-        // double prod_cc = 0.;
-	// CCInnerProd(beta_cc_mg[0],0,gamma_cc_mg[0],0,prod_cc);
-	// Print() << "\t cc_inner_prod = " << prod_cc << "\n";
-
-	// double prod_stag = 0.;
-	// StagL2Norm(phi_fc_mg[0],0,prod_stag);
-	// Print() << "\t stag_norm_l2 = " << prod_stag << "\n";
-
-	// CCL2Norm(beta_cc_mg[0],0,prod_cc);
-	// Print() << "\t cc_norm_l2 = " << prod_cc << "\n";
-
-	// amrex::Abort("Exit Norm Test");
-	// exit(0);
-	//////////////////////////////////////////////////
 
         // compute L0 norm of Lphi - rhs and determine if the problem is solved
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -714,15 +641,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         // copy solution back into phi_fc
         MultiFab::Copy(phi_fc[d],phi_fc_mg[0][d],0,0,1,0);
 
+        // set values on physical boundaries
+        MultiFABPhysBCDomainVel(phi_fc[d], d, geom,d);
+        
         // fill periodic ghost cells
         phi_fc[d].FillBoundary(geom.periodicity());
 
-    }
-
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-
-        // TODO: are these the correct BC?
-        MultiFABPhysBCDomainVel(phi_fc[d], d, geom,d);
+        // fill physical ghost cells
         MultiFABPhysBCMacVel(phi_fc[d], d, geom,d);
     }
 
@@ -794,7 +719,6 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
     }
 
     phi_c.FillBoundary(geom_c.periodicity());
-    MultiFABPhysBC(phi_c, geom_c);
 }
 
 AMREX_GPU_HOST_DEVICE

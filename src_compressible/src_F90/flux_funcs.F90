@@ -1,9 +1,12 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type, algorithm_type
-  use compressible_namelist_module, only :  bc_mass_lo, bc_mass_hi, bc_therm_lo, bc_therm_hi, bc_vel_lo, bc_vel_hi
-  use conv_module, only : get_temperature, get_pressure_gas, get_energy, get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, &
+       cell_depth, k_b, runiv, n_cells, membrane_cell, visc_type, algorithm_type
+  use compressible_namelist_module, only :  bc_mass_lo, bc_mass_hi, &
+       bc_therm_lo, bc_therm_hi, bc_vel_lo, bc_vel_hi
+  use conv_module, only : get_temperature, get_pressure_gas, get_energy, &
+       get_enthalpies, get_temperature_gas, get_density_gas, get_energy_gas, get_hc_gas
   use multispec_module, only : cholesky_decomp
   implicit none
 

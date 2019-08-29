@@ -20,5 +20,4 @@ void InitializeCompressibleNamespace() {
                                     bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
                                     bc_vel_lo.dataPtr(), bc_vel_hi.dataPtr(),
                                     bc_Yk.dataPtr(), bc_Xk.dataPtr());
-
 }
