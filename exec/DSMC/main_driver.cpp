@@ -380,7 +380,6 @@ void main_driver(const char* argv)
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     DsmcParticleContainer particles(geom, dmap, ba, crange);
-        Print() << "Here1\n"; 
     //create particles
     particles.InitParticles(dsmcParticle,dx);
 
@@ -413,7 +412,6 @@ void main_driver(const char* argv)
             particles.CollideParticles(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
         }
 
-        Print() << "Here2\n";
         //Start collecting statistics after step n_steps_skip
         if(step == n_steps_skip)
         {
@@ -426,7 +424,6 @@ void main_driver(const char* argv)
         }
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, dsmcParticle[0], dt,statsCount);
-        Print() << "Here3\n";
         statsCount++;
 
         if (plot_int > 0 && step%plot_int == 0)

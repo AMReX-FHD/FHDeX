@@ -122,9 +122,7 @@ void DsmcParticleContainer::InitParticles(species* particleInfo, const Real* dxp
 
     UpdateCellVectors();
     ReBin();
-        Print() << "HereA\n";
     Redistribute();
-        Print() << "HereB\n";
 }
 
 void getCellVols(MultiFab & vols, const Geometry & Geom, int samples)
