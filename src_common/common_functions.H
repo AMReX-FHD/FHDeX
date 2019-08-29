@@ -44,6 +44,8 @@ void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM
 // in Debug.cpp
 void PrintMF(const MultiFab& MF);
 
+void outputMFAscii(const MultiFab& output, std::string filename);
+
 ///////////////////////////
 // in SqrtMF.cpp
 void SqrtMF(MultiFab& MF);
@@ -115,12 +117,5 @@ void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, 
 void MultiFABPhysBCDomainStress(MultiFab & stress, const amrex::Geometry & geom, int dim);
 void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim);
 void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
-
-///////////////////////////
-// in outputAscii.cpp
-
-
-void outputMFAscii(const MultiFab& output, std::string filename);
-
 
 #endif

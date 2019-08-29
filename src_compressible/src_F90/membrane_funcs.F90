@@ -1,7 +1,8 @@
 module membrane_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, bc_lo, bc_hi, n_cells, hcv, membrane_cell, molmass,transmission
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, cell_depth, k_b, &
+       n_cells, hcv, membrane_cell, molmass,transmission
   use conv_module
   use rng_functions_module
   implicit none

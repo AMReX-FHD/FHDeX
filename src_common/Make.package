@@ -15,7 +15,6 @@ CEXE_sources += Debug.cpp
 CEXE_sources += FindCoords.cpp
 CEXE_sources += FindNodalValues.cpp
 CEXE_sources += MultiFABPhysBC.cpp
-CEXE_sources += outputAscii.cpp
 CEXE_sources += SqrtMF.cpp
 
 CEXE_sources += ComputeAverages.cpp

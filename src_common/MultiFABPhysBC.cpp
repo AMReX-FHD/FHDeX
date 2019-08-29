@@ -33,9 +33,11 @@ AMREX_GPU_HOST_DEVICE
 inline void apply_physbc_fab(const Box & tbx,
                              const Box & dom,
                              const Array4<Real> & data,
-                             int ncomp) {
+                             int ncomp,
+                             const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
+                             const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
 
-    //_______________________________________________________________________
+    //___________________________________________________________________________
     // Total work region => the loops below will actually only iterate over
     // cells between tbx and dom
     const Dim3 tlo    = amrex::lbound(tbx);
@@ -44,9 +46,9 @@ inline void apply_physbc_fab(const Box & tbx,
     const Dim3 dom_hi = amrex::ubound(dom);
 
 
-    //_______________________________________________________________________
+    //___________________________________________________________________________
     // Apply x-physbc to data
-    if (common::bc_lo[0] == 2) {
+    if (bc_lo[0] == 2) {
     for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -61,7 +63,7 @@ inline void apply_physbc_fab(const Box & tbx,
     }
     }
 
-    if (common::bc_hi[0] == 2) {
+    if (bc_hi[0] == 2) {
     for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -77,10 +79,10 @@ inline void apply_physbc_fab(const Box & tbx,
     }
 
 
-    //_______________________________________________________________________
+    //___________________________________________________________________________
     // Apply y-physbc to data
 #if (AMREX_SPACEDIM >= 2)
-    if (common::bc_lo[1] == 2) {
+    if (bc_lo[1] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j < dom_lo.y; ++j) {
@@ -95,7 +97,7 @@ inline void apply_physbc_fab(const Box & tbx,
     }
     }
 
-    if (common::bc_hi[1] == 2) {
+    if (bc_hi[1] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
@@ -111,10 +113,10 @@ inline void apply_physbc_fab(const Box & tbx,
     }
 #endif
 
-    //_______________________________________________________________________
+    //___________________________________________________________________________
     // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
-    if (common::bc_lo[2] == 2) {
+    if (bc_lo[2] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k < dom_lo.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -129,7 +131,7 @@ inline void apply_physbc_fab(const Box & tbx,
     }
     }
 
-    if (common::bc_hi[2] == 2) {
+    if (bc_hi[2] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -179,6 +181,14 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
     int ngc         = data.nGrow();
     IntVect ngc_eff = ngc*dim_fill_ghost;
 
+    // Send BCs to GPU
+    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_lo[0],
+                                                     common::bc_lo[1],
+                                                     common::bc_lo[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_hi[0],
+                                                     common::bc_hi[1],
+                                                     common::bc_hi[2])};
+
     for (MFIter mfi(data); mfi.isValid(); ++mfi) {
 
         // Select how much of the ghost region to fill
@@ -186,10 +196,10 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
         Box bx      = mfi.growntilebox(ngv);
 
         const Array4<Real> & data_fab = data.array(mfi);
-
+	int n_comp = data.nComp();
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            apply_physbc_fab(tbx, dom, data_fab, data.nComp());
+            apply_physbc_fab(tbx, dom, data_fab, n_comp, bc_lo, bc_hi);
         });
     }
 
