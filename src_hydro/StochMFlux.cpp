@@ -920,36 +920,27 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   std::array< MultiFab, AMREX_SPACEDIM > Temp_fc;
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    m_old[d].define(     umac[d].boxArray(), umac[d].DistributionMap(), 1, 1);
-    rhotot_fc[d].define( umac[d].boxArray(), umac[d].DistributionMap(), 1, 1);
-    Temp_fc[d].define(   umac[d].boxArray(), umac[d].DistributionMap(), 1, 1);
+    m_old[d].define(     umac[d].boxArray(), umac[d].DistributionMap(), 1, 0);
+    rhotot_fc[d].define( umac[d].boxArray(), umac[d].DistributionMap(), 1, 0);
+    Temp_fc[d].define(   umac[d].boxArray(), umac[d].DistributionMap(), 1, 0);
   }
 
   // NOTE: these only operate on valid cells
   AverageCCToFace(rhotot, 0, rhotot_fc, 0, 1);
   AverageCCToFace(Temp,   0, Temp_fc,   0, 1);
 
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-      rhotot_fc[d].FillBoundary(geom.periodicity());
-      Temp_fc[d].FillBoundary(geom.periodicity());
-
-      MultiFABPhysBC(rhotot_fc[d], d, geom);
-      MultiFABPhysBC(Temp_fc[d], d, geom);
-  }
-
   // Convert umac to momenta, rho*umac
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(     m_old[d], umac[d],      0, 0, 1, 1);
-    MultiFab::Multiply( m_old[d], rhotot_fc[d], 0, 0, 1, 1);
+    MultiFab::Copy(     m_old[d], umac[d],      0, 0, 1, 0);
+    MultiFab::Multiply( m_old[d], rhotot_fc[d], 0, 0, 1, 0);
   }
 
   addMfluctuations_stag(m_old, rhotot_fc, Temp_fc, variance);
 
-
   // Convert momenta to umac, (1/rho)*momentum
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-      MultiFab::Copy(   umac[d], m_old[d],     0, 0, 1, 1);
-      MultiFab::Divide( umac[d], rhotot_fc[d], 0, 0, 1, 1);
+      MultiFab::Copy(   umac[d], m_old[d],     0, 0, 1, 0);
+      MultiFab::Divide( umac[d], rhotot_fc[d], 0, 0, 1, 0);
   }
 }
 
@@ -969,31 +960,32 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
   }
 
   // Initialize variances
-  Real variance_mom = abs(variance)*k_B/dVol;
+  Real variance_mom = std::abs(variance)*k_B/dVol;
+  
   std::array<MultiFab, AMREX_SPACEDIM> variance_mfab;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    variance_mfab[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,1);
+    variance_mfab[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,0);
   }
 
   std::array< MultiFab, AMREX_SPACEDIM > mac_temp;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    mac_temp[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,1);
+    mac_temp[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,0);
   }
 
   // Fill momentum multifab with random numbers, scaled by equilibrium variances
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     // Set variance multifab to sqrt(rho*temp)
-    MultiFab::Copy(     variance_mfab[d],rhotot_fc[d],0,0,1,1);
-    MultiFab::Multiply( variance_mfab[d],Temp_fc[d],  0,0,1,1);
+    MultiFab::Copy(     variance_mfab[d],rhotot_fc[d],0,0,1,0);
+    MultiFab::Multiply( variance_mfab[d],Temp_fc[d],  0,0,1,0);
     SqrtMF(variance_mfab[d]);
 
     // Fill momentum with random numbers, scaled by sqrt(var*k_B/dV)
     MultiFABFillRandom(mac_temp[d],0,variance_mom,geom);
 
     // Scale random momenta further by factor of sqrt(rho*temp)
-    MultiFab::Multiply(mac_temp[d],variance_mfab[d],0,0,1,1);
+    MultiFab::Multiply(mac_temp[d],variance_mfab[d],0,0,1,0);
 
-    MultiFab::Saxpy(m_old[d], 1.0, mac_temp[d],0,0,1,1);
+    MultiFab::Saxpy(m_old[d], 1.0, mac_temp[d],0,0,1,0);
 
     // For safety, although called by MultiFABFillRandom()
     m_old[d].OverrideSync(geom.periodicity());
