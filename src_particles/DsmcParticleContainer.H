@@ -1,5 +1,5 @@
-#ifndef _FhdParticleContainer_H_
-#define _FhdParticleContainer_H_
+#ifndef _DsmcParticleContainer_H_
+#define _DsmcParticleContainer_H_
 
 
 #include <AMReX.H>
@@ -9,9 +9,9 @@
 #include <AMReX_Particles.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_NeighborParticles.H>
-#include <IBParticleInfo.H>
+
 #include <common_namespace.H>
-#include <IBMarkerContainerBase.H>
+
 #include <species.H>
 #include "rng_functions_F.H"
 #include "surfaces.H"
@@ -23,7 +23,7 @@ using namespace std;
 
 
 // IBM => Immmersed Boundary Marker
-struct FHD_realData {
+struct DSMC_realData {
     //Analogous to particle realData (p.m_data)
     enum {
         radius = 0,
@@ -75,32 +75,11 @@ struct FHD_realData {
 	p3m_radius,
         count    // Awesome little trick! (only works if first field is 0)
     };
-
-    static Vector<std::string> names() {
-        return Vector<std::string> {
-            "radius",
-            "velx",
-            "vely",
-            "velz",
-            "forcex",
-            "forcey",
-            "forcez",
-            "pred_posx",
-            "pred_posy",
-            "pred_posz",
-            "pred_velx",
-            "pred_vely",
-            "pred_velz",
-            "pred_forcex",
-            "pred_forcey",
-            "pred_forcez"
-        };
-    };
 };
 
 
 
-struct FHD_intData {
+struct DSMC_intData {
     //Analogous to particle intData (p.m_data)
     enum {
         sorted,
@@ -110,55 +89,19 @@ struct FHD_intData {
         species,
         count
     };
-
-    static Vector<std::string> names() {
-        return Vector<std::string> {
-            "id_0",
-            "cpu_0",
-            "id_1",
-            "cpu_1",
-        };
-    };
 };
 
-
-
-class FhdParIter
-    : public IBMarIterBase<FHD_realData::count, FHD_intData::count>
+class DsmcParticleContainer
+    : public amrex::NeighborParticleContainer<DSMC_realData::count, DSMC_intData::count>
 {
-
-public:
-    using IBMarIterBase<FHD_realData::count, FHD_intData::count>::IBMarIterBase;
-
-};
-
-
-
-class FhdParticleContainer
-    : public IBMarkerContainerBase<FHD_realData, FHD_intData>
-{
-
 public:
 
-    using IBMarkerContainerBase<FHD_realData, FHD_intData>
-        ::IBMarkerContainerBase;
+    using FhdParIter = ParIter<DSMC_realData::count, DSMC_intData::count>;
 
-    using MyConstIBMarIter = IBMarkerContainerBase<FHD_realData, FHD_intData>
-        ::MyConstIBMarIter;
-
-
-
-    FhdParticleContainer(AmrCore * amr_core, int n_nbhd);
-    FhdParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
-                      const BoxArray & ba, int n_nbhd);
-
-    virtual ~FhdParticleContainer() {};
-
-
-    // (ID, initial CPU) tuple: unique to each particle
-    using MarkerIndex = typename IBMarkerContainerBase<FHD_realData, FHD_intData>
-        ::PairIndex;
-
+    DsmcParticleContainer(const Geometry            & geom, 
+                                  const DistributionMapping & dmap,
+                                  const BoxArray            & ba,
+                                  int ncells);
 
     void InitParticles(species* particleInfo, const Real* dxp);
 
@@ -213,20 +156,7 @@ public:
                               MultiFab& particleVars,
                               MultiFab& cellVols, species particleInfo, const Real delt, int steps);
 
-    /****************************************************************************
-     *                                                                          *
-     * Access marker (amrex particle) data                                      *
-     *                                                                          *
-     ***************************************************************************/
-
-
-    const IntVector & get_neighbor_list(int lev, const PairIndex & index) const {
-        return neighbor_list[lev].at(index);
-    };
-
-    ParticleType * get_neighbors(int lev, const PairIndex & index) const {
-        return (ParticleType *) neighbors[lev].at(index).dataPtr();
-    };
+  
 
     int numWrongCell();
 

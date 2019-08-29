@@ -1,8 +1,12 @@
 #include "INS_functions.H"
 #include "common_functions.H"
-#include "FhdParticleContainer.H"
+#include "DsmcParticleContainer.H"
+#include <common_namespace.H>
 
-void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
+#include "species.H"
+
+using namespace common;
+void DsmcParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
     
     const int lev = 0;
@@ -27,14 +31,18 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         IntVect bigEnd = tile_box.bigEnd();       
 
 
-        for(int i_spec=0; i_spec < nspecies; i_spec++)
+        if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0)
         {
-            for (int i_part=0; i_part<particleInfo[i_spec].ppb;i_part++)
+
+            for(int i_spec=0; i_spec < nspecies; i_spec++)
+            {
+
+            for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++)
             {
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
                 p.cpu() = ParallelDescriptor::MyProc();
-                p.idata(IntData::sorted) = 0;
+                p.idata(DSMC_intData::sorted) = 0;
 
                
 //                p.pos(0) = plo[0] + get_uniform_func()*(phi[0]-plo[0]);
@@ -53,68 +61,70 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                     rad = sqrt((p.pos(0)-0)*(p.pos(0)-0) + (p.pos(1)-0)*(p.pos(1)-0));
                 }
                 
-                p.rdata(RealData::q) = 0;
+                p.rdata(DSMC_realData::q) = 0;
 
                 //original position stored for MSD calculations
-                p.rdata(RealData::ox) = p.pos(0);
-                p.rdata(RealData::oy) = p.pos(1);
+                p.rdata(DSMC_realData::ox) = p.pos(0);
+                p.rdata(DSMC_realData::oy) = p.pos(1);
 #if (BL_SPACEDIM == 3)
-                p.rdata(RealData::oz) = p.pos(2);
+                p.rdata(DSMC_realData::oz) = p.pos(2);
 #endif
 
-                p.rdata(RealData::vx) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
-                p.rdata(RealData::vy) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
-                p.rdata(RealData::vz) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
+                p.rdata(DSMC_realData::vx) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
+                p.rdata(DSMC_realData::vy) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
+                p.rdata(DSMC_realData::vz) = sqrt(particleInfo[i_spec].R*particleInfo[i_spec].T)*get_particle_normal_func();
 
-                p.rdata(RealData::fx) = 0;
-                p.rdata(RealData::fy) = 0;
-                p.rdata(RealData::fz) = 0;
+                p.rdata(DSMC_realData::fx) = 0;
+                p.rdata(DSMC_realData::fy) = 0;
+                p.rdata(DSMC_realData::fz) = 0;
 
-                p.rdata(RealData::ux) = 0;
-                p.rdata(RealData::uy) = 0;
-                p.rdata(RealData::uz) = 0;
+                p.rdata(DSMC_realData::ux) = 0;
+                p.rdata(DSMC_realData::uy) = 0;
+                p.rdata(DSMC_realData::uz) = 0;
 
-                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << p.rdata(RealData::vx) << ", " << p.rdata(RealData::vy) << ", " << p.rdata(RealData::vz) << "\n" ;
+                //Print() << "Pos: " << p.pos(0) << ", " << p.pos(1) << ", " << p.pos(2) << p.rdata(DSMC_realData::vx) << ", " << p.rdata(DSMC_realData::vy) << ", " << p.rdata(DSMC_realData::vz) << "\n" ;
 
-                p.rdata(RealData::mass) = particleInfo[i_spec].m; //mass
-                p.rdata(RealData::R) = particleInfo[i_spec].R; //R
-                p.rdata(RealData::radius) = particleInfo[i_spec].d/2.0; //radius
+                p.rdata(DSMC_realData::mass) = particleInfo[i_spec].m; //mass
+                p.rdata(DSMC_realData::R) = particleInfo[i_spec].R; //R
+                p.rdata(DSMC_realData::radius) = particleInfo[i_spec].d/2.0; //radius
 
-                p.idata(IntData::species) = i_spec +1;
+                p.idata(DSMC_intData::species) = i_spec +1;
 
-                p.rdata(RealData::ox) = 0;
-                p.rdata(RealData::oy) = 0;
-                p.rdata(RealData::oz) = 0;
+                p.rdata(DSMC_realData::ox) = 0;
+                p.rdata(DSMC_realData::oy) = 0;
+                p.rdata(DSMC_realData::oz) = 0;
 
-                p.rdata(RealData::ax) = 0;
-                p.rdata(RealData::ay) = 0;
-                p.rdata(RealData::az) = 0;
+                p.rdata(DSMC_realData::ax) = 0;
+                p.rdata(DSMC_realData::ay) = 0;
+                p.rdata(DSMC_realData::az) = 0;
 
-                p.rdata(RealData::accelFactor) = 0;
-                p.rdata(RealData::dragFactor) = 0;
-                p.rdata(RealData::travelTime) = 0;
-                p.rdata(RealData::diffAv) = 0;
-                p.rdata(RealData::stepCount) = 0;
-                p.rdata(RealData::multi) = 0;
-                p.rdata(RealData::dryDiff) = 0;
-                p.rdata(RealData::wetDiff) = 0;
-                p.rdata(RealData::totalDiff) = 0;
-                p.rdata(RealData::sigma) = 0;
-                p.rdata(RealData::eepsilon) = 0;
-                p.rdata(RealData::potential) = 0;
+                p.rdata(DSMC_realData::accelFactor) = 0;
+                p.rdata(DSMC_realData::dragFactor) = 0;
+                p.rdata(DSMC_realData::travelTime) = 0;
+                p.rdata(DSMC_realData::diffAv) = 0;
+                p.rdata(DSMC_realData::stepCount) = 0;
+                p.rdata(DSMC_realData::multi) = 0;
+                p.rdata(DSMC_realData::dryDiff) = 0;
+                p.rdata(DSMC_realData::wetDiff) = 0;
+                p.rdata(DSMC_realData::totalDiff) = 0;
+                p.rdata(DSMC_realData::sigma) = 0;
+                p.rdata(DSMC_realData::eepsilon) = 0;
+                p.rdata(DSMC_realData::potential) = 0;
                 
                 particle_tile.push_back(p);
 
                 pcount++;
             }
+            }
 //           
         }
     }
 
-    Redistribute();
     UpdateCellVectors();
     ReBin();
-
+        Print() << "HereA\n";
+    Redistribute();
+        Print() << "HereB\n";
 }
 
 void getCellVols(MultiFab & vols, const Geometry & Geom, int samples)

@@ -3,15 +3,8 @@ module membrane_forces_module
   use amrex_fort_module, only: amrex_real
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
   use common_namelist_module
-  use species_type_module, only: species_t
-  use HydroGridModule
-  public
-  
-  integer, save :: nmem=100 ! Make the membrane out of nmem^2 markers
-  integer, save :: call_hydroGrid=0 ! If positive, how many steps between calls to HydroGrid
 
-  ! For statistical analysis of fluctuating fields
-  type (HydroGrid), target, save :: hydro_grid  
+  public
    
 contains
 
@@ -24,15 +17,8 @@ subroutine user_force_calc_init(inputs_file,length) bind(c,name="user_force_calc
    ! Read namelists, open files, etc.
    integer(c_int), value                 :: length                   !Note this is changed to pass by value, for consistency with rest of FHDeX
    character(kind=c_char), intent(in   ) :: inputs_file(length)
-   
-   namelist /FluctuatingMembrane/ Nmem, call_hydroGrid
-   
-   open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
-   read(unit=100, nml=FluctuatingMembrane)
-   
+  
    print *, "Stub! Do not use"
-
-   close(unit=100)
 
 end subroutine user_force_calc_init
 
@@ -46,7 +32,7 @@ subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   integer(c_int),          intent(in   )         :: length, step
   real(c_double),          intent(in   )         :: spec3xPos(length), spec3yPos(length), spec3zPos(length)
   real(c_double),          intent(out  )         :: spec3xForce(length), spec3yForce(length), spec3zForce(length)
-  type(species_t),         intent(in   )         :: particleInfo(nspecies)
+  real(c_double),         intent(in   )         :: particleInfo(nspecies)
 
   integer :: i
   real(c_double) :: time
@@ -57,10 +43,7 @@ end subroutine user_force_calc
 
 subroutine user_force_calc_destroy() bind(c,name="user_force_calc_destroy")
    ! Free files etc
-   if(call_hydroGrid>0) then
-      call writeToFiles (hydro_grid)
-      call destroyHydroAnalysis (hydro_grid)
-   end if
+ 
 end subroutine user_force_calc_destroy
 
 end module membrane_forces_module

@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
@@ -34,7 +34,7 @@ include ../../src_common/Make.package
 VPATH_LOCATIONS   += ../../src_common/
 INCLUDE_LOCATIONS += ../../src_common/
 
-include ../../src_particles/Make.package
+include ../../src_particles/MakeDSMC.package
 VPATH_LOCATIONS   += ../../src_particles/
 INCLUDE_LOCATIONS += ../../src_particles/
 
@@ -55,6 +55,10 @@ VPATH_LOCATIONS   += ../../src_surfaces
 INCLUDE_LOCATIONS += ../../src_surfaces
 
 include ./Make_precheck.package
+
+include ../../src_immersed-boundary/MakeBase.package
+VPATH_LOCATIONS   += ../../src_immersed-boundary
+INCLUDE_LOCATIONS += ../../src_immersed-boundary
 
 include ../../src_surfaces/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_surfaces/src_F90
