@@ -137,7 +137,7 @@ inline void physbc_pres_fab(const Box & tbx,
 
 
 void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
-                    const Geometry & geom) {
+                        const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -297,11 +297,11 @@ void MultiFABPhysBCCharge(MultiFab & data, const IntVect & dim_fill_ghost,
 
 
 AMREX_GPU_HOST_DEVICE
-inline void apply_physbc_domainvel_fab(const Box & tbx,
-                                       const Box & dom,
-                                       const Array4<Real> & data,
-                                       const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
-                                       const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
+inline void physbc_domainvel_fab(const Box & tbx,
+                                 const Box & dom,
+                                 const Array4<Real> & data,
+                                 const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
+                                 const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
 
     //___________________________________________________________________________
     // Total work region => the loops below will actually only iterate over
@@ -484,8 +484,10 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
                              const Geometry & geom, int dim) {
 
     if (geom.isAllPeriodic()) {
-      return;
+        return;
     }
+
+#ifdef GPUBC
 
 #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
@@ -498,6 +500,39 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
                              BL_TO_FORTRAN_FAB(vel[mfi]), vel.nGrow(),
                              dim_fill_ghost.getVect(), &dim);
     }
+#endif
+
+#else
+
+    // Physical Domain
+    Box dom(geom.Domain());
+
+    // Effective number of ghost cells to iterate over
+    int ngc         = data.nGrow();
+    IntVect ngc_eff = ngc*dim_fill_ghost;
+
+    // Send BCs to GPU
+    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_lo[0],
+                                                     common::bc_lo[1],
+                                                     common::bc_lo[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_hi[0],
+                                                     common::bc_hi[1],
+                                                     common::bc_hi[2])};
+
+    for (MFIter mfi(data); mfi.isValid(); ++mfi) {
+
+        // Select how much of the ghost region to fill
+        IntVect ngv = data.nGrowVect() * dim_fill_ghost;
+        Box bx      = mfi.growntilebox(ngv);
+
+        const Array4<Real> & data_fab = data.array(mfi);
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+        {
+            physbc_domainvel_fab(tbx, dom, data_fab, bc_lo, bc_hi);
+        });
+    }
+
 #endif
 }
 
