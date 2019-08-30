@@ -3,7 +3,7 @@
 
 #include "common_functions.H"
 #include "gmres_functions.H"
-#include "FhdParticleContainer.H"
+#include "DsmcParticleContainer.H"
 
 ///////////////////////////
 // in WritePlotFile.cpp
@@ -15,7 +15,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
                    const MultiFab& cellVols,
-                   FhdParticleContainer& particles);
+                   DsmcParticleContainer& particles);
 
 ///////////////////////////
 // in particleGen.cpp

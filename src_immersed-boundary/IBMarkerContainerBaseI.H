@@ -655,8 +655,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
         if (this->do_tiling)
-            //this->tile_size = IntVect{AMREX_D_DECL(max_grid_size[0],max_grid_size[1],max_grid_size[2])};
-            this->tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
+            this->tile_size = IntVect{AMREX_D_DECL(max_grid_size[0],max_grid_size[1],max_grid_size[2])};
+            //this->tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
         // User can overwrite
         Vector<int> ts(BL_SPACEDIM);
         if (pp.queryarr("tile_size", ts))

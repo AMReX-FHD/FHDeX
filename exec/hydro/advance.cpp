@@ -163,9 +163,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
-  MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
+  MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 1);
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
+  // FIXME need to fill physical boundary condition ghost cells for tracer
   MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0,0);
   advFluxdivS.mult(dt, 1);
 

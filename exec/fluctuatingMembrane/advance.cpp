@@ -37,7 +37,7 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   /////////////BC Testing!//////
 
     pres.FillBoundary(geom.periodicity());
-    MultiFABPhysBC(pres, geom);
+    MultiFABPhysBCPres(pres, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
@@ -263,7 +263,7 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 //    // Compute tracer:
 //    tracer.FillBoundary(geom.periodicity());
-//    MultiFABPhysBC(tracer, geom);
+//    MultiFABPhysBCPres(tracer, geom);
 
 //    MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
 //    advFluxdivS.mult(dt, 1);
@@ -273,7 +273,7 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 //    MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
 //    tracerPred.FillBoundary(geom.periodicity());
-//    MultiFABPhysBC(tracerPred, geom);
+//    MultiFABPhysBCPres(tracerPred, geom);
 
 //    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
 //    advFluxdivS.mult(dt, 1);

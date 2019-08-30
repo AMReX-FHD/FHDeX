@@ -53,19 +53,22 @@ void main_driver(const char* argv)
 
     const int n_rngs = 1;
 
-    int fhdSeed = ParallelDescriptor::MyProc() + 1;
-    int particleSeed = 2*ParallelDescriptor::MyProc() + 2;
-    int selectorSeed = 3*ParallelDescriptor::MyProc() + 3;
-    int thetaSeed = 4*ParallelDescriptor::MyProc() + 4;
-    int phiSeed = 5*ParallelDescriptor::MyProc() + 5;
-    int generalSeed = 6*ParallelDescriptor::MyProc() + 6;
+    int fhdSeed = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed = 0;
+    int phiSeed = 0;
+    int generalSeed = 0;
 
-//    int fhdSeed = 0;
-//    int particleSeed = 0;
-//    int selectorSeed = 0;
-//    int thetaSeed = 0;
-//    int phiSeed = 0;
-//    int generalSeed = 0;
+    if(seed > 0)
+    {
+        fhdSeed = ParallelDescriptor::MyProc() + 1 + seed;
+        particleSeed = 2*ParallelDescriptor::MyProc() + 2 + seed;
+        selectorSeed = 3*ParallelDescriptor::MyProc() + 3 + seed;
+        thetaSeed = 4*ParallelDescriptor::MyProc() + 4 + seed;
+        phiSeed = 5*ParallelDescriptor::MyProc() + 5 + seed;
+        generalSeed = 6*ParallelDescriptor::MyProc() + 6 + seed;
+    }
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -376,11 +379,10 @@ void main_driver(const char* argv)
 
     collisionFactor.setVal(0);
     collisionPairs.setVal(0);
-    
+   
 
     //Particles! Build on geom & box array for collision cells/ poisson grid?
-    FhdParticleContainer particles(geom, dmap, ba, crange);
-
+    DsmcParticleContainer particles(geom, dmap, ba, crange);
     //create particles
     particles.InitParticles(dsmcParticle,dx);
 
@@ -413,7 +415,6 @@ void main_driver(const char* argv)
             particles.CollideParticles(collisionPairs, collisionFactor, cellVols, dsmcParticle[0], dt);
         }
 
-
         //Start collecting statistics after step n_steps_skip
         if(step == n_steps_skip)
         {
@@ -426,7 +427,6 @@ void main_driver(const char* argv)
         }
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, dsmcParticle[0], dt,statsCount);
-
         statsCount++;
 
         if (plot_int > 0 && step%plot_int == 0)

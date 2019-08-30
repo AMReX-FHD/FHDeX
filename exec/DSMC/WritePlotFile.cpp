@@ -10,7 +10,7 @@ void WritePlotFile(int step,
                    const MultiFab& particleMeans,
                    const MultiFab& particleVars,
                    const MultiFab& cellVols,
-                   FhdParticleContainer& particles) 
+                   DsmcParticleContainer& particles) 
 {
 
     std::string cplotfilename = Concatenate("cplt",step,9);

@@ -58,7 +58,7 @@
   !Species info
   !--------------
   nspecies = 3
-  mass = 4e-23 ! 4e-23 4e-23
+  mass = 4e-23 4e-23 4e-23
   diameter = -2.488e-8 -2.488e-8 -2.488e-8 ! If positive, sets the target diffusion coefficient via Stokes-Einstein
   qval = 0 1.6e-19 -1.6e-19 ! Charge per particles
   diff = 1.33e-05 1.33e-05 1.33e-05 ! Target diffusion coefficient (for dry diffusion correction)
@@ -95,6 +95,7 @@
   pkernel_es = 6
 
   ! Stochastic parameters
+  seed = 1
   k_B = 1.38064852e-16
   T_init(1) = 295.00
   variance_coef_mom = 0

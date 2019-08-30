@@ -3,18 +3,18 @@
 #include "common_namespace.H"
 
 
-void MultiFABPhysBC(MultiFab & data, const Geometry & geom) {
+void MultiFABPhysBCPres(MultiFab & data, const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
         return;
     }
 
-    MultiFABPhysBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
+    MultiFABPhysBCPres(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }
 
 
 
-void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCPres(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -24,17 +24,17 @@ void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) 
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABPhysBC(data, fill_ghost, geom);
+    MultiFABPhysBCPres(data, fill_ghost, geom);
 }
 
 
 
 AMREX_GPU_HOST_DEVICE
-inline void apply_physbc_fab(const Box & tbx,
-                             const Box & dom,
-                             const Array4<Real> & data,
-                             const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
-                             const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
+inline void physbc_pres_fab(const Box & tbx,
+                            const Box & dom,
+                            const Array4<Real> & data,
+                            const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
+                            const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
 
     //___________________________________________________________________________
     // Total work region => the loops below will actually only iterate over
@@ -136,7 +136,7 @@ inline void apply_physbc_fab(const Box & tbx,
 }
 
 
-void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
+void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
                     const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
@@ -186,7 +186,7 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            apply_physbc_fab(tbx, dom, data_fab, bc_lo, bc_hi);
+            physbc_pres_fab(tbx, dom, data_fab, bc_lo, bc_hi);
         });
     }
 
@@ -261,24 +261,24 @@ void MultiFABPotentialBC(MultiFab & data, const IntVect & dim_fill_ghost,
     #endif
 }
 
-void MultiFABChargeBC(MultiFab & data, const Geometry & geom) {
-    MultiFABChargeBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
+void MultiFABPhysBCCharge(MultiFab & data, const Geometry & geom) {
+    MultiFABPhysBCCharge(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }
 
 
 
-void MultiFABChargeBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCCharge(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABChargeBC(data, fill_ghost, geom);
+    MultiFABPhysBCCharge(data, fill_ghost, geom);
 }
 
 
 
-void MultiFABChargeBC(MultiFab & data, const IntVect & dim_fill_ghost,
+void MultiFABPhysBCCharge(MultiFab & data, const IntVect & dim_fill_ghost,
                         const Geometry & geom) {
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());

@@ -385,7 +385,7 @@ contains
     advection_type = 0
     barodiffusion_type = 0
     use_bl_rng = 0
-    seed = 1
+    seed = 0
     seed_momentum = 1
     seed_diffusion = 1
     seed_reaction = 1
