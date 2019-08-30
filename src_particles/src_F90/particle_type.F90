@@ -15,14 +15,14 @@ module cell_sorted_particle_module
      real(amrex_particle_real) :: pos(2)
 #endif
      real(amrex_particle_real) :: radius
-     real(amrex_particle_real) :: velJ(3)
-     real(amrex_particle_real) :: forceJ(3)
+     real(amrex_particle_real) :: vel(3)
+     real(amrex_particle_real) :: force(3)
      real(amrex_particle_real) :: posP(3)
      real(amrex_particle_real) :: velP(3)
      real(amrex_particle_real) :: forceP(3)
 
-     real(amrex_particle_real) :: vel(3)     
-     real(amrex_particle_real) :: force(3)
+     real(amrex_particle_real) :: velO(3)     
+     real(amrex_particle_real) :: forceO(3)
      real(amrex_particle_real) :: localvel(3)
      real(amrex_particle_real) :: mass
      real(amrex_particle_real) :: R
