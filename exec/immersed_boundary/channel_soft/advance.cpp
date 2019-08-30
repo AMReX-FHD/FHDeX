@@ -179,7 +179,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBC(tracer, geom);
+    MultiFABPhysBCPres(tracer, geom);
 
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -189,7 +189,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBC(tracerPred, geom);
+    MultiFABPhysBCPres(tracerPred, geom);
 
     MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -462,10 +462,10 @@ void advance(AmrCoreAdv & amr_core_adv,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBC(Lumac[d], d, geom);
+        MultiFABPhysBCPres(Lumac[d], d, geom);
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBC(advFluxdiv[d], d, geom);
+        MultiFABPhysBCPres(advFluxdiv[d], d, geom);
     }
 
 
@@ -628,13 +628,13 @@ void advance(AmrCoreAdv & amr_core_adv,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBC(Lumac[d], d, geom);
+        MultiFABPhysBCPres(Lumac[d], d, geom);
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBC(advFluxdiv[d], d, geom);
+        MultiFABPhysBCPres(advFluxdiv[d], d, geom);
 
         advFluxdivPred[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBC(advFluxdivPred[d], d, geom);
+        MultiFABPhysBCPres(advFluxdivPred[d], d, geom);
     }
 
 

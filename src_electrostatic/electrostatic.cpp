@@ -43,7 +43,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
             }
         }
 
-        MultiFABChargeBC(charge, geom); //Adjust spread charge distribtion near boundaries from 
+        MultiFABPhysBCCharge(charge, geom); //Adjust spread charge distribtion near boundaries from 
 
         const BoxArray& ba = charge.boxArray();
         const DistributionMapping& dmap = charge.DistributionMap();
