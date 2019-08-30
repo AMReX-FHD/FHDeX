@@ -33,7 +33,6 @@ AMREX_GPU_HOST_DEVICE
 inline void apply_physbc_fab(const Box & tbx,
                              const Box & dom,
                              const Array4<Real> & data,
-                             // int ncomp,
                              const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
                              const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
 
@@ -49,7 +48,6 @@ inline void apply_physbc_fab(const Box & tbx,
     //___________________________________________________________________________
     // Apply x-physbc to data
     if (bc_lo[0] == 2) {
-    // for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -60,11 +58,9 @@ inline void apply_physbc_fab(const Box & tbx,
                 }
             }
         }
-    // }
     }
 
     if (bc_hi[0] == 2) {
-    // for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -75,7 +71,6 @@ inline void apply_physbc_fab(const Box & tbx,
                 }
             }
         }
-    // }
     }
 
 
@@ -83,7 +78,6 @@ inline void apply_physbc_fab(const Box & tbx,
     // Apply y-physbc to data
 #if (AMREX_SPACEDIM >= 2)
     if (bc_lo[1] == 2) {
-    // for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j < dom_lo.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -94,11 +88,9 @@ inline void apply_physbc_fab(const Box & tbx,
                 }
             }
         }
-    // }
     }
 
     if (bc_hi[1] == 2) {
-    // for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -109,7 +101,6 @@ inline void apply_physbc_fab(const Box & tbx,
                 }
             }
         }
-    // }
     }
 #endif
 
@@ -117,7 +108,6 @@ inline void apply_physbc_fab(const Box & tbx,
     // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
     if (bc_lo[2] == 2) {
-    // for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k < dom_lo.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -128,11 +118,9 @@ inline void apply_physbc_fab(const Box & tbx,
                 }
             }
         }
-    // }
     }
 
     if (bc_hi[2] == 2) {
-    // for (int n = 0; n < ncomp; ++n) {
         for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -143,7 +131,6 @@ inline void apply_physbc_fab(const Box & tbx,
                 }
             }
         }
-    // }
     }
 #endif
 }
@@ -196,10 +183,10 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
         Box bx      = mfi.growntilebox(ngv);
 
         const Array4<Real> & data_fab = data.array(mfi);
-        // int n_comp = data.nComp();
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            apply_physbc_fab(tbx, dom, data_fab, /*n_comp,*/ bc_lo, bc_hi);
+            apply_physbc_fab(tbx, dom, data_fab, bc_lo, bc_hi);
         });
     }
 
@@ -305,6 +292,163 @@ void MultiFABChargeBC(MultiFab & data, const IntVect & dim_fill_ghost,
                        dim_fill_ghost.getVect());
     }
     #endif
+}
+
+
+
+AMREX_GPU_HOST_DEVICE
+inline void apply_physbc_domainvel_fab(const Box & tbx,
+                                       const Box & dom,
+                                       const Array4<Real> & data,
+                                       const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
+                                       const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
+
+    //___________________________________________________________________________
+    // Total work region => the loops below will actually only iterate over
+    // cells between tbx and dom
+    const Dim3 tlo    = amrex::lbound(tbx);
+    const Dim3 thi    = amrex::ubound(tbx);
+    const Dim3 dom_lo = amrex::lbound(dom);
+    const Dim3 dom_hi = amrex::ubound(dom);
+
+
+    //___________________________________________________________________________
+    // Apply x-physbc to data
+    if (bc_lo[0] == 2) {
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                data(dom_lo.x, j, k, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i < dom_lo.x; ++i) {
+                    int offset = dom_lo.x - i;
+                    int i_real = dom_lo.x + offset;
+                    data(i, j, k, 0) = - data(i_real, j, k, 0);
+                }
+            }
+        }
+    }
+
+    if (bc_hi[0] == 2) {
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                data(dom_hi.x, j, k, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = dom_hi.x + 1; i <= thi.x; ++i) {
+                    int offset = i - dom_hi.x;
+                    int i_real = dom_hi.x - offset;
+                    data(i, j, k, 0) = - data(i_real, j, k, 0);
+                }
+            }
+        }
+    }
+
+
+    //___________________________________________________________________________
+    // Apply y-physbc to data
+#if (AMREX_SPACEDIM >= 2)
+    if (bc_lo[1] == 2) {
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, dom_lo.y, k, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j < dom_lo.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = dom_lo.y - j;
+                    int j_real = dom_lo.y + offset;
+                    data(i, j, k, 0) = - data(i, j_real, k, 0);
+                }
+            }
+        }
+    }
+
+    if (bc_hi[1] == 2) {
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, dom_hi.y, k, 0) = 0;
+            }
+        }
+
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = j - dom_hi.y;
+                    int j_real = dom_hi.y - offset;
+                    data(i, j, k, 0) = - data(i, j_real, k, 0);
+                }
+            }
+        }
+    }
+#endif
+
+    //___________________________________________________________________________
+    // Apply z-physbc to data
+#if (AMREX_SPACEDIM >= 3)
+    if (bc_lo[2] == 2) {
+
+        for (int j = tlo.y; j <= thi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, j, dom_lo.z, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k < dom_lo.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = dom_lo.z - k;
+                    int k_real = dom_lo.z + offset;
+                    data(i, j, k, 0) = - data(i, j, k_real, 0);
+                }
+            }
+        }
+    }
+
+    if (bc_hi[2] == 2) {
+
+        for (int j = tlo.y; j <= thi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, j, dom_hi.z, 0) = 0;
+            }
+        }
+
+        for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = k - dom_hi.z;
+                    int k_real = dom_hi.z - offset;
+                    data(i, j, k, 0) = - data(i, j, k_real, 0);
+                }
+            }
+        }
+    }
+#endif
 }
 
 
