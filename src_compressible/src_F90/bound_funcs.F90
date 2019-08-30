@@ -1,8 +1,10 @@
 module bound_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, algorithm_type, membrane_cell, MAX_SPECIES
-  use compressible_namelist_module, only : bc_mass_lo, bc_mass_hi, bc_therm_lo, bc_therm_hi, bc_vel_lo, bc_vel_hi, bc_Yk, bc_Xk
+  use common_namelist_module, only : ngc, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, &
+       algorithm_type, membrane_cell, MAX_SPECIES, bc_mass_lo, bc_mass_hi, bc_therm_lo, &
+       bc_therm_hi, bc_vel_lo, bc_vel_hi
+  use compressible_namelist_module, only : bc_Yk, bc_Xk
   use conv_module
   use trans_module
 

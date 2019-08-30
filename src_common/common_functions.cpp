@@ -58,11 +58,14 @@ void InitializeCommonNamespace() {
     //domega.resize(AMREX_SPACEDIM);
 
     // boundary condition flags
-    bc_lo.resize(AMREX_SPACEDIM);
-    bc_hi.resize(AMREX_SPACEDIM);
-
+    bc_vel_lo.resize(AMREX_SPACEDIM);
+    bc_vel_hi.resize(AMREX_SPACEDIM);
     bc_es_lo.resize(AMREX_SPACEDIM);
     bc_es_hi.resize(AMREX_SPACEDIM);
+    bc_mass_lo.resize(AMREX_SPACEDIM);
+    bc_mass_hi.resize(AMREX_SPACEDIM);
+    bc_therm_lo.resize(AMREX_SPACEDIM);
+    bc_therm_hi.resize(AMREX_SPACEDIM);
 
     // bcs: wall temperatures
     t_lo.resize(AMREX_SPACEDIM);
@@ -125,8 +128,11 @@ void InitializeCommonNamespace() {
                                 &seed_init_momentum, &visc_coef, &visc_type,
                                 &filtering_width, &stoch_stress_form, u_init.dataPtr(),
                                 &perturb_width, &smoothing_width, &initial_variance_mom,
-                                &initial_variance_mass, &domega, bc_lo.dataPtr(), bc_hi.dataPtr(),
+                                &initial_variance_mass, &domega,
+                                bc_vel_lo.dataPtr(), bc_vel_hi.dataPtr(),
                                 bc_es_lo.dataPtr(), bc_es_hi.dataPtr(),
+                                bc_mass_lo.dataPtr(), bc_mass_hi.dataPtr(),
+                                bc_therm_lo.dataPtr(), bc_therm_hi.dataPtr(),
                                 p_lo.dataPtr(), p_hi.dataPtr(),
                                 t_lo.dataPtr(), t_hi.dataPtr(),
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),

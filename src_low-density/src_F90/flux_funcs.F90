@@ -1,7 +1,7 @@
 module flux_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_lo, bc_hi, n_cells, membrane_cell, visc_type, algorithm_type
+  use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, molmass, cell_depth, k_b, runiv, bc_vel_lo, bc_vel_hi, n_cells, membrane_cell, visc_type, algorithm_type
   use rng_functions_module
 
   implicit none
@@ -163,7 +163,7 @@ contains
 !!!!!!!!!!!!!! x-flux BCs !!!!!!!!!!!!!!
 
     !if on lower bound and specular
-    if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 1)) then
+    if((lo(1) .eq. 0) .and. (bc_vel_lo(1) .eq. 1)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
@@ -176,7 +176,7 @@ contains
     endif
 
     !if on upper bound and specular
-    if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 1)) then
+    if((hi(1) .eq. n_cells(1)-1) .and. (bc_vel_hi(1) .eq. 1)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
@@ -189,7 +189,7 @@ contains
     endif
 
     !if on lower bound and diff
-    if((lo(1) .eq. 0) .and. (bc_lo(1) .eq. 2)) then
+    if((lo(1) .eq. 0) .and. (bc_vel_lo(1) .eq. 2)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
@@ -202,7 +202,7 @@ contains
     endif
 
     !if on upper bound and diff
-    if((hi(1) .eq. n_cells(1)-1) .and. (bc_hi(1) .eq. 2)) then
+    if((hi(1) .eq. n_cells(1)-1) .and. (bc_vel_hi(1) .eq. 2)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do j = lo(2),hi(2)
@@ -217,7 +217,7 @@ contains
 !!!!!!!!!!!!!! y-flux BCs !!!!!!!!!!!!!!
 
     !if on lower bound and specular
-    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 1)) then
+    if((lo(2) .eq. 0) .and. (bc_vel_lo(2) .eq. 1)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
@@ -230,7 +230,7 @@ contains
     endif
 
     !if on upper bound and specular
-    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 1)) then
+    if((hi(2) .eq. n_cells(2)-1) .and. (bc_vel_hi(2) .eq. 1)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
@@ -243,7 +243,7 @@ contains
     endif
 
     !if on lower bound and diff
-    if((lo(2) .eq. 0) .and. (bc_lo(2) .eq. 2)) then
+    if((lo(2) .eq. 0) .and. (bc_vel_lo(2) .eq. 2)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
@@ -256,7 +256,7 @@ contains
     endif
 
     !if on upper bound and diff
-    if((hi(2) .eq. n_cells(2)-1) .and. (bc_hi(2) .eq. 2)) then
+    if((hi(2) .eq. n_cells(2)-1) .and. (bc_vel_hi(2) .eq. 2)) then
        do l = 2,nvars
           do k = lo(3),hi(3)
              do i = lo(1),hi(1)
@@ -271,7 +271,7 @@ contains
 !!!!!!!!!!!!!! z-flux BCs !!!!!!!!!!!!!!
 
     !if on lower bound and specular
-    if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 1)) then
+    if((lo(3) .eq. 0) .and. (bc_vel_lo(3) .eq. 1)) then
        do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -284,7 +284,7 @@ contains
     endif
 
     !if on upper bound and specular
-    if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 1)) then
+    if((hi(3) .eq. n_cells(3)-1) .and. (bc_vel_hi(3) .eq. 1)) then
        do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -297,7 +297,7 @@ contains
     endif
 
     !if on lower bound and diff
-    if((lo(3) .eq. 0) .and. (bc_lo(3) .eq. 2)) then
+    if((lo(3) .eq. 0) .and. (bc_vel_lo(3) .eq. 2)) then
        do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)
@@ -310,7 +310,7 @@ contains
     endif
 
     !if on upper bound and diff
-    if((hi(3) .eq. n_cells(3)-1) .and. (bc_hi(3) .eq. 2)) then
+    if((hi(3) .eq. n_cells(3)-1) .and. (bc_vel_hi(3) .eq. 2)) then
        do l = 2,nvars
           do j = lo(2),hi(2)
              do i = lo(1),hi(1)

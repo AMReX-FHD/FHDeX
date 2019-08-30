@@ -73,15 +73,15 @@ namespace common {
     extern int                        barodiffusion_type;
     extern int                        use_bl_rng;
 
-    // random number seed (for HydroGrid RNGs)
+    // random number seed
     // 0        = unpredictable seed based on clock
     // positive = fixed seed
     extern int                        seed;
 
-    // Random number seeds for each physical process for use_bl_rng=T
-    // for positive value, the value is assigned as seed value
-    // for 0, a positive value is randomly chosen
-    // if -1 (only for restart), RNGs status is restored from checkpoint data
+    // as assortment of other seeds in case one needs different engines
+    // implementation is problem-dependent
+    // 0        = unpredictable seed based on clock
+    // positive = fixed seed
     extern int                        seed_momentum;
     extern int                        seed_diffusion;
     extern int                        seed_reaction;
@@ -113,15 +113,31 @@ namespace common {
     // ----------------------
     // BC specifications:
     // -1 = periodic
-    //  1 = slip wall
-    //  2 = no-slip wall
-    extern amrex::Vector<int>          bc_lo;
-    extern amrex::Vector<int>          bc_hi;
+    //  1 = slip
+    //  2 = no-slip
+    extern amrex::Vector<int>          bc_vel_lo;
+    extern amrex::Vector<int>          bc_vel_hi;
 
-      // BC specifications:
+    // BC specifications:
     // -1 = periodic
+    //  1 = Dirichlet
+    //  2 = Neumann
     extern amrex::Vector<int>          bc_es_lo;
     extern amrex::Vector<int>          bc_es_hi;
+
+    // BC specifications:
+    // -1 = periodic
+    //  1 = wall
+    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    extern amrex::Vector<int>          bc_mass_lo;
+    extern amrex::Vector<int>          bc_mass_hi;
+
+    // BC specifications:
+    // -1 = periodic
+    //  1 = adiabatic
+    //  2 = isothermal
+    extern amrex::Vector<int>          bc_therm_lo;
+    extern amrex::Vector<int>          bc_therm_hi;
 
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern amrex::Vector<amrex::Real>  p_lo;

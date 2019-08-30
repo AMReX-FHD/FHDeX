@@ -169,12 +169,12 @@ void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
     IntVect ngc_eff = ngc*dim_fill_ghost;
 
     // Send BCs to GPU
-    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_lo[0],
-                                                     common::bc_lo[1],
-                                                     common::bc_lo[2])};
-    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_hi[0],
-                                                     common::bc_hi[1],
-                                                     common::bc_hi[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_vel_lo[0],
+                                                     common::bc_vel_lo[1],
+                                                     common::bc_vel_lo[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_vel_hi[0],
+                                                     common::bc_vel_hi[1],
+                                                     common::bc_vel_hi[2])};
 
     for (MFIter mfi(data); mfi.isValid(); ++mfi) {
 

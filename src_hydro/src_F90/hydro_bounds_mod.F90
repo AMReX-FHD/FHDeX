@@ -1,7 +1,7 @@
 module hydro_bounds_module
 
   use amrex_fort_module,      only : amrex_real
-  use common_namelist_module, only : bc_lo, bc_hi, p_lo, p_hi
+  use common_namelist_module, only : bc_vel_lo, bc_vel_hi, p_lo, p_hi
 
   implicit none
 
@@ -33,7 +33,7 @@ contains
     ! Apply BC to X faces
 
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
-       if (bc_lo(1) .eq. -2) then ! pressure inflow
+       if (bc_vel_lo(1) .eq. -2) then ! pressure inflow
 
           do j = lo(2)-ngc, hi(2)+ngc
              do i = 1, ngc
@@ -47,7 +47,7 @@ contains
     end if
 
     if (hi(1) .eq. dom_hi(1)) then ! upper bound
-       if (bc_hi(1) .eq. -2) then ! pressure inflow
+       if (bc_vel_hi(1) .eq. -2) then ! pressure inflow
 
           do j = lo(2)-ngc, hi(2)+ngc
              do i = 1, ngc
@@ -65,7 +65,7 @@ contains
     ! Apply BC to Y faces
 
     if (lo(2) .eq. dom_lo(2)) then ! lower bound
-       if (bc_lo(2) .eq. -2) then ! pressure inflow
+       if (bc_vel_lo(2) .eq. -2) then ! pressure inflow
 
           do j = 1, ngc
              do i = lo(1)-ngc, hi(1)+ngc
@@ -79,7 +79,7 @@ contains
     end if
 
     if (hi(2) .eq. dom_hi(2)) then ! upper bound
-       if (bc_hi(2) .eq. -2) then ! pressure inflow
+       if (bc_vel_hi(2) .eq. -2) then ! pressure inflow
 
           do j = 1, ngc
              do i = lo(1)-ngc, hi(1)+ngc
@@ -117,7 +117,7 @@ contains
     ! Apply BC to X faces
 
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
-       if (bc_lo(1) .eq. -2) then ! pressure inflow
+       if (bc_vel_lo(1) .eq. -2) then ! pressure inflow
 
           do k = lo(3)-ngc, hi(3)+ngc
              do j = lo(2)-ngc, hi(2)+ngc
@@ -133,7 +133,7 @@ contains
     end if
 
     if (hi(1) .eq. dom_hi(1)) then ! upper bound
-       if (bc_hi(1) .eq. -2) then ! pressure inflow
+       if (bc_vel_hi(1) .eq. -2) then ! pressure inflow
 
           do k = lo(3)-ngc, hi(3)+ngc
              do j = lo(2)-ngc, hi(2)+ngc
@@ -153,7 +153,7 @@ contains
     ! Apply BC to Y faces
 
     if (lo(2) .eq. dom_lo(2)) then ! lower bound
-       if (bc_lo(2) .eq. -2) then ! pressure inflow
+       if (bc_vel_lo(2) .eq. -2) then ! pressure inflow
 
           do k = lo(3)-ngc, hi(3)+ngc
              do j = 1, ngc
@@ -169,7 +169,7 @@ contains
     end if
 
     if (hi(2) .eq. dom_hi(2)) then ! upper bound
-       if (bc_hi(2) .eq. -2) then ! pressure inflow
+       if (bc_vel_hi(2) .eq. -2) then ! pressure inflow
 
           do k = lo(3)-ngc, hi(3)+ngc
              do j = 1, ngc
@@ -189,7 +189,7 @@ contains
     ! Apply BC to Z faces
 
     if (lo(3) .eq. dom_lo(3)) then ! lower bound
-       if (bc_lo(3) .eq. -2) then ! pressure inflow
+       if (bc_vel_lo(3) .eq. -2) then ! pressure inflow
 
           do k = 1, ngc
              do j = lo(2)-ngc, hi(2)+ngc
@@ -205,7 +205,7 @@ contains
     end if
 
     if (hi(3) .eq. dom_hi(3)) then ! upper bound
-       if (bc_hi(3) .eq. -2) then ! pressure inflow
+       if (bc_vel_hi(3) .eq. -2) then ! pressure inflow
 
           do k = 1, ngc
              do j = lo(2)-ngc, hi(2)+ngc

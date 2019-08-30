@@ -8,22 +8,10 @@ module compressible_namelist_module
   integer, parameter :: MAX_SPECIES = 10
   integer, parameter :: LOHI = 2
 
-  integer,            save :: bc_mass_lo(AMREX_SPACEDIM)
-  integer,            save :: bc_mass_hi(AMREX_SPACEDIM)
-  integer,            save :: bc_therm_lo(AMREX_SPACEDIM)
-  integer,            save :: bc_therm_hi(AMREX_SPACEDIM)
-  integer,            save :: bc_vel_lo(AMREX_SPACEDIM)
-  integer,            save :: bc_vel_hi(AMREX_SPACEDIM)
   double precision,   save :: bc_Yk(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
   double precision,   save :: bc_Xk(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 
   ! Boundary conditions
-  namelist /compressible/ bc_mass_lo  ! mass boundary conditions
-  namelist /compressible/ bc_mass_hi
-  namelist /compressible/ bc_therm_lo ! temperature boundary conditions
-  namelist /compressible/ bc_therm_hi
-  namelist /compressible/ bc_vel_lo   ! velocity field boundary conditions
-  namelist /compressible/ bc_vel_hi
   namelist /compressible/ bc_Yk       ! mass fraction wall boundary value
   namelist /compressible/ bc_Xk       ! mole fraction wall boundary value
 
@@ -36,12 +24,6 @@ contains
     character(kind=c_char), intent(in   ) :: inputs_file(length)
 
     ! default values
-    bc_mass_lo(:) = 0
-    bc_mass_hi(:) = 0
-    bc_therm_lo(:) = 0
-    bc_therm_hi(:) = 0
-    bc_vel_lo(:) = 0
-    bc_vel_hi(:) = 0
     bc_Yk(:,:,:) = 0.d0
     bc_Xk(:,:,:) = 0.d0
 
@@ -53,27 +35,12 @@ contains
   end subroutine read_compressible_namelist
 
   ! copy contents of compressible_params_module to C++ compressible namespace
-  subroutine initialize_compressible_namespace( bc_mass_lo_in, bc_mass_hi_in, &
-                                                bc_therm_lo_in, bc_therm_hi_in, &
-                                                bc_vel_lo_in, bc_vel_hi_in, &
-                                                bc_Yk_in, bc_Xk_in) &
+  subroutine initialize_compressible_namespace(bc_Yk_in, bc_Xk_in) &
                                                 bind(C, name="initialize_compressible_namespace")
 
-    integer         , intent(inout) :: bc_mass_lo_in(AMREX_SPACEDIM)
-    integer         , intent(inout) :: bc_mass_hi_in(AMREX_SPACEDIM)
-    integer         , intent(inout) :: bc_therm_lo_in(AMREX_SPACEDIM)
-    integer         , intent(inout) :: bc_therm_hi_in(AMREX_SPACEDIM)
-    integer         , intent(inout) :: bc_vel_lo_in(AMREX_SPACEDIM)
-    integer         , intent(inout) :: bc_vel_hi_in(AMREX_SPACEDIM)
     double precision, intent(inout) :: bc_Yk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
     double precision, intent(inout) :: bc_Xk_in(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
 
-    bc_mass_lo_in = bc_mass_lo
-    bc_mass_hi_in = bc_mass_hi
-    bc_therm_lo_in = bc_therm_lo
-    bc_therm_hi_in = bc_therm_hi
-    bc_vel_lo_in = bc_vel_lo
-    bc_vel_hi_in = bc_vel_hi
     bc_Yk_in = bc_Yk
     bc_Xk_in = bc_Xk
 

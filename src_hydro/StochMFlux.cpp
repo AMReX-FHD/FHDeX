@@ -104,11 +104,11 @@ void StochMFlux::MfluxBC() {
 #if (AMREX_SPACEDIM == 2)
 
     // lo-x domain boundary
-    if (bc_lo[0] == 1 || bc_lo[0] == 2) {
+    if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_lo[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[0] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
         const Box& dom_nd = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
@@ -129,17 +129,17 @@ void StochMFlux::MfluxBC() {
             }
         }
     }
-    else if (bc_lo[0] != -1) {
+    else if (bc_vel_lo[0] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-x domain boundary
-    if (bc_hi[0] == 1 || bc_hi[0] == 2) {
+    if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_hi[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[0] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
         const Box& dom_nd = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
@@ -160,17 +160,17 @@ void StochMFlux::MfluxBC() {
             }
         }
     }
-    else if (bc_hi[0] != -1) {
+    else if (bc_vel_hi[0] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // lo-y domain boundary
-    if (bc_lo[1] == 1 || bc_lo[1] == 2) {
+    if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_lo[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[1] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
         const Box& dom_nd = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
@@ -191,17 +191,17 @@ void StochMFlux::MfluxBC() {
             }
         }
     }
-    else if (bc_lo[1] != -1) {
+    else if (bc_vel_lo[1] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-y domain boundary
-    if (bc_hi[1] == 1 || bc_hi[1] == 2) {
+    if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_hi[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[1] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
         const Box& dom_nd = amrex::convert(geom.Domain(), mflux_ed_weighted[0].ixType());
@@ -222,7 +222,7 @@ void StochMFlux::MfluxBC() {
             }
         }
     }
-    else if (bc_hi[1] != -1) {
+    else if (bc_vel_hi[1] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
@@ -231,11 +231,11 @@ void StochMFlux::MfluxBC() {
 
     // lo-x domain boundary, y-facing fluxes
     // lo-x domain boundary, z-facing fluxes
-    if (bc_lo[0] == 1 || bc_lo[0] == 2) {
+    if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_lo[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[0] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
 
@@ -281,18 +281,18 @@ void StochMFlux::MfluxBC() {
 
         ////////////////////////////////////////////////
     }
-    else if (bc_lo[0] != -1) {
+    else if (bc_vel_lo[0] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-x domain boundary, y-facing fluxes
     // hi-x domain boundary, z-facing fluxes
-    if (bc_hi[0] == 1 || bc_hi[0] == 2) {
+    if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_hi[0] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[0] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
 
@@ -338,18 +338,18 @@ void StochMFlux::MfluxBC() {
 
         ////////////////////////////////////////////////
     }
-    else if (bc_hi[0] != -1) {
+    else if (bc_vel_hi[0] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // lo-y domain boundary, x-facing fluxes
     // lo-y domain boundary, z-facing fluxes
-    if (bc_lo[1] == 1 || bc_lo[1] == 2) {
+    if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_lo[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[1] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
 
@@ -395,18 +395,18 @@ void StochMFlux::MfluxBC() {
 
         ////////////////////////////////////////////////
     }
-    else if (bc_lo[1] != -1) {
+    else if (bc_vel_lo[1] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-y domain boundary, x-facing fluxes
     // hi-y domain boundary, z-facing fluxes
-    if (bc_hi[1] == 1 || bc_hi[1] == 2) {
+    if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_hi[1] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[1] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
 
@@ -452,18 +452,18 @@ void StochMFlux::MfluxBC() {
 
         ////////////////////////////////////////////////
     }
-    else if (bc_hi[1] != -1) {
+    else if (bc_vel_hi[1] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // lo-z domain boundary, x-facing fluxes
     // lo-z domain boundary, y-facing fluxes
-    if (bc_lo[2] == 1 || bc_lo[2] == 2) {
+    if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_lo[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_lo[2] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
 
@@ -509,18 +509,18 @@ void StochMFlux::MfluxBC() {
 
         ////////////////////////////////////////////////
     }
-    else if (bc_lo[2] != -1) {
+    else if (bc_vel_lo[2] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
 
     // hi-z domain boundary, x-facing fluxes
     // hi-z domain boundary, y-facing fluxes
-    if (bc_hi[2] == 1 || bc_hi[2] == 2) {
+    if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
 
         // 0 = slip wall   : multiply fluxes on wall by 0
         // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
-        Real factor = (bc_hi[2] == 1) ? 0. : sqrt(2.);
+        Real factor = (bc_vel_hi[2] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
 
@@ -566,7 +566,7 @@ void StochMFlux::MfluxBC() {
 
         ////////////////////////////////////////////////
     }
-    else if (bc_hi[2] != -1) {
+    else if (bc_vel_hi[2] != -1) {
         // DEBUGING deterministic boundary conditions
         // Abort("MfluxBC unsupported bc type");
     }
