@@ -225,6 +225,7 @@ void main_driver(const char* argv)
 
     // tracer
     MultiFab tracer(ba,dmap,1,1);
+    tracer.setVal(0.);
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
@@ -303,6 +304,8 @@ void main_driver(const char* argv)
     		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
     }
+    
+    // FIXME need to fill physical boundary condition ghost cells for tracer
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
