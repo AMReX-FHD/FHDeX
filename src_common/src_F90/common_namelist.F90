@@ -67,8 +67,8 @@ module common_namelist_module
   double precision,   save :: initial_variance_mom
   double precision,   save :: initial_variance_mass
   double precision,   save :: domega
-  integer,            save :: bc_lo(AMREX_SPACEDIM)
-  integer,            save :: bc_hi(AMREX_SPACEDIM)
+  integer,            save :: bc_vel_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_vel_hi(AMREX_SPACEDIM)
   integer,            save :: bc_es_lo(AMREX_SPACEDIM)
   integer,            save :: bc_es_hi(AMREX_SPACEDIM)
 
@@ -260,8 +260,8 @@ module common_namelist_module
   namelist /common/ domega
 
   ! Boundary conditions
-  namelist /common/ bc_lo
-  namelist /common/ bc_hi
+  namelist /common/ bc_vel_lo
+  namelist /common/ bc_vel_hi
 
   namelist /common/ bc_es_lo
   namelist /common/ bc_es_hi
@@ -401,8 +401,8 @@ contains
     initial_variance_mom = 0.
     initial_variance_mass = 0.
     domega=0.d0
-    bc_lo(:) = 0
-    bc_hi(:) = 0
+    bc_vel_lo(:) = 0
+    bc_vel_hi(:) = 0
     bc_es_lo(:) = 0
     bc_es_hi(:) = 0
 
@@ -475,7 +475,7 @@ contains
                                          filtering_width_in, stoch_stress_form_in, &
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
-                                         domega_in, bc_lo_in, bc_hi_in, &
+                                         domega_in, bc_vel_lo_in, bc_vel_hi_in, &
                                          bc_es_lo_in, bc_es_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
@@ -576,8 +576,8 @@ contains
     double precision,       intent(inout) :: initial_variance_mom_in
     double precision,       intent(inout) :: initial_variance_mass_in
     double precision,       intent(inout) :: domega_in
-    integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_vel_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_vel_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_hi_in(AMREX_SPACEDIM)
 
@@ -701,8 +701,8 @@ contains
     initial_variance_mom_in = initial_variance_mom
     initial_variance_mass_in = initial_variance_mass
     domega_in=domega
-    bc_lo_in = bc_lo
-    bc_hi_in = bc_hi
+    bc_vel_lo_in = bc_vel_lo
+    bc_vel_hi_in = bc_vel_hi
     bc_es_lo_in = bc_es_lo
     bc_es_hi_in = bc_es_hi
 

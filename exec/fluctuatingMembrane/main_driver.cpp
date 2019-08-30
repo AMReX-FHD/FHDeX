@@ -88,7 +88,7 @@ void main_driver(const char* argv)
     Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_lo[i] == -1 && bc_hi[i] == -1) {
+        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
             is_periodic[i] = 1;
             is_periodic_c[i] = 1;
         }

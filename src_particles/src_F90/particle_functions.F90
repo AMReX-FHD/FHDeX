@@ -3164,7 +3164,7 @@ end subroutine get_mobility
 subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, species)bind(c,name="compute_dry_mobility")
 
   use amrex_fort_module, only: amrex_real
-  use common_namelist_module, only: visc_type, k_B, pkernel_es, qval, nspecies, bc_lo, bc_hi
+  use common_namelist_module, only: visc_type, k_B, pkernel_es, qval, nspecies, bc_vel_lo, bc_vel_hi
   use species_type_module, only: species_t
   
   implicit none
@@ -3192,7 +3192,7 @@ subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, s
 #endif
             spec => species(l)
 
-            if((bc_lo(1) .eq. 2) .and. (bc_hi(1) .eq. 2)) then
+            if((bc_vel_lo(1) .eq. 2) .and. (bc_vel_hi(1) .eq. 2)) then
 
               z = dx(1)*(i+0.5)
 
@@ -3209,7 +3209,7 @@ subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, s
 #endif
             endif
 
-            if((bc_lo(2) .eq. 2) .and. (bc_hi(2) .eq. 2)) then
+            if((bc_vel_lo(2) .eq. 2) .and. (bc_vel_hi(2) .eq. 2)) then
 
               z = dx(2)*(j+0.5)
 
@@ -3228,7 +3228,7 @@ subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, s
 
 
 #if (BL_SPACEDIM == 3)               
-            if((bc_lo(3) .eq. 2) .and. (bc_hi(3) .eq. 2)) then
+            if((bc_vel_lo(3) .eq. 2) .and. (bc_vel_hi(3) .eq. 2)) then
 
               z = dx(3)*(k+0.5)
 

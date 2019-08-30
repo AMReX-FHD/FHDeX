@@ -34,8 +34,8 @@ inline void physbc_pres(const Box & tbx,
                              const Box & dom,
                              const Array4<Real> & data,
                              int ncomp,
-                             const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
-                             const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
+                             const GpuArray<int, AMREX_SPACEDIM> & bc_vel_lo,
+                             const GpuArray<int, AMREX_SPACEDIM> & bc_vel_hi) {
 
     //___________________________________________________________________________
     // Total work region => the loops below will actually only iterate over
@@ -48,7 +48,7 @@ inline void physbc_pres(const Box & tbx,
 
     //___________________________________________________________________________
     // Apply x-physbc to data
-    if (bc_lo[0] == 2) {
+    if (bc_vel_lo[0] == 2) {
     for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -63,7 +63,7 @@ inline void physbc_pres(const Box & tbx,
     }
     }
 
-    if (bc_hi[0] == 2) {
+    if (bc_vel_hi[0] == 2) {
     for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -82,7 +82,7 @@ inline void physbc_pres(const Box & tbx,
     //___________________________________________________________________________
     // Apply y-physbc to data
 #if (AMREX_SPACEDIM >= 2)
-    if (bc_lo[1] == 2) {
+    if (bc_vel_lo[1] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j < dom_lo.y; ++j) {
@@ -97,7 +97,7 @@ inline void physbc_pres(const Box & tbx,
     }
     }
 
-    if (bc_hi[1] == 2) {
+    if (bc_vel_hi[1] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
@@ -116,7 +116,7 @@ inline void physbc_pres(const Box & tbx,
     //___________________________________________________________________________
     // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
-    if (bc_lo[2] == 2) {
+    if (bc_vel_lo[2] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k < dom_lo.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -131,7 +131,7 @@ inline void physbc_pres(const Box & tbx,
     }
     }
 
-    if (bc_hi[2] == 2) {
+    if (bc_vel_hi[2] == 2) {
     for (int n = 0; n < ncomp; ++n) {
         for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
@@ -182,12 +182,12 @@ void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
     IntVect ngc_eff = ngc*dim_fill_ghost;
 
     // Send BCs to GPU
-    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_lo[0],
-                                                     common::bc_lo[1],
-                                                     common::bc_lo[2])};
-    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_hi[0],
-                                                     common::bc_hi[1],
-                                                     common::bc_hi[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_vel_lo{AMREX_D_DECL(common::bc_vel_lo[0],
+                                                     common::bc_vel_lo[1],
+                                                     common::bc_vel_lo[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_vel_hi{AMREX_D_DECL(common::bc_vel_hi[0],
+                                                     common::bc_vel_hi[1],
+                                                     common::bc_vel_hi[2])};
 
     for (MFIter mfi(data); mfi.isValid(); ++mfi) {
 
@@ -199,7 +199,7 @@ void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
 	int n_comp = data.nComp();
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            physbc_pres(tbx, dom, data_fab, n_comp, bc_lo, bc_hi);
+            physbc_pres(tbx, dom, data_fab, n_comp, bc_vel_lo, bc_vel_hi);
         });
     }
 

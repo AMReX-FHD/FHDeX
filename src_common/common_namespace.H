@@ -113,13 +113,15 @@ namespace common {
     // ----------------------
     // BC specifications:
     // -1 = periodic
-    //  1 = slip wall
-    //  2 = no-slip wall
-    extern amrex::Vector<int>          bc_lo;
-    extern amrex::Vector<int>          bc_hi;
+    //  1 = slip
+    //  2 = no-slip
+    extern amrex::Vector<int>          bc_vel_lo;
+    extern amrex::Vector<int>          bc_vel_hi;
 
-      // BC specifications:
+    // BC specifications:
     // -1 = periodic
+    //  1 = Dirichlet
+    //  2 = Neumann
     extern amrex::Vector<int>          bc_es_lo;
     extern amrex::Vector<int>          bc_es_hi;
 

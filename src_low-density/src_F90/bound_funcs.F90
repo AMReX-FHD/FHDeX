@@ -1,7 +1,7 @@
 module bound_module
 
   use amrex_fort_module, only : amrex_real
-  use common_namelist_module, only : ngc, bc_lo, bc_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, membrane_cell
+  use common_namelist_module, only : ngc, bc_vel_lo, bc_vel_hi, t_lo, t_hi, nprimvars, nvars, nspecies, n_cells, membrane_cell
 
   implicit none
 
@@ -65,7 +65,7 @@ contains
 
       if(lo(1) .eq. 0) then !lower x bound
 
-        if(bc_lo(1) .eq. 1) then ! slip adiabatic
+        if(bc_vel_lo(1) .eq. 1) then ! slip adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -77,7 +77,7 @@ contains
             enddo
           enddo
 
-        elseif(bc_lo(1) .eq. 2) then ! no slip thermal
+        elseif(bc_vel_lo(1) .eq. 2) then ! no slip thermal
 
           !print *, "Setting xLo thermal: "
 
@@ -97,7 +97,7 @@ contains
 
       if(hi(1) .eq. (n_cells(1)-1)) then !upper x bound
 
-        if(bc_hi(1) .eq. 1) then ! slip adiabatic
+        if(bc_vel_hi(1) .eq. 1) then ! slip adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -109,7 +109,7 @@ contains
             enddo
           enddo
 
-        elseif(bc_hi(1) .eq. 2) then ! no slip thermal
+        elseif(bc_vel_hi(1) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -130,7 +130,7 @@ contains
 
       if(lo(2) .eq. 0) then !lower y bound
 
-        if(bc_lo(2) .eq. 1) then ! slip adiabatic
+        if(bc_vel_lo(2) .eq. 1) then ! slip adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = 1,ngc(2)
@@ -142,7 +142,7 @@ contains
             enddo
           enddo
 
-        elseif(bc_lo(2) .eq. 2) then ! no slip thermal
+        elseif(bc_vel_lo(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = 1,ngc(2)
@@ -160,7 +160,7 @@ contains
 
       if(hi(2) .eq. (n_cells(2)-1)) then !upper y bound
 
-        if(bc_hi(2) .eq. 1) then ! slip adiabatic
+        if(bc_vel_hi(2) .eq. 1) then ! slip adiabatic
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = 1,ngc(2)
@@ -172,7 +172,7 @@ contains
             enddo
           enddo
 
-        elseif(bc_hi(2) .eq. 2) then ! no slip thermal
+        elseif(bc_vel_hi(2) .eq. 2) then ! no slip thermal
 
           do k = lo(3)-ngc(3),hi(3)+ngc(3)
             do j = 1,ngc(2)
@@ -190,7 +190,7 @@ contains
 
       if(lo(3) .eq. 0) then !lower z bound
 
-        if(bc_lo(3) .eq. 1) then ! slip adiabatic
+        if(bc_vel_lo(3) .eq. 1) then ! slip adiabatic
 
           do k = 1,ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -202,7 +202,7 @@ contains
             enddo
           enddo
 
-        elseif(bc_lo(3) .eq. 2) then ! no slip thermal
+        elseif(bc_vel_lo(3) .eq. 2) then ! no slip thermal
 
           do k = 1,ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -220,7 +220,7 @@ contains
 
       if(hi(3) .eq. (n_cells(3)-1)) then !upper z bound
 
-        if(bc_hi(3) .eq. 1) then ! slip adiabatic
+        if(bc_vel_hi(3) .eq. 1) then ! slip adiabatic
 
           do k = 1,ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
@@ -232,7 +232,7 @@ contains
             enddo
           enddo
 
-        elseif(bc_hi(3) .eq. 2) then ! no slip thermal
+        elseif(bc_vel_hi(3) .eq. 2) then ! no slip thermal
 
           do k = 1,ngc(3)
             do j = lo(2)-ngc(2),hi(2)+ngc(2)
