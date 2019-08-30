@@ -311,15 +311,19 @@ inline void physbc_domainvel_fab(const Box & tbx,
     const Dim3 thi    = amrex::ubound(tbx);
     const Dim3 dom_lo = amrex::lbound(dom);
     const Dim3 dom_hi = amrex::ubound(dom);
+    // Compute valid parts only:
+    const Dim3 vlo = amrex::elemwiseMax(tlo, dom_lo);
+    const Dim3 vhi = amrex::elemwiseMin(thi, dom_hi);
+
 
 
     //___________________________________________________________________________
     // Apply x-physbc to data
     if ((dim == 0) && (bc_lo[0] == 2) && (tlo.x <= dom_lo.x)) {
 
-        for (int k = tlo.z; k <= thi.z; ++k) {
+        for (int k = vlo.z; k <= vhi.z; ++k) {
             AMREX_PRAGMA_SIMD
-            for (int j = tlo.y; j <= thi.y; ++j) {
+            for (int j = vlo.y; j <= vhi.y; ++j) {
                 data(dom_lo.x, j, k, 0) = 0;
             }
         }
@@ -336,12 +340,12 @@ inline void physbc_domainvel_fab(const Box & tbx,
         }
     }
 
-    if ((dim == 0) && (bc_hi[0] == 2) && (thi.x >= dom_hi.x)) {
+    if ((dim == 0) && (bc_hi[0] == 2) && (thi.x >= dom_hi.x + 1)) {
 
-        for (int k = tlo.z; k <= thi.z; ++k) {
+        for (int k = vlo.z; k <= vhi.z; ++k) {
             AMREX_PRAGMA_SIMD
-            for (int j = tlo.y; j <= thi.y; ++j) {
-                data(dom_hi.x, j, k, 0) = 0;
+            for (int j = vlo.y; j <= vhi.y; ++j) {
+                data(dom_hi.x + 1, j, k, 0) = 0;
             }
         }
 
@@ -363,9 +367,9 @@ inline void physbc_domainvel_fab(const Box & tbx,
 #if (AMREX_SPACEDIM >= 2)
     if ((dim == 1) && (bc_lo[1] == 2) && (tlo.y <= dom_lo.y)){
 
-        for (int k = tlo.z; k <= thi.z; ++k) {
+        for (int k = vlo.z; k <= vhi.z; ++k) {
             AMREX_PRAGMA_SIMD
-            for (int i = tlo.x; i <= thi.x; ++i) {
+            for (int i = vlo.x; i <= vhi.x; ++i) {
                 data(i, dom_lo.y, k, 0) = 0;
             }
         }
@@ -382,12 +386,12 @@ inline void physbc_domainvel_fab(const Box & tbx,
         }
     }
 
-    if ((dim == 1) && (bc_hi[1] == 2) && (thi.y >= dom_hi.y)) {
+    if ((dim == 1) && (bc_hi[1] == 2) && (thi.y >= dom_hi.y + 1)) {
 
-        for (int k = tlo.z; k <= thi.z; ++k) {
+        for (int k = vlo.z; k <= vhi.z; ++k) {
             AMREX_PRAGMA_SIMD
-            for (int i = tlo.x; i <= thi.x; ++i) {
-                data(i, dom_hi.y, k, 0) = 0;
+            for (int i = vlo.x; i <= vhi.x; ++i) {
+                data(i, dom_hi.y + 1, k, 0) = 0;
             }
         }
 
@@ -410,9 +414,9 @@ inline void physbc_domainvel_fab(const Box & tbx,
 #if (AMREX_SPACEDIM >= 3)
     if ((dim == 2) && (bc_lo[2] == 2) && (tlo.z <= dom_lo.z)) {
 
-        for (int j = tlo.y; j <= thi.y; ++j) {
+        for (int j = vlo.y; j <= vhi.y; ++j) {
             AMREX_PRAGMA_SIMD
-            for (int i = tlo.x; i <= thi.x; ++i) {
+            for (int i = vlo.x; i <= vhi.x; ++i) {
                 data(i, j, dom_lo.z, 0) = 0;
             }
         }
@@ -429,12 +433,12 @@ inline void physbc_domainvel_fab(const Box & tbx,
         }
     }
 
-    if ((dim == 2) && (bc_hi[2] == 2) && (thi.z >= dom_hi.z) ) {
+    if ((dim == 2) && (bc_hi[2] == 2) && (thi.z >= dom_hi.z + 1) ) {
 
-        for (int j = tlo.y; j <= thi.y; ++j) {
+        for (int j = vlo.y; j <= vhi.y; ++j) {
             AMREX_PRAGMA_SIMD
-            for (int i = tlo.x; i <= thi.x; ++i) {
-                data(i, j, dom_hi.z, 0) = 0;
+            for (int i = vlo.x; i <= vhi.x; ++i) {
+                data(i, j, dom_hi.z + 1, 0) = 0;
             }
         }
 
