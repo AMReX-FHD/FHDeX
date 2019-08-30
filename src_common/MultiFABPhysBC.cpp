@@ -47,7 +47,7 @@ inline void physbc_pres_fab(const Box & tbx,
 
     //___________________________________________________________________________
     // Apply x-physbc to data
-    if (bc_lo[0] == 2) {
+    if ((bc_lo[0] == 2) && (tlo.x <= dom_lo.x)) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -60,7 +60,7 @@ inline void physbc_pres_fab(const Box & tbx,
         }
     }
 
-    if (bc_hi[0] == 2) {
+    if ((bc_hi[0] == 2) && (thi.x >= dom_hi.x)){
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -77,7 +77,7 @@ inline void physbc_pres_fab(const Box & tbx,
     //___________________________________________________________________________
     // Apply y-physbc to data
 #if (AMREX_SPACEDIM >= 2)
-    if (bc_lo[1] == 2) {
+    if ((bc_lo[1] == 2) && (tlo.y <= dom_lo.y)) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j < dom_lo.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -90,7 +90,7 @@ inline void physbc_pres_fab(const Box & tbx,
         }
     }
 
-    if (bc_hi[1] == 2) {
+    if ((bc_hi[1] == 2) && (thi.y >= dom_hi.y)) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -107,7 +107,7 @@ inline void physbc_pres_fab(const Box & tbx,
     //___________________________________________________________________________
     // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
-    if (bc_lo[2] == 2) {
+    if ((bc_lo[2] == 2) && (tlo.z <= dom_lo.z)) {
         for (int k = tlo.z; k < dom_lo.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
@@ -120,7 +120,7 @@ inline void physbc_pres_fab(const Box & tbx,
         }
     }
 
-    if (bc_hi[2] == 2) {
+    if ((bc_hi[2] == 2) && (thi.z >= dom_hi.z)) {
         for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
