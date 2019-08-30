@@ -74,11 +74,16 @@ amrex::Real                common::smoothing_width;
 amrex::Real                common::initial_variance_mom;
 amrex::Real                common::initial_variance_mass;
 amrex::Real                common::domega;
-amrex::Vector<int>         common::bc_lo;
-amrex::Vector<int>         common::bc_hi;
 
+
+amrex::Vector<int>         common::bc_vel_lo;
+amrex::Vector<int>         common::bc_vel_hi;
 amrex::Vector<int>         common::bc_es_lo;
 amrex::Vector<int>         common::bc_es_hi;
+amrex::Vector<int>         common::bc_mass_lo;
+amrex::Vector<int>         common::bc_mass_hi;
+amrex::Vector<int>         common::bc_therm_lo;
+amrex::Vector<int>         common::bc_therm_hi;
 
 amrex::Vector<amrex::Real> common::p_lo;
 amrex::Vector<amrex::Real> common::p_hi;

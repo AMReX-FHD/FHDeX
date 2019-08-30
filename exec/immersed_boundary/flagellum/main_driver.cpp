@@ -115,7 +115,7 @@ void main_driver(const char * argv) {
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i)
-        if (bc_lo[i] <= -1 && bc_hi[i] <= -1)
+        if (bc_vel_lo[i] <= -1 && bc_vel_hi[i] <= -1)
             is_periodic[i] = 1;
 
     //___________________________________________________________________________
@@ -421,7 +421,7 @@ void main_driver(const char * argv) {
     BL_PROFILE_VAR("main_ensure initilizaction works",ICwork);
 
     pres.FillBoundary(geom.periodicity());
-    MultiFABPhysBC(pres, geom);
+    MultiFABPhysBCPres(pres, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());

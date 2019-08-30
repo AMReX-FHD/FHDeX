@@ -54,7 +54,7 @@ void main_driver(const char* argv)
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_lo[i] == -1 && bc_hi[i] == -1) {
+        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
             is_periodic[i] = 1;
         }
     }
@@ -225,6 +225,7 @@ void main_driver(const char* argv)
 
     // tracer
     MultiFab tracer(ba,dmap,1,1);
+    tracer.setVal(0.);
 
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
@@ -303,6 +304,8 @@ void main_driver(const char* argv)
     		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
 
     }
+    
+    // FIXME need to fill physical boundary condition ghost cells for tracer
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {

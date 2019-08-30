@@ -68,11 +68,14 @@ module common_namelist_module
   double precision,   save :: initial_variance_mom
   double precision,   save :: initial_variance_mass
   double precision,   save :: domega
-  integer,            save :: bc_lo(AMREX_SPACEDIM)
-  integer,            save :: bc_hi(AMREX_SPACEDIM)
+  integer,            save :: bc_vel_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_vel_hi(AMREX_SPACEDIM)
   integer,            save :: bc_es_lo(AMREX_SPACEDIM)
   integer,            save :: bc_es_hi(AMREX_SPACEDIM)
-
+  integer,            save :: bc_mass_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_mass_hi(AMREX_SPACEDIM)
+  integer,            save :: bc_therm_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_therm_hi(AMREX_SPACEDIM)
 
   double precision,   save :: p_lo(AMREX_SPACEDIM)
   double precision,   save :: p_hi(AMREX_SPACEDIM)
@@ -225,15 +228,15 @@ module common_namelist_module
   namelist /common/ barodiffusion_type
   namelist /common/ use_bl_rng
 
-  ! random number seed (for HydroGrid RNGs)
+  ! random number seed
   ! 0        = unpredictable seed based on clock
   ! positive = fixed seed
   namelist /common/ seed
 
-  ! Random number seeds for each physical process for use_bl_rng=T
-  ! for positive value, the value is assigned as seed value
-  ! for 0, a positive value is randomly chosen
-  ! if -1 (only for restart), RNGs status is restored from checkpoint data
+  ! as assortment of other seeds in case one needs different engines
+  ! implementation is problem-dependent
+  ! 0        = unpredictable seed based on clock
+  ! positive = fixed seed
   namelist /common/ seed_momentum
   namelist /common/ seed_diffusion
   namelist /common/ seed_reaction
@@ -262,11 +265,14 @@ module common_namelist_module
   namelist /common/ domega
 
   ! Boundary conditions
-  namelist /common/ bc_lo
-  namelist /common/ bc_hi
-
+  namelist /common/ bc_vel_lo
+  namelist /common/ bc_vel_hi
   namelist /common/ bc_es_lo
   namelist /common/ bc_es_hi
+  namelist /common/ bc_mass_lo
+  namelist /common/ bc_mass_hi
+  namelist /common/ bc_therm_lo
+  namelist /common/ bc_therm_hi
 
 
   ! Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
@@ -404,10 +410,14 @@ contains
     initial_variance_mom = 0.
     initial_variance_mass = 0.
     domega=0.d0
-    bc_lo(:) = 0
-    bc_hi(:) = 0
+    bc_vel_lo(:) = 0
+    bc_vel_hi(:) = 0
     bc_es_lo(:) = 0
     bc_es_hi(:) = 0
+    bc_mass_lo(:) = 0
+    bc_mass_hi(:) = 0
+    bc_therm_lo(:) = 0
+    bc_therm_hi(:) = 0
 
     t_lo(:) = 0
     t_hi(:) = 0
@@ -478,8 +488,10 @@ contains
                                          filtering_width_in, stoch_stress_form_in, &
                                          u_init_in, perturb_width_in, smoothing_width_in, &
                                          initial_variance_mom_in, initial_variance_mass_in, &
-                                         domega_in, bc_lo_in, bc_hi_in, &
+                                         domega_in, bc_vel_lo_in, bc_vel_hi_in, &
                                          bc_es_lo_in, bc_es_hi_in,  &
+                                         bc_mass_lo_in, bc_mass_hi_in,  &
+                                         bc_therm_lo_in, bc_therm_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
@@ -580,10 +592,14 @@ contains
     double precision,       intent(inout) :: initial_variance_mom_in
     double precision,       intent(inout) :: initial_variance_mass_in
     double precision,       intent(inout) :: domega_in
-    integer,                intent(inout) :: bc_lo_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: bc_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_vel_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_vel_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_mass_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_mass_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_therm_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_therm_hi_in(AMREX_SPACEDIM)
 
     double precision,       intent(inout) :: p_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: p_hi_in(AMREX_SPACEDIM)
@@ -706,10 +722,14 @@ contains
     initial_variance_mom_in = initial_variance_mom
     initial_variance_mass_in = initial_variance_mass
     domega_in=domega
-    bc_lo_in = bc_lo
-    bc_hi_in = bc_hi
+    bc_vel_lo_in = bc_vel_lo
+    bc_vel_hi_in = bc_vel_hi
     bc_es_lo_in = bc_es_lo
     bc_es_hi_in = bc_es_hi
+    bc_mass_lo_in = bc_es_lo
+    bc_mass_hi_in = bc_es_hi
+    bc_therm_lo_in = bc_es_lo
+    bc_therm_hi_in = bc_es_hi
 
     p_lo_in = p_lo
     p_hi_in = p_hi

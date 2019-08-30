@@ -3,18 +3,18 @@
 #include "common_namespace.H"
 
 
-void MultiFABPhysBC(MultiFab & data, const Geometry & geom) {
+void MultiFABPhysBCPres(MultiFab & data, const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
         return;
     }
 
-    MultiFABPhysBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
+    MultiFABPhysBCPres(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }
 
 
 
-void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCPres(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -24,18 +24,17 @@ void MultiFABPhysBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) 
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABPhysBC(data, fill_ghost, geom);
+    MultiFABPhysBCPres(data, fill_ghost, geom);
 }
 
 
 
 AMREX_GPU_HOST_DEVICE
-inline void apply_physbc_fab(const Box & tbx,
-                             const Box & dom,
-                             const Array4<Real> & data,
-                             int ncomp,
-                             const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
-                             const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
+inline void physbc_pres_fab(const Box & tbx,
+                            const Box & dom,
+                            const Array4<Real> & data,
+                            const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
+                            const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
 
     //___________________________________________________________________________
     // Total work region => the loops below will actually only iterate over
@@ -49,33 +48,29 @@ inline void apply_physbc_fab(const Box & tbx,
     //___________________________________________________________________________
     // Apply x-physbc to data
     if (bc_lo[0] == 2) {
-    for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = tlo.x; i < dom_lo.x; ++i) {
                     int offset = dom_lo.x - i;
                     int i_real = dom_lo.x + offset - 1;
-                    data(i, j, k, n) = data(i_real, j, k, n);
+                    data(i, j, k, 0) = data(i_real, j, k, 0);
                 }
             }
         }
     }
-    }
 
     if (bc_hi[0] == 2) {
-    for (int n=0; n<ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = dom_hi.x + 1; i <= thi.x; ++i) {
                     int offset = i - dom_hi.x;
                     int i_real = dom_hi.x - offset + 1;
-                    data(i, j, k, n) = data(i_real, j, k, n);
+                    data(i, j, k, 0) = data(i_real, j, k, 0);
                 }
             }
         }
-    }
     }
 
 
@@ -83,33 +78,29 @@ inline void apply_physbc_fab(const Box & tbx,
     // Apply y-physbc to data
 #if (AMREX_SPACEDIM >= 2)
     if (bc_lo[1] == 2) {
-    for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = tlo.y; j < dom_lo.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = tlo.x; i <= thi.x; ++i) {
                     int offset = dom_lo.y - j;
                     int j_real = dom_lo.y + offset - 1;
-                    data(i, j, k, n) = data(i, j_real, k, n);
+                    data(i, j, k, 0) = data(i, j_real, k, 0);
                 }
             }
         }
     }
-    }
 
     if (bc_hi[1] == 2) {
-    for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
             for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = tlo.x; i <= thi.x; ++i) {
                     int offset = j - dom_hi.y;
                     int j_real = dom_hi.y - offset + 1;
-                    data(i, j, k, n) = data(i, j_real, k, n);
+                    data(i, j, k, 0) = data(i, j_real, k, 0);
                 }
             }
         }
-    }
     }
 #endif
 
@@ -117,40 +108,36 @@ inline void apply_physbc_fab(const Box & tbx,
     // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
     if (bc_lo[2] == 2) {
-    for (int n = 0; n < ncomp; ++n) {
         for (int k = tlo.z; k < dom_lo.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = tlo.x; i <= thi.x; ++i) {
                     int offset = dom_lo.z - k;
                     int k_real = dom_lo.z + offset - 1;
-                    data(i, j, k, n) = data(i, j, k_real, n);
+                    data(i, j, k, 0) = data(i, j, k_real, 0);
                 }
             }
         }
     }
-    }
 
     if (bc_hi[2] == 2) {
-    for (int n = 0; n < ncomp; ++n) {
         for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
             for (int j = tlo.y; j <= thi.y; ++j) {
                 AMREX_PRAGMA_SIMD
                 for (int i = tlo.x; i <= thi.x; ++i) {
                     int offset = k - dom_hi.z;
                     int k_real = dom_hi.z - offset + 1;
-                    data(i, j, k, n) = data(i, j, k_real, n);
+                    data(i, j, k, 0) = data(i, j, k_real, 0);
                 }
             }
         }
-    }
     }
 #endif
 }
 
 
-void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
-                    const Geometry & geom) {
+void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
+                        const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -182,12 +169,12 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
     IntVect ngc_eff = ngc*dim_fill_ghost;
 
     // Send BCs to GPU
-    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_lo[0],
-                                                     common::bc_lo[1],
-                                                     common::bc_lo[2])};
-    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_hi[0],
-                                                     common::bc_hi[1],
-                                                     common::bc_hi[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_vel_lo[0],
+                                                     common::bc_vel_lo[1],
+                                                     common::bc_vel_lo[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_vel_hi[0],
+                                                     common::bc_vel_hi[1],
+                                                     common::bc_vel_hi[2])};
 
     for (MFIter mfi(data); mfi.isValid(); ++mfi) {
 
@@ -196,10 +183,10 @@ void MultiFABPhysBC(MultiFab & data, const IntVect & dim_fill_ghost,
         Box bx      = mfi.growntilebox(ngv);
 
         const Array4<Real> & data_fab = data.array(mfi);
-	int n_comp = data.nComp();
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            apply_physbc_fab(tbx, dom, data_fab, n_comp, bc_lo, bc_hi);
+            physbc_pres_fab(tbx, dom, data_fab, bc_lo, bc_hi);
         });
     }
 
@@ -274,24 +261,24 @@ void MultiFABPotentialBC(MultiFab & data, const IntVect & dim_fill_ghost,
     #endif
 }
 
-void MultiFABChargeBC(MultiFab & data, const Geometry & geom) {
-    MultiFABChargeBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
+void MultiFABPhysBCCharge(MultiFab & data, const Geometry & geom) {
+    MultiFABPhysBCCharge(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }
 
 
 
-void MultiFABChargeBC(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
+void MultiFABPhysBCCharge(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
 
-    MultiFABChargeBC(data, fill_ghost, geom);
+    MultiFABPhysBCCharge(data, fill_ghost, geom);
 }
 
 
 
-void MultiFABChargeBC(MultiFab & data, const IntVect & dim_fill_ghost,
+void MultiFABPhysBCCharge(MultiFab & data, const IntVect & dim_fill_ghost,
                         const Geometry & geom) {
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
@@ -309,10 +296,167 @@ void MultiFABChargeBC(MultiFab & data, const IntVect & dim_fill_ghost,
 
 
 
+AMREX_GPU_HOST_DEVICE
+inline void physbc_domainvel_fab(const Box & tbx,
+                                 const Box & dom,
+                                 const Array4<Real> & data,
+                                 const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
+                                 const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
+
+    //___________________________________________________________________________
+    // Total work region => the loops below will actually only iterate over
+    // cells between tbx and dom
+    const Dim3 tlo    = amrex::lbound(tbx);
+    const Dim3 thi    = amrex::ubound(tbx);
+    const Dim3 dom_lo = amrex::lbound(dom);
+    const Dim3 dom_hi = amrex::ubound(dom);
+
+
+    //___________________________________________________________________________
+    // Apply x-physbc to data
+    if ((bc_lo[0] == 2) && (tlo.x <= dom_lo.x)) {
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                data(dom_lo.x, j, k, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i < dom_lo.x; ++i) {
+                    int offset = dom_lo.x - i;
+                    int i_real = dom_lo.x + offset;
+                    data(i, j, k, 0) = - data(i_real, j, k, 0);
+                }
+            }
+        }
+    }
+
+    if ((bc_hi[0] == 2) && (thi.x >= dom_hi.x)) {
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                data(dom_hi.x, j, k, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = dom_hi.x + 1; i <= thi.x; ++i) {
+                    int offset = i - dom_hi.x;
+                    int i_real = dom_hi.x - offset;
+                    data(i, j, k, 0) = - data(i_real, j, k, 0);
+                }
+            }
+        }
+    }
+
+
+    //___________________________________________________________________________
+    // Apply y-physbc to data
+#if (AMREX_SPACEDIM >= 2)
+    if ((bc_lo[1] == 2) && (tlo.y <= dom_lo.y)){
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, dom_lo.y, k, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j < dom_lo.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = dom_lo.y - j;
+                    int j_real = dom_lo.y + offset;
+                    data(i, j, k, 0) = - data(i, j_real, k, 0);
+                }
+            }
+        }
+    }
+
+    if ((bc_hi[1] == 2) && (thi.y >= dom_hi.y)) {
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, dom_hi.y, k, 0) = 0;
+            }
+        }
+
+
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = j - dom_hi.y;
+                    int j_real = dom_hi.y - offset;
+                    data(i, j, k, 0) = - data(i, j_real, k, 0);
+                }
+            }
+        }
+    }
+#endif
+
+    //___________________________________________________________________________
+    // Apply z-physbc to data
+#if (AMREX_SPACEDIM >= 3)
+    if ((bc_lo[2] == 2) && (tlo.z <= dom_lo.z)) {
+
+        for (int j = tlo.y; j <= thi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, j, dom_lo.z, 0) = 0;
+            }
+        }
+
+        for (int k = tlo.z; k < dom_lo.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = dom_lo.z - k;
+                    int k_real = dom_lo.z + offset;
+                    data(i, j, k, 0) = - data(i, j, k_real, 0);
+                }
+            }
+        }
+    }
+
+    if ((bc_hi[2] == 2) && (thi.z >= dom_hi.z) ) {
+
+        for (int j = tlo.y; j <= thi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = tlo.x; i <= thi.x; ++i) {
+                data(i, j, dom_hi.z, 0) = 0;
+            }
+        }
+
+        for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = k - dom_hi.z;
+                    int k_real = dom_hi.z - offset;
+                    data(i, j, k, 0) = - data(i, j, k_real, 0);
+                }
+            }
+        }
+    }
+#endif
+}
+
+
+
 void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int dim) {
 
     if (geom.isAllPeriodic()) {
-      return;
+        return;
     }
 
     MultiFABPhysBCDomainVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
@@ -324,7 +468,7 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost,
                              const Geometry & geom, int dim) {
 
     if (geom.isAllPeriodic()) {
-      return;
+        return;
     }
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
@@ -340,8 +484,10 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
                              const Geometry & geom, int dim) {
 
     if (geom.isAllPeriodic()) {
-      return;
+        return;
     }
+
+#ifndef GPUBC
 
 #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
@@ -355,6 +501,147 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
                              dim_fill_ghost.getVect(), &dim);
     }
 #endif
+
+#else
+
+    // Physical Domain
+    Box dom(geom.Domain());
+
+    // Effective number of ghost cells to iterate over
+    int ngc         = vel.nGrow();
+    IntVect ngc_eff = ngc*dim_fill_ghost;
+
+    // Send BCs to GPU
+    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_vel_lo[0],
+                                                     common::bc_vel_lo[1],
+                                                     common::bc_vel_lo[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_vel_hi[0],
+                                                     common::bc_vel_hi[1],
+                                                     common::bc_vel_hi[2])};
+
+    for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
+
+        // Select how much of the ghost region to fill
+        IntVect ngv = vel.nGrowVect() * dim_fill_ghost;
+        Box bx      = mfi.growntilebox(ngv);
+
+        const Array4<Real> & data_fab = vel.array(mfi);
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+        {
+            physbc_domainvel_fab(tbx, dom, data_fab, bc_lo, bc_hi);
+        });
+    }
+
+#endif
+}
+
+
+
+AMREX_GPU_HOST_DEVICE
+inline void physbc_macvel_fab(const Box & tbx,
+                              const Box & dom,
+                              const Array4<Real> & data,
+                              const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
+                              const GpuArray<int, AMREX_SPACEDIM> & bc_hi) {
+
+    //___________________________________________________________________________
+    // Total work region => the loops below will actually only iterate over
+    // cells between tbx and dom
+    const Dim3 tlo    = amrex::lbound(tbx);
+    const Dim3 thi    = amrex::ubound(tbx);
+    const Dim3 dom_lo = amrex::lbound(dom);
+    const Dim3 dom_hi = amrex::ubound(dom);
+
+
+    //___________________________________________________________________________
+    // Apply x-physbc to data
+    if (bc_lo[0] == 2) {
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i < dom_lo.x; ++i) {
+                    int offset = dom_lo.x - i;
+                    int i_real = dom_lo.x + offset - 1;
+                    data(i, j, k, 0) = - data(i_real, j, k, 0);
+                }
+            }
+        }
+    }
+
+    if (bc_hi[0] == 2) {
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = dom_hi.x + 1; i <= thi.x; ++i) {
+                    int offset = i - dom_hi.x;
+                    int i_real = dom_hi.x - offset + 1;
+                    data(i, j, k, 0) = - data(i_real, j, k, 0);
+                }
+            }
+        }
+    }
+
+
+    //___________________________________________________________________________
+    // Apply y-physbc to data
+#if (AMREX_SPACEDIM >= 2)
+    if (bc_lo[1] == 2) {
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = tlo.y; j < dom_lo.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = dom_lo.y - j;
+                    int j_real = dom_lo.y + offset - 1;
+                    data(i, j, k, 0) = - data(i, j_real, k, 0);
+                }
+            }
+        }
+    }
+
+    if (bc_hi[1] == 2) {
+        for (int k = tlo.z; k <= thi.z; ++k) {
+            for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = j - dom_hi.y;
+                    int j_real = dom_hi.y - offset + 1;
+                    data(i, j, k, 0) = - data(i, j_real, k, 0);
+                }
+            }
+        }
+    }
+#endif
+
+    //___________________________________________________________________________
+    // Apply z-physbc to data
+#if (AMREX_SPACEDIM >= 3)
+    if (bc_lo[2] == 2) {
+        for (int k = tlo.z; k < dom_lo.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = dom_lo.z - k;
+                    int k_real = dom_lo.z + offset - 1;
+                    data(i, j, k, 0) = - data(i, j, k_real, 0);
+                }
+            }
+        }
+    }
+
+    if (bc_hi[2] == 2) {
+        for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
+            for (int j = tlo.y; j <= thi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = tlo.x; i <= thi.x; ++i) {
+                    int offset = k - dom_hi.z;
+                    int k_real = dom_hi.z - offset + 1;
+                    data(i, j, k, 0) = - data(i, j, k_real, 0);
+                }
+            }
+        }
+    }
+#endif
 }
 
 
@@ -362,7 +649,7 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
 void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim) {
 
     if (geom.isAllPeriodic()) {
-      return;
+        return;
     }
 
     MultiFABPhysBCMacVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
@@ -374,7 +661,7 @@ void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost,
                           const Geometry & geom, int dim) {
 
     if (geom.isAllPeriodic()) {
-      return;
+        return;
     }
 
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
@@ -390,10 +677,12 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost,
 			  const Geometry & geom, int dim) {
 
     if (geom.isAllPeriodic()) {
-      return;
+        return;
     }
 
-    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
+#ifndef GPUBC
+
+#if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
 
     for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
@@ -404,7 +693,40 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost,
                           BL_TO_FORTRAN_FAB(vel[mfi]), vel.nGrow(),
                           dim_fill_ghost.getVect(),&dim);
     }
-    #endif
+#endif
+
+#else
+
+    // Physical Domain
+    Box dom(geom.Domain());
+
+    // Effective number of ghost cells to iterate over
+    int ngc         = vel.nGrow();
+    IntVect ngc_eff = ngc*dim_fill_ghost;
+
+    // Send BCs to GPU
+    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_vel_lo[0],
+                                                     common::bc_vel_lo[1],
+                                                     common::bc_vel_lo[2])};
+    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_vel_hi[0],
+                                                     common::bc_vel_hi[1],
+                                                     common::bc_vel_hi[2])};
+
+    for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
+
+        // Select how much of the ghost region to fill
+        IntVect ngv = vel.nGrowVect() * dim_fill_ghost;
+        Box bx      = mfi.growntilebox(ngv);
+
+        const Array4<Real> & data_fab = vel.array(mfi);
+
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
+        {
+            physbc_macvel_fab(tbx, dom, data_fab, bc_lo, bc_hi);
+        });
+    }
+
+#endif
 }
 
 
