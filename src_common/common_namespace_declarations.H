@@ -12,6 +12,7 @@ amrex::Vector<amrex::Real> common::prob_lo;
 amrex::Vector<amrex::Real> common::prob_hi;
 amrex::Vector<int>         common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
+amrex::Vector<int>         common::max_particle_tile_size;
 amrex::Real                common::cell_depth;
 amrex::IntVect             common::ngc;
 int                        common::nvars;

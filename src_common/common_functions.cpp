@@ -46,6 +46,7 @@ void InitializeCommonNamespace() {
     prob_hi.resize(AMREX_SPACEDIM);
     n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
+    max_particle_tile_size.resize(AMREX_SPACEDIM);
     grav.resize(AMREX_SPACEDIM);
     molmass.resize(MAX_SPECIES);
     diameter.resize(MAX_SPECIES);
@@ -105,7 +106,7 @@ void InitializeCommonNamespace() {
     char temp_chk_base_name[128];
 
     initialize_common_namespace(prob_lo.dataPtr(), prob_hi.dataPtr(), n_cells.dataPtr(),
-                                max_grid_size.dataPtr(), &cell_depth, ngc.getVect(),
+                                max_grid_size.dataPtr(), max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
                                 &perm, qval.dataPtr(), &pkernel_fluid, &pkernel_es,

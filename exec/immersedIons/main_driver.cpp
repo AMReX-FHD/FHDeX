@@ -652,7 +652,40 @@ void main_driver(const char* argv)
 #endif
 
 	// IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
-	//ParmParse pp ("particles");
+
+    Vector<int> ts(BL_SPACEDIM);
+
+    //AMREX_D_TERM(ts[0] = max_grid_size[0];, ts[1] = max_grid_size[1];, ts[2] = max_grid_size[2];);
+
+    AMREX_D_TERM(
+        if(max_particle_tile_size[0] > 0)
+        {
+            ts[0] = max_particle_tile_size[0];
+        }else
+        {
+            ts[0] = max_grid_size[0];
+        },
+        if(max_particle_tile_size[1] > 0)
+        {
+            ts[1] = max_particle_tile_size[1];
+        }else
+        {
+            ts[1] = max_grid_size[1];
+        },
+        if(max_particle_tile_size[2] > 0)
+        {
+            ts[2] = max_particle_tile_size[2];
+        }else
+        {
+            ts[2] = max_grid_size[2];
+        }
+    );
+
+	ParmParse pp ("particles");
+    pp.addarr("tile_size", ts);
+
+
+
 	//pp.add("do_tiling", false);
 
     //int num_neighbor_cells = 4; replaced by input var
