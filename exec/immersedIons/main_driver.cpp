@@ -749,7 +749,13 @@ void main_driver(const char* argv)
                      external[1].setVal(eamp[1]*cos(efreq[1]*time + ephase[1]));,
                      external[2].setVal(eamp[2]*cos(efreq[2]*time + ephase[2])););
 
-        particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        if(rfd_tog==1)
+        {
+            particles.RFD(0, dx, umac);
+        }else
+        {
+            particles.ResetMarkers(0);
+        }
 
         if(sr_tog==1 || es_tog==3)
         {

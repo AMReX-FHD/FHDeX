@@ -81,10 +81,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
 }
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::DoRFD(int lev, Real dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
+void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
 
 
-    Real delta = 1e-6*dx;
+    Real delta = 1e-6*dx[0];
     Real deltaover2 = delta/2.0;
     Real force = k_B*T_init[0]/delta;
     
@@ -143,6 +143,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::DoRFD(int lev, Real dx, std::
             for (int d=0; d<AMREX_SPACEDIM; ++d)
             {
                 part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
+                part.rdata(StructReal::forcex + d) = 0;
             }                
         }
     }

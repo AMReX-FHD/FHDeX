@@ -142,7 +142,7 @@ public:
      *                                                                          *
      ***************************************************************************/
 
-    void DoRFD(int lev, Real dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out);
+    void RFD(int lev, const Real* dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out);
 
     /****************************************************************************
      *                                                                          *
