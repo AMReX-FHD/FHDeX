@@ -403,7 +403,7 @@ end subroutine fab_physbc_macstress
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_es_lo(1) .eq. 2) then ! Neumann
           do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-             do i = 1, ngc 
+             do i = 1, ngc
 
                 data(lo(1)-1+i, j, :) = data(lo(1)-1+i, j, :) + data(lo(1)-i, j, :)
 
