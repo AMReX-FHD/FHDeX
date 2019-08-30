@@ -73,15 +73,15 @@ namespace common {
     extern int                        barodiffusion_type;
     extern int                        use_bl_rng;
 
-    // random number seed (for HydroGrid RNGs)
+    // random number seed
     // 0        = unpredictable seed based on clock
     // positive = fixed seed
     extern int                        seed;
 
-    // Random number seeds for each physical process for use_bl_rng=T
-    // for positive value, the value is assigned as seed value
-    // for 0, a positive value is randomly chosen
-    // if -1 (only for restart), RNGs status is restored from checkpoint data
+    // as assortment of other seeds in case one needs different engines
+    // implementation is problem-dependent
+    // 0        = unpredictable seed based on clock
+    // positive = fixed seed
     extern int                        seed_momentum;
     extern int                        seed_diffusion;
     extern int                        seed_reaction;
