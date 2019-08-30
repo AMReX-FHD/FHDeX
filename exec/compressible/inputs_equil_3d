@@ -54,6 +54,21 @@
   struct_fact_int = 10
   n_steps_skip = 40000
 
+  
+  ! Boundary conditions:
+  ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
+  ! bc_vel:   -1 = periodic  
+  !            1 = slip
+  !            2 = no-slip
+  ! bc_mass:  -1 = periodic
+  !            1 = wall
+  !            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
+  ! bc_therm: -1 = periodic
+  !            1 = adiabatic
+  !            2 = isothermal (set with t_lo/hi in common namelist)
+  bc_vel_lo(1:3) = -1 -1 -1
+  bc_vel_hi(1:3) = -1 -1 -1
+  
   ! Temperature if thermal BC specified
   t_hi(1:3) = 300 300 300
   t_lo(1:3) = 300 300 300
@@ -74,19 +89,5 @@
 /
 
 &compressible
-  
-  ! Boundary conditions:
-  ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
-  ! bc_vel:   -1 = periodic  
-  !            1 = slip
-  !            2 = no-slip
-  ! bc_mass:  -1 = periodic
-  !            1 = wall
-  !            2 = reservoir (set bc_Yk or bc_Xk in compressible namelist)
-  ! bc_therm: -1 = periodic
-  !            1 = adiabatic
-  !            2 = isothermal (set with t_lo/hi in common namelist)
-  bc_vel_lo(1:3) = -1 -1 -1
-  bc_vel_hi(1:3) = -1 -1 -1
   
 /

@@ -71,7 +71,10 @@ module common_namelist_module
   integer,            save :: bc_vel_hi(AMREX_SPACEDIM)
   integer,            save :: bc_es_lo(AMREX_SPACEDIM)
   integer,            save :: bc_es_hi(AMREX_SPACEDIM)
-
+  integer,            save :: bc_mass_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_mass_hi(AMREX_SPACEDIM)
+  integer,            save :: bc_therm_lo(AMREX_SPACEDIM)
+  integer,            save :: bc_therm_hi(AMREX_SPACEDIM)
 
   double precision,   save :: p_lo(AMREX_SPACEDIM)
   double precision,   save :: p_hi(AMREX_SPACEDIM)
@@ -262,9 +265,12 @@ module common_namelist_module
   ! Boundary conditions
   namelist /common/ bc_vel_lo
   namelist /common/ bc_vel_hi
-
   namelist /common/ bc_es_lo
   namelist /common/ bc_es_hi
+  namelist /common/ bc_mass_lo
+  namelist /common/ bc_mass_hi
+  namelist /common/ bc_therm_lo
+  namelist /common/ bc_therm_hi
 
 
   ! Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
@@ -405,6 +411,10 @@ contains
     bc_vel_hi(:) = 0
     bc_es_lo(:) = 0
     bc_es_hi(:) = 0
+    bc_mass_lo(:) = 0
+    bc_mass_hi(:) = 0
+    bc_therm_lo(:) = 0
+    bc_therm_hi(:) = 0
 
     t_lo(:) = 0
     t_hi(:) = 0
@@ -477,6 +487,8 @@ contains
                                          initial_variance_mom_in, initial_variance_mass_in, &
                                          domega_in, bc_vel_lo_in, bc_vel_hi_in, &
                                          bc_es_lo_in, bc_es_hi_in,  &
+                                         bc_mass_lo_in, bc_mass_hi_in,  &
+                                         bc_therm_lo_in, bc_therm_hi_in,  &
                                          p_lo_in, p_hi_in, &
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
@@ -580,6 +592,10 @@ contains
     integer,                intent(inout) :: bc_vel_hi_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_lo_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: bc_es_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_mass_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_mass_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_therm_lo_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: bc_therm_hi_in(AMREX_SPACEDIM)
 
     double precision,       intent(inout) :: p_lo_in(AMREX_SPACEDIM)
     double precision,       intent(inout) :: p_hi_in(AMREX_SPACEDIM)
@@ -705,6 +721,10 @@ contains
     bc_vel_hi_in = bc_vel_hi
     bc_es_lo_in = bc_es_lo
     bc_es_hi_in = bc_es_hi
+    bc_mass_lo_in = bc_es_lo
+    bc_mass_hi_in = bc_es_hi
+    bc_therm_lo_in = bc_es_lo
+    bc_therm_hi_in = bc_es_hi
 
     p_lo_in = p_lo
     p_hi_in = p_hi

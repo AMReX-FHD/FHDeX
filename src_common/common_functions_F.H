@@ -48,6 +48,8 @@ extern "C"
 				     amrex::Real* domega,
                                      int* bc_vel_lo, int* bc_vel_hi,
                                      int* bc_es_lo, int* bc_es_hi,
+                                     int* bc_mass_lo, int* bc_mass_hi,
+                                     int* bc_therm_lo, int* bc_therm_hi,
                                      amrex::Real * p_lo, amrex::Real * p_hi,
                                      amrex::Real* t_lo, amrex::Real* t_hi,
                                      amrex::Real* wallspeed_lo, amrex::Real* wallspeed_hi,

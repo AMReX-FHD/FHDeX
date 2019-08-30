@@ -125,6 +125,20 @@ namespace common {
     extern amrex::Vector<int>          bc_es_lo;
     extern amrex::Vector<int>          bc_es_hi;
 
+    // BC specifications:
+    // -1 = periodic
+    //  1 = wall
+    //  2 = reservoir (Dirichlet values must be suppled by other means)
+    extern amrex::Vector<int>          bc_mass_lo;
+    extern amrex::Vector<int>          bc_mass_hi;
+
+    // BC specifications:
+    // -1 = periodic
+    //  1 = adiabatic
+    //  2 = isothermal
+    extern amrex::Vector<int>          bc_therm_lo;
+    extern amrex::Vector<int>          bc_therm_hi;
+
     // Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
     extern amrex::Vector<amrex::Real>  p_lo;
     extern amrex::Vector<amrex::Real>  p_hi;
