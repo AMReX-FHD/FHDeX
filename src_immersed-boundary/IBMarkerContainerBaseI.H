@@ -16,6 +16,7 @@
 
 #include <IBMarkerContainer.H>
 #include <ib_functions_F.H>
+#include "rng_functions_F.H"
 
 #include <iostream>
 
@@ -77,6 +78,76 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
                 part.pos(d) += dt * part.rdata(StructReal::velx + d);
         }
     }
+}
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
+
+
+    Real delta = 1e-6*dx[0];
+    Real deltaover2 = delta/2.0;
+    Real force = k_B*T_init[0]/delta;
+    
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {
+                //using pred_pos to temporarily store the random direction - hopefully this doesn't cause problems elsewhere
+                part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
+                part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
+                part.rdata(StructReal::forcex + d) = force;
+            }                
+        }
+    }
+
+    SpreadMarkers(lev, f_out);
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {
+                part.pos(d) -= delta * part.rdata(StructReal::pred_posx + d);
+                part.rdata(StructReal::forcex + d) = -force;
+            }                
+        }
+    }
+
+    SpreadMarkers(lev, f_out);
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {
+                part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
+                part.rdata(StructReal::forcex + d) = 0;
+            }                
+        }
+    }
+        
 }
 
 

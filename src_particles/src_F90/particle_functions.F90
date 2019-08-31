@@ -2034,7 +2034,7 @@ subroutine rfd(weights, indicies, &
   call get_particle_normal(normalrand(2))
   call get_particle_normal(normalrand(3))
 
-  part%pos = part%pos + delta*normalrand
+  part%pos = part%pos + delta*normalrand/2
 
   part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
   part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
