@@ -340,12 +340,12 @@ inline void physbc_domainvel_fab(const Box & tbx,
         }
     }
 
-    if ((dim == 0) && (bc_hi[0] == 2) && (thi.x >= dom_hi.x + 1)) {
+    if ((dim == 0) && (bc_hi[0] == 2) && (thi.x >= dom_hi.x)) {
 
         for (int k = vlo.z; k <= vhi.z; ++k) {
             AMREX_PRAGMA_SIMD
             for (int j = vlo.y; j <= vhi.y; ++j) {
-                data(dom_hi.x + 1, j, k, 0) = 0;
+                data(dom_hi.x, j, k, 0) = 0;
             }
         }
 
@@ -386,12 +386,12 @@ inline void physbc_domainvel_fab(const Box & tbx,
         }
     }
 
-    if ((dim == 1) && (bc_hi[1] == 2) && (thi.y >= dom_hi.y + 1)) {
+    if ((dim == 1) && (bc_hi[1] == 2) && (thi.y >= dom_hi.y)) {
 
         for (int k = vlo.z; k <= vhi.z; ++k) {
             AMREX_PRAGMA_SIMD
             for (int i = vlo.x; i <= vhi.x; ++i) {
-                data(i, dom_hi.y + 1, k, 0) = 0;
+                data(i, dom_hi.y, k, 0) = 0;
             }
         }
 
@@ -433,12 +433,12 @@ inline void physbc_domainvel_fab(const Box & tbx,
         }
     }
 
-    if ((dim == 2) && (bc_hi[2] == 2) && (thi.z >= dom_hi.z + 1) ) {
+    if ((dim == 2) && (bc_hi[2] == 2) && (thi.z >= dom_hi.z) ) {
 
         for (int j = vlo.y; j <= vhi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = vlo.x; i <= vhi.x; ++i) {
-                data(i, j, dom_hi.z + 1, 0) = 0;
+                data(i, j, dom_hi.z, 0) = 0;
             }
         }
 
@@ -509,8 +509,10 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
 
 #else
 
-    // Physical Domain
+    // Physical Domain and make sure that the domain index type matches the
+    // velocity index type
     Box dom(geom.Domain());
+    dom.surroundingNodes(dim);
 
     // Effective number of ghost cells to iterate over
     int ngc         = vel.nGrow();
