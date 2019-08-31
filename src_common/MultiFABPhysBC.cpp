@@ -705,8 +705,10 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost,
 
 #else
 
-    // Physical Domain
+    // Physical Domain and make sure that the domain index type matches the
+    // velocity index type
     Box dom(geom.Domain());
+    dom.surroundingNodes(dim);
 
     // Effective number of ghost cells to iterate over
     int ngc         = vel.nGrow();
