@@ -84,15 +84,21 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
  *                                                                              *
  *******************************************************************************/
 
+// Call this if the ghost cells are already `setVal` to zero.
 void MultiFABPhysBCPres(MultiFab & pressure, const Geometry & geom);
+// These don't assume that the ghost cells are non-nan
 void MultiFABPhysBCPres(MultiFab & pressure, int seq_fill_ghost, const Geometry & geom);
 void MultiFABPhysBCPres(MultiFab & pressure, const IntVect & dim_fill_ghost, const Geometry & geom);
 
+// Call this if the ghost cells are already `setVal` to zero.
 void MultiFABPhysBCDomainVel(MultiFab & vel, const Geometry & geom, int dim);
+// These don't assume that the ghost cells are non-nan
 void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim);
 void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
 
+// Call this if the ghost cells are already `setVal` to zero.
 void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim);
+// Call this if the ghost cells are already `setVal` to zero.
 void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim);
 void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
 
