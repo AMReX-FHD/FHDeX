@@ -510,7 +510,7 @@ void main_driver(const char* argv)
     
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
-    pres.setVal(0.);  // initial guess
+   pres.setVal(0.);  // initial guess
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
@@ -751,7 +751,6 @@ void main_driver(const char* argv)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
-       
     }
 
     //Centred electric fields
@@ -765,7 +764,6 @@ void main_driver(const char* argv)
     AMREX_D_TERM(efieldCC[0].setVal(0);,
                  efieldCC[1].setVal(0);,
                  efieldCC[2].setVal(0););
-
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
@@ -782,35 +780,37 @@ void main_driver(const char* argv)
                      external[1].setVal(eamp[1]*cos(efreq[1]*time + ephase[1]));,
                      external[2].setVal(eamp[2]*cos(efreq[2]*time + ephase[2])););
 
-        if(rfd_tog==1)
-        {
+        if(rfd_tog==1) {
+            // Apply RFD force to fluid
             particles.RFD(0, dx, umac);
-        }else
-        {
+        }
+        else {
+            // set velx/y/z and forcex/y/z for each particle to zero
             particles.ResetMarkers(0);
         }
 
+        // sr_tog is short range forces
+        // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
         if(sr_tog==1 || es_tog==3)
         {
+            // each tile clears its neighbors
+            particles.clearNeighbors();
+            // fill the neighbor buffers for each tile with the proper data
+            particles.fillNeighbors();
 
-                particles.clearNeighbors();
-
-                particles.fillNeighbors();
-
-                particles.computeForcesNL(charge, RealCenteredCoords, dxp);
+            // compute short range forces (if sr_tog=1)
+            // compute P3M short range correction (if es_tog=3)
+            particles.computeForcesNL(charge, RealCenteredCoords, dxp);
 
         }
 
         if(es_tog==1 || es_tog==3)
         {
-            //Spreads charge density from ions onto multifab 'charge'.
+            // spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
-
-
-
-
         }
-        //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
+        
+        // do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efieldCC', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
 
         // print potential multifab 
@@ -826,40 +826,40 @@ void main_driver(const char* argv)
         //}
 
 
-        //compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        // compute other forces and spread to grid
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
+                             surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
           sMflux.fillMStochastic();
-//          // compute stochastic momentum force
+
+          // compute stochastic momentum force
           sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 
-          if(fluid_tog ==2)
-          {
+          // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
+          if(fluid_tog ==2) {
               sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
           }
-
         }
 
+        // AJN - should this be an if/else fluid_tog==2?
     	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-        if(fluid_tog ==2)
-        {
+        if(fluid_tog ==2) {
             advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
         }
 
+        // total particle move (1=single step, 2=midpoint)
         if(move_tog != 0)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
+                               surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
             particles.Redistribute();
             particles.ReBin();
-
-
             Print() << "Finish move.\n";
- 
         }
 
         //Start collecting statistics after step n_steps_skip
@@ -868,12 +868,11 @@ void main_driver(const char* argv)
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
             AMREX_D_TERM(umacM[0].setVal(0);,
-                     umacM[1].setVal(0);,
-                     umacM[2].setVal(0););
-
+                         umacM[1].setVal(0);,
+                         umacM[2].setVal(0););
             AMREX_D_TERM(umacV[0].setVal(0);,
-                     umacV[1].setVal(0);,
-                     umacV[2].setVal(0););
+                         umacV[1].setVal(0);,
+                         umacV[2].setVal(0););
 
             Print() << "Resetting stat collection.\n";
 
