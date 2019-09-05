@@ -35,7 +35,7 @@ void InitializeMultispecNamespace() {
 				    Dbar.dataPtr(), Dtherm.dataPtr(), 
 				    H_offdiag.dataPtr(), H_diag.dataPtr(), 
 				    &fraction_tolerance, &correct_flux, 
-				    &print_error_norms, &plot_stag, 
+				    &print_error_norms,
 				    &is_nonisothermal, &is_ideal_mixture,
 				    &use_lapack, 
 				    c_init.dataPtr(), 

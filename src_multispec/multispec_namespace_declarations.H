@@ -9,7 +9,6 @@ amrex::Vector<amrex::Real> multispec::H_diag;
 amrex::Real                multispec::fraction_tolerance;
 int                        multispec::correct_flux;
 int                        multispec::print_error_norms;
-int                        multispec::plot_stag;
 int                        multispec::is_nonisothermal;
 int                        multispec::is_ideal_mixture;
 int                        multispec::use_lapack;

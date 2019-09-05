@@ -13,7 +13,6 @@ namespace multispec {
     extern amrex::Real                fraction_tolerance;
     extern int                        correct_flux;
     extern int                        print_error_norms;
-    extern int                        plot_stag;
     extern int                        is_nonisothermal;
     extern int                        is_ideal_mixture;
     extern int                        use_lapack;

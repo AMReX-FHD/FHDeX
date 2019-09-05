@@ -19,7 +19,6 @@ module multispec_namelist_module
   double precision,   save :: fraction_tolerance
   integer,            save :: correct_flux
   integer,            save :: print_error_norms
-  integer,            save :: plot_stag
   integer,            save :: is_nonisothermal
   integer,            save :: is_ideal_mixture
   integer,            save :: use_lapack
@@ -66,7 +65,6 @@ module multispec_namelist_module
   namelist /multispec/ Dtherm     ! thermo-diffusion coefficients, only differences among elements matter
   namelist /multispec/ H_offdiag
   namelist /multispec/ H_diag     ! Diagonal of H=d^2F/dx^2, these are vectors of length nspecies
-  namelist /multispec/ plot_stag  ! plot staggered velocities in separate plotfile
 
   ! Algorithm control
   !----------------------
@@ -108,7 +106,6 @@ contains
     Dtherm(:)          = 0.0d0
     H_offdiag(:)       = 0.0d0
     H_diag(:)          = 0.0d0
-    plot_stag          = 0
     midpoint_stoch_mass_flux_type = 1
     avg_type           = 1
     mixture_type       = 0
@@ -124,7 +121,7 @@ contains
   subroutine initialize_multispec_namespace( inverse_type_in, temp_type_in, chi_iterations_in, start_time_in, &
                                              Dbar_in, Dtherm_in, H_offdiag_in, H_diag_in, &
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
-                                             plot_stag_in, is_nonisothermal_in, is_ideal_mixture_in, &
+                                             is_nonisothermal_in, is_ideal_mixture_in, &
                                              use_lapack_in, c_init_in, c_bc_in, &
                                              alpha1_in, beta_in, delta_in, sigma_in, &
                                              midpoint_stoch_mass_flux_type_in, &
@@ -142,7 +139,6 @@ contains
     double precision,       intent(inout) :: fraction_tolerance_in
     integer,                intent(inout) :: correct_flux_in
     integer,                intent(inout) :: print_error_norms_in
-    integer,                intent(inout) :: plot_stag_in
     integer,                intent(inout) :: is_nonisothermal_in
     integer,                intent(inout) :: is_ideal_mixture_in
     integer,                intent(inout) :: use_lapack_in
@@ -169,7 +165,6 @@ contains
     fraction_tolerance_in = fraction_tolerance
     correct_flux_in = correct_flux
     print_error_norms_in = print_error_norms
-    plot_stag_in = plot_stag
     is_nonisothermal_in = is_nonisothermal
     is_ideal_mixture_in = is_ideal_mixture
     use_lapack_in = use_lapack

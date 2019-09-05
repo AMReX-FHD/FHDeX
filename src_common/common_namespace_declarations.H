@@ -31,6 +31,7 @@ amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
 int                        common::max_step;
 int                        common::plot_int;
+int                        common::plot_stag;
 std::string                common::plot_base_name;
 int                        common::chk_int;
 std::string                common::chk_base_name;

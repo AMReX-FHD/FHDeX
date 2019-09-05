@@ -31,6 +31,7 @@ module common_namelist_module
   double precision,   save :: cfl
   integer,            save :: max_step
   integer,            save :: plot_int
+  integer,            save :: plot_stag
   character(len=128), save :: plot_base_name
   integer,            save :: chk_int
   character(len=128), save :: chk_base_name
@@ -192,6 +193,7 @@ module common_namelist_module
   ! Controls for number of steps between actions
   namelist /common/ max_step
   namelist /common/ plot_int
+  namelist /common/ plot_stag
   namelist /common/ plot_base_name
   namelist /common/ chk_int
   namelist /common/ chk_base_name
@@ -372,6 +374,7 @@ contains
     cfl = 0.5
     max_step = 1
     plot_int = 0
+    plot_stag = 0
     plot_base_name = "plt"
     chk_int = 0
     chk_base_name = "chk"
@@ -470,7 +473,7 @@ contains
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, transmission_in, &
                                          perm_in, qval_in, pkernel_fluid_in, pkernel_es_in,&
-                                         fixed_dt_in, cfl_in, max_step_in, plot_int_in, &
+                                         fixed_dt_in, cfl_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
                                          restart_in, print_int_in, project_eos_int_in, &
@@ -548,6 +551,7 @@ contains
 
     integer,                intent(inout) :: max_step_in
     integer,                intent(inout) :: plot_int_in
+    integer,                intent(inout) :: plot_stag_in
     integer               , value         :: plot_base_name_len
     character(kind=c_char), intent(inout) :: plot_base_name_in(plot_base_name_len)
     integer,                intent(inout) :: chk_int_in
@@ -681,6 +685,7 @@ contains
     cfl_in = cfl
     max_step_in = max_step
     plot_int_in = plot_int
+    plot_stag_in = plot_stag
     plot_base_name_in = amrex_string_f_to_c(plot_base_name)
     chk_int_in = chk_int
     chk_base_name_in = amrex_string_f_to_c(chk_base_name)

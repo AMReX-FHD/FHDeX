@@ -114,7 +114,7 @@ void InitializeCommonNamespace() {
                                 &membrane_cell, &cross_cell, &transmission,
                                 &perm, qval.dataPtr(), &pkernel_fluid, &pkernel_es,
                                 &fixed_dt, &cfl, &max_step,
-                                &plot_int, temp_plot_base_name, 128,
+                                &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &print_int, &project_eos_int,
                                 grav.dataPtr(), &nspecies, molmass.dataPtr(), diameter.dataPtr(),

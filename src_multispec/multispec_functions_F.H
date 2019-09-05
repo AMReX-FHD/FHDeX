@@ -26,7 +26,6 @@ extern "C"
     const amrex_real* fraction_tolerance,
     const int* correct_flux,
     const int* print_error_norms,
-    const int* plot_stag,
     const int* is_nonisothermal,
     const int* is_ideal_mixture,
     const int* use_lapack,
