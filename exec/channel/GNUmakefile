@@ -22,17 +22,6 @@ USE_PARTICLES = TRUE
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
-
-GPUBC ?= FALSE
-ifeq ($(GPUBC),TRUE)
-  $(info Compiling with GPU boundary conditions)
-  DEFINES += -DGPUBC
-else
-  $(info Compiling with CPU boundary conditions)
-  DEFINES += -DNGPUBC
-endif
-
-
 include ./Make.package
 VPATH_LOCATIONS   += .
 INCLUDE_LOCATIONS += .
