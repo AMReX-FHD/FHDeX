@@ -28,9 +28,6 @@ void main_driver(const char* argv)
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
     read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
     read_compressible_namelist(inputs_file.c_str(),inputs_file.size()+1);
-
-    // if periodic, set all the bc_X types to periodic
-    setup_bc();
     
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
@@ -42,7 +39,8 @@ void main_driver(const char* argv)
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {        
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // lo/hi consistency check
         if (bc_vel_lo[i] == -1 || bc_vel_hi[i] == -1) {
             if (bc_vel_lo[i] != bc_vel_hi[i]) {
                 Abort("Inconsistent periodicity definition in bc_vel_lo/hi");
@@ -53,9 +51,21 @@ void main_driver(const char* argv)
         }
     }
 
-    // compute wall concentrations if BCs call for it
+    // for each direction, if bc_vel_lo/hi is periodic, then
+    // set the corresponding bc_mass_lo/hi and bc_therm_lo/hi to periodic
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_vel_lo[i] == -1) {
+            bc_mass_lo[i] = -1;
+            bc_mass_hi[i] = -1;
+            bc_therm_lo[i] = -1;
+            bc_therm_hi[i] = -1;
+        }
+    }
+    setup_bc(); // do the same in the fortran namelist
+
+    // if multispecies
     if (algorithm_type == 2) {
-        // if multispecies
+        // compute wall concentrations if BCs call for it
         setup_cwall();
     }
 
