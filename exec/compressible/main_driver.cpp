@@ -133,7 +133,7 @@ void main_driver(const char* argv)
     // conserved quantaties
     // in C++ indexing (add +1 for F90)
     // 0        (rho;     density)
-    // 1-3      (rho*vel; momentum)
+    // 1-3      (j;       momentum)
     // 4        (rho*E;   total energy)
     // 5:5+ns-1 (rho*Yk;  mass densities)
     MultiFab cu  (ba,dmap,nvars,ngc);
