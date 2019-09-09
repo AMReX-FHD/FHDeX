@@ -2,7 +2,7 @@ module conv_module
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, diameter, max_species, &
-       molmass, k_b, nspecies, hcv, hcp, runiv, dof
+                                     molmass, k_b, nspecies, hcv, hcp, runiv, dof
   implicit none
 
   private
@@ -25,51 +25,42 @@ contains
     real(amrex_real) :: vsqr, sumYk, Yk(nspecies), Yk_fixed(nspecies), Xk(nspecies), intenergy
 
     do k = lo(3),hi(3)
-       do j = lo(2),hi(2)
-          do i = lo(1),hi(1)
+    do j = lo(2),hi(2)
+    do i = lo(1),hi(1)
 
-             prim(i,j,k,1) = cons(i,j,k,1)
-             prim(i,j,k,2) = cons(i,j,k,2)/cons(i,j,k,1)
-             prim(i,j,k,3) = cons(i,j,k,3)/cons(i,j,k,1)
-             prim(i,j,k,4) = cons(i,j,k,4)/cons(i,j,k,1)
+       prim(i,j,k,1) = cons(i,j,k,1)
+       prim(i,j,k,2) = cons(i,j,k,2)/cons(i,j,k,1)
+       prim(i,j,k,3) = cons(i,j,k,3)/cons(i,j,k,1)
+       prim(i,j,k,4) = cons(i,j,k,4)/cons(i,j,k,1)
 
-             vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
-             intenergy = cons(i,j,k,5)/cons(i,j,k,1) - 0.5*vsqr
+       vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
+       intenergy = cons(i,j,k,5)/cons(i,j,k,1) - 0.5*vsqr
 
-             sumYk = 0.d0
-             do ns = 1, nspecies
-                Yk(ns) = cons(i,j,k,5+ns)/cons(i,j,k,1)
-                Yk_fixed(ns) = max(0.d0,min(1.d0,Yk(ns)))
-                sumYk = sumYk + Yk_fixed(ns)
-
-                ! if((i.eq.0).and.(j.eq.0).and.(k.eq.0)) then
-                !    print *, "massfrac: Hack = ", i, j, k, ns, Yk(ns), Yk_fixed(ns)
-                ! endif
-             enddo
-
-             Yk_fixed(:) = Yk_fixed(:)/sumYk
-
-             ! Yk_fixed(:) = Yk(:)
-
-             ! update temperature in-place using internal energy
-             call get_temperature(intenergy, Yk_fixed, prim(i,j,k,5))
-
-             ! HACK: OVERRIDE
-             ! prim(i,j,k,6) = 2.0*cons(i,j,k,1)*intenergy/3.0
-
-             ! compute mole fractions from mass fractions
-             call get_molfrac(Yk, Xk)
-
-             ! mass fractions
-             do ns = 1, nspecies
-                prim(i,j,k,6+ns) = Yk(ns)
-                prim(i,j,k,6+nspecies+ns) = Xk(ns)
-             enddo
-
-             call get_pressure_gas(prim(i,j,k,6), Yk, prim(i,j,k,1), prim(i,j,k,5))
-
-          enddo
+       sumYk = 0.d0
+       do ns = 1, nspecies
+          Yk(ns) = cons(i,j,k,5+ns)/cons(i,j,k,1)
+          Yk_fixed(ns) = max(0.d0,min(1.d0,Yk(ns)))
+          sumYk = sumYk + Yk_fixed(ns)
        enddo
+
+       Yk_fixed(:) = Yk_fixed(:)/sumYk
+
+       ! update temperature in-place using internal energy
+       call get_temperature(intenergy, Yk_fixed, prim(i,j,k,5))
+
+       ! compute mole fractions from mass fractions
+       call get_molfrac(Yk, Xk)
+
+       ! mass fractions
+       do ns = 1, nspecies
+          prim(i,j,k,6+ns) = Yk(ns)
+          prim(i,j,k,6+nspecies+ns) = Xk(ns)
+       enddo
+
+       call get_pressure_gas(prim(i,j,k,6), Yk, prim(i,j,k,1), prim(i,j,k,5))
+
+    enddo
+    enddo
     enddo
 
   end subroutine cons_to_prim

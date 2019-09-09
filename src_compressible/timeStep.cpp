@@ -9,13 +9,13 @@
 
 #include "common_namespace.H"
 
-#include "AMReX_VisMF.H"
-
 using namespace common;
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
-             MultiFab& prim, MultiFab& source, MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
-             MultiFab& chi, MultiFab& D, std::array<MultiFab, AMREX_SPACEDIM>& flux,
+             MultiFab& prim, MultiFab& source,
+             MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
+             MultiFab& chi, MultiFab& D,
+             std::array<MultiFab, AMREX_SPACEDIM>& flux,
              std::array<MultiFab, AMREX_SPACEDIM>& stochFlux,
              std::array<MultiFab, AMREX_SPACEDIM>& cornx,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,

@@ -5,12 +5,8 @@ void calculateTransportCoeffs(const MultiFab& prim,
 			      MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
 			      MultiFab& chi, MultiFab& D)
 {
-
     // Loop over boxes
-    for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
-    {
-        
-        // amrex::Print() << "Hack: Got here \n";
+    for ( MFIter mfi(prim); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.validbox();
 
@@ -28,5 +24,4 @@ void calculateTransportCoeffs(const MultiFab& prim,
 	// 	     zeta[mfi].dataPtr(),  
 	// 	     kappa[mfi].dataPtr());
     }
-
 }

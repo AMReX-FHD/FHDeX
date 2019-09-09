@@ -3,9 +3,7 @@
 
 #include "common_namespace.H"
 
-
 using namespace common;
-
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
@@ -14,8 +12,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     double totalMass;
 
     // Loop over boxes
-    for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
-    {
+    for ( MFIter mfi(prim); mfi.isValid(); ++mfi) {
+        
         const Box& bx = mfi.validbox();
 
         evaluate_means(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
@@ -28,8 +26,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
 
     ParallelDescriptor::ReduceRealSum(totalMass);
 
-    for ( MFIter mfi(prim); mfi.isValid(); ++mfi)
-    {
+    for ( MFIter mfi(prim); mfi.isValid(); ++mfi) {
+        
         const Box& bx = mfi.validbox();
 
         evaluate_corrs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
@@ -41,6 +39,5 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                        primVar[mfi].dataPtr(),
                        &steps);
     }
-
 }
 

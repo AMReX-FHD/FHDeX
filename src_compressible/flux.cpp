@@ -20,14 +20,13 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		   const amrex::Vector< amrex::Real >& stoch_weights,
 		   const amrex::Real* dx, const amrex::Real dt)
 {
-
     AMREX_D_TERM(flux[0].setVal(0);,
                  flux[1].setVal(0);,
                  flux[2].setVal(0););
 
     // Loop over boxes
-    for ( MFIter mfi(cons); mfi.isValid(); ++mfi)
-    {
+    for ( MFIter mfi(cons); mfi.isValid(); ++mfi) {
+        
         const Box& bx = mfi.validbox();
 
         //NOTE: Must do stoch. fluxes first, 
@@ -53,7 +52,6 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		   chi[mfi].dataPtr(),  
 		   D[mfi].dataPtr(),  
 		   ZFILL(dx), &dt);
-
 	
 	diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 		  cons[mfi].dataPtr(),  
@@ -82,30 +80,28 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 
 	if (advection_type==1) {
 	
-	  hyp_flux_prim(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-			cons[mfi].dataPtr(),  
-			prim[mfi].dataPtr(),    
-			flux[0][mfi].dataPtr(),
-			flux[1][mfi].dataPtr(),
+            hyp_flux_prim(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                          cons[mfi].dataPtr(),  
+                          prim[mfi].dataPtr(),    
+                          flux[0][mfi].dataPtr(),
+                          flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-			flux[2][mfi].dataPtr(),
+                          flux[2][mfi].dataPtr(),
 #endif
-			ZFILL(dx));
+                          ZFILL(dx));
 
 	} else if (advection_type==2) {
 
-	  hyp_flux_cons(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-			cons[mfi].dataPtr(),  
-			prim[mfi].dataPtr(),    
-			flux[0][mfi].dataPtr(),
-			flux[1][mfi].dataPtr(),
+            hyp_flux_cons(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                          cons[mfi].dataPtr(),  
+                          prim[mfi].dataPtr(),    
+                          flux[0][mfi].dataPtr(),
+                          flux[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
-			flux[2][mfi].dataPtr(),
+                          flux[2][mfi].dataPtr(),
 #endif
-			ZFILL(dx));
+                          ZFILL(dx));
 
 	}
-   
     }
-
 }
