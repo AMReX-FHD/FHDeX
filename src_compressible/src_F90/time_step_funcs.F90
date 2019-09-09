@@ -16,104 +16,63 @@ contains
 #endif
                         dx, dt) bind(C,name="rk3_stage1")
 
-      integer         , intent(in   ) :: lo(3),hi(3)
-      real(amrex_real), intent(in   ) :: dx(3), dt
-
-      real(amrex_real), intent(inout) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-      real(amrex_real), intent(inout) :: cup(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-
-      real(amrex_real), intent(in)    :: source(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-
-      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+    integer         , intent(in   ) :: lo(3),hi(3)
+    real(amrex_real), intent(in   ) :: dx(3), dt
+    real(amrex_real), intent(inout) :: cu    (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+    real(amrex_real), intent(inout) :: cup   (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+    real(amrex_real), intent(in)    :: source(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+    real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3),nvars)
+    real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3),nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+    real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1,nvars)
 #endif
-      integer :: i,j,k,l
-      real(amrex_real) :: dxinv(3)
+    integer :: i,j,k,l
+    real(amrex_real) :: dxinv(3)
 
-      dxinv = 1d0/dx
+    dxinv = 1d0/dx
 
-      do  l=1,nvars
-        do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-           do  i=lo(1),hi(1)
+    do l=1,nvars
+    do k=lo(3),hi(3)
+    do j=lo(2),hi(2)
+    do i=lo(1),hi(1)
            
-                 cup(i,j,k,l) = cu(i,j,k,l)                                      &
-                                - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
+       cup(i,j,k,l) = cu(i,j,k,l) &
+            - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
+            - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
+            - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
-                                + dt*source(i,j,k,l)      
-           enddo
-          enddo
-        enddo
-      enddo
+            + dt*source(i,j,k,l)
+       
+    enddo
+    enddo
+    enddo
+    enddo
       
-      ! Add gravity to velocity
-      do  l=2,4
-        do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-           do  i=lo(1),hi(1)
-              
-              cup(i,j,k,l) = cup(i,j,k,l) + dt*cu(i,j,k,1)*grav(l-1)
-
-           enddo
-          enddo
-        enddo
-      enddo
+    ! Add gravity to velocity
+    do l=2,4
+    do k=lo(3),hi(3)
+    do j=lo(2),hi(2)
+    do i=lo(1),hi(1)
+       cup(i,j,k,l) = cup(i,j,k,l) + dt*cu(i,j,k,1)*grav(l-1)
+    enddo
+    enddo
+    enddo
+    enddo
       
-      ! Add gravity to energy
-      do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-            do  i=lo(1),hi(1)
-
-               cup(i,j,k,5) = cup(i,j,k,5) + dt*cu(i,j,k,1)* &
-                    ( grav(1)*cu(i,j,k,2) & 
-                    + grav(2)*cu(i,j,k,3) & 
-                    + grav(3)*cu(i,j,k,4) )
-
-            enddo
-         enddo
-      enddo
-
-    ! print *, "Flo1: ", xflux(lo(1),0,0,1:nvars)
-    ! print *, "Flo1+1: ", xflux(lo(1)+1,0,0,1:nvars)
-    ! print *, "Fhi1: ", xflux(hi(1)+1,0,0,1:nvars)
-    ! print *, "Fhi1-1: ", xflux(hi(1),0,0,1:nvars)
-
-    ! print *, "Flo1: ", xflux(lo(1),0,0,1:nvars)
-    ! print *, "Flo1+1: ", xflux(lo(1)+1,0,0,1:nvars)
-    ! print *, "Fhi1: ", xflux(hi(1)+1,0,0,1:nvars)
-    ! print *, "Fhi1-1: ", xflux(hi(1),0,0,1:nvars)
-
-    ! print *, "Cslo1: ", cu(lo(1),0,0,1:nvars)
-    ! print *, "Cslo1+1: ", cu(lo(1)+1,0,0,1:nvars)
-    ! print *, "Cshi1: ", cu(hi(1),0,0,1:nvars)
-    ! print *, "Cshi1-1: ", cu(hi(1)-1,0,0,1:nvars)
-
-    ! print *, "Cflo1: ", cup(lo(1),0,0,1:nvars)
-    ! print *, "Cflo1+1: ", cup(lo(1)+1,0,0,1:nvars)
-    ! print *, "Cfhi1: ", cup(hi(1),0,0,1:nvars)
-    ! print *, "Cfhi1-1: ", cup(hi(1)-1,0,0,1:nvars)
-
-    ! print *, "Flo1: ", yflux(0,lo(2),0,1:nvars)
-    ! print *, "Flo1+1: ", yflux(0,lo(2)+1,0,1:nvars)
-    ! print *, "Fhi1: ", yflux(0,hi(2)+1,0,1:nvars)
-    ! print *, "Fhi1-1: ", yflux(0,hi(2),0,1:nvars)
-
-    ! print *, "Cslo1: ", cu(0,lo(2),0,1:nvars)
-    ! print *, "Cslo1+1: ", cu(0,lo(2)+1,0,1:nvars)
-    ! print *, "Cshi1: ", cu(0,hi(2),0,1:nvars)
-    ! print *, "Cshi1-1: ", cu(0,hi(2)-1,0,1:nvars)
-
-    ! print *, "Cflo1: ", cup(0,lo(2),0,1:nvars)
-    ! print *, "Cflo1+1: ", cup(0,lo(2)+1,0,1:nvars)
-    ! print *, "Cfhi1: ", cup(0,hi(2),0,1:nvars)
-    ! print *, "Cfhi1-1: ", cup(0,hi(2)-1,0,1:nvars)
-
-     !call exit()
+    ! Add gravity to energy
+    do k=lo(3),hi(3)
+    do j=lo(2),hi(2)
+    do i=lo(1),hi(1)
+          
+       cup(i,j,k,5) = cup(i,j,k,5) + dt*cu(i,j,k,1)* &
+            ( grav(1)*cu(i,j,k,2) & 
+            + grav(2)*cu(i,j,k,3) & 
+            + grav(3)*cu(i,j,k,4) )
+       
+    enddo
+    enddo
+    enddo
 
   end subroutine rk3_stage1
 
@@ -125,99 +84,62 @@ contains
 
       integer         , intent(in   ) :: lo(3),hi(3)
       real(amrex_real), intent(in   ) :: dx(3), dt
-
-      real(amrex_real), intent(in   ) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-      real(amrex_real), intent(in   ) :: cup(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-      real(amrex_real), intent(inout) :: cup2(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-
-      real(amrex_real), intent(in)    :: source(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-
-      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+      real(amrex_real), intent(in   ) :: cu    (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in   ) :: cup   (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(inout) :: cup2  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in)    :: source(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3),nvars)
+      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3),nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1,nvars)
 #endif
       integer :: i,j,k,l
       real(amrex_real) :: dxinv(3)
 
       dxinv = 1d0/dx
 
-      do  l=1,nvars
-        do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-           do  i=lo(1),hi(1)
+      do l=1,nvars
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+      do i=lo(1),hi(1)
 
-                 cup2(i,j,k,l) =  0.25d0*(3.0d0*cu(i,j,k,l) + cup(i,j,k,l)              &
-                                - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
+         cup2(i,j,k,l) =  0.25d0*(3.0d0*cu(i,j,k,l) + cup(i,j,k,l)              &
+              - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
+              - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
+              - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
-                                + dt*source(i,j,k,l))
+              + dt*source(i,j,k,l))
 
-
-           enddo
-          enddo
-        enddo
+      enddo
+      enddo
+      enddo
       enddo
 
       ! Add gravity to velocity
-      do  l=2,4
-        do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-           do  i=lo(1),hi(1)
-              
-              cup2(i,j,k,l) = cup2(i,j,k,l) + 0.25d0*dt*cup(i,j,k,1)*grav(l-1)
-
-           enddo
-          enddo
-        enddo
+      do l=2,4
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+      do i=lo(1),hi(1)
+         cup2(i,j,k,l) = cup2(i,j,k,l) + 0.25d0*dt*cup(i,j,k,1)*grav(l-1)
+      enddo
+      enddo
+      enddo
       enddo
       
       ! Add gravity to energy
-      do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-            do  i=lo(1),hi(1)
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+      do i=lo(1),hi(1)
 
-               cup2(i,j,k,5) = cup2(i,j,k,5) + 0.25d0*dt*cup(i,j,k,1)* &
-                    ( grav(1)*cup(i,j,k,2) & 
-                    + grav(2)*cup(i,j,k,3) & 
-                    + grav(3)*cup(i,j,k,4) )
+         cup2(i,j,k,5) = cup2(i,j,k,5) + 0.25d0*dt*cup(i,j,k,1)* &
+              ( grav(1)*cup(i,j,k,2) & 
+              + grav(2)*cup(i,j,k,3) & 
+              + grav(3)*cup(i,j,k,4) )
 
-            enddo
-         enddo
       enddo
-
-    ! print *, "Flo2: ", xflux(lo(1),0,0,1:nvars)
-    ! print *, "Flo2+1: ", xflux(lo(1)+1,0,0,1:nvars)
-    ! print *, "Fhi2: ", xflux(hi(1)+1,0,0,1:nvars)
-    ! print *, "Fhi2-1: ", xflux(hi(1),0,0,1:nvars)
-
-    ! print *, "Cslo2: ", cup(lo(1),0,0,1:nvars)
-    ! print *, "Cslo2+1: ", cup(lo(1)+1,0,0,1:nvars)
-    ! print *, "Cshi2: ", cup(hi(1),0,0,1:nvars)
-    ! print *, "Cshi2-1: ", cup(hi(1)-1,0,0,1:nvars)
-
-    ! print *, "Cflo2: ", cup2(lo(1),0,0,1:nvars)
-    ! print *, "Cflo2+1: ", cup2(lo(1)+1,0,0,1:nvars)
-    ! print *, "Cfhi2: ", cup2(hi(1),0,0,1:nvars)
-    ! print *, "Cfhi2-1: ", cup2(hi(1)-1,0,0,1:nvars)
-
-    ! print *, "Flo2: ", yflux(0,lo(2),0,1:nvars)
-    ! print *, "Flo2+1: ", yflux(0,lo(2)+1,0,1:nvars)
-    ! print *, "Fhi2: ", yflux(0,hi(2)+1,0,1:nvars)
-    ! print *, "Fhi2-1: ", yflux(0,hi(2),0,1:nvars)
-
-    ! print *, "Cslo2: ", cup(0,lo(2),0,1:nvars)
-    ! print *, "Cslo2+1: ", cup(0,lo(2)+1,0,1:nvars)
-    ! print *, "Cshi2: ", cup(0,hi(2),0,1:nvars)
-    ! print *, "Cshi2-1: ", cup(0,hi(2)-1,0,1:nvars)
-
-    ! print *, "Cflo2: ", cup2(0,lo(2),0,1:nvars)
-    ! print *, "Cflo2+1: ", cup2(0,lo(2)+1,0,1:nvars)
-    ! print *, "Cfhi2: ", cup2(0,hi(2),0,1:nvars)
-    ! print *, "Cfhi2-1: ", cup2(0,hi(2)-1,0,1:nvars)
-
+      enddo
+      enddo
 
   end subroutine rk3_stage2
 
@@ -229,17 +151,14 @@ contains
 
       integer         , intent(in   ) :: lo(3),hi(3)
       real(amrex_real), intent(in   ) :: dx(3), dt
-
-      real(amrex_real), intent(inout) :: cu(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-      real(amrex_real), intent(in   ) :: cup(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-      real(amrex_real), intent(in   ) :: cup2(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-
-      real(amrex_real), intent(in)    :: source(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-
-      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3), nvars)
-      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3), nvars)
+      real(amrex_real), intent(inout) :: cu    (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in   ) :: cup   (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in   ) :: cup2  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in)    :: source(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
+      real(amrex_real), intent(in   ) :: xflux(lo(1):hi(1)+1,lo(2):hi(2),lo(3):hi(3),nvars)
+      real(amrex_real), intent(in   ) :: yflux(lo(1):hi(1),lo(2):hi(2)+1,lo(3):hi(3),nvars)
 #if (AMREX_SPACEDIM == 3)
-      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1, nvars)
+      real(amrex_real), intent(in   ) :: zflux(lo(1):hi(1),lo(2):hi(2),lo(3):hi(3)+1,nvars)
 #endif
       integer :: i,j,k,l
       real(amrex_real) :: dxinv(3), twothirds
@@ -247,62 +166,48 @@ contains
       dxinv = 1d0/dx
       twothirds = 2d0/3d0
 
-      do  l=1,nvars
-        do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-           do  i=lo(1),hi(1)
+      do l=1,nvars
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+      do i=lo(1),hi(1)
 
-                 cu(i,j,k,l) =  twothirds*(0.5*cu(i,j,k,l) + cup2(i,j,k,l)              &
-                                - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
-                                - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
+         cu(i,j,k,l) =  twothirds*(0.5*cu(i,j,k,l) + cup2(i,j,k,l)              &
+              - dt*(xflux(i+1,j,k,l)-xflux(i,j,k,l))*dxinv(1)  & 
+              - dt*(yflux(i,j+1,k,l)-yflux(i,j,k,l))*dxinv(2)  &
 #if (AMREX_SPACEDIM == 3)
-                                - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
+              - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
-                                + dt*source(i,j,k,l))
+              + dt*source(i,j,k,l))
 
-           enddo
-          enddo
-        enddo
+      enddo
+      enddo
+      enddo
       enddo
 
-      
       ! Add gravity to velocity
-      do  l=2,4
-        do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-           do  i=lo(1),hi(1)
-              
-              cu(i,j,k,l) = cu(i,j,k,l) + twothirds*dt*cup2(i,j,k,1)*grav(l-1)
-
-           enddo
-          enddo
-        enddo
+      do l=2,4
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+      do i=lo(1),hi(1)
+         cu(i,j,k,l) = cu(i,j,k,l) + twothirds*dt*cup2(i,j,k,1)*grav(l-1)
+      enddo
+      enddo
+      enddo
       enddo
       
       ! Add gravity to energy
-      do  k=lo(3),hi(3)
-         do  j=lo(2),hi(2)
-            do  i=lo(1),hi(1)
+      do k=lo(3),hi(3)
+      do j=lo(2),hi(2)
+      do i=lo(1),hi(1)
 
-               cu(i,j,k,5) = cu(i,j,k,5) + twothirds*dt*cup2(i,j,k,1)* &
-                    ( grav(1)*cup2(i,j,k,2) & 
-                    + grav(2)*cup2(i,j,k,3) & 
-                    + grav(3)*cup2(i,j,k,4) )
+         cu(i,j,k,5) = cu(i,j,k,5) + twothirds*dt*cup2(i,j,k,1)* &
+              ( grav(1)*cup2(i,j,k,2) & 
+              + grav(2)*cup2(i,j,k,3) & 
+              + grav(3)*cup2(i,j,k,4) )
 
-            enddo
-         enddo
       enddo
-
-
-!     print *, "lo3: ", xflux(lo(1),0,0,1:nvars)
-!     print *, "lo3+1: ", xflux(lo(1)+1,0,0,1:nvars)
-!     print *, "hi3: ", xflux(hi(1)+1,0,0,1:nvars)
-!     print *, "hi3-1: ", xflux(hi(1),0,0,1:nvars)
-
-!     print *, "lo3: ", yflux(0,lo(2),0,1:nvars)
-!     print *, "lo3+1: ", yflux(0,lo(2)+1,0,1:nvars)
-!     print *, "hi3: ", yflux(0,hi(2)+1,0,1:nvars)
-!     print *, "hi3-1: ", yflux(0,hi(2),0,1:nvars)
+      enddo
+      enddo
 
   end subroutine rk3_stage3
 

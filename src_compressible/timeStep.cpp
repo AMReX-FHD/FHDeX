@@ -23,6 +23,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& visccorn, MultiFab& rancorn,
              const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
 {
+    
     /////////////////////////////////////////////////////
     // Initialize white noise fields
 
@@ -97,15 +98,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     rancorn.setVal(0.0);
 
     // apply weights (only momentum and energy)
-    for(int d=0;d<AMREX_SPACEDIM;d++)
-      {
-
+    for(int d=0;d<AMREX_SPACEDIM;d++) {
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
 			  1, nvars-1, 0);
-
-      }
+    }
 
     MultiFab::LinComb(rancorn, 
 		      stoch_weights[0], rancorn_A, 0, 
@@ -117,8 +115,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dx, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
-    {
+    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+        
         const Box& bx = mfi.validbox();
 
         rk3_stage1(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
@@ -156,15 +154,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     rancorn.setVal(0.0);
 
     // apply weights (only momentum and energy)
-    for(int d=0;d<AMREX_SPACEDIM;d++)
-      {
-
+    for(int d=0;d<AMREX_SPACEDIM;d++) {
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
 			  1, nvars-1, 0);
-
-      }
+    }
 
     MultiFab::LinComb(rancorn, 
 		      stoch_weights[0], rancorn_A, 0, 
@@ -176,8 +171,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dx, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
-    {
+    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+        
         const Box& bx = mfi.validbox();
 
         rk3_stage2(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
@@ -216,15 +211,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     rancorn.setVal(0.0);
 
     // apply weights (only momentum and energy)
-    for(int d=0;d<AMREX_SPACEDIM;d++)
-      {
-
+    for(int d=0;d<AMREX_SPACEDIM;d++) {
 	MultiFab::LinComb(stochFlux[d], 
 			  stoch_weights[0], stochFlux_A[d], 1, 
 			  stoch_weights[1], stochFlux_B[d], 1,
 			  1, nvars-1, 0);
-
-      }
+    }
 
     MultiFab::LinComb(rancorn, 
 		      stoch_weights[0], rancorn_A, 0, 
@@ -236,8 +228,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
                   visccorn, rancorn, geom, stoch_weights, dx, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi)
-    {
+    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+        
         const Box& bx = mfi.validbox();
 
         rk3_stage3(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
