@@ -22,6 +22,14 @@ namespace ib_flagellum {
     extern amrex::Vector<amrex::Real>     k_spring;
     extern amrex::Vector<amrex::Real>     k_driving;
 
+    extern int fourier_coef_len;
+    extern std::string chlamy_flagellum_datafile;
+}
+
+
+namespace chlamy_flagellum {
+    extern amrex::Vector<amrex::Vector<amrex::Real>> a_coef;
+    extern amrex::Vector<amrex::Vector<amrex::Real>> b_coef;
 }
 
 
