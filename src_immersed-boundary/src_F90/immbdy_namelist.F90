@@ -9,6 +9,8 @@ module immbdy_namelist_module
     ! Parameter controlling the minimum number of ghost cells in the immersed boundary
     ! marker container => gris can't be smaller thant this
     integer, parameter :: IBMC_MIN_NGHOST = 4
+    ! Parameter controlling the string buffer size.
+    integer, parameter :: STRING_BUFF_LEN = 150
 
 
     integer,                       save :: n_immbdy
@@ -46,7 +48,7 @@ module immbdy_namelist_module
     namelist /ib_flagellum/ fourier_coef_len
     namelist /ib_flagellum/ chlamy_flagellum_datafile
 
-    ! fourier series analysis based on experimenatal data on chlamy
+    ! fourier series analysis based on experimental data on chlamy
     namelist /chlamy_flagellum/ a_coeff
     namelist /chlamy_flagellum/ b_coeff
 
@@ -92,15 +94,18 @@ contains
             k_spring(:)    = 0
             k_driving(:)   = 0
 
+            ! ensure that the filename string buffer is large enough
+            allocate(character(len=STRING_BUFF_LEN)::chlamy_flagellum_datafile)
+
             ! default file name for any additional chlamy data
             fourier_coef_len = 0
-            chlamy_flagellum_datafile = "none"
+            chlamy_flagellum_datafile(1:4) = "none"
+            chlamy_flagellum_datafile(5:) = " " ! delete any junk
 
             ! read in immbdy namelist
             open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
             read(unit=100, nml=ib_flagellum)
             close(unit=100)
-
         end if
 
     end subroutine read_immbdy_namelist
