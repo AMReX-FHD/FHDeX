@@ -27,8 +27,8 @@ module immbdy_namelist_module
     real(amrex_real), allocatable, save :: k_driving(:)
 
     integer,                       save :: fourier_coef_len
-    real(amrex_real), allocatable, save :: a_coef(:)
-    real(amrex_real), allocatable, save :: b_coef(:)
+    real(amrex_real), allocatable, save :: a_coef(:,:,:)
+    real(amrex_real), allocatable, save :: b_coef(:,:,:)
     character(:),     allocatable, save :: chlamy_flagellum_datafile
 
 
@@ -109,6 +109,27 @@ contains
             ! read in immbdy namelist
             open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
             read(unit=100, nml=ib_flagellum)
+            close(unit=100)
+        end if
+
+        if (contains_flagellum .and. contains_fourier) then
+
+            ! fourier_coef_len has already been initialized before, but (just in
+            ! case the `fourier_coef_len` field is overwritten in the chlamy data
+            ! file, we'll load it again here
+
+            open(unit=100, file=chlamy_flagellum_datafile, status='old', action='read')
+            read(unit=100, nml=ib_flagellum)
+            close(unit=100)
+
+            ! now we can allocate the correct array sizes ahead of loading the
+            ! coefficient tables
+
+            allocate(a_coef(fourier_coef_len, maxval(n_marker), n_immbdy))
+            allocate(b_coef(fourier_coef_len, maxval(n_marker), n_immbdy))
+
+            open(unit=100, file=chlamy_flagellum_datafile, status='old', action='read')
+            read(unit=100, nml=chlamy_flagellum)
             close(unit=100)
         end if
 
