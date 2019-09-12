@@ -126,42 +126,6 @@ void WritePlotFile(int step,
     cvarNames[44] = "iyVar";
     cvarNames[45] = "izVar";
 
-//    cplotfile.mult(0.001,2,1);    //cgs coords density
-//    cplotfile.mult(0.001,12,1);
-//    cplotfile.mult(0.000001,24,1);   
-
-//    cplotfile.mult(100,2,1);  //cgs coords velocity
-//    cplotfile.mult(100,3,1);
-//    cplotfile.mult(100,4,1);
-//    cplotfile.mult(100,13,1);
-//    cplotfile.mult(100,14,1);
-//    cplotfile.mult(100,15,1);
-//    cplotfile.mult(10000,25,1);
-//    cplotfile.mult(10000,26,1);
-//    cplotfile.mult(10000,27,1);
-
-//    cplotfile.mult(0.1,6,1);  //cgs coords momentum density
-//    cplotfile.mult(0.1,7,1);
-//    cplotfile.mult(0.1,8,1);
-//    cplotfile.mult(0.1,17,1);
-//    cplotfile.mult(0.1,18,1);
-//    cplotfile.mult(0.1,19,1);
-//    cplotfile.mult(0.01,29,1);
-//    cplotfile.mult(0.01,30,1);
-//    cplotfile.mult(0.01,31,1);
-
-
-//    cplotfile.mult(10,9,1); //cgs coords energy density
-//    cplotfile.mult(10,20,1);
-//    cplotfile.mult(100,32,1);
-
-//    cplotfile.mult(0.1,10,1); //cgs coords pressure
-//    cplotfile.mult(0.1,21,1);
-//    cplotfile.mult(0.01,33,1);
-
-//    cplotfile.mult(10*0.001,38,1); //cgscoords energy/density cross
-//    cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
-//    cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
