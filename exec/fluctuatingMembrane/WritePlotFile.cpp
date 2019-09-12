@@ -163,11 +163,11 @@ void WritePlotFile(int step,
 //    cplotfile.mult(10*10,39,1); //cgscoords energy/energy cross
 //    cplotfile.mult(0.1*0.001,40,1); //cgscoords energy/energy cross
 
-    WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
+    //WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
     //WriteSingleLevelPlotfile(mplotfilename,mobility,fvarNames,geom,time,step);
 
-    WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
+    //WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
 
     particles.Checkpoint(pplotfilename, "particle0");
 

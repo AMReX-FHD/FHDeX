@@ -105,7 +105,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
                 // move particle to q^n + (dt/2) * Wtilde
                 part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
                 // scale by k_B*T/delta
-                part.rdata(StructReal::forcex + d) = force;
+                part.rdata(StructReal::forcex + d) = force * part.rdata(StructReal::pred_posx + d);
             }
         }
     }
@@ -127,7 +127,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
                 // move particle to q^n - (dt/2) * Wtilde (by subtracting dt * Wtilde)
                 part.pos(d) -= delta * part.rdata(StructReal::pred_posx + d);
                 // scale by -k_B*T/delta
-                part.rdata(StructReal::forcex + d) = -force;
+                part.rdata(StructReal::forcex + d) = -force * part.rdata(StructReal::pred_posx + d);
             }
         }
     }

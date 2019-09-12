@@ -26,8 +26,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = slip adiabatic, 2 = no slip thermal
-  bc_vel_lo(1:1) = -1 
-  bc_vel_hi(1:1) = -1 
+  bc_lo(1:1) = -1 
+  bc_hi(1:1) = -1 
 
 /
 
@@ -40,11 +40,11 @@
 
  diff_coef = 1.0  !1.
  noise_coef = .01 !
- umbrella = 65.000 ! starting umbrella value/fixed value when not using adaptive method
+ umbrella = 165.000 ! starting umbrella value/fixed value when not using adaptive method
  ! umbrella = 00.
 
  !phi0 = .5
- phi0 =0.00286481020
+ phi0 =1.0
  rad = .4
  n_inc_phi = 300000
  phi_inc =0.0001 ! increment parameter used when adaptive is off
@@ -55,11 +55,10 @@
  alpha=1.05  !spring constant scaling parameter
  r1=1.0 !phi0 step parameter, see overleaf notes
  r2=1.0  !overlap parameter, see overleaf notes
- umbrella_max=900.0   ! The adaptive method stops scaling the spring constant up after a value greater than or equal to this is reached
- umbrella_min=62.00     ! The adaptive method stops scaling the spring constant down after a value less than or equal to this is reached
+ umbrella_max=5000.0   ! The adaptive method stops scaling the spring constant up after a value greater than or equal to this is reached
+ umbrella_min=162.00     ! The adaptive method stops scaling the spring constant down after a value less than or equal to this is reached
  adaptive=1     ! 1= adaptive method used, 0= uniform phi_0 step method
- Reverse=0      ! 1= "backward" direction (i.e phi_0) is decreased, 0= "forward" direction (i.e phi_0) is increased
-
+ Reverse=1      ! 1= "backward" direction (i.e phi_0) is decreased, 0= "forward" direction (i.e phi_0) is increased
 
 
 /

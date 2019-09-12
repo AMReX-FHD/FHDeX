@@ -68,7 +68,7 @@ extern "C"
                                      amrex::Real* particle_grid_refine, amrex::Real* es_grid_refine,
                                      amrex::Real* diff, int* fluid_tog, int* es_tog, int* drag_tog,
                                      int* move_tog, int* rfd_tog, int* dry_move_tog, int* sr_tog,
-                                     int* graphene_tog, int* crange, int* thermostat_tog, int* images,
+                                     int* graphene_tog, int* crange, int* thermostat_tog, int* zero_net_force, int* images,
                                      amrex::Real* eamp, amrex::Real* efreq, amrex::Real* ephase,
                                      int* plot_ascii, int* solve_chem, amrex::Real* diffcoeff,
                                      amrex::Real* scaling_factor, amrex::Real* source_strength,

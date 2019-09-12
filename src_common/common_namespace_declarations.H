@@ -141,6 +141,7 @@ int                        common::dry_move_tog;
 int                        common::sr_tog;
 int                        common::graphene_tog;
 int	                   common::thermostat_tog;
+int	                   common::zero_net_force;
 
 int                        common::crange;
 
