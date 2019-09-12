@@ -99,6 +99,7 @@
   n_immbdy = 1
 
   contains_flagellum = true
+  contains_fourier   = true
 
 /
 

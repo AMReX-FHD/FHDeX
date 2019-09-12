@@ -4,6 +4,7 @@
 
 int  immbdy::n_immbdy;
 bool immbdy::contains_flagellum;
+bool immbdy::contains_fourier;
 
 // Flagellum
 amrex::Vector<int>             ib_flagellum::n_marker;

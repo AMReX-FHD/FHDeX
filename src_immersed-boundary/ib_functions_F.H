@@ -23,7 +23,8 @@ extern "C"
 
     void chlamy_flagellum_datafile_len(int * len_buffer);
 
-    void initialize_immbdy_namespace(int * n_immbdy, int * contains_flagellum);
+    void initialize_immbdy_namespace(int * n_immbdy, int * contains_flagellum,
+                                     int * contains_fourier);
 
     void initialize_ib_flagellum_namespace(
             int          n_immbdy,   int *        n_markers, void *       offset_0,

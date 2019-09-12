@@ -13,11 +13,10 @@ void InitializeImmbdyNamespace() {
     n_immbdy = 0;
     contains_flagellum = false;
 
-    int cf = 0;
-
-    initialize_immbdy_namespace(& n_immbdy, & cf);
-
+    int cf = 0, cfourier = 0;
+    initialize_immbdy_namespace(& n_immbdy, & cf, & cfourier);
     if (cf == 1) contains_flagellum = true;
+    if (cfourier == 1) contains_fourier = true;
 
 }
 

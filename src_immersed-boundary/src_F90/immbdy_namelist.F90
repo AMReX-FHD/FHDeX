@@ -15,6 +15,8 @@ module immbdy_namelist_module
 
     integer,                       save :: n_immbdy
     logical,                       save :: contains_flagellum
+    logical,                       save :: contains_fourier
+
     integer,          allocatable, save :: n_marker(:)
     real(amrex_real), allocatable, save :: offset_0(:, :)
     real(amrex_real), allocatable, save :: amplitude(:)
@@ -33,6 +35,7 @@ module immbdy_namelist_module
     ! most general immersed boundary information:
     namelist /immbdy/ n_immbdy
     namelist /immbdy/ contains_flagellum
+    namelist /immbdy/ contains_fourier
 
     ! information relevant to generic flagellum
     namelist /ib_flagellum/ n_marker
@@ -66,6 +69,7 @@ contains
         ! default values
         n_immbdy           = 0
         contains_flagellum = .false.
+        contains_fourier   = .false.
 
         ! read in immbdy namelist
         open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
@@ -121,16 +125,21 @@ contains
     end subroutine chlamy_flagellum_datafile_len
 
 
-    subroutine initialize_immbdy_namespace (n_immbdy_in, contains_flagellum_in) &
+    subroutine initialize_immbdy_namespace (n_immbdy_in, contains_flagellum_in, &
+            &                               contains_fourier_in               ) &
             bind(C, name="initialize_immbdy_namespace")
 
         integer(c_int), intent(inout) :: n_immbdy_in
         integer(c_int), intent(inout) :: contains_flagellum_in
+        integer(c_int), intent(inout) :: contains_fourier_in
 
         n_immbdy_in = n_immbdy
 
         contains_flagellum_in = 0
         if (contains_flagellum) contains_flagellum_in = 1
+
+        contains_fourier_in = 0
+        if (contains_fourier) contains_fourier_in = 1
 
     end subroutine initialize_immbdy_namespace
 

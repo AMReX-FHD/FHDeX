@@ -7,6 +7,7 @@ namespace immbdy {
     extern int n_immbdy;
 
     extern bool contains_flagellum;
+    extern bool contains_fourier;
 }
 
 
