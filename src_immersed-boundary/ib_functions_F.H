@@ -21,12 +21,18 @@ extern "C"
     // read fortran namelist into immbdy_namelist_module
     void read_immbdy_namelist(const char * inputs_file, const int length);
 
-    void initialize_immbdy_namespace(int * n_immbdy, int * contains_flagellum);
+    void chlamy_flagellum_datafile_len(int * len_buffer);
+
+    void flagellum_max_makers(int * max_n_makers);
+
+    void initialize_immbdy_namespace(int * n_immbdy, int * contains_flagellum,
+                                     int * contains_fourier);
 
     void initialize_ib_flagellum_namespace(
             int          n_immbdy,   int *        n_markers, void *       offset_0,
             amrex_real * amplitude,  amrex_real * frequency, amrex_real * length,
-            amrex_real * wavelength, amrex_real * k_spring,  amrex_real * k_driving
+            amrex_real * wavelength, amrex_real * k_spring,  amrex_real * k_driving,
+            int * fourier_coef_len,  const char * chlamy_flagellum_datafile
         );
 
     void test_interface(
