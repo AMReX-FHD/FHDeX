@@ -218,6 +218,7 @@ namespace common {
     extern int                        graphene_tog;
     extern int                        crange;
     extern int                        thermostat_tog;
+    extern int                        zero_net_force;
 
     extern int                        images;
     extern amrex::Vector<amrex::Real> eamp;

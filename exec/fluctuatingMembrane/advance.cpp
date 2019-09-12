@@ -85,15 +85,18 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
       //
       //
       //
-      Vector<Real> mean_stress_umac(AMREX_SPACEDIM);
+      if(zero_net_force == 1)
+      {
+          Vector<Real> mean_stress_umac(AMREX_SPACEDIM);
 
-      SumStag(geom,gmres_rhs_u,0,mean_stress_umac,true);
+          SumStag(geom,gmres_rhs_u,0,mean_stress_umac,true);
 
-      Print() << "mean_stress_umac: " << mean_stress_umac[0] << "\n";
+          Print() << "correcting mean force: " << mean_stress_umac[0] << "\n";
 
-      for (int d=0; d<AMREX_SPACEDIM; ++d) {
-          if (geom.isPeriodic(d)) {
-              gmres_rhs_u[d].plus(-mean_stress_umac[d],0,1,0);
+          for (int d=0; d<AMREX_SPACEDIM; ++d) {
+              if (geom.isPeriodic(d)) {
+                  gmres_rhs_u[d].plus(-mean_stress_umac[d],0,1,0);
+              }
           }
       }
       

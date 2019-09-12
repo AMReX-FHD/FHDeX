@@ -21,7 +21,7 @@
   max_step = 3
   plot_int = 1
   plot_ascii = 0 ! Write ascii in addition to plotfiles
-  plot_stag = 0 ! Write ascii in addition to plotfiles
+  plot_stag = 0 
   struct_fact_int = -1 ! Not implemented
   n_steps_skip = 1000
 
@@ -45,6 +45,7 @@
   ! negative = assume spatially-varying coefficients
   visc_coef = 1e-2
   visc_type = 1
+  zero_net_force = 0
 
   !particle initialization
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
