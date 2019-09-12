@@ -29,7 +29,7 @@ extern "C"
             int          n_immbdy,   int *        n_markers, void *       offset_0,
             amrex_real * amplitude,  amrex_real * frequency, amrex_real * length,
             amrex_real * wavelength, amrex_real * k_spring,  amrex_real * k_driving,
-            int * fourier_coef_len,  char * chlamy_flagellum_datafile
+            int * fourier_coef_len,  const char * chlamy_flagellum_datafile
         );
 
     void test_interface(

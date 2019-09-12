@@ -25,8 +25,8 @@ module immbdy_namelist_module
     real(amrex_real), allocatable, save :: k_driving(:)
 
     integer,                       save :: fourier_coef_len
-    real(amrex_real), allocatable, save :: a_coeff(:)
-    real(amrex_real), allocatable, save :: b_coeff(:)
+    real(amrex_real), allocatable, save :: a_coef(:)
+    real(amrex_real), allocatable, save :: b_coef(:)
     character(:),     allocatable, save :: chlamy_flagellum_datafile
 
 
@@ -49,8 +49,8 @@ module immbdy_namelist_module
     namelist /ib_flagellum/ chlamy_flagellum_datafile
 
     ! fourier series analysis based on experimental data on chlamy
-    namelist /chlamy_flagellum/ a_coeff
-    namelist /chlamy_flagellum/ b_coeff
+    namelist /chlamy_flagellum/ a_coef
+    namelist /chlamy_flagellum/ b_coef
 
 
 
@@ -178,11 +178,12 @@ contains
         ! number of fourier modes
         fourier_coef_len_in = fourier_coef_len
 
-        ! name of data file containing fourier modes
-        n = len(chlamy_flagellum_datafile)
+        ! name of data file containing fourier modes (note: use len_trim => the
+        ! _in pointer is only allocated to len_trim+1)
+        n = len_trim(chlamy_flagellum_datafile)
         do i = 1, n
             ! you need to "substring" into a fortran string to access a single character:
-            chlamy_flagellum_datafile_in(i) = chlamy_flagellum_datafile(i:i);
+           chlamy_flagellum_datafile_in(i) = chlamy_flagellum_datafile(i:i);
         end do
         chlamy_flagellum_datafile_in(n+1) = c_null_char
 

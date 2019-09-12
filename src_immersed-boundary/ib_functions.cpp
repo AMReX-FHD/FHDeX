@@ -49,8 +49,5 @@ void InitializeIBFlagellumNamespace() {
                                       & ib_flagellum::fourier_coef_len,
                                       chlamy_flagellum_datafile);
 
-
-
     ib_flagellum::chlamy_flagellum_datafile = chlamy_flagellum_datafile;
-    Print() << "data_file = " << ib_flagellum::chlamy_flagellum_datafile << std::endl;
 }
