@@ -590,6 +590,43 @@ contains
 
     end function kernel_6p
 
+    pure function kernel_3p(r_in)
+
+        ! The 3-point kernel function, based on Google?
+
+        ! ** output type
+        real(amrex_real) :: kernel_3p
+
+        ! ** input types
+        real(amrex_real), intent(in) :: r_in
+
+
+        ! ** internal variables
+        real(amrex_real) :: r
+        real(amrex_real) :: r1
+        real(amrex_real) :: r2
+
+        ! ** initialize r
+        r = r_in
+        r1 = abs(r_in)
+        r2 = r1*r1
+
+        if(r1 .le. 0.5) then
+
+          kernel_3p = (1 + sqrt(1-3*r2))/3
+
+        elseif(r1 .le. 1.5) then
+
+          kernel_3p = (5 - 3*r1 - sqrt(-3*(1-r1)*(1-r1)+1)) / 6.
+
+        else
+
+          kernel_3p = 0
+
+        endif
+
+    end function kernel_3p
+
 
 
     pure subroutine spread_kernel(lo,       hi,               &
@@ -676,6 +713,15 @@ contains
         ! invdx     => 1/dx
         real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
 
+
+        abstract interface
+          function kernel_np (r_in)
+             real :: kernel_np
+             real, intent (in) :: r_in
+          end function kernel_np
+        end interface
+
+        !procedure (func), pointer :: f_ptr => null ()
 
         !________________________________________________________________________
         ! compute geometric quantities : 1/dx and 1/dx^AMREX_SPACEDIM

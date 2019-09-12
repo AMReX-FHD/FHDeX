@@ -2361,8 +2361,6 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
 
   kinetic = 0
 
-        print *, "I see ", np, " particles."
-
   do k = lo(3), hi(3)
      do j = lo(2), hi(2)
         do i = lo(1), hi(1)
@@ -2597,7 +2595,8 @@ subroutine move_ions_fhd(particles, np, lo, hi, &
      end do
   end do
 
-  if(move_tog .eq. 2) then
+ print *, "I see ", np, " particles." 
+ if(move_tog .eq. 2) then
     print *, "Fraction of midpoint moves rejected: ", rejected/moves
   endif
   print *, "Maximum observed speed: ", sqrt(maxspeed)
