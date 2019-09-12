@@ -139,11 +139,21 @@ contains
     subroutine chlamy_flagellum_datafile_len(len_buffer) &
             bind(C, name="chlamy_flagellum_datafile_len")
 
-        integer(c_int), intent(inout) :: len_buffer
+        integer(c_int), intent(out) :: len_buffer
 
         len_buffer = len_trim(chlamy_flagellum_datafile)
 
     end subroutine chlamy_flagellum_datafile_len
+
+
+    subroutine flagellum_max_markers(max_n_markers) &
+            bind(C, name="flagellum_max_markers")
+
+        integer(c_int), intent(out) :: max_n_markers
+
+        max_n_markers = maxval(n_marker)
+
+    end subroutine flagellum_max_markers
 
 
     subroutine initialize_immbdy_namespace (n_immbdy_in, contains_flagellum_in, &
@@ -218,5 +228,15 @@ contains
         chlamy_flagellum_datafile_in(n+1) = c_null_char
 
     end subroutine initialize_ib_flagellum_namespace
+
+
+    subroutine initialize_chlamy_flagellum_namespace(a_coef_in, b_coef_in) &
+            bind(C, name="initialize_chlamy_flagellum_namespace")
+
+        real(amrex_real), intent(inout) :: a_coef_in(fourier_coef_len, maxval(n_marker), n_immbdy)
+        real(amrex_real), intent(inout) :: b_coef_in(fourier_coef_len, maxval(n_marker), n_immbdy)
+
+
+    end subroutine initialize_chlamy_flagellum_namespace
 
 end module immbdy_namelist_module
