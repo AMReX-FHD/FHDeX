@@ -99,12 +99,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                // using pred_pos to temporarily store the random direction - hopefully this doesn't cause problems elsewhere
+                // using pred_pos to temporarily store the random direction -
+                // hopefully this doesn't cause problems elsewhere
                 part.rdata(StructReal::pred_posx + d) =  get_particle_normal_func();
 
                 // move particle to q^n + (dt/2) * Wtilde
                 part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
                 // scale by k_B*T/delta
+                // NOTE: this assumed that the pred_pos* fields are
+                // displacement vectors wrt pos(*)
                 part.rdata(StructReal::forcex + d) = force * part.rdata(StructReal::pred_posx + d);
             }
         }
@@ -124,9 +127,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                // move particle to q^n - (dt/2) * Wtilde (by subtracting dt * Wtilde)
+                // move particle to q^n - (dt/2) * Wtilde (by subtracting dt *
+                // Wtilde)
                 part.pos(d) -= delta * part.rdata(StructReal::pred_posx + d);
                 // scale by -k_B*T/delta
+                // NOTE: this assumed that the pred_pos* fields are
+                // displacement vectors wrt pos(*)
                 part.rdata(StructReal::forcex + d) = -force * part.rdata(StructReal::pred_posx + d);
             }
         }
@@ -146,7 +152,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                // move particle back to original position q^n (by adding dt/2 * Wtilde)
+                // move particle back to original position q^n (by adding dt/2
+                // * Wtilde)
                 part.pos(d) += deltaover2 * part.rdata(StructReal::pred_posx + d);
                 // scale by 0
                 part.rdata(StructReal::forcex + d) = 0;
@@ -731,8 +738,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::ReadStaticParameters() {
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
         if (this->do_tiling)
-            this->tile_size = IntVect{AMREX_D_DECL(max_grid_size[0],max_grid_size[1],max_grid_size[2])};
+            this->tile_size = IntVect{AMREX_D_DECL(max_grid_size[0],
+                                                   max_grid_size[1],
+                                                   max_grid_size[2])};
             //this->tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
+
         // User can overwrite
         Vector<int> ts(BL_SPACEDIM);
         if (pp.queryarr("tile_size", ts))
