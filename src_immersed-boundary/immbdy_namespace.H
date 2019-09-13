@@ -29,8 +29,8 @@ namespace ib_flagellum {
 
 
 namespace chlamy_flagellum {
-    extern amrex::Vector<amrex::Vector<amrex::Real>> a_coef;
-    extern amrex::Vector<amrex::Vector<amrex::Real>> b_coef;
+    extern amrex::Vector<amrex::Vector<amrex::Vector<amrex::Real>>> a_coef;
+    extern amrex::Vector<amrex::Vector<amrex::Vector<amrex::Real>>> b_coef;
 }
 
 

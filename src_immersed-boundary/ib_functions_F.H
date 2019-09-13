@@ -23,7 +23,7 @@ extern "C"
 
     void chlamy_flagellum_datafile_len(int * len_buffer);
 
-    void flagellum_max_makers(int * max_n_makers);
+    void flagellum_max_markers(int * max_n_makers);
 
     void initialize_immbdy_namespace(int * n_immbdy, int * contains_flagellum,
                                      int * contains_fourier);
@@ -34,6 +34,9 @@ extern "C"
             amrex_real * wavelength, amrex_real * k_spring,  amrex_real * k_driving,
             int * fourier_coef_len,  const char * chlamy_flagellum_datafile
         );
+
+    void copy_ib_fourier_data(int i_marker, int i_immbdy,
+                              void * a_coef, void * b_coef);
 
     void test_interface(
             void * particle_info, int * np
