@@ -123,10 +123,12 @@ contains
             close(unit=100)
 
             ! now we can allocate the correct array sizes ahead of loading the
-            ! coefficient tables
+            ! coefficient tables. Also note that the last marker does not store
+            ! any fourier values (as it does not have a next neighbor wrt which
+            ! it can bend)
 
-            allocate(a_coef(fourier_coef_len, maxval(n_marker), n_immbdy))
-            allocate(b_coef(fourier_coef_len, maxval(n_marker), n_immbdy))
+            allocate(a_coef(fourier_coef_len, maxval(n_marker)-1, n_immbdy))
+            allocate(b_coef(fourier_coef_len, maxval(n_marker)-1, n_immbdy))
 
             open(unit=100, file=chlamy_flagellum_datafile, status='old', action='read')
             read(unit=100, nml=chlamy_flagellum)
@@ -230,13 +232,18 @@ contains
     end subroutine initialize_ib_flagellum_namespace
 
 
-    subroutine initialize_chlamy_flagellum_namespace(a_coef_in, b_coef_in) &
-            bind(C, name="initialize_chlamy_flagellum_namespace")
+    subroutine copy_ib_fourier_data(i_immbdy, i_marker,   &
+            &                       a_coef_in, b_coef_in) &
+            bind(C, name="copy_ib_fourier_data")
 
-        real(amrex_real), intent(inout) :: a_coef_in(fourier_coef_len, maxval(n_marker), n_immbdy)
-        real(amrex_real), intent(inout) :: b_coef_in(fourier_coef_len, maxval(n_marker), n_immbdy)
+        integer(c_int), intent(in), value :: i_immbdy, i_marker
 
+        real(amrex_real), intent(inout) :: a_coef_in(fourier_coef_len)
+        real(amrex_real), intent(inout) :: b_coef_in(fourier_coef_len)
 
-    end subroutine initialize_chlamy_flagellum_namespace
+        a_coef_in(:) = a_coef(:, i_marker, i_immbdy)
+        b_coef_in(:) = b_coef(:, i_marker, i_immbdy)
+
+    end subroutine copy_ib_fourier_data
 
 end module immbdy_namelist_module
