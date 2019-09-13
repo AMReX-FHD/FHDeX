@@ -20,6 +20,7 @@ amrex::Vector<amrex::Real>     ib_flagellum::k_driving;
 int ib_flagellum::fourier_coef_len;
 std::string ib_flagellum::chlamy_flagellum_datafile;
 
+amrex::Vector<amrex::Vector<int>> chlamy_flagellum::N;
 amrex::Vector<amrex::Vector<amrex::Vector<amrex::Real>>> chlamy_flagellum::a_coef;
 amrex::Vector<amrex::Vector<amrex::Vector<amrex::Real>>> chlamy_flagellum::b_coef;
 

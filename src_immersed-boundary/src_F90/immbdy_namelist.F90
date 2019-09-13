@@ -27,6 +27,7 @@ module immbdy_namelist_module
     real(amrex_real), allocatable, save :: k_driving(:)
 
     integer,                       save :: fourier_coef_len
+    integer,          allocatable, save :: N(:,:)
     real(amrex_real), allocatable, save :: a_coef(:,:,:)
     real(amrex_real), allocatable, save :: b_coef(:,:,:)
     character(:),     allocatable, save :: chlamy_flagellum_datafile
@@ -52,6 +53,7 @@ module immbdy_namelist_module
     namelist /ib_flagellum/ chlamy_flagellum_datafile
 
     ! fourier series analysis based on experimental data on chlamy
+    namelist /chlamy_flagellum/ N
     namelist /chlamy_flagellum/ a_coef
     namelist /chlamy_flagellum/ b_coef
 
@@ -129,6 +131,7 @@ contains
 
             allocate(a_coef(fourier_coef_len, maxval(n_marker)-1, n_immbdy))
             allocate(b_coef(fourier_coef_len, maxval(n_marker)-1, n_immbdy))
+            allocate(N(maxval(n_marker)-1, n_immbdy))
 
             open(unit=100, file=chlamy_flagellum_datafile, status='old', action='read')
             read(unit=100, nml=chlamy_flagellum)
@@ -232,15 +235,17 @@ contains
     end subroutine initialize_ib_flagellum_namespace
 
 
-    subroutine copy_ib_fourier_data(i_immbdy, i_marker,   &
-            &                       a_coef_in, b_coef_in) &
+    subroutine copy_ib_fourier_data(i_immbdy, i_marker,         &
+            &                       N_in, a_coef_in, b_coef_in) &
             bind(C, name="copy_ib_fourier_data")
 
         integer(c_int), intent(in), value :: i_immbdy, i_marker
 
+        integer(c_int),   intent(inout) :: N_in
         real(amrex_real), intent(inout) :: a_coef_in(fourier_coef_len)
         real(amrex_real), intent(inout) :: b_coef_in(fourier_coef_len)
 
+        N_in         = N(i_marker, i_immbdy)
         a_coef_in(:) = a_coef(:, i_marker, i_immbdy)
         b_coef_in(:) = b_coef(:, i_marker, i_immbdy)
 

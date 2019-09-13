@@ -36,7 +36,7 @@ extern "C"
         );
 
     void copy_ib_fourier_data(int i_marker, int i_immbdy,
-                              void * a_coef, void * b_coef);
+                              int * N, void * a_coef, void * b_coef);
 
     void test_interface(
             void * particle_info, int * np
