@@ -1,6 +1,6 @@
     module ib_fort_utils
-        use amrex_fort_module, only: amrex_real, amrex_particle_real
-    use common_namelist_module, only: pkernel_fluid
+        use amrex_fort_module,      only: amrex_real, amrex_particle_real
+        use common_namelist_module, only: pkernel_fluid
     use iso_c_binding,     only: c_int
 
     implicit none
@@ -274,12 +274,15 @@ contains
         do k = lo(3), hi(3)
             do j = lo(2), hi(2)
                 do i = lo(1), hi(1)
-                   ! print *, " center ",cent
+                    ! print *, " center ",cent
                     pos = (/ (i+0.5)*dx(1), (j+0.5)*dx(2), (k+0.5)*dx(3) /)
-                   ! print *," ori ", ori1
+                    ! print *," ori ", ori1
                     vect=cent-pos !part_info%pos
                     dot=ori1(1)*vect(1)+ori1(2)*vect(2)+ori1(3)*vect(3)
-                    ! if we are on the interface and on the " bottom half " of the particle (with respect to the orientation  ie dot <=0) then there is catalyst present in this cell, otherwise there isn't
+                    ! if we are on the interface and on the " bottom half " of
+                    ! the particle (with respect to the orientation  ie dot <=0)
+                    ! then there is catalyst present in this cell, otherwise
+                    ! there isn't
                     !if (iface(i,j,k)==1) then
                     !print *, iface(i,j,k)!" dot ", dot, "pos", pos(3), "vect", vect(3)
                     !end if
@@ -466,7 +469,7 @@ contains
 
 
 
-    function kernel_6p(r_in)
+    pure function kernel_6p(r_in)
 
         ! The 6-point kernel function, based on the paper:
         !
@@ -589,7 +592,7 @@ contains
 
     end function kernel_6p
 
-    function kernel_3p(r_in)
+    pure function kernel_3p(r_in)
 
         ! The 3-point kernel function, based on Google?
 
@@ -629,16 +632,16 @@ contains
 
 
     subroutine spread_kernel(lo,       hi,               &
-            &                     mf_x,     mfx_lo,   mfx_hi, &
-            &                     mf_y,     mfy_lo,   mfy_hi, &
-            &                     mf_z,     mfz_lo,   mfz_hi, &
-            &                     weight_x, wfx_lo,   wfx_hi, &
-            &                     weight_y, wfy_lo,   wfy_hi, &
-            &                     weight_z, wfz_lo,   wfz_hi, &
-            &                     coords_x, cx_lo,    cx_hi,  &
-            &                     coords_y, cy_lo,    cy_hi,  &
-            &                     coords_z, cz_lo,    cz_hi,  &
-            &                     pos,      v_spread, dx      )
+            &                mf_x,     mfx_lo,   mfx_hi, &
+            &                mf_y,     mfy_lo,   mfy_hi, &
+            &                mf_z,     mfz_lo,   mfz_hi, &
+            &                weight_x, wfx_lo,   wfx_hi, &
+            &                weight_y, wfy_lo,   wfy_hi, &
+            &                weight_z, wfz_lo,   wfz_hi, &
+            &                coords_x, cx_lo,    cx_hi,  &
+            &                coords_y, cy_lo,    cy_hi,  &
+            &                coords_z, cz_lo,    cz_hi,  &
+            &                pos,      v_spread, dx      )
 
 
         !________________________________________________________________________
@@ -713,9 +716,9 @@ contains
         real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
 
 
-        !_________________
-        ! Using function pointer to specify kernel type - some question as to optimal approach here. DRL.
-
+        !________________________________________________________________________
+        ! Using function pointer to specify kernel type - some question as to
+        ! optimal approach here. DRL.
         abstract interface
           function kernel_np (r_in)
              use amrex_fort_module, only: amrex_real
@@ -725,6 +728,11 @@ contains
         end interface
 
         procedure (kernel_np), pointer :: kernel_ptr => null()
+
+        ! TODO: It makes sense to specify this function pointer globally (as the
+        ! pkernel_fluid parameter is also a global variable). I.e. when the
+        ! pkernel_fluid value is set => we save ourselves the followint IF
+        ! branch point. JPB.
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
@@ -946,16 +954,16 @@ contains
 
 
     subroutine interpolate_kernel(lo,       hi,               &
-            &                          mf_x,     mfx_lo,   mfx_hi, &
-            &                          mf_y,     mfy_lo,   mfy_hi, &
-            &                          mf_z,     mfz_lo,   mfz_hi, &
-            &                          weight_x, wfx_lo,   wfx_hi, &
-            &                          weight_y, wfy_lo,   wfy_hi, &
-            &                          weight_z, wfz_lo,   wfz_hi, &
-            &                          coords_x, cx_lo,    cx_hi,  &
-            &                          coords_y, cy_lo,    cy_hi,  &
-            &                          coords_z, cz_lo,    cz_hi,  &
-            &                          pos,      v_interp, dx      )
+            &                     mf_x,     mfx_lo,   mfx_hi, &
+            &                     mf_y,     mfy_lo,   mfy_hi, &
+            &                     mf_z,     mfz_lo,   mfz_hi, &
+            &                     weight_x, wfx_lo,   wfx_hi, &
+            &                     weight_y, wfy_lo,   wfy_hi, &
+            &                     weight_z, wfz_lo,   wfz_hi, &
+            &                     coords_x, cx_lo,    cx_hi,  &
+            &                     coords_y, cy_lo,    cy_hi,  &
+            &                     coords_z, cz_lo,    cz_hi,  &
+            &                     pos,      v_interp, dx      )
 
 
         !________________________________________________________________________
@@ -1030,9 +1038,9 @@ contains
         ! invdx            => 1/dx
         real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
 
-
-        !_________________
-        ! Using function pointer to specify kernel type - some question as to optimal approach here. DRL.
+        !________________________________________________________________________
+        ! Using function pointer to specify kernel type - some question as to
+        ! optimal approach here. DRL.
 
         abstract interface
           function kernel_np (r_in)
@@ -1043,6 +1051,11 @@ contains
         end interface
 
         procedure (kernel_np), pointer :: kernel_ptr => null()
+
+        ! TODO: It makes sense to specify this function pointer globally (as the
+        ! pkernel_fluid parameter is also a global variable). I.e. when the
+        ! pkernel_fluid value is set => we save ourselves the followint IF
+        ! branch point. JPB.
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
@@ -1283,13 +1296,13 @@ contains
 
 
     subroutine inv_interpolate_kernel(lo,       hi,               &
-            &                              mf_x,     mfx_lo,   mfx_hi, &
-            &                              mf_y,     mfy_lo,   mfy_hi, &
-            &                              mf_z,     mfz_lo,   mfz_hi, &
-            &                              coords_x, cx_lo,    cx_hi,  &
-            &                              coords_y, cy_lo,    cy_hi,  &
-            &                              coords_z, cz_lo,    cz_hi,  &
-            &                              pos,      v_spread, dx      )
+            &                         mf_x,     mfx_lo,   mfx_hi, &
+            &                         mf_y,     mfy_lo,   mfy_hi, &
+            &                         mf_z,     mfz_lo,   mfz_hi, &
+            &                         coords_x, cx_lo,    cx_hi,  &
+            &                         coords_y, cy_lo,    cy_hi,  &
+            &                         coords_z, cz_lo,    cz_hi,  &
+            &                         pos,      v_spread, dx      )
 
 
         !________________________________________________________________________
@@ -1346,8 +1359,9 @@ contains
         ! invdx     => 1/dx
         real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx, v_scaled
 
-        !_________________
-        ! Using function pointer to specify kernel type - some question as to optimal approach here. DRL.
+        !________________________________________________________________________
+        ! Using function pointer to specify kernel type - some question as to
+        ! optimal approach here. DRL.
 
         abstract interface
           function kernel_np (r_in)
@@ -1358,6 +1372,11 @@ contains
         end interface
 
         procedure (kernel_np), pointer :: kernel_ptr => null()
+
+        ! TODO: It makes sense to specify this function pointer globally (as the
+        ! pkernel_fluid parameter is also a global variable). I.e. when the
+        ! pkernel_fluid value is set => we save ourselves the followint IF
+        ! branch point. JPB.
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
@@ -1625,13 +1644,13 @@ contains
 
 
     subroutine inv_spread_kernel(lo,       hi,               &
-            &                         mf_x,     mfx_lo,   mfx_hi, &
-            &                         mf_y,     mfy_lo,   mfy_hi, &
-            &                         mf_z,     mfz_lo,   mfz_hi, &
-            &                         coords_x, cx_lo,    cx_hi,  &
-            &                         coords_y, cy_lo,    cy_hi,  &
-            &                         coords_z, cz_lo,    cz_hi,  &
-            &                         pos,      v_interp, dx      )
+            &                    mf_x,     mfx_lo,   mfx_hi, &
+            &                    mf_y,     mfy_lo,   mfy_hi, &
+            &                    mf_z,     mfz_lo,   mfz_hi, &
+            &                    coords_x, cx_lo,    cx_hi,  &
+            &                    coords_y, cy_lo,    cy_hi,  &
+            &                    coords_z, cz_lo,    cz_hi,  &
+            &                    pos,      v_interp, dx      )
 
 
         !________________________________________________________________________
@@ -1689,8 +1708,9 @@ contains
         ! invdx            => 1/dx
         real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx, interp_scaled
 
-        !_________________
-        ! Using function pointer to specify kernel type - some question as to optimal approach here. DRL.
+        !________________________________________________________________________
+        ! Using function pointer to specify kernel type - some question as to
+        ! optimal approach here. DRL.
 
         abstract interface
           function kernel_np (r_in)
@@ -1701,6 +1721,11 @@ contains
         end interface
 
         procedure (kernel_np), pointer :: kernel_ptr => null()
+
+        ! TODO: It makes sense to specify this function pointer globally (as the
+        ! pkernel_fluid parameter is also a global variable). I.e. when the
+        ! pkernel_fluid value is set => we save ourselves the followint IF
+        ! branch point. JPB.
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
