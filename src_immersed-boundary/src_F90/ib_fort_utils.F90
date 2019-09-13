@@ -778,7 +778,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
@@ -801,7 +801,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     mf_y(i, j, k)     = mf_y(i, j, k) + v_spread(2) * weight * invvol
@@ -826,7 +826,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight * invvol
@@ -1097,7 +1097,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight_x(i, j, k) .gt. 0) then
@@ -1127,7 +1127,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight_y(i, j, k) .gt. 0) then
@@ -1157,7 +1157,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight_z(i, j, k) .gt. 0) then
@@ -1425,7 +1425,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1447,7 +1447,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1474,7 +1474,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1496,7 +1496,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1524,7 +1524,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1546,7 +1546,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1783,7 +1783,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. 0) then
@@ -1812,7 +1812,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. 0) then
@@ -1841,7 +1841,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_6p(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll));
                     end do
 
                     if (weight .gt. 0) then
