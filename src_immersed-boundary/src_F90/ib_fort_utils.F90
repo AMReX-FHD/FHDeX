@@ -1,6 +1,8 @@
     module ib_fort_utils
+
         use amrex_fort_module,      only: amrex_real, amrex_particle_real
         use common_namelist_module, only: pkernel_fluid
+
     use iso_c_binding,     only: c_int
 
     implicit none
@@ -504,6 +506,7 @@ contains
         ! ** initialize r
         r = r_in
 
+
         ! ** compute kernel function
         if (r .le. -3) then
             kernel_6p = 0.
@@ -590,6 +593,7 @@ contains
 
             end function phi1
 
+
     end function kernel_6p
 
     pure function kernel_3p(r_in)
@@ -628,7 +632,6 @@ contains
         endif
 
     end function kernel_3p
-
 
 
     subroutine spread_kernel(lo,       hi,               &
@@ -719,9 +722,10 @@ contains
         !________________________________________________________________________
         ! Using function pointer to specify kernel type - some question as to
         ! optimal approach here. DRL.
+
         abstract interface
           function kernel_np (r_in)
-             use amrex_fort_module, only: amrex_real
+             use amrex_fort_module,      only: amrex_real
              real(amrex_real) :: kernel_np
              real(amrex_real), intent (in) :: r_in
           end function kernel_np
@@ -739,6 +743,9 @@ contains
         else
           kernel_ptr => kernel_6p
         endif
+
+        !procedure (func), pointer :: f_ptr => null ()
+
 
         !________________________________________________________________________
         ! compute geometric quantities : 1/dx and 1/dx^AMREX_SPACEDIM
@@ -771,7 +778,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
@@ -794,7 +801,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     mf_y(i, j, k)     = mf_y(i, j, k) + v_spread(2) * weight * invvol
@@ -819,7 +826,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight * invvol
@@ -830,6 +837,8 @@ contains
         end do
 
     end subroutine spread_kernel
+
+
 
     subroutine spread_markers(lo,         hi,                  &
             &                 tile_lo,    tile_hi,             &
@@ -951,8 +960,6 @@ contains
 
     end subroutine spread_markers
 
-
-
     subroutine interpolate_kernel(lo,       hi,               &
             &                     mf_x,     mfx_lo,   mfx_hi, &
             &                     mf_y,     mfy_lo,   mfy_hi, &
@@ -1063,7 +1070,6 @@ contains
           kernel_ptr => kernel_6p
         endif
 
-
         !________________________________________________________________________
         ! compute geometric quantity 1/dx
         invdx(:) = 1d0/dx(:)
@@ -1091,7 +1097,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight_x(i, j, k) .gt. 0) then
@@ -1121,7 +1127,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight_y(i, j, k) .gt. 0) then
@@ -1151,7 +1157,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight_z(i, j, k) .gt. 0) then
@@ -1295,6 +1301,7 @@ contains
 
 
 
+
     subroutine inv_interpolate_kernel(lo,       hi,               &
             &                         mf_x,     mfx_lo,   mfx_hi, &
             &                         mf_y,     mfy_lo,   mfy_hi, &
@@ -1384,7 +1391,6 @@ contains
           kernel_ptr => kernel_6p
         endif
 
-
         w_threshold = 1e-4
 
         !________________________________________________________________________
@@ -1419,7 +1425,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1441,7 +1447,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1468,7 +1474,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1490,7 +1496,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1518,7 +1524,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1540,7 +1546,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. w_threshold) then
@@ -1640,7 +1646,6 @@ contains
         end do
 
     end subroutine inv_interpolate_markers
-
 
 
     subroutine inv_spread_kernel(lo,       hi,               &
@@ -1778,7 +1783,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. 0) then
@@ -1807,7 +1812,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. 0) then
@@ -1836,7 +1841,7 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_6p(pos_grid(ll));
                     end do
 
                     if (weight .gt. 0) then
