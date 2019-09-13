@@ -630,6 +630,7 @@ void main_driver(const char* argv)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         source[d].setVal(0.0);
+        sourceTemp[d].setVal(0.0);
     }
 
     int step = 0;
@@ -779,6 +780,11 @@ void main_driver(const char* argv)
         AMREX_D_TERM(external[0].setVal(eamp[0]*cos(efreq[0]*time + ephase[0]));,
                      external[1].setVal(eamp[1]*cos(efreq[1]*time + ephase[1]));,
                      external[2].setVal(eamp[2]*cos(efreq[2]*time + ephase[2])););
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            source[d].setVal(0.0);
+            sourceTemp[d].setVal(0.0);
+        }
 
         if(rfd_tog==1) {
             // Apply RFD force to fluid

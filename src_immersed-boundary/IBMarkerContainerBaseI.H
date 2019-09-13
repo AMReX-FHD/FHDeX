@@ -114,7 +114,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
     }
 
     // spread this term into the velocity forcing
-    SpreadMarkers(lev, f_out);
+    SpreadMarkers(lev, f_out, dx);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -139,7 +139,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
     }
 
     // spread this term into the velocity forcing
-    SpreadMarkers(lev, f_out);
+    SpreadMarkers(lev, f_out, dx);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -234,22 +234,21 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
     }
 }
 
-
-
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
             const Vector<RealVect> & f_in,
             const Vector<RealVect> & f_pos,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-            std::array<MultiFab, AMREX_SPACEDIM> & f_weights
+            std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+            const Real* dx
         ) const {
 
 
     //___________________________________________________________________________
     // Geometry data
-    const Geometry & geom = this->Geom(0);
-    const Real     *   dx = geom.CellSize();
+//    const Geometry & geom = this->Geom(0);
+//    const Real     *   dx = geom.CellSize();
 
     const int n_marker = f_pos.size();
 
@@ -305,7 +304,27 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
-            std::array<MultiFab, AMREX_SPACEDIM> & f_out
+            const Vector<RealVect> & f_in,
+            const Vector<RealVect> & f_pos,
+            std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+            std::array<MultiFab, AMREX_SPACEDIM> & f_weights
+        ) const {
+
+
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = this->Geom(0);
+    const Real     *   dx = geom.CellSize();
+
+    SpreadMarkers(lev, f_in, f_pos, f_out, f_weights, dx);
+}
+
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
+            int lev,
+            std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+            const Real* dx
         ) const {
 
 
@@ -349,8 +368,22 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
-        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights, dx);
     }
+}
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
+            int lev,
+            std::array<MultiFab, AMREX_SPACEDIM> & f_out
+        ) const {
+
+        const Geometry & geom = this->Geom(0);
+        const Real     *   dx = geom.CellSize();
+        //_______________________________________________________________________
+        // Spread the non-neighbor particles (markers)
+        SpreadMarkers(lev, f_out, dx);
+    
 }
 
 

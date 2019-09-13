@@ -87,6 +87,12 @@ public:
                        const Vector<RealVect> & f_pos,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+    void SpreadMarkers(int lev,
+                       const Vector<RealVect> & f_in,
+                       const Vector<RealVect> & f_pos,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights, const Real* dx) const;
     //---------------------------------------------------------------------------
 
 
@@ -95,6 +101,9 @@ public:
     // Spreading operators applied to internal force fields (in amrex::Particles)
     void SpreadMarkers(int lev,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
+
+    void SpreadMarkers(int lev,
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out, const Real* dx) const;
 
     void SpreadPredictor(int lev,
                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;

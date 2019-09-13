@@ -37,6 +37,8 @@
 #include "debug_functions_F.H"
 #include "AMReX_ArrayLim.H"
 
+//#include <IBMarkerContainer.H>
+
 using namespace gmres;
 using namespace common;
 //using namespace amrex;
@@ -59,7 +61,8 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
 
-    //InitializeMembraneNamespace();
+    remove("potential.dat");
+    remove("kinetic.dat");
 
     const int n_rngs = 1;
 
@@ -134,7 +137,6 @@ void main_driver(const char* argv)
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-    //This must be an even number for now?
     bc = ba;
     bp = ba;
 
@@ -172,9 +174,6 @@ void main_driver(const char* argv)
     // how boxes are distrubuted among MPI processes
     // AJN needs to be fi
     DistributionMapping dmap(ba);
-
-    Print() << geom << "\n";
-    Print() << domain << "\n";
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
@@ -216,7 +215,7 @@ void main_driver(const char* argv)
     species ionParticle[nspecies];
 
     double realParticles = 0;
-    int simParticles = 0;
+    double simParticles = 0;
     double dryRad, wetRad;
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
@@ -300,25 +299,6 @@ void main_driver(const char* argv)
         realParticles = realParticles + ionParticle[i].total*particle_neff;
         simParticles = simParticles + ionParticle[i].total;
     }
-
-    double* spec3xPos;
-    double* spec3yPos;
-    double* spec3zPos;
-
-    spec3xPos = new double[simParticles];
-    spec3yPos = new double[simParticles];
-    spec3zPos = new double[simParticles];
-
-    double* spec3xForce;
-    double* spec3yForce;
-    double* spec3zForce;
-
-    spec3xForce = new double[simParticles];
-    spec3yForce = new double[simParticles];
-    spec3zForce = new double[simParticles];
-
-    int length = ionParticle[0].total;
-
     
     Print() << "Total real particles: " << realParticles << "\n";
     Print() << "Total sim particles: " << simParticles << "\n";
@@ -328,8 +308,6 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
-
-    
 
     // MFs for storing particle statistics
 
@@ -531,7 +509,7 @@ void main_driver(const char* argv)
     
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
-    pres.setVal(0.);  // initial guess
+   pres.setVal(0.);  // initial guess
 
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
@@ -649,10 +627,6 @@ void main_driver(const char* argv)
                  sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
                  sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        source[d].setVal(0.0);
-    }
-
     int step = 0;
     Real time = 0.;
     int statsCount = 1;
@@ -671,6 +645,43 @@ void main_driver(const char* argv)
     surface surfaceList[surfaceCount];
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
+
+	// IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
+
+    Vector<int> ts(BL_SPACEDIM);
+
+    //AMREX_D_TERM(ts[0] = max_grid_size[0];, ts[1] = max_grid_size[1];, ts[2] = max_grid_size[2];);
+
+    AMREX_D_TERM(
+        if(max_particle_tile_size[0] > 0)
+        {
+            ts[0] = max_particle_tile_size[0];
+        }else
+        {
+            ts[0] = max_grid_size[0];
+        },
+        if(max_particle_tile_size[1] > 0)
+        {
+            ts[1] = max_particle_tile_size[1];
+        }else
+        {
+            ts[1] = max_grid_size[1];
+        },
+        if(max_particle_tile_size[2] > 0)
+        {
+            ts[2] = max_particle_tile_size[2];
+        }else
+        {
+            ts[2] = max_grid_size[2];
+        }
+    );
+
+	ParmParse pp ("particles");
+    pp.addarr("tile_size", ts);
+
+
+
+	//pp.add("do_tiling", false);
 
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
@@ -735,7 +746,6 @@ void main_driver(const char* argv)
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
-       
     }
 
     //Centred electric fields
@@ -749,16 +759,10 @@ void main_driver(const char* argv)
     AMREX_D_TERM(efieldCC[0].setVal(0);,
                  efieldCC[1].setVal(0);,
                  efieldCC[2].setVal(0););
-
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, ionParticle, geom);
-
-    //READ MEMBRANE NML FILE HERE
-    //int filelength = 10;
-    //char filename[10] = "test";
-    user_force_calc_init(inputs_file.c_str(),inputs_file.size()+1);
  
     //Time stepping loop
     for(step=1;step<=max_step;++step)
@@ -776,86 +780,73 @@ void main_driver(const char* argv)
             sourceTemp[d].setVal(0.0);
         }
 
-        particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        if(rfd_tog==1) {
+            // Apply RFD force to fluid
+            particles.RFD(0, dx, sourceTemp);
+        }
+        else {
+            // set velx/y/z and forcex/y/z for each particle to zero
+            particles.ResetMarkers(0);
+        }
 
+        // sr_tog is short range forces
+        // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
         if(sr_tog==1 || es_tog==3)
         {
-                particles.Redistribute();
-                particles.clearNeighbors();
+            // each tile clears its neighbors
+            particles.clearNeighbors();
+            // fill the neighbor buffers for each tile with the proper data
+            particles.fillNeighbors();
 
-                particles.fillNeighbors();
-                particles.computeForcesNL(charge, RealCenteredCoords, dxp);
+            // compute short range forces (if sr_tog=1)
+            // compute P3M short range correction (if es_tog=3)
+            particles.computeForcesNL(charge, RealCenteredCoords, dxp);
+
         }
 
         if(es_tog==1 || es_tog==3)
         {
-            //Spreads charge density from ions onto multifab 'charge'.
+            // spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
-            // print charge multifab 
-            //int jloc = 1; // printing location
-            //int iloc = 27; // printing location
-            //int kloc = 27; // printing location
-            //for(MFIter mfi(charge); mfi.isValid(); ++mfi){
-            //        const Box& bx = mfi.validbox();
-            //        const int* lo = bx.loVect();
-            //        const int* hi = bx.hiVect();
-            //        const FArrayBox& MF_charge = charge[mfi];
-            //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_charge), &iloc, &jloc, &kloc);
-
-
         }
-        //Do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efield', then add 'external'.
+        
+        // do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efieldCC', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
 
-        // print potential multifab 
-        //int jloc = 1; // printing location
-        //int iloc = 27; // printing location
-        //int kloc = 27; // printing location
-        //for(MFIter mfi(potential); mfi.isValid(); ++mfi){
-        //        const Box& bx = mfi.validbox();
-        //        const int* lo = bx.loVect();
-        //        const int* hi = bx.hiVect();
-        //        const FArrayBox& MF_pot = potential[mfi];
-        //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_pot), &iloc, &jloc, &kloc);
-        //}
 
-        particles.SyncMembrane(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, simParticles, step, ionParticle);
-
-        //compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        // compute other forces and spread to grid
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
+                             surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
           sMflux.fillMStochastic();
-//          // compute stochastic momentum force
+
+          // compute stochastic momentum force
           sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 
-          if(fluid_tog ==2)
-          {
-            sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+          // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
+          if(fluid_tog ==2) {
+              sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
           }
-
         }
 
+        // AJN - should this be an if/else fluid_tog==2? DRL - No.
     	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-
-        if(fluid_tog ==2)
-        {
+        if(fluid_tog ==2) {
             advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
         }
 
+        // total particle move (1=single step, 2=midpoint)
         if(move_tog != 0)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
-
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
+                               surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
             particles.Redistribute();
             particles.ReBin();
-
-
             Print() << "Finish move.\n";
- 
         }
 
         //Start collecting statistics after step n_steps_skip
@@ -864,12 +855,11 @@ void main_driver(const char* argv)
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
             AMREX_D_TERM(umacM[0].setVal(0);,
-                     umacM[1].setVal(0);,
-                     umacM[2].setVal(0););
-
+                         umacM[1].setVal(0);,
+                         umacM[2].setVal(0););
             AMREX_D_TERM(umacV[0].setVal(0);,
-                     umacV[1].setVal(0);,
-                     umacV[2].setVal(0););
+                         umacV[1].setVal(0);,
+                         umacV[2].setVal(0););
 
             Print() << "Resetting stat collection.\n";
 
@@ -912,7 +902,6 @@ void main_driver(const char* argv)
         time = time + dt;
 
     }
-
     ///////////////////////////////////////////
     if (struct_fact_int > 0) {
 
@@ -935,11 +924,6 @@ void main_driver(const char* argv)
     //  structFact.WritePlotFile(step,time,geomP,"plt_SF");
 
     }
-
-
-    //CLEAN UP MEMBRANE STUFF HERE
-    user_force_calc_destroy();
-
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
