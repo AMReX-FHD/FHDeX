@@ -60,6 +60,29 @@ void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) 
 
 
 
+Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
+
+    if(immbdy::contains_fourier) {
+
+        return 0.;
+
+    } else {
+        int  N          = ib_flagellum::n_marker[i_ib];
+        Real L          = ib_flagellum::length[i_ib];
+        Real wavelength = ib_flagellum::wavelength[i_ib];
+        Real frequency  = ib_flagellum::frequency[i_ib];
+        Real amplitude  = ib_flagellum::amplitude[i_ib];
+        Real l_link     = L/(N-1);
+
+        Real theta = l_link*amp_ramp*amplitude*sin(2*M_PI*frequency*time
+                     + 2*M_PI/wavelength*index_marker*l_link);
+
+        return theta;
+    }
+}
+
+
+
 void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                        IBMarkerContainer & ib_mc, int ib_lev,
                        int component, bool pred_pos) {
@@ -89,13 +112,10 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
             ParticleType & mark = markers[i];
 
-            int i_ib        = mark.idata(IBM_intData::cpu_1);
-            int N           = ib_flagellum::n_marker[i_ib];
-            Real L          = ib_flagellum::length[i_ib];
-            Real wavelength = ib_flagellum::wavelength[i_ib];
-            Real frequency  = ib_flagellum::frequency[i_ib];
-            Real amplitude  = ib_flagellum::amplitude[i_ib];
-            Real l_link     = L/(N-1);
+            int i_ib    = mark.idata(IBM_intData::cpu_1);
+            int N       = ib_flagellum::n_marker[i_ib];
+            Real L      = ib_flagellum::length[i_ib];
+            Real l_link = L/(N-1);
 
             Real k_spr  = ib_flagellum::k_spring[i_ib];
             Real k_driv = ib_flagellum::k_driving[i_ib];
@@ -159,10 +179,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
                 // calling the active bending force calculation
                 // This a simple since wave imposed
-                Real theta = l_link*driv_amp*amplitude*sin(2*M_PI*frequency*time
-                             + 2*M_PI/wavelength*mark.idata(IBM_intData::id_1)*l_link);
 
-                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, theta, k_driv);
+                Real th = theta(driv_amp, time, i_ib, mark.idata(IBM_intData::id_1));
+                driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
                 // updating the force on the minus, current, and plus particles.
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
