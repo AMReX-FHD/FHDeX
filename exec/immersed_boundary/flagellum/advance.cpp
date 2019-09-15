@@ -55,12 +55,8 @@ void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) 
 
             // HAXOR, holding marker 0 fixed
             if((mark.idata(IBM_intData::id_1) == 0) || (mark.idata(IBM_intData::id_1) == 1) ) {
-                std::cout << "contraining marker " << mark.idata(IBM_intData::id_1) << ":"<< std::endl;
+                std::cout << "constraining marker " << mark.idata(IBM_intData::id_1) << ":"<< std::endl;
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    // std::cout << "    " << mark.rdata(IBM_realData::pred_velx + d) << std::endl;
-                    // std::cout << "    " << mark.rdata(IBM_realData::velx + d) << std::endl;
-                    // std::cout << "    " << mark.rdata(IBM_realData::pred_forcex + d) << std::endl;
-                    // std::cout << "    " << mark.rdata(IBM_realData::forcex + d) << std::endl;
 
                     mark.rdata(IBM_realData::pred_velx + d)   = 0;
                     mark.rdata(IBM_realData::velx + d)        = 0;
@@ -81,6 +77,10 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 
     if(immbdy::contains_fourier) {
 
+        // HAXOR: first node reserved as "anchor"
+        index_marker = std::max(0, index_marker-1);
+        amp_ramp     = 1.;
+
         int N                 = chlamy_flagellum::N[i_ib][index_marker];
         int coef_len          = ib_flagellum::fourier_coef_len;
         Vector<Real> & a_coef = chlamy_flagellum::a_coef[i_ib][index_marker];
@@ -89,7 +89,7 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
         Real dt = 1./N;
         Real th = 0;
 
-        time = 0; // HAXOR for now
+        // time = 0; // HAXOR for now
         Real k_fact = 2*M_PI/N;
         Real t_unit = time/dt;
         for (int i=0; i < coef_len; ++i) {

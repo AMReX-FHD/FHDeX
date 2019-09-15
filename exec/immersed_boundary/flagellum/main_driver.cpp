@@ -380,11 +380,13 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-        Vector<RealVect> marker_positions(N);
+        // HAXOR: first node reserved as "anchor"
+        Vector<RealVect> marker_positions(N+1);
         for (int i=0; i<marker_positions.size(); ++i)
             marker_positions[i] = RealVect{x_0[0] + i*l_link, x_0[1], x_0[2]};
 
-        Vector<Real> marker_radii(N);
+        // HAXOR: first node reserved as "anchor"
+        Vector<Real> marker_radii(N+1);
         for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
 
         ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
