@@ -382,8 +382,14 @@ void main_driver(const char * argv) {
 
         // HAXOR: first node reserved as "anchor"
         Vector<RealVect> marker_positions(N+1);
-        for (int i=0; i<marker_positions.size(); ++i)
-            marker_positions[i] = RealVect{x_0[0] + i*l_link, x_0[1], x_0[2]};
+        for (int i=0; i<marker_positions.size(); ++i) {
+            Real x = x_0[0] + i*l_link;
+            // Compute periodic offset. Will work as long as winding number = 1
+            Real x_period = x < geom.ProbHi(0) ? x : x - geom.ProbLength(0);
+
+            marker_positions[i] = RealVect{x_period, x_0[1], x_0[2]};
+        }
+
 
         // HAXOR: first node reserved as "anchor"
         Vector<Real> marker_radii(N+1);
