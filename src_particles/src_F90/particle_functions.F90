@@ -3,6 +3,15 @@ module particle_functions_module
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
   use cell_sorted_particle_module, only : particle_t, remove_particle_from_cell
+  use species_type_module, only: species_t
+  use rng_functions_module
+  use surfaces_module
+  use common_namelist_module, only: k_B, T_init, permitivitty, eepsilon, images, pkernel_es, &
+                                    prob_lo, prob_hi, bc_es_lo, bc_es_hi, rmin, p_int_tog, &
+                                    fixed_dt, graphene_tog, mass, particle_n0, particle_neff, &
+                                    visc_type, variance_coef_mom, pkernel_fluid, dry_move_tog, &
+                                    move_tog, nspecies, drag_tog, es_tog, rfd_tog, qval, &
+                                    visc_coef, bc_vel_lo, bc_vel_hi
 
   implicit none
 
@@ -11,10 +20,8 @@ module particle_functions_module
 contains
 
   subroutine repulsive_force(part1,part2,dx, dr2) &
-       bind(c,name="repulsive_force")
-    
-    use common_namelist_module, only: k_B, diameter, T_init, permitivitty, eepsilon
-    
+                             bind(c,name="repulsive_force")
+        
     type(particle_t), intent(inout) :: part1 
     type(particle_t), intent(inout) :: part2
     real(amrex_real), intent(in) :: dx(3), dr2
@@ -31,16 +38,14 @@ contains
   end subroutine repulsive_force
 
   subroutine force_function2(part1,part2,domsize) &
-       bind(c,name="force_function2")
-
-    use common_namelist_module, only: diameter, permitivitty, images
+                             bind(c,name="force_function2")
 
     type(particle_t), intent(inout) :: part1 !is this defined correctly?
     type(particle_t), intent(inout) :: part2
     real(amrex_real), intent(in) :: domsize(3)
 
     integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs, imag
-    real(amrex_real) :: dx(3), dx0(3), dr, dr2, cut_off, rtdr2, maxdist, ee
+    real(amrex_real) :: dx(3), dx0(3), dr, dr2, rtdr2, maxdist, ee
 
     ee = (1d0/(permitivitty*4*3.142))
 
@@ -105,9 +110,7 @@ contains
   !         int dir        : either +-1,+-2,+-3
   !         int near_wall  : output, 0=part's p3m_radius/2 does not overlap with wall, 1=yes    
   subroutine near_wall_check(part, dir, near_wall) &
-       bind(c, name="near_wall_check")
-
-    use common_namelist_module, only: pkernel_es, prob_lo, prob_hi
+                             bind(c, name="near_wall_check")
 
     type(particle_t), intent(in   ) :: part
     integer,          intent(in   ) :: dir
@@ -133,7 +136,8 @@ contains
 
   end subroutine near_wall_check
 
-  ! calculate location of an image charge reflected across some plane--assumes boundary is parallel to either xy,xz,yz plane
+  ! calculate location of an image charge reflected across some plane--assumes boundary
+  ! is parallel to either xy,xz,yz plane
   ! inputs: particle p             : just need the particles position 
   !         int dir                : either +-1,+-2,+-3
   !         real(3) im_charge_pos  : output, 0=part's p3m_radius does not overlap with wall, 1=yes    
@@ -141,9 +145,7 @@ contains
   !         abs(dir) > 0 means reflect part pos across plane of x(dir) = prob_hi(dir)
   !                  < 0 means reflect part pos across plane of x(dir) = prob_lo(dir)
   subroutine calc_im_charge_loc(part, dir, im_charge_pos) &
-       bind(c, name="calc_im_charge_loc")
-
-    use common_namelist_module, only: pkernel_es, prob_lo, prob_hi
+                                bind(c, name="calc_im_charge_loc")
 
     type(particle_t), intent(in   ) :: part
     integer,          intent(in   ) :: dir
@@ -196,9 +198,7 @@ contains
   end subroutine calc_im_charge_loc
 
   subroutine compute_p3m_force_mag(r, mag, dx) &
-       bind(c, name="compute_p3m_force_mag")
-
-    use common_namelist_module, only: pkernel_es, prob_lo, prob_hi
+                                   bind(c, name="compute_p3m_force_mag")
 
     real(amrex_real), intent(in   ) :: r  
     real(amrex_real), intent(inout) :: mag
@@ -253,9 +253,9 @@ contains
 
   end subroutine compute_p3m_force_mag
 
-  subroutine calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, partno) &
-       bind(c,name="calculate_force")
-
+  subroutine calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
+                             plo, phi, partno) &
+                             bind(c,name="calculate_force")
 
     !this is everything we pass in
     type(particle_t), intent(inout), target :: particles(np)
@@ -296,9 +296,8 @@ contains
                                                 coords, coordslo, coordshi, lo, hi, dx) &
                                                 bind(c,name='amrex_compute_p3m_sr_correction_nl')
 
-    use common_namelist_module, only: cut_off, rmin, pkernel_es, permitivitty, bc_es_lo, bc_es_hi, prob_lo, prob_hi
-
-    integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3), coordslo(3), coordshi(3), lo(3), hi(3)
+    integer,          intent(in   ) :: np, nn, size, chargelo(3), chargehi(3), coordslo(3), coordshi(3)
+    integer,          intent(in   ) :: lo(3), hi(3)
     real(amrex_real), intent(in   ) :: dx(3)
     real(amrex_real), intent(inout) :: rcount
     type(particle_t), intent(inout) :: rparticles(np)
@@ -308,7 +307,8 @@ contains
     real(amrex_real), intent(in   ) :: charge(chargelo(1):chargehi(1),chargelo(2):chargehi(2),chargelo(3):chargehi(3))
     real(amrex_real), intent(in   ) :: coords(coordslo(1):coordshi(1),coordslo(2):coordshi(2),coordslo(3):coordshi(3),1:AMREX_SPACEDIM)
 
-    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70), dx2_inv, r_cell_frac,m, r_norm
+    real(amrex_real) :: dr(3), r2, r, coef, mass, correction_force_mag, ee, vals(70), points(70)
+    real(amrex_real) :: dx2_inv, r_cell_frac,m, r_norm
     real(amrex_real) :: p3m_radius, im_charge_pos(3)
     integer :: i, j, index, nneighbors, store, ks, lookup_idx, k,  r_cell
     integer :: near_wall_below, near_wall_above
@@ -595,8 +595,6 @@ contains
                                      nn, nl, size, rcount) &
                                      bind(c,name='amrex_compute_forces_nl')
 
-    use common_namelist_module, only: cut_off, rmin, p_int_tog
-
     integer,          intent(in   ) :: np, nn, size
     real(amrex_real), intent(inout) :: rcount
     type(particle_t), intent(inout) :: rparticles(np)
@@ -661,9 +659,6 @@ contains
                                  cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, &
                                  surfaces, ns, time, flux) &
                                  bind(c,name="move_particles_dsmc")
-
-    use surfaces_module
-    use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog, thermostat_tog, mass, k_b, particle_count, particle_n0, t_init, particle_neff
 
     type(particle_t), intent(inout), target :: particles(np)
     type(particle_t) :: toppart
@@ -852,12 +847,6 @@ contains
     flux(1) = fluxL
     flux(2) = fluxR
 
-    ! if (thermostat_tog .eq. 1) then
-    !   open(13, file="fluxes.txt", status="old", position="append", action="write")
-    !   write(13,*) step, fluxL, fluxR
-    !   close(13)
-    ! endif
-
     if(graphene_tog .eq. 1) then
 
        surf=>surfaces(6)
@@ -951,8 +940,6 @@ contains
                                   velz, velzlo, velzhi, &
 #endif
                                   beta, localvel, localbeta, betalo, betahi)
-  
-    use common_namelist_module, only: visc_type, k_B
     
     integer,          intent(in   ) :: fi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), betalo(3), betahi(3)
 #if (AMREX_SPACEDIM == 3)
@@ -1212,17 +1199,12 @@ contains
  ! extra diffusion term when 
   subroutine dry(dt,part,dry_terms, mb)
 
-    use common_namelist_module, only: visc_type, k_B, t_init,variance_coef_mom
-    use rng_functions_module
-
     type(particle_t), intent(inout) :: part 
     double precision, intent(inout) :: dry_terms(3)
     double precision, intent(in   ) :: dt, mb(3)
     real(amrex_real) runtime, normalrand(3),std(3),bfac(3)
 
-
-    !Brownian forcing
-
+    ! Brownian forcing
     call get_particle_normal(normalrand(1))
     call get_particle_normal(normalrand(2))
     call get_particle_normal(normalrand(3))
@@ -1419,8 +1401,6 @@ contains
                          coordsw, coordswlo, coordswhi, &
 #endif
                          part, ks, plof)
-
-    use common_namelist_module
     
     double precision, intent(in   ) :: dxf(3), dxfinv(3), plof(3)
     integer,          intent(in   ) :: ks, coordsulo(3), coordsvlo(3), coordswlo(3), coordsuhi(3), coordsvhi(3), coordswhi(3)
@@ -1575,8 +1555,6 @@ contains
                                    coords, coordslo, coordshi, &
                                    part, ks, lo, hi, plof, store)
 
-    use common_namelist_module
-    
     double precision, intent(in   ) :: dx(3), dxinv(3), plof(3)
     integer,          intent(in   ) :: ks, coordslo(3), coordshi(3), lo(3), hi(3), store
     type(particle_t), intent(in   ) :: part
@@ -1682,8 +1660,6 @@ contains
 #endif
                        part, ks, dxf)
 
-    use common_namelist_module, only: visc_coef
-    
     integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
     double precision, intent(in   ) :: dxf(3)
     type(particle_t), intent(in   ) :: part
@@ -1742,8 +1718,6 @@ contains
                                  source, sourcelo, sourcehi, &
                                  part, ks, dx, mq, store)
 
-    use common_namelist_module, only: permitivitty, pkernel_es
-    
     integer,          intent(in   ) :: ks, sourcelo(3), sourcehi(3), store
     double precision, intent(in   ) :: dx(3), mq
     type(particle_t), intent(in   ) :: part
@@ -1927,9 +1901,6 @@ contains
 #endif
                  part, ks, dxf, plof)
 
-    use common_namelist_module
-    use rng_functions_module
-
     integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3)
     integer,          intent(in   ) :: coordsxlo(3), coordsylo(3), coordszlo(3), coordsxhi(3), coordsyhi(3), coordszhi(3)
     double precision, intent(in   ) :: dxf(3), plof(3)
@@ -2023,9 +1994,6 @@ contains
 #endif
                   part, ks, dxf)
 
-    use common_namelist_module
-    use rng_functions_module
-
     integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3), velulo(3), velvlo(3), velwlo(3), veluhi(3), velvhi(3), velwhi(3)
     double precision, intent(in   ) :: dxf(3)
     type(particle_t), intent(inout) :: part
@@ -2084,9 +2052,6 @@ contains
 #endif
                  part, ks, dxp)
 
-    use common_namelist_module
-    use rng_functions_module
-
     integer,          intent(in   ) :: ks, sourceulo(3), sourcevlo(3), sourcewlo(3), sourceuhi(3), sourcevhi(3), sourcewhi(3), fieldulo(3), fieldvlo(3), fieldwlo(3), fielduhi(3), fieldvhi(3), fieldwhi(3)
     double precision, intent(in   ) :: dxp(3)
     type(particle_t), intent(inout) :: part
@@ -2133,9 +2098,6 @@ contains
   end subroutine emf
 
   subroutine set_pos(part1, part2, dx, sep)
-
-    use common_namelist_module
-    use rng_functions_module
 
     type(particle_t), intent(inout) :: part1, part2
     double precision, intent(in   ) :: dx(3), sep
@@ -2184,12 +2146,6 @@ contains
                            mobility, mlo, mhi, &
                            surfaces, ns, kinetic, sw) &
                            bind(c,name="move_ions_fhd")
-
-    use common_namelist_module, only: visc_type, k_B, pkernel_fluid, dry_move_tog, nspecies, move_tog
-    use rng_functions_module
-    use surfaces_module
-
-
 
     integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw, mlo(3), mhi(3)
     integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
@@ -2556,12 +2512,6 @@ contains
                              surfaces, ns, potential, sw) &
                              bind(c,name="spread_ions_fhd")
 
-    use common_namelist_module, only: visc_type, k_B, pkernel_fluid, pkernel_es, t_init, rfd_tog, es_tog, drag_tog
-    use rng_functions_module
-    use surfaces_module
-
-
-
     integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw
     integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
     integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
@@ -2820,12 +2770,6 @@ contains
                     surfaces, ns, sw) &
                     bind(c,name="do_rfd")
 
-    use common_namelist_module, only: visc_type, k_B, pkernel_fluid, pkernel_es, t_init, rfd_tog, es_tog, drag_tog
-    use rng_functions_module
-    use surfaces_module
-
-
-
     integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw
     integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
     integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
@@ -2959,10 +2903,6 @@ contains
                             charge, chargelo, chargehi) &
                             bind(c,name="collect_charge")
 
-    use common_namelist_module, only: visc_type, k_B, pkernel_es, qval
-    use rng_functions_module
-    use surfaces_module
-
     integer,          intent(in   )         :: np, lo(3), hi(3), clo(3), chi(3)
     integer,          intent(in   )         :: chargelo(3), chargehi(3)
     integer,          intent(in   )         :: cellcenterslo(3), cellcentershi(3)
@@ -3054,10 +2994,6 @@ contains
 
   subroutine get_mobility(nmob, tmob, spec, z)
 
-    use species_type_module, only: species_t
-    use common_namelist_module, only: k_b, t_init, visc_coef
-
-
     type(species_t), intent(in   ) :: spec
     real(amrex_real),intent(in   ) :: z
     real(amrex_real),intent(inout) :: nmob, tmob
@@ -3075,9 +3011,6 @@ contains
 
   subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, species) &
                                   bind(c,name="compute_dry_mobility")
-  
-    use common_namelist_module, only: visc_type, k_B, pkernel_es, qval, nspecies, bc_vel_lo, bc_vel_hi
-    use species_type_module, only: species_t
 
     integer,          intent(in   )         :: lo(3), hi(3), mlo(3), mhi(3), ngc
     double precision, intent(in   )         :: plo(3), phi(3), dx(3)
@@ -3203,7 +3136,9 @@ contains
 
   end subroutine sync_particles
 
-  subroutine force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles, np, length)bind(c,name="force_particles")
+  subroutine force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &
+                             particles, np, length) &
+                             bind(c,name="force_particles")
 
     integer,          intent(in   ) :: length, np
     double precision, intent(inout) :: spec3xPos(length), spec3yPos(length), spec3zPos(length), spec3xForce(length), spec3yForce(length), spec3zForce(length)
