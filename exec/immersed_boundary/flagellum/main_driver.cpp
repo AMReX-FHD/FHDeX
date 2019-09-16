@@ -339,12 +339,12 @@ void main_driver(const char * argv) {
     BL_PROFILE_VAR("main_create markers", createmarkers);
 
     // Find the optimal number of ghost cells for the IBMarkerContainer
-
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
 	    min_dx = std::min(min_dx, dx[d]);
 
-    int ib_nghost = 8; // min of 8 is a HACK: something large enough but not too large
+    // min of 8 is a HACK: something large enough but not too large
+    int ib_nghost = 8;
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
         if (n_marker[i_ib] <= 0) continue;
@@ -360,8 +360,9 @@ void main_driver(const char * argv) {
     Print() << "Initializing IBMarkerContainer with "
             << ib_nghost << " ghost cells" << std::endl;
 
-    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
+    // Initialize immersed boundary container
 
+    IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
 
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
@@ -380,8 +381,10 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-        // HAXOR: first node reserved as "anchor"
-        Vector<RealVect> marker_positions(N+1);
+        // using fourier modes => first node reserved as "anchor"
+        int N_markers = immbdy::contains_fourier ? N+1 : N;
+
+        Vector<RealVect> marker_positions(N_markers);
         for (int i=0; i<marker_positions.size(); ++i) {
             Real x = x_0[0] + i*l_link;
             // Compute periodic offset. Will work as long as winding number = 1
@@ -392,7 +395,7 @@ void main_driver(const char * argv) {
 
 
         // HAXOR: first node reserved as "anchor"
-        Vector<Real> marker_radii(N+1);
+        Vector<Real> marker_radii(N_markers);
         for (int i=0; i<marker_radii.size(); ++i) marker_radii[i] = 4*l_link;
 
         ib_mc.InitList(0, marker_radii, marker_positions, i_ib);
@@ -495,35 +498,39 @@ void main_driver(const char * argv) {
              sMflux.fillMStochastic();
 
              // Compute stochastic force terms (and apply to mfluxdiv_*)
-             sMflux.StochMFluxDiv(mfluxdiv_predict, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-             sMflux.StochMFluxDiv(mfluxdiv_correct, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+             sMflux.StochMFluxDiv(mfluxdiv_predict, 0,
+                                  eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+             sMflux.StochMFluxDiv(mfluxdiv_correct, 0,
+                                  eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
          }
 
-        //___________________________________________________________________
+        //_______________________________________________________________________
         // Advance umac
         advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
                    alpha_fc, beta, gamma, beta_ed, geom, dt, time);
 
 
 
-        // //_______________________________________________________________________
-        // // Update structure factor
-
+        //_______________________________________________________________________
+        // Update structure factor
         // if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
         //     for(int d=0; d<AMREX_SPACEDIM; d++) {
         //         ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
         //     }
         //     structFact.FortStructure(struct_in_cc,geom);
-
+        //
         // }
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
 
-        amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
+        amrex::Print() << "Advanced step " << step
+                       << " in " << step_stop_time << " seconds" << std::endl;
 
         time = time + dt;
 
+        //_______________________________________________________________________
+        // Compute average velocity
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             MultiFab::Add(umac_avg[d], umac[d], 0, 0, 1, 0);
         n_avg ++;
@@ -550,19 +557,20 @@ void main_driver(const char * argv) {
     //         dVol *= dx[2];
     //         tot_n_cells = n_cells[2]*tot_n_cells;
     //     }
-
+    //
     //     let rho = 1
     //     Real SFscale = dVol/(k_B*temp_const);
     //     Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-
+    //
     //     structFact.Finalize(SFscale);
     //     structFact.WritePlotFile(step,time,geom,"plt_SF");
     // }
 
+    //___________________________________________________________________________
     // Call the timer again and compute the maximum difference between the start
     // time and stop time over all processors
-    // Real stop_time = ParallelDescriptor::second() - strt_time;
-    // ParallelDescriptor::ReduceRealMax(stop_time);
-    // amrex::Print() << "Run time = " << stop_time << std::endl;
+    Real stop_time = ParallelDescriptor::second() - strt_time;
+    ParallelDescriptor::ReduceRealMax(stop_time);
+    amrex::Print() << "Run time = " << stop_time << std::endl;
 
 }
