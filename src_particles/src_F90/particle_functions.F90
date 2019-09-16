@@ -1,5 +1,9 @@
-subroutine repulsive_force(part1,part2,dx, dr2) &
-    bind(c,name="repulsive_force")
+module particle_functions_module
+
+  contains
+
+    subroutine repulsive_force(part1,part2,dx, dr2) &
+         bind(c,name="repulsive_force")
 
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
@@ -23,7 +27,7 @@ end subroutine
 
 
 subroutine force_function2(part1,part2,domsize) &
-    bind(c,name="force_function2")
+     bind(c,name="force_function2")
 
   use amrex_fort_module, only: amrex_real
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
@@ -144,6 +148,7 @@ end subroutine near_wall_check
 !                  < 0 means reflect part pos across plane of x(dir) = prob_lo(dir)
 subroutine calc_im_charge_loc(part, dir, im_charge_pos) &
      bind(c, name="calc_im_charge_loc")
+  
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only : particle_t
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
@@ -202,6 +207,7 @@ end subroutine calc_im_charge_loc
 
 subroutine compute_p3m_force_mag(r, mag, dx) &
      bind(c, name="compute_p3m_force_mag")
+  
   use amrex_fort_module, only: amrex_real
   use cell_sorted_particle_module, only : particle_t
   use iso_c_binding, only: c_ptr, c_int, c_f_pointer
@@ -261,8 +267,7 @@ subroutine compute_p3m_force_mag(r, mag, dx) &
 
 end subroutine compute_p3m_force_mag
 
-subroutine calculate_force(particles, np, lo, hi, &
-     cell_part_ids, cell_part_cnt, clo, chi, plo, phi, partno) &
+subroutine calculate_force(particles, np, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, plo, phi, partno) &
      bind(c,name="calculate_force")
   
   use amrex_fort_module, only: amrex_real
@@ -977,12 +982,11 @@ subroutine get_interpolation_weights(cc, rr, ixf, onemdxf)
 
 end subroutine get_interpolation_weights
 
-#if (BL_SPACEDIM == 3)
-subroutine get_local_properties(cc, rr, fi, velx, velxlo, velxhi, vely, velylo, velyhi, velz, velzlo, velzhi, beta, localvel, localbeta, betalo, betahi)
+subroutine get_local_properties(cc, rr, fi, velx, velxlo, velxhi, vely, velylo, velyhi, &
+#if (BL_SPACEDIM == 3)     
+                                velz, velzlo, velzhi, &
 #endif
-#if (BL_SPACEDIM == 2)
-subroutine get_local_properties(cc, rr, fi, velx, velxlo, velxhi, vely, velylo, velyhi, beta, localvel, localbeta, betalo, betahi)
-#endif
+                                beta, localvel, localbeta, betalo, betahi)
 
   use amrex_fort_module, only: amrex_real
   use common_namelist_module, only: visc_type, k_B
@@ -1034,12 +1038,11 @@ subroutine get_local_properties(cc, rr, fi, velx, velxlo, velxhi, vely, velylo, 
 end subroutine get_local_properties
 
 
+subroutine distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, sourcey, sourceylo, sourceyhi &
 #if (BL_SPACEDIM == 3)
-subroutine distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, sourcey, sourceylo, sourceyhi, sourcez, sourcezlo, sourcezhi)
+                               , sourcez, sourcezlo, sourcezhi &
 #endif
-#if (BL_SPACEDIM == 2)
-subroutine distribute_momentum(deltap, rr, fi ,sourcex, sourcexlo, sourcexhi, sourcey, sourceylo, sourceyhi)
-#endif
+)
 
   integer,          intent(in   ) :: fi(3), sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
 #if (AMREX_SPACEDIM == 3)
@@ -3336,3 +3339,4 @@ subroutine force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   
 end subroutine force_particles
 
+end module particle_functions_module
