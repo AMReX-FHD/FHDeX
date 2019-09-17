@@ -344,7 +344,7 @@ void main_driver(const char * argv) {
 	    min_dx = std::min(min_dx, dx[d]);
 
     // min of 8 is a HACK: something large enough but not too large
-    int ib_nghost = 8;
+    int ib_nghost = 4;
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
         if (n_marker[i_ib] <= 0) continue;

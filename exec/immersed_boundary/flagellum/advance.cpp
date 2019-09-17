@@ -576,7 +576,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // (constrain it to move in the z = constant plane only)
     constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_velx);
+        anchor_first_marker(ib_mc, ib_lev, IBM_realData::velx);
     ib_mc.MoveMarkers(0, dt);
     ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
@@ -1010,7 +1010,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // (constrain it to move in the z = constant plane only)
     constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_velx);
+        anchor_first_marker(ib_mc, ib_lev, IBM_realData::velx);
     ib_mc.MoveMarkers(0, dt);
     ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
@@ -1026,7 +1026,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Constrain it to move in the z = constant plane only
     constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::forcez);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_forcex);
+        anchor_first_marker(ib_mc, ib_lev, IBM_realData::forcex);
     // Sum predictor forces added to neighbors back to the real markers
     ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
 
