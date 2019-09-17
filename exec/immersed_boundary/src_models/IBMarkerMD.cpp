@@ -256,7 +256,7 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 #endif
 
 
-#if   (AMREX_SPACEDIM == 1)
+#if   (AMREX_SPACEDIM == 2)
     return (Y1*Y1 + Y2*Y2);
 #elif (AMREX_SPACEDIM > 2)
     return (Y1*Y1 + Y2*Y2 + Y3*Y3);
