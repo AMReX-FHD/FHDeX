@@ -447,50 +447,50 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #endif
 
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
-        
-        //Print() << "FHD\n"; 
-        spread_ions_fhd(particles.data(), &np,
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
-                         BL_TO_FORTRAN_3D(umac[0][pti]),
-                         BL_TO_FORTRAN_3D(umac[1][pti]),
-#if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(umac[2][pti]),
-#endif
-                         BL_TO_FORTRAN_3D(efield[0][pti]),
-                         BL_TO_FORTRAN_3D(efield[1][pti]),
-#if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(efield[2][pti]),
-#endif
-                         BL_TO_FORTRAN_3D(charge[pti]),
-                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
-                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
-#if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
-#endif
-                         BL_TO_FORTRAN_3D(cellCenters[pti]),
-                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
-                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
-#if (AMREX_SPACEDIM == 3)
-                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
-#endif
-                         , surfaceList, &surfaceCount, &potential, &sw
-                         );
-    }
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+//        
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& particles = particle_tile.GetArrayOfStructs();
+//        const int np = particles.numParticles();
+//        
+//        //Print() << "FHD\n"; 
+//        spread_ions_fhd(particles.data(), &np,
+//                         ARLIM_3D(tile_box.loVect()),
+//                         ARLIM_3D(tile_box.hiVect()),
+//                         m_vector_ptrs[grid_id].dataPtr(),
+//                         m_vector_size[grid_id].dataPtr(),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+//                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+//                         BL_TO_FORTRAN_3D(umac[0][pti]),
+//                         BL_TO_FORTRAN_3D(umac[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                         BL_TO_FORTRAN_3D(umac[2][pti]),
+//#endif
+//                         BL_TO_FORTRAN_3D(efield[0][pti]),
+//                         BL_TO_FORTRAN_3D(efield[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                         BL_TO_FORTRAN_3D(efield[2][pti]),
+//#endif
+//                         BL_TO_FORTRAN_3D(charge[pti]),
+//                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+//                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+//#endif
+//                         BL_TO_FORTRAN_3D(cellCenters[pti]),
+//                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+//                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
+//#if (AMREX_SPACEDIM == 3)
+//                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
+//#endif
+//                         , surfaceList, &surfaceCount, &potential, &sw
+//                         );
+//    }
     
 
     sourceTemp[0].SumBoundary(geomF.periodicity());

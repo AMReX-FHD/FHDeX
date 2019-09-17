@@ -112,9 +112,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
             }
         }
     }
-
+    Print() << "SPREAD, " << dx[0] << std::endl;
     // spread this term into the velocity forcing
     SpreadMarkers(lev, f_out, dx);
+    Print() << "DONE\n";
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 

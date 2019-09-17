@@ -1913,7 +1913,7 @@ subroutine inter_op(weights, indicies, &
 
         part%vel(3) = part%vel(3) + weights(i,j,k,3)*velw(ii,jj,kk)
 
-        !print *, velu(ii,jj,kk)
+        !print *, velu(ii,jj,kk), velv(ii,jj,kk), velw(ii,jj,kk)
 
       enddo
     enddo
