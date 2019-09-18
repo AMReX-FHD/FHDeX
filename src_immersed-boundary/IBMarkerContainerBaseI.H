@@ -227,6 +227,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(StructReal::pred_posx + d)   = 0.;
                 part.rdata(StructReal::pred_velx + d)   = 0.;
                 part.rdata(StructReal::pred_forcex + d) = 0.;
             }
@@ -247,8 +248,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
     //___________________________________________________________________________
     // Geometry data
-//    const Geometry & geom = this->Geom(0);
-//    const Real     *   dx = geom.CellSize();
+    // const Geometry & geom = this->Geom(0);
+    // const Real     *   dx = geom.CellSize();
 
     const int n_marker = f_pos.size();
 
@@ -324,7 +325,7 @@ template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-            const Real* dx
+            const Real * dx
         ) const {
 
 
@@ -378,12 +379,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             std::array<MultiFab, AMREX_SPACEDIM> & f_out
         ) const {
 
-        const Geometry & geom = this->Geom(0);
-        const Real     *   dx = geom.CellSize();
-        //_______________________________________________________________________
-        // Spread the non-neighbor particles (markers)
-        SpreadMarkers(lev, f_out, dx);
-    
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = this->Geom(0);
+    const Real     *   dx = geom.CellSize();
+
+    SpreadMarkers(lev, f_out, dx);
 }
 
 
