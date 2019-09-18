@@ -415,10 +415,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      ***************************************************************************/
 
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        umac[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
 
@@ -443,6 +443,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac_buffer[d].setVal(0.);
         MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
         umac_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
     ib_mc.ResetPredictor(0);
@@ -567,6 +569,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umacNew_buffer[d].setVal(0.);
         MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umac[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
     }
 
     ib_mc.ResetMarkers(0);
@@ -843,10 +847,10 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      ***************************************************************************/
 
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        umac[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
 
@@ -871,6 +875,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         umac_buffer[d].setVal(0.);
         MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
         umac_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
     ib_mc.ResetPredictor(0);
@@ -1004,6 +1010,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         umacNew_buffer[d].setVal(0.);
         MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umac[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
     }
 
     ib_mc.ResetMarkers(0);
