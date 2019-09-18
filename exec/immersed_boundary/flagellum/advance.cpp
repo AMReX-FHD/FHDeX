@@ -300,7 +300,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
            gmres_rhs_u[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
-                 Lumac[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+                 Lumac[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 0);
             advFluxdiv[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
@@ -415,10 +415,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      ***************************************************************************/
 
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        umac[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
 
@@ -440,8 +440,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array<MultiFab, AMREX_SPACEDIM> umac_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umac_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        umac_buffer[d].setVal(0.);
         MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
         umac_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
     ib_mc.ResetPredictor(0);
@@ -517,9 +520,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
         gmres_rhs_u[d].mult(dtinv*2, 1); // advance by dt/2
 
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
 
         // FillBoundary before adding boundary conditions to prevent
         // overwriting (which are defined on ghost cells)
@@ -563,8 +566,11 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umacNew_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        umacNew_buffer[d].setVal(0.);
         MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umac[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
     }
 
     ib_mc.ResetMarkers(0);
@@ -648,10 +654,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
         gmres_rhs_u[d].mult(dtinv, 1); // advance by dt
 
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
 
         // FillBoundary before adding boundary conditions to prevent
         // overwriting (which are defined on ghost cells)
@@ -735,7 +741,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
            gmres_rhs_u[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
-                 Lumac[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+                 Lumac[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 0);
             advFluxdiv[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
@@ -841,10 +847,10 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
      *                                                                          *
      ***************************************************************************/
 
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        umac[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
 
@@ -866,8 +872,11 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     std::array<MultiFab, AMREX_SPACEDIM> umac_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umac_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        umac_buffer[d].setVal(0.);
         MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
         umac_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umac[d], d, geom, d);
+        MultiFABPhysBCMacVel(umac[d], d, geom, d);
     }
 
     ib_mc.ResetPredictor(0);
@@ -880,7 +889,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
     if(immbdy::contains_fourier)
         anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_velx);
-    ib_mc.MovePredictor(0, 0.5*dt);
+    ib_mc.MovePredictor(0, dt);
     ib_mc.Redistribute(); // just in case (maybe can be removed)
 
 
@@ -909,8 +918,9 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     ib_mc.SpreadPredictor(0, fc_force_pred);
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
         fc_force_pred[d].SumBoundary(geom.periodicity());
+    }
 
 
     //___________________________________________________________________________
@@ -951,9 +961,9 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         gmres_rhs_u[d].mult(dtinv, 1); // advance by dt
 
         MultiFab::Add(gmres_rhs_u[d], mfluxdiv_predict[d], 0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_pred[d],    0, 0, 1, 0);
 
         // FillBoundary before adding boundary conditions to prevent
         // overwriting (which are defined on ghost cells)
@@ -997,8 +1007,11 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     std::array<MultiFab, AMREX_SPACEDIM> umacNew_buffer;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         umacNew_buffer[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        umacNew_buffer[d].setVal(0.);
         MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umac[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
+        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
     }
 
     ib_mc.ResetMarkers(0);
@@ -1089,11 +1102,11 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
         gmres_rhs_u[d].mult(dtinv, 1); // advance by dt
 
-        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 1);
-        MultiFab::Add(gmres_rhs_u[d], fc_force_corr[d],    0, 0, 1, 1);
+        MultiFab::Add(gmres_rhs_u[d], mfluxdiv_correct[d], 0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], Lumac[d],            0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],       0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], advFluxdivPred[d],   0, 0, 1, 0);
+        MultiFab::Add(gmres_rhs_u[d], fc_force_corr[d],    0, 0, 1, 0);
 
         // FillBoundary before adding boundary conditions to prevent
         // overwriting (which are defined on ghost cells)

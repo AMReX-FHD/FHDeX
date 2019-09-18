@@ -76,7 +76,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
       uMom[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
       uMom[d].setVal(0.);
-  } 
+  }
 
   MultiFab tracerPred(ba,dmap,1,1);
   MultiFab advFluxdivS(ba,dmap,1,1);
@@ -205,7 +205,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
-    
+
     gmres_rhs_u[d].mult(dtinv, 0);
 
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d], 0, 0, 1, 0);
@@ -251,9 +251,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 0);
-  
+
     gmres_rhs_u[d].mult(dtinv);
-  
+
     MultiFab::Add(gmres_rhs_u[d], mfluxdiv_stoch[d],    0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], Lumac[d],             0, 0, 1, 0);
     MultiFab::Add(gmres_rhs_u[d], advFluxdiv[d],        0, 0, 1, 0);
@@ -264,7 +264,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // initial guess for new solution
     MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
   }
-  
+
   pres.setVal(0.);  // initial guess
 
   // call GMRES here

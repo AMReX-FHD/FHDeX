@@ -256,7 +256,7 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 #endif
 
 
-#if   (AMREX_SPACEDIM > 1)
+#if   (AMREX_SPACEDIM == 2)
     return (Y1*Y1 + Y2*Y2);
 #elif (AMREX_SPACEDIM > 2)
     return (Y1*Y1 + Y2*Y2 + Y3*Y3);
@@ -278,7 +278,7 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
         Abort();
     }
 
-    Real uw_r_dx_p;
+    Real uw_r_dx_p=0;
 
     if      (arg == ARG_r_m) uw_r_dx_p = UW(r_dx, r, r_p, u, theta);
     else if (arg == ARG_r)   uw_r_dx_p = UW(r_m, r_dx, r_p, u, theta);
@@ -296,7 +296,7 @@ Real ndrUW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
         Abort();
     }
 
-    Real uw_r_dx_m;
+    Real uw_r_dx_m=0;
 
     if      (arg == ARG_r_m) uw_r_dx_m = UW(r_dx, r, r_p, u, theta);
     else if (arg == ARG_r)   uw_r_dx_m = UW(r_m, r_dx, r_p, u, theta);
