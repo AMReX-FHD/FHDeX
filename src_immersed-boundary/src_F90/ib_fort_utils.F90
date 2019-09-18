@@ -708,7 +708,7 @@ contains
 
         !________________________________________________________________________
         ! i, j, k   => face-centered indices
-        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi, gs
         ! ll        => loop counter over AMREX_SPACEDIM
         integer :: ll
         ! invvol    => 1/dx^AMREX_SPACEDIM
@@ -740,8 +740,10 @@ contains
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
+          gs = 2
         else
           kernel_ptr => kernel_6p
+          gs = 4
         endif
 
         !procedure (func), pointer :: f_ptr => null ()
@@ -756,12 +758,12 @@ contains
         end do
 
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 4))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 4))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 4))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 4))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 4))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 4))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - gs))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + gs))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - gs))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + gs))
+        klo = max(lo(3), int(pos(3) * invdx(3) - gs))
+        khi = min(hi(3), int(pos(3) * invdx(3) + gs))
 
 
         !________________________________________________________________________
@@ -826,7 +828,8 @@ contains
 
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
-                        weight = weight * kernel_ptr(pos_grid(ll));
+                        weight = weight * kernel_ptr(pos_grid(ll))
+                        !weight = weight * 0
                     end do
 
                     mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight * invvol
@@ -1035,7 +1038,7 @@ contains
 
         !________________________________________________________________________
         ! i,    j,    k    => face-centered indices
-        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi, gs
         ! ll               => loop counter over AMREX_SPACEDIM
         integer :: ll
         ! weight           => kernel weight function
@@ -1066,20 +1069,22 @@ contains
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
+          gs = 2
         else
           kernel_ptr => kernel_6p
+          gs = 4
         endif
 
         !________________________________________________________________________
         ! compute geometric quantity 1/dx
         invdx(:) = 1d0/dx(:)
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 4))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 4))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 4))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 4))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 4))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 4))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - gs))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + gs))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - gs))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + gs))
+        klo = max(lo(3), int(pos(3) * invdx(3) - gs))
+        khi = min(hi(3), int(pos(3) * invdx(3) + gs))
 
 
 
@@ -1356,7 +1361,7 @@ contains
 
         !________________________________________________________________________
         ! i, j, k   => face-centered indices
-        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi, gs
         ! ll        => loop counter over AMREX_SPACEDIM
         integer :: ll, ct_face
         ! invvol    => 1/dx^AMREX_SPACEDIM
@@ -1387,8 +1392,10 @@ contains
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
+          gs = 2
         else
           kernel_ptr => kernel_6p
+          gs = 4
         endif
 
         w_threshold = 1e-4
@@ -1402,12 +1409,12 @@ contains
         end do
 
 
-        ilo = max(lo(1), int(pos(1) * invdx(1) - 4))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + 4))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - 4))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + 4))
-        klo = max(lo(3), int(pos(3) * invdx(3) - 4))
-        khi = min(hi(3), int(pos(3) * invdx(3) + 4))
+        ilo = max(lo(1), int(pos(1) * invdx(1) - gs))
+        ihi = min(hi(1), int(pos(1) * invdx(1) + gs))
+        jlo = max(lo(2), int(pos(2) * invdx(2) - gs))
+        jhi = min(hi(2), int(pos(2) * invdx(2) + gs))
+        klo = max(lo(3), int(pos(3) * invdx(3) - gs))
+        khi = min(hi(3), int(pos(3) * invdx(3) + gs))
 
 
         !________________________________________________________________________
@@ -1703,7 +1710,7 @@ contains
 
         !________________________________________________________________________
         ! i,    j,    k    => face-centered indices
-        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi, gs
         ! ll               => loop counter over AMREX_SPACEDIM
         integer :: ll, ct_face
         ! weight           => kernel weight function
@@ -1734,8 +1741,10 @@ contains
 
         if(pkernel_fluid .eq. 3) then
           kernel_ptr => kernel_3p
+          gs = 2
         else
           kernel_ptr => kernel_6p
+          gs = 4
         endif
 
 
@@ -1757,12 +1766,12 @@ contains
         ! jhi = min(hi(2), int(pos(2) * invdx(2) + 3))
         ! klo = max(lo(3), int(pos(3) * invdx(3) - 3))
         ! khi = min(hi(3), int(pos(3) * invdx(3) + 3))
-        ilo = int(pos(1) * invdx(1) - 4)
-        ihi = int(pos(1) * invdx(1) + 4)
-        jlo = int(pos(2) * invdx(2) - 4)
-        jhi = int(pos(2) * invdx(2) + 4)
-        klo = int(pos(3) * invdx(3) - 4)
-        khi = int(pos(3) * invdx(3) + 4)
+        ilo = int(pos(1) * invdx(1) - gs)
+        ihi = int(pos(1) * invdx(1) + gs)
+        jlo = int(pos(2) * invdx(2) - gs)
+        jhi = int(pos(2) * invdx(2) + gs)
+        klo = int(pos(3) * invdx(3) - gs)
+        khi = int(pos(3) * invdx(3) + gs)
 
 
 

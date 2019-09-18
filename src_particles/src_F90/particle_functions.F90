@@ -1831,6 +1831,9 @@ contains
        oldvel = part%vel
        part%vel = 0
 
+
+        !print *, velu(ii,jj,kk), velv(ii,jj,kk), velw(ii,jj,kk)
+
        do k = -(ks-1), ks
           do j = -(ks-1), ks
              do i = -(ks-1), ks
