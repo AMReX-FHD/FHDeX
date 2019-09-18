@@ -18,7 +18,7 @@
   fixed_dt = 1e-11
 
   ! Controls for number of steps between actions
-  max_step = 5001
+  max_step = 4001
   plot_int = 1000
   plot_ascii = 1
   struct_fact_int = -1
@@ -29,7 +29,7 @@
   es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
   rfd_tog = 1 ! Apply RFD force to fluid
-  move_tog = 1 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
+  move_tog = 2 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 0 ! Dry particle move
   sr_tog = 0 ! Short range forces
 
@@ -98,7 +98,7 @@
   pkernel_es = 3
 
   ! Stochastic parameters
-  seed = 1
+  seed = 2
   k_B = 1.38064852e-16
   T_init(1) = 295.00
   variance_coef_mom = 1

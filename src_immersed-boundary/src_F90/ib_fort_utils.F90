@@ -785,6 +785,8 @@ contains
 
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
                     weight_x(i, j, k) = weight_x(i, j, k) + weight
+
+                    !print *, "x: ", mf_x(i, j, k)
                 end do
             end do
         end do
@@ -809,6 +811,7 @@ contains
                     mf_y(i, j, k)     = mf_y(i, j, k) + v_spread(2) * weight * invvol
                     weight_y(i, j, k) = weight_y(i, j, k) + weight
 
+                    !print *, "y: ", mf_y(i, j, k)
                 end do
             end do
         end do
@@ -834,6 +837,8 @@ contains
 
                     mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight * invvol
                     weight_z(i, j, k) = weight_z(i, j, k) + weight
+
+                   ! print *, "z: ", mf_z(i, j, k)
 
                 end do
             end do

@@ -1820,7 +1820,7 @@ contains
 
                 part%vel(3) = part%vel(3) + weights(i,j,k,3)*velw(ii,jj,kk)
 
-                !print *, velu(ii,jj,kk)
+       !print *, velu(ii,jj,kk), velv(ii,jj,kk), velw(ii,jj,kk)
 
              enddo
           enddo
@@ -1830,9 +1830,6 @@ contains
 
        oldvel = part%vel
        part%vel = 0
-
-
-        !print *, velu(ii,jj,kk), velv(ii,jj,kk), velw(ii,jj,kk)
 
        do k = -(ks-1), ks
           do j = -(ks-1), ks

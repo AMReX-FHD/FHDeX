@@ -82,7 +82,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
-                                                       std::array<MultiFab, AMREX_SPACEDIM> & f_out) {
+                                                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                                                       std::array<MultiFab, AMREX_SPACEDIM> & coords) {
 
     Real delta = 1e-6*dx[0];
     Real deltaover2 = delta/2.0;
@@ -109,13 +110,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
                 // NOTE: this assumed that the pred_pos* fields are
                 // displacement vectors wrt pos(*)
                 part.rdata(StructReal::forcex + d) = force * part.rdata(StructReal::pred_posx + d);
+
             }
         }
     }
-    Print() << "SPREAD, " << dx[0] << std::endl;
+   
     // spread this term into the velocity forcing
-    SpreadMarkers(lev, f_out, dx);
-    Print() << "DONE\n";
+    SpreadMarkers(lev, f_out, coords, dx);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -140,7 +141,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
     }
 
     // spread this term into the velocity forcing
-    SpreadMarkers(lev, f_out, dx);
+    SpreadMarkers(lev, f_out, coords, dx);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -242,6 +243,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             const Vector<RealVect> & f_pos,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
             std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+            std::array<MultiFab, AMREX_SPACEDIM> & coords,
             const Real* dx
         ) const {
 
@@ -255,7 +257,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
 
     //___________________________________________________________________________
-    // Cell-centered MultiFab used as a reference for iterating over data
+    // Cell-centered MultiFab used as a reference for iteratingface_coords over data
     // WARNING: this will break if IBMarkerContainer is on a different grid
     // than the grid which we're spreading to
 
@@ -286,12 +288,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 #if (AMREX_SPACEDIM > 2)
                        BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
 #endif
-                       BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
+                       BL_TO_FORTRAN_ANYD(coords[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
-                       BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
+                       BL_TO_FORTRAN_ANYD(coords[1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                       BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
+                       BL_TO_FORTRAN_ANYD(coords[2][mfi]),
 #endif
                        f_pos.dataPtr(),
                        f_in.dataPtr(),
@@ -299,8 +301,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
                        dx );
     }
 }
-
-
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
@@ -325,6 +325,7 @@ template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+            std::array<MultiFab, AMREX_SPACEDIM> & coords,
             const Real* dx
         ) const {
 
@@ -369,7 +370,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
-        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights, dx);
+        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights, coords, dx);
     }
 }
 
