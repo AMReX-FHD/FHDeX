@@ -789,6 +789,7 @@ void main_driver(const char* argv)
         if(rfd_tog==1) {
             // Apply RFD force to fluid
             particles.RFD(0, dx, sourceTemp, RealFaceCoords);
+            particles.ResetMarkers(0);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero

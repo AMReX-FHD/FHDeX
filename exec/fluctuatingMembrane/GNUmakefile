@@ -5,7 +5,7 @@ FHDeX ?= ../../
 FMEMBRANE = $(FHDeX)/exec/fluctuatingMembrane
 HYDROLIB_HOME := ../../../LowMachFHD/HydroGrid
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu

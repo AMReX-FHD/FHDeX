@@ -2263,6 +2263,7 @@ contains
                 !use weights and indicies to interpolate velocity fields onto particle
 
                 midpoint = 0
+                !print *, "Pos1: ", part%pos
 
                 call inter_op(weights, indicies, &
                      velx, velxlo, velxhi, &
@@ -2286,6 +2287,7 @@ contains
                       !check 
 
                       call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+                      intsurf = 0
 
                       posalt(1) = inttime*part%vel(1)*adjalt
                       posalt(2) = inttime*part%vel(2)*adjalt
@@ -2328,6 +2330,8 @@ contains
                    midpoint = 1
                    moves = moves + 1
 
+                        !print *, "Pos2: ", part%pos!
+
                    call get_weights(dxf, dxfinv, weights, indicies, &
                         coordsx, coordsxlo, coordsxhi, &
                         coordsy, coordsylo, coordsyhi, &
@@ -2335,6 +2339,8 @@ contains
                         coordsz, coordszlo, coordszhi, &
 #endif
                         part, ks, plof)
+
+                   !print *, "midweights"
 
                    call inter_op(weights, indicies, &
                         velx, velxlo, velxhi, &
@@ -2344,6 +2350,7 @@ contains
 #endif
                         part, ks, dxf, boundflag, midpoint, rejected)
 
+                   !print *, "midinter"
                    part%pos = posold
                 endif
 
