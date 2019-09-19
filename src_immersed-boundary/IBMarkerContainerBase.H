@@ -93,7 +93,8 @@ public:
                        const Vector<RealVect> & f_pos,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
-                       std::array<MultiFab, AMREX_SPACEDIM> & coords, const Real* dx) const;
+                       const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+                       const Real* dx) const;
     //---------------------------------------------------------------------------
 
 
@@ -105,7 +106,8 @@ public:
 
     void SpreadMarkers(int lev,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out, 
-                       std::array<MultiFab, AMREX_SPACEDIM> & coords, const Real* dx) const;
+                       const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+                       const Real* dx) const;
 
     void SpreadPredictor(int lev,
                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
