@@ -50,7 +50,6 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         //create solver opject
         MLPoisson linop({geom}, {ba}, {dmap});
-
  
         //set BCs
         linop.setDomainBC({AMREX_D_DECL(lo_linop_bc[0],

@@ -18,7 +18,7 @@
   fixed_dt = 1e-11
 
   ! Controls for number of steps between actions
-  max_step = 5001
+  max_step = 10001
   plot_int = 1000
   plot_ascii = 1
   struct_fact_int = -1
@@ -28,7 +28,7 @@
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
   es_tog = 0 ! Do electrostatic solve 0=off, 1=Poisson, 2=Pairwise Coulomb (Doesn't work in parallel), 3=PPPM
   drag_tog = 0 ! Apply drag force to fluid
-  rfd_tog = 1 ! Apply RFD force to fluid
+  rfd_tog = 0 ! Apply RFD force to fluid
   move_tog = 1 ! ! Total particle move. 0 = off, 1 = single step, 2 = midpoint
   dry_move_tog = 0 ! Dry particle move
   sr_tog = 0 ! Short range forces
@@ -53,7 +53,7 @@
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
   particle_placement = 2
   ! -1 = calculate based on n0
-  particle_count = 5000
+  particle_count = 10000
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive

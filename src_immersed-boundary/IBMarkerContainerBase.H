@@ -92,7 +92,8 @@ public:
                        const Vector<RealVect> & f_in,
                        const Vector<RealVect> & f_pos,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights, const Real* dx) const;
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+                       std::array<MultiFab, AMREX_SPACEDIM> & coords, const Real* dx) const;
     //---------------------------------------------------------------------------
 
 
@@ -103,7 +104,8 @@ public:
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
     void SpreadMarkers(int lev,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out, const Real* dx) const;
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out, 
+                       std::array<MultiFab, AMREX_SPACEDIM> & coords, const Real* dx) const;
 
     void SpreadPredictor(int lev,
                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
@@ -151,7 +153,8 @@ public:
      *                                                                          *
      ***************************************************************************/
 
-    void RFD(int lev, const Real* dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out);
+    void RFD(int lev, const Real* dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                                      std::array<MultiFab, AMREX_SPACEDIM> & coords);
 
     /****************************************************************************
      *                                                                          *
