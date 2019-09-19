@@ -121,6 +121,10 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
               phi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
              Lphi_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 1);
             resid_fc_mg[n][d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+
+            // Put in to fix FPE traps
+            Lphi_fc_mg[n][d].setVal(0);
+            rhs_fc_mg[n][d].setVal(0);
         }
 
         // build beta_ed_mg
