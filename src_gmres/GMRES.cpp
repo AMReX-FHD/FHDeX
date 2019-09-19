@@ -59,21 +59,16 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
     // # of ghost cells must match x_u so higher-order stencils can work
     std::array< MultiFab, AMREX_SPACEDIM > r_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
-
     std::array< MultiFab, AMREX_SPACEDIM > w_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > tmp_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > V_u;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
 
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
+        w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
+    }
 
     // # of ghost cells must match x_p so higher-order stencils can work
     MultiFab r_p  (ba, dmap,                  1, x_p.nGrow());

@@ -211,17 +211,22 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 #error incompatible with DIM == 1
 #elif (AMREX_SPACEDIM == 2)
 
+    // TODO: shouldn't this just be the 2D rotation matrix (around "z")?
+
     Real A1 = cosTh + (1 - cosTh)*ux*ux;
     Real A2 = (1 - cosTh)*ux*uy;
 
     Real B1 = (1 - cosTh)*ux*uy;
     Real B2 = cosTh + (1 - cosTh)*uy*uy;
 
+    // Real l_p = 1.; 
+    // Real l_m = 1.; 
+
+    // NOTE: this might not be necessary
     Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) );
     Real l_m = std::sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) );
-
-    if (l_p == 0 ) l_p = 100*DBL_EPSILON;
-    if (l_m == 0 ) l_m = 100*DBL_EPSILON;
+    // if (l_p == 0 ) l_p = 100*DBL_EPSILON;
+    // if (l_m == 0 ) l_m = 100*DBL_EPSILON;
 
     Real Y1 = (xP-x)/l_p - ( A1*(x-xM) + B1*(y-yM) )/l_m;
     Real Y2 = (yP-y)/l_p - ( A2*(x-xM) + B2*(y-yM) )/l_m;
@@ -241,11 +246,14 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
     Real C2 = -(sinTh*ux) + (1 - cosTh)*uy*uz;
     Real C3 = cosTh + (1 - cosTh)*uz*uz;
 
+    // Real l_p = 1.; 
+    // Real l_m = 1.; 
+
+    // NOTE: this might not be necessary
     Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) + (zP-z)*(zP-z) );
     Real l_m = std::sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) + (z-zM)*(z-zM) );
-
-    if (l_p == 0 ) l_p = 100*DBL_EPSILON;
-    if (l_m == 0 ) l_m = 100*DBL_EPSILON;
+    // if (l_p == 0 ) l_p = 100*DBL_EPSILON;
+    // if (l_m == 0 ) l_m = 100*DBL_EPSILON;
 
     Real Y1 = (xP-x)/l_p - ( A1*(x-xM) + B1*(y-yM) + C1*(z-zM) )/l_m;
     Real Y2 = (yP-y)/l_p - ( A2*(x-xM) + B2*(y-yM) + C2*(z-zM) )/l_m;

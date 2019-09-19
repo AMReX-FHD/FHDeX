@@ -37,21 +37,16 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
 
     // build alphainv_fc, one_fab_fc, zero_fab_fc, and b_u_tmp
     std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > one_fab_fc;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > zero_fab_fc;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        zero_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
     std::array< MultiFab, AMREX_SPACEDIM > b_u_tmp;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        b_u_tmp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
 
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        zero_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+        b_u_tmp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+    }
 
     // set alphainv_fc to 1/alpha_fc
     // set one_fab_fc to 1

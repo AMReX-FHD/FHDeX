@@ -305,6 +305,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                     pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+
+        // Put in to fix FPE traps
+        advFluxdivPred[i].setVal(0);
+        advFluxdiv[i].setVal(0);
     }
 
     // Tracer advective terms
@@ -513,6 +517,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Compute pressure gradient due to the BC: gp = Gp
     pres.setVal(0.); // Initial guess for pressure
     SetPressureBC(pres, geom); // Apply pressure boundary conditions
+    for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
     ComputeGrad(pres, pg, 0, 0, 1, geom);
 
     // Construct RHS of Navier Stokes Equation
@@ -746,6 +751,10 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                     pg[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+
+        // Put in to fix FPE traps
+        advFluxdivPred[i].setVal(0);
+        advFluxdiv[i].setVal(0);
     }
 
     // Tracer advective terms
@@ -953,6 +962,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // Compute pressure gradient due to the BC: gp = Gp
     pres.setVal(0.); // Initial guess for pressure
     SetPressureBC(pres, geom); // Apply pressure boundary conditions
+    for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
     ComputeGrad(pres, pg, 0, 0, 1, geom);
 
     // Construct RHS of Navier Stokes Equation
