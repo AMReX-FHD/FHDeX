@@ -155,8 +155,9 @@ public:
      *                                                                          *
      ***************************************************************************/
 
-    void RFD(int lev, const Real* dx, std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-                                      std::array<MultiFab, AMREX_SPACEDIM> & coords);
+    void RFD(int lev, const Real* dx,
+             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+             const std::array<MultiFab, AMREX_SPACEDIM> & coords);
 
     /****************************************************************************
      *                                                                          *
