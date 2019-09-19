@@ -2288,6 +2288,7 @@ contains
 
                       !call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
                       intsurf = 0
+                      inttime = runtime
 
                       posalt(1) = inttime*part%vel(1)*adjalt
                       posalt(2) = inttime*part%vel(2)*adjalt

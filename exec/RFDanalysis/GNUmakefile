@@ -5,7 +5,7 @@ FHDeX ?= ../../
 FIONS = $(FHDeX)/exec/immersedIons
 HYDROLIB_HOME := ../../../LowMachFHD/HydroGrid
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
