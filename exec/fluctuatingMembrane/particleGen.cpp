@@ -298,8 +298,10 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     }
 
 //    std::cout << "pcount: " << pcount << "\n";
-    UpdateCellVectors();
     Redistribute();
+    UpdateCellVectors();
     ReBin();
+    clearNeighbors();
+    fillNeighbors();
 
 }
