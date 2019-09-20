@@ -81,9 +81,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
 }
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
-                                                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-                                                       std::array<MultiFab, AMREX_SPACEDIM> & coords) {
+void IBMarkerContainerBase<StructReal, StructInt>::RFD(
+            int lev, const Real* dx,
+            std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords
+        ) {
 
     Real delta = 1e-6*dx[0];
     Real deltaover2 = delta/2.0;
@@ -113,10 +115,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
                 // scale by k_B*T/delta
                 // NOTE: this assumed that the pred_pos* fields are
                 // displacement vectors wrt pos(*)
+
                 part.rdata(StructReal::forcex + d) = force * part.rdata(StructReal::pred_posx + d);
 
                 totalforce[d] += part.rdata(StructReal::forcex + d);
                 totalforcesqr[d] += part.rdata(StructReal::forcex + d)*part.rdata(StructReal::forcex + d);
+
             }
             //if(sqrt(part.rdata(StructReal::forcex + 0)*part.rdata(StructReal::forcex + 0) + part.rdata(StructReal::forcex + 1)*part.rdata(StructReal::forcex + 1) + part.rdata(StructReal::forcex + 2)*part.rdata(StructReal::forcex + 2))>2.0)
            // {
@@ -157,10 +161,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(int lev, const Real* dx,
                 // scale by -k_B*T/delta
                 // NOTE: this assumed that the pred_pos* fields are
                 // displacement vectors wrt pos(*)
+
                 part.rdata(StructReal::forcex + d) = -force * part.rdata(StructReal::pred_posx + d);
 
                 totalforce[d] += part.rdata(StructReal::forcex + d);
                 totalforcesqr[d] += part.rdata(StructReal::forcex + d)*part.rdata(StructReal::forcex + d);
+
             }
         }
     }
