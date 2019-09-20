@@ -1939,6 +1939,8 @@ contains
     part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
     part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
 
+    !print *, "F: ", part%force
+
     call get_weights(dxf, dxfinv, weights, indicies, &
                      coordsx, coordsxlo, coordsxhi, &
                      coordsy, coordsylo, coordsyhi, &
