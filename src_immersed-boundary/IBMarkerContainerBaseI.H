@@ -131,7 +131,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
     Print() << "toalforce1: " << totalforce[0] << "," << totalforce[1] << "," << totalforce[2] << std::endl;
     Print() << "toalforce1 norm: " << sqrt(totalforcesqr[0]) << "," << sqrt(totalforcesqr[1]) << "," << sqrt(totalforcesqr[2]) << std::endl;
-   
+
     // spread this term into the velocity forcing
     SpreadMarkers(lev, f_out, coords, dx);
 
@@ -221,7 +221,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
             // part.rdata(IBM_realData::pred_posz) = part.pos(2);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
-                part.rdata(StructReal::pred_posx + d) = dt * part.rdata(StructReal::pred_velx + d);
+                part.rdata(StructReal::pred_posx + d) =
+                    dt * part.rdata(StructReal::pred_velx + d);
         }
     }
 }
