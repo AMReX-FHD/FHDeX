@@ -90,6 +90,10 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     Real delta = 1e-6*dx[0];
     Real deltaover2 = delta/2.0;
     Real force = k_B*T_init[0]/delta;
+    Real totalforce[3] = {0,0,0};
+    Real totalforcesqr[3] = {0,0,0};
+
+    Print() << "NormA: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -111,14 +115,34 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                 // scale by k_B*T/delta
                 // NOTE: this assumed that the pred_pos* fields are
                 // displacement vectors wrt pos(*)
-                part.rdata(StructReal::forcex + d) = 
-                    force * part.rdata(StructReal::pred_posx + d);
+
+                part.rdata(StructReal::forcex + d) = force * part.rdata(StructReal::pred_posx + d);
+
+                totalforce[d] += part.rdata(StructReal::forcex + d);
+                totalforcesqr[d] += part.rdata(StructReal::forcex + d)*part.rdata(StructReal::forcex + d);
+
             }
+            //if(sqrt(part.rdata(StructReal::forcex + 0)*part.rdata(StructReal::forcex + 0) + part.rdata(StructReal::forcex + 1)*part.rdata(StructReal::forcex + 1) + part.rdata(StructReal::forcex + 2)*part.rdata(StructReal::forcex + 2))>2.0)
+           // {
+               // std::cout << "Force1: " << ParallelDescriptor::MyProc() << ", " << i << ", " << part.rdata(StructReal::forcex + 0) << ", " << part.rdata(StructReal::forcex + 1) << ", " << part.rdata(StructReal::forcex + 2) << std::endl;
+           // }
         }
     }
+
+    Print() << "toalforce1: " << totalforce[0] << "," << totalforce[1] << "," << totalforce[2] << std::endl;
+    Print() << "toalforce1 norm: " << sqrt(totalforcesqr[0]) << "," << sqrt(totalforcesqr[1]) << "," << sqrt(totalforcesqr[2]) << std::endl;
    
     // spread this term into the velocity forcing
     SpreadMarkers(lev, f_out, coords, dx);
+
+    Print() << "NormB: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
+
+    totalforce[0] = 0;
+    totalforce[1] = 0;
+    totalforce[2] = 0;
+    totalforcesqr[0] = 0;
+    totalforcesqr[1] = 0;
+    totalforcesqr[2] = 0;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -137,14 +161,21 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                 // scale by -k_B*T/delta
                 // NOTE: this assumed that the pred_pos* fields are
                 // displacement vectors wrt pos(*)
-                part.rdata(StructReal::forcex + d) = 
-                    -force * part.rdata(StructReal::pred_posx + d);
+
+                part.rdata(StructReal::forcex + d) = -force * part.rdata(StructReal::pred_posx + d);
+
+                totalforce[d] += part.rdata(StructReal::forcex + d);
+                totalforcesqr[d] += part.rdata(StructReal::forcex + d)*part.rdata(StructReal::forcex + d);
+
             }
         }
     }
+    Print() << "toalforce2: " << totalforce[0] << "," << totalforce[1] << "," << totalforce[2] << std::endl;
+    Print() << "toalforce2 norm: " << sqrt(totalforcesqr[0]) << "," << sqrt(totalforcesqr[1]) << "," << sqrt(totalforcesqr[2]) << std::endl;
 
     // spread this term into the velocity forcing
     SpreadMarkers(lev, f_out, coords, dx);
+    Print() << "NormC: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -165,6 +196,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             }
         }
     }
+
+    Print() << "NormD: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
 }
 
 

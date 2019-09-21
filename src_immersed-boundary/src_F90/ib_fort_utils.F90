@@ -1,9 +1,8 @@
     module ib_fort_utils
 
-        use amrex_fort_module,      only: amrex_real, amrex_particle_real
-        use common_namelist_module, only: pkernel_fluid
-
-    use iso_c_binding,     only: c_int
+    use amrex_fort_module,      only: amrex_real, amrex_particle_real
+    use common_namelist_module, only: pkernel_fluid
+    use iso_c_binding,          only: c_int
 
     implicit none
 
@@ -633,7 +632,6 @@ contains
 
     end function kernel_3p
 
-
     subroutine spread_kernel(lo,       hi,               &
             &                mf_x,     mfx_lo,   mfx_hi, &
             &                mf_y,     mfy_lo,   mfy_hi, &
@@ -764,7 +762,6 @@ contains
         jhi = min(hi(2), int(pos(2) * invdx(2) + gs))
         klo = max(lo(3), int(pos(3) * invdx(3) - gs))
         khi = min(hi(3), int(pos(3) * invdx(3) + gs))
-
 
         !________________________________________________________________________
         ! x-components
