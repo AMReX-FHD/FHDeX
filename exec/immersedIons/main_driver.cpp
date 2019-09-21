@@ -48,6 +48,7 @@ void main_driver(const char* argv)
 {
     // store the current time so we can later compute total run time.
 
+    // timer
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
@@ -774,6 +775,8 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
+        Real time1 = ParallelDescriptor::second();
+    
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
         //Apply external field here.
@@ -915,12 +918,17 @@ void main_driver(const char* argv)
             WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
 
-        if(step%1 == 0)
-        {    
-                amrex::Print() << "Advanced step " << step << "\n";
+
+        // timer
+        Real time2 = ParallelDescriptor::second() - time1;
+        ParallelDescriptor::ReduceRealMax(time2);
+    
+        if(step%1 == 0) {    
+            amrex::Print() << "Advanced step " << step << " in " << time2 << " seconds\n";
         }
         
         time = time + dt;
+
 
     }
     ///////////////////////////////////////////
