@@ -219,12 +219,12 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
     Real B1 = (1 - cosTh)*ux*uy;
     Real B2 = cosTh + (1 - cosTh)*uy*uy;
 
-    // Real l_p = 1.; 
-    // Real l_m = 1.; 
+    Real l_p = 1.; 
+    Real l_m = 1.; 
 
     // NOTE: this might not be necessary
-    Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) );
-    Real l_m = std::sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) );
+    // Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) );
+    // Real l_m = std::sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) );
     // if (l_p == 0 ) l_p = 100*DBL_EPSILON;
     // if (l_m == 0 ) l_m = 100*DBL_EPSILON;
 
@@ -246,12 +246,12 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
     Real C2 = -(sinTh*ux) + (1 - cosTh)*uy*uz;
     Real C3 = cosTh + (1 - cosTh)*uz*uz;
 
-    // Real l_p = 1.; 
-    // Real l_m = 1.; 
+    Real l_p = 1.; 
+    Real l_m = 1.; 
 
     // NOTE: this might not be necessary
-    Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) + (zP-z)*(zP-z) );
-    Real l_m = std::sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) + (z-zM)*(z-zM) );
+    // Real l_p = std::sqrt( (xP-x)*(xP-x) + (yP-y)*(yP-y) + (zP-z)*(zP-z) );
+    // Real l_m = std::sqrt( (x-xM)*(x-xM) + (y-yM)*(y-yM) + (z-zM)*(z-zM) );
     // if (l_p == 0 ) l_p = 100*DBL_EPSILON;
     // if (l_m == 0 ) l_m = 100*DBL_EPSILON;
 
@@ -266,7 +266,7 @@ Real UW(const RealVect & r_m, const RealVect & r, const RealVect & r_p,
 
 #if   (AMREX_SPACEDIM == 2)
     return (Y1*Y1 + Y2*Y2);
-#elif (AMREX_SPACEDIM > 2)
+#elif (AMREX_SPACEDIM == 3)
     return (Y1*Y1 + Y2*Y2 + Y3*Y3);
 #endif
 }
