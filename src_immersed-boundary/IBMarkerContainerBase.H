@@ -105,7 +105,7 @@ public:
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
     void SpreadMarkers(int lev,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out, 
+                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        const std::array<MultiFab, AMREX_SPACEDIM> & coords,
                        const Real* dx) const;
 
@@ -149,6 +149,8 @@ public:
     void ResetMarkers(int lev);
     void ResetPredictor(int lev);
 
+
+
     /****************************************************************************
      *                                                                          *
      * Stochastic drift                                                         *
@@ -158,6 +160,8 @@ public:
     void RFD(int lev, const Real* dx,
              std::array<MultiFab, AMREX_SPACEDIM> & f_out,
              const std::array<MultiFab, AMREX_SPACEDIM> & coords);
+
+
 
     /****************************************************************************
      *                                                                          *
