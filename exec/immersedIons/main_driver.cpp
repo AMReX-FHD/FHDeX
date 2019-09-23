@@ -346,6 +346,7 @@ void main_driver(const char* argv)
     //Cy
     //Cz    
     MultiFab particleMeans(bc, dmap, 14, 0);
+    particleMeans.setVal(0.);
 
     //Members
     //Density
@@ -367,6 +368,7 @@ void main_driver(const char* argv)
     //Cz 
    
     MultiFab particleVars(bc, dmap, 18, 0);
+    particleVars.setVal(0.);
     
     //-----------------------------
     //  Hydro setup
