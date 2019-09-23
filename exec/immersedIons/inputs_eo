@@ -19,11 +19,11 @@
 ! fixed_dt = 1e-12   ! this segfaults after 29 steps  
 
   ! Controls for number of steps between actions
-  max_step = 100
-  plot_int = 1
+  max_step = 250000
+  plot_int = 250
   plot_ascii = 0
   struct_fact_int = -1
-  n_steps_skip = 10
+  n_steps_skip = 50000
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
