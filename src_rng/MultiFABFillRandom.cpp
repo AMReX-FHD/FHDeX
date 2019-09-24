@@ -22,7 +22,7 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
         const Array4<Real>& mf_fab = mf.array(mfi);
         AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
         {
-            mf_fab(i,j,k,comp) = amrex::Random();
+            mf_fab(i,j,k,comp) = amrex::RandomNormal(0.,1.);
         });
     }
 #else
