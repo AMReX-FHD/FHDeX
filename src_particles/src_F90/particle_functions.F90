@@ -238,7 +238,7 @@ contains
     r_cell_frac = r_norm/0.1-r_cell !  
     r_cell_frac = r_cell_frac*0.1   ! for use in point-slope formula below
     !print *, "r: ", r_cell_frac
-    !print *, "cr: ", r_cell
+    !print *, "cr: ", r_cell, r
     !print *, "r_cell_frac: ", r_cell_frac
     if (pkernel_es .eq. 6) then 
 
@@ -397,16 +397,17 @@ contains
           r = sqrt(r2)                    ! separation dist
 
           ! perform coulomb and p3m interaction with image charge
-          if (bc_es_lo(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+          if ((bc_es_lo(2) .eq. 1) .and. (r .lt. (particles(i)%p3m_radius))) then                      ! hom. dirichlet--image charge opposite that of particle
 
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
+             
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
 
-          else if (bc_es_lo(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+          else if ((bc_es_lo(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
 
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
@@ -432,7 +433,7 @@ contains
           r = sqrt(r2)                    ! separation dist
 
           ! perform coulomb and p3m interaction with image charge
-          if (bc_es_hi(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+          if ((bc_es_hi(2) .eq. 1) .and. (r .lt. (particles(i)%p3m_radius))) then                      ! hom. dirichlet--image charge opposite that of particle
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
@@ -440,7 +441,7 @@ contains
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
 
-          else if (bc_es_hi(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+          else if ((bc_es_hi(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
              !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
@@ -485,6 +486,7 @@ contains
              !
              ! Currently only implemented for pkernel=6
 !!!!!!!!!!!!!!!!!!!!!!!!!!
+                !print *, "calling with ", r, (particles(i)%p3m_radius)
              call compute_p3m_force_mag(r, correction_force_mag, dx)
 
              ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
@@ -509,7 +511,7 @@ contains
                    r = sqrt(r2)                    ! separation dist
 
                    ! perform coulomb and p3m interaction with NL particle's image charge
-                   if (bc_es_lo(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+                   if ((bc_es_lo(2) .eq. 1) .and. (r .lt. (particles(i)%p3m_radius))) then                      ! hom. dirichlet--image charge opposite that of particle
 
                       ! coulomb
                       particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
@@ -519,7 +521,7 @@ contains
                       call compute_p3m_force_mag(r, correction_force_mag, dx)
                       particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
 
-                   else if (bc_es_lo(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+                   else if ((bc_es_lo(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
 
                       ! coulomb
                       particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
@@ -549,7 +551,7 @@ contains
                    r = sqrt(r2)                    ! separation dist
 
                    ! perform coulomb and p3m interaction with NL particle's image charge
-                   if (bc_es_hi(2) .eq. 1) then                      ! hom. dirichlet--image charge opposite that of particle
+                   if ((bc_es_hi(2) .eq. 1) .and. (r .lt. (particles(i)%p3m_radius))) then                      ! hom. dirichlet--image charge opposite that of particle
 
                       ! coulomb
                       particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
@@ -557,7 +559,7 @@ contains
                       ! p3m 
                       call compute_p3m_force_mag(r, correction_force_mag, dx)
                       particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
-                   else if (bc_es_hi(2) .eq. 2) then                 ! hom. neumann  --image charge equal that of particle
+                   else if ((bc_es_hi(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
 
                       ! coulomb
                       particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
