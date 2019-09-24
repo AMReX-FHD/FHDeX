@@ -222,27 +222,6 @@ void main_driver(const char* argv)
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
-
-    // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
-    pres.setVal(0.);  // initial guess
-
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    // tracer
-    MultiFab tracer(ba,dmap,1,1);
-    tracer.setVal(0.);
-    
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
-
-    ///////////////////////////////////////////
     // structure factor:
     ///////////////////////////////////////////
 
@@ -278,25 +257,56 @@ void main_driver(const char* argv)
     // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
 
     ///////////////////////////////////////////
+    
+    // FIXME need to fill physical boundary condition ghost cells for tracer
 
-    const RealBox& realDomain = geom.ProbDomain();
-    int dm;
+    // pressure for GMRES solve
+    MultiFab pres(ba,dmap,1,1);
+    pres.setVal(0.);  // initial guess
 
-    for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
+    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
+    AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););   
+    
+    int step_start;
+    amrex::Real time;
 
-        AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-                     dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-                                    BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-                                    geom.ProbLo(), geom.ProbHi() ,&dm,
-                                    ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+    // tracer
+    MultiFab tracer(ba,dmap,1,1);
+    
+    // staggered velocities
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+
+    if (restart > 0) {
+        ReadCheckPoint(step_start,time,umac,tracer);
+    }
+    else {
+
+        tracer.setVal(0.);
+
+        AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                     umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                     umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+    
+        const RealBox& realDomain = geom.ProbDomain();
+        int dm;
+
+        for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
+            const Box& bx = mfi.validbox();
+
+            AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
+                                        geom.ProbLo(), geom.ProbHi() ,&dm,
+                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                         dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
+                                        geom.ProbLo(), geom.ProbHi() ,&dm,
+                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
+                         dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
+                                        BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
+                                        geom.ProbLo(), geom.ProbHi() ,&dm,
+                                        ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
     	// initialize tracer
         init_s_vel(BL_TO_FORTRAN_BOX(bx),
@@ -305,44 +315,35 @@ void main_driver(const char* argv)
 
     }
     
-    // FIXME need to fill physical boundary condition ghost cells for tracer
+        // Add initial equilibrium fluctuations
+        if(initial_variance_mom != 0.0) {
+            sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+        }
 
-    // Add initial equilibrium fluctuations
-    if(initial_variance_mom != 0.0) {
-      sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+        // Project umac onto divergence free field
+        MultiFab macrhs(ba,dmap,1,1);
+        macrhs.setVal(0.0);
+        MacProj(umac,rho,geom,true);
+
+        step_start = 1;
+        time = 0.;
+
+        // write out initial state
+        // write out umac, tracer, pres, and divergence to a plotfile
+        if (plot_int > 0) {
+            WritePlotFile(step_start,time,geom,umac,tracer,pres);
+        }
+
     }
 
-    // Project umac onto divergence free field
-    MultiFab macphi(ba,dmap,1,1);
-    MultiFab macrhs(ba,dmap,1,1);
-    macrhs.setVal(0.0);
-    MacProj(umac,rho,geom,true);
-
-    int step = 0;
-    Real time = 0.;
-
-
-    if (restart > 0) {
-
-    }
-    else {
-
-    }           
-    
+    ///////////////////////////////////////////   
 
     // initial guess for new solution
     for (int i=0; i<AMREX_SPACEDIM; i++) {
       MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 0);
     }
-
-    // write out initial state
-    // write out umac, tracer, pres, and divergence to a plotfile
-    if (plot_int > 0) {
-	WritePlotFile(step,time,geom,umac,tracer,pres);
-    }
-
     //Time stepping loop
-    for(step=1;step<=max_step;++step) {
+    for(int step=step_start;step<=max_step;++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
 

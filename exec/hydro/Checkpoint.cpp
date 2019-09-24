@@ -95,8 +95,6 @@ void ReadCheckPoint(int& step,
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
 
-    
-
     // checkpoint file name, e.g., chk0000010
     const std::string& checkpointname = amrex::Concatenate(chk_base_name,restart,7);
 
@@ -135,13 +133,25 @@ void ReadCheckPoint(int& step,
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
 
         // build MultiFab data
-        umac[0].define(ba, dm, 1, 1);
-        umac[1].define(ba, dm, 1, 1);
+        umac[0].define(convert(ba,nodal_flag_x), dm, 1, 1);
+        umac[1].define(convert(ba,nodal_flag_y), dm, 1, 1);
 #if (AMREX_SPACEDIM == 3)
-        umac[2].define(ba, dm, 1, 1);
+        umac[2].define(convert(ba,nodal_flag_z), dm, 1, 1);
 #endif
         tracer.define(ba, dm, 1, 1);
     }
+
+    // read in the MultiFab data
+    VisMF::Read(umac[0],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umac"));
+    VisMF::Read(umac[1],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmac"));
+#if (AMREX_SPACEDIM == 3)
+    VisMF::Read(umac[2],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
+#endif
+    VisMF::Read(tracer,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
 }
 
 
