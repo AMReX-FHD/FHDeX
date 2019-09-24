@@ -223,24 +223,24 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
-    // tracer
-    MultiFab tracer(ba,dmap,1,1);
-    tracer.setVal(0.);
-
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
-
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
-                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
-                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     AMREX_D_TERM(umacNew[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
                  umacNew[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
                  umacNew[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
+
+    // tracer
+    MultiFab tracer(ba,dmap,1,1);
+    tracer.setVal(0.);
+    
+    // staggered velocities
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    AMREX_D_TERM(umac[0].define(convert(ba,nodal_flag_x), dmap, 1, 1);,
+                 umac[1].define(convert(ba,nodal_flag_y), dmap, 1, 1);,
+                 umac[2].define(convert(ba,nodal_flag_z), dmap, 1, 1););
 
     ///////////////////////////////////////////
     // structure factor:
@@ -318,19 +318,28 @@ void main_driver(const char* argv)
     macrhs.setVal(0.0);
     MacProj(umac,rho,geom,true);
 
+    int step = 0;
+    Real time = 0.;
+
+
+    if (restart > 0) {
+
+    }
+    else {
+
+    }           
+    
+
     // initial guess for new solution
     for (int i=0; i<AMREX_SPACEDIM; i++) {
       MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 0);
     }
 
-    int step = 0;
-    Real time = 0.;
-
     // write out initial state
-    if (plot_int > 0)
-      {
+    // write out umac, tracer, pres, and divergence to a plotfile
+    if (plot_int > 0) {
 	WritePlotFile(step,time,geom,umac,tracer,pres);
-      }
+    }
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
@@ -371,9 +380,15 @@ void main_driver(const char* argv)
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-          // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,tracer,pres);
+            // write out umac, tracer, pres, and divergence to a plotfile
+            WritePlotFile(step,time,geom,umac,tracer,pres);
         }
+
+        if (chk_int > 0 && step%chk_int == 0) {
+            // write out umac and tracer to a checkpoint file
+            WriteCheckPoint(step,time,umac,tracer);
+        }
+        
     }
 
     ///////////////////////////////////////////

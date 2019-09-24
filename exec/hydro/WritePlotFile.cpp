@@ -22,6 +22,9 @@ void WritePlotFile(int step,
     
     std::string plotfilename = Concatenate(plot_base_name,step,7);
 
+
+    amrex::Print() << "Writing plotfile " << plotfilename << "\n";
+    
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
