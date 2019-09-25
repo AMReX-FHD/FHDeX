@@ -2283,16 +2283,13 @@ contains
 
                    runtime = dt*0.5
 
-
-
-
                    do while (runtime .gt. 0)
 
                       !check 
 
-                      !call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
-                      intsurf = 0
-                      inttime = runtime
+                      call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+                      !intsurf = 0
+                      !inttime = runtime
 
                       posalt(1) = inttime*part%vel(1)*adjalt
                       posalt(2) = inttime*part%vel(2)*adjalt
@@ -2308,25 +2305,23 @@ contains
 #endif
                       runtime = runtime - inttime
 
-
-
-
                       if(intsurf .gt. 0) then
 
                          surf => surfaces(intsurf)
 
+                         if(surf%periodicity .eq. 0) then
 
+                           call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
-                         call apply_bc(surf, part, intside, domsize, push, 1, 1)
+                           if(push .eq. 1) then
 
-                         if(push .eq. 1) then
-
-                            part%pos(1) = part%pos(1) + posalt(1)
-                            part%pos(2) = part%pos(2) + posalt(2)
+                              part%pos(1) = part%pos(1) + posalt(1)
+                              part%pos(2) = part%pos(2) + posalt(2)
 #if (BL_SPACEDIM == 3)
-                            part%pos(3) = part%pos(3) + posalt(3)
+                              part%pos(3) = part%pos(3) + posalt(3)
 #endif
-                         endif
+                           endif
+                        endif
 
                       endif
 
