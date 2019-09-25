@@ -12,12 +12,7 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_stoch,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
 	     const amrex::MultiFab& beta, const amrex::MultiFab& gamma,
-# if (AMREX_SPACEDIM == 2)
-	     const std::array< amrex::MultiFab, 1 >& beta_ed,
-# endif
-# if (AMREX_SPACEDIM == 3)
-	     const std::array< amrex::MultiFab, 3 >& beta_ed,
-# endif
+	     const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
 	     const amrex::Geometry geom, const amrex::Real& dt);
 
 ///////////////////////////
@@ -31,6 +26,21 @@ void WritePlotFile(const int step,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& tracer,
                    const MultiFab& pres);
+
+///////////////////////////
+
+///////////////////////////
+// in Checkpoint.cpp
+
+void WriteCheckPoint(const int step,
+                     const amrex::Real time,
+                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                     const MultiFab& tracer);
+
+void ReadCheckPoint(int& step,
+                    amrex::Real& time,
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                    MultiFab& tracer);
 
 ///////////////////////////
 
