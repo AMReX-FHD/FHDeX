@@ -68,16 +68,16 @@ extern "C"
 	delete eng;
     }
 
-//    void bl_rng_save_engine_c (const BLRngEngine* eng, const char* name)
-//    {
-//	BLRng_save(*eng, name);
-//    }
+    void bl_rng_save_engine_c (const BLRngEngine* eng, const char* name)
+    {
+	BLRng_save(*eng, name);
+    }
 
-//    void bl_rng_restore_engine_c (BLRngEngine*& eng, const char* name)
-//    {
-//	eng = new BLRngEngine();
-//	BLRng_restore(*eng, name);
-//    }
+    void bl_rng_restore_engine_c (BLRngEngine*& eng, const char* name)
+    {
+	eng = new BLRngEngine();
+	BLRng_restore(*eng, name);
+    }
 
     void bl_rng_copy_engine_c (BLRngEngine* eng_dst, BLRngEngine* eng_src)
     {

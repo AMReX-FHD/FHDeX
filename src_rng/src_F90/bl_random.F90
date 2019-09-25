@@ -13,14 +13,16 @@ module bl_random_module
 
   private 
   public :: bl_rng_get, &
-       bl_rng_build_engine, bl_rng_destroy_engine, &
-       !bl_rng_save_engine, &
-       !bl_rng_copy_engine, &
-       !bl_rng_restore_engine, &
+       bl_rng_build_engine, &
+       bl_rng_destroy_engine, &
+       bl_rng_save_engine, &
+       bl_rng_restore_engine, &
        bl_rng_build_distro, &
        bl_rng_destroy_distro, &
-       !bl_rng_save_distro, bl_rng_restore_distro, &
-       bl_rng_engine, bl_rng_uniform_real, bl_rng_normal, bl_rng_poisson, &
+       bl_rng_engine, &
+       bl_rng_uniform_real, &
+       bl_rng_normal, &
+       bl_rng_poisson, &
        bl_rng_binomial
 
   type bl_rng_engine
@@ -64,20 +66,6 @@ module bl_random_module
      module procedure bl_rng_get_binomial
   end interface bl_rng_get
 
-  interface bl_rng_save_distro
-     !module procedure bl_rng_save_uniform_real
-     !module procedure bl_rng_save_normal
-     !module procedure bl_rng_save_poisson
-     !module procedure bl_rng_save_binomial
-  end interface bl_rng_save_distro
-
-  interface bl_rng_restore_distro
-     !module procedure bl_rng_restore_uniform_real
-     !module procedure bl_rng_restore_normal
-     !module procedure bl_rng_restore_poisson
-     !module procedure bl_rng_restore_binomial
-  end interface bl_rng_restore_distro
-
   interface
      function bl_rng_random_uint_c() result (r) bind(c)
        use, intrinsic :: iso_c_binding
@@ -108,13 +96,6 @@ module bl_random_module
        character(kind=c_char), intent(in) :: name(*)
      end subroutine bl_rng_save_engine_c
 
-     subroutine bl_rng_copy_engine_c(eng_dst, eng_src) bind(c)
-       use, intrinsic :: iso_c_binding
-       implicit none
-       type(c_ptr), value :: eng_dst
-       type(c_ptr), value :: eng_src
-     end subroutine bl_rng_copy_engine_c
-
      subroutine bl_rng_restore_engine_c(eng, name) bind(c)
        use, intrinsic :: iso_c_binding
        implicit none
@@ -144,20 +125,6 @@ module bl_random_module
        type(c_ptr), value :: rng, eng
        real(c_double) :: r
      end function bl_rng_get_uniform_real_c
-
-!     subroutine bl_rng_save_uniform_real_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr), value :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_save_uniform_real_c
-
-!     subroutine bl_rng_restore_uniform_real_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr) :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_restore_uniform_real_c
   end interface
 
   ! normal distribution
@@ -181,20 +148,6 @@ module bl_random_module
        type(c_ptr), value :: rng, eng
        real(c_double) :: r
      end function bl_rng_get_normal_c
-
-!     subroutine bl_rng_save_normal_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr), value :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_save_normal_c
-
-!     subroutine bl_rng_restore_normal_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr) :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_restore_normal_c
   end interface
 
   ! poisson distribution
@@ -218,20 +171,6 @@ module bl_random_module
        type(c_ptr), value :: rng, eng
        integer(c_int) :: r
      end function bl_rng_get_poisson_c
-
-!     subroutine bl_rng_save_poisson_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr), value :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_save_poisson_c
-
-!     subroutine bl_rng_restore_poisson_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr) :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_restore_poisson_c
   end interface
 
   ! binomial distribution
@@ -256,55 +195,33 @@ module bl_random_module
        type(c_ptr), value :: rng, eng
        integer(c_int) :: r
      end function bl_rng_get_binomial_c
-
-!     subroutine bl_rng_save_binomial_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr), value :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_save_binomial_c
-
-!     subroutine bl_rng_restore_binomial_c(rng, name) bind(c)
-!       use, intrinsic :: iso_c_binding
-!       implicit none
-!       type(c_ptr) :: rng
-!       character(kind=c_char), intent(in) :: name(*)
-!     end subroutine bl_rng_restore_binomial_c
   end interface
 
 contains
 
-!  subroutine bl_rng_filename(filename, dirname)
-!    character(kind=c_char), pointer, intent(inout) :: filename(:)
-!    character(len=*), intent(in) :: dirname
-!    integer :: i, n
-!    character(len=16) :: procname
-!    character(len=128) :: fullname
-!    write(procname, *) parallel_myproc()
-!    fullname = trim(dirname) // "/s" // trim(adjustl(procname))
-!    n = len_trim(fullname)
-!    allocate(filename(n+1))
-!    do i = 1, n
-!       filename(i) = fullname(i:i)
-!    end do
-!    filename(n+1) = c_null_char
-!  end subroutine bl_rng_filename
+  subroutine bl_rng_filename(filename, dirname)
+    character(kind=c_char), pointer, intent(inout) :: filename(:)
+    character(len=*), intent(in) :: dirname
+    integer :: i, n
+    character(len=16) :: procname
+    character(len=128) :: fullname
+    write(procname, *) parallel_myproc()
+    fullname = trim(dirname) // "/s" // trim(adjustl(procname))
+    n = len_trim(fullname)
+    allocate(filename(n+1))
+    do i = 1, n
+       filename(i) = fullname(i:i)
+    end do
+    filename(n+1) = c_null_char
+  end subroutine bl_rng_filename
 
   function bl_rng_init_seed(s) result(r)
     integer(c_int), intent(in) :: s
     integer :: r
     integer, save :: rstatic
     if (s .eq. 0) then
-       !$omp master
        rstatic = bl_rng_random_uint_c()
-!       call parallel_bcast(rstatic)
-!       if (parallel_IOProcessor()) then
-!          print*,'seed = 0 --> picking a random root seed',rstatic
-!       end if
-       !$omp end master
-       !$omp barrier
-
-print*,'seed = 0 --> picking a random root seed',rstatic
+       print*,'seed = 0 --> picking a random root seed',rstatic
        r = rstatic
     else if (s .gt. 0) then
        r = s
@@ -330,35 +247,30 @@ print*,'seed = 0 --> picking a random root seed',rstatic
     eng%p = c_null_ptr
   end subroutine bl_rng_destroy_engine
   !
-!  subroutine bl_rng_save_engine(eng, dirname)
-!    type(bl_rng_engine), intent(in) :: eng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (parallel_IOProcessor()) then
-!       call fabio_mkdir(dirname)
-!    end if
-!    call parallel_barrier()
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_save_engine_c(eng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_save_engine
+  subroutine bl_rng_save_engine(eng, dirname)
+    type(bl_rng_engine), intent(in) :: eng
+    character(len=*), intent(in) :: dirname
+    character(kind=c_char), pointer :: filename(:)
+    integer :: ierr
+    if (parallel_IOProcessor()) then
+!       call fabio_mkdir(dirname)  FIXME? (directory already made in C++ hydro part)
+    end if
+    !    call parallel_barrier()  FIXME? (trying the barrier call below)
+    call MPI_BARRIER(-1,ierr)
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_save_engine_c(eng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_save_engine
   !
-!  subroutine bl_rng_copy_engine(eng_dst, eng_src)
-!    type(bl_rng_engine), intent(inout) :: eng_dst
-!    type(bl_rng_engine), intent(in   ) :: eng_src
-!    call parallel_barrier()
-!    call bl_rng_copy_engine_c(eng_dst%p,eng_src%p)
-!  end subroutine bl_rng_copy_engine
-  !
-!  subroutine bl_rng_restore_engine(eng, dirname)
-!    type(bl_rng_engine), intent(inout) :: eng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (c_associated(eng%p)) call bl_rng_destroy_engine(eng) 
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_restore_engine_c(eng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_restore_engine
+  subroutine bl_rng_restore_engine(eng, dirname)
+    type(bl_rng_engine), intent(inout) :: eng
+    character(len=*), intent(in) :: dirname
+    character(kind=c_char), pointer :: filename(:)
+    if (c_associated(eng%p)) call bl_rng_destroy_engine(eng) 
+    call bl_rng_filename(filename, dirname)
+    call bl_rng_restore_engine_c(eng%p,filename)
+    deallocate(filename)
+  end subroutine bl_rng_restore_engine
 
   ! 
   ! uniform real distribution
@@ -382,28 +294,6 @@ print*,'seed = 0 --> picking a random root seed',rstatic
     r = bl_rng_get_uniform_real_c(rng%p, eng%p)    
   end function bl_rng_get_uniform_real
   !
-!  subroutine bl_rng_save_uniform_real(rng, dirname)
-!    type(bl_rng_uniform_real), intent(in) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (parallel_IOProcessor()) then
-!       call fabio_mkdir(dirname)
-!    end if
-!    call parallel_barrier()
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_save_uniform_real_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_save_uniform_real
-!  !
-!  subroutine bl_rng_restore_uniform_real(rng, dirname)
-!    type(bl_rng_uniform_real), intent(inout) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_restore_uniform_real_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_restore_uniform_real
 
   ! 
   ! normal distribution
@@ -427,28 +317,6 @@ print*,'seed = 0 --> picking a random root seed',rstatic
     r = bl_rng_get_normal_c(rng%p, eng%p)    
   end function bl_rng_get_normal
   !
-!  subroutine bl_rng_save_normal(rng, dirname)
-!    type(bl_rng_normal), intent(in) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (parallel_IOProcessor()) then
-!       call fabio_mkdir(dirname)
-!    end if
-!    call parallel_barrier()
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_save_normal_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_save_normal
-!  !
-!  subroutine bl_rng_restore_normal(rng, dirname)
-!    type(bl_rng_normal), intent(inout) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_restore_normal_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_restore_normal
 
   ! 
   ! poisson distribution
@@ -472,28 +340,6 @@ print*,'seed = 0 --> picking a random root seed',rstatic
     r = bl_rng_get_poisson_c(rng%p, eng%p)    
   end function bl_rng_get_poisson
   !
-!  subroutine bl_rng_save_poisson(rng, dirname)
-!    type(bl_rng_poisson), intent(in) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (parallel_IOProcessor()) then
-!       call fabio_mkdir(dirname)
-!    end if
-!    call parallel_barrier()
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_save_poisson_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_save_poisson
-!  !
-!  subroutine bl_rng_restore_poisson(rng, dirname)
-!    type(bl_rng_poisson), intent(inout) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_restore_poisson_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_restore_poisson
 
   ! 
   ! binomial distribution
@@ -518,28 +364,6 @@ print*,'seed = 0 --> picking a random root seed',rstatic
     r = bl_rng_get_binomial_c(rng%p, eng%p)    
   end function bl_rng_get_binomial
   !
-!  subroutine bl_rng_save_binomial(rng, dirname)
-!    type(bl_rng_binomial), intent(in) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (parallel_IOProcessor()) then
-!       call fabio_mkdir(dirname)
-!    end if
-!    call parallel_barrier()
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_save_binomial_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_save_binomial
-!  !
-!  subroutine bl_rng_restore_binomial(rng, dirname)
-!    type(bl_rng_binomial), intent(inout) :: rng
-!    character(len=*), intent(in) :: dirname
-!    character(kind=c_char), pointer :: filename(:)
-!    if (c_associated(rng%p)) call bl_rng_destroy_distro(rng) 
-!    call bl_rng_filename(filename, dirname)
-!    call bl_rng_restore_binomial_c(rng%p,filename)
-!    deallocate(filename)
-!  end subroutine bl_rng_restore_binomial
 
 end module bl_random_module
 

@@ -15,18 +15,18 @@ BLRng_save (const T& rng, const char* name)
     ofs << rng;
 }
 
-//template <typename T>
-//void
-//BLRng_restore (T& rng, const char* name)
-//{
-//    std::ifstream ifs(name);
-//    if (ifs.good()) {
-//	ifs >> rng;
-//    } else {
-//	std::cerr << "bl_rng: faied to open " << name << std::endl;
+template <typename T>
+void
+BLRng_restore (T& rng, const char* name)
+{
+    std::ifstream ifs(name);
+    if (ifs.good()) {
+	ifs >> rng;
+    } else {
+	std::cerr << "bl_rng: faied to open " << name << std::endl;
 //	backtrace_handler(6);
-//    }
-//}
+    }
+}
 
 template <typename Return_t, typename Distro_t, typename Engine_t>
 Return_t 
