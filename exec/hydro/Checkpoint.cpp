@@ -185,6 +185,9 @@ void ReadCheckPoint(int& step,
 #endif
     VisMF::Read(tracer,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
+    
+    // random number engines
+    rng_restart(&restart);
 }
 
 

@@ -103,14 +103,35 @@ contains
 
 
   ! restore all engines from the checkpoint directory and build distributions
-  subroutine rng_restart() bind(c,name='rng_restart')
+  subroutine rng_restart(step) bind(c,name='rng_restart')
 
+    integer, intent(in   ) :: step
 
-
-
-
-
+    character(len=8  ) :: check_index
+    character(len=128) :: sd_name
+    character(len=128) :: rand_name
     
+    write(unit=check_index,fmt='(i7.7)') step
+    sd_name = trim(chk_base_name) // check_index
+
+    ! engines
+    rand_name = trim(sd_name) // '/rng_eng_fhd'
+    call bl_rng_restore_engine(rng_eng_fhd, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_particle'
+    call bl_rng_restore_engine(rng_eng_particle, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_select'
+    call bl_rng_restore_engine(rng_eng_select, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_scatter_theta'
+    call bl_rng_restore_engine(rng_eng_scatter_theta, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_scatter_phi'
+    call bl_rng_restore_engine(rng_eng_scatter_phi, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_general'
+    call bl_rng_restore_engine(rng_eng_general, rand_name)    
     
     call bl_rng_build_distro(nm_fhd, 0.0d0, 1.0d0)
     call bl_rng_build_distro(nm_particle, 0.0d0, 1.0d0)
