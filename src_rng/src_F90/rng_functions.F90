@@ -15,7 +15,7 @@ module rng_functions_module
   private
 
   public :: rng_initialize, &
-       &    get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, &
+       &    get_particle_normal, get_particle_normal_func, get_selector, get_uniform_func, &
        &    get_angles, get_half_angles, get_fhd_normal_func
 
   type(bl_rng_engine)      , save :: rng_eng_fhd
@@ -34,6 +34,7 @@ module rng_functions_module
 
 contains
 
+  ! build all engines and distributions
   subroutine rng_initialize(fhd, particle, sel, theta, phi, general) bind(c,name='rng_initialize')
 
     implicit none
@@ -56,7 +57,7 @@ contains
 
   end subroutine rng_initialize
 
-
+  ! build only a single engine and distribution
   subroutine rng_init(fhd) bind(c,name='rng_init')
 
     integer, intent(in) :: fhd
@@ -67,6 +68,60 @@ contains
   end subroutine rng_init
 
 
+  ! save all engines to the checkpoint directory
+  subroutine rng_checkpoint(step) bind(c,name='rng_checkpoint')
+
+    integer, intent(in   ) :: step
+
+    character(len=8  ) :: check_index
+    character(len=128) :: sd_name
+    character(len=128) :: rand_name
+    
+    write(unit=check_index,fmt='(i7.7)') step
+    sd_name = trim(chk_base_name) // check_index
+
+    ! engines
+    rand_name = trim(sd_name) // '/rng_eng_fhd'
+    call bl_rng_save_engine(rng_eng_fhd, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_particle'
+    call bl_rng_save_engine(rng_eng_particle, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_select'
+    call bl_rng_save_engine(rng_eng_select, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_scatter_theta'
+    call bl_rng_save_engine(rng_eng_scatter_theta, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_scatter_phi'
+    call bl_rng_save_engine(rng_eng_scatter_phi, rand_name)
+    
+    rand_name = trim(sd_name) // '/rng_eng_general'
+    call bl_rng_save_engine(rng_eng_general, rand_name)
+    
+  end subroutine rng_checkpoint
+
+
+  ! restore all engines from the checkpoint directory and build distributions
+  subroutine rng_restart() bind(c,name='rng_restart')
+
+
+
+
+
+
+    
+    
+    call bl_rng_build_distro(nm_fhd, 0.0d0, 1.0d0)
+    call bl_rng_build_distro(nm_particle, 0.0d0, 1.0d0)
+    call bl_rng_build_distro(un_select, 0.0d0, 1.0d0)
+    call bl_rng_build_distro(un_costheta, 0.0d0, 1.0d0)
+    call bl_rng_build_distro(un_general, 0.0d0, 1.0d0)
+    call bl_rng_build_distro(un_phi, 0.0d0, 2d0*3.14159265359)
+
+  end subroutine rng_restart
+
+  ! particle functions
   subroutine get_particle_normal(test)
 
       double precision, intent(inout) :: test
@@ -83,6 +138,7 @@ contains
 
   end function get_particle_normal_func
 
+  ! selector functions
   subroutine get_selector(test, length)
 
       integer, intent(inout) :: test
@@ -92,6 +148,7 @@ contains
 
   end subroutine get_selector
 
+  ! angles
   subroutine get_angles(costheta, sintheta, cosphi, sinphi) bind(c,name="get_angles")
 
       double precision, intent(inout) :: costheta, sintheta, cosphi, sinphi
@@ -120,14 +177,7 @@ contains
 
   end subroutine get_half_angles
 
-  subroutine get_uniform(test)
-
-      double precision, intent(inout) :: test
-
-      test = bl_rng_get(un_general, rng_eng_general)
-
-  end subroutine get_uniform
-
+  ! uniform
   function get_uniform_func() result(test) bind(c,name='get_uniform_func')
 
       double precision test
@@ -136,6 +186,7 @@ contains
 
   end function get_uniform_func
 
+  ! normal
   function get_fhd_normal_func() result(test) bind(c,name='get_fhd_normal_func')
 
       double precision test

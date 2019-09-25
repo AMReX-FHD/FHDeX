@@ -1,10 +1,12 @@
 #include "hydro_test_functions.H"
 
+#include "rng_functions_F.H"
+
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_PlotFileDataImpl.H"
 
 #include "common_namespace.H"
-
+#include <sys/stat.h> 
 using namespace common;
 using namespace amrex;
 
@@ -85,6 +87,37 @@ void WriteCheckPoint(int step,
 #endif
     VisMF::Write(tracer,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
+
+    int check;
+    char str[80];
+    
+    strcpy (str,checkpointname.c_str());
+    strcat (str,"/rng_eng_fhd");
+    check = mkdir(str,0777);
+    
+    strcpy (str,checkpointname.c_str());
+    strcat (str,"/rng_eng_particle");
+    check = mkdir(str,0777);
+    
+    strcpy (str,checkpointname.c_str());
+    strcat (str,"/rng_eng_select");
+    check = mkdir(str,0777);
+    
+    strcpy (str,checkpointname.c_str());
+    strcat (str,"/rng_eng_scatter_theta");
+    check = mkdir(str,0777);
+    
+    strcpy (str,checkpointname.c_str());
+    strcat (str,"/rng_eng_scatter_phi");
+    check = mkdir(str,0777);
+    
+    strcpy (str,checkpointname.c_str());
+    strcat (str,"/rng_eng_general");
+    check = mkdir(str,0777);
+    
+    // random number engines
+    rng_checkpoint(&step);
+    
 }
 
 void ReadCheckPoint(int& step,

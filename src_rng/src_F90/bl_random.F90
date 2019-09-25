@@ -256,7 +256,7 @@ contains
 !       call fabio_mkdir(dirname)  FIXME? (directory already made in C++ hydro part)
     end if
     !    call parallel_barrier()  FIXME? (trying the barrier call below)
-    call MPI_BARRIER(-1,ierr)
+    !call MPI_BARRIER(-1,ierr)
     call bl_rng_filename(filename, dirname)
     call bl_rng_save_engine_c(eng%p,filename)
     deallocate(filename)
