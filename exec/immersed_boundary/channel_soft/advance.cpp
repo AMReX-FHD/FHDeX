@@ -456,7 +456,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
 
     // crank-nicolson terms
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0,
+    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0,
                 dx, theta_alpha);
 
     // advective term boundary conditions
@@ -621,7 +621,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     // crank-nicolson terms
     // TODO: ask Andy if we should use umacNew here?
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
+    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
                 alpha_fc_0, dx, theta_alpha);
 
 

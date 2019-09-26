@@ -209,7 +209,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
     // compute norm of initial residual
     // first compute viscous part of Lphi
-    StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
+    StagApplyOp(geom_mg[0],beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
                 phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],dx_mg[0].data(),1.);
 
     // now subtract the rest of the RHS from Lphi.
@@ -270,7 +270,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             if (stag_mg_verbosity >= 3) {
 
                 // compute Lphi
-                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
                 // now subtract the rest of the RHS from Lphi.
@@ -293,7 +293,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     // where D is the diagonal matrix containing the diagonal elements of L
 
                     // compute Lphi
-                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                    StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.,color);
 
                     // update phi = phi + omega*D^{-1}*(rhs-Lphi)
@@ -318,7 +318,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 if (stag_mg_verbosity >= 4) {
 
                     // compute Lphi
-                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                    StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
                     // now subtract the rest of the RHS from Lphi.
@@ -337,7 +337,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             // compute residual
 
             // compute Lphi
-            StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+            StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                         phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
             // now subtract the rest of the RHS from Lphi.
@@ -386,7 +386,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         if (stag_mg_verbosity >= 3) {
 
             // compute Lphi
-            StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+            StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                         phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
             // now subtract the rest of the RHS from Lphi.
@@ -410,7 +410,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 // where D is the diagonal matrix containing the diagonal elements of L
 
                 // compute Lphi
-                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.,color);
 
                 // update phi = phi + omega*D^{-1}*(rhs-Lphi)
@@ -437,7 +437,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         // compute residual
 
         // compute Lphi
-        StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+        StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                     phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
         // now subtract the rest of the RHS from Lphi.
@@ -488,7 +488,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             if (stag_mg_verbosity >= 3) {
 
                 // compute Lphi
-                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
                 // now subtract the rest of the RHS from Lphi.
@@ -511,7 +511,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     // where D is the diagonal matrix containing the diagonal elements of L
 
                     // compute Lphi
-                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                    StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.,color);
 
                     // update phi = phi + omega*D^{-1}*(rhs-Lphi)
@@ -536,7 +536,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 if (stag_mg_verbosity >= 4) {
 
                     // compute Lphi
-                    StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                    StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                                 phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
                     // now subtract the rest of the RHS from Lphi.
@@ -554,7 +554,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             if (stag_mg_verbosity >= 3) {
 
                 // compute Lphi
-                StagApplyOp(beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
+                StagApplyOp(geom_mg[n],beta_cc_mg[n],gamma_cc_mg[n],beta_ed_mg[n],
                             phi_fc_mg[n],Lphi_fc_mg[n],alpha_fc_mg[n],dx_mg[n].data(),1.);
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -575,7 +575,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         // compute norm of residual
 
         // compute Lphi
-        StagApplyOp(beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
+        StagApplyOp(geom_mg[0],beta_cc_mg[0],gamma_cc_mg[0],beta_ed_mg[0],
                     phi_fc_mg[0],Lphi_fc_mg[0],alpha_fc_mg[0],dx_mg[0].data(),1.);
 
         // compute Lphi - rhs

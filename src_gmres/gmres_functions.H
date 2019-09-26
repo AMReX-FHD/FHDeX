@@ -180,7 +180,8 @@ void StagMGUpdate(std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
                   const int & color=0);
 
 // In StagApplyOp.cpp
-void StagApplyOp(const MultiFab & beta_cc,
+void StagApplyOp(const Geometry & geom,
+                 const MultiFab & beta_cc,
                  const MultiFab & gamma_cc,
                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
                  const std::array<MultiFab, AMREX_SPACEDIM> & umacIn,

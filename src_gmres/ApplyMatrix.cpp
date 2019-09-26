@@ -64,7 +64,7 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
 
     // compute b_u = A x_u
     if (gmres_spatial_order == 2) {
-        StagApplyOp(beta, gamma, beta_ed, x_u, b_u, alpha_fc, dx, theta_alpha);
+        StagApplyOp(geom, beta, gamma, beta_ed, x_u, b_u, alpha_fc, dx, theta_alpha);
     }
     else if (gmres_spatial_order == 4) {
         Abort("ApplyMatrix.cpp: gmres_spatial_order=4 not supported yet");

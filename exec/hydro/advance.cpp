@@ -200,7 +200,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
 
   // crank-nicolson terms
-  StagApplyOp(beta_negwtd,gamma_negwtd,beta_ed_negwtd,
+  StagApplyOp(geom,beta_negwtd,gamma_negwtd,beta_ed_negwtd,
 	      umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {

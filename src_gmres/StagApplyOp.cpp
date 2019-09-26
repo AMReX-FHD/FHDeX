@@ -642,7 +642,8 @@ void stag_applyop_visc_m2 (Box const& tbx,
 #endif
 }
 
-void StagApplyOp(const MultiFab& beta_cc,
+void StagApplyOp(const Geometry & geom,
+                 const MultiFab& beta_cc,
                  const MultiFab& gamma_cc,
                  const std::array<MultiFab, NUM_EDGE>& beta_ed,
                  const std::array<MultiFab, AMREX_SPACEDIM>& phi,
@@ -784,4 +785,9 @@ void StagApplyOp(const MultiFab& beta_cc,
             });            
         }
     }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MultiFABPhysBCDomainVel(Lphi[i], i, geom, i);
+    }
+    
 }

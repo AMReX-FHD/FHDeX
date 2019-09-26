@@ -644,7 +644,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Explicit part of the diffusive operator Lu^n/2. Note that we are using
     // the weighted coefficients (to deal witht he 1/2 part)
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd,
                 umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
 
@@ -955,7 +955,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     // (crank-nicolson terms) Explicit part of the diffusive operator Lu^n/2.
     // Note that we are using the weighted coefficients (to deal with the 1/2
     // part)
-    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
+    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
                 alpha_fc_0, dx, theta_alpha);
 
 
@@ -1097,7 +1097,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     // // Explicit part of the diffusive operator Lu^n/2. Note that we are using
     // // the weighted coefficients (to deal witht he 1/2 part)
-    // StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd,
+    // StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd,
     //             umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
 

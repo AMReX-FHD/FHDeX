@@ -886,7 +886,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
 
         // Apply A (Helmhotz) operator
-        StagApplyOp(beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
+        StagApplyOp(geom, beta, gamma, beta_ed, spread_rhs, AS_rhs, alpha_fc, dx, theta_alpha);
         // for (int d=0; d<AMREX_SPACEDIM; ++d)
         //     MultiFab::Copy(AS_rhs[d], spread_rhs[d], 0, 0, 1, ib_grow);
 

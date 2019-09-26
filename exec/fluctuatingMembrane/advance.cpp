@@ -313,7 +313,7 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 //    MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
 
 //    // crank-nicolson terms
-//    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+//    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
 //    for (int d=0; d<AMREX_SPACEDIM; d++) {
 //        Lumac[d].FillBoundary(geom.periodicity());
@@ -387,7 +387,7 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 //    }
 
 //    // crank-nicolson terms
-//    StagApplyOp(beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+//    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
 //    for (int d=0; d<AMREX_SPACEDIM; d++) {
 //        MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
@@ -613,7 +613,7 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MkAdvMFluxdiv(umac,uMom,advFluxdiv,dx,0);
 
   // crank-nicolson terms
-  StagApplyOp(beta_negwtd,gamma_negwtd,beta_ed_negwtd,
+  StagApplyOp(geom, beta_negwtd,gamma_negwtd,beta_ed_negwtd,
 	      umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -663,7 +663,7 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 
   // crank-nicolson terms
-  StagApplyOp(beta_negwtd,gamma_negwtd,beta_ed_negwtd,
+  StagApplyOp(geom, beta_negwtd,gamma_negwtd,beta_ed_negwtd,
 	      umac,Lumac,alpha_fc_0,dx,theta_alpha);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
