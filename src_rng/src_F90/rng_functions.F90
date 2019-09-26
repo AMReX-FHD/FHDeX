@@ -15,7 +15,7 @@ module rng_functions_module
   private
 
   public :: rng_initialize, &
-       &    get_particle_normal, get_particle_normal_func, get_selector, get_uniform_func, &
+       &    get_particle_normal, get_particle_normal_func, get_selector, get_uniform, get_uniform_func, &
        &    get_angles, get_half_angles, get_fhd_normal_func
 
   type(bl_rng_engine)      , save :: rng_eng_fhd
@@ -197,6 +197,14 @@ contains
       sinphi = sin(phi)
 
   end subroutine get_half_angles
+
+  subroutine get_uniform(test)
+
+      double precision, intent(inout) :: test
+
+      test = bl_rng_get(un_general, rng_eng_general)
+
+  end subroutine get_uniform
 
   ! uniform
   function get_uniform_func() result(test) bind(c,name='get_uniform_func')
