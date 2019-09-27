@@ -171,9 +171,21 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
 
     // The velocity problem is also singular under these cases
     if (theta_alpha == 0.) {
+
+        bool no_wall_is_no_slip = true;
+
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            if (geom.isPeriodic(d)) {
-                x_u[d].plus(-mean_val_umac[d],0,1,0);
+            if (bc_vel_lo[d] == 2 || bc_vel_hi[d] == 2) {
+                no_wall_is_no_slip = false;
+            }
+        }
+                
+
+        if (no_wall_is_no_slip) {
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                if (geom.isPeriodic(d)) {
+                    x_u[d].plus(-mean_val_umac[d],0,1,0);
+                }
             }
         }
     }
