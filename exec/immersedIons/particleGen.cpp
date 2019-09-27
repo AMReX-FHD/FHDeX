@@ -67,78 +67,6 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                 p.pos(2) = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
 #endif
 
-// SC p3m testing:  two particles near each other and both near the wall
-                //p.pos(0) = (geom.ProbHi(0) - geom.ProbLo(0))*0.5 + i_spec*1.82*dxp[0]; 
-                //p.pos(1) = geom.ProbLo(1) + 0.21*dxp[0];
-
-                //p.pos(1) = geom.ProbHi(1) - 0.21*dxp[0] - i_spec*1.34*dxp[0];
-                //p.pos(1) = (geom.ProbHi(1) - geom.ProbLo(1))*0.501 - i_spec*1.72*dxp[0];
-                //p.pos(1) = (geom.ProbHi(1) - geom.ProbLo(1))*0.5;
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = (geom.ProbHi(2) - geom.ProbLo(2))*0.5; 
-//#endif
-
-
-
-// SC P3M Test #(34A):  one particle near wall, other is near the first but not the wall
-//                      make sure prob_lo(2) = 0  for this one!
-//                      Make sure particle count = 1 1 
-//                      Make sure bc_es_lo/hi(2) = 1 aka dirichlet 
-//                int ref = 2;
-//                p.pos(0) = (geom.ProbHi(0))*0.5; // + i_spec*1.82*dxp[0]; 
-//                p.pos(1) = ref*2.5*dxp[0] + ref*i_spec*1.82*dxp[0]; 
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = (geom.ProbHi(2) - geom.ProbLo(2))*0.5; 
-//#endif
-
-//// SC P3M Test #(34B): same configuration as above but with no walls; also place charges 
-////                     reflected across y=0 line. Make sure prob_lo(2) = -1*prob_hi(2) 
-////                     Make sure particle count = 2 2 
-////                     Make sure bc_es_lo/hi(2) = -1  aka periodic 
-//                int ref = 4;
-//                p.pos(0) = (geom.ProbHi(0) - geom.ProbLo(0))*0.5; // + i_spec*1.82*dxp[0]; 
-//                std::cout << "i_part = "<< i_part << " i_spec = " << i_spec << std::endl; 
-//                if (i_part == 0) 
-//		{
-//                	p.pos(1) = 2.5*ref*dxp[0] + ref*i_spec*1.82*dxp[0]; 
-//		}
-//		else 
-//		{
-//                	p.pos(1) = (-1.)*(ref*2.5*dxp[0] + ref*i_spec*1.82*dxp[0]); 
-//		}
-
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = (geom.ProbHi(2) - geom.ProbLo(2))*0.5; 
-//#endif
-
-// SC P3M: two particles in free space -- turn walls off
-//                p.pos(0) = (geom.ProbHi(0) - geom.ProbLo(0))*0.5; // + i_spec*1.82*dxp[0]; 
-//                //p.pos(1) = (geom.ProbHi(1) - geom.ProbLo(1))*0.10 + i_spec*1.82*dxp[0]; 
-//                p.pos(1) = (geom.ProbLo(1))+5*dxp[0] + i_spec*10*dxp[0]; 
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = (geom.ProbHi(2) - geom.ProbLo(2))*0.5; //  + i_spec*2.82*dxp[0];
-//#endif
-
-
-//                sep = 4.05;
-//                th = 3.14159/6.0;
-//                //th = 0;
-//                cosTheta = cos(th);
-//                sinTheta = sin(th);
-
-//                p.pos(0) = phi[0]/2.0+0.08*dx[0] - (sep/2)*cosTheta*dx[0] + ll*(sep)*cosTheta*dx[0];
-//                p.pos(1) = phi[1]/2.0+0.31*dx[1] - (sep/2)*sinTheta*dx[1] + ll*(sep)*sinTheta*dx[1];
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = phi[2]/2.0+0.77*dx[2];
-//#endif
-
-//                p.pos(0) = phi[0]/2.0-10*dx[0] + ll*10*dx[0];
-//                p.pos(1) = phi[1]/2.0;
-//#if (BL_SPACEDIM == 3)
-//                p.pos(2) = phi[2]/2.0;
-//#endif
-
-                ll++;
                 
                 p.rdata(FHD_realData::q) = particleInfo[i_spec].q;
 
@@ -154,6 +82,22 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
                 //p.rdata(FHD_realData::vx) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(FHD_realData::vy) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
                 //p.rdata(FHD_realData::vz) = sqrt(particleInfo.R*particleInfo.T)*get_particle_normal_func();
+
+                p.rdata(FHD_realData::pred_posx) = 0;
+                p.rdata(FHD_realData::pred_posy) = 0;
+                p.rdata(FHD_realData::pred_posz) = 0;
+
+                p.rdata(FHD_realData::pred_velx) = 0;
+                p.rdata(FHD_realData::pred_vely) = 0;
+                p.rdata(FHD_realData::pred_velz) = 0;
+
+                p.rdata(FHD_realData::pred_forcex) = 0;
+                p.rdata(FHD_realData::pred_forcey) = 0;
+                p.rdata(FHD_realData::pred_forcez) = 0;
+
+                p.rdata(FHD_realData::fx) = 0;
+                p.rdata(FHD_realData::fy) = 0;
+                p.rdata(FHD_realData::fz) = 0;
 
                 p.rdata(FHD_realData::vx) = 0;
                 p.rdata(FHD_realData::vy) = 0;
