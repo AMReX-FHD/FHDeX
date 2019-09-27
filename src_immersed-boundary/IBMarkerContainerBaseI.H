@@ -90,10 +90,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     Real delta = 1e-6*dx[0];
     Real deltaover2 = delta/2.0;
     Real force = k_B*T_init[0]/delta;
-    Real totalforce[3] = {0,0,0};
-    Real totalforcesqr[3] = {0,0,0};
-
-    Print() << "NormA: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -118,31 +114,13 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
                 part.rdata(StructReal::forcex + d) = force * part.rdata(StructReal::pred_posx + d);
 
-                totalforce[d] += part.rdata(StructReal::forcex + d);
-                totalforcesqr[d] += part.rdata(StructReal::forcex + d)*part.rdata(StructReal::forcex + d);
-
             }
-            //if(sqrt(part.rdata(StructReal::forcex + 0)*part.rdata(StructReal::forcex + 0) + part.rdata(StructReal::forcex + 1)*part.rdata(StructReal::forcex + 1) + part.rdata(StructReal::forcex + 2)*part.rdata(StructReal::forcex + 2))>2.0)
-           // {
-               // std::cout << "Force1: " << ParallelDescriptor::MyProc() << ", " << i << ", " << part.rdata(StructReal::forcex + 0) << ", " << part.rdata(StructReal::forcex + 1) << ", " << part.rdata(StructReal::forcex + 2) << std::endl;
-           // }
+
         }
     }
 
-    Print() << "toalforce1: " << totalforce[0] << "," << totalforce[1] << "," << totalforce[2] << std::endl;
-    Print() << "toalforce1 norm: " << sqrt(totalforcesqr[0]) << "," << sqrt(totalforcesqr[1]) << "," << sqrt(totalforcesqr[2]) << std::endl;
-
     // spread this term into the velocity forcing
     SpreadMarkers(lev, f_out, coords, dx);
-
-    Print() << "NormB: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
-
-    totalforce[0] = 0;
-    totalforce[1] = 0;
-    totalforce[2] = 0;
-    totalforcesqr[0] = 0;
-    totalforcesqr[1] = 0;
-    totalforcesqr[2] = 0;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -164,18 +142,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
                 part.rdata(StructReal::forcex + d) = -force * part.rdata(StructReal::pred_posx + d);
 
-                totalforce[d] += part.rdata(StructReal::forcex + d);
-                totalforcesqr[d] += part.rdata(StructReal::forcex + d)*part.rdata(StructReal::forcex + d);
-
             }
         }
     }
-    Print() << "toalforce2: " << totalforce[0] << "," << totalforce[1] << "," << totalforce[2] << std::endl;
-    Print() << "toalforce2 norm: " << sqrt(totalforcesqr[0]) << "," << sqrt(totalforcesqr[1]) << "," << sqrt(totalforcesqr[2]) << std::endl;
 
     // spread this term into the velocity forcing
     SpreadMarkers(lev, f_out, coords, dx);
-    Print() << "NormC: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -196,8 +168,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             }
         }
     }
-
-    Print() << "NormD: " << f_out[0].norm2(0) << "," << f_out[1].norm2(0) << "," << f_out[2].norm2(0) << std::endl;
 }
 
 
@@ -284,33 +254,16 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
             std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-            const Real* dx
+            const Real* dx, const int ghost
         ) const {
 
-
-    //___________________________________________________________________________
-    // Geometry data
-    // const Geometry & geom = this->Geom(0);
-    // const Real     *   dx = geom.CellSize();
-
     const int n_marker = f_pos.size();
+    
+    for (MFIter mfi(f_out[0]); mfi.isValid(); ++mfi) {
 
-
-    //___________________________________________________________________________
-    // Cell-centered MultiFab used as a reference for iteratingface_coords over data
-    // WARNING: this will break if IBMarkerContainer is on a different grid
-    // than the grid which we're spreading to
-
-    const BoxArray & ba            = this->ParticleBoxArray(lev);
-    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
-
-    MultiFab dummy(ba, dm, 1, f_out[0].nGrow());
-
-
-    for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
-
-        Box bx       = mfi.growntilebox();
-        Box tile_box = mfi.tilebox();
+        //Convert stagered boxes into cell centered.
+        Box bx       = enclosedCells(mfi.growntilebox());
+        Box tile_box = enclosedCells(mfi.tilebox());
 
         spread_markers(BL_TO_FORTRAN_BOX(bx),
                        BL_TO_FORTRAN_BOX(tile_box),
@@ -338,8 +291,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
                        f_pos.dataPtr(),
                        f_in.dataPtr(),
                        & n_marker,
-                       dx );
+                       dx, &ghost);
     }
+
 }
 
 
@@ -359,7 +313,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
     const Geometry & geom = this->Geom(0);
     const Real     *   dx = geom.CellSize();
 
-    SpreadMarkers(lev, f_in, f_pos, f_out, f_weights, face_coords[lev], dx);
+    SpreadMarkers(lev, f_in, f_pos, f_out, f_weights, face_coords[lev], dx, 0);
 }
 
 
@@ -414,7 +368,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
         SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights,
-                      coords, dx);
+                      coords, dx, 1);
     }
 }
 
@@ -480,10 +434,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
             marker_positions[i] = ppos;
             marker_forces[i]    = pfor;
         }
+        int step = 1;
 
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
-        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights, step);
     }
 }
 

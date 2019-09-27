@@ -86,7 +86,7 @@ extern "C"
             const void *       pos_marker,
             const void *       v_marker,
             const int *        n_marker,
-            const amrex_real * dx
+            const amrex_real * dx, const int * ghost
         );
 
     void inv_interpolate_markers(

@@ -642,12 +642,13 @@ contains
             &                coords_x, cx_lo,    cx_hi,  &
             &                coords_y, cy_lo,    cy_hi,  &
             &                coords_z, cz_lo,    cz_hi,  &
-            &                pos,      v_spread, dx      )
+            &                pos, v_spread, dx, ghost)
 
 
         !________________________________________________________________________
         ! ** work region
         integer(c_int), dimension(3), intent(in   ) :: lo, hi
+        integer(c_int), intent(in   ) :: ghost
 
         ! ** OUT: vector quantity `v_spread` is spread to (staggered) MultiFabs `mf_*`
         integer(c_int), dimension(3), intent(in   ) :: mfx_lo, mfx_hi
@@ -755,14 +756,21 @@ contains
             invvol = invvol * invdx(ll)
         end do
 
-
-        ilo = max(lo(1), int(pos(1) * invdx(1) - gs))
-        ihi = min(hi(1), int(pos(1) * invdx(1) + gs))
-        jlo = max(lo(2), int(pos(2) * invdx(2) - gs))
-        jhi = min(hi(2), int(pos(2) * invdx(2) + gs))
-        klo = max(lo(3), int(pos(3) * invdx(3) - gs))
-        khi = min(hi(3), int(pos(3) * invdx(3) + gs))
-
+        if(ghost .eq. 0) then 
+          ilo = max(lo(1), int(pos(1) * invdx(1) - gs))
+          ihi = min(hi(1)+1, int(pos(1) * invdx(1) + gs))
+          jlo = max(lo(2), int(pos(2) * invdx(2) - gs))
+          jhi = min(hi(2)+1, int(pos(2) * invdx(2) + gs))
+          klo = max(lo(3), int(pos(3) * invdx(3) - gs))
+          khi = min(hi(3)+1, int(pos(3) * invdx(3) + gs))
+        else
+          ilo = int(pos(1) * invdx(1) - gs)
+          ihi = int(pos(1) * invdx(1) + gs)
+          jlo = int(pos(2) * invdx(2) - gs)
+          jhi = int(pos(2) * invdx(2) + gs)
+          klo = int(pos(3) * invdx(3) - gs)
+          khi = int(pos(3) * invdx(3) + gs)
+        endif
         !________________________________________________________________________
         ! x-components
         ! do k = lo(3), hi(3)
@@ -770,7 +778,7 @@ contains
         !         do i = lo(1), hi(1) + 1
         do k = klo, khi
             do j = jlo, jhi
-                do i = ilo, ihi + 1
+                do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -781,9 +789,8 @@ contains
                     end do
 
                     mf_x(i, j, k)     = mf_x(i, j, k) + v_spread(1) * weight * invvol
-                    weight_x(i, j, k) = weight_x(i, j, k) + weight
 
-                    !print *, "x: ", mf_x(i, j, k)
+                    weight_x(i, j, k) = weight_x(i, j, k) + weight
                 end do
             end do
         end do
@@ -794,7 +801,7 @@ contains
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
         do k = klo, khi
-            do j = jlo, jhi + 1
+            do j = jlo, jhi
                 do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
@@ -806,9 +813,9 @@ contains
                     end do
 
                     mf_y(i, j, k)     = mf_y(i, j, k) + v_spread(2) * weight * invvol
+
                     weight_y(i, j, k) = weight_y(i, j, k) + weight
 
-                    !print *, "y: ", mf_y(i, j, k)
                 end do
             end do
         end do
@@ -819,7 +826,7 @@ contains
         ! do k = lo(3), hi(3) + 1
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
-        do k = klo, khi + 1
+        do k = klo, khi
             do j = jlo, jhi
                 do i = ilo, ihi
 
@@ -829,13 +836,11 @@ contains
                     weight = 1d0
                     do ll = 1, AMREX_SPACEDIM
                         weight = weight * kernel_ptr(pos_grid(ll))
-                        !weight = weight * 0
                     end do
 
                     mf_z(i, j, k) = mf_z(i, j, k) + v_spread(3) * weight * invvol
-                    weight_z(i, j, k) = weight_z(i, j, k) + weight
 
-                   ! print *, "z: ", mf_z(i, j, k)
+                    weight_z(i, j, k) = weight_z(i, j, k) + weight
 
                 end do
             end do
@@ -857,7 +862,7 @@ contains
             &                 coords_y,   cy_lo,    cy_hi,     &
             &                 coords_z,   cz_lo,    cz_hi,     &
             &                 pos_marker, v_marker, n_marker,  &
-            &                 dx                             ) &
+            &                 dx, ghost                             ) &
             bind(C, name="spread_markers")
 
         !________________________________________________________________________
@@ -914,9 +919,10 @@ contains
             &                                       cz_lo(2):cz_hi(2), &
             &                                       cz_lo(3):cz_hi(3), AMREX_SPACEDIM)
 
+
         ! ** IN:  `n_marker`-many marker positions (pos_marker). The `pos_marker` and
         !         `v_marker` arrays are `Vector<RealVecr>` in c-land.
-        integer(c_int), intent(in   ) :: n_marker
+        integer(c_int), intent(in   ) :: n_marker, ghost
         real(amrex_real), intent(in   ) :: pos_marker(AMREX_SPACEDIM, n_marker);
         ! ** IN:  each marker spreads a vector qunantity `v_marker` to the stagged
         !         MultiFabs `mf_*`
@@ -932,20 +938,21 @@ contains
         ! v_spread <= current markers vector quantity to spread
         real(amrex_real), dimension(AMREX_SPACEDIM) :: pos, v_spread
 
-
         do i =  1, n_marker
 
             pos = pos_marker(:, i)
+            if(ghost .eq. 0) then 
+              ! skip marker if outside tile box (prevent double-counting)
+              if (pos(1) .lt. tile_lo(1)*dx(1) ) cycle
+              if (pos(1) .ge. (tile_hi(1)+1)*dx(1) ) cycle
 
-            ! skip marker if outside tile box (prevent double-counting)
-            if (pos(1) .lt. tile_lo(1)*dx(1) ) cycle
-            if (pos(1) .ge. (tile_hi(1)+1)*dx(1) ) cycle
+              if (pos(2) .lt. tile_lo(2)*dx(2) ) cycle
+              if (pos(2) .ge. (tile_hi(2)+1)*dx(2) ) cycle
 
-            if (pos(2) .lt. tile_lo(2)*dx(2) ) cycle
-            if (pos(2) .ge. (tile_hi(2)+1)*dx(2) ) cycle
+              if (pos(3) .lt. tile_lo(3)*dx(3) ) cycle
+              if (pos(3) .ge. (tile_hi(3)+1)*dx(3) ) cycle
 
-            if (pos(3) .lt. tile_lo(3)*dx(3) ) cycle
-            if (pos(3) .ge. (tile_hi(3)+1)*dx(3) ) cycle
+            endif
 
             v_spread = v_marker(:, i)
 
@@ -959,7 +966,7 @@ contains
                 &              coords_x, cx_lo,    cx_hi,  &
                 &              coords_y, cy_lo,    cy_hi,  &
                 &              coords_z, cz_lo,    cz_hi,  &
-                &              pos,      v_spread, dx      )
+                &              pos,  v_spread, dx, ghost)
 
         end do
 

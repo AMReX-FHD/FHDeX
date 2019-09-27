@@ -94,7 +94,7 @@ public:
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
                        const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-                       const Real* dx) const;
+                       const Real* dx, const int ghost) const;
     //---------------------------------------------------------------------------
 
 

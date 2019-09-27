@@ -43,7 +43,6 @@ void ComputeDiv(MultiFab& div,
     }
 }
 
-
 //Kernel for FC Grad
 AMREX_GPU_HOST_DEVICE
 inline
