@@ -96,7 +96,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             // compute dx at this level of multigrid
             dx_mg[n][d] = dx[d] * pow(2,n);
         }
-        
+
         // create the problem domain for this multigrid level
         Box pd(pd_base);
         pd.coarsen(pow(2,n));
@@ -125,6 +125,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             // Put in to fix FPE traps
             Lphi_fc_mg[n][d].setVal(0);
             rhs_fc_mg[n][d].setVal(0);
+            phi_fc_mg[n][d].setVal(0);
         }
 
         // build beta_ed_mg
@@ -177,7 +178,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         }
 
 #if (AMREX_SPACEDIM == 2)
-        // nodal_restriction on beta_ed_mg        
+        // nodal_restriction on beta_ed_mg
         NodalRestriction(beta_ed_mg[n][0],beta_ed_mg[n-1][0]);
 #elif (AMREX_SPACEDIM == 3)
         // edge_restriction on beta_ed_mg
@@ -196,7 +197,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
         // set values on physical boundaries
         MultiFABPhysBCDomainVel(phi_fc_mg[0][d], d, geom_mg[0],d);
-        
+
         // fill periodic ghost cells
         phi_fc_mg[0][d].FillBoundary(geom_mg[0].periodicity());
 
@@ -304,7 +305,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
                         // set values on physical boundaries
                         MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
-                        
+
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
@@ -354,11 +355,11 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
                 // set values on physical boundaries
                 MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
-                
+
                 // fill periodic ghost cells
                 Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
-                // fill physical ghost cells                
+                // fill physical ghost cells
                 MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
             }
 
@@ -421,7 +422,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
                     // set values on physical boundaires
                     MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
-                    
+
                     // fill periodic ghost cells
                     phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
@@ -454,7 +455,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
             // set values on physical boundaries
             MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], d, geom_mg[n],d);
-            
+
             // fill periodic ghost cells
             Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
@@ -476,7 +477,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
                 // set values on physical boundaries
                 MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
-                
+
                 // fill periodic ghost cells
                 phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
@@ -522,7 +523,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
                         // set values on physical boundaries
                         MultiFABPhysBCDomainVel(phi_fc_mg[n][d], d, geom_mg[n],d);
-                        
+
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
@@ -647,7 +648,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
         // set values on physical boundaries
         MultiFABPhysBCDomainVel(phi_fc[d], d, geom,d);
-        
+
         // fill periodic ghost cells
         phi_fc[d].FillBoundary(geom.periodicity());
 
@@ -695,7 +696,7 @@ int ComputeNlevsMG(const BoxArray& ba) {
 void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_c)
 {
     BL_PROFILE_VAR("CCRestriction()",CCRestriction);
-    
+
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(phi_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -789,9 +790,9 @@ void stag_restriction_simple0 (const Box & tbx,
     }
     }
     }
-    
+
 #elif (AMREX_SPACEDIM == 3)
-    
+
     for (int k=xlo.z; k<=xhi.z; ++k) {
     for (int j=xlo.y; j<=xhi.y; ++j) {
     AMREX_PRAGMA_SIMD
@@ -896,9 +897,9 @@ void stag_restriction_simple1 (const Box & tbx,
     }
     }
     }
-    
+
 #elif (AMREX_SPACEDIM == 3)
-    
+
     for (int k=xlo.z; k<=xhi.z; ++k) {
     for (int j=xlo.y; j<=xhi.y; ++j) {
     AMREX_PRAGMA_SIMD
@@ -937,7 +938,7 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
 {
 
     BL_PROFILE_VAR("StagRestriction()",StagRestriction);
-    
+
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_c[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -946,13 +947,13 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
         AMREX_D_TERM(Box bx_x = mfi.tilebox(nodal_flag_x);,
                      Box bx_y = mfi.tilebox(nodal_flag_y);,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
-        
+
         const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
-        
+
         AMREX_D_TERM(Array4<Real> const& phix_c_fab = phi_c[0].array(mfi);,
                      Array4<Real> const& phiy_c_fab = phi_c[1].array(mfi);,
                      Array4<Real> const& phiz_c_fab = phi_c[2].array(mfi););
-        
+
         AMREX_D_TERM(Array4<Real const> const& phix_f_fab = phi_f[0].array(mfi);,
                      Array4<Real const> const& phiy_f_fab = phi_f[1].array(mfi);,
                      Array4<Real const> const& phiz_f_fab = phi_f[2].array(mfi););
@@ -979,15 +980,15 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
 void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 {
     BL_PROFILE_VAR("NodalRestriction()",NodalRestriction);
-    
+
     IntVect nodal(AMREX_D_DECL(1,1,1));
-    
+
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_c,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
         // note this is NODAL
         const Box& bx = mfi.tilebox();
-        
+
         Array4<Real      > const& phi_c_fab = phi_c.array(mfi);
         Array4<Real const> const& phi_f_fab = phi_f.array(mfi);
 
@@ -1035,7 +1036,7 @@ void edge_restriction (const Box & tbx,
     const auto xylo = amrex::elemwiseMax(tlo, lbound(xybx));
     const auto xzlo = amrex::elemwiseMax(tlo, lbound(xzbx));
     const auto yzlo = amrex::elemwiseMax(tlo, lbound(yzbx));
-    
+
     const auto xyhi = amrex::elemwiseMin(thi, ubound(xybx));
     const auto xzhi = amrex::elemwiseMin(thi, ubound(xzbx));
     const auto yzhi = amrex::elemwiseMin(thi, ubound(yzbx));
@@ -1043,7 +1044,7 @@ void edge_restriction (const Box & tbx,
     for (int k=xylo.z; k<=xyhi.z; ++k) {
     for (int j=xylo.y; j<=xyhi.y; ++j) {
     AMREX_PRAGMA_SIMD
-    for (int i=xylo.x; i<=xyhi.x; ++i) {        
+    for (int i=xylo.x; i<=xyhi.x; ++i) {
         phixy_c(i,j,k) = 0.5*(phixy_f(2*i,2*j,2*k)+phixy_f(2*i,2*j,2*k+1));
     }
     }
@@ -1070,7 +1071,7 @@ void edge_restriction (const Box & tbx,
 
 void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
                      const std::array< MultiFab, NUM_EDGE >& phi_f)
-{  
+{
     if (AMREX_SPACEDIM != 3) {
         Abort("Edge restriction can only be called for 3D!");
     }
@@ -1085,17 +1086,17 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
         Box bx_xy = mfi.tilebox(nodal_flag_xy);
         Box bx_xz = mfi.tilebox(nodal_flag_xz);
         Box bx_yz = mfi.tilebox(nodal_flag_yz);
-        
+
         const Box& index_bounds = amrex::getIndexBounds(bx_xy, bx_xz, bx_yz);
 
         Array4<Real> const& phixy_c_fab = phi_c[0].array(mfi);
         Array4<Real> const& phixz_c_fab = phi_c[1].array(mfi);
         Array4<Real> const& phiyz_c_fab = phi_c[2].array(mfi);
-        
+
         Array4<Real const> const& phixy_f_fab = phi_f[0].array(mfi);
         Array4<Real const> const& phixz_f_fab = phi_f[1].array(mfi);
         Array4<Real const> const& phiyz_f_fab = phi_f[2].array(mfi);
-        
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
         {
             edge_restriction(tbx, bx_xy, bx_xz, bx_yz,
@@ -1154,11 +1155,11 @@ void stag_prolongation (const Box & tbx,
     for (int i=xlo.x; i<=xhi.x; i+=2) {
 
         int joff = pow(-1,j%2+1);
-        
+
         // linear interpolation
         phix_f(i,j,k) = phix_f(i,j,k)
             + 0.75*phix_c(i/2,j/2     ,k)
-            + 0.25*phix_c(i/2,j/2+joff,k);        
+            + 0.25*phix_c(i/2,j/2+joff,k);
     }
     }
     }
@@ -1175,7 +1176,7 @@ void stag_prolongation (const Box & tbx,
             + 0.375*phix_c(i/2  ,j/2     ,k)
             + 0.125*phix_c(i/2  ,j/2+joff,k)
             + 0.375*phix_c(i/2+1,j/2     ,k)
-            + 0.125*phix_c(i/2+1,j/2+joff,k);        
+            + 0.125*phix_c(i/2+1,j/2+joff,k);
     }
     }
     }
@@ -1186,11 +1187,11 @@ void stag_prolongation (const Box & tbx,
     for (int i = ylo.x; i <= yhi.x; ++i) {
 
         int ioff = pow(-1,i%2+1);
-       
+
         // linear interpolation
         phiy_f(i,j,k) = phiy_f(i,j,k)
             + 0.75*phiy_c(i/2     ,j/2,k)
-            + 0.25*phiy_c(i/2+ioff,j/2,k);        
+            + 0.25*phiy_c(i/2+ioff,j/2,k);
     }
     }
     }
@@ -1201,34 +1202,34 @@ void stag_prolongation (const Box & tbx,
     for (int i = ylo.x; i <= yhi.x; ++i) {
 
         int ioff = pow(-1,i%2+1);
-        
+
         // bilinear interpolation
         phiy_f(i,j,k) = phiy_f(i,j,k)
             + 0.375*phiy_c(i/2     ,j/2  ,k)
             + 0.125*phiy_c(i/2+ioff,j/2  ,k)
             + 0.375*phiy_c(i/2     ,j/2+1,k)
-            + 0.125*phiy_c(i/2+ioff,j/2+1,k);        
+            + 0.125*phiy_c(i/2+ioff,j/2+1,k);
     }
     }
     }
-    
+
 #elif (AMREX_SPACEDIM == 3)
-    
+
     Real nine16 = 9./16.;
     Real three16 = 3./16.;
     Real one16 = 1./16.;
     Real nine32 = 9./32.;
     Real three32 = 3./32.;
     Real one32 = 1./32.;
-        
+
     for (int k=xlo.z; k<=xhi.z; ++k) {
     for (int j=xlo.y; j<=xhi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i=xlo.x; i<=xhi.x; i+=2) {
-        
+
         int joff = pow(-1,j%2+1);
         int koff = pow(-1,k%2+1);
-       
+
         // bilinear in the yz plane
         phix_f(i,j,k) = phix_f(i,j,k)
             + nine16 *phix_c(i/2,j/2     ,k/2     )
@@ -1238,15 +1239,15 @@ void stag_prolongation (const Box & tbx,
     }
     }
     }
-    
+
     for (int k=xlo.z; k<=xhi.z; ++k) {
     for (int j=xlo.y; j<=xhi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i=xlo.x+1; i<=xhi.x-1; i+=2) {
-        
+
         int joff = pow(-1,j%2+1);
         int koff = pow(-1,k%2+1);
-        
+
         // bilinear in the yz plane, linear in x
         phix_f(i,j,k) = phix_f(i,j,k)
             + nine32 *phix_c(i/2  ,j/2     ,k/2     )
@@ -1268,7 +1269,7 @@ void stag_prolongation (const Box & tbx,
 
         int ioff = pow(-1,i%2+1);
         int koff = pow(-1,k%2+1);
-       
+
         // bilinear in the xz plane
         phiy_f(i,j,k) = phiy_f(i,j,k)
             + nine16* phiy_c(i/2     ,j/2,k/2     )
@@ -1306,7 +1307,7 @@ void stag_prolongation (const Box & tbx,
     for (int j = zlo.y; j <= zhi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = zlo.x; i <= zhi.x; ++i) {
-        
+
         int ioff = pow(-1,i%2+1);
         int joff = pow(-1,j%2+1);
 
@@ -1324,10 +1325,10 @@ void stag_prolongation (const Box & tbx,
     for (int j = zlo.y; j <= zhi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = zlo.x; i <= zhi.x; ++i) {
-        
+
         int ioff = pow(-1,i%2+1);
         int joff = pow(-1,j%2+1);
-       
+
         // bilinear in the xy plane, linear in z
         phiz_f(i,j,k) = phiz_f(i,j,k)
             + nine32* phiz_c(i/2     ,j/2     ,k/2  )
@@ -1349,7 +1350,7 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
 {
 
     BL_PROFILE_VAR("StagProlongation()",StagProlongation);
-    
+
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_f[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -1360,15 +1361,15 @@ void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                      Box bx_z = mfi.tilebox(nodal_flag_z););
 
         const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x, bx_y, bx_z));
-        
+
         AMREX_D_TERM(Array4<Real const> const& phix_c_fab = phi_c[0].array(mfi);,
                      Array4<Real const> const& phiy_c_fab = phi_c[1].array(mfi);,
                      Array4<Real const> const& phiz_c_fab = phi_c[2].array(mfi););
-        
+
         AMREX_D_TERM(Array4<Real> const& phix_f_fab = phi_f[0].array(mfi);,
                      Array4<Real> const& phiy_f_fab = phi_f[1].array(mfi);,
                      Array4<Real> const& phiz_f_fab = phi_f[2].array(mfi););
-        
+
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
         {
             stag_prolongation(tbx, AMREX_D_DECL(bx_x, bx_y, bx_z),
@@ -1592,9 +1593,9 @@ void stag_mg_update_visc_m1 (Box const& tbx,
                   +beta_yz(i,j,k)+beta_yz(i,j,k+1)
 #endif
                     ) * dxsqinv;
-            
+
             phiy(i,j,k) = phiy(i,j,k) + stag_mg_omega*(rhsy(i,j,k)-Lpy(i,j,k)) / fac;
-            
+
         }
         }
         }
@@ -1616,9 +1617,9 @@ void stag_mg_update_visc_m1 (Box const& tbx,
                 ( beta(i,j,k)+beta(i,j,k-1)
                   +beta_xz(i,j,k)+beta_xz(i+1,j,k)
                   +beta_yz(i,j,k)+beta_yz(i,j+1,k) ) * dxsqinv;
-            
+
             phiz(i,j,k) = phiz(i,j,k) + stag_mg_omega*(rhsz(i,j,k)-Lpz(i,j,k)) / fac;
-            
+
         }
         }
         }
@@ -2052,7 +2053,7 @@ void stag_mg_update_visc_m3 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = xlo.x+ioff; i <= xhi.x; i+=offset) {
-            
+
                    fac = alphax(i,j,k) +
                         ( fourthirds*beta(i,j,k)+gamma(i,j,k)
                         +fourthirds*beta(i-1,j,k)+gamma(i-1,j,k)
@@ -2078,7 +2079,7 @@ void stag_mg_update_visc_m3 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = ylo.x+ioff; i <= yhi.x; i+=offset) {
-            
+
                    fac = alphay(i,j,k) +
                         ( fourthirds*beta(i,j,k)+gamma(i,j,k)
                         +fourthirds*beta(i,j-1,k)+gamma(i,j-1,k)
@@ -2105,7 +2106,7 @@ void stag_mg_update_visc_m3 (Box const& tbx,
 	}
         AMREX_PRAGMA_SIMD
         for (int i = zlo.x+ioff; i <= zhi.x; i+=offset) {
-            
+
                    fac = alphaz(i,j,k) +
                         ( fourthirds*beta(i,j,k)+gamma(i,j,k)
                         +fourthirds*beta(i,j,k-1)+gamma(i,j,k-1)
@@ -2165,10 +2166,10 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
 #endif
     else {
         Abort("StagMGUpdate: Invalid Color");
-    }    
+    }
 
     GpuArray<Real,AMREX_SPACEDIM> dx_gpu{AMREX_D_DECL(dx[0], dx[1], dx[2])};
-    
+
     // loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
     for ( MFIter mfi(beta_cc,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
@@ -2178,22 +2179,22 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
         AMREX_D_TERM(Array4<Real> const& phix_fab = phi_fc[0].array(mfi);,
                      Array4<Real> const& phiy_fab = phi_fc[1].array(mfi);,
                      Array4<Real> const& phiz_fab = phi_fc[2].array(mfi););
-        
+
         AMREX_D_TERM(Array4<Real const> const& rhsx_fab = rhs_fc[0].array(mfi);,
                      Array4<Real const> const& rhsy_fab = rhs_fc[1].array(mfi);,
                      Array4<Real const> const& rhsz_fab = rhs_fc[2].array(mfi););
-        
+
         AMREX_D_TERM(Array4<Real const> const& Lphix_fab = Lphi_fc[0].array(mfi);,
                      Array4<Real const> const& Lphiy_fab = Lphi_fc[1].array(mfi);,
                      Array4<Real const> const& Lphiz_fab = Lphi_fc[2].array(mfi););
-        
+
         AMREX_D_TERM(Array4<Real const> const& alphax_fab = alpha_fc[0].array(mfi);,
                      Array4<Real const> const& alphay_fab = alpha_fc[1].array(mfi);,
                      Array4<Real const> const& alphaz_fab = alpha_fc[2].array(mfi););
 
         Array4<Real const> const& beta_cc_fab = beta_cc.array(mfi);
         Array4<Real const> const& gamma_cc_fab = gamma_cc.array(mfi);
-        
+
         Array4<Real const> const& beta_xy_fab = beta_ed[0].array(mfi);
 #if (AMREX_SPACEDIM == 3)
         Array4<Real const> const& beta_xz_fab = beta_ed[1].array(mfi);
@@ -2205,7 +2206,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                      const Box& bx_z = mfi.nodaltilebox(2););
 
         const Box& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(bx_x,bx_y,bx_z));
-        
+
         Real b, c;
         // for positive visc_types, the coefficients are constant in space
         if (visc_type > 0) {
@@ -2215,7 +2216,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
         }
 
         Real omega = stag_mg_omega;
-        
+
         if (visc_type == 1) {
 
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
@@ -2231,7 +2232,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
 
         }
         else if (visc_type == -1) {
-            
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_mg_update_visc_m1(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
@@ -2242,7 +2243,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                        beta_cc_fab, beta_xy_fab,
 #if (AMREX_SPACEDIM == 3)
                                        beta_xz_fab, beta_yz_fab,
-#endif          
+#endif
                                        AMREX_D_DECL(do_x,do_y,do_z),
                                        offset, color, omega, dx_gpu);
             });
@@ -2263,7 +2264,7 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
 
         }
         else if (visc_type == -2) {
-            
+
             AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
             {
                 stag_mg_update_visc_m2(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
@@ -2274,13 +2275,13 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                        beta_cc_fab, beta_xy_fab,
 #if (AMREX_SPACEDIM == 3)
                                        beta_xz_fab, beta_yz_fab,
-#endif          
+#endif
                                        AMREX_D_DECL(do_x,do_y,do_z),
                                        offset, color, omega, dx_gpu);
             });
 
 
         }
-    
+
     }
 }

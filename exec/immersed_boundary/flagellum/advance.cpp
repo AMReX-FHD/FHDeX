@@ -93,7 +93,7 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
         // First node reserved as "anchor"
         index_marker = std::max(0, index_marker-1);
         // Overwrite amplitude ramp (don't seem to need it for chlamy
-        amp_ramp     = 1.;
+        // amp_ramp     = 1.;
 
         int N                 = chlamy_flagellum::N[i_ib][index_marker];
         int coef_len          = ib_flagellum::fourier_coef_len;
@@ -643,7 +643,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MkAdvMFluxdiv(umacNew, uMom, advFluxdivPred, dx, 0);
 
     // Explicit part of the diffusive operator Lu^n/2. Note that we are using
-    // the weighted coefficients (to deal witht he 1/2 part)
     StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd,
                 umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
@@ -710,7 +709,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
                 const Geometry geom, const Real& dt, Real time)
 {
 
-    BL_PROFILE_VAR("advance()",advance);
+    BL_PROFILE_VAR("advance()", advance);
 
     const Real * dx  = geom.CellSize();
     const Real dtinv = 1.0/dt;
