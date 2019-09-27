@@ -179,7 +179,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
                 no_wall_is_no_slip = false;
             }
         }
-                
+
 
         if (no_wall_is_no_slip) {
             for (int d=0; d<AMREX_SPACEDIM; ++d) {

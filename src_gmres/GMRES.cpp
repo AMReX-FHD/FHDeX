@@ -94,7 +94,7 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         x_p.mult(scale_factor, 0, 1, x_p.nGrow());
 
         // scale the rhs:
-        for (int d=0; d<AMREX_SPACEDIM; ++d) 
+        for (int d=0; d<AMREX_SPACEDIM; ++d)
             b_u[d].mult(scale_factor,0,1,b_u[d].nGrow());
 
         // scale the viscosities:
