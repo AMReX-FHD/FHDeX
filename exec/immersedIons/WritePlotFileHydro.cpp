@@ -21,7 +21,7 @@ void WritePlotFileHydro(int step,
     
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
     
-    const std::string plotfilename = Concatenate("plt",step,7);
+    const std::string plotfilename = Concatenate("plt",step,9);
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
@@ -101,9 +101,9 @@ void WritePlotFileHydro(int step,
 
     // staggered velocity
     if (plot_stag == 1) {
-      const std::string plotfilenamex = Concatenate("stagx",step,7);
-      const std::string plotfilenamey = Concatenate("stagy",step,7);
-      const std::string plotfilenamez = Concatenate("stagz",step,7);
+      const std::string plotfilenamex = Concatenate("stagx",step,9);
+      const std::string plotfilenamey = Concatenate("stagy",step,9);
+      const std::string plotfilenamez = Concatenate("stagz",step,9);
 
       WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
       WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
