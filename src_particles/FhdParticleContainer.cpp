@@ -980,6 +980,82 @@ FhdParticleContainer::ReBin()
 }
 
 void
+FhdParticleContainer::PrintParticles()
+{
+    int lev =0;
+
+    for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+    {
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for(int i=0; i<np; ++i)
+        {
+            ParticleType & part = particles[i];
+
+            std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
+            std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", position: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << std::endl;
+
+        }
+    }
+}
+
+void
+FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
+{
+    int lev =0;
+
+    if(ParallelDescriptor::MyProc() == rank)
+    {
+        for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+        {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = particles.size();
+ 
+            ParticleType & part = particles[id];
+
+            part.pos(0) = x;
+            part.pos(1) = y;
+            part.pos(2) = z;
+           
+        }
+    }
+    Redistribute();
+    UpdateCellVectors();
+    ReBin();
+    clearNeighbors();
+    fillNeighbors();
+}
+
+void
+FhdParticleContainer::SetVel(int rank, int id, Real x, Real y, Real z)
+{
+    int lev =0;
+
+    if(ParallelDescriptor::MyProc() == rank)
+    {
+        for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
+        {
+            PairIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = particles.size();
+ 
+            ParticleType & part = particles[id];
+
+            part.rdata(FHD_realData::velx) = x;
+            part.rdata(FHD_realData::vely) = y;
+            part.rdata(FHD_realData::velz) = z;
+           
+        }
+    }
+}
+
+void
 FhdParticleContainer::correctCellVectors(int old_index, int new_index, 
 						int grid, const ParticleType& p)
 {
