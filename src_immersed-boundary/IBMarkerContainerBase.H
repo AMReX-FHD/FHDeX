@@ -82,12 +82,6 @@ public:
 
     //___________________________________________________________________________
     // Spreading operators applied to raw data arrays
-    // void SpreadMarkers(int lev,
-    //                    const Vector<RealVect> & f_in,
-    //                    const Vector<RealVect> & f_pos,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
-
     void SpreadMarkers(int lev,
                        const Vector<RealVect> & f_in,
                        const Vector<RealVect> & f_pos,

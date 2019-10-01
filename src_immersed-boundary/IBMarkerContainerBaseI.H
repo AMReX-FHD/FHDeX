@@ -298,26 +298,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
 
 
-// template <typename StructReal, typename StructInt>
-// void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
-//             int lev,
-//             const Vector<RealVect> & f_in,
-//             const Vector<RealVect> & f_pos,
-//             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-//             std::array<MultiFab, AMREX_SPACEDIM> & f_weights
-//         ) const {
-//
-//
-//     //___________________________________________________________________________
-//     // Geometry data
-//     const Geometry & geom = this->Geom(0);
-//     const Real     *   dx = geom.CellSize();
-//
-//     SpreadMarkers(lev, f_in, f_pos, f_out, f_weights, face_coords[lev], dx, 0);
-// }
-
-
-
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
