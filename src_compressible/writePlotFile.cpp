@@ -3,7 +3,10 @@
 #include "common_functions.H"
 #include "common_namespace.H"
 
+#include "compressible_namespace.H"
+
 using namespace common;
+using namespace compressible;
 
 void WritePlotFile(int step,
                    const amrex::Real time,
@@ -20,9 +23,20 @@ void WritePlotFile(int step,
 
     int cnt, numvars, i = 0;
 
-    int nplot;
-    nplot = (5+nspecies) + (6+2*nspecies) + 5 + 6 + 5 + 5 + 1 + 1;
+    // instantaneous values
+    // 5 + nspecies (conserved)
+    // 6 + 2*nspecies (primitive)
+    // 2 (eta and kappa)
+    int nplot = (5+nspecies) + (6+2*nspecies) + 2;
 
+    if (plot_means == 1) {
+        nplot += 11;
+    }
+    
+    if (plot_vars == 1) {
+        nplot += 10;
+    }
+    
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
@@ -48,29 +62,35 @@ void WritePlotFile(int step,
     amrex::MultiFab::Copy(plotfile,prim,0,cnt,numvars,0);
     cnt+=numvars;
 
-    // mean values of conserved variables
-    // rho, jx, jy, jz, e
-    numvars = 5;
-    amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
-    cnt+=numvars;
+    if (plot_means == 1) {
     
-    // mean values of primitive variables
-    // rho, ux, uy, uz, temp, pres
-    numvars = 6;
-    amrex::MultiFab::Copy(plotfile,primMeans,0,cnt,numvars,0);
-    cnt+=numvars;
+        // mean values of conserved variables
+        // rho, jx, jy, jz, e
+        numvars = 5;
+        amrex::MultiFab::Copy(plotfile,cuMeans,0,cnt,numvars,0);
+        cnt+=numvars;
+    
+        // mean values of primitive variables
+        // rho, ux, uy, uz, temp, pres
+        numvars = 6;
+        amrex::MultiFab::Copy(plotfile,primMeans,0,cnt,numvars,0);
+        cnt+=numvars;
+    }
 
-    // variance of conserved variables
-    // rho, jx, jy, jz, e
-    numvars = 5;
-    amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
-    cnt+=numvars;
+    if (plot_vars == 1) {
     
-    // variances of primitive variables
-    // rho, ux, uy, uz, temp
-    numvars = 5;
-    amrex::MultiFab::Copy(plotfile,primVars,0,cnt,numvars,0);
-    cnt+=numvars;
+        // variance of conserved variables
+        // rho, jx, jy, jz, e
+        numvars = 5;
+        amrex::MultiFab::Copy(plotfile,cuVars,0,cnt,numvars,0);
+        cnt+=numvars;
+    
+        // variances of primitive variables
+        // rho, ux, uy, uz, temp
+        numvars = 5;
+        amrex::MultiFab::Copy(plotfile,primVars,0,cnt,numvars,0);
+        cnt+=numvars;
+    }
 
     // eta
     numvars = 1;
@@ -113,30 +133,34 @@ void WritePlotFile(int step,
         varNames[cnt++] += 48+i;
     }
 
-    varNames[cnt++] = "rhoMean";
-    varNames[cnt++] = "jxMean";
-    varNames[cnt++] = "jyMean";
-    varNames[cnt++] = "jzMean";
-    varNames[cnt++] = "rhoEMean";
+    if (plot_means == 1) {
+        varNames[cnt++] = "rhoMean";
+        varNames[cnt++] = "jxMean";
+        varNames[cnt++] = "jyMean";
+        varNames[cnt++] = "jzMean";
+        varNames[cnt++] = "rhoEMean";
 
-    varNames[cnt++] = "rhoMean";
-    varNames[cnt++] = "uxMean";
-    varNames[cnt++] = "uyMean";
-    varNames[cnt++] = "uzMean";
-    varNames[cnt++] = "tMean";
-    varNames[cnt++] = "pMean";
+        varNames[cnt++] = "rhoMean";
+        varNames[cnt++] = "uxMean";
+        varNames[cnt++] = "uyMean";
+        varNames[cnt++] = "uzMean";
+        varNames[cnt++] = "tMean";
+        varNames[cnt++] = "pMean";
+    }
 
-    varNames[cnt++] = "rhoVar";
-    varNames[cnt++] = "jxVar";
-    varNames[cnt++] = "jyVar";
-    varNames[cnt++] = "jzVar";
-    varNames[cnt++] = "rhoEVar";
+    if (plot_vars == 1) {
+        varNames[cnt++] = "rhoVar";
+        varNames[cnt++] = "jxVar";
+        varNames[cnt++] = "jyVar";
+        varNames[cnt++] = "jzVar";
+        varNames[cnt++] = "rhoEVar";
 
-    varNames[cnt++] = "rhoVar";
-    varNames[cnt++] = "uxVar";
-    varNames[cnt++] = "uyVar";
-    varNames[cnt++] = "uzVar";
-    varNames[cnt++] = "tVar";
+        varNames[cnt++] = "rhoVar";
+        varNames[cnt++] = "uxVar";
+        varNames[cnt++] = "uyVar";
+        varNames[cnt++] = "uzVar";
+        varNames[cnt++] = "tVar";
+    }
 
     varNames[cnt++] = "eta";
     varNames[cnt++] = "kappa";
