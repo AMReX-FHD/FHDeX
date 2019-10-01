@@ -1,7 +1,9 @@
 # used pretty much everywhere
-import numpy  as np
+import numpy as np
 # used to enable function overloading
 from multimethod import multimeta
+
+
 
 class SoA(object, metaclass=multimeta):
     _pref = "particle_"
