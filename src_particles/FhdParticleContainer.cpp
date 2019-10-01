@@ -996,7 +996,7 @@ FhdParticleContainer::PrintParticles()
             ParticleType & part = particles[i];
 
             std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
-            std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", position: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << std::endl;
+            std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
 
         }
     }
