@@ -82,11 +82,11 @@ public:
 
     //___________________________________________________________________________
     // Spreading operators applied to raw data arrays
-    void SpreadMarkers(int lev,
-                       const Vector<RealVect> & f_in,
-                       const Vector<RealVect> & f_pos,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+    // void SpreadMarkers(int lev,
+    //                    const Vector<RealVect> & f_in,
+    //                    const Vector<RealVect> & f_pos,
+    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+    //                    std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
 
     void SpreadMarkers(int lev,
                        const Vector<RealVect> & f_in,
@@ -94,7 +94,7 @@ public:
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
                        const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-                       const Real* dx, const int ghost) const;
+                       const Real* dx, int ghost) const;
     //---------------------------------------------------------------------------
 
 
@@ -107,7 +107,7 @@ public:
     void SpreadMarkers(int lev,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-                       const Real* dx) const;
+                       const Real* dx, int ghost) const;
 
     void SpreadPredictor(int lev,
                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
@@ -177,6 +177,10 @@ public:
     const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & get_face_coords() const {
         return  face_coords;
     }
+    const std::array<MultiFab, AMREX_SPACEDIM> & get_face_coords(int lev) const {
+        return  face_coords[lev];
+    }
+
 
 protected:
 

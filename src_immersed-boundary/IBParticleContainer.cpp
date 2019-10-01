@@ -453,6 +453,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
 
     MultiFab dummy(ba, dm, 1, f_out[0].nGrow());
 
+    int ghost = 0;
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
@@ -486,7 +487,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
                        marker_positions[lev].at(pindex).dataPtr(),
                        f_in.dataPtr(),
                        & n_marker,
-                       dx );
+                       dx, & ghost);
     }
 }
 
