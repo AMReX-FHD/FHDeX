@@ -134,7 +134,7 @@ contains
 
        vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
-       conserved(5) = intenergy + 0.5*rho*vsqr
+       conserved(5) = rho* intenergy + 0.5*rho*vsqr
 
        yflux(i,j,k,1) = yflux(i,j,k,1) + conserved(1)*primitive(3)
        yflux(i,j,k,2) = yflux(i,j,k,2) + conserved(1)*primitive(2)*primitive(3)
@@ -185,7 +185,7 @@ contains
 
        vsqr = primitive(2)**2 + primitive(3)**2 + primitive(4)**2
 
-       conserved(5) = intenergy + 0.5*rho*vsqr
+       conserved(5) = rho*intenergy + 0.5*rho*vsqr
 
        zflux(i,j,k,1) = zflux(i,j,k,1) + conserved(1)*primitive(4)
        zflux(i,j,k,2) = zflux(i,j,k,2) + conserved(1)*primitive(2)*primitive(4)
