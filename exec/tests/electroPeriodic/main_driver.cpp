@@ -781,6 +781,11 @@ void main_driver(const char* argv)
             particles.SetPosition(0, 0, prob_hi[0] - 1.5*dxp[0], prob_hi[1] - 1.5*dxp[1], prob_hi[2] - 1.5*dxp[2]);
             particles.SetPosition(0, 0, prob_lo[0] + 1.5*dxp[0], prob_lo[1] + 1.5*dxp[1], prob_lo[2] + 1.5*dxp[2]);
         }
+        if(step == 4)
+        {
+            particles.SetPosition(0, 0, prob_hi[0]/2.0 + 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0]/2.0 - 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+        }
 
 
         //Apply external field here.
@@ -925,26 +930,13 @@ void main_driver(const char* argv)
             Print() << "Particle force in opposite periodic corners, within p3m range. Expected: 1.02995e-6, 1.02995e-6, 1.02995e-6\n";
  
         }
-//        if(step == 4)
-//        {
-//            particles.SetPosition(0, 0, prob_hi[0]/4.0 + 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
-//            particles.SetPosition(1, 0, prob_hi[0]/4.0 - 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
-//            particles.Redistribute();
-//            particles.ReBin();
-//        }
-
-//        }
-//        if(step == 2)
-//        {
-//            Print() << "Particle force in center of domain not accross box boundary, within p3m range. Expected: 5.35179e-6, 0, 0\n";
-//           
-//        }
+        if(step == 4)
+        {
+            Print() << "Particle force in center of domain across x box boundary, outside p3m range. Expected: 5.35179e-6, 0, 0\n";
+ 
+        }
 
         particles.PrintParticles();
-//        if(step == 3)
-//        {
-//            Print() << "Particle force in center of domain across x box boundary outside p3m range. Expected: 5.35179e-6, 0\n";
-//        }
 
         if(step%100 == 0)
         {    
