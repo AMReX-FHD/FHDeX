@@ -170,6 +170,9 @@ public:
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const surface* surfaceList, const int surfaceCount, int sw);
+    void PrintParticles();
+    void SetPosition(int rank, int id, Real x, Real y, Real z);
+    void SetVel(int rank, int id, Real x, Real y, Real z);
 
     void DoRFDbase(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                            const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,

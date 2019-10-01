@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0   0.0   0.0        ! physical lo coordinate
-  prob_hi(1:3) = 8.e-3 8.e-3 1.e-3      ! physical hi coordinate
+  prob_hi(1:3) = 8.e-3 8.e-3 2.e-3      ! physical hi coordinate
 
   ! if prob_type = 0, zero initial velocity
   ! if prob_type = 1, vortex
@@ -11,19 +11,19 @@
   prob_type = 0
 
   ! number of cells in domain
-  n_cells(1:3) = 64 64 08
+  n_cells(1:3) = 32 32 08
   ! max number of cells in a box
   max_grid_size(1:3) = 08 08 08
 
   ! Time-step control
-  fixed_dt = 1e-6
+  fixed_dt = 1e-5
 
   ! Controls for number of steps between actions
   ! max_step = 200000
   ! plot_int = 200000
 
   max_step = 4000000
-  plot_int = 2000
+  plot_int = 200
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -53,8 +53,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no-slip wall, -2 = periodic pressure
-  bc_vel_lo(1:3) = -1 -1  2
-  bc_vel_hi(1:3) = -1 -1  2
+  bc_vel_lo(1:3) =  2  2  2
+  bc_vel_hi(1:3) =  2  2  2
 
   p_lo(1:3)  = 0 -.1  0
   p_hi(1:3)  = 0  .1  0
