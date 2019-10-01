@@ -1,0 +1,7 @@
+CEXE_sources   += WritePlotFile.cpp
+CEXE_sources   += WritePlotFileHydro.cpp
+CEXE_sources   += advance.cpp
+CEXE_sources   += particleGen.cpp
+CEXE_headers   += INS_functions.H
+
+

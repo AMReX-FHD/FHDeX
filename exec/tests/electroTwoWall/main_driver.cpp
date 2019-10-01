@@ -770,21 +770,40 @@ void main_driver(const char* argv)
 
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
-
+        if(step == 1)
+        {
+            particles.SetPosition(0, 0, prob_hi[0]/2.0 - 4*dxp[0], 4*dxp[1], prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0]/2.0 + 4*dxp[0], 4*dxp[1], prob_hi[2]/4.0);
+        }
         if(step == 2)
         {
-            particles.SetPosition(0, 0, prob_hi[0]/4.0 + 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
-            particles.SetPosition(1, 0, prob_hi[0]/4.0 - 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+            particles.SetPosition(0, 0, prob_hi[0]/2.0 - 2*dxp[0], 4*dxp[1], prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0]/2.0 + 2*dxp[0], 4*dxp[1], prob_hi[2]/4.0);
         }
         if(step == 3)
         {
-            particles.SetPosition(0, 0, prob_hi[0] - 1.5*dxp[0], prob_hi[1] - 1.5*dxp[1], prob_hi[2] - 1.5*dxp[2]);
-            particles.SetPosition(0, 0, prob_lo[0] + 1.5*dxp[0], prob_lo[1] + 1.5*dxp[1], prob_lo[2] + 1.5*dxp[2]);
+            particles.SetPosition(0, 0, prob_hi[0]/2.0 - 2*dxp[0], 8*dxp[1], prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0]/2.0 + 2*dxp[0], 8*dxp[1], prob_hi[2]/4.0);
         }
         if(step == 4)
         {
-            particles.SetPosition(0, 0, prob_hi[0]/2.0 + 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
-            particles.SetPosition(1, 0, prob_hi[0]/2.0 - 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+            particles.SetPosition(0, 0, prob_hi[0]/2.0 - 2*dxp[0], 2.8*dxp[1], prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0]/2.0 + 2*dxp[0], 2.8*dxp[1], prob_hi[2]/4.0);
+        }
+        if(step == 5)
+        {
+            particles.SetPosition(0, 0, prob_hi[0]/2.0 - 2*dxp[0], 2*dxp[1], prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0]/2.0 + 2*dxp[0], 2*dxp[1], prob_hi[2]/4.0);
+        }
+        if(step == 6)
+        {
+            particles.SetPosition(0, 0, prob_lo[0] - 2*dxp[0], 2*dxp[1], prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0] + 2*dxp[0], 2*dxp[1], prob_hi[2]/4.0);
+        }
+        if(step == 7)
+        {
+            particles.SetPosition(0, 0, prob_lo[0] - 2*dxp[0], 2.8*dxp[1], prob_hi[2]/4.0);
+            particles.SetPosition(1, 0, prob_hi[0] + 2*dxp[0], 2.8*dxp[1], prob_hi[2]/4.0);
         }
 
 
@@ -917,22 +936,37 @@ void main_driver(const char* argv)
     
         if(step == 1)
         {
-            Print() << "Particle force in center of domain across x box boundary, within p3m range. Expected: 5.35179e-6, 0, 0\n";
+            Print() << "Particle force in center of domain across x box boundary, ouside p3m range. Expected: 4.86513e-7, -4.86513e-7, 0\n";
  
         }
         if(step == 2)
         {
-            Print() << "Particle force in center of domain not across box boundary, within p3m range. Expected: 5.35179e-6, 0, 0\n";
+            Print() << "Particle force in center of domain across x box boundary, within p3m range of each other. Expected: 2.74113e-6, -2.14082e-7, 0\n";
  
         }
         if(step == 3)
         {
-            Print() << "Particle force in opposite periodic corners, within p3m range. Expected: 1.02995e-6, 1.02995e-6, 1.02995e-6\n";
+            Print() << "Particle force in center of domain across x box boundary, within p3m range of each other. Double the distance from the wall compared to case 1. Expected: 2.96744e-6, -1.63548e-8, 0\n";
  
         }
         if(step == 4)
         {
-            Print() << "Particle force in center of domain across x box boundary, outside p3m range. Expected: 7.52596e-7, 0, 0\n";
+            Print() << "Particle force in center of domain across x box boundary, within p3m range of wall and each other, but pair image particle is out of range. Expected: 2.41925e-6, -7.08326e-7, 0\n";
+ 
+        }
+        if(step == 5)
+        {
+            Print() << "Particle force in center of domain across x box boundary, within p3m range of wall and each other, pair image particle also in p3m range. Expected: 1.94605e-6, -1.94605e-6, 0\n"; 
+ 
+        }
+        if(step == 6)
+        {
+            Print() << "Particle force accross periodic boundary, within p3m range of wall and each other, pair image particle also in p3m range. Expected: -1.94605e-6, -1.94605e-6, 0\n"; 
+ 
+        }
+        if(step == 7)
+        {
+            Print() << "Particle force accross periodic boundary, within p3m range of wall and each other, but pair image particle is out of range. Expected: -2.41925e-6, -7.08326e-7, 0\n";
  
         }
 
