@@ -21,17 +21,17 @@ yt_set_verbosity()
 
 
 class PlotProperies(object):
-    
+
     def __init__(self, **kwargs):
 
         # dict.get's second argument is the default value
-        
+
         # immersed boundary marker presentation
         self.n_marker_skip     = kwargs.get("n_marker_skip", 1)
         self.marker_rad        = kwargs.get("marker_rad", 2e-5)
         self.inner_marker_f    = kwargs.get("inner_marker_f", 0.7)
         self.inner_marker_prop = kwargs.get("inner_marker_prop",
-                                            {'circle_args': 
+                                            {'circle_args':
                                              {'fill':True, 'color':'red'}
                                              }
                                             )
@@ -50,6 +50,7 @@ class PlotProperies(object):
         self.x_log   = False
         self.y_log   = False
         self.z_log   = False
+        self.slc_log = False
         self.slc_max = kwargs.get("slc_max", 1e-4)
 
         # plot slicing
@@ -80,15 +81,16 @@ class PlotProperies(object):
         plt.set_log(self.x_name, self.x_log)
         plt.set_log(self.y_name, self.y_log)
         plt.set_log(self.z_name, self.z_log)
+        plt.set_log(self.slc_name, self.slc_log)
 
 
     def set_slc_lim(self, plt):
         if self.slc_axis == "x":
-            plt.set_xlim(self.z_name, -self.slc_max, self.slc_max)
+            plt.set_xlim(self.slc_name, -self.slc_max, self.slc_max)
         elif self.slc_axis == "y":
-            plt.set_ylim(self.z_name, -self.slc_max, self.slc_max)
+            plt.set_ylim(self.slc_name, -self.slc_max, self.slc_max)
         elif self.slc_axis == "z":
-            plt.set_zlim(self.z_name, -self.slc_max, self.slc_max)
+            plt.set_zlim(self.slc_name, -self.slc_max, self.slc_max)
         else:
             RuntimeError("Not Implemented!")
 
@@ -100,10 +102,7 @@ class PlotProperies(object):
 
 
 
-def slice_plt(file_name: str, prop: PlotProperies):
-
-    # load data
-    ds = yt.load(file_name)
+def slice_plt(ds, prop: PlotProperies):
 
     # plot data
     slc = yt.SlicePlot(ds, prop.slc_axis, prop.slc_name)
