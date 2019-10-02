@@ -52,9 +52,9 @@
   ! Boundary conditions
   ! ----------------------
   ! BC specifications:
-  ! -1 = periodic, 2 = no-slip wall, -2 = periodic pressure
-  bc_vel_lo(1:3) =  2  2  2
-  bc_vel_hi(1:3) =  2  2  2
+  ! -1 = periodic, 1 = finite slip wall 2 = no-slip wall, -2 = periodic pressure
+  bc_vel_lo(1:3) =  1  1  1
+  bc_vel_hi(1:3) =  1  1  1
 
   p_lo(1:3)  = 0 -.1  0
   p_hi(1:3)  = 0  .1  0
@@ -110,8 +110,8 @@
   offset_0(:, 1) = 3.e-3 5.6e-3 .5e-3
 
   amplitude(1:1)  = 1e4
-  frequency(1:1)  = 1
-  length(1:1)     = 1.6e-3
+  frequency(1:1)  = .1
+  length(1:1)     = 3.0e-3
   wavelength(1:1) = .8e-3
   k_spring(1:1)   = 2e-1
   k_driving(1:1)  = 2e-1

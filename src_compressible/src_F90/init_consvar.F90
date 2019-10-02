@@ -17,14 +17,18 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx, &
 
   integer          :: i,j,k,l
   double precision :: pos(3),center(3),itVec(3),relpos(3)
-  double precision :: L_hlf, pi
+  double precision :: L_hlf, pi, Lf, pres, velscale, mach,x,y,z
   double precision :: massvec(nspecies), intEnergy, pamb, molmix, rgasmix, alpha
   double precision :: Ygrad
 
   center = (realhi - reallo)/2.d0
   L_hlf = (realhi(1) - reallo(1))/2.d0
+  Lf = realhi(1) - reallo(1)
+  mach = 0.3
+  velscale = 30565.2d0*mach
 
   pi = acos(-1.d0)
+  write(6,*)"into init"
 
   do k = lo(3), hi(3)
   do j = lo(2), hi(2)
@@ -80,6 +84,23 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx, &
         call get_energy(intEnergy, massvec, pu(i,j,k,5))
         cu(i,j,k,5) = cu(i,j,k,1)*intEnergy + 0.5*cu(i,j,k,1)*(pu(i,j,k,2)**2 + &
              pu(i,j,k,3)**2 + pu(i,j,k,4)**2)
+
+     elseif (prob_type .eq. 4) then ! Taylor Green Vortex
+
+        x=itVec(1)
+        y=itVec(2)
+        z=itVec(3)
+
+        cu(i,j,k,1) = 1.784d-3
+        cu(i,j,k,2) =  velscale*cu(i,j,k,1)*sin(2.d0*pi*x/Lf)*cos(2.d0*pi*y/Lf)*cos(2.d0*pi*z/Lf)
+        cu(i,j,k,3) = -velscale*cu(i,j,k,1)*cos(2.d0*pi*x/Lf)*sin(2.d0*pi*y/Lf)*cos(2.d0*pi*z/Lf)
+        cu(i,j,k,4) = 0.d0
+        pres = 1.01325d6+cu(i,j,k,1)*velscale**2*cos(2.d0*pi*x/Lf)*cos(4.d0*pi*y/Lf)*(cos(4.d0*pi*z/Lf)+2.d0)
+        cu(i,j,k,5) = pres/(5.d0/3.d0-1.d0) + 0.5*(cu(i,j,k,2)**2 + &
+             cu(i,j,k,3)**2 + cu(i,j,k,4)**2) / cu(i,j,k,1)
+        cu(i,j,k,6) = cu(i,j,k,1)
+        cu(i,j,k,7) = 0.d0
+        
 
      endif
 

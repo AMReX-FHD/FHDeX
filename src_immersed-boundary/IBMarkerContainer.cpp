@@ -311,6 +311,11 @@ void IBMarkerContainer::SpreadMarkers(int lev,
                                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
 
     //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = this->Geom(0);
+    const Real     *   dx = geom.CellSize();
+
+    //___________________________________________________________________________
     // Fill vector of marker positions (for current level)
     Vector<IBM_info> marker_info = IBMarkerInfo(lev);
     Vector<RealVect> marker_positions(marker_info.size());
@@ -318,8 +323,8 @@ void IBMarkerContainer::SpreadMarkers(int lev,
         marker_positions[i] = marker_info[i].pos;
 
 
-    SpreadMarkers(lev, f_in, marker_positions, f_out, f_weights);
-
+    SpreadMarkers(lev, f_in, marker_positions, f_out, f_weights,
+                  get_face_coords(lev), dx, 0);
 }
 
 
@@ -338,7 +343,6 @@ void IBMarkerContainer::SpreadMarkers(int lev,
     }
 
     SpreadMarkers(lev, f_in, f_out, f_weights);
-
 }
 
 
