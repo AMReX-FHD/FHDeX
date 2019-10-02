@@ -13,6 +13,9 @@ contains
     double precision, intent (inout) :: mf(m_lo(1):m_hi(1),m_lo(2):m_hi(2),m_lo(3):m_hi(3),nc_m)
 
     integer comp,i,j,k
+    double precision test
+
+    test = 0
 
     print*,"valid box",lo(1:AMREX_SPACEDIM),hi(1:AMREX_SPACEDIM)
 
@@ -27,6 +30,7 @@ contains
        print*,'i,j,comp',i,j,comp,mf(i,j,k,comp)
 #elif (AMREX_SPACEDIM == 3)
        print*,'i,j,k,comp',i,j,k,comp,mf(i,j,k,comp)
+       test = test + mf(i,j,k,comp)
 #endif
     enddo
     enddo
@@ -34,6 +38,7 @@ contains
     enddo
 
     call flush(6)
+    print *, "TOTAL: ", test
 
   end subroutine print_mf
 

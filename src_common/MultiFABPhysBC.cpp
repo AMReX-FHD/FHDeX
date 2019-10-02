@@ -327,9 +327,12 @@ void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghos
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
 
+        
+
     for (MFIter mfi(stress); mfi.isValid(); ++mfi) {
 
         const Box & bx = mfi.validbox();
+
         fab_physbc_domainstress(BL_TO_FORTRAN_BOX(bx),
                              BL_TO_FORTRAN_BOX(dom),
                              BL_TO_FORTRAN_FAB(stress[mfi]), stress.nGrow(),

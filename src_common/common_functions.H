@@ -67,6 +67,8 @@ void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab &
 void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
                 const int incomp, const int outcomp, const int steps);
 
+Real SumFab(const MultiFab & in, const int ng, const int comp);
+
 ///////////////////////////
 // in ComputeAverages.cpp
 
