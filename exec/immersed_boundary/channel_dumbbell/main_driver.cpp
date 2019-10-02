@@ -334,7 +334,8 @@ void main_driver(const char * argv) {
     marker_radii[0] = {0.02};
     marker_radii[1] = {0.02};
 
-    ib_mc.InitList(0, marker_radii, marker_positions);
+    int ib_label = 0; //need to fix for multiple dumbbells
+    ib_mc.InitList(0, marker_radii, marker_positions, ib_label);
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
