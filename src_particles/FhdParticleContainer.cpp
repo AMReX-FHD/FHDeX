@@ -491,8 +491,12 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
                          , surfaceList, &surfaceCount, &potential, &sw
                          );
     }
-    
 
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MultiFABPhysBCDomainStress(sourceTemp[i], geomF, i);
+        MultiFABPhysBCMacStress(sourceTemp[i], geomF, i);
+    }
+        
     sourceTemp[0].SumBoundary(geomF.periodicity());
     sourceTemp[1].SumBoundary(geomF.periodicity());
 #if (AMREX_SPACEDIM == 3)

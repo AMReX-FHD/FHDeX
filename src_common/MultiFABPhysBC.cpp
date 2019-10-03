@@ -89,6 +89,9 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int d
 void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost,
                              const Geometry & geom, int dim) {
 
+
+//    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCDomainVel");
+    
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -152,6 +155,9 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim) {
 void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost,
                           const Geometry & geom, int dim) {
 
+
+//    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCMacVel");
+    
     if (geom.isAllPeriodic()) {
         return;
     }
