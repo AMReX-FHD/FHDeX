@@ -31,81 +31,60 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 	       const Geometry geom, const Real& dt)
 {
 
-  BL_PROFILE_VAR("advance()",advance);
+    BL_PROFILE_VAR("advance()",advance);
+  
+    if(fluid_tog ==1) {
+        
+        Real theta_alpha = 0.;
+        Real norm_pre_rhs;
 
+        const BoxArray& ba = beta.boxArray();
+        const DistributionMapping& dmap = beta.DistributionMap();
 
-  /////////////BC Testing!//////
+        // rhs_p GMRES solve
+        MultiFab gmres_rhs_p(ba, dmap, 1, 0);
+        gmres_rhs_p.setVal(0.);
 
-    pres.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(pres, geom);
+        // rhs_u GMRES solve
+        std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            gmres_rhs_u[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+            gmres_rhs_u[d].setVal(0.);
+        }
 
-    for (int i=0; i<AMREX_SPACEDIM; i++) {
-        umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+        //////////////////////////////////////////////////
+        // ADVANCE velocity field
+        //////////////////////////////////////////////////
 
-        MultiFABPhysBCDomainStress(sourceTerms[i], i, geom, i);
-        //MultiFABPhysBCMacStress(sourceTerms[i], i, geom, i);
-    }
+        // add stochastic forcing to gmres_rhs_u
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Add(gmres_rhs_u[d], stochMfluxdiv[d], 0, 0, 1, 0);
+            MultiFab::Add(gmres_rhs_u[d], sourceTerms[d], 0, 0, 1, 0);
+        }
 
+        if(zero_net_force == 1)
+        {
+            Vector<Real> mean_stress_umac(AMREX_SPACEDIM);
 
-  ////////////      
+            SumStag(geom,gmres_rhs_u,0,mean_stress_umac,true);
 
-  if(fluid_tog ==1)
-  {
-      Real theta_alpha = 0.;
-      Real norm_pre_rhs;
+            Print() << "correcting mean force: " << mean_stress_umac[0] << "\n";
 
-      const BoxArray& ba = beta.boxArray();
-      const DistributionMapping& dmap = beta.DistributionMap();
-
-       // rhs_p GMRES solve
-       MultiFab gmres_rhs_p(ba, dmap, 1, 0);
-       gmres_rhs_p.setVal(0.);
-
-      // rhs_u GMRES solve
-      std::array< MultiFab, AMREX_SPACEDIM > gmres_rhs_u;
-      for (int d=0; d<AMREX_SPACEDIM; ++d) {
-          gmres_rhs_u[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-          gmres_rhs_u[d].setVal(0.);
-      }
-
-      //////////////////////////////////////////////////
-      // ADVANCE velocity field
-      //////////////////////////////////////////////////
-
-      // add stochastic forcing to gmres_rhs_u
-      for (int d=0; d<AMREX_SPACEDIM; ++d) {
-          MultiFab::Add(gmres_rhs_u[d], stochMfluxdiv[d], 0, 0, 1, 0);
-          MultiFab::Add(gmres_rhs_u[d], sourceTerms[d], 0, 0, 1, 0);
-      }
-
-      if(zero_net_force == 1)
-      {
-          Vector<Real> mean_stress_umac(AMREX_SPACEDIM);
-
-          SumStag(geom,gmres_rhs_u,0,mean_stress_umac,true);
-
-          Print() << "correcting mean force: " << mean_stress_umac[0] << "\n";
-
-          for (int d=0; d<AMREX_SPACEDIM; ++d) {
-              if (geom.isPeriodic(d)) {
-                  gmres_rhs_u[d].plus(-mean_stress_umac[d],0,1,0);
-              }
-          }
-      }
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                if (geom.isPeriodic(d)) {
+                    gmres_rhs_u[d].plus(-mean_stress_umac[d],0,1,0);
+                }
+            }
+        }
       
-      // call GMRES
-      GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
-
-      // fill periodic ghost cells   ----- Currently two fill boundaries in advance, figure this out later.
+        // call GMRES
+        GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
 
         for (int i=0; i<AMREX_SPACEDIM; i++) {
             umac[i].FillBoundary(geom.periodicity());
-            MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-            MultiFABPhysBCMacVel(umac[i], i, geom, i);
+            MultiFABPhysBCDomainVel(umac[i], geom, i);
+            MultiFABPhysBCMacVel(umac[i], geom, i);
         }
-
     }
 }
 
