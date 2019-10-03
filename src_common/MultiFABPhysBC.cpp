@@ -314,6 +314,8 @@ void MultiFABPhysBCDomainStress(MultiFab & stress,
 void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost,
                                 const Geometry & geom, int dim) {
 
+    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCDomainStress");
+        
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
@@ -351,6 +353,8 @@ void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim) 
 void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost,
                              const Geometry & geom, int dim) {
 
+    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCMacStress");
+    
     IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
     for(int i=0; i<=seq_fill_ghost; i++)
         fill_ghost[i] = 1;
