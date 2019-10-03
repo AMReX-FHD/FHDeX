@@ -6,14 +6,16 @@ from multimethod import multimeta
 
 
 class SoA(object, metaclass=multimeta):
-    _pref = "particle_"
-    _pos  = "position_"
-    _vel  = "vel"
+    _pref  = "particle_"
+    _pos   = "position_"
+    _vel   = "vel"
 
-    _id   = "id"
-    _cpu  = "cpu"
-    _id_0 = "id_0"
+    _id    = "id"
+    _cpu   = "cpu"
+    _id_0  = "id_0"
     _cpu_0 = "cpu_0"
+    _id_1  = "id_1"
+    _cpu_1 = "cpu_1"
 
 
     def __init__(self, data, copy_v=False, copy_id=False):
@@ -41,6 +43,9 @@ class SoA(object, metaclass=multimeta):
             self.cpu   = np.array(data[self._pref + self._cpu],   dtype=int)
             self.id_0  = np.array(data[self._pref + self._id_0],  dtype=int)
             self.cpu_0 = np.array(data[self._pref + self._cpu_0], dtype=int)
+            self.id_1  = np.array(data[self._pref + self._id_1],  dtype=int)
+            self.cpu_1 = np.array(data[self._pref + self._cpu_1], dtype=int)
+
 
 
     def __print_pos(self):
@@ -52,8 +57,10 @@ class SoA(object, metaclass=multimeta):
 
 
     def __print_id(self):
-        return "id:"   + str(self.id)   + ", cpu:"   + str(self.cpu) + ", " \
-               "id_0:" + str(self.id_0) + ", cpu_0:" + str(self.cpu_0)
+        return "id:"   + str(self.id)   + ", cpu:"   + str(self.cpu) + ", " + \
+               "id_0:" + str(self.id_0) + ", cpu_0:" + str(self.cpu_0) + ", " + \
+               "id_1:" + str(self.id_1) + ", cpu_1:" + str(self.cpu_1)
+
 
 
     def __str__(self):
@@ -103,21 +110,23 @@ class SoA(object, metaclass=multimeta):
     def pid(self, index: int):
         if self.contains_id:
             return self.id[index],   self.cpu[index], \
-                   self.id_0[index], self.cpu_0[index]
+                   self.id_0[index], self.cpu_0[index], \
+                   self.id_1[index], self.cpu_1[index]
         else:
             return None
 
     def pid(self, start: int, stop: int):
         if self.contains_id:
             return self.id[start:stop],   self.cpu[start:stop], \
-                   self.id_0[start:stop], self.cpu_0[start:stop]
+                   self.id_0[start:stop], self.cpu_0[start:stop], \
+                   self.id_1[start:stop], self.cpu_1[start:stop]
         else:
             return None
 
 
     def pid(self):
         if self.contains_id:
-            return self.id, self.cpu, self.id_0, self.cpu_0
+            return self.id, self.cpu, self.id_0, self.cpu_0, self.id_1, self.cpu_1
         else:
             return None
 
@@ -138,6 +147,9 @@ class Particle(object):
             self.cpu   = kwargs["id"][1]
             self.id_0  = kwargs["id"][2]
             self.cpu_0 = kwargs["id"][3]
+            self.id_1  = kwargs["id"][4]
+            self.cpu_1 = kwargs["id"][5]
+            self.contains_id = True
 
 
     def __str__(self):
@@ -145,8 +157,9 @@ class Particle(object):
         if self.contains_vel:
             str_rep += ", " + str(self.vel)
         if self.contains_id:
-            str_rep += ", " + self.id +   ", " + self.cpu + \
-                       ", " + self.id_0 + ", " + self.cpu_0
+            str_rep += ", " + str(self.id) +   ", " + str(self.cpu)   + \
+                       ", " + str(self.id_0) + ", " + str(self.cpu_0) + \
+                       ", " + str(self.id_1) + ", " + str(self.cpu_1)
         str_rep += ")"
 
         return str_rep
