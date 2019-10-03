@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0   0.0   0.0        ! physical lo coordinate
-  prob_hi(1:3) = 8.e-3 8.e-3 2.e-3      ! physical hi coordinate
+  prob_hi(1:3) = 8.e-3 8.e-3 4.e-3      ! physical hi coordinate
 
   ! if prob_type = 0, zero initial velocity
   ! if prob_type = 1, vortex
@@ -11,7 +11,7 @@
   prob_type = 0
 
   ! number of cells in domain
-  n_cells(1:3) = 32 32 08
+  n_cells(1:3) = 32 32 16
   ! max number of cells in a box
   max_grid_size(1:3) = 08 08 08
 
@@ -53,8 +53,8 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 1 = finite slip wall 2 = no-slip wall, -2 = periodic pressure
-  bc_vel_lo(1:3) =  1  1  1
-  bc_vel_hi(1:3) =  1  1  1
+  bc_vel_lo(1:3) =  2  2  1
+  bc_vel_hi(1:3) =  2  2  1
 
   p_lo(1:3)  = 0 -.1  0
   p_hi(1:3)  = 0  .1  0
@@ -107,14 +107,14 @@
 &ib_flagellum
 
   n_marker(1:1)  = 21
-  offset_0(:, 1) = 3.e-3 5.6e-3 .5e-3
+  offset_0(:, 1) = 3.e-3 5.6e-3 2.e-3
 
   amplitude(1:1)  = 1e4
   frequency(1:1)  = .1
   length(1:1)     = 3.0e-3
   wavelength(1:1) = .8e-3
-  k_spring(1:1)   = 2e-1
-  k_driving(1:1)  = 2e-1
+  k_spring(1:1)   = 1e0
+  k_driving(1:1)  = 1e0
 
 
   fourier_coef_len = 4
