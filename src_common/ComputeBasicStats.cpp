@@ -23,4 +23,20 @@ void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & va
     }
 }
 
+//Note comp indexes from 1.
+Real SumFab(const MultiFab & in, const int ng, const int comp)
+{
+    BL_PROFILE_VAR("SumFab()",SumFab);
 
+    Real total;
+
+    for ( MFIter mfi(in); mfi.isValid(); ++mfi ) {
+        const Box& bx = mfi.validbox();
+
+        sum_fab(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                BL_TO_FORTRAN_FAB(in[mfi]),
+                &ng, &total, &comp);
+    }
+
+    return total;    
+}

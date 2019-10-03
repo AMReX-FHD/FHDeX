@@ -1690,7 +1690,10 @@ contains
              jj1 = indicies(i,j,k,1,2)
              kk1 = indicies(i,j,k,1,3)
 
+             !print *, "Touching pre: ", ii1,jj1,kk1,sourceu(ii1,jj1,kk1), part%force(1),weights(i,j,k,1)
              sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
+
+             !print *, "Touching post: ", ii1,jj1,kk1,sourceu(ii1,jj1,kk1), part%force(1),weights(i,j,k,1)
 
              spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
              !print*, "S: ", sourceu(ii1,jj1,kk1)
@@ -1713,6 +1716,8 @@ contains
           enddo
        enddo
     enddo
+
+    !print *, "Spread ", spreadcheck
 
   end subroutine spread_op
 
@@ -2718,7 +2723,6 @@ contains
 
        !      if(mod(int(part%step_count),10) .eq. 0) then
        !        
-       !        !print *, "Part force: ", norm2(part%force)
        !        print *, "Sep: ", part%drag_factor
        !        print *, "Average: ", part%diff_av/part%step_count
        !        !print *, "% SD: ", 100+100*(sqrt(part%travel_time)/part%step_count-part%diff_av/part%step_count)/(part%diff_av/part%step_count)

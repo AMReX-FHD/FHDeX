@@ -156,6 +156,9 @@ extern "C"
 		                amrex_real* varfab, const int* vlo, const int* vhi, const int* vsize,
 			            const int* incomp, const int* mcomp, const int* vcomp, const int* steps);
 
+    void sum_fab(const int* lo, const int* hi, const amrex_real* in, const int* inlo, const int* inhi, const int* insize,
+		                const int* gs, const amrex_real* total, const int* incomp);
+
 ///////////////////////////
 
 ///////////////////////////
