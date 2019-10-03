@@ -138,6 +138,7 @@ class Particle(object):
             self.cpu   = kwargs["id"][1]
             self.id_0  = kwargs["id"][2]
             self.cpu_0 = kwargs["id"][3]
+            self.contains_id = True
 
 
     def __str__(self):
@@ -145,8 +146,8 @@ class Particle(object):
         if self.contains_vel:
             str_rep += ", " + str(self.vel)
         if self.contains_id:
-            str_rep += ", " + self.id +   ", " + self.cpu + \
-                       ", " + self.id_0 + ", " + self.cpu_0
+            str_rep += ", " + str(self.id) +   ", " + str(self.cpu) + \
+                       ", " + str(self.id_0) + ", " + str(self.cpu_0)
         str_rep += ")"
 
         return str_rep
