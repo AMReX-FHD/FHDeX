@@ -1686,8 +1686,8 @@ end subroutine fab_physbc_macstress
     if(lo(1) .eq. dom_lo(1)) then ! lower bound
        if(bc_vel_lo(1) .ne. -1) then ! no slip thermal
 
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
 
                 stress(lo(1), j, k, :) = 0
 
@@ -1712,8 +1712,8 @@ end subroutine fab_physbc_macstress
     if(hi(1) .eq. (dom_hi(1)+1)) then ! upper bound (note: +1)
        if(bc_vel_hi(1) .ne. -1) then ! no slip thermal
 
-          do k = lo(3), hi(3)
-             do j = lo(2), hi(2)
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
 
                 stress(hi(1), j, k, :) = 0
 
@@ -1740,10 +1740,12 @@ end subroutine fab_physbc_macstress
     if(lo(2) .eq. dom_lo(2)) then ! lower bound
        if(bc_vel_lo(2) .ne. -1) then ! no slip thermal
 
-          do k = lo(3), hi(3)
-             do i = lo(1), hi(1)
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                 stress(i, lo(2), k, :) = 0
+
+                !print *, "Zeroing ", i, lo(2), k
 
              end do
           end do
@@ -1767,8 +1769,8 @@ end subroutine fab_physbc_macstress
     if(hi(2) .eq. (dom_hi(2)+1)) then ! upper bound (note: +1)
        if(bc_vel_hi(2) .ne. -1) then ! no slip thermal
 
-          do k = lo(3), hi(3)
-             do i = lo(1), hi(1)
+          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
+             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                 stress(i, hi(2), k, :) = 0
 
@@ -1797,8 +1799,8 @@ end subroutine fab_physbc_macstress
     if(lo(3) .eq. dom_lo(3)) then ! lower bound
        if(bc_vel_lo(3) .ne. -1) then ! no slip thermal
 
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
+          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                 stress(i, j, lo(3), :) = 0
 
@@ -1822,8 +1824,8 @@ end subroutine fab_physbc_macstress
     if(hi(3) .eq. (dom_hi(3)+1)) then ! upper bound (note: +1)
        if(bc_vel_hi(3) .ne. -1) then ! no slip thermal
 
-          do j = lo(2), hi(2)
-             do i = lo(1), hi(1)
+          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
+             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                 stress(i, j, hi(3), :) = 0
 
