@@ -43,9 +43,6 @@ void advanceStokes(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac[i].FillBoundary(geom.periodicity());
         MultiFABPhysBCDomainVel(umac[i], i, geom, i);
         MultiFABPhysBCMacVel(umac[i], i, geom, i);
-
-        MultiFABPhysBCDomainStress(sourceTerms[i], i, geom, i);
-        //MultiFABPhysBCMacStress(sourceTerms[i], i, geom, i);
     }
 
 
