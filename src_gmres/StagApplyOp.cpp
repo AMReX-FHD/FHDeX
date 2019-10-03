@@ -787,7 +787,7 @@ void StagApplyOp(const Geometry & geom,
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        MultiFABPhysBCDomainVel(Lphi[i], i, geom, i);
+        MultiFABPhysBCDomainVel(Lphi[i], geom, i);
     }
     
 }
