@@ -120,7 +120,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     }
 
     // spread this term into the velocity forcing
-    SpreadMarkers(lev, f_out, coords, dx);
+    SpreadMarkers(lev, f_out, coords, dx, 1);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -147,7 +147,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
     }
 
     // spread this term into the velocity forcing
-    SpreadMarkers(lev, f_out, coords, dx);
+    SpreadMarkers(lev, f_out, coords, dx, 1);
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
