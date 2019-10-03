@@ -646,6 +646,8 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
 
     }
 
+    MultiFABPhysBCCharge(chargeTemp, geomP);
+
     chargeTemp.SumBoundary(geomP.periodicity());
     //massTemp.SumBoundary(geomP.periodicity());
 

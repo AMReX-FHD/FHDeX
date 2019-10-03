@@ -1,2 +1,54 @@
 Test of electrostatics using p3m near walls.
 Run this with two mpi ranks, the calculated forces and expected result printed out for a range of particle pair configurations. The Mathematica file shows the calculation of the expected answer.
+
+
+
+Particle force in center of domain across x box boundary, ouside p3m range. Expected: 4.86513e-7, -4.86513e-7, 0
+Particle 0, 0, force: 5.057454164e-07, -5.00324803e-07, 5.909325502e-14
+Particle 0, 0, position/q: 4.6875e-07, 3.125e-08, 2.5e-07, -1.6e-19
+Rank 0 particle 0 moving to 4.84375e-07, 3.125e-08, Particle 1, 0, force: -5.057454164e-07, -5.00324803e-07, -5.909325892e-14
+Particle 1, 0, position/q: 5.3125e-07, 3.125e-08, 2.5e-07, 1.6e-19
+2.5e-07
+Rank 1 particle 0 moving to 5.15625e-07, 3.125e-08, 2.5e-07
+Particle 1, 0, force: -2.77192882e-06, -2.254378449e-07, 3.437743508e-14
+Particle 1, 0, position/q: 5.15625e-07, 3.125e-08, 2.5e-07, 1.6e-19
+Particle force in center of domain across x box boundary, within p3m range of each other. Expected: 2.74113e-6, -2.14082e-7, 0
+Particle 0, 0, force: 2.77192882e-06, -2.254378449e-07, -3.437743381e-14
+Particle 0, 0, position/q: 4.84375e-07, 3.125e-08, 2.5e-07, -1.6e-19
+Rank 0 particle 0 moving to 4.84375e-07, 6.25e-08, 2.5e-07
+Rank 1 particle 0 moving to 5.15625e-07, 6.25e-08, 2.5e-07
+Particle force in center of domain across x box boundary, within p3m range of each other. Double the distance from the wall compared to case 1. Expected: 2.96744e-6, -1.63548e-8, 0
+Particle 0, 0, force: 2.996873752e-06, -1.6772299e-08, -1.338272443e-13
+Particle 0, 0, position/q: 4.84375e-07, 6.25e-08, 2.5e-07, -1.6e-19
+Rank 0 particle 0 moving to 4.84375e-07Particle 1, 0, force: -2.996873752e-06, -1.6772299e-08, 1.338272437e-13
+Particle 1, 0, position/q: 5.15625e-07, 6.25e-08, 2.5e-07, 1.6e-19
+, 2.1875e-08, 2.5e-07
+Rank 1 particle 0 moving to 5.15625e-07, 2.1875e-08, 2.5e-07
+Particle force in center of domain across x box boundary, within p3m range of wall and each other, but pair image particle is out of range. Expected: 2.41925e-6, -7.08326e-7, 0
+Particle 0, 0, force: 2.455977772e-06, -7.02129198e-07, 1.421116985e-13
+Particle 0, 0, position/q: 4.84375e-07, 2.1875e-08, 2.5e-07, -1.6e-19
+Rank 0 particle 0 moving to 4.84375e-07, 1.5625e-08, 2.5e-07
+Particle 1, 0, force: -2.455977772e-06, -7.02129198e-07, -1.421116991e-13
+Particle 1, 0, position/q: 5.15625e-07, 2.1875e-08, 2.5e-07, 1.6e-19
+Rank 1 particle 0 moving to 5.15625e-07, 1.5625e-08, 2.5e-07
+Particle 1, 0, force: -2.004252994e-06, -2.034195495e-06, -9.481365756e-15
+Particle 1, 0, position/q: 5.15625e-07, 1.5625e-08, 2.5e-07, 1.6e-19
+Particle force in center of domain across x box boundary, within p3m range of wall and each other, pair image particle also in p3m range. Expected: 1.94605e-6, -1.94605e-6, 0
+Particle 0, 0, force: 2.004252994e-06, -2.034195495e-06, 9.481365329e-15
+Particle 0, 0, position/q: 4.84375e-07, 1.5625e-08, 2.5e-07, -1.6e-19
+Rank 0 particle 0 moving to -1.5625e-08, 1.5625e-08, 2.5e-07
+Rank 1 particle 0 moving to 1.015625e-06, 1.5625e-08, 2.5e-07
+Particle force accross periodic boundary, within p3m range of wall and each other, pair image particle also in p3m range. Expected: -1.94605e-6, -1.94605e-6, 0
+Particle 0, 0, force: -2.004252711e-06, -2.034194901e-06, -2.798653186e-14
+Particle 0, 0, position/q: 1.5625e-08, 1.5625e-08, 2.5e-07, 1.6e-19
+Rank 0 particle 0 moving to -1.5625e-08, 2.1875e-08, 2.5e-07
+Particle 1, 0, force: 2.004252711e-06, -2.034194901e-06, 2.798653249e-14
+Particle 1, 0, position/q: 9.84375e-07, 1.5625e-08, 2.5e-07, -1.6e-19
+Rank 1 particle 0 moving to 1.015625e-06, 2.1875e-08, 2.5e-07
+Particle force accross periodic boundary, within p3m range of wall and each other, but pair image particle is out of range. Expected: -2.41925e-6, -7.08326e-7, 0
+Particle 0, 0, force: -2.455976871e-06, -7.021279711e-07, -8.489129437e-14
+Particle 0, 0, position/q: 1.5625e-08, 2.1875e-08, 2.5e-07, -1.6e-19
+Run time = 8.234139442
+Particle 1, 0, force: 2.455976871e-06, -7.021279711e-07, 8.489129322e-14
+Particle 1, 0, position/q: 9.84375e-07, 2.1875e-08, 2.5e-07, 1.6e-19
+
