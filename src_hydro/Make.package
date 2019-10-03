@@ -3,6 +3,7 @@ CEXE_sources += MkAdvSFluxdiv.cpp
 CEXE_sources += StochMFlux.cpp
 CEXE_sources += MacProj_hydro.cpp
 CEXE_sources += HydroBCs.cpp
+CEXE_sources += advance.cpp
 
 CEXE_headers += hydro_functions.H
 CEXE_headers += hydro_functions_F.H
