@@ -14,7 +14,7 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 {
 
     BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
-    
+
 #ifdef AMREX_USE_CUDA
     // generate on GPU
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
@@ -31,7 +31,7 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
         const Box& bx = mfi.validbox();
 	multifab_fill_random(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 			     BL_TO_FORTRAN_FAB(mf[mfi]), &comp);
-    }    
+    }
 #endif
 
 //----------------------------------------
