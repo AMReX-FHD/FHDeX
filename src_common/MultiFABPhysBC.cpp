@@ -91,7 +91,7 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost,
 
 
     Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCDomainVel");
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -157,7 +157,7 @@ void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost,
 
 
     Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCMacVel");
-    
+
     if (geom.isAllPeriodic()) {
         return;
     }

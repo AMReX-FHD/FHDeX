@@ -274,9 +274,11 @@ void main_driver(const char * argv) {
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     defineFC(umac, ba, dmap, 1);
+    setVal(umac, 0.);
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     defineFC(umacNew, ba, dmap, 1);
+    setVal(umacNew, 0.);
 
 
     //___________________________________________________________________________
@@ -379,8 +381,8 @@ void main_driver(const char * argv) {
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+        MultiFABPhysBCDomainVel(umac[i], geom, i);
+        MultiFABPhysBCMacVel(umac[i], geom, i);
     }
 
 
@@ -400,9 +402,9 @@ void main_driver(const char * argv) {
     MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
-    AMREX_D_TERM(MultiFab::Copy(umacNew[0], umac[0], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[1], umac[1], 0, 0, 1, 1);,
-                 MultiFab::Copy(umacNew[2], umac[2], 0, 0, 1, 1););
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
+
 
     int step = 0;
     Real time = 0.;

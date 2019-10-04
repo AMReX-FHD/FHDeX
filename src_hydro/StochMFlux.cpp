@@ -961,7 +961,7 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
   // Initialize variances
   Real variance_mom = std::abs(variance)*k_B/dVol;
-  
+
   std::array<MultiFab, AMREX_SPACEDIM> variance_mfab;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     variance_mfab[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,0);
@@ -1007,8 +1007,8 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
   for (int i=0; i<AMREX_SPACEDIM; i++) {
       m_old[i].FillBoundary(geom.periodicity());
-      MultiFABPhysBCDomainVel(m_old[i], i, geom,i);
-      MultiFABPhysBCMacVel(m_old[i], i, geom,i);
+      MultiFABPhysBCDomainVel(m_old[i], geom,i);
+      MultiFABPhysBCMacVel(m_old[i], geom, i);
   }
 }
 
