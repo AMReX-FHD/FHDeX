@@ -382,8 +382,8 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-        // using fourier modes => first node reserved as "anchor"
-        int N_markers = immbdy::contains_fourier ? N+1 : N;
+        // using fourier modes => first two nodes reserved as "anchor"
+        int N_markers = immbdy::contains_fourier ? N+2 : N;
 
         Vector<RealVect> marker_positions(N_markers);
         for (int i=0; i<marker_positions.size(); ++i) {

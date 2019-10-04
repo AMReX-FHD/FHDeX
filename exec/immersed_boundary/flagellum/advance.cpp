@@ -90,8 +90,8 @@ Real theta(Real amp_ramp, Real time, int i_ib, int index_marker) {
 
     if(immbdy::contains_fourier) {
 
-        // First node reserved as "anchor"
-        index_marker = std::max(0, index_marker-1);
+        // First two nodes reserved as "anchor"
+        index_marker = std::max(0, index_marker-2);
 
         int N                 = chlamy_flagellum::N[i_ib][index_marker];
         int coef_len          = ib_flagellum::fourier_coef_len;
