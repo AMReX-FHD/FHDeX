@@ -83,9 +83,9 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Add(efield[d], external[d], 0, 0, 1, 0);
+        MultiFab::Add(efield[d], external[d], 0, 0, 1, efield[d].nGrow());
         efield[d].FillBoundary(geom.periodicity());
-        MultiFABElectricBC(efield[d], d, geom);
+        //MultiFABElectricBC(efield[d], d, geom);
     }
 
 }
