@@ -76,17 +76,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
            gmres_rhs_u[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
-                 Lumac[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+                 Lumac[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 0);
             advFluxdiv[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
         advFluxdivPred[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
                   uMom[i].define(convert(ba, nodal_flag_dir[i]), dmap, 1, 1);
+
+        // put in to fix fpe traps
+        advFluxdivPred[i].setVal(0);
+        advFluxdiv[i].setVal(0);
     }
 
     // Tracer concentration field for predictor
     MultiFab tracerPred(ba, dmap, 1, 1);
+    tracerPred.setVal(0.);
 
     // Tracer advective terms
     MultiFab advFluxdivS(ba, dmap, 1, 1);
+    advFluxdivS.setVal(0.);
 
 
     //___________________________________________________________________________
@@ -181,8 +187,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+        MultiFABPhysBCDomainVel(umac[i], geom, i);
+        MultiFABPhysBCMacVel(umac[i], geom, i);
     }
 
 
@@ -234,8 +240,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], i, geom, i);
-        MultiFABPhysBCMacVel(uMom[i], i, geom, i);
+        MultiFABPhysBCDomainVel(uMom[i], geom, i);
+        MultiFABPhysBCMacVel(uMom[i], geom, i);
     }
 
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
@@ -375,7 +381,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     pres.setVal(0.);  // initial guess
     SetPressureBC(pres, geom);
-
+    for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
     ComputeGrad(pres, pg, 0, 0, 1, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
@@ -398,15 +404,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // let rho = 1
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFABPhysBCMacVel(umacNew[d], geom, d);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+        MultiFABPhysBCDomainVel(uMom[d], geom, d);
+        MultiFABPhysBCMacVel(uMom[d], geom, d);
     }
 
     MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);

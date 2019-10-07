@@ -285,10 +285,11 @@ void main_driver(const char * argv) {
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     defineFC(umac, ba, dmap, 1);
+    setVal(umac, 0.);
 
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     defineFC(umacNew, ba, dmap, 1);
-
+    setVal(umacNew, 0.);
 
     //___________________________________________________________________________
     // Define structure factor:
@@ -381,8 +382,8 @@ void main_driver(const char * argv) {
         Print() << "l_link= " << l_link      << std::endl;
         Print() << "x_0=    " << x_0         << std::endl;
 
-        // using fourier modes => first node reserved as "anchor"
-        int N_markers = immbdy::contains_fourier ? N+1 : N;
+        // using fourier modes => first two nodes reserved as "anchor"
+        int N_markers = immbdy::contains_fourier ? N+2 : N;
 
         Vector<RealVect> marker_positions(N_markers);
         for (int i=0; i<marker_positions.size(); ++i) {
@@ -419,9 +420,9 @@ void main_driver(const char * argv) {
         // initialize velocity
         for (int d=0; d<AMREX_SPACEDIM; ++d)
              init_vel(BL_TO_FORTRAN_BOX(bx),
-                     BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
-                     geom.ProbLo(), geom.ProbHi(), & d,
-                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+                      BL_TO_FORTRAN_ANYD(umac[d][mfi]), geom.CellSize(),
+                      geom.ProbLo(), geom.ProbHi(), & d,
+                      ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
     }
 
     BL_PROFILE_VAR_STOP(initfv);
@@ -436,8 +437,8 @@ void main_driver(const char * argv) {
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+        MultiFABPhysBCDomainVel(umac[i], geom, i);
+        MultiFABPhysBCMacVel(umac[i], geom, i);
     }
 
     BL_PROFILE_VAR_STOP(ICwork);

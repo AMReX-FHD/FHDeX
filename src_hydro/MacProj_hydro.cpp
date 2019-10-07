@@ -123,8 +123,8 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
       umac[d].FillBoundary(geom.periodicity());
 
       // Do apply BCs so that all ghost cells are filled
-      MultiFABPhysBCDomainVel(umac[d], d, geom,d);
-      MultiFABPhysBCMacVel(umac[d], d, geom,d);
+      MultiFABPhysBCDomainVel(umac[d], geom, d);
+      MultiFABPhysBCMacVel(umac[d], geom, d);
     }
 }
 
@@ -138,7 +138,7 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
     BL_PROFILE_VAR("ComputeMACSolverRHS()",ComputeMACSolverRHS);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-    
+
     for ( MFIter mfi(solverrhs); mfi.isValid(); ++mfi) {
 
       const Box& bx = mfi.validbox();

@@ -26,23 +26,31 @@ StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geo
   // Here we store all the random number stages at all spatial locations
   for (int i=0; i<n_rngs; ++i) {
       mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, std::max(1,filtering_width));
+      mflux_cc[i].setVal(0.);
 #if (AMREX_SPACEDIM == 2)
       mflux_ed[i][0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
+      mflux_ed[i][0].setVal(0.);
 #elif (AMREX_SPACEDIM == 3)
       mflux_ed[i][0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, filtering_width);
       mflux_ed[i][1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, filtering_width);
       mflux_ed[i][2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, filtering_width);
+
+      for (int d=0; d<AMREX_SPACEDIM; ++d) mflux_ed[i][d].setVal(0.);
 #endif
   }
 
   // Temporary storage for linear combinations of random number stages
   mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, std::max(1,filtering_width));
+  mflux_cc_weighted.setVal(0.);
 #if (AMREX_SPACEDIM == 2)
   mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
+  mflux_ed_weighted[0].setVal(0.);
 #elif (AMREX_SPACEDIM == 3)
   mflux_ed_weighted[0].define(convert(ba_in,nodal_flag_xy), dmap_in, ncomp_ed, filtering_width);
   mflux_ed_weighted[1].define(convert(ba_in,nodal_flag_xz), dmap_in, ncomp_ed, filtering_width);
   mflux_ed_weighted[2].define(convert(ba_in,nodal_flag_yz), dmap_in, ncomp_ed, filtering_width);
+
+  for (int d=0; d<AMREX_SPACEDIM; ++d) mflux_ed_weighted[d].setVal(0.);
 #endif
 }
 
@@ -961,7 +969,7 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
   // Initialize variances
   Real variance_mom = std::abs(variance)*k_B/dVol;
-  
+
   std::array<MultiFab, AMREX_SPACEDIM> variance_mfab;
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     variance_mfab[d].define(m_old[d].boxArray(), m_old[d].DistributionMap(),1,0);
@@ -1007,8 +1015,8 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
 
   for (int i=0; i<AMREX_SPACEDIM; i++) {
       m_old[i].FillBoundary(geom.periodicity());
-      MultiFABPhysBCDomainVel(m_old[i], i, geom,i);
-      MultiFABPhysBCMacVel(m_old[i], i, geom,i);
+      MultiFABPhysBCDomainVel(m_old[i], geom,i);
+      MultiFABPhysBCMacVel(m_old[i], geom, i);
   }
 }
 
