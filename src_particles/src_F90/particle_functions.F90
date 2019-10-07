@@ -1690,12 +1690,16 @@ contains
              jj1 = indicies(i,j,k,1,2)
              kk1 = indicies(i,j,k,1,3)
 
+             
+
              !print *, "Touching pre: ", ii1,jj1,kk1,sourceu(ii1,jj1,kk1), part%force(1),weights(i,j,k,1)
              sourceu(ii1,jj1,kk1) = sourceu(ii1,jj1,kk1) + part%force(1)*weights(i,j,k,1)*volinv
 
+             !print *, "Touching: ", ii1,jj1,kk1,weights(i,j,k,1), sourceu(ii1,jj1,kk1), part%force(1)
+
              !print *, "Touching post: ", ii1,jj1,kk1,sourceu(ii1,jj1,kk1), part%force(1),weights(i,j,k,1)
 
-             spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
+             !spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
              !print*, "S: ", sourceu(ii1,jj1,kk1)
              ii2 = indicies(i,j,k,2,1)
              jj2 = indicies(i,j,k,2,2)
@@ -1703,7 +1707,7 @@ contains
 
              sourcev(ii2,jj2,kk2) = sourcev(ii2,jj2,kk2) + part%force(2)*weights(i,j,k,2)*volinv
 
-             spreadcheck(2) = spreadcheck(2) + sourcev(ii2,jj2,kk2)
+             !spreadcheck(2) = spreadcheck(2) + sourcev(ii2,jj2,kk2)
 
              ii3 = indicies(i,j,k,3,1)
              jj3 = indicies(i,j,k,3,2)
@@ -1711,7 +1715,7 @@ contains
 
              sourcew(ii3,jj3,kk3) = sourcew(ii3,jj3,kk3) + part%force(3)*weights(i,j,k,3)*volinv
 
-             spreadcheck(3) = spreadcheck(3) + sourcew(ii3,jj3,kk3)
+             !spreadcheck(3) = spreadcheck(3) + sourcew(ii3,jj3,kk3)
 
           enddo
        enddo
