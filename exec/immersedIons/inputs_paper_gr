@@ -20,8 +20,8 @@
 ! fixed_dt = 1e-12   ! this segfaults after 29 steps  
 
   ! Controls for number of steps between actions
-  max_step = 300000
-  plot_int = 3000
+  max_step = 10
+  plot_int = 5
   plot_ascii = 0
   struct_fact_int = -1
   n_steps_skip = 150000
@@ -64,7 +64,7 @@
   mass = 4e-23 4e-23
   diameter = -2.488e-8 -2.488e-8 
   qval = 1.6e-19 -1.6e-19
-  diff = 1.33e-05 1.33e-05
+  diff = 1.17e-05 1.33e-05
  !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
  
   p_int_tog = 1 1 ! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
@@ -107,17 +107,13 @@
   ! ----------------------
   ! BC specifications:
   ! -1 = periodic, 2 = no slip stationary
-  bc_vel_lo(1:3) = -1 2 -1
-  bc_vel_hi(1:3) = -1 2 -1
+  bc_vel_lo(1:3) = -1 -1 -1
+  bc_vel_hi(1:3) = -1 -1 -1
 
   ! -1 = periodic, 1 = dirichlet, 2 = neumann
-  bc_es_lo(1:3) = -1 1 -1
-  bc_es_hi(1:3) = -1 1 -1
+  bc_es_lo(1:3) = -1 -1 -1
+  bc_es_hi(1:3) = -1 -1 -1
 
-  potential_lo(1:3) = 0 0 0 ! For use with dirichlet, not fully implemented yet.
-  potential_hi(1:3) = 0 0 0 !
-
-  
 /
 
 &gmres
