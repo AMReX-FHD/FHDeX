@@ -24,7 +24,7 @@
   plot_int = 3000
   plot_ascii = 0
   struct_fact_int = -1
-  n_steps_skip = 150000
+  n_steps_skip = 30000
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve

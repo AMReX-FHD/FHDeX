@@ -878,8 +878,11 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
+        Print() << "step " << step << " modulo " << step%n_steps_skip << std::endl;
+        
         //Start collecting statistics after step n_steps_skip
-        if(step == n_steps_skip)
+        if( (n_steps_skip > 0 && step == n_steps_skip) ||
+            (n_steps_skip < 0 && step%n_steps_skip == 0) )
         {
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
