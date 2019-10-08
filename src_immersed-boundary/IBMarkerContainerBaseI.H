@@ -80,10 +80,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
     }
 }
 
+
+
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::RFD(
-            int lev, const Real* dx,
-            std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+            int lev, const Real * dx,
+                  std::array<MultiFab, AMREX_SPACEDIM> & f_out,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords
         ) {
 
@@ -112,7 +114,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                 // NOTE: this assumed that the pred_pos* fields are
                 // displacement vectors wrt pos(*)
 
-                part.rdata(StructReal::forcex + d) = force * part.rdata(StructReal::pred_posx + d);
+                part.rdata(StructReal::forcex + d) =
+                    force * part.rdata(StructReal::pred_posx + d);
 
             }
 
@@ -140,7 +143,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
                 // NOTE: this assumed that the pred_pos* fields are
                 // displacement vectors wrt pos(*)
 
-                part.rdata(StructReal::forcex + d) = -force * part.rdata(StructReal::pred_posx + d);
+                part.rdata(StructReal::forcex + d) =
+                    -force * part.rdata(StructReal::pred_posx + d);
 
             }
         }
@@ -184,11 +188,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
 
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-
-            // // update predictor to match the position
-            // part.rdata(IBM_realData::pred_posx) = part.pos(0);
-            // part.rdata(IBM_realData::pred_posy) = part.pos(1);
-            // part.rdata(IBM_realData::pred_posz) = part.pos(2);
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
                 part.rdata(StructReal::pred_posx + d) =
@@ -251,8 +250,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
             const Vector<RealVect> & f_in,
             const Vector<RealVect> & f_pos,
-            std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-            std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+                  std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                  std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords,
             const Real * dx, const int ghost
         ) const {
@@ -293,7 +292,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
                        & n_marker,
                        dx, & ghost);
     }
-
 }
 
 
@@ -301,7 +299,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             int lev,
-            std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                  std::array<MultiFab, AMREX_SPACEDIM> & f_out,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords,
             const Real * dx, int ghost
         ) const {
@@ -460,36 +458,36 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
     for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
 
-    Box bx       = mfi.growntilebox();
-    Box tile_box = mfi.tilebox();
+        Box bx       = mfi.growntilebox();
+        Box tile_box = mfi.tilebox();
 
-    interpolate_markers(BL_TO_FORTRAN_BOX(bx),
-                        BL_TO_FORTRAN_BOX(tile_box),
-                        BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
+        interpolate_markers(BL_TO_FORTRAN_BOX(bx),
+                            BL_TO_FORTRAN_BOX(tile_box),
+                            BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
-                        BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
+                            BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                        BL_TO_FORTRAN_ANYD(f_in[2][mfi]),
+                            BL_TO_FORTRAN_ANYD(f_in[2][mfi]),
 #endif
-                        BL_TO_FORTRAN_ANYD(f_weights[0][mfi]),
+                            BL_TO_FORTRAN_ANYD(f_weights[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
-                        BL_TO_FORTRAN_ANYD(f_weights[1][mfi]),
+                            BL_TO_FORTRAN_ANYD(f_weights[1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                        BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
+                            BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
 #endif
-                        BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
+                            BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
 #if (AMREX_SPACEDIM > 1)
-                        BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
+                            BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                        BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
+                            BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
 #endif
-                        f_pos.dataPtr(),
-                        f_out.dataPtr(),
-                        & n_marker,
-                        dx );
+                            f_pos.dataPtr(),
+                            f_out.dataPtr(),
+                            & n_marker,
+                            dx );
     }
 }
 
