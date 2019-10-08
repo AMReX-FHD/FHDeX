@@ -756,13 +756,13 @@ contains
             invvol = invvol * invdx(ll)
         end do
 
-        if(ghost .eq. 0) then 
+        if(ghost .eq. 0) then
           ilo = max(lo(1), int(pos(1) * invdx(1) - gs))
-          ihi = min(hi(1)+1, int(pos(1) * invdx(1) + gs))
+          ihi = min(hi(1), int(pos(1) * invdx(1) + gs))
           jlo = max(lo(2), int(pos(2) * invdx(2) - gs))
-          jhi = min(hi(2)+1, int(pos(2) * invdx(2) + gs))
+          jhi = min(hi(2), int(pos(2) * invdx(2) + gs))
           klo = max(lo(3), int(pos(3) * invdx(3) - gs))
-          khi = min(hi(3)+1, int(pos(3) * invdx(3) + gs))
+          khi = min(hi(3), int(pos(3) * invdx(3) + gs))
         else
           ilo = int(pos(1) * invdx(1) - gs)
           ihi = int(pos(1) * invdx(1) + gs)
@@ -778,7 +778,7 @@ contains
         !         do i = lo(1), hi(1) + 1
         do k = klo, khi
             do j = jlo, jhi
-                do i = ilo, ihi
+                do i = ilo, ihi + 1
 
                     pos_grid(:) = pos(:) - coords_x(i, j, k, :)
                     pos_grid(:) = pos_grid(:) * invdx(:)
@@ -801,7 +801,7 @@ contains
         !     do j = lo(2), hi(2) + 1
         !         do i = lo(1), hi(1)
         do k = klo, khi
-            do j = jlo, jhi
+            do j = jlo, jhi + 1
                 do i = ilo, ihi
 
                     pos_grid(:) = pos(:) - coords_y(i, j, k, :)
@@ -826,7 +826,7 @@ contains
         ! do k = lo(3), hi(3) + 1
         !     do j = lo(2), hi(2)
         !         do i = lo(1), hi(1)
-        do k = klo, khi
+        do k = klo, khi + 1
             do j = jlo, jhi
                 do i = ilo, ihi
 
@@ -941,7 +941,7 @@ contains
         do i =  1, n_marker
 
             pos = pos_marker(:, i)
-            if(ghost .eq. 0) then 
+            if(ghost .eq. 0) then
               ! skip marker if outside tile box (prevent double-counting)
               if (pos(1) .lt. tile_lo(1)*dx(1) ) cycle
               if (pos(1) .ge. (tile_hi(1)+1)*dx(1) ) cycle

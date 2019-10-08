@@ -255,42 +255,70 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
             const Real * dx, const int ghost
         ) {
 
-    const int n_marker = f_pos.size();
-
     for (MFIter mfi(f_out[0]); mfi.isValid(); ++mfi) {
 
         // Convert stagered boxes into cell centered
-        Box bx       = enclosedCells(mfi.growntilebox());
         Box tile_box = enclosedCells(mfi.tilebox());
 
-        spread_markers(BL_TO_FORTRAN_BOX(bx),
-                       BL_TO_FORTRAN_BOX(tile_box),
-                       BL_TO_FORTRAN_ANYD(f_out[0][mfi]),
-#if (AMREX_SPACEDIM > 1)
-                       BL_TO_FORTRAN_ANYD(f_out[1][mfi]),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                       BL_TO_FORTRAN_ANYD(f_out[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_ANYD(f_weights[0][mfi]),
-#if (AMREX_SPACEDIM > 1)
-                       BL_TO_FORTRAN_ANYD(f_weights[1][mfi]),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                       BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
-#endif
-                       BL_TO_FORTRAN_ANYD(coords[0][mfi]),
-#if (AMREX_SPACEDIM > 1)
-                       BL_TO_FORTRAN_ANYD(coords[1][mfi]),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                       BL_TO_FORTRAN_ANYD(coords[2][mfi]),
-#endif
-                       f_pos.dataPtr(),
-                       f_in.dataPtr(),
-                       & n_marker,
-                       dx, & ghost);
+        std::array<      FArrayBox *, AMREX_SPACEDIM> f_out_fab;
+        std::array<      FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            f_out_fab[d]     = & f_out[d][mfi];
+            f_weights_fab[d] = & f_weights[d][mfi];
+            coords_fab[d]    = & coords[d][mfi];
+        }
+
+        SpreadMarkers(f_in, f_pos, tile_box,
+                      f_out_fab, f_weights_fab, coords_fab, dx, ghost);
     }
+}
+
+
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
+            const Vector<RealVect> & f_in,
+            const Vector<RealVect> & f_pos,
+            const Box & tile_box,
+                  std::array<      FArrayBox *, AMREX_SPACEDIM> & f_out,
+                  std::array<      FArrayBox *, AMREX_SPACEDIM> & f_weights,
+            const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+            const Real* dx, int ghost
+        ) {
+
+    const int n_marker = f_pos.size();
+
+    // Convert stagered boxes into cell centered
+    Box bx = enclosedCells(f_out[0]->box());
+
+    spread_markers(BL_TO_FORTRAN_BOX(bx),
+                   BL_TO_FORTRAN_BOX(tile_box),
+                   BL_TO_FORTRAN_ANYD(* f_out[0]),
+#if (AMREX_SPACEDIM > 1)
+                   BL_TO_FORTRAN_ANYD(* f_out[1]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                   BL_TO_FORTRAN_ANYD(* f_out[2]),
+#endif
+                   BL_TO_FORTRAN_ANYD(* f_weights[0]),
+#if (AMREX_SPACEDIM > 1)
+                   BL_TO_FORTRAN_ANYD(* f_weights[1]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                   BL_TO_FORTRAN_ANYD(* f_weights[2]),
+#endif
+                   BL_TO_FORTRAN_ANYD(* coords[0]),
+#if (AMREX_SPACEDIM > 1)
+                   BL_TO_FORTRAN_ANYD(* coords[1]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                   BL_TO_FORTRAN_ANYD(* coords[2]),
+#endif
+                   f_pos.dataPtr(),
+                   f_in.dataPtr(),
+                   & n_marker,
+                   dx, & ghost);
 }
 
 
@@ -344,8 +372,21 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
-        SpreadMarkers(marker_forces, marker_positions, f_out, f_weights,
-                      coords, dx, ghost);
+
+        // Convert stagered boxes into cell centered
+        Box tile_box = enclosedCells(f_out[0][pti].box());
+
+        std::array<      FArrayBox *, AMREX_SPACEDIM> f_out_fab;
+        std::array<      FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            f_out_fab[d]     = & f_out[d][pti];
+            f_weights_fab[d] = & f_weights[d][pti];
+            coords_fab[d]    = & coords[d][pti];
+        }
+
+        SpreadMarkers(marker_forces, marker_positions, tile_box,
+                      f_out_fab, f_weights_fab, coords_fab, dx, ghost);
     }
 }
 
@@ -419,8 +460,21 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
 
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
-        SpreadMarkers(marker_forces, marker_positions, f_out, f_weights,
-                      face_coords[lev], dx, 0);
+
+        // Convert stagered boxes into cell centered
+        Box tile_box = enclosedCells(f_out[0][pti].box());
+
+        std::array<      FArrayBox *, AMREX_SPACEDIM> f_out_fab;
+        std::array<      FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            f_out_fab[d]     = & f_out[d][pti];
+            f_weights_fab[d] = & f_weights[d][pti];
+            coords_fab[d]    = & face_coords[lev][d][pti];
+        }
+
+        SpreadMarkers(marker_forces, marker_positions, tile_box,
+                      f_out_fab, f_weights_fab, coords_fab, dx, 0);
     }
 }
 
@@ -434,65 +488,26 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
             const std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords,
             const Real * dx, const int ghost
-        ){
+        ) {
 
 
-    // //___________________________________________________________________________
-    // // Geometry data
-    // const Geometry & geom = this->Geom(0);
-    // const Real     *   dx = geom.CellSize();
 
-    const int n_marker = f_pos.size();
-
-
-    // //___________________________________________________________________________
-    // // Cell-centered MultiFab used as a reference for iterating over data
-    // // WARNING: this will break if IBMarkerContainer is on a differnt grid
-    // // than the grid which we're interpolating from
-
-    // const BoxArray & ba            = this->ParticleBoxArray(lev);
-    // const DistributionMapping & dm = this->ParticleDistributionMap(lev);
-
-    // MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
-
-
-    // for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
     for (MFIter mfi(f_in[0]); mfi.isValid(); ++mfi) {
 
-        // Box bx       = mfi.growntilebox();
-        // Box tile_box = mfi.tilebox();
-
         // Convert stagered boxes into cell centered
-        Box bx       = enclosedCells(mfi.growntilebox());
         Box tile_box = enclosedCells(mfi.tilebox());
 
-        interpolate_markers(BL_TO_FORTRAN_BOX(bx),
-                            BL_TO_FORTRAN_BOX(tile_box),
-                            BL_TO_FORTRAN_ANYD(f_in[0][mfi]),
-#if (AMREX_SPACEDIM > 1)
-                            BL_TO_FORTRAN_ANYD(f_in[1][mfi]),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                            BL_TO_FORTRAN_ANYD(f_in[2][mfi]),
-#endif
-                            BL_TO_FORTRAN_ANYD(f_weights[0][mfi]),
-#if (AMREX_SPACEDIM > 1)
-                            BL_TO_FORTRAN_ANYD(f_weights[1][mfi]),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                            BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
-#endif
-                            BL_TO_FORTRAN_ANYD(coords[0][mfi]),
-#if (AMREX_SPACEDIM > 1)
-                            BL_TO_FORTRAN_ANYD(coords[1][mfi]),
-#endif
-#if (AMREX_SPACEDIM > 2)
-                            BL_TO_FORTRAN_ANYD(coords[2][mfi]),
-#endif
-                            f_pos.dataPtr(),
-                            f_out.dataPtr(),
-                            & n_marker,
-                            dx );
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_in_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            f_in_fab[d]      = & f_in[d][mfi];
+            f_weights_fab[d] = & f_weights[d][mfi];
+            coords_fab[d]    = & coords[d][mfi];
+        }
+
+        InterpolateMarkers(f_out, f_pos, tile_box,
+                           f_in_fab, f_weights_fab, coords_fab, dx, ghost);
     }
 }
 
@@ -500,8 +515,56 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
+                  Vector<RealVect> & f_out,
+            const Vector<RealVect> & f_pos,
+            const Box & tile_box,
+            const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_in,
+            const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_weights,
+            const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+            const Real * dx, const int ghost
+        ){
+
+    const int n_marker = f_pos.size();
+
+    // Convert stagered boxes into cell centered
+    Box bx = enclosedCells(f_in[0]->box());
+
+    interpolate_markers(BL_TO_FORTRAN_BOX(bx),
+                        BL_TO_FORTRAN_BOX(tile_box),
+                        BL_TO_FORTRAN_ANYD(* f_in[0]),
+#if (AMREX_SPACEDIM > 1)
+                        BL_TO_FORTRAN_ANYD(* f_in[1]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                        BL_TO_FORTRAN_ANYD(* f_in[2]),
+#endif
+                        BL_TO_FORTRAN_ANYD(* f_weights[0]),
+#if (AMREX_SPACEDIM > 1)
+                        BL_TO_FORTRAN_ANYD(* f_weights[1]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                        BL_TO_FORTRAN_ANYD(* f_weights[2]),
+#endif
+                        BL_TO_FORTRAN_ANYD(* coords[0]),
+#if (AMREX_SPACEDIM > 1)
+                        BL_TO_FORTRAN_ANYD(* coords[1]),
+#endif
+#if (AMREX_SPACEDIM > 2)
+                        BL_TO_FORTRAN_ANYD(* coords[2]),
+#endif
+                        f_pos.dataPtr(),
+                        f_out.dataPtr(),
+                        & n_marker,
+                        dx );
+
+}
+
+
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
             int lev,
-            const std::array<MultiFab, AMREX_SPACEDIM> & f_out
+            const std::array<MultiFab, AMREX_SPACEDIM> & f_in
         ) {
 
 
@@ -514,8 +577,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
     // We don't need these spreading weights => create a dummy MF
     std::array<MultiFab, AMREX_SPACEDIM> f_weights;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
-                            1, f_out[d].nGrow());
+        f_weights[d].define(f_in[d].boxArray(), f_in[d].DistributionMap(),
+                            1, f_in[d].nGrow());
         f_weights[d].setVal(-1.);
     }
 
@@ -550,8 +613,21 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
         //_______________________________________________________________________
         // Interpolate the non-neighbor particles (markers)
-        InterpolateMarkers(marker_forces, marker_positions, f_out, f_weights,
-                           face_coords[lev], dx, 0);
+
+        // Convert stagered boxes into cell centered
+        Box tile_box = enclosedCells(f_in[0][pti].box());
+
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_in_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            f_in_fab[d]      = & f_in[d][pti];
+            f_weights_fab[d] = & f_weights[d][pti];
+            coords_fab[d]    = & face_coords[lev][d][pti];
+        }
+
+        InterpolateMarkers(marker_forces, marker_positions, tile_box,
+                           f_in_fab, f_weights_fab, coords_fab, dx, 0);
 
         // Add interpolated markers back to the particles (markers)
         for (int i = 0; i < np; ++i) {
@@ -568,7 +644,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
             int lev,
-            const std::array<MultiFab, AMREX_SPACEDIM> & f_out
+            const std::array<MultiFab, AMREX_SPACEDIM> & f_in
         ) {
 
 
@@ -581,8 +657,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
     // We don't need these spreading weights => create a dummy MF
     std::array<MultiFab, AMREX_SPACEDIM> f_weights;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        f_weights[d].define(f_out[d].boxArray(), f_out[d].DistributionMap(),
-                            1, f_out[d].nGrow());
+        f_weights[d].define(f_in[d].boxArray(), f_in[d].DistributionMap(),
+                            1, f_in[d].nGrow());
         f_weights[d].setVal(-1.);
     }
 
@@ -618,8 +694,21 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
 
         //_______________________________________________________________________
         // Interpolate the non-neighbor particles (markers)
-        InterpolateMarkers(marker_forces, marker_positions, f_out, f_weights,
-                           face_coords[lev], dx, 0);
+
+        // Convert stagered boxes into cell centered
+        Box tile_box = enclosedCells(f_in[0][pti].box());
+
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_in_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            f_in_fab[d]      = & f_in[d][pti];
+            f_weights_fab[d] = & f_weights[d][pti];
+            coords_fab[d]    = & face_coords[lev][d][pti];
+        }
+
+        InterpolateMarkers(marker_forces, marker_positions, tile_box,
+                           f_in_fab, f_weights_fab, coords_fab, dx, 0);
 
         // Add interpolated markers back to the particles (markers)
         for (int i=0; i<np; ++i) {

@@ -90,6 +90,16 @@ public:
                 const std::array<MultiFab, AMREX_SPACEDIM> & coords,
                 const Real* dx, int ghost
             );
+
+    static void SpreadMarkers(
+                const Vector<RealVect> & f_in,
+                const Vector<RealVect> & f_pos,
+                const Box & tile_box,
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_out,
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_weights,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+                const Real* dx, int ghost
+            );
     //---------------------------------------------------------------------------
 
 
@@ -118,6 +128,16 @@ public:
                 const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
                 const std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
                 const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+                const Real * dx, const int ghost
+            );
+
+    static void InterpolateMarkers(
+                      Vector<RealVect> & f_out,
+                const Vector<RealVect> & f_pos,
+                const Box & tile_box,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_in,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_weights,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
                 const Real * dx, const int ghost
             );
     //---------------------------------------------------------------------------
