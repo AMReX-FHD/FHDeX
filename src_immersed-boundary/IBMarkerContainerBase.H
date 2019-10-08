@@ -81,14 +81,15 @@ public:
 
 
     //___________________________________________________________________________
-    // Spreading operators applied to raw data arrays
-    void SpreadMarkers(int lev,
-                       const Vector<RealVect> & f_in,
-                       const Vector<RealVect> & f_pos,
-                             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-                             std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
-                       const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-                       const Real* dx, int ghost) const;
+    // Static spreading operators applied to raw data arrays
+    static void SpreadMarkers(
+                const Vector<RealVect> & f_in,
+                const Vector<RealVect> & f_pos,
+                      std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                      std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+                const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+                const Real* dx, int ghost
+            );
     //---------------------------------------------------------------------------
 
 
@@ -110,12 +111,15 @@ public:
 
 
     //___________________________________________________________________________
-    // Interpolation operators applied to raw data arrays
-    void InterpolateMarkers(int lev,
-                            Vector<RealVect> & f_out,
-                            const Vector<RealVect> & f_pos,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+    // Static interpolation operators applied to raw data arrays
+    static void InterpolateMarkers(
+                      Vector<RealVect> & f_out,
+                const Vector<RealVect> & f_pos,
+                const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+                const std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+                const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+                const Real * dx, const int ghost
+            );
     //---------------------------------------------------------------------------
 
 

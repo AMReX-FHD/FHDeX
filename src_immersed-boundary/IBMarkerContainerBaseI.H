@@ -247,20 +247,19 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
-            int lev,
             const Vector<RealVect> & f_in,
             const Vector<RealVect> & f_pos,
                   std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                   std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
             const std::array<MultiFab, AMREX_SPACEDIM> & coords,
             const Real * dx, const int ghost
-        ) const {
+        ) {
 
     const int n_marker = f_pos.size();
 
     for (MFIter mfi(f_out[0]); mfi.isValid(); ++mfi) {
 
-        //Convert stagered boxes into cell centered.
+        // Convert stagered boxes into cell centered
         Box bx       = enclosedCells(mfi.growntilebox());
         Box tile_box = enclosedCells(mfi.tilebox());
 
@@ -345,7 +344,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
-        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights,
+        SpreadMarkers(marker_forces, marker_positions, f_out, f_weights,
                       coords, dx, ghost);
     }
 }
@@ -420,7 +419,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
 
         //_______________________________________________________________________
         // Spread the non-neighbor particles (markers)
-        SpreadMarkers(lev, marker_forces, marker_positions, f_out, f_weights,
+        SpreadMarkers(marker_forces, marker_positions, f_out, f_weights,
                       face_coords[lev], dx, 0);
     }
 }
@@ -429,37 +428,43 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
 
 template <typename StructReal, typename StructInt>
 void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
-            int lev,
-            Vector<RealVect> & f_out,
+                  Vector<RealVect> & f_out,
             const Vector<RealVect> & f_pos,
             const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights
-        ) const {
+            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+            const Real * dx, const int ghost
+        ){
 
 
-    //___________________________________________________________________________
-    // Geometry data
-    const Geometry & geom = this->Geom(0);
-    const Real     *   dx = geom.CellSize();
+    // //___________________________________________________________________________
+    // // Geometry data
+    // const Geometry & geom = this->Geom(0);
+    // const Real     *   dx = geom.CellSize();
 
     const int n_marker = f_pos.size();
 
 
-    //___________________________________________________________________________
-    // Cell-centered MultiFab used as a reference for iterating over data
-    // WARNING: this will break if IBMarkerContainer is on a differnt grid
-    // than the grid which we're interpolating from
+    // //___________________________________________________________________________
+    // // Cell-centered MultiFab used as a reference for iterating over data
+    // // WARNING: this will break if IBMarkerContainer is on a differnt grid
+    // // than the grid which we're interpolating from
 
-    const BoxArray & ba            = this->ParticleBoxArray(lev);
-    const DistributionMapping & dm = this->ParticleDistributionMap(lev);
+    // const BoxArray & ba            = this->ParticleBoxArray(lev);
+    // const DistributionMapping & dm = this->ParticleDistributionMap(lev);
 
-    MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
+    // MultiFab dummy(ba, dm, 1, f_in[0].nGrow());
 
 
-    for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
+    // for (MFIter mfi(dummy); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(f_in[0]); mfi.isValid(); ++mfi) {
 
-        Box bx       = mfi.growntilebox();
-        Box tile_box = mfi.tilebox();
+        // Box bx       = mfi.growntilebox();
+        // Box tile_box = mfi.tilebox();
+
+        // Convert stagered boxes into cell centered
+        Box bx       = enclosedCells(mfi.growntilebox());
+        Box tile_box = enclosedCells(mfi.tilebox());
 
         interpolate_markers(BL_TO_FORTRAN_BOX(bx),
                             BL_TO_FORTRAN_BOX(tile_box),
@@ -477,12 +482,12 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 #if (AMREX_SPACEDIM > 2)
                             BL_TO_FORTRAN_ANYD(f_weights[2][mfi]),
 #endif
-                            BL_TO_FORTRAN_ANYD(face_coords[lev][0][mfi]),
+                            BL_TO_FORTRAN_ANYD(coords[0][mfi]),
 #if (AMREX_SPACEDIM > 1)
-                            BL_TO_FORTRAN_ANYD(face_coords[lev][1][mfi]),
+                            BL_TO_FORTRAN_ANYD(coords[1][mfi]),
 #endif
 #if (AMREX_SPACEDIM > 2)
-                            BL_TO_FORTRAN_ANYD(face_coords[lev][2][mfi]),
+                            BL_TO_FORTRAN_ANYD(coords[2][mfi]),
 #endif
                             f_pos.dataPtr(),
                             f_out.dataPtr(),
@@ -499,6 +504,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
             const std::array<MultiFab, AMREX_SPACEDIM> & f_out
         ) {
 
+
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = this->Geom(0);
+    const Real     *   dx = geom.CellSize();
 
     //___________________________________________________________________________
     // We don't need these spreading weights => create a dummy MF
@@ -540,7 +550,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
         //_______________________________________________________________________
         // Interpolate the non-neighbor particles (markers)
-        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+        InterpolateMarkers(marker_forces, marker_positions, f_out, f_weights,
+                           face_coords[lev], dx, 0);
 
         // Add interpolated markers back to the particles (markers)
         for (int i = 0; i < np; ++i) {
@@ -560,6 +571,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
             const std::array<MultiFab, AMREX_SPACEDIM> & f_out
         ) {
 
+
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = this->Geom(0);
+    const Real     *   dx = geom.CellSize();
 
     //___________________________________________________________________________
     // We don't need these spreading weights => create a dummy MF
@@ -602,7 +618,8 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
 
         //_______________________________________________________________________
         // Interpolate the non-neighbor particles (markers)
-        InterpolateMarkers(lev, marker_forces, marker_positions, f_out, f_weights);
+        InterpolateMarkers(marker_forces, marker_positions, f_out, f_weights,
+                           face_coords[lev], dx, 0);
 
         // Add interpolated markers back to the particles (markers)
         for (int i=0; i<np; ++i) {
