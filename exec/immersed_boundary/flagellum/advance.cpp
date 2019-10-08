@@ -895,7 +895,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
     if(immbdy::contains_fourier)
         anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_velx);
-    ib_mc.MovePredictor(0, dt);
+    ib_mc.MovePredictor(0, 0.5*dt);
     ib_mc.Redistribute(); // just in case (maybe can be removed)
 
 
