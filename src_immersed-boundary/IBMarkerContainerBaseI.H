@@ -197,6 +197,104 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
     }
 }
 
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PullDown(int lev, Real * list, int element, int totalParticles) {
+
+
+    Real temp;
+
+    for (int i = 0; i < totalParticles; ++i) {
+         //std::cout << i << " of " << totalParticles << std::endl;
+ 
+        list[i] = 0;
+ 
+    }
+
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+        int id;
+
+        if(element >= 0)
+        {
+            for (int i = 0; i < np; ++i) {
+                ParticleType & part = particles[i];
+                id = part.id();
+                std::cout << id << " of " << totalParticles << std::endl;
+                list[id] = particles[i].rdata(StructReal::radius + element);
+
+            }
+        }else
+        {
+            for (int i = 0; i < np; ++i) {
+                
+                ParticleType & part = particles[i];
+                id = part.id();
+                list[id] = part.pos((-element)-1);
+
+            }            
+        }
+    }
+
+    //I'm sure there is an array version of this but this will do for now.
+    for(int i=0;i<totalParticles;i++)
+    {
+        temp = list[i];
+        ParallelDescriptor::ReduceRealSum(temp);
+        list[i] = temp;
+
+        Print() << list[i] << std::endl;
+    }
+}
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PushUp(int lev, Real * list, int element, int totalParticles) {
+
+
+    Real temp;
+
+    //I'm sure there is an array version of this but this will do for now.
+    for(int i=0;i<totalParticles;i++)
+    {
+        temp = list[i];
+        ParallelDescriptor::ReduceRealSum(temp);
+        list[i] = temp;
+    }
+
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+        int id;
+        if(element >= 0)
+        {
+            for (int i = 0; i < np; ++i) {
+                ParticleType & part = particles[i];
+                id = part.id();
+
+                particles[i].rdata(StructReal::radius + element) = list[id];
+
+            }
+        }else
+        {  
+            for (int i = 0; i < np; ++i) {
+                ParticleType & part = particles[i];
+                id = part.id();
+
+                particles[i].pos((-element)-1) = list[id];
+
+            }
+
+        }
+    }
+}
 
 
 template <typename StructReal, typename StructInt>

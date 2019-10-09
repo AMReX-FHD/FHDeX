@@ -163,6 +163,8 @@ public:
      *                                                                          *
      ***************************************************************************/
 
+    void PullDown(int lev, Real * list, int element, int totalParticles);
+    void PushUp(int lev, Real * list, int element, int totalParticles);
 
     int get_nghost() const {return nghost;};
 

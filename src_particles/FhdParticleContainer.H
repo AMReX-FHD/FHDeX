@@ -121,6 +121,21 @@ struct FHD_intData {
     };
 };
 
+struct FHD_realDataLW {
+    //Analogous to particle realData (p.m_data)
+    enum {
+        velx,
+        vely,
+        velz,
+        forcex,
+        forcey,
+        forcez,
+        posx,
+        posy,
+        posz,
+        count    // Awesome little trick! (only works if first field is 0)
+    };
+};
 
 
 class FhdParIter
@@ -202,6 +217,8 @@ public:
                                            const surface* surfaceList, const int surfaceCount, int sw);
 
     void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
+
+    void RadialDistribution(long totalParticles, const int step, const species* particleInfo);
 
     void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomF, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
 
