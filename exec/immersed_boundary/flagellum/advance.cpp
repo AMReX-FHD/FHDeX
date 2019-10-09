@@ -149,7 +149,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 );
 
         // Get neighbor list (for collision checking)
-        const Vector<int> & nbhd = ib_mc.GetNeighborList(
+        const IBMarkerContainer::IntVector & nbhd = ib_mc.GetNeighborList(
                     ib_lev, pti.index(), pti.LocalTileIndex()
                 );
 

@@ -392,7 +392,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
                                             const ParticleType & part,
                                                   ParticleVector & nbhd_data,
-                                            const Vector<int> & nbhd,
+                                            const IntVector & nbhd,
                                             int nbhd_index,
                                             ParticleType *& prev_marker,
                                             ParticleType *& next_marker) const {
