@@ -81,14 +81,25 @@ public:
 
 
     //___________________________________________________________________________
-    // Spreading operators applied to raw data arrays
-    void SpreadMarkers(int lev,
-                       const Vector<RealVect> & f_in,
-                       const Vector<RealVect> & f_pos,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
-                       const std::array<MultiFab, AMREX_SPACEDIM> & coords,
-                       const Real* dx, int ghost) const;
+    // Static spreading operators applied to raw data arrays
+    static void SpreadMarkers(
+                const Vector<RealVect> & f_in,
+                const Vector<RealVect> & f_pos,
+                      std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                      std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+                const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+                const Real* dx, int ghost
+            );
+
+    static void SpreadMarkers(
+                const Vector<RealVect> & f_in,
+                const Vector<RealVect> & f_pos,
+                const Box & tile_box,
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_out,
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_weights,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+                const Real* dx, int ghost
+            );
     //---------------------------------------------------------------------------
 
 
@@ -99,7 +110,7 @@ public:
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
 
     void SpreadMarkers(int lev,
-                       std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        const std::array<MultiFab, AMREX_SPACEDIM> & coords,
                        const Real* dx, int ghost) const;
 
@@ -110,12 +121,25 @@ public:
 
 
     //___________________________________________________________________________
-    // Interpolation operators applied to raw data arrays
-    void InterpolateMarkers(int lev,
-                            Vector<RealVect> & f_out,
-                            const Vector<RealVect> & f_pos,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
-                            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+    // Static interpolation operators applied to raw data arrays
+    static void InterpolateMarkers(
+                      Vector<RealVect> & f_out,
+                const Vector<RealVect> & f_pos,
+                const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+                const std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+                const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+                const Real * dx, const int ghost
+            );
+
+    static void InterpolateMarkers(
+                      Vector<RealVect> & f_out,
+                const Vector<RealVect> & f_pos,
+                const Box & tile_box,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_in,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_weights,
+                const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+                const Real * dx, const int ghost
+            );
     //---------------------------------------------------------------------------
 
 
@@ -152,7 +176,7 @@ public:
      ***************************************************************************/
 
     void RFD(int lev, const Real* dx,
-             std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                   std::array<MultiFab, AMREX_SPACEDIM> & f_out,
              const std::array<MultiFab, AMREX_SPACEDIM> & coords);
 
 

@@ -323,7 +323,7 @@ void IBMarkerContainer::SpreadMarkers(int lev,
         marker_positions[i] = marker_info[i].pos;
 
 
-    SpreadMarkers(lev, f_in, marker_positions, f_out, f_weights,
+    SpreadMarkers(f_in, marker_positions, f_out, f_weights,
                   get_face_coords(lev), dx, 0);
 }
 
@@ -352,6 +352,10 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
                                            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
                                            const std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const {
 
+    //___________________________________________________________________________
+    // Geometry data
+    const Geometry & geom = this->Geom(0);
+    const Real     *   dx = geom.CellSize();
 
     //___________________________________________________________________________
     // Fill vector of marker positions (for current level)
@@ -360,7 +364,8 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
     for (int i=0; i<marker_info.size(); ++i)
         marker_positions[i] = marker_info[i].pos;
 
-    InterpolateMarkers(lev, f_out, marker_positions, f_in, f_weights);
+    InterpolateMarkers(f_out, marker_positions, f_in, f_weights,
+                       get_face_coords(lev), dx, 0);
 }
 
 
