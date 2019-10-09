@@ -18,7 +18,7 @@ using namespace amrex;
 
 
 // IBM => Immmersed Boundary Marker
-struct IBM_realData {
+struct IBMReal {
     //Analogous to particle realData (p.m_data)
     enum {
         radius = 0,
@@ -64,7 +64,7 @@ struct IBM_realData {
 
 
 
-struct IBM_intData {
+struct IBMInt {
     //Analogous to particle intData (p.m_data)
     enum {
         id_0 = 0,
@@ -78,7 +78,7 @@ struct IBM_intData {
         return Vector<std::string> {
             "id_0",
             "cpu_0",
-            "id_1",
+            "id_1",   // TODO: fix these names, `[id,cpu]_1` are misleading
             "cpu_1",
         };
     };
@@ -87,26 +87,26 @@ struct IBM_intData {
 
 
 class IBMarIter
-    : public IBMarIterBase<IBM_realData::count, IBM_intData::count>
+    : public IBMarIterBase<IBMReal::count, IBMInt::count>
 {
 
 public:
-    using IBMarIterBase<IBM_realData::count, IBM_intData::count>::IBMarIterBase;
+    using IBMarIterBase<IBMReal::count, IBMInt::count>::IBMarIterBase;
 
 };
 
 
 
 class IBMarkerContainer
-    : public IBMarkerContainerBase<IBM_realData, IBM_intData>
+    : public IBMarkerContainerBase<IBMReal, IBMInt>
 {
 
 public:
 
-    using IBMarkerContainerBase<IBM_realData, IBM_intData>
+    using IBMarkerContainerBase<IBMReal, IBMInt>
         ::IBMarkerContainerBase;
 
-    using MyConstIBMarIter = IBMarkerContainerBase<IBM_realData, IBM_intData>
+    using MyConstIBMarIter = IBMarkerContainerBase<IBMReal, IBMInt>
         ::MyConstIBMarIter;
 
 
@@ -119,7 +119,7 @@ public:
 
 
     // (ID, initial CPU) tuple: unique to each particle
-    using MarkerIndex = typename IBMarkerContainerBase<IBM_realData, IBM_intData>
+    using MarkerIndex = typename IBMarkerContainerBase<IBMReal, IBMInt>
         ::PairIndex;
 
 
@@ -155,9 +155,9 @@ public:
 
     //___________________________________________________________________________
     // Spreading operators applied to internal force fields (in amrex::Particles)
-    using IBMarkerContainerBase<IBM_realData, IBM_intData>::SpreadMarkers;
+    using IBMarkerContainerBase<IBMReal, IBMInt>::SpreadMarkers;
 
-    using IBMarkerContainerBase<IBM_realData, IBM_intData>::SpreadPredictor;
+    using IBMarkerContainerBase<IBMReal, IBMInt>::SpreadPredictor;
     //---------------------------------------------------------------------------
 
 
@@ -178,9 +178,9 @@ public:
 
     //___________________________________________________________________________
     // Interpolation operators applied to internal force fields (in amrex::Particles)
-    using IBMarkerContainerBase<IBM_realData, IBM_intData>::InterpolateMarkers;
+    using IBMarkerContainerBase<IBMReal, IBMInt>::InterpolateMarkers;
 
-    using IBMarkerContainerBase<IBM_realData, IBM_intData>::InterpolatePredictor;
+    using IBMarkerContainerBase<IBMReal, IBMInt>::InterpolatePredictor;
     //---------------------------------------------------------------------------
 
 

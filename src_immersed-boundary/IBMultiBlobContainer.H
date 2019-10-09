@@ -12,7 +12,7 @@ using namespace amrex;
 
 
 
-struct Blob_realData {
+struct IBBReal {
     enum {
         radius = 0,
         velx,
@@ -39,26 +39,26 @@ struct Blob_realData {
 
 
 
-using Blob_intData = IBM_intData;
+using IBBInt = IBMInt;
 
 
 class BlobIter
-    : public IBMarIterBase<Blob_realData::count, Blob_intData::count>
+    : public IBMarIterBase<IBBReal::count, IBBInt::count>
 {
 
 // public:
-//     using IBMarIterBase<Blob_realData::count, Blob_intData::count>::IBMarIterBase;
+//     using IBMarIterBase<IBBReal::count, IBBInt::count>::IBMarIterBase;
 
 };
 
 
 class BlobContainer
-    : public IBMarkerContainerBase<Blob_realData, Blob_intData>
+    : public IBMarkerContainerBase<IBBReal, IBBInt>
 {
 
 public:
 
-    using IBMarkerContainerBase<Blob_realData, Blob_intData>
+    using IBMarkerContainerBase<IBBReal, IBBInt>
         ::IBMarkerContainerBase;
 
 

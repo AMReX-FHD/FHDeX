@@ -76,7 +76,7 @@ void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
 
             ParticleType & mark = markers[i];
 
-            if((mark.idata(IBM_intData::id_1) == 0)||(mark.idata(IBM_intData::id_1) == 1))
+            if((mark.idata(IBMInt::id_1) == 0)||(mark.idata(IBMInt::id_1) == 1))
                 for (int d=0; d<AMREX_SPACEDIM; ++d) mark.rdata(component + d) = 0.;
         }
     }
@@ -160,7 +160,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
             ParticleType & mark = markers[i];
 
-            int i_ib    = mark.idata(IBM_intData::cpu_1);
+            int i_ib    = mark.idata(IBMInt::cpu_1);
             int N       = ib_flagellum::n_marker[i_ib];
             Real L      = ib_flagellum::length[i_ib];
             Real l_link = L/(N-1);
@@ -173,10 +173,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
 
-            int status = ib_mc.FindConnectedMarkers(markers, mark,
-                                                    nbhd_data, nbhd,
-                                                    nbhd_index,
-                                                    prev_marker, next_marker);
+            int status =
+                ib_mc.FindConnectedMarkers(markers, mark, nbhd_data, nbhd,
+                                           nbhd_index, prev_marker, next_marker);
 
 
             if (status == -1) Abort("status -1 particle detected in predictor!!! flee for your life!");
@@ -190,9 +189,9 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                     next_pos[d] = next_marker->pos(d);
 
                     if (pred_pos) {
-                        prev_pos[d] += prev_marker->rdata(IBM_realData::pred_posx + d);
-                        pos[d]      += mark.rdata(IBM_realData::pred_posx + d);
-                        next_pos[d] += next_marker->rdata(IBM_realData::pred_posx + d);
+                        prev_pos[d] += prev_marker->rdata(IBMReal::pred_posx + d);
+                        pos[d]      += mark.rdata(IBMReal::pred_posx + d);
+                        next_pos[d] += next_marker->rdata(IBMReal::pred_posx + d);
                     }
                 }
             }
@@ -228,7 +227,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
                 // calling the active bending force calculation
                 // This a simple since wave imposed
 
-                Real th = theta(driv_amp, time, i_ib, mark.idata(IBM_intData::id_1));
+                Real th = theta(driv_amp, time, i_ib, mark.idata(IBMInt::id_1));
                 driving_f(f, f_p, f_m, r, r_p, r_m, driv_u, th, k_driv);
 
                 // updating the force on the minus, current, and plus particles.
@@ -456,9 +455,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move predictor using previous velocity: x^(n+1/2) = x^n + dt/2 J(u^n)
     // (constrain it to move in the z = constant plane only)
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
+    constrain_ibm_marker(ib_mc, ib_lev, IBMReal::pred_velz);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_velx);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::pred_velx);
     ib_mc.MovePredictor(0, 0.5*dt);
     ib_mc.Redistribute(); // just in case (maybe can be removed)
 
@@ -470,13 +469,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.fillNeighbors(); // Does ghost cells
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::pred_forcex, true);
+    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBMReal::pred_forcex, true);
     // Constrain it to move in the z = constant plane only
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_forcez);
+    constrain_ibm_marker(ib_mc, ib_lev, IBMReal::pred_forcez);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_forcex);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::pred_forcex);
     // Sum predictor forces added to neighbors back to the real markers
-    ib_mc.sumNeighbors(IBM_realData::pred_forcex, AMREX_SPACEDIM, 0, 0);
+    ib_mc.sumNeighbors(IBMReal::pred_forcex, AMREX_SPACEDIM, 0, 0);
 
 
     //___________________________________________________________________________
@@ -583,9 +582,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
     // (constrain it to move in the z = constant plane only)
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
+    constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::velx);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
     ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
@@ -597,13 +596,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // ib_mc.fillNeighbors(); // Does ghost cells
     // ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-    // update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::forcex, false);
+    // update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBMReal::forcex, false);
     // // Constrain it to move in the z = constant plane only
-    // constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::forcez);
+    // constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
     // if(immbdy::contains_fourier)
-    //     anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_forcex);
+    //     anchor_first_marker(ib_mc, ib_lev, IBMReal::pred_forcex);
     // // Sum predictor forces added to neighbors back to the real markers
-    // ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
+    // ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
 
 
     // //___________________________________________________________________________
@@ -892,9 +891,9 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move predictor using previous velocity: x^(n+1/2) = x^n + dt/2 J(u^n)
     // (constrain it to move in the z = constant plane only)
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_velz);
+    constrain_ibm_marker(ib_mc, ib_lev, IBMReal::pred_velz);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_velx);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::pred_velx);
     ib_mc.MovePredictor(0, 0.5*dt);
     ib_mc.Redistribute(); // just in case (maybe can be removed)
 
@@ -906,13 +905,13 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.fillNeighbors(); // Does ghost cells
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::pred_forcex, true);
+    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBMReal::pred_forcex, true);
     // Constrain it to move in the z = constant plane only
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::pred_forcez);
+    constrain_ibm_marker(ib_mc, ib_lev, IBMReal::pred_forcez);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::pred_forcex);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::pred_forcex);
     // Sum predictor forces added to neighbors back to the real markers
-    ib_mc.sumNeighbors(IBM_realData::pred_forcex, AMREX_SPACEDIM, 0, 0);
+    ib_mc.sumNeighbors(IBMReal::pred_forcex, AMREX_SPACEDIM, 0, 0);
 
 
     //___________________________________________________________________________
@@ -1028,9 +1027,9 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move markers according to velocity: x^(n+1) = x^n + dt/2 J(u^(n+1/2))
     // (constrain it to move in the z = constant plane only)
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::velz);
+    constrain_ibm_marker(ib_mc, ib_lev, IBMReal::velz);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::velx);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
     ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
@@ -1042,13 +1041,13 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     ib_mc.fillNeighbors(); // Does ghost cells
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
-    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBM_realData::forcex, false);
+    update_ibm_marker(driv_u, driv_amp, time, ib_mc, ib_lev, IBMReal::forcex, false);
     // Constrain it to move in the z = constant plane only
-    constrain_ibm_marker(ib_mc, ib_lev, IBM_realData::forcez);
+    constrain_ibm_marker(ib_mc, ib_lev, IBMReal::forcez);
     if(immbdy::contains_fourier)
-        anchor_first_marker(ib_mc, ib_lev, IBM_realData::forcex);
+        anchor_first_marker(ib_mc, ib_lev, IBMReal::forcex);
     // Sum predictor forces added to neighbors back to the real markers
-    ib_mc.sumNeighbors(IBM_realData::forcex, AMREX_SPACEDIM, 0, 0);
+    ib_mc.sumNeighbors(IBMReal::forcex, AMREX_SPACEDIM, 0, 0);
 
 
     //___________________________________________________________________________

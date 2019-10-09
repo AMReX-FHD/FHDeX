@@ -78,20 +78,5 @@ void WritePlotFile(int step,
 
     // add immersed boundary markers data to plot file
     ib_pc.WritePlotFile(plotfilename, "immbdy_markers",
-                        IBM_realData::names(), IBM_intData::names());
-
-
-//     // staggered velocity
-//     if (plot_stag == 1) {
-//     const std::string plotfilenamex = Concatenate("stagx", step, 7);
-//     const std::string plotfilenamey = Concatenate("stagy", step, 7);
-//     const std::string plotfilenamez = Concatenate("stagz", step, 7);
-//
-//     WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"}, geom, time, step);
-//     WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"}, geom, time, step);
-// #if (AMREX_SPACEDIM == 3)
-//     WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"}, geom, time, step);
-//     }
-// #endif
-
+                        IBMReal::names(), IBMInt::names());
 }
