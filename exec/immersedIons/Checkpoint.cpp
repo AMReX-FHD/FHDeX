@@ -15,13 +15,14 @@ namespace {
 
 void WriteCheckPoint(int step,
                      const amrex::Real time,
-                     std::array< MultiFab, AMREX_SPACEDIM >& umac)
+                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                     FhdParticleContainer& particles)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
 
     // checkpoint file name, e.g., chk0000010
-    const std::string& checkpointname = amrex::Concatenate(chk_base_name,step,7);
+    const std::string& checkpointname = amrex::Concatenate(chk_base_name,step,9);
 
     amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
@@ -114,7 +115,8 @@ void WriteCheckPoint(int step,
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
-                    std::array< MultiFab, AMREX_SPACEDIM >& umac)
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                    FhdParticleContainer& particles)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);

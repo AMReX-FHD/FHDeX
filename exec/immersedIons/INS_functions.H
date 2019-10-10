@@ -42,11 +42,13 @@ void WritePlotFileHydro(int step,
 
 void WriteCheckPoint(const int step,
                      const amrex::Real time,
-                     std::array< MultiFab, AMREX_SPACEDIM >& umac);
+                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                     FhdParticleContainer& particles);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
-                    std::array< MultiFab, AMREX_SPACEDIM >& umac);
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                    FhdParticleContainer& particles);
 
 ///////////////////////////
 

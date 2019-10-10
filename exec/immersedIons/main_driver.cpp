@@ -372,43 +372,41 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Define & initalize eta & temperature multifabs
     ///////////////////////////////////////////
+    
     // eta & temperature
     const Real eta_const = visc_coef;
     const Real temp_const = T_init[0];      // [units: K]
 
-    // AJN - I think the number of ghost cells needed here is
+    // the number of ghost cells needed here is
     // eta_cc -> 1
     // temp_cc -> 1
     // eta_ed -> 0
     // temp_ed -> 0
     
-    // eta & temperature cell centered
-    MultiFab  eta_cc;
-    MultiFab temp_cc;
-    // eta & temperature nodal
+    // eta and temperature; cell-centered
+    MultiFab  eta_cc(ba, dmap, 1, 1);
+    MultiFab temp_cc(ba, dmap, 1, 1);
+    
+    // eta and temperature; nodal
     std::array< MultiFab, NUM_EDGE >  eta_ed;
     std::array< MultiFab, NUM_EDGE > temp_ed;
-    // eta and temperature; cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
-    temp_cc.define(ba, dmap, 1, 1);
-    // eta and temperature; nodal
 #if (AMREX_SPACEDIM == 2)
-    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    eta_ed [0].define(convert(ba,nodal_flag),    dmap, 1, 0);
+    temp_ed[0].define(convert(ba,nodal_flag),    dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
-    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    eta_ed [0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    eta_ed [1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    eta_ed [2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
 
     // Initalize eta & temperature multifabs
-    eta_cc.setVal(eta_const);
+    eta_cc .setVal(eta_const);
     temp_cc.setVal(temp_const);
     for (int d=0; d<NUM_EDGE; ++d) {
-        eta_ed[d].setVal(eta_const);
+        eta_ed[d] .setVal(eta_const);
         temp_ed[d].setVal(temp_const);
     }
     ///////////////////////////////////////////
@@ -417,27 +415,24 @@ void main_driver(const char* argv)
     // random fluxes:
     ///////////////////////////////////////////
 
-    // AJN - I think stochMfluxdiv needs 0 ghost cells //DRL setting it to 1 until I've checked.
-
     // mflux divergence, staggered in x,y,z
-
+    // Define mfluxdiv predictor/corrector multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdivC;
-    // Define mfluxdiv predictor/corrector multifabs
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
-        stochMfluxdiv[d].setVal(0.0);
+        stochMfluxdiv [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        stochMfluxdiv [d].setVal(0.0);
         stochMfluxdivC[d].setVal(0.0);
     }
 
-    Vector< amrex::Real > weights;
-    weights = {1.0};
-    // weights = {std::sqrt(0.5), std::sqrt(0.5)};
-
     // Declare object of StochMFlux class
-    int n_rngs = 1;
+    int n_rngs = 1; // we only need 1 stage of random numbers
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
+
+    // weights for random number stages
+    Vector< amrex::Real> weights;
+    weights = {1.0};
 
     ///////////////////////////////////////////
 
@@ -663,9 +658,8 @@ void main_driver(const char* argv)
     ComputeDryMobility(dryMobility, ionParticle, geom);
  
     //Time stepping loop
-    for(step=1;step<=max_step;++step)
+    for (step=1;step<=max_step;++step)
     {
-
         // timer for time step
         Real time1 = ParallelDescriptor::second();
     
@@ -807,14 +801,16 @@ void main_driver(const char* argv)
             WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
 
+        if (chk_int > 0 && step%chk_int == 0) {
+            WriteCheckPoint(step, time, umac, particles);            
+        }
+
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
         ParallelDescriptor::ReduceRealMax(time2);
         amrex::Print() << "Advanced step " << step << " in " << time2 << " seconds\n";
         
         time = time + dt;
-
-
     }
     ///////////////////////////////////////////
 
