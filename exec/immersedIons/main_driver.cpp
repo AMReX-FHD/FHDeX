@@ -1,18 +1,11 @@
 #include "INS_functions.H"
-#include <iostream>
-
-#include "common_functions.H"
-#include "gmres_functions.H"
 
 #include "common_functions_F.H"
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
-
-#include "rng_functions_F.H"
 
 #include "species.H"
 #include "surfaces.H"
@@ -23,24 +16,18 @@
 
 #include "StochMFlux.H"
 
-#include "hydro_test_functions_F.H"
-
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
+#include "hydro_test_functions_F.H"
 
 #include "electrostatic.H"
 
 #include "particle_functions.H"
 
-#include "debug_functions_F.H"
-#include "AMReX_ArrayLim.H"
-
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-    // store the current time so we can later compute total run time.
-
-    // timer
+    // timer for total simulation time
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
@@ -53,59 +40,39 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
-
-    remove("potential.dat");
-    remove("kinetic.dat");
-
-    const int n_rngs = 1;
-
-    int fhdSeed = 0;
+    
+    // zero is a clock-based seed
+    int fhdSeed      = 0;
     int particleSeed = 0;
     int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+    int thetaSeed    = 0;
+    int phiSeed      = 0;
+    int generalSeed  = 0;
 
+    // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
+    // this should be fixed so each physical process has its own seed control
     if(seed > 0) {
-        fhdSeed = ParallelDescriptor::MyProc() + 1 + seed;
-        particleSeed = 2*ParallelDescriptor::MyProc() + 2 + seed;
-        selectorSeed = 3*ParallelDescriptor::MyProc() + 3 + seed;
-        thetaSeed = 4*ParallelDescriptor::MyProc() + 4 + seed;
-        phiSeed = 5*ParallelDescriptor::MyProc() + 5 + seed;
-        generalSeed = 6*ParallelDescriptor::MyProc() + 6 + seed;
+        fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
+        particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
+        selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
+        thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
+        phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
+        generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
     }
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
-    // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
-            is_periodic[i] = 1;
-            is_periodic_c[i] = 1;
-        }
-        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
-            is_periodic_p[i] = 1;
-        }
-    }
-
-    //---------------------------------------
-
-        //Terms prepended with a 'C' are related to the particle grid. Those with P are for the electostatic grid. Those without are for the hydro grid.
-        //The particle grid created as a corsening or refinement of the hydro grid.
-
-    //---------------------------------------
+    /*
+      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
+      Those with 'P' are for the electostatic grid.
+      Those without are for the hydro grid.
+      The particle grid created as a corsening or refinement of the hydro grid.
+    */
 
     // make BoxArray and Geometry
 
-    // A - fluid, C - particle, P/E - electrostatic
-
-    // AJN what is the particle grid used for?  Is it leftover from DSCM collision model?
-    
-    // AJN - change these to ba_fluid, ba_particle, etc.    
+    // A - fluid, C - particle, P - electrostatic potential
     BoxArray ba;
     BoxArray bc;
     BoxArray bp;
@@ -129,10 +96,11 @@ void main_driver(const char* argv)
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-    //This must be an even number for now?
     bc = ba;
     bp = ba;
 
+    // particle and es grid_refine: <1 = refine, >1 = coarsen.
+    // assume only powers of 2 for now
     if (particle_grid_refine < 1) {
         int sizeRatio = (int)(1.0/particle_grid_refine);
         bc.refine(sizeRatio);
@@ -155,8 +123,22 @@ void main_driver(const char* argv)
         domainP.coarsen(sizeRatio);
     }
 
+    // is the problem periodic?
+    Vector<int> is_periodic  (AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
+            is_periodic  [i] = 1;
+            is_periodic_c[i] = 1;
+        }
+        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
+            is_periodic_p[i] = 1;
+        }
+    }
+
     // This defines a Geometry object
-    geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    geom .define(domain ,&real_box,CoordSys::cartesian,is_periodic.  data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
@@ -205,7 +187,7 @@ void main_driver(const char* argv)
 
     double realParticles = 0;
     double simParticles = 0;
-    double dryRad, wetRad;
+    double wetRad;
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
     if (pkernel_fluid == 3) {
@@ -455,6 +437,7 @@ void main_driver(const char* argv)
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
 
     // Declare object of StochMFlux class
+    int n_rngs = 1;
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
@@ -468,8 +451,6 @@ void main_driver(const char* argv)
 
     //set number of ghost cells to fit whole peskin kernel
     int ang = 1;
-    int cng = 2;
-    int png = 1;
 
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
     if(pkernel_fluid == 3) {
@@ -503,6 +484,7 @@ void main_driver(const char* argv)
     // structure factor:
     ///////////////////////////////////////////
 
+/*    
     Vector< std::string > var_names;
     int nvar_sf = 1;
     // int nvar_sf = AMREX_SPACEDIM;
@@ -512,17 +494,17 @@ void main_driver(const char* argv)
     MultiFab struct_in_cc;
     struct_in_cc.define(bp, dmap, nvar_sf, 0);
 
-//    amrex::Vector< int > s_pairA(nvar_sf);
-//    amrex::Vector< int > s_pairB(nvar_sf);
+    amrex::Vector< int > s_pairA(nvar_sf);
+    amrex::Vector< int > s_pairB(nvar_sf);
 
-//    // Select which variable pairs to include in structure factor:
-//    for (int d=0; d<nvar_sf; d++) {
-//      s_pairA[d] = d;
-//      s_pairB[d] = d;
-//    }
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<nvar_sf; d++) {
+        s_pairA[d] = d;
+        s_pairB[d] = d;
+    }
 
- //   StructFact structFact(bp,dmap,var_names);
-
+    StructFact structFact(bp,dmap,var_names);
+*/
 
 /*    
     // Setting the intial velocities can be useful for debugging, to get a known velocity field.
@@ -695,6 +677,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
+        // timer for time step
         Real time1 = ParallelDescriptor::second();
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -713,7 +696,8 @@ void main_driver(const char* argv)
             // Apply RFD force to fluid
             //particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             //particles.ResetMarkers(0);
-            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+                            source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -844,43 +828,41 @@ void main_driver(const char* argv)
         }
 
 
-        // timer
+        // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
         ParallelDescriptor::ReduceRealMax(time2);
-    
-        if(step%1 == 0) {    
-            amrex::Print() << "Advanced step " << step << " in " << time2 << " seconds\n";
-        }
+        amrex::Print() << "Advanced step " << step << " in " << time2 << " seconds\n";
         
         time = time + dt;
 
 
     }
     ///////////////////////////////////////////
+
+/*    
     if (struct_fact_int > 0) {
 
         Real dVol = dx[0]*dx[1];
         int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
+        if (AMREX_SPACEDIM == 2) {
 	    dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
+        } else if (AMREX_SPACEDIM == 3) {
 	    dVol *= dx[2];
 	    tot_n_cells = n_cells[2]*tot_n_cells;
-      }
+        }
 
-      // let rho = 1
-      //Real SFscale = dVol/(rho0*k_B*T_init[0]);
-      Real SFscale = 1;
-      // SFscale = 1.0;
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+        // let rho = 1
+        Real SFscale = dVol/(rho0*k_B*T_init[0]);
+        // SFscale = 1.0;
+        Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
-    //  structFact.Finalize(SFscale);
-    //  structFact.WritePlotFile(step,time,geomP,"plt_SF");
-
+        structFact.Finalize(SFscale);
+        structFact.WritePlotFile(step,time,geomP,"plt_SF");
+        
     }
+*/    
 
-    // Call the timer again and compute the maximum difference between the start time 
-    // and stop time over all processors
+    // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
