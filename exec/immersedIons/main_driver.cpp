@@ -232,7 +232,7 @@ void main_driver(const char* argv)
 
         if(ionParticle[i].dryDiff < 0) {
             Print() << "Negative dry diffusion in species " << i << "\n";
-            abort();
+            Abort();
         }
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
@@ -446,12 +446,9 @@ void main_driver(const char* argv)
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
 
-    // umac needs extra ghost cells for Peskin kernels
-
     //set number of ghost cells to fit whole peskin kernel
-    int ang = 1;
-
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
+    int ang = 1;
     if(pkernel_fluid == 3) {
         ang = 2;
     }
@@ -463,6 +460,7 @@ void main_driver(const char* argv)
     }
         
     // staggered velocities
+    // umac needs extra ghost cells for Peskin kernels
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
@@ -473,10 +471,6 @@ void main_driver(const char* argv)
         umacM  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
         umacV  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
-
-    // tracer - get rid of this.
-    MultiFab tracer(ba, dmap, 1,1);
-    tracer.setVal(0.);
 
 
     ///////////////////////////////////////////
@@ -585,7 +579,6 @@ void main_driver(const char* argv)
     // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
 
     Vector<int> ts(BL_SPACEDIM);
-
     
     for (int d=0; d<AMREX_SPACEDIM; ++d) {        
         if (max_particle_tile_size[d] > 0) {
@@ -599,8 +592,6 @@ void main_driver(const char* argv)
     ParmParse pp ("particles");
     pp.addarr("tile_size", ts);
 
-    //pp.add("do_tiling", false);
-
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc, crange);
@@ -608,15 +599,13 @@ void main_driver(const char* argv)
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
 
-    //create particles
-
+    // create particles
     particles.InitParticles(ionParticle, dxp);
 
     //----------------------    
     // Electrostatic setup
     //----------------------
 
-    // AJN - should define 3 types of "ng" parameters.  fluid, repulsive force, peskin
     int ngp = 1;
     if (pkernel_es == 3) {
         ngp = 2;
@@ -652,20 +641,21 @@ void main_driver(const char* argv)
 
     //Staggered electric fields
     std::array< MultiFab, AMREX_SPACEDIM > efield;
-    std::array< MultiFab, AMREX_SPACEDIM > external;
-
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
 
-    //Centred electric fields
+    //Centred electric fields (using an array instead of a multi-component MF)
     std::array< MultiFab, AMREX_SPACEDIM > efieldCC;
-
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efieldCC[d].define(bp, dmap, 1, ngp);
-        external[d].define(bp, dmap, 1, ngp);
-
         efieldCC[d].setVal(0.);
+    }
+
+    // external field
+    std::array< MultiFab, AMREX_SPACEDIM > external;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        external[d].define(bp, dmap, 1, ngp);
     }
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
@@ -705,8 +695,7 @@ void main_driver(const char* argv)
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
-        if(sr_tog==1 || es_tog==3)
-        {
+        if(sr_tog==1 || es_tog==3) {
             // each tile clears its neighbors
             particles.clearNeighbors();
             // fill the neighbor buffers for each tile with the proper data
@@ -715,30 +704,16 @@ void main_driver(const char* argv)
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
             particles.computeForcesNL(charge, RealCenteredCoords, dxp);
-
         }
 
-        if(es_tog==1 || es_tog==3)
-        {
+        if(es_tog==1 || es_tog==3) {
             // spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
         }
         
-        // do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efieldCC', then add 'external'.
+        // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
+        // Then calculate gradient and put in 'efieldCC', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
-
-        // print potential multifab 
-        //int jloc = 1; // printing location
-        //int iloc = 27; // printing location
-        //int kloc = 27; // printing location
-        //for(MFIter mfi(potential); mfi.isValid(); ++mfi){
-        //        const Box& bx = mfi.validbox();
-        //        const int* lo = bx.loVect();
-        //        const int* hi = bx.hiVect();
-        //        const FArrayBox& MF_pot = potential[mfi];
-        //        print_potential(AMREX_ARLIM_3D(lo), AMREX_ARLIM_3D(hi), BL_TO_FORTRAN_3D(MF_pot), &iloc, &jloc, &kloc);
-        //}
-
 
         // compute other forces and spread to grid
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
@@ -762,8 +737,13 @@ void main_driver(const char* argv)
             advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
         }
         else if(fluid_tog == 2) {
+/*            
+            MultiFab tracer(ba, dmap, 1,1);
+            tracer.setVal(0.);
             advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC,
                            alpha_fc, beta, gamma, beta_ed, geom,dt);
+*/
+            Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
         }
 
         // total particle move (1=single step, 2=midpoint)
@@ -779,7 +759,8 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
-        //Start collecting statistics after step n_steps_skip
+        // reset statistics after step n_steps_skip
+        // if n_steps_skip is negative, we use it as an interval
         if( (n_steps_skip > 0 && step == n_steps_skip) ||
             (n_steps_skip < 0 && step%n_steps_skip == 0) )
         {
@@ -805,27 +786,26 @@ void main_driver(const char* argv)
         }
 
         statsCount++;
+        
 	//_______________________________________________________________________
 	// Update structure factor
+/*
+        if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+            MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
+            structFact.FortStructure(struct_in_cc,geomP);
+        }
+*/
 
+        if (plot_int > 0 && step%plot_int == 0) {
 
+            // This write particle data and associated fields and electrostatic fields
+            WritePlotFile(step, time, geom, geomC, geomP,
+                          particleInstant, particleMeans, particleVars, particles,
+                          charge, potential, efieldCC, dryMobility);
 
-
-       // if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-//	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
-//	      structFact.FortStructure(struct_in_cc,geomP);
-  //      }
-
-        if (plot_int > 0 && step%plot_int == 0)
-        {
-
-            //This write particle data and associated fields and electrostatic fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
-
-            //Writes instantaneous flow field and some other stuff? Check with Guy.
+            // Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
         }
-
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
