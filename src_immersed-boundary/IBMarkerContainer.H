@@ -122,9 +122,6 @@ public:
     using MarkerIndex = typename IBMarkerContainerBase<IBMReal, IBMInt>::PairIndex;
     // indexing particles and corresponding spot in the neighbor list
     using MarkerListIndex = std::pair<int, int>;
-    // indexing tiles (box index, local tile index)
-    using TileIndex = std::pair<int, int>;
-
 
     void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos, int i);
     void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);

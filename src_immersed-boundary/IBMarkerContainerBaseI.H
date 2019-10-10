@@ -66,7 +66,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
@@ -95,7 +95,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
@@ -127,7 +127,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
@@ -155,7 +155,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
@@ -181,7 +181,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
@@ -196,104 +196,121 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
     }
 }
 
-template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::PullDown(int lev, Real * list, int element, int totalParticles) {
 
+
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
+            int lev, Real * list, int element, int totalParticles
+        ) {
 
     Real temp;
 
     for (int i = 0; i < totalParticles; ++i) {
-         //std::cout << i << " of " << totalParticles << std::endl;
- 
+        //std::cout << i << " of " << totalParticles << std::endl;
         list[i] = 0;
- 
     }
 
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
-        int id;
 
-        if(element >= 0)
-        {
+        int id;
+        if (element >= 0) {
+
             for (int i = 0; i < np; ++i) {
                 ParticleType & part = particles[i];
                 id = part.id();
                 std::cout << id << " of " << totalParticles << std::endl;
                 list[id] = particles[i].rdata(StructReal::radius + element);
-
             }
-        }else
-        {
+
+        } else {
+
             for (int i = 0; i < np; ++i) {
-                
                 ParticleType & part = particles[i];
                 id = part.id();
                 list[id] = part.pos((-element)-1);
-
-            }            
+            }
         }
     }
 
     //I'm sure there is an array version of this but this will do for now.
-    for(int i=0;i<totalParticles;i++)
-    {
+    // There is: void amrex::ParallelDescriptor::ReduceRealSum (Vector< std::reference_wrapper< Real > > &&)
+    // the commented code below should do the trick (but it has not been tested)
+    for (int i=0; i<totalParticles; ++i) {
         temp = list[i];
         ParallelDescriptor::ReduceRealSum(temp);
         list[i] = temp;
 
         Print() << list[i] << std::endl;
     }
+    // Vectorized alternative (warning: untested!):
+    // // Create a vector wrapping the `list` array:
+    // Vector<std::reference_wrapper<Real>> tmp(totalParticles);
+    // for (int i=0; i<totalParticles; ++i) tmp[i] = & list[i];
+
+    // // Vectorized parallel reduce:
+    // ParallelDescriptor::ReduceRealSum(std::move(tmp)); // Ask Weiqun why tmp needs to be &&?
 }
 
+
+
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::PushUp(int lev, Real * list, int element, int totalParticles) {
+void IBMarkerContainerBase<StructReal, StructInt>::PushUp(
+            int lev, Real * list, int element, int totalParticles
+        ) {
 
 
     Real temp;
 
     //I'm sure there is an array version of this but this will do for now.
-    for(int i=0;i<totalParticles;i++)
-    {
+    // There is: void amrex::ParallelDescriptor::ReduceRealSum (Vector< std::reference_wrapper< Real > > &&)
+    // the commented code below should do the trick (but it has not been tested)
+    for(int i=0; i<totalParticles; ++i) {
         temp = list[i];
         ParallelDescriptor::ReduceRealSum(temp);
         list[i] = temp;
     }
+    // Vectorized alternative (warning: untested!):
+    // // Create a vector wrapping the `list` array:
+    // Vector<std::reference_wrapper<Real>> tmp(totalParticles);
+    // for (int i=0; i<totalParticles; ++i) tmp[i] = & list[i];
+
+    // // Vectorized parallel reduce:
+    // ParallelDescriptor::ReduceRealSum(std::move(tmp)); // Ask Weiqun why tmp needs to be &&?
 
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
-
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
+
         int id;
-        if(element >= 0)
-        {
+        if(element >= 0) {
+
             for (int i = 0; i < np; ++i) {
                 ParticleType & part = particles[i];
                 id = part.id();
 
                 particles[i].rdata(StructReal::radius + element) = list[id];
-
             }
-        }else
-        {  
+
+        } else {
+
             for (int i = 0; i < np; ++i) {
                 ParticleType & part = particles[i];
                 id = part.id();
 
                 particles[i].pos((-element)-1) = list[id];
-
             }
-
         }
     }
 }
+
 
 
 template <typename StructReal, typename StructInt>
@@ -301,7 +318,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev) {
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
@@ -324,7 +341,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
         long np = particle_data.size();
 
@@ -444,7 +461,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
     for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         const auto & particle_data = this->GetParticles(lev).at(index);
 
 
@@ -532,7 +549,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
     for (MyConstIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         const auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
@@ -685,7 +702,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
@@ -765,7 +782,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         // Marker (non-neighbor particle) data for current tile
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
 
         //_______________________________________________________________________
@@ -843,7 +860,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
     // tiling => don't turn off tiling (particles are stored in tile)
     for(MFIter pti = this->MakeMFIter(lev, true); pti.isValid(); ++pti) {
         // MuliFabs are indexed using a pair: (BoxArray index, tile index):
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         // Neighbours are stored as raw data (see below)
         int ng = this->neighbors[lev].at(index).size();
