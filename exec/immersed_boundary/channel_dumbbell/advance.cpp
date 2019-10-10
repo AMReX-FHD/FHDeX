@@ -279,33 +279,21 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
 
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-        // Get neighbor list (for collision checking)
-        const IBMarkerContainer::IntVector & nbhd = ib_mc.GetNeighborList(
-                    ib_lev, pti.index(), pti.LocalTileIndex()
-                );
-
-        long np        = markers.size();
-        int nbhd_index = 0;
-
-        for (int i=0; i<np; ++i) {
-
-            ParticleType & mark = markers[i];
+            ParticleType & mark = markers[m_index.first];
 
 
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
 
-            int status =
-                ib_mc.FindConnectedMarkers(markers, mark, nbhd_data, nbhd,
-                                           nbhd_index, prev_marker, next_marker);
+            int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
+                                                prev_marker, next_marker);
 
 
             if (status == 1) {        // has next, has no prev
@@ -339,10 +327,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     prev_marker->rdata(IBMReal::pred_forcex + d) =   f_0 * r[d];
                 }
             }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
         }
     }
 
@@ -460,33 +444,21 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
 
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-        // Get neighbor list (for collision checking)
-        const IBMarkerContainer::IntVector & nbhd = ib_mc.GetNeighborList(
-                    ib_lev, pti.index(), pti.LocalTileIndex()
-                );
-
-        long np        = markers.size();
-        int nbhd_index = 0;
-
-        for (int i=0; i<np; ++i) {
-
-            ParticleType & mark = markers[i];
+            ParticleType & mark = markers[m_index.first];
 
 
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
 
-            int status =
-                ib_mc.FindConnectedMarkers(markers, mark, nbhd_data, nbhd,
-                                           nbhd_index, prev_marker, next_marker);
+            int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
+                                                prev_marker, next_marker);
 
             if (status == 1) {        // has next, has no prev
 
@@ -516,10 +488,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     prev_marker->rdata(IBMReal::forcex + d) =   f_0 * r[d];
                 }
             }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
         }
     }
 
