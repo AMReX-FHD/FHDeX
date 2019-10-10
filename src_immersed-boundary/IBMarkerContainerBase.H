@@ -54,6 +54,9 @@ public:
     using PairIndex = typename NeighborParticleContainer<StructReal::count, StructInt::count>::PairIndex;
     using AoS = typename NeighborParticleContainer<StructReal::count, StructInt::count>::AoS;
 
+    // indexing tiles (box index, local tile index)
+    using TileIndex = std::pair<int, int>;
+
 
     IBMarkerContainerBase(AmrCore * amr_core, int n_nbhd);
     IBMarkerContainerBase(const Geometry & geom, const DistributionMapping & dmap,

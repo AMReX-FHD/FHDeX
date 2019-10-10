@@ -15,22 +15,24 @@ void WritePlotFile(int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac_avg,
+                   std::array< MultiFab, AMREX_SPACEDIM > & force_ib,
                    const MultiFab& pres,
                    const IBMarkerContainer & ib_pc)
 {
 
-    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
+    BL_PROFILE_VAR("WritePlotFile()", WritePlotFile);
 
     const std::string plotfilename = Concatenate(plot_base_name,step,7);
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
-    // plot all the velocity variables (averaged)
-    // plot all the velocity variables (shifted)
+    // plot all the velocity variables (cell-center average)
+    // plot all the velocity variables (cc + time-averaged)
+    // plot all spread forces (cell-centere average)
     // plot pressure
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM + 2;
+    int nPlot = 3*AMREX_SPACEDIM + 2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -51,6 +53,13 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        std::string x = "cc_force";
+        x += (120+i); // 120 is x in ASCII => 120+i = x, y, z
+        varNames[cnt++] = x;
+    }
+
+
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
@@ -66,6 +75,9 @@ void WritePlotFile(int step,
     AverageFaceToCC(umac_avg, plotfile, cnt);
     cnt+=AMREX_SPACEDIM;
 
+    AverageFaceToCC(force_ib, plotfile, cnt);
+    cnt+=AMREX_SPACEDIM;
+
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
     cnt++;
@@ -78,20 +90,5 @@ void WritePlotFile(int step,
 
     // add immersed boundary markers data to plot file
     ib_pc.WritePlotFile(plotfilename, "immbdy_markers",
-                        IBM_realData::names(), IBM_intData::names());
-
-
-//     // staggered velocity
-//     if (plot_stag == 1) {
-//     const std::string plotfilenamex = Concatenate("stagx", step, 7);
-//     const std::string plotfilenamey = Concatenate("stagy", step, 7);
-//     const std::string plotfilenamez = Concatenate("stagz", step, 7);
-//
-//     WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"}, geom, time, step);
-//     WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"}, geom, time, step);
-// #if (AMREX_SPACEDIM == 3)
-//     WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"}, geom, time, step);
-//     }
-// #endif
-
+                        IBMReal::names(), IBMInt::names());
 }

@@ -279,71 +279,54 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
-
-
-        // Get neighbor list (for collision checking)
-        const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
-                                                         pti.LocalTileIndex());
-
-
         long np = markers.size();
-        int nbhd_index = 0;
 
-        for (int i=0; i<np; ++i) {
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-            ParticleType & mark = markers[i];
+            ParticleType & mark = markers[m_index.first];
 
 
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
 
-            int status = ib_mc.FindConnectedMarkers(markers, mark,
-                                                    nbhd_data, nbhd,
-                                                    nbhd_index,
-                                                    prev_marker, next_marker);
+            int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
+                                                prev_marker, next_marker);
+
 
             if (status == 1) {        // has next, has no prev
 
                 RealVect r;
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
-                    r[d] = next_marker->pos(d) + next_marker->rdata(IBM_realData::pred_posx + d)
-                         - (mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d));
+                    r[d] = next_marker->pos(d) + next_marker->rdata(IBMReal::pred_posx + d)
+                         - (mark.pos(d) + mark.rdata(IBMReal::pred_posx + d));
 
                 Real lp  = r.vectorLength();
                 Real f_0 = spr_k * (lp-l_db)/lp;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBM_realData::pred_forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBM_realData::pred_forcex + d) = - f_0 * r[d];
+                    mark.rdata(IBMReal::pred_forcex + d)         =   f_0 * r[d];
+                    next_marker->rdata(IBMReal::pred_forcex + d) = - f_0 * r[d];
                 }
 
             } else if (status == 2) { // has prev, has no next
 
                 RealVect r;
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
-                    r[d] = mark.pos(d) + mark.rdata(IBM_realData::pred_posx + d)
-                         - (prev_marker->pos(d) + prev_marker->rdata(IBM_realData::pred_posx + d));
+                    r[d] = mark.pos(d) + mark.rdata(IBMReal::pred_posx + d)
+                         - (prev_marker->pos(d) + prev_marker->rdata(IBMReal::pred_posx + d));
 
 
                 Real lp  = r.vectorLength();
                 Real f_0 = spr_k * (lp-l_db)/lp;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBM_realData::pred_forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBM_realData::pred_forcex + d) =   f_0 * r[d];
+                    mark.rdata(IBMReal::pred_forcex + d)         = - f_0 * r[d];
+                    prev_marker->rdata(IBMReal::pred_forcex + d) =   f_0 * r[d];
                 }
             }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
         }
     }
 
@@ -461,35 +444,21 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-
-        // Get neighbor marker data (from neighboring threads)
-        ParticleVector & nbhd_data = ib_mc.GetNeighbors(ib_lev, pti.index(),
-                                                        pti.LocalTileIndex());
-
-
-        // Get neighbor list (for collision checking)
-        const Vector<int> & nbhd = ib_mc.GetNeighborList(ib_lev, pti.index(),
-                                                         pti.LocalTileIndex());
-
-
         long np = markers.size();
-        int nbhd_index = 0;
 
-        for (int i=0; i<np; ++i) {
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-            ParticleType & mark = markers[i];
+            ParticleType & mark = markers[m_index.first];
 
 
             // Get previous and next markers connected to current marker (if they exist)
             ParticleType * next_marker = NULL;
             ParticleType * prev_marker = NULL;
 
-            int status = ib_mc.FindConnectedMarkers(markers, mark,
-                                                    nbhd_data, nbhd,
-                                                    nbhd_index,
-                                                    prev_marker, next_marker);
+            int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
+                                                prev_marker, next_marker);
 
             if (status == 1) {        // has next, has no prev
 
@@ -501,8 +470,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real f_0 = spr_k * (lp-l_db)/lp;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBM_realData::forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBM_realData::forcex + d) = - f_0 * r[d];
+                    mark.rdata(IBMReal::forcex + d)         =   f_0 * r[d];
+                    next_marker->rdata(IBMReal::forcex + d) = - f_0 * r[d];
                 }
 
             } else if (status == 2) { // has prev, has no next
@@ -515,14 +484,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                 Real f_0 = spr_k * (lp-l_db)/lp;
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBM_realData::forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBM_realData::forcex + d) =   f_0 * r[d];
+                    mark.rdata(IBMReal::forcex + d)         = - f_0 * r[d];
+                    prev_marker->rdata(IBMReal::forcex + d) =   f_0 * r[d];
                 }
             }
-
-            // Increment neighbor list
-            int nn      = nbhd[nbhd_index];
-            nbhd_index += nn + 1; // +1 <= because the first field contains nn
         }
     }
 

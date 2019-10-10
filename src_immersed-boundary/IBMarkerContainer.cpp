@@ -27,7 +27,7 @@ IBMarkerContainer::IBMarkerContainer(const Geometry & geom,
                                          const DistributionMapping & dmap,
                                          const BoxArray & ba,
                                          int n_nbhd)
-    : IBMarkerContainerBase<IBM_realData, IBM_intData>(
+    : IBMarkerContainerBase<IBMReal, IBMInt>(
             geom, dmap, ba, n_nbhd
         )
       , n_list(0)
@@ -39,7 +39,7 @@ IBMarkerContainer::IBMarkerContainer(const Geometry & geom,
 
 
 IBMarkerContainer::IBMarkerContainer(AmrCore * amr_core, int n_nbhd)
-    : IBMarkerContainerBase<IBM_realData, IBM_intData>(
+    : IBMarkerContainerBase<IBMReal, IBMInt>(
             amr_core->GetParGDB(), n_nbhd
         )
       , n_list(0)
@@ -115,36 +115,36 @@ void IBMarkerContainer::InitList(int lev,
                 p_new.pos(1) = pos[i][1];
                 p_new.pos(2) = pos[i][2];
 
-                p_new.rdata(IBM_realData::radius) = radius[i];
+                p_new.rdata(IBMReal::radius) = radius[i];
 
                 // Initialize marker velocity as well as forces to 0
-                p_new.rdata(IBM_realData::velx)   = 0.;
-                p_new.rdata(IBM_realData::vely)   = 0.;
-                p_new.rdata(IBM_realData::velz)   = 0.;
+                p_new.rdata(IBMReal::velx)   = 0.;
+                p_new.rdata(IBMReal::vely)   = 0.;
+                p_new.rdata(IBMReal::velz)   = 0.;
 
-                p_new.rdata(IBM_realData::forcex) = 0.;
-                p_new.rdata(IBM_realData::forcey) = 0.;
-                p_new.rdata(IBM_realData::forcez) = 0.;
+                p_new.rdata(IBMReal::forcex) = 0.;
+                p_new.rdata(IBMReal::forcey) = 0.;
+                p_new.rdata(IBMReal::forcez) = 0.;
 
-                p_new.rdata(IBM_realData::pred_posx)   = 0.;
-                p_new.rdata(IBM_realData::pred_posy)   = 0.;
-                p_new.rdata(IBM_realData::pred_posz)   = 0.;
+                p_new.rdata(IBMReal::pred_posx)   = 0.;
+                p_new.rdata(IBMReal::pred_posy)   = 0.;
+                p_new.rdata(IBMReal::pred_posz)   = 0.;
 
-                p_new.rdata(IBM_realData::pred_velx)   = 0.;
-                p_new.rdata(IBM_realData::pred_vely)   = 0.;
-                p_new.rdata(IBM_realData::pred_velz)   = 0.;
+                p_new.rdata(IBMReal::pred_velx)   = 0.;
+                p_new.rdata(IBMReal::pred_vely)   = 0.;
+                p_new.rdata(IBMReal::pred_velz)   = 0.;
 
-                p_new.rdata(IBM_realData::pred_forcex) = 0.;
-                p_new.rdata(IBM_realData::pred_forcey) = 0.;
-                p_new.rdata(IBM_realData::pred_forcez) = 0.;
+                p_new.rdata(IBMReal::pred_forcex) = 0.;
+                p_new.rdata(IBMReal::pred_forcey) = 0.;
+                p_new.rdata(IBMReal::pred_forcez) = 0.;
 
                 // These are filled in the next sweep:
-                p_new.idata(IBM_intData::id_0)  = -1;
-                p_new.idata(IBM_intData::cpu_0) = -1;
+                p_new.idata(IBMInt::id_0)  = -1;
+                p_new.idata(IBMInt::cpu_0) = -1;
 
                 // ID_1 remembers the particle's position in the linked list
-                p_new.idata(IBM_intData::id_1)  = i;
-                p_new.idata(IBM_intData::cpu_1) = i_ib; // label immersed boundaries
+                p_new.idata(IBMInt::id_1)  = i;
+                p_new.idata(IBMInt::cpu_1) = i_ib; // label immersed boundaries
 
                 // Add to the data structure
                 particles.push_back(p_new);
@@ -191,11 +191,11 @@ void IBMarkerContainer::InitList(int lev,
             for (int j=0; j<np; ++j) {
 
                 const ParticleType & other = markers[j];
-                if ((mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1)
-                    && (mark.idata(IBM_intData::cpu_1) == other.idata(IBM_intData::cpu_1)))
+                if ((mark.idata(IBMInt::id_1) == other.idata(IBMInt::id_1) + 1)
+                    && (mark.idata(IBMInt::cpu_1) == other.idata(IBMInt::cpu_1)))
                 {
-                    mark.idata(IBM_intData::id_0)  = other.id();
-                    mark.idata(IBM_intData::cpu_0) = other.cpu();
+                    mark.idata(IBMInt::id_0)  = other.id();
+                    mark.idata(IBMInt::cpu_0) = other.cpu();
                 }
             }
 
@@ -203,11 +203,11 @@ void IBMarkerContainer::InitList(int lev,
             for (int j=0; j<nn; ++j) {
 
                 const ParticleType & other = nbhd_data[j];
-                if ((mark.idata(IBM_intData::id_1) == other.idata(IBM_intData::id_1) + 1)
-                    && (mark.idata(IBM_intData::cpu_1) == other.idata(IBM_intData::cpu_1)))
+                if ((mark.idata(IBMInt::id_1) == other.idata(IBMInt::id_1) + 1)
+                    && (mark.idata(IBMInt::cpu_1) == other.idata(IBMInt::cpu_1)))
                 {
-                    mark.idata(IBM_intData::id_0)  = other.id();
-                    mark.idata(IBM_intData::cpu_0) = other.cpu();
+                    mark.idata(IBMInt::id_0)  = other.id();
+                    mark.idata(IBMInt::cpu_0) = other.cpu();
                 }
             }
         }
@@ -263,34 +263,34 @@ void IBMarkerContainer::InitSingle(int lev, Real radius, const RealVect & pos,
             p_new.pos(1) = pos[1];
             p_new.pos(2) = pos[2];
 
-            p_new.rdata(IBM_realData::radius) = radius;
+            p_new.rdata(IBMReal::radius) = radius;
 
             // Initialize marker velocity as well as forces to 0
-            p_new.rdata(IBM_realData::velx)   = 0.;
-            p_new.rdata(IBM_realData::vely)   = 0.;
-            p_new.rdata(IBM_realData::velz)   = 0.;
+            p_new.rdata(IBMReal::velx)   = 0.;
+            p_new.rdata(IBMReal::vely)   = 0.;
+            p_new.rdata(IBMReal::velz)   = 0.;
 
-            p_new.rdata(IBM_realData::forcex) = 0.;
-            p_new.rdata(IBM_realData::forcey) = 0.;
-            p_new.rdata(IBM_realData::forcez) = 0.;
+            p_new.rdata(IBMReal::forcex) = 0.;
+            p_new.rdata(IBMReal::forcey) = 0.;
+            p_new.rdata(IBMReal::forcez) = 0.;
 
-            p_new.rdata(IBM_realData::pred_posx)   = 0.;
-            p_new.rdata(IBM_realData::pred_posy)   = 0.;
-            p_new.rdata(IBM_realData::pred_posz)   = 0.;
+            p_new.rdata(IBMReal::pred_posx)   = 0.;
+            p_new.rdata(IBMReal::pred_posy)   = 0.;
+            p_new.rdata(IBMReal::pred_posz)   = 0.;
 
-            p_new.rdata(IBM_realData::pred_velx)   = 0.;
-            p_new.rdata(IBM_realData::pred_vely)   = 0.;
-            p_new.rdata(IBM_realData::pred_velz)   = 0.;
+            p_new.rdata(IBMReal::pred_velx)   = 0.;
+            p_new.rdata(IBMReal::pred_vely)   = 0.;
+            p_new.rdata(IBMReal::pred_velz)   = 0.;
 
-            p_new.rdata(IBM_realData::pred_forcex) = 0.;
-            p_new.rdata(IBM_realData::pred_forcey) = 0.;
-            p_new.rdata(IBM_realData::pred_forcez) = 0.;
+            p_new.rdata(IBMReal::pred_forcex) = 0.;
+            p_new.rdata(IBMReal::pred_forcey) = 0.;
+            p_new.rdata(IBMReal::pred_forcez) = 0.;
 
-            p_new.idata(IBM_intData::id_0)  = id;
-            p_new.idata(IBM_intData::cpu_0) = cpu;
+            p_new.idata(IBMInt::id_0)  = id;
+            p_new.idata(IBMInt::cpu_0) = cpu;
 
-            p_new.idata(IBM_intData::id_1)  = i_ref;
-            p_new.idata(IBM_intData::cpu_1) = -1;
+            p_new.idata(IBMInt::id_1)  = i_ref;
+            p_new.idata(IBMInt::cpu_1) = -1;
 
             // Add to the data structure
             particles.push_back(p_new);
@@ -389,20 +389,28 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 
 
-int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
-                                            const ParticleType & part,
-                                                  ParticleVector & nbhd_data,
-                                            const Vector<int> & nbhd,
-                                            int nbhd_index,
-                                            ParticleType *& prev_marker,
-                                            ParticleType *& next_marker) const {
+int IBMarkerContainer::ConnectedMarkers(
+            int lev, const TileIndex & tile, MarkerListIndex & part_index,
+            ParticleType *& prev_marker, ParticleType *& next_marker
+        ) {
 
-    BL_PROFILE_VAR("IBMarkerContainer::FindConnectedMarkers", FindNeighbors);
+    BL_PROFILE_VAR("IBMarkerContainer::ConnectedMarkers", FindNeighbors);
 
+    // Get marker data
+    AoS & particles = GetParticles(lev).at(tile).GetArrayOfStructs();
+    ParticleType & part = particles[part_index.first];
     long np = particles.size();
-    int nn  = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
-    nbhd_index ++; // pointing at first neighbor
 
+    // Get neighbor marker data (from neighboring threads)
+    ParticleVector & nbhd_data = GetNeighbors(lev, tile.first, tile.second);
+
+    // Get neighbor list (for collision checking)
+    const IntVector & nbhd = GetNeighborList(lev, tile.first, tile.second);
+
+    // Point to the right spot in the neighbor list
+    long nbhd_index = part_index.second;
+    long nn         = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
+    nbhd_index ++; // pointing at first neighbor
 
     bool prev_set = false;
     bool next_set = false;
@@ -420,16 +428,16 @@ int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
         }
 
         // Check if the neighbor candidate is the previous/minus neighbor
-        if (        (npart->id() == part.idata(IBM_intData::id_0))
-                && (npart->cpu() == part.idata(IBM_intData::cpu_0)) ) {
+        if (        (npart->id() == part.idata(IBMInt::id_0))
+                && (npart->cpu() == part.idata(IBMInt::cpu_0)) ) {
 
             prev_marker = npart;
             prev_set = true;
         }
 
         // Check if the neighbor candidate is the next/plus neighbor
-        if (        (part.id() == npart->idata(IBM_intData::id_0))
-                && (part.cpu() == npart->idata(IBM_intData::cpu_0)) ) {
+        if (        (part.id() == npart->idata(IBMInt::id_0))
+                && (part.cpu() == npart->idata(IBMInt::cpu_0)) ) {
 
             next_marker = npart;
             next_set = true;
@@ -437,6 +445,9 @@ int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
 
         nbhd_index ++;
     }
+
+    // return new index in neighbor list
+    part_index.second += nn + 1;
 
     if (prev_set && next_set) {
         return 0;
@@ -483,16 +494,16 @@ void IBMarkerContainer::LocalIBMarkerInfo(Vector<IBM_info> & info,
 
         // Velocity of IBParticle
         RealVect vel = RealVect(
-                AMREX_D_DECL(part.rdata(IBM_realData::velx),
-                             part.rdata(IBM_realData::vely),
-                             part.rdata(IBM_realData::velz)   )
+                AMREX_D_DECL(part.rdata(IBMReal::velx),
+                             part.rdata(IBMReal::vely),
+                             part.rdata(IBMReal::velz)   )
             );
 
         // Velocity of IBParticle
         RealVect force = RealVect(
-                AMREX_D_DECL(part.rdata(IBM_realData::forcex),
-                             part.rdata(IBM_realData::forcey),
-                             part.rdata(IBM_realData::forcez)   )
+                AMREX_D_DECL(part.rdata(IBMReal::forcex),
+                             part.rdata(IBMReal::forcey),
+                             part.rdata(IBMReal::forcez)   )
             );
 
         // Construct info struct
@@ -601,16 +612,16 @@ void IBMarkerContainer::NeighborIBMarkerInfo(Vector<IBM_info> & info,
 
         // Velocity of IBParticle
         RealVect vel = RealVect(
-                AMREX_D_DECL(part.rdata(IBM_realData::velx),
-                             part.rdata(IBM_realData::vely),
-                             part.rdata(IBM_realData::velz)   )
+                AMREX_D_DECL(part.rdata(IBMReal::velx),
+                             part.rdata(IBMReal::vely),
+                             part.rdata(IBMReal::velz)   )
             );
 
         // Velocity of IBParticle
         RealVect force = RealVect(
-                AMREX_D_DECL(part.rdata(IBM_realData::forcex),
-                             part.rdata(IBM_realData::forcey),
-                             part.rdata(IBM_realData::forcez)   )
+                AMREX_D_DECL(part.rdata(IBMReal::forcex),
+                             part.rdata(IBMReal::forcey),
+                             part.rdata(IBMReal::forcez)   )
             );
 
 

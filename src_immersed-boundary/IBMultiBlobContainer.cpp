@@ -24,7 +24,7 @@ BlobContainer::BlobContainer(const Geometry & geom,
                                          const DistributionMapping & dmap,
                                          const BoxArray & ba,
                                          int n_nbhd)
-    : IBMarkerContainerBase<Blob_realData, Blob_intData>(
+    : IBMarkerContainerBase<IBBReal, IBBInt>(
             geom, dmap, ba, n_nbhd
         )
 {
@@ -35,7 +35,7 @@ BlobContainer::BlobContainer(const Geometry & geom,
 
 
 BlobContainer::BlobContainer(AmrCore * amr_core, int n_nbhd)
-    : IBMarkerContainerBase<Blob_realData, Blob_intData>(
+    : IBMarkerContainerBase<IBBReal, IBBInt>(
             amr_core->GetParGDB(), n_nbhd
         )
 {
@@ -94,34 +94,34 @@ void BlobContainer::InitSingle(int lev,
             p_new.pos(1) = pos[1];
             p_new.pos(2) = pos[2];
 
-            p_new.rdata(Blob_realData::radius) = radius;
+            p_new.rdata(IBBReal::radius) = radius;
 
             // Initialize marker velocity as well as forces to 0
-            p_new.rdata(Blob_realData::velx)   = 0.;
-            p_new.rdata(Blob_realData::vely)   = 0.;
-            p_new.rdata(Blob_realData::velz)   = 0.;
+            p_new.rdata(IBBReal::velx)   = 0.;
+            p_new.rdata(IBBReal::vely)   = 0.;
+            p_new.rdata(IBBReal::velz)   = 0.;
 
-            p_new.rdata(Blob_realData::forcex) = 0.;
-            p_new.rdata(Blob_realData::forcey) = 0.;
-            p_new.rdata(Blob_realData::forcez) = 0.;
+            p_new.rdata(IBBReal::forcex) = 0.;
+            p_new.rdata(IBBReal::forcey) = 0.;
+            p_new.rdata(IBBReal::forcez) = 0.;
 
-            p_new.rdata(Blob_realData::pred_posx)   = 0.;
-            p_new.rdata(Blob_realData::pred_posy)   = 0.;
-            p_new.rdata(Blob_realData::pred_posz)   = 0.;
+            p_new.rdata(IBBReal::pred_posx)   = 0.;
+            p_new.rdata(IBBReal::pred_posy)   = 0.;
+            p_new.rdata(IBBReal::pred_posz)   = 0.;
 
-            p_new.rdata(Blob_realData::pred_velx)   = 0.;
-            p_new.rdata(Blob_realData::pred_vely)   = 0.;
-            p_new.rdata(Blob_realData::pred_velz)   = 0.;
+            p_new.rdata(IBBReal::pred_velx)   = 0.;
+            p_new.rdata(IBBReal::pred_vely)   = 0.;
+            p_new.rdata(IBBReal::pred_velz)   = 0.;
 
-            p_new.rdata(Blob_realData::pred_forcex) = 0.;
-            p_new.rdata(Blob_realData::pred_forcey) = 0.;
-            p_new.rdata(Blob_realData::pred_forcez) = 0.;
+            p_new.rdata(IBBReal::pred_forcex) = 0.;
+            p_new.rdata(IBBReal::pred_forcey) = 0.;
+            p_new.rdata(IBBReal::pred_forcez) = 0.;
 
-            p_new.idata(Blob_intData::id_0)  = id;
-            p_new.idata(Blob_intData::cpu_0) = cpu;
+            p_new.idata(IBBInt::id_0)  = id;
+            p_new.idata(IBBInt::cpu_0) = cpu;
 
-            p_new.idata(Blob_intData::id_1)  = i_ref;
-            p_new.idata(Blob_intData::cpu_1) = -1;
+            p_new.idata(IBBInt::id_1)  = i_ref;
+            p_new.idata(IBBInt::cpu_1) = -1;
 
             // Add to the data structure
             particles.push_back(p_new);
