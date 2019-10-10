@@ -276,7 +276,7 @@ void main_driver(const char * argv) {
 
 
     //___________________________________________________________________________
-    // Define velocities and pressure
+    // Define velocities, immersed boundary forces (post spreading), and pressure
 
     // pressure for GMRES solve
     MultiFab pres(ba, dmap, 1, 1);
@@ -290,6 +290,12 @@ void main_driver(const char * argv) {
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     defineFC(umacNew, ba, dmap, 1);
     setVal(umacNew, 0.);
+
+    // staggered forces (post spreading operator)
+    std::array< MultiFab, AMREX_SPACEDIM > force_ib;
+    defineFC(force_ib, ba, dmap, 1);
+    setVal(force_ib, 0.);
+
 
     //___________________________________________________________________________
     // Define structure factor:
@@ -475,7 +481,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, umac_avg, pres, ib_mc);
+        WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, ib_mc);
     }
 
 
@@ -508,7 +514,7 @@ void main_driver(const char * argv) {
         //_______________________________________________________________________
         // Advance umac
         advance_CN(umac, umacNew, pres, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
-                   alpha_fc, beta, gamma, beta_ed, geom, dt, time);
+                   alpha_fc, force_ib, beta, gamma, beta_ed, geom, dt, time);
 
 
 
@@ -543,7 +549,7 @@ void main_driver(const char * argv) {
             n_avg = 0;
 
             //write out umac & pres to a plotfile
-            WritePlotFile(step, time, geom, umac, umac_avg, pres, ib_mc);
+            WritePlotFile(step, time, geom, umac, umac_avg, force_ib, pres, ib_mc);
             setVal(umac_avg, 0.);
         }
     }

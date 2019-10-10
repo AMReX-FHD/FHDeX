@@ -15,22 +15,24 @@ void WritePlotFile(int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac,
                    std::array< MultiFab, AMREX_SPACEDIM > & umac_avg,
+                   std::array< MultiFab, AMREX_SPACEDIM > & force_ib,
                    const MultiFab& pres,
                    const IBMarkerContainer & ib_pc)
 {
 
-    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
+    BL_PROFILE_VAR("WritePlotFile()", WritePlotFile);
 
     const std::string plotfilename = Concatenate(plot_base_name,step,7);
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
-    // plot all the velocity variables (averaged)
-    // plot all the velocity variables (shifted)
+    // plot all the velocity variables (cell-center average)
+    // plot all the velocity variables (cc + time-averaged)
+    // plot all spread forces (cell-centere average)
     // plot pressure
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM + 2;
+    int nPlot = 3*AMREX_SPACEDIM + 2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -51,6 +53,13 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        std::string x = "cc_force";
+        x += (120+i); // 120 is x in ASCII => 120+i = x, y, z
+        varNames[cnt++] = x;
+    }
+
+
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
@@ -64,6 +73,9 @@ void WritePlotFile(int step,
     // average staggered average (in time) velocities to cell-centers and copy
     // into plotfile
     AverageFaceToCC(umac_avg, plotfile, cnt);
+    cnt+=AMREX_SPACEDIM;
+
+    AverageFaceToCC(force_ib, plotfile, cnt);
     cnt+=AMREX_SPACEDIM;
 
     // copy pressure into plotfile

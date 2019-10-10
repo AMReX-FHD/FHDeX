@@ -30,6 +30,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
                    std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                   std::array< MultiFab, AMREX_SPACEDIM >& force_ib,
              const MultiFab& beta, const MultiFab& gamma,
              const std::array< MultiFab, NUM_EDGE >& beta_ed,
              const Geometry geom, const Real& dt, Real time)
@@ -459,8 +460,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // Update solution, and we're done!
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(umac[d], umacNew[d],           0, 0, 1, 0);
+        MultiFab::Copy(force_ib[d], fc_force_pred[d], 0, 0, 1, 0);
+    }
 
     BL_PROFILE_VAR_STOP(advance);
 }
