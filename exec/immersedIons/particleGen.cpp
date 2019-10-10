@@ -2,20 +2,6 @@
 #include "common_functions.H"
 #include "FhdParticleContainer.H"
 
-//#include <AMReX.H>
-//#include <AMReX_AmrParGDB.H>
-//#include <AMReX_ParmParse.H>
-//#include <AMReX_Particles.H>
-//#include <AMReX_NeighborParticles.H>
-
-//#include <common_functions.H>
-//#include <common_namespace.H>
-
-//#include <ib_functions_F.H>
-
-//#include <iostream>
-
-
 void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
     

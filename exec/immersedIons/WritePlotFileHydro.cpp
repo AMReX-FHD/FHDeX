@@ -1,5 +1,3 @@
-#include "hydro_test_functions.H"
-
 #include "AMReX_PlotFileUtil.H"
 
 #include "AMReX_MultiFab.H"

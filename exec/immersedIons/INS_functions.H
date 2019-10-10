@@ -18,30 +18,36 @@ void WritePlotFile(int step,
                    const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
-                   const MultiFab& potential,const std::array< MultiFab, AMREX_SPACEDIM >& efield,const MultiFab& mobility);
-
-
-///////////////////////////
-
-
-void eulerStep(const MultiFab& betaCC, const MultiFab& gammaCC,
-               std::array<amrex::MultiFab, NUM_EDGE>& betaEdge, 
-               std::array<MultiFab, AMREX_SPACEDIM>& umacIn, 
-               std::array<MultiFab, AMREX_SPACEDIM>& umacOut,
-               std::array<MultiFab, AMREX_SPACEDIM>& umacNew,
-               std::array<MultiFab, AMREX_SPACEDIM>& alpha,
-               const Geometry geom,
-               Real* dt);
+                   const MultiFab& potential,
+                   const std::array< MultiFab, AMREX_SPACEDIM >& efield,
+                   const MultiFab& mobility);
 
 ///////////////////////////
+
+///////////////////////////
+// in WritePlotFileHydro.cpp
 
 void WritePlotFileHydro(int step,
-                   const amrex::Real time,
-                   const amrex::Geometry geom,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& pres, std::array< MultiFab, AMREX_SPACEDIM >& umacM, std::array< MultiFab, AMREX_SPACEDIM >& umacV);
+                        const amrex::Real time,
+                        const amrex::Geometry geom,
+                        std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                        const MultiFab& pres,
+                        std::array< MultiFab, AMREX_SPACEDIM >& umacM,
+                        std::array< MultiFab, AMREX_SPACEDIM >& umacV);
 
+///////////////////////////
 
+///////////////////////////
+// in Checkpoint.cpp
 
+void WriteCheckPoint(const int step,
+                     const amrex::Real time,
+                     std::array< MultiFab, AMREX_SPACEDIM >& umac);
+
+void ReadCheckPoint(int& step,
+                    amrex::Real& time,
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac);
+
+///////////////////////////
 
 #endif
