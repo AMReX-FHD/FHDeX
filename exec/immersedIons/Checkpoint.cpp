@@ -111,6 +111,8 @@ void WriteCheckPoint(int step,
     // random number engines
     rng_checkpoint(&step);
     
+    // checkpoint particles
+    particles.Checkpoint(checkpointname,"particle");
 }
 
 void ReadCheckPoint(int& step,
@@ -122,7 +124,7 @@ void ReadCheckPoint(int& step,
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
 
     // checkpoint file name, e.g., chk0000010
-    const std::string& checkpointname = amrex::Concatenate(chk_base_name,restart,7);
+    const std::string& checkpointname = amrex::Concatenate(chk_base_name,restart,9);
 
     amrex::Print() << "Restart from checkpoint " << checkpointname << "\n";
 
@@ -150,19 +152,31 @@ void ReadCheckPoint(int& step,
         is >> time;
         GotoNextLine(is);
 
-        // read in level 'lev' BoxArray from Header
+        // read in BoxArray from Header
         BoxArray ba;
         ba.readFrom(is);
         GotoNextLine(is);
 
         // create a distribution mapping
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
-
+        
+        //set number of ghost cells to fit whole peskin kernel
+        int ang = 1;
+        if(pkernel_fluid == 3) {
+            ang = 2;
+        }
+        else if(pkernel_fluid == 4) {
+            ang = 3;
+        }
+        else if(pkernel_fluid == 6) {
+            ang = 4;
+        }
+    
         // build MultiFab data
-        umac[0].define(convert(ba,nodal_flag_x), dm, 1, 1);
-        umac[1].define(convert(ba,nodal_flag_y), dm, 1, 1);
+        umac[0].define(convert(ba,nodal_flag_x), dm, 1, ang);
+        umac[1].define(convert(ba,nodal_flag_y), dm, 1, ang);
 #if (AMREX_SPACEDIM == 3)
-        umac[2].define(convert(ba,nodal_flag_z), dm, 1, 1);
+        umac[2].define(convert(ba,nodal_flag_z), dm, 1, ang);
 #endif
     }
 
@@ -178,6 +192,9 @@ void ReadCheckPoint(int& step,
     
     // random number engines
     rng_restart(&restart);
+    
+    // restore particles
+    particles.Checkpoint(checkpointname,"particle");
 }
 
 
