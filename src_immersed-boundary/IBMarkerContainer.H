@@ -119,8 +119,11 @@ public:
 
 
     // (ID, initial CPU) tuple: unique to each particle
-    using MarkerIndex = typename IBMarkerContainerBase<IBMReal, IBMInt>
-        ::PairIndex;
+    using MarkerIndex = typename IBMarkerContainerBase<IBMReal, IBMInt>::PairIndex;
+    // indexing particles and corresponding spot in the neighbor list
+    using MarkerListIndex = std::pair<int, int>;
+    // indexing tiles (box index, local tile index)
+    using TileIndex = std::pair<int, int>;
 
 
     void InitList(int lev, const Vector<Real> & radius, const Vector<RealVect> & pos, int i);
@@ -200,14 +203,8 @@ public:
         return (ParticleType *) neighbors[lev].at(index).dataPtr();
     };
 
-    int FindConnectedMarkers(      AoS & particles,
-                             const ParticleType & part,
-                                   ParticleVector & nbhd_data,
-                             const IntVector & nbhd,
-                             int nbhd_index,
-                             ParticleType *& prev_marker,
-                             ParticleType *& next_marker) const;
-
+    int ConnectedMarkers(int lev, const TileIndex & tile, MarkerListIndex & part,
+                         ParticleType *& prev_marker, ParticleType *& next_marker);
 
     void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
                            bool unique = false) const;

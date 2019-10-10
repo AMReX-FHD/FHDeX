@@ -9,9 +9,10 @@
 
 //_______________________________________________________________________________
 // Abbreviations:
-using PairIndex    = IBMarkerContainer::PairIndex;
-using ParticleType = IBMarkerContainer::ParticleType;
-using AoS          = IBMarkerContainer::AoS;
+using TileIndex       = IBMarkerContainer::TileIndex;
+using MarkerListIndex = IBMarkerContainer::MarkerListIndex;
+using ParticleType    = IBMarkerContainer::ParticleType;
+using AoS             = IBMarkerContainer::AoS;
 
 
 

@@ -389,20 +389,28 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 
 
-int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
-                                            const ParticleType & part,
-                                                  ParticleVector & nbhd_data,
-                                            const IntVector & nbhd,
-                                            int nbhd_index,
-                                            ParticleType *& prev_marker,
-                                            ParticleType *& next_marker) const {
+int IBMarkerContainer::ConnectedMarkers(
+            int lev, const TileIndex & tile, MarkerListIndex & part_index,
+            ParticleType *& prev_marker, ParticleType *& next_marker
+        ) {
 
-    BL_PROFILE_VAR("IBMarkerContainer::FindConnectedMarkers", FindNeighbors);
+    BL_PROFILE_VAR("IBMarkerContainer::ConnectedMarkers", FindNeighbors);
 
+    // Get marker data
+    AoS & particles = GetParticles(lev).at(tile).GetArrayOfStructs();
+    ParticleType & part = particles[part_index.first];
     long np = particles.size();
-    int nn  = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
-    nbhd_index ++; // pointing at first neighbor
 
+    // Get neighbor marker data (from neighboring threads)
+    ParticleVector & nbhd_data = GetNeighbors(lev, tile.first, tile.second);
+
+    // Get neighbor list (for collision checking)
+    const IntVector & nbhd = GetNeighborList(lev, tile.first, tile.second);
+
+    // Point to the right spot in the neighbor list
+    long nbhd_index = part_index.second;
+    long nn         = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
+    nbhd_index ++; // pointing at first neighbor
 
     bool prev_set = false;
     bool next_set = false;
@@ -437,6 +445,9 @@ int IBMarkerContainer::FindConnectedMarkers(      AoS & particles,
 
         nbhd_index ++;
     }
+
+    // return new index in neighbor list
+    part_index.second += nn + 1;
 
     if (prev_set && next_set) {
         return 0;
