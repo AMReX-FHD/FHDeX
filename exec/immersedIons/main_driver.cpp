@@ -1,54 +1,33 @@
 #include "INS_functions.H"
-#include <iostream>
-
-#include "common_functions.H"
-#include "gmres_functions.H"
 
 #include "common_functions_F.H"
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
-
-#include "rng_functions_F.H"
-
 #include "species.H"
 #include "surfaces.H"
 
 //#include "analysis_functions_F.H"
 //#include "StructFact_F.H"
-#include "StochMFlux.H"
 //#include "StructFact.H"
 
-#include "hydro_test_functions_F.H"
+#include "StochMFlux.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
+#include "hydro_test_functions_F.H"
 
 #include "electrostatic.H"
 
 #include "particle_functions.H"
 
-//#include "electrostatic.H"
-
-#include "debug_functions_F.H"
-#include "AMReX_ArrayLim.H"
-
-//#include <IBMarkerContainer.H>
-
-using namespace gmres;
-using namespace common;
-//using namespace amrex;
-
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-    // store the current time so we can later compute total run time.
-
-    // timer
+    // timer for total simulation time
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
@@ -61,60 +40,39 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
-
-    remove("potential.dat");
-    remove("kinetic.dat");
-
-    const int n_rngs = 1;
-
-    int fhdSeed = 0;
+    
+    // zero is a clock-based seed
+    int fhdSeed      = 0;
     int particleSeed = 0;
     int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+    int thetaSeed    = 0;
+    int phiSeed      = 0;
+    int generalSeed  = 0;
 
-    if(seed > 0)
-    {
-        fhdSeed = ParallelDescriptor::MyProc() + 1 + seed;
-        particleSeed = 2*ParallelDescriptor::MyProc() + 2 + seed;
-        selectorSeed = 3*ParallelDescriptor::MyProc() + 3 + seed;
-        thetaSeed = 4*ParallelDescriptor::MyProc() + 4 + seed;
-        phiSeed = 5*ParallelDescriptor::MyProc() + 5 + seed;
-        generalSeed = 6*ParallelDescriptor::MyProc() + 6 + seed;
+    // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
+    // this should be fixed so each physical process has its own seed control
+    if(seed > 0) {
+        fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
+        particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
+        selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
+        thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
+        phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
+        generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
     }
 
     //Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
-    // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
-            is_periodic[i] = 1;
-            is_periodic_c[i] = 1;
-        }
-        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
-            is_periodic_p[i] = 1;
-        }
-    }
-
-    //---------------------------------------
-
-        //Terms prepended with a 'C' are related to the particle grid. Those with P are for the electostatic grid. Those without are for the hydro grid.
-        //The particle grid created as a corsening or refinement of the hydro grid.
-
-    //---------------------------------------
+    /*
+      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
+      Those with 'P' are for the electostatic grid.
+      Those without are for the hydro grid.
+      The particle grid created as a corsening or refinement of the hydro grid.
+    */
 
     // make BoxArray and Geometry
 
-    // A - fluid, C - particle, P/E - electrostatic
-
-    // AJN what is the particle grid used for?  Is it leftover from DSCM collision model?
-    
-    // AJN - change these to ba_fluid, ba_particle, etc.    
+    // A - fluid, C - particle, P - electrostatic potential
     BoxArray ba;
     BoxArray bc;
     BoxArray bp;
@@ -138,38 +96,49 @@ void main_driver(const char* argv)
     RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                      {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-    //This must be an even number for now?
     bc = ba;
     bp = ba;
 
-    int sizeRatio;
-
-    if(particle_grid_refine < 1)
-    {
-        sizeRatio = (int)(1.0/particle_grid_refine);
+    // particle and es grid_refine: <1 = refine, >1 = coarsen.
+    // assume only powers of 2 for now
+    if (particle_grid_refine < 1) {
+        int sizeRatio = (int)(1.0/particle_grid_refine);
         bc.refine(sizeRatio);
         domainC.refine(sizeRatio);
-    }else
-    {
-        sizeRatio = (int)(particle_grid_refine);
+    }
+    else {
+        int sizeRatio = (int)(particle_grid_refine);
         bc.coarsen(sizeRatio);
         domainC.coarsen(sizeRatio);
     }
 
-    if(es_grid_refine < 1)
-    {
-        sizeRatio = (int)(1.0/es_grid_refine);
+    if (es_grid_refine < 1) {
+        int sizeRatio = (int)(1.0/es_grid_refine);
         bp.refine(sizeRatio);
         domainP.refine(sizeRatio);
-    }else
-    {
-        sizeRatio = (int)(es_grid_refine);
+    }
+    else {
+        int sizeRatio = (int)(es_grid_refine);
         bp.coarsen(sizeRatio);
         domainP.coarsen(sizeRatio);
     }
 
+    // is the problem periodic?
+    Vector<int> is_periodic  (AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
+            is_periodic  [i] = 1;
+            is_periodic_c[i] = 1;
+        }
+        if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
+            is_periodic_p[i] = 1;
+        }
+    }
+
     // This defines a Geometry object
-    geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
+    geom .define(domain ,&real_box,CoordSys::cartesian,is_periodic.  data());
     geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
@@ -218,19 +187,16 @@ void main_driver(const char* argv)
 
     double realParticles = 0;
     double simParticles = 0;
-    double dryRad, wetRad;
+    double wetRad;
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
-    if(pkernel_fluid == 3)
-    {
+    if (pkernel_fluid == 3) {
         wetRad = 0.9405*dxAv;                
     }
-    else if(pkernel_fluid == 4)
-    {
+    else if (pkernel_fluid == 4) {
         wetRad = 1.3273*dxAv;
     }
-    else if(pkernel_fluid == 6)
-    {
+    else if (pkernel_fluid == 6) {
         wetRad = 1.5705*dxAv;
     }
 
@@ -239,8 +205,7 @@ void main_driver(const char* argv)
         ionParticle[i].m = mass[i];
         ionParticle[i].q = qval[i];
 
-        if(diameter[i] > 0)
-        {
+        if(diameter[i] > 0) {
             ionParticle[i].d = diameter[i];
 
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
@@ -249,8 +214,8 @@ void main_driver(const char* argv)
 
             ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //This is probably wrong. Need to test.
 
-        }else
-        {
+        }
+        else {
             ionParticle[i].totalDiff = diff[i];            
 
             ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
@@ -260,11 +225,13 @@ void main_driver(const char* argv)
             ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //Test this
         }
 
-        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: " << ionParticle[i].dryDiff << ", total diffusion: " << ionParticle[i].totalDiff << "\n";
-        Print() << "Species " << i << " wet radius: " << wetRad << ", dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << ", total radius: " << ionParticle[i].d/2.0 << "\n";
+        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: "
+                << ionParticle[i].dryDiff << ", total diffusion: " << ionParticle[i].totalDiff << "\n";
+        Print() << "Species " << i << " wet radius: " << wetRad << ", dry radius: "
+                << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << ", total radius: "
+                << ionParticle[i].d/2.0 << "\n";
 
-        if(ionParticle[i].dryDiff < 0)
-        {
+        if(ionParticle[i].dryDiff < 0) {
             Print() << "Negative dry diffusion in species " << i << "\n";
             abort();
         }
@@ -275,10 +242,9 @@ void main_driver(const char* argv)
         ionParticle[i].sigma = sigma[i];
         ionParticle[i].eepsilon = eepsilon[i];
 
-        // AJN - why round up particles so there are the same number in each box? DRL - Have to divide them into whole numbers of particles somehow. 
+        // round up particles so there are the same number in each box;
+        // we have to divide them into whole numbers of particles somehow. 
         if(particle_count[i] >= 0) {
-
-
             ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
             ionParticle[i].total = particle_count[i];
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
@@ -310,63 +276,48 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
-
     // MFs for storing particle statistics
-
     // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
-    
-    //Members
-    //Density
-    //velx
-    //vely
-    //velz
-    //Temperature
-    //jx
-    //jy
-    //jz
-    //energyDensity
-    //pressure
-    //Cx
-    //Cy
-    //Cz
-    MultiFab particleInstant(bc, dmap, 14, 0);
 
-    //Members
-    //Density
-    //velx
-    //vely
-    //velz
-    //Temperature
-    //jx
-    //jy
-    //jz
-    //energyDensity
-    //pressure
-    //Cx
-    //Cy
-    //Cz    
-    MultiFab particleMeans(bc, dmap, 14, 0);
+    // Variables (C++ index)
+    // ( 0) Members
+    // ( 1) Density
+    // ( 2) velx
+    // ( 3) vely
+    // ( 4) velz
+    // ( 5) Temperature
+    // ( 6) jx
+    // ( 7) jy
+    // ( 8) jz
+    // ( 9) energyDensity
+    // (10) pressure
+    // (11) Cx
+    // (12) Cy
+    // (13) Cz
+    MultiFab particleInstant(bc, dmap, 14, 0);
+    MultiFab particleMeans  (bc, dmap, 14, 0);
+    
     particleMeans.setVal(0.);
 
-    //Members
-    //Density
-    //velx
-    //vely
-    //velz
-    //Temperature
-    //jx
-    //jy
-    //jz
-    //energyDensity
-    //pressure
-    //GVar
-    //KGCross
-    //KRhoCross
-    //RhoGCross
-    //Cx
-    //Cy
-    //Cz 
-   
+    // Variables (C++ index)
+    // ( 0) Members
+    // ( 1) Density
+    // ( 2) velx
+    // ( 3) vely
+    // ( 4) velz
+    // ( 5) Temperature
+    // ( 6) jx
+    // ( 7) jy
+    // ( 8) jz
+    // ( 9) energyDensity
+    // (10) pressure
+    // (11) GVar
+    // (12) KGCross
+    // (13) KRhoCross
+    // (14) RhoGCross
+    // (15) Cx
+    // (16) Cy
+    // (17) Cz 
     MultiFab particleVars(bc, dmap, 18, 0);
     particleVars.setVal(0.);
     
@@ -377,34 +328,16 @@ void main_driver(const char* argv)
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
 
-    //set number of ghost cells to fit whole peskin kernel
-    int ang = 1;
-    int cng = 2;
-    int png = 1;
-
-    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
-    
-    if(pkernel_fluid == 3) {
-        ang = 2;
-    }
-    else if(pkernel_fluid == 4) {
-        ang = 3;
-    }
-    else if(pkernel_fluid == 6) {
-        ang = 4;
-    }
-
-    // AJN this only needs 1? ghost cell    
+    // this only needs 1 ghost cell    
     MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
 
-    // AJN - the number of ghost cells needed for the GMRES solve for alpha, beta, etc., is a fixed number
+    // the number of ghost cells needed for the GMRES solve for alpha, beta, etc., is a fixed number
     // and not dependent on the Peskin kernels.
     // alpha_fc -> 1 ghost cell
     // beta -> 1
     // beta_ed -> 1
     // gamma -> 1
-    // I'm thinking only the velocities need the extra ghost cells.  Probably not density
     
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
@@ -493,43 +426,53 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdivC;
     // Define mfluxdiv predictor/corrector multifabs
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         stochMfluxdiv[d].setVal(0.0);
-        stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
         stochMfluxdivC[d].setVal(0.0);
     }
 
     Vector< amrex::Real > weights;
     weights = {1.0};
-//weights = {std::sqrt(0.5), std::sqrt(0.5)};
+    // weights = {std::sqrt(0.5), std::sqrt(0.5)};
 
     // Declare object of StochMFlux class
+    int n_rngs = 1;
     StochMFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
 
-    // AJN - pres needs 1 ghost cell
-    // but umac is the thing that needs extra ghost cells for Peskin kernels
     
-    // pressure for GMRES solve
+    // pressure for GMRES solve; 1 ghost cell
     MultiFab pres(ba,dmap,1,1);
-   pres.setVal(0.);  // initial guess
+    pres.setVal(0.);  // initial guess
 
+    // umac needs extra ghost cells for Peskin kernels
+
+    //set number of ghost cells to fit whole peskin kernel
+    int ang = 1;
+
+    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
+    if(pkernel_fluid == 3) {
+        ang = 2;
+    }
+    else if(pkernel_fluid == 4) {
+        ang = 3;
+    }
+    else if(pkernel_fluid == 6) {
+        ang = 4;
+    }
+        
     // staggered velocities
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
+    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
+    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umac   [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
         umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-    }
-
-
-    // staggered mfabs for storing some basic fluid stats
-    std::array< MultiFab, AMREX_SPACEDIM > umacM;
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacM  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacV  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
 
     // tracer - get rid of this.
@@ -541,6 +484,7 @@ void main_driver(const char* argv)
     // structure factor:
     ///////////////////////////////////////////
 
+/*    
     Vector< std::string > var_names;
     int nvar_sf = 1;
     // int nvar_sf = AMREX_SPACEDIM;
@@ -550,25 +494,23 @@ void main_driver(const char* argv)
     MultiFab struct_in_cc;
     struct_in_cc.define(bp, dmap, nvar_sf, 0);
 
-//    amrex::Vector< int > s_pairA(nvar_sf);
-//    amrex::Vector< int > s_pairB(nvar_sf);
+    amrex::Vector< int > s_pairA(nvar_sf);
+    amrex::Vector< int > s_pairB(nvar_sf);
 
-//    // Select which variable pairs to include in structure factor:
-//    for (int d=0; d<nvar_sf; d++) {
-//      s_pairA[d] = d;
-//      s_pairB[d] = d;
-//    }
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<nvar_sf; d++) {
+        s_pairA[d] = d;
+        s_pairB[d] = d;
+    }
 
- //   StructFact structFact(bp,dmap,var_names);
+    StructFact structFact(bp,dmap,var_names);
+*/
 
-
-
-
-
-
-    // AJN - don't need to initialize velocities in overdamped.  first gmres solve should get them as long as they start out with non-NaN values.
-
-    // DRL - This is actually useful for dubugging, to get a known velocity field.
+/*    
+    // Setting the intial velocities can be useful for debugging, to get a known velocity field.
+    // Note that we don't need to initialize velocities for the overdamped case.
+    // They only matter as an initial guess to GMRES.
+    // The first GMRES solve will compute the velocities as long as they start out with non-NaN values.
     int dm = 0;
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
@@ -587,31 +529,18 @@ void main_driver(const char* argv)
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
     }
+*/
 
-    AMREX_D_TERM(umac[0].setVal(0);,
-                 umac[1].setVal(0);,
-                 umac[2].setVal(0););
-
-            AMREX_D_TERM(umacM[0].setVal(0);,
-                     umacM[1].setVal(0);,
-                     umacM[2].setVal(0););
-
-            AMREX_D_TERM(umacV[0].setVal(0);,
-                     umacV[1].setVal(0);,
-                     umacV[2].setVal(0););
-
-    // fill periodic ghost cells
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac[d].FillBoundary(geom.periodicity());
-    }
-
-
-    // AJN - don't need this
-    // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-        //sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+        // sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+        Abort("Initial momentum fluctuations not implemented; if you are overdamped they don't make sense anyway.");
     }
-
+    
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac [d].setVal(0.);
+        umacM[d].setVal(0.);
+        umacV[d].setVal(0.);
+    }
 
     // staggered real coordinates - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
@@ -632,7 +561,7 @@ void main_driver(const char* argv)
                  sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        source[d].setVal(0.0);
+        source    [d].setVal(0.0);
         sourceTemp[d].setVal(0.0);
     }
 
@@ -641,7 +570,6 @@ void main_driver(const char* argv)
     int statsCount = 1;
 
     //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
-
 
     // AJN - we don't understand why you need this for ions
 #if (BL_SPACEDIM == 3)
@@ -655,42 +583,24 @@ void main_driver(const char* argv)
     BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
 #endif
 
-	// IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
+    // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
 
     Vector<int> ts(BL_SPACEDIM);
 
-    //AMREX_D_TERM(ts[0] = max_grid_size[0];, ts[1] = max_grid_size[1];, ts[2] = max_grid_size[2];);
-
-    AMREX_D_TERM(
-        if(max_particle_tile_size[0] > 0)
-        {
-            ts[0] = max_particle_tile_size[0];
-        }else
-        {
-            ts[0] = max_grid_size[0];
-        },
-        if(max_particle_tile_size[1] > 0)
-        {
-            ts[1] = max_particle_tile_size[1];
-        }else
-        {
-            ts[1] = max_grid_size[1];
-        },
-        if(max_particle_tile_size[2] > 0)
-        {
-            ts[2] = max_particle_tile_size[2];
-        }else
-        {
-            ts[2] = max_grid_size[2];
+    
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {        
+        if (max_particle_tile_size[d] > 0) {
+            ts[d] = max_particle_tile_size[d];
         }
-    );
+        else {
+            ts[d] = max_grid_size[d];
+        }
+    }
 
-	ParmParse pp ("particles");
+    ParmParse pp ("particles");
     pp.addarr("tile_size", ts);
 
-
-
-	//pp.add("do_tiling", false);
+    //pp.add("do_tiling", false);
 
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
@@ -709,17 +619,13 @@ void main_driver(const char* argv)
 
     // AJN - should define 3 types of "ng" parameters.  fluid, repulsive force, peskin
     int ngp = 1;
-    if(pkernel_es == 3)
-    {
+    if (pkernel_es == 3) {
         ngp = 2;
-
-    }else if(pkernel_es == 4)
-    {
+    }
+    else if (pkernel_es == 4) {
         ngp = 3;
-
-    }else if(pkernel_es == 6)
-    {
-
+    }
+    else if(pkernel_es == 6) {
         ngp = 4;
     }
 
@@ -728,14 +634,10 @@ void main_driver(const char* argv)
     RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
 
     FindCenterCoords(RealCenteredCoords, geomP);
-
-    // AJN - what are all the Temp's for?
     
     //Cell centred es potential
     MultiFab potential(bp, dmap, 1, ngp);
-    MultiFab potentialTemp(bp, dmap, 1, ngp);
     potential.setVal(0);
-    potentialTemp.setVal(0);
 
     //charage density for RHS of Poisson Eq.
     MultiFab charge(bp, dmap, 1, ngp);
@@ -763,11 +665,9 @@ void main_driver(const char* argv)
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efieldCC[d].define(bp, dmap, 1, ngp);
         external[d].define(bp, dmap, 1, ngp);
-    }
 
-    AMREX_D_TERM(efieldCC[0].setVal(0);,
-                 efieldCC[1].setVal(0);,
-                 efieldCC[2].setVal(0););
+        efieldCC[d].setVal(0.);
+    }
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
@@ -777,6 +677,7 @@ void main_driver(const char* argv)
     for(step=1;step<=max_step;++step)
     {
 
+        // timer for time step
         Real time1 = ParallelDescriptor::second();
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -795,7 +696,8 @@ void main_driver(const char* argv)
             // Apply RFD force to fluid
             //particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             //particles.ResetMarkers(0);
-            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+                            source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -884,13 +786,12 @@ void main_driver(const char* argv)
         {
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
-            AMREX_D_TERM(umacM[0].setVal(0);,
-                         umacM[1].setVal(0);,
-                         umacM[2].setVal(0););
-            AMREX_D_TERM(umacV[0].setVal(0);,
-                         umacV[1].setVal(0);,
-                         umacV[2].setVal(0););
 
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                umacM[d].setVal(0.);
+                umacV[d].setVal(0.);
+            }
+                
             Print() << "Resetting stat collection.\n";
 
             statsCount = 1;
@@ -927,43 +828,41 @@ void main_driver(const char* argv)
         }
 
 
-        // timer
+        // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
         ParallelDescriptor::ReduceRealMax(time2);
-    
-        if(step%1 == 0) {    
-            amrex::Print() << "Advanced step " << step << " in " << time2 << " seconds\n";
-        }
+        amrex::Print() << "Advanced step " << step << " in " << time2 << " seconds\n";
         
         time = time + dt;
 
 
     }
     ///////////////////////////////////////////
+
+/*    
     if (struct_fact_int > 0) {
 
         Real dVol = dx[0]*dx[1];
         int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
+        if (AMREX_SPACEDIM == 2) {
 	    dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
+        } else if (AMREX_SPACEDIM == 3) {
 	    dVol *= dx[2];
 	    tot_n_cells = n_cells[2]*tot_n_cells;
-      }
+        }
 
-      // let rho = 1
-      //Real SFscale = dVol/(rho0*k_B*T_init[0]);
-      Real SFscale = 1;
-      // SFscale = 1.0;
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
+        // let rho = 1
+        Real SFscale = dVol/(rho0*k_B*T_init[0]);
+        // SFscale = 1.0;
+        Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
-    //  structFact.Finalize(SFscale);
-    //  structFact.WritePlotFile(step,time,geomP,"plt_SF");
-
+        structFact.Finalize(SFscale);
+        structFact.WritePlotFile(step,time,geomP,"plt_SF");
+        
     }
+*/    
 
-    // Call the timer again and compute the maximum difference between the start time 
-    // and stop time over all processors
+    // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
