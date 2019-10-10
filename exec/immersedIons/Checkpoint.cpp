@@ -14,7 +14,8 @@ namespace {
 }
 
 void WriteCheckPoint(int step,
-                     const amrex::Real time,
+                     amrex::Real time,
+                     int statsCount,                     
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      FhdParticleContainer& particles)
 {
@@ -66,6 +67,9 @@ void WriteCheckPoint(int step,
         // write out time
         HeaderFile << time << "\n";
 
+        // write out statsCount
+        HeaderFile << statsCount << "\n";
+        
         // write the BoxArray
         ba.writeOn(HeaderFile);
         HeaderFile << '\n';
@@ -117,6 +121,7 @@ void WriteCheckPoint(int step,
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
+                    int& statsCount,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     FhdParticleContainer& particles)
 {
@@ -145,11 +150,16 @@ void ReadCheckPoint(int& step,
 
         // read in time step number
         is >> step;
-        GotoNextLine(is);
         ++step;
+        GotoNextLine(is);
 
         // read in time
         is >> time;
+        GotoNextLine(is);
+
+        // read in statsCount
+        is >> statsCount;
+        ++statsCount;
         GotoNextLine(is);
 
         // read in BoxArray from Header

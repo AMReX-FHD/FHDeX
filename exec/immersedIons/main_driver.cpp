@@ -50,7 +50,7 @@ void main_driver(const char* argv)
 
     // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
     // this should be fixed so each physical process has its own seed control
-    if(seed > 0) {
+    if (seed > 0) {
         fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
         particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
         selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
@@ -72,7 +72,7 @@ void main_driver(const char* argv)
     // make BoxArray and Geometry
 
     // A - fluid, C - particle, P - electrostatic potential
-    BoxArray ba;
+    BoxArray ba;    
     BoxArray bc;
     BoxArray bp;
     Geometry geom;
@@ -81,7 +81,9 @@ void main_driver(const char* argv)
     
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    
     Box domain(dom_lo, dom_hi);
+    
     Box domainC = domain;
     Box domainP = domain;
 
@@ -142,7 +144,6 @@ void main_driver(const char* argv)
     geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
 
     // how boxes are distrubuted among MPI processes
-    // AJN needs to be fi
     DistributionMapping dmap(ba);
 
     const Real* dx = geom.CellSize();
@@ -204,7 +205,7 @@ void main_driver(const char* argv)
         ionParticle[i].m = mass[i];
         ionParticle[i].q = qval[i];
 
-        if(diameter[i] > 0) {
+        if (diameter[i] > 0) {
             ionParticle[i].d = diameter[i];
 
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
@@ -230,7 +231,7 @@ void main_driver(const char* argv)
                 << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << ", total radius: "
                 << ionParticle[i].d/2.0 << "\n";
 
-        if(ionParticle[i].dryDiff < 0) {
+        if (ionParticle[i].dryDiff < 0) {
             Print() << "Negative dry diffusion in species " << i << "\n";
             Abort();
         }
@@ -243,7 +244,7 @@ void main_driver(const char* argv)
 
         // round up particles so there are the same number in each box;
         // we have to divide them into whole numbers of particles somehow. 
-        if(particle_count[i] >= 0) {
+        if (particle_count[i] >= 0) {
             ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
             ionParticle[i].total = particle_count[i];
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
@@ -444,55 +445,24 @@ void main_driver(const char* argv)
     //set number of ghost cells to fit whole peskin kernel
     // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
     int ang = 1;
-    if(pkernel_fluid == 3) {
+    if (pkernel_fluid == 3) {
         ang = 2;
     }
-    else if(pkernel_fluid == 4) {
+    else if (pkernel_fluid == 4) {
         ang = 3;
     }
-    else if(pkernel_fluid == 6) {
+    else if (pkernel_fluid == 6) {
         ang = 4;
     }
         
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
+    // note if we are restarting, these are defined and initialized to the checkpoint data
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac   [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacM  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacV  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umac[d].setVal(0.);
     }
-
-
-    ///////////////////////////////////////////
-    // structure factor:
-    ///////////////////////////////////////////
-
-/*    
-    Vector< std::string > var_names;
-    int nvar_sf = 1;
-    // int nvar_sf = AMREX_SPACEDIM;
-    var_names.resize(nvar_sf);
-    var_names[0] = "charge";
-
-    MultiFab struct_in_cc;
-    struct_in_cc.define(bp, dmap, nvar_sf, 0);
-
-    amrex::Vector< int > s_pairA(nvar_sf);
-    amrex::Vector< int > s_pairB(nvar_sf);
-
-    // Select which variable pairs to include in structure factor:
-    for (int d=0; d<nvar_sf; d++) {
-        s_pairA[d] = d;
-        s_pairB[d] = d;
-    }
-
-    StructFact structFact(bp,dmap,var_names);
-*/
 
 /*    
     // Setting the intial velocities can be useful for debugging, to get a known velocity field.
@@ -517,15 +487,21 @@ void main_driver(const char* argv)
                                     ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
 
     }
-*/
 
-    if(initial_variance_mom != 0.0) {
+    if (initial_variance_mom != 0.0) {
         // sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
         Abort("Initial momentum fluctuations not implemented; if you are overdamped they don't make sense anyway.");
     }
-    
+*/
+        
+    // additional staggered velocity MultiFabs
+    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
+    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
+    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac [d].setVal(0.);
+        umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacM  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+        umacV  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
         umacM[d].setVal(0.);
         umacV[d].setVal(0.);
     }
@@ -553,7 +529,7 @@ void main_driver(const char* argv)
         sourceTemp[d].setVal(0.0);
     }
 
-    int step = 0;
+    int step = 1;
     Real time = 0.;
     int statsCount = 1;
 
@@ -573,6 +549,9 @@ void main_driver(const char* argv)
 
     // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
 
+    //----------------------    
+    // Particle tile size
+    //----------------------
     Vector<int> ts(BL_SPACEDIM);
     
     for (int d=0; d<AMREX_SPACEDIM; ++d) {        
@@ -608,7 +587,7 @@ void main_driver(const char* argv)
     else if (pkernel_es == 4) {
         ngp = 3;
     }
-    else if(pkernel_es == 6) {
+    else if (pkernel_es == 6) {
         ngp = 4;
     }
 
@@ -656,26 +635,48 @@ void main_driver(const char* argv)
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, ionParticle, geom);
- 
+
+    ///////////////////////////////////////////
+    // structure factor:
+    ///////////////////////////////////////////
+
+/*    
+    Vector< std::string > var_names;
+    int nvar_sf = 1;
+    // int nvar_sf = AMREX_SPACEDIM;
+    var_names.resize(nvar_sf);
+    var_names[0] = "charge";
+
+    MultiFab struct_in_cc;
+    struct_in_cc.define(bp, dmap, nvar_sf, 0);
+
+    amrex::Vector< int > s_pairA(nvar_sf);
+    amrex::Vector< int > s_pairB(nvar_sf);
+
+    // Select which variable pairs to include in structure factor:
+    for (int d=0; d<nvar_sf; d++) {
+        s_pairA[d] = d;
+        s_pairB[d] = d;
+    }
+
+    StructFact structFact(bp,dmap,var_names);
+*/
+    
     //Time stepping loop
-    for (step=1;step<=max_step;++step)
-    {
+    for (int istep=step; istep<=max_step; ++istep) {
+        
         // timer for time step
         Real time1 = ParallelDescriptor::second();
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
-        //Apply external field here.
-        AMREX_D_TERM(external[0].setVal(eamp[0]*cos(efreq[0]*time + ephase[0]));,
-                     external[1].setVal(eamp[1]*cos(efreq[1]*time + ephase[1]));,
-                     external[2].setVal(eamp[2]*cos(efreq[2]*time + ephase[2])););
-
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            source[d].setVal(0.0);
-            sourceTemp[d].setVal(0.0);
+            external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
+            source    [d].setVal(0.0);      // reset source terms
+            sourceTemp[d].setVal(0.0);      // reset source terms
         }
 
-        if(rfd_tog==1) {
+        if (rfd_tog==1) {
             // Apply RFD force to fluid
             //particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             //particles.ResetMarkers(0);
@@ -689,9 +690,10 @@ void main_driver(const char* argv)
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
-        if(sr_tog==1 || es_tog==3) {
+        if (sr_tog==1 || es_tog==3) {
             // each tile clears its neighbors
             particles.clearNeighbors();
+            
             // fill the neighbor buffers for each tile with the proper data
             particles.fillNeighbors();
 
@@ -700,7 +702,7 @@ void main_driver(const char* argv)
             particles.computeForcesNL(charge, RealCenteredCoords, dxp);
         }
 
-        if(es_tog==1 || es_tog==3) {
+        if (es_tog==1 || es_tog==3) {
             // spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
         }
@@ -713,35 +715,35 @@ void main_driver(const char* argv)
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
                              surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        if((variance_coef_mom != 0.0) && fluid_tog != 0) {
-          // compute the random numbers needed for the stochastic momentum forcing
-          sMflux.fillMStochastic();
+        if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
+            // compute the random numbers needed for the stochastic momentum forcing
+            sMflux.fillMStochastic();
 
-          // compute stochastic momentum force
-          sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+            // compute stochastic momentum force
+            sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 
-          // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
-          if(fluid_tog ==2) {
-              sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-          }
+            // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
+            if (fluid_tog ==2) {
+                sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+            }
         }
 
         // AJN - should this be an if/else fluid_tog==2?
-        if(fluid_tog == 1) {
+        if (fluid_tog == 1) {
             advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
         }
-        else if(fluid_tog == 2) {
+        else if (fluid_tog == 2) {
+            Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
 /*            
             MultiFab tracer(ba, dmap, 1,1);
             tracer.setVal(0.);
             advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC,
                            alpha_fc, beta, gamma, beta_ed, geom,dt);
 */
-            Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
         }
 
         // total particle move (1=single step, 2=midpoint)
-        if(move_tog != 0)
+        if (move_tog != 0)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
@@ -755,9 +757,9 @@ void main_driver(const char* argv)
 
         // reset statistics after step n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
-        if( (n_steps_skip > 0 && step == n_steps_skip) ||
-            (n_steps_skip < 0 && step%n_steps_skip == 0) )
-        {
+        if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+            (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
+            
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
 
@@ -771,7 +773,7 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-        //particles.RadialDistribution(simParticles, step, ionParticle);
+        //particles.RadialDistribution(simParticles, istep, ionParticle);
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
@@ -784,31 +786,31 @@ void main_driver(const char* argv)
 	//_______________________________________________________________________
 	// Update structure factor
 /*
-        if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
+        if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip-1)%struct_fact_int == 0) {
             MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
             structFact.FortStructure(struct_in_cc,geomP);
         }
 */
 
-        if (plot_int > 0 && step%plot_int == 0) {
+        if (plot_int > 0 && istep%plot_int == 0) {
 
             // This write particle data and associated fields and electrostatic fields
-            WritePlotFile(step, time, geom, geomC, geomP,
+            WritePlotFile(istep, time, geom, geomC, geomP,
                           particleInstant, particleMeans, particleVars, particles,
                           charge, potential, efieldCC, dryMobility);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+            WritePlotFileHydro(istep,time,geom,umac,pres, umacM, umacV);
         }
 
-        if (chk_int > 0 && step%chk_int == 0) {
-            WriteCheckPoint(step, time, umac, particles);            
+        if (chk_int > 0 && istep%chk_int == 0) {
+            WriteCheckPoint(istep, time, statsCount, umac, particles);            
         }
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
         ParallelDescriptor::ReduceRealMax(time2);
-        amrex::Print() << "Advanced step " << step << " in " << time2 << " seconds\n";
+        amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
         
         time = time + dt;
     }
@@ -832,7 +834,7 @@ void main_driver(const char* argv)
         Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
         structFact.Finalize(SFscale);
-        structFact.WritePlotFile(step,time,geomP,"plt_SF");
+        structFact.WritePlotFile(istep,time,geomP,"plt_SF");
         
     }
 */    
