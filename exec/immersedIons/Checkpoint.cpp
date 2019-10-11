@@ -208,7 +208,7 @@ void ReadCheckPoint(int& step,
 void ReadCheckPointParticles(FhdParticleContainer& particles) {
     
     // timer for profiling
-    BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
+    BL_PROFILE_VAR("ReadCheckPointParticles()",ReadCheckPointParticles);
 
     // checkpoint file name, e.g., chk0000010
     const std::string& checkpointname = amrex::Concatenate(chk_base_name,restart,9);
