@@ -122,8 +122,7 @@ void WriteCheckPoint(int step,
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     int& statsCount,
-                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                    FhdParticleContainer& particles)
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -201,10 +200,21 @@ void ReadCheckPoint(int& step,
 #endif
     
     // random number engines
-    rng_restart(&restart);
+    int digits = 9;
+    rng_restart(&restart,&digits);
+}
+
+void ReadCheckPointParticles(FhdParticleContainer& particles) {
+    
+    // timer for profiling
+    BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
+
+    // checkpoint file name, e.g., chk0000010
+    const std::string& checkpointname = amrex::Concatenate(chk_base_name,restart,9);
+
+    amrex::Print() << "Restart particles from checkpoint " << checkpointname << "\n";
     
     // restore particles
     particles.Checkpoint(checkpointname,"particle");
+
 }
-
-

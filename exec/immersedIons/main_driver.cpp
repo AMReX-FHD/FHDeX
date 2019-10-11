@@ -40,27 +40,91 @@ void main_driver(const char* argv)
     InitializeCommonNamespace();
     InitializeGmresNamespace();
     
-    // zero is a clock-based seed
-    int fhdSeed      = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed    = 0;
-    int phiSeed      = 0;
-    int generalSeed  = 0;
+    int step = 1;
+    Real time = 0.;
+    int statsCount = 1;
 
-    // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
-    // this should be fixed so each physical process has its own seed control
-    if (seed > 0) {
-        fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
-        particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
-        selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
-        thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
-        phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
-        generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+    // BoxArray for the hydro
+    BoxArray ba;
+    
+    // Box for the hydro
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
+
+    // how boxes are distrubuted among MPI processes
+    DistributionMapping dmap;
+    
+
+    //set number of ghost cells to fit whole peskin kernel
+    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
+    int ang = 1;
+    if (pkernel_fluid == 3) {
+        ang = 2;
     }
+    else if (pkernel_fluid == 4) {
+        ang = 3;
+    }
+    else if (pkernel_fluid == 6) {
+        ang = 4;
+    }
+        
+    // staggered velocities
+    // umac needs extra ghost cells for Peskin kernels
+    // note if we are restarting, these are defined and initialized to the checkpoint data
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    
+    if (restart < 0) {
+        
+        // zero is a clock-based seed
+        int fhdSeed      = 0;
+        int particleSeed = 0;
+        int selectorSeed = 0;
+        int thetaSeed    = 0;
+        int phiSeed      = 0;
+        int generalSeed  = 0;
 
-    //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+        // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
+        // this should be fixed so each physical process has its own seed control
+        if (seed > 0) {
+            fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
+            particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
+            selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
+            thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
+            phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
+            generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+        }
+
+        //Initialise rngs
+        rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        // note we are converting "Vector<int> max_grid_size" to an IntVect
+        ba.maxSize(IntVect(max_grid_size));
+
+        // how boxes are distrubuted among MPI processes
+        dmap.define(ba);
+        
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            umac[d].setVal(0.);
+        }
+    }
+    else {
+        
+        // restart from checkpoint
+        ReadCheckPoint(step,time,statsCount,umac);
+        
+        // grab BoxArray from umac and convert to cell-centered
+        ba = umac[0].boxArray();
+        ba.enclosedCells();
+
+        // gradb DistributionMap from umac
+        dmap = umac[0].DistributionMap();
+    }
 
     /*
       Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
@@ -68,37 +132,12 @@ void main_driver(const char* argv)
       Those without are for the hydro grid.
       The particle grid created as a corsening or refinement of the hydro grid.
     */
-
-    // make BoxArray and Geometry
-
-    // A - fluid, C - particle, P - electrostatic potential
-    BoxArray ba;    
-    BoxArray bc;
-    BoxArray bp;
-    Geometry geom;
-    Geometry geomC;
-    Geometry geomP;
     
-    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    
-    Box domain(dom_lo, dom_hi);
+    BoxArray bc = ba;
+    BoxArray bp = ba;
     
     Box domainC = domain;
     Box domainP = domain;
-
-    // Initialize the boxarray "ba" from the single box "bx"
-    ba.define(domain);
-
-    // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-    // note we are converting "Vector<int> max_grid_size" to an IntVect
-    ba.maxSize(IntVect(max_grid_size));
-
-    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-
-    bc = ba;
-    bp = ba;
 
     // particle and es grid_refine: <1 = refine, >1 = coarsen.
     // assume only powers of 2 for now
@@ -139,12 +178,12 @@ void main_driver(const char* argv)
     }
 
     // This defines a Geometry object
-    geom .define(domain ,&real_box,CoordSys::cartesian,is_periodic.  data());
-    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
-    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
+    RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                       {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-    // how boxes are distrubuted among MPI processes
-    DistributionMapping dmap(ba);
+    Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.  data());
+    Geometry geomC(domainC,&realDomain,CoordSys::cartesian,is_periodic_c.data());
+    Geometry geomP(domainP,&realDomain,CoordSys::cartesian,is_periodic_p.data());
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
@@ -159,19 +198,14 @@ void main_driver(const char* argv)
     cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
 #endif
 
-    // AJN - isn't this the same as real_box?
-    const RealBox& realDomain = geom.ProbDomain();
-
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
 
-    const int* lims = domainC.hiVect();
-
     // AJN - get rid of collision stuff?
 #if (AMREX_SPACEDIM == 2)
-    int totalCollisionCells = (lims[0]+1)*(lims[1]+1);
+    int totalCollisionCells = (domainC.hiVect()[0]+1)*(domainC.hiVect()[1]+1);
 #elif (AMREX_SPACEDIM == 3)
-    int totalCollisionCells = (lims[0]+1)*(lims[1]+1)*(lims[2]+1);
+    int totalCollisionCells = (domainC.hiVect()[0]+1)*(domainC.hiVect()[1]+1)*(domainC.hiVect()[2]+1);
 #endif
 
 #if (AMREX_SPACEDIM == 2)
@@ -442,28 +476,6 @@ void main_driver(const char* argv)
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
 
-    //set number of ghost cells to fit whole peskin kernel
-    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
-    int ang = 1;
-    if (pkernel_fluid == 3) {
-        ang = 2;
-    }
-    else if (pkernel_fluid == 4) {
-        ang = 3;
-    }
-    else if (pkernel_fluid == 6) {
-        ang = 4;
-    }
-        
-    // staggered velocities
-    // umac needs extra ghost cells for Peskin kernels
-    // note if we are restarting, these are defined and initialized to the checkpoint data
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umac[d].setVal(0.);
-    }
-
 /*    
     // Setting the intial velocities can be useful for debugging, to get a known velocity field.
     // Note that we don't need to initialize velocities for the overdamped case.
@@ -529,10 +541,6 @@ void main_driver(const char* argv)
         sourceTemp[d].setVal(0.0);
     }
 
-    int step = 1;
-    Real time = 0.;
-    int statsCount = 1;
-
     //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
 
     // AJN - we don't understand why you need this for ions
@@ -570,12 +578,17 @@ void main_driver(const char* argv)
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc, crange);
 
+    if (restart < 0) {
+        // create particles
+        particles.InitParticles(ionParticle, dxp);
+    }
+    else {
+        ReadCheckPointParticles(particles);
+    }
+
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
-
-    // create particles
-    particles.InitParticles(ionParticle, dxp);
-
+    
     //----------------------    
     // Electrostatic setup
     //----------------------

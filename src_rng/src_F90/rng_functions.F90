@@ -103,17 +103,24 @@ contains
 
 
   ! restore all engines from the checkpoint directory and build distributions
-  subroutine rng_restart(step) bind(c,name='rng_restart')
+  subroutine rng_restart(step,digits) bind(c,name='rng_restart')
 
     integer, intent(in   ) :: step
+    integer, intent(in   ) :: digits
 
-    character(len=8  ) :: check_index
+    character(len=16  ) :: check_index
     character(len=128) :: sd_name
     character(len=128) :: rand_name
-    
-    write(unit=check_index,fmt='(i7.7)') step
-    sd_name = trim(chk_base_name) // check_index
 
+    if (digits .eq. 7) then
+       write(unit=check_index,fmt='(i7.7)') step
+    else if (digits .eq. 9) then
+       write(unit=check_index,fmt='(i9.9)') step
+    else
+       call bl_error('rng_functions rng_restart: fix # of digits')
+    end if
+    sd_name = trim(chk_base_name) // check_index
+    
     ! engines
     rand_name = trim(sd_name) // '/rng_eng_fhd'
     call bl_rng_restore_engine(rng_eng_fhd, rand_name)

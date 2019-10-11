@@ -187,7 +187,8 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "tracer"));
     
     // random number engines
-    rng_restart(&restart);
+    int digits = 7;
+    rng_restart(&restart,&digits);
 }
 
 
