@@ -113,7 +113,8 @@ void WriteCheckPoint(int step,
     check = mkdir(str,0777);
     
     // random number engines
-    rng_checkpoint(&step);
+    int digits = 9;
+    rng_checkpoint(&step,&digits);
     
     // checkpoint particles
     particles.Checkpoint(checkpointname,"particle");

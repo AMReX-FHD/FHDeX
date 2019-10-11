@@ -69,15 +69,18 @@ contains
 
 
   ! save all engines to the checkpoint directory
-  subroutine rng_checkpoint(step) bind(c,name='rng_checkpoint')
+  subroutine rng_checkpoint(step,digits) bind(c,name='rng_checkpoint')
 
-    integer, intent(in   ) :: step
+    integer, intent(in   ) :: step, digits
 
-    character(len=8  ) :: check_index
+    character(len=16 ) :: check_index
     character(len=128) :: sd_name
     character(len=128) :: rand_name
-    
-    write(unit=check_index,fmt='(i7.7)') step
+    character(len=8)   :: precision
+
+    precision = '(i'//trim(str(digits))//'.'//trim(str(digits))//')'
+
+    write(unit=check_index,fmt=precision) step
     sd_name = trim(chk_base_name) // check_index
 
     ! engines
@@ -108,17 +111,14 @@ contains
     integer, intent(in   ) :: step
     integer, intent(in   ) :: digits
 
-    character(len=16  ) :: check_index
+    character(len=16 ) :: check_index
     character(len=128) :: sd_name
     character(len=128) :: rand_name
+    character(len=8)   :: precision
 
-    if (digits .eq. 7) then
-       write(unit=check_index,fmt='(i7.7)') step
-    else if (digits .eq. 9) then
-       write(unit=check_index,fmt='(i9.9)') step
-    else
-       call bl_error('rng_functions rng_restart: fix # of digits')
-    end if
+    precision = '(i'//trim(str(digits))//'.'//trim(str(digits))//')'
+
+    write(unit=check_index,fmt=precision) step
     sd_name = trim(chk_base_name) // check_index
     
     ! engines
@@ -225,10 +225,17 @@ contains
   ! normal
   function get_fhd_normal_func() result(test) bind(c,name='get_fhd_normal_func')
 
-      double precision test
+    double precision test
 
-      test = bl_rng_get(nm_fhd, rng_eng_fhd)
+    test = bl_rng_get(nm_fhd, rng_eng_fhd)
 
   end function get_fhd_normal_func
+
+  character(len=20) function str(k)
+    ! "Convert an integer to string."
+    integer, intent(in) :: k
+    write (str, *) k
+    str = adjustl(str)
+  end function str
 
 end module rng_functions_module
