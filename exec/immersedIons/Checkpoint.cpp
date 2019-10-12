@@ -216,6 +216,6 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     amrex::Print() << "Restart particles from checkpoint " << checkpointname << "\n";
     
     // restore particles
-    particles.Checkpoint(checkpointname,"particle");
+    particles.Restart(checkpointname,"particle");
 
 }
