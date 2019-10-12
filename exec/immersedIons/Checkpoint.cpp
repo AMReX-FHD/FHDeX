@@ -17,6 +17,8 @@ void WriteCheckPoint(int step,
                      amrex::Real time,
                      int statsCount,                     
                      std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                     std::array< MultiFab, AMREX_SPACEDIM >& umacM,
+                     std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                      FhdParticleContainer& particles)
 {
     // timer for profiling
@@ -76,6 +78,8 @@ void WriteCheckPoint(int step,
     }
 
     // write the MultiFab data to, e.g., chk00010/Level_0/
+
+    // umac
     VisMF::Write(umac[0],
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umac"));
     VisMF::Write(umac[1],
@@ -83,6 +87,26 @@ void WriteCheckPoint(int step,
 #if (AMREX_SPACEDIM == 3)
     VisMF::Write(umac[2],
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
+#endif
+
+    // umacM (mean)
+    VisMF::Write(umacM[0],
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umacM"));
+    VisMF::Write(umacM[1],
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmacM"));
+#if (AMREX_SPACEDIM == 3)
+    VisMF::Write(umacM[2],
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacM"));
+#endif
+
+    // umacV (variance)
+    VisMF::Write(umacV[0],
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umacV"));
+    VisMF::Write(umacV[1],
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmacV"));
+#if (AMREX_SPACEDIM == 3)
+    VisMF::Write(umacV[2],
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacV"));
 #endif
 
     int check;
@@ -123,7 +147,9 @@ void WriteCheckPoint(int step,
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
                     int& statsCount,
-                    std::array< MultiFab, AMREX_SPACEDIM >& umac)
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                    std::array< MultiFab, AMREX_SPACEDIM >& umacM,
+                    std::array< MultiFab, AMREX_SPACEDIM >& umacV)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -159,7 +185,6 @@ void ReadCheckPoint(int& step,
 
         // read in statsCount
         is >> statsCount;
-        ++statsCount;
         GotoNextLine(is);
 
         // read in BoxArray from Header
@@ -183,14 +208,33 @@ void ReadCheckPoint(int& step,
         }
     
         // build MultiFab data
+
+        // umac
         umac[0].define(convert(ba,nodal_flag_x), dm, 1, ang);
         umac[1].define(convert(ba,nodal_flag_y), dm, 1, ang);
 #if (AMREX_SPACEDIM == 3)
         umac[2].define(convert(ba,nodal_flag_z), dm, 1, ang);
 #endif
+
+        // umacM
+        umacM[0].define(convert(ba,nodal_flag_x), dm, 1, ang);
+        umacM[1].define(convert(ba,nodal_flag_y), dm, 1, ang);
+#if (AMREX_SPACEDIM == 3)
+        umacM[2].define(convert(ba,nodal_flag_z), dm, 1, ang);
+#endif
+
+        // umacV
+        umacV[0].define(convert(ba,nodal_flag_x), dm, 1, ang);
+        umacV[1].define(convert(ba,nodal_flag_y), dm, 1, ang);
+#if (AMREX_SPACEDIM == 3)
+        umacV[2].define(convert(ba,nodal_flag_z), dm, 1, ang);
+#endif
+        
     }
 
     // read in the MultiFab data
+
+    // umac
     VisMF::Read(umac[0],
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umac"));
     VisMF::Read(umac[1],
@@ -198,6 +242,26 @@ void ReadCheckPoint(int& step,
 #if (AMREX_SPACEDIM == 3)
     VisMF::Read(umac[2],
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmac"));
+#endif
+
+    // umacM
+    VisMF::Read(umacM[0],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umacM"));
+    VisMF::Read(umacM[1],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmacM"));
+#if (AMREX_SPACEDIM == 3)
+    VisMF::Read(umacM[2],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacM"));
+#endif
+
+    // umacV
+    VisMF::Read(umacV[0],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "umacV"));
+    VisMF::Read(umacV[1],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "vmacV"));
+#if (AMREX_SPACEDIM == 3)
+    VisMF::Read(umacV[2],
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacV"));
 #endif
     
     // random number engines

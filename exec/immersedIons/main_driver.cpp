@@ -73,6 +73,8 @@ void main_driver(const char* argv)
     // umac needs extra ghost cells for Peskin kernels
     // note if we are restarting, these are defined and initialized to the checkpoint data
     std::array< MultiFab, AMREX_SPACEDIM > umac;
+    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
+    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
     
     if (restart < 0) {
         
@@ -109,15 +111,19 @@ void main_driver(const char* argv)
         dmap.define(ba);
         
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umac[d].setVal(0.);
+            umacM[d].setVal(0.);
+            umacV[d].setVal(0.);
         }
     }
     else {
         
         // restart from checkpoint
-        ReadCheckPoint(step,time,statsCount,umac);
-        
+        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV);
+
         // grab BoxArray from umac and convert to cell-centered
         ba = umac[0].boxArray();
         ba.enclosedCells();
@@ -508,14 +514,8 @@ void main_driver(const char* argv)
         
     // additional staggered velocity MultiFabs
     std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacM  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacV  [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacM[d].setVal(0.);
-        umacV[d].setVal(0.);
     }
 
     // staggered real coordinates - fluid grid
@@ -817,7 +817,7 @@ void main_driver(const char* argv)
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep, time, statsCount, umac, particles);            
+            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, particles);
         }
 
         // timer for time step
