@@ -11,20 +11,18 @@
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
   !Leave these on 1 until properly tested
-  particle_grid_refine = 0.25
+  particle_grid_refine = 1
   es_grid_refine = 1
 
   ! Time-step control
   fixed_dt = 1e-13
-  fixed_dt = 2e-13
-! fixed_dt = 1e-12   ! this segfaults after 29 steps  
 
   ! Controls for number of steps between actions
-  max_step = 100
+  max_step = 1000
   plot_int = -1
   plot_ascii = 0
   struct_fact_int = -1
-  n_steps_skip = 50
+  n_steps_skip = -100
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
@@ -56,16 +54,18 @@
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e18 6.02e18
+  particle_n0 = 6.02e19 6.02e19
 
   !Species info
   !--------------
   nspecies = 2
-  mass = 4e-23 4e-23
+  mass = 3.82e-23 5.89e-23
   diameter = -2.488e-8 -2.488e-8 
   qval = 1.6e-19 -1.6e-19
   diff = 1.17e-05 1.33e-05
- !If diameter is negative, this value will be used. If diameter is positive, it will be ignored. This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel, the dry component is set to recover the value entered here.
+  ! If diameter is negative, this value will be used. If diameter is positive, it will be ignored.
+  ! This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel,
+  ! the dry component is set to recover the value entered here.
  
   p_int_tog = 1 1 ! If zero, LJ/WCA forces will not be computed for this species with itself (different species always interact)
   eepsilon = 1e-16 1e-16 !WCA potential---note that Aleks uses 10^-3 but we're not sure of the units in BDWoGF
@@ -76,7 +76,7 @@
   !------------
   permitivitty = 692.96e-21
 
-  crange = 16       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
+  crange = 4       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
   eamp = 1.e14 0 0  !external electric field properties
