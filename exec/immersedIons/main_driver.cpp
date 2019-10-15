@@ -44,20 +44,30 @@ void main_driver(const char* argv)
     Real time = 0.;
     int statsCount = 1;
 
-    // BoxArray for the hydro
+    /*
+      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
+      Those with 'P' are for the electostatic grid.
+      Those without are for the fluid grid.
+      The particle grid and es grids are created as a corsening or refinement of the fluid grid.
+    */
+
+    // BoxArray for the fluid
     BoxArray ba;
+
+    // BoxArray for the particles
+    BoxArray bc;
     
-    // Box for the hydro
+    // Box for the fluid
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
     IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
     Box domain(dom_lo, dom_hi);
-
+    
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap;
-    
 
-    //set number of ghost cells to fit whole peskin kernel
-    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
+    // set number of ghost cells to fit whole peskin kernel
+    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes
+    //       a particle into a ghost region?
     int ang = 1;
     if (pkernel_fluid == 3) {
         ang = 2;
@@ -75,6 +85,11 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umac;
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
     std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
+
+    // MFs for storing particle statistics
+    // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
+    MultiFab particleMeans;
+    MultiFab particleVars;
     
     if (restart < 0) {
         
@@ -118,46 +133,94 @@ void main_driver(const char* argv)
             umacM[d].setVal(0.);
             umacV[d].setVal(0.);
         }
+
+        bc = ba;
+        
+        // particle grid_refine: <1 = refine, >1 = coarsen.
+        // assume only powers of 2 for now
+        if (particle_grid_refine < 1) {
+            int sizeRatio = (int)(1.0/particle_grid_refine);
+            bc.refine(sizeRatio);
+        }
+        else {
+            int sizeRatio = (int)(particle_grid_refine);
+            bc.coarsen(sizeRatio);
+        }
+        
+        // Variables (C++ index)
+        // ( 0) Members
+        // ( 1) Density
+        // ( 2) velx
+        // ( 3) vely
+        // ( 4) velz
+        // ( 5) Temperature
+        // ( 6) jx
+        // ( 7) jy
+        // ( 8) jz
+        // ( 9) energyDensity
+        // (10) pressure
+        // (11) Cx
+        // (12) Cy
+        // (13) Cz
+        particleMeans.define(bc, dmap, 14, 0);
+        particleMeans.setVal(0.);
+        
+        // Variables (C++ index)
+        // ( 0) Members
+        // ( 1) Density
+        // ( 2) velx
+        // ( 3) vely
+        // ( 4) velz
+        // ( 5) Temperature
+        // ( 6) jx
+        // ( 7) jy
+        // ( 8) jz
+        // ( 9) energyDensity
+        // (10) pressure
+        // (11) GVar
+        // (12) KGCross
+        // (13) KRhoCross
+        // (14) RhoGCross
+        // (15) Cx
+        // (16) Cy
+        // (17) Cz 
+        particleVars.define(bc, dmap, 18, 0);
+        particleVars.setVal(0.);        
     }
     else {
         
         // restart from checkpoint
-        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV);
+        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,particleMeans,particleVars);
 
-        // grab BoxArray from umac and convert to cell-centered
+        // grab DistributionMap from umac
+        dmap = umac[0].DistributionMap();
+        
+        // grab fluid BoxArray from umac and convert to cell-centered
         ba = umac[0].boxArray();
         ba.enclosedCells();
 
-        // gradb DistributionMap from umac
-        dmap = umac[0].DistributionMap();
+        // grab particle BoxArray from particleMeans
+        bc = particleMeans.boxArray();
     }
 
-    /*
-      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
-      Those with 'P' are for the electostatic grid.
-      Those without are for the hydro grid.
-      The particle grid created as a corsening or refinement of the hydro grid.
-    */
-    
-    BoxArray bc = ba;
+    // BoxArray electrostatic grid
     BoxArray bp = ba;
-    
+
+    // Domain boxes for particle and electrostatic grids
     Box domainC = domain;
     Box domainP = domain;
-
-    // particle and es grid_refine: <1 = refine, >1 = coarsen.
+    
+    // particle grid and es grid_refine: <1 = refine, >1 = coarsen.
     // assume only powers of 2 for now
+    // note particle grid BoxArray was handled above
     if (particle_grid_refine < 1) {
         int sizeRatio = (int)(1.0/particle_grid_refine);
-        bc.refine(sizeRatio);
         domainC.refine(sizeRatio);
     }
     else {
         int sizeRatio = (int)(particle_grid_refine);
-        bc.coarsen(sizeRatio);
         domainC.coarsen(sizeRatio);
     }
-
     if (es_grid_refine < 1) {
         int sizeRatio = (int)(1.0/es_grid_refine);
         bp.refine(sizeRatio);
@@ -316,50 +379,8 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
-    // MFs for storing particle statistics
-    // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
-
-    // Variables (C++ index)
-    // ( 0) Members
-    // ( 1) Density
-    // ( 2) velx
-    // ( 3) vely
-    // ( 4) velz
-    // ( 5) Temperature
-    // ( 6) jx
-    // ( 7) jy
-    // ( 8) jz
-    // ( 9) energyDensity
-    // (10) pressure
-    // (11) Cx
-    // (12) Cy
-    // (13) Cz
+    // see the variable list used above above for particleMeans
     MultiFab particleInstant(bc, dmap, 14, 0);
-    MultiFab particleMeans  (bc, dmap, 14, 0);
-    
-    particleMeans.setVal(0.);
-
-    // Variables (C++ index)
-    // ( 0) Members
-    // ( 1) Density
-    // ( 2) velx
-    // ( 3) vely
-    // ( 4) velz
-    // ( 5) Temperature
-    // ( 6) jx
-    // ( 7) jy
-    // ( 8) jz
-    // ( 9) energyDensity
-    // (10) pressure
-    // (11) GVar
-    // (12) KGCross
-    // (13) KRhoCross
-    // (14) RhoGCross
-    // (15) Cx
-    // (16) Cy
-    // (17) Cz 
-    MultiFab particleVars(bc, dmap, 18, 0);
-    particleVars.setVal(0.);
     
     //-----------------------------
     //  Hydro setup
@@ -817,7 +838,8 @@ void main_driver(const char* argv)
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, particles);
+            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV,
+                            particles, particleMeans, particleVars);
         }
 
         // timer for time step
