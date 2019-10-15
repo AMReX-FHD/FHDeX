@@ -1165,5 +1165,7 @@ FhdParticleContainer::numWrongCell()
     return num_wrong;
 }
 
-
-
+void FhdParticleContainer::PostRestart()
+{
+    UpdateCellVectors();
+}
