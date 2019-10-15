@@ -19,6 +19,7 @@ void WriteCheckPoint(int step,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umac,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umacM,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umacV,
+                     const MultiFab& pres,
                      const FhdParticleContainer& particles,
                      const MultiFab& particleMeans,
                      const MultiFab& particleVars,
@@ -32,7 +33,7 @@ void WriteCheckPoint(int step,
 
     amrex::Print() << "Writing checkpoint " << checkpointname << "\n";
 
-    BoxArray ba = umac[0].boxArray();
+    BoxArray ba = pres.boxArray();
     BoxArray bc = particleMeans.boxArray();
     BoxArray bp = potential.boxArray();
 
@@ -122,6 +123,10 @@ void WriteCheckPoint(int step,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacV"));
 #endif
 
+    // pressure
+    VisMF::Write(pres,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pressure"));
+
     // particle mean and variance
     VisMF::Write(particleMeans,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleMeans"));
@@ -173,6 +178,7 @@ void ReadCheckPoint(int& step,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacM,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacV,
+                    MultiFab& pres,
                     MultiFab& particleMeans,
                     MultiFab& particleVars,
                     MultiFab& potential)
@@ -265,6 +271,9 @@ void ReadCheckPoint(int& step,
         umacV[2].define(convert(ba,nodal_flag_z), dm, 1, ang);
 #endif
 
+        // pressure
+        pres.define(ba,dm,1,1);
+
         // particle means and variances
         particleMeans.define(bc,dm,14,0);
         particleVars .define(bc,dm,18,0);
@@ -316,6 +325,10 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "wmacV"));
 #endif
 
+    // pressure
+    VisMF::Read(pres,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "pressure"));
+        
     // particle means and variances
     VisMF::Read(particleMeans,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleMeans"));

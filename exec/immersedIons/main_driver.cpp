@@ -100,6 +100,9 @@ void main_driver(const char* argv)
     std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
     std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
 
+    // pressure for GMRES solve; 1 ghost cell
+    MultiFab pres;
+
     // MFs for storing particle statistics
     // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
     MultiFab particleMeans;
@@ -146,10 +149,13 @@ void main_driver(const char* argv)
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
             umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-            umac[d].setVal(0.);
+            umac [d].setVal(0.);
             umacM[d].setVal(0.);
             umacV[d].setVal(0.);
         }
+
+        pres.define(ba,dmap,1,1);
+        pres.setVal(0.);
 
         bc = ba;
         bp = ba;
@@ -221,7 +227,7 @@ void main_driver(const char* argv)
     else {
         
         // restart from checkpoint
-        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV, 
+        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,pres,
                        particleMeans,particleVars,potential);
 
         // grab DistributionMap from umac
@@ -528,11 +534,6 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
-    
-    // pressure for GMRES solve; 1 ghost cell
-    MultiFab pres(ba,dmap,1,1);
-    pres.setVal(0.);  // initial guess
-
 /*    
     // Setting the intial velocities can be useful for debugging, to get a known velocity field.
     // Note that we don't need to initialize velocities for the overdamped case.
@@ -710,10 +711,20 @@ void main_driver(const char* argv)
 
     StructFact structFact(bp,dmap,var_names);
 */
+
+/*
+    if (restart > 0) {
+        WritePlotFile(step-1, time, geom, geomC, geomP,
+                      particleInstant, particleMeans, particleVars, particles,
+                      charge, potential, efieldCC, dryMobility);
+        
+        WritePlotFileHydro(step-1,time,geom,umac,pres, umacM, umacV);
+    }
+*/
     
     //Time stepping loop
     for (int istep=step; istep<=max_step; ++istep) {
-        
+
         // timer for time step
         Real time1 = ParallelDescriptor::second();
     
@@ -849,11 +860,11 @@ void main_driver(const char* argv)
                           charge, potential, efieldCC, dryMobility);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(istep,time,geom,umac,pres, umacM, umacV);
+            WritePlotFileHydro(istep, time, geom, umac, pres, umacM, umacV);
         }
 
         if (chk_int > 0 && istep%chk_int == 0) {
-            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV,
+            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, pres,
                             particles, particleMeans, particleVars, potential);
         }
 
