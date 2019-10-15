@@ -48,7 +48,8 @@ void WriteCheckPoint(int step,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                      const FhdParticleContainer& particles,
                      const MultiFab& particleMeans,
-                     const MultiFab& particleVars);
+                     const MultiFab& particleVars,
+                     const MultiFab& potential);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
@@ -57,7 +58,8 @@ void ReadCheckPoint(int& step,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacM,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                     MultiFab& particleMeans,
-                    MultiFab& particleVars);
+                    MultiFab& particleVars,
+                    MultiFab& potential);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles);
 

@@ -21,7 +21,8 @@ void WriteCheckPoint(int step,
                      const std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                      const FhdParticleContainer& particles,
                      const MultiFab& particleMeans,
-                     const MultiFab& particleVars)
+                     const MultiFab& particleVars,
+                     const MultiFab& potential)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);
@@ -33,6 +34,7 @@ void WriteCheckPoint(int step,
 
     BoxArray ba = umac[0].boxArray();
     BoxArray bc = particleMeans.boxArray();
+    BoxArray bp = potential.boxArray();
 
     // single level problem
     int nlevels = 1;
@@ -82,6 +84,10 @@ void WriteCheckPoint(int step,
         // write the BoxArray (particle)
         bc.writeOn(HeaderFile);
         HeaderFile << '\n';
+
+        // write the BoxArray (electric potential)
+        bp.writeOn(HeaderFile);
+        HeaderFile << '\n';
     }
 
     // write the MultiFab data to, e.g., chk00010/Level_0/
@@ -121,6 +127,10 @@ void WriteCheckPoint(int step,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleMeans"));
     VisMF::Write(particleVars,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleVars"));
+
+    // electrostatic potential
+    VisMF::Write(potential,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
 
     int check;
     char str[80];
@@ -164,7 +174,8 @@ void ReadCheckPoint(int& step,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacM,
                     std::array< MultiFab, AMREX_SPACEDIM >& umacV,
                     MultiFab& particleMeans,
-                    MultiFab& particleVars)
+                    MultiFab& particleVars,
+                    MultiFab& potential)
 {
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPoint()",ReadCheckPoint);
@@ -212,6 +223,10 @@ void ReadCheckPoint(int& step,
         bc.readFrom(is);
         GotoNextLine(is);
 
+        BoxArray bp;
+        bp.readFrom(is);
+        GotoNextLine(is);
+
         // create a distribution mapping
         DistributionMapping dm { ba, ParallelDescriptor::NProcs() };
         
@@ -254,6 +269,19 @@ void ReadCheckPoint(int& step,
         particleMeans.define(bc,dm,14,0);
         particleVars .define(bc,dm,18,0);
         
+        // cell centred es potential
+        int ngp = 1;
+        if (pkernel_es == 3) {
+            ngp = 2;
+        }
+        else if (pkernel_es == 4) {
+            ngp = 3;
+        }
+        else if (pkernel_es == 6) {
+            ngp = 4;
+        }
+
+        potential.define(bp,dm,1,ngp);
     }
 
     // read in the MultiFab data
@@ -293,6 +321,10 @@ void ReadCheckPoint(int& step,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleMeans"));
     VisMF::Read(particleVars,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "particleVars"));
+
+    // electrostatic potential
+    VisMF::Read(potential,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "potential"));
     
     // random number engines
     int digits = 9;

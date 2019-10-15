@@ -56,6 +56,9 @@ void main_driver(const char* argv)
 
     // BoxArray for the particles
     BoxArray bc;
+
+    // BoxArray electrostatic grid
+    BoxArray bp;
     
     // Box for the fluid
     IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
@@ -78,6 +81,17 @@ void main_driver(const char* argv)
     else if (pkernel_fluid == 6) {
         ang = 4;
     }
+
+    int ngp = 1;
+    if (pkernel_es == 3) {
+        ngp = 2;
+    }
+    else if (pkernel_es == 4) {
+        ngp = 3;
+    }
+    else if (pkernel_es == 6) {
+        ngp = 4;
+    }
         
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
@@ -90,6 +104,9 @@ void main_driver(const char* argv)
     // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
     MultiFab particleMeans;
     MultiFab particleVars;
+
+    // MF for electric potential
+    MultiFab potential;
     
     if (restart < 0) {
         
@@ -135,6 +152,7 @@ void main_driver(const char* argv)
         }
 
         bc = ba;
+        bp = ba;
         
         // particle grid_refine: <1 = refine, >1 = coarsen.
         // assume only powers of 2 for now
@@ -145,6 +163,15 @@ void main_driver(const char* argv)
         else {
             int sizeRatio = (int)(particle_grid_refine);
             bc.coarsen(sizeRatio);
+        }
+        
+        if (es_grid_refine < 1) {
+            int sizeRatio = (int)(1.0/es_grid_refine);
+            bp.refine(sizeRatio);
+        }
+        else {
+            int sizeRatio = (int)(es_grid_refine);
+            bp.coarsen(sizeRatio);
         }
         
         // Variables (C++ index)
@@ -185,12 +212,17 @@ void main_driver(const char* argv)
         // (16) Cy
         // (17) Cz 
         particleVars.define(bc, dmap, 18, 0);
-        particleVars.setVal(0.);        
+        particleVars.setVal(0.);
+
+        //Cell centred es potential
+        potential.define(bp, dmap, 1, ngp);
+        potential.setVal(0.);
     }
     else {
         
         // restart from checkpoint
-        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,particleMeans,particleVars);
+        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV, 
+                       particleMeans,particleVars,potential);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -201,10 +233,10 @@ void main_driver(const char* argv)
 
         // grab particle BoxArray from particleMeans
         bc = particleMeans.boxArray();
-    }
 
-    // BoxArray electrostatic grid
-    BoxArray bp = ba;
+        // grab electrostatic potential BoxArray from potential
+        bp = potential.boxArray();
+    }
 
     // Domain boxes for particle and electrostatic grids
     Box domainC = domain;
@@ -223,12 +255,10 @@ void main_driver(const char* argv)
     }
     if (es_grid_refine < 1) {
         int sizeRatio = (int)(1.0/es_grid_refine);
-        bp.refine(sizeRatio);
         domainP.refine(sizeRatio);
     }
     else {
         int sizeRatio = (int)(es_grid_refine);
-        bp.coarsen(sizeRatio);
         domainP.coarsen(sizeRatio);
     }
 
@@ -614,26 +644,11 @@ void main_driver(const char* argv)
     // Electrostatic setup
     //----------------------
 
-    int ngp = 1;
-    if (pkernel_es == 3) {
-        ngp = 2;
-    }
-    else if (pkernel_es == 4) {
-        ngp = 3;
-    }
-    else if (pkernel_es == 6) {
-        ngp = 4;
-    }
-
     // cell centered real coordinates - es grid
     MultiFab RealCenteredCoords;
     RealCenteredCoords.define(bp, dmap, AMREX_SPACEDIM, ngp);
 
     FindCenterCoords(RealCenteredCoords, geomP);
-    
-    //Cell centred es potential
-    MultiFab potential(bp, dmap, 1, ngp);
-    potential.setVal(0);
 
     //charage density for RHS of Poisson Eq.
     MultiFab charge(bp, dmap, 1, ngp);
@@ -839,7 +854,7 @@ void main_driver(const char* argv)
 
         if (chk_int > 0 && istep%chk_int == 0) {
             WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV,
-                            particles, particleMeans, particleVars);
+                            particles, particleMeans, particleVars, potential);
         }
 
         // timer for time step
