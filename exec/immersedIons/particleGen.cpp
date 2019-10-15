@@ -8,6 +8,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
     const Geometry& geom = Geom(lev);
 
     int pcount = 0;
+
+    bool proc0_enter = true;
         
     for (MFIter mfi = MakeMFIter(lev, true); mfi.isValid(); ++mfi) {
         
@@ -21,7 +23,9 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
         IntVect smallEnd = tile_box.smallEnd();
         IntVect bigEnd = tile_box.bigEnd();       
 
-        if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0) {
+        if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
+
+            proc0_enter = false;
             
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
