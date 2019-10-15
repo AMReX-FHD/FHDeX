@@ -177,6 +177,8 @@ public:
 
     void InitParticles(species* particleInfo, const Real* dxp);
 
+    void PostRestart();
+
     void WriteParticlesAscii(string asciiName);
 
     void DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,

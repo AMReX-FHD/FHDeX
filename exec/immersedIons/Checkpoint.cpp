@@ -282,4 +282,6 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     // restore particles
     particles.Restart(checkpointname,"particle");
 
+    particles.PostRestart();
+
 }
