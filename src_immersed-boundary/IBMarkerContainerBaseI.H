@@ -223,7 +223,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
             for (int i = 0; i < np; ++i) {
                 ParticleType & part = particles[i];
                 id = part.id();
-                std::cout << id << " of " << totalParticles << std::endl;
+                //std::cout << id << " of " << totalParticles << std::endl;
                 list[id] = particles[i].rdata(StructReal::radius + element);
             }
 
@@ -244,8 +244,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
         temp = list[i];
         ParallelDescriptor::ReduceRealSum(temp);
         list[i] = temp;
-
-        Print() << list[i] << std::endl;
     }
     // Vectorized alternative (warning: untested!):
     // // Create a vector wrapping the `list` array:

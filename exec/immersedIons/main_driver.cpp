@@ -786,7 +786,7 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-        //particles.RadialDistribution(simParticles, istep, ionParticle);
+        particles.RadialDistribution(simParticles, istep, ionParticle);
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 

@@ -263,6 +263,10 @@ public:
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 
+        
+    Real * meanRadialDistribution;
+    int totalBins, radialStatsCount;
+    Real binSize;
 
 
 protected:
