@@ -43,4 +43,6 @@ void outputMFAscii(const MultiFab& output, std::string filename)
         ofs<<(output[mfi])<<std::endl;                                              
     }
 
+    ofs.close();
+
 }

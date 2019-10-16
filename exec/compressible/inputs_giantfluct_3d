@@ -12,9 +12,10 @@
 
   ! number of cells in domain
   n_cells(1:3) = 256 128 1
+
   ! max number of cells in a box
-  max_grid_size(1:3) = 256 128 1
-  max_grid_size(1:3) = 64 64 1
+
+  max_grid_size(1:3) = 128 64 1
   ! Time-step control
   fixed_dt = 1e-10
 
@@ -52,7 +53,7 @@
   rho0 = 4.83e-4
 
   struct_fact_int = 1
-  project_dir = 1
+  project_dir = -1
   max_grid_projection(1:2) = 256 1
   max_grid_projection(1:2) = 32 1
 

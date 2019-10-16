@@ -439,7 +439,7 @@ contains
     enddo
 
     avcurrent = 0
-        cellcount = 0
+    cellcount = 0
 
     do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
@@ -456,7 +456,7 @@ contains
       enddo
     enddo
 
-        !print *, "total current density: ", avcurrent/cellcount
+    print *, "Current density mean: ", avcurrent/cellcount
         
   end subroutine evaluate_means
 
@@ -489,8 +489,8 @@ contains
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k, it, jt, kt
-    double precision stepsminusone, stepsinv, lhs, rhs, tempcm, cv, ncm, velcm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp, delix, deliy, deliz
+    integer i,j,k, it, jt, kt, cellcount
+    double precision stepsminusone, stepsinv, lhs, rhs, tempcm, cv, ncm, velcm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp, delix, deliy, deliz, varcurrent(3)
 
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
@@ -563,6 +563,26 @@ contains
         enddo
       enddo
     enddo
+
+    varcurrent = 0
+    cellcount = 0
+
+    do k = vlo(3), vhi(3)
+      do j = vlo(2), vhi(2)
+        do i = vlo(1), vhi(1)
+
+
+            varcurrent(1) = varcurrent(1) + vars(i,j,k,16)
+            varcurrent(2) = varcurrent(2) + vars(i,j,k,17)
+            varcurrent(3) = varcurrent(3) + vars(i,j,k,18)
+
+                cellcount = cellcount +1
+ 
+        enddo
+      enddo
+    enddo
+
+    print *, "Current density variance: ", varcurrent/cellcount
 
   end subroutine evaluate_corrs
 

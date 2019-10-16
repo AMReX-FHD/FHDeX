@@ -119,7 +119,7 @@
 &gmres
 
   ! GMRES solver parameters
-  gmres_rel_tol = 1.e-12                 ! relative tolerance stopping criteria
+  gmres_rel_tol = 1.e-10                 ! relative tolerance stopping criteria
   gmres_abs_tol = 0                     ! absolute tolerance stopping criteria
   gmres_verbose =  1                    ! gmres verbosity; if greater than 1, more residuals will be printed out
   gmres_max_outer = 20                  ! max number of outer iterations
