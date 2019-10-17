@@ -88,4 +88,41 @@ subroutine sum_fab(lo, hi, infab, inlo, inhi, insize, gs, total, comp) bind(C, n
 
 end subroutine sum_fab
 
+subroutine x_mean_fab(lo, hi, infab, inlo, inhi, insize, outfab, outlo, outhi, outsize, gs) bind(C, name="x_mean_fab")
+
+  integer         , intent(in   ) :: outlo(3), outhi(3), inlo(3), inhi(3), lo(3), hi(3), insize, outsize, gs
+
+  double precision, intent(in   ) :: infab(inlo(1):inhi(1),inlo(2):inhi(2),inlo(3):inhi(3), 1:insize)
+  double precision, intent(inout) :: outfab(outlo(1):outhi(1),outlo(2):outhi(2),outlo(3):outhi(3), 1:outsize)
+
+  ! local variables
+  integer i,j, k, l, cellcount
+  double precision xmean
+ 
+
+  !print *, lo, hi, gs
+  do l = 1, insize
+    do k = lo(3) - gs, hi(3) + gs
+      do j = lo(2) - gs, hi(2) + gs
+
+        xmean = 0
+        cellcount = 0
+        do i = lo(1) - gs, hi(1) + gs
+
+          xmean = xmean + infab(i,j,k,l)
+          cellcount = cellcount + 1
+         
+        end do
+
+        do i = lo(1) - gs, hi(1) + gs
+
+          outfab(i,j,k,l) = xmean/cellcount
+         
+        end do
+      end do
+    end do
+  end do
+
+end subroutine x_mean_fab
+
 end module compute_basic_stats_module

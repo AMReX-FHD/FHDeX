@@ -249,11 +249,6 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Rea
 
 void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 
-    //___________________________________________________________________________
-    // Ensure that the marker lists have enough levels, and clear previous ones
-    if (marker_ref_pos.size() <= lev)
-        marker_ref_pos.resize(lev+1);
-
 
     double inv_sqrt_n = 1./std::sqrt(n_marker);
 
@@ -290,14 +285,11 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
             // elt = (particle ID, particle data)
             //        ^^ first ^^, ^^ second  ^^
 
-            //___________________________________________________________________
-            // Create blank marker list, and access particle data
-            // ... initialized to (0..0) by default constructor
-            marker_ref_pos[lev][pindex].resize(n_marker);
-
-
-            double   r     = part.rdata(IBMB_realData::radius)*0.8; // HACK: put markers slightly inside
+            
+            // HACK: put markers slightly inside TODO: fix
+            double   r     = part.rdata(IBMB_realData::radius)*0.8;
             RealVect pos_0 = {AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))};
+
 
             //___________________________________________________________________
             // Fill marker using Saff spiral
@@ -327,76 +319,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 #endif
                 {
                     // Add to list
-                    marker_ref_pos[lev][pindex][i] = pos;
                     markers.InitSingle(lev, 1., pos, part.id(), part.cpu(), i);
-                }
-            }
-        }
-    }
-
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
-    for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
-
-        ParticleVector & particles = GetNeighbors(lev, pti.index(),
-                                                  pti.LocalTileIndex());
-        long np = particles.size();
-
-        for (int i = 0; i < np; ++i) {
-            ParticleType & part = particles[i];
-            ParticleIndex pindex(part.id(), part.cpu());
-
-            //___________________________________________________________________
-            // Based on the paper:
-            // >*Distributing many points on a sphere*, E. B. Saff, A. B. J.
-            // Kuijlaars, *The Mathematical Intelligencer*, **19** (1997)
-
-            // elt = (particle ID, particle data)
-            //        ^^ first ^^, ^^ second  ^^
-
-            //___________________________________________________________________
-            // Create blank marker list, and access particle data
-            // ... initialized to (0..0) by default constructor
-            marker_ref_pos[lev][pindex].resize(n_marker);
-
-
-            double   r     = part.rdata(IBMB_realData::radius)*0.8; // HACK: put markers slightly inside
-            RealVect pos_0 = {AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))};
-
-            //___________________________________________________________________
-            // Fill marker using Saff spiral
-            double phi = 0.;
-            for (int i=0; i<n_marker; ++i) {
-
-                // Compute polar coordinates of marker positions
-                double ck    = -1. + (2.*i)/(n_marker-1);
-                double theta = std::acos(ck);
-
-                if ( (i==0) || (i==n_marker-1) ) phi = 0;
-                else phi = std::fmod(phi + 3.6*inv_sqrt_n/std::sqrt(1-ck*ck), 2*M_PI);
-
-                // Convert to cartesian coordinates
-                RealVect pos;
-#if   (AMREX_SPACEDIM == 2)
-                pos[0] = pos_0[0] + r*std::sin(theta);
-                pos[1] = pos_0[1] + r*std::cos(theta);
-#elif (AMREX_SPACEDIM == 3)
-                pos[0] = pos_0[0] + r*std::sin(theta)*std::cos(phi);
-                pos[1] = pos_0[1] + r*std::sin(theta)*std::sin(phi);
-                pos[2] = pos_0[2] + r*std::cos(theta);
-#endif
-
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-                {
-                    // Add to list
-                    marker_ref_pos[lev][pindex][i] = pos;
-                    // Don't do this for the neighbor-markers (already being
-                    // done by the owner's core)
-                    // markers.InitSingle(lev, 1., pos, part.id(), part.cpu(), i);
                 }
             }
         }
@@ -408,7 +331,9 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 void IBMultiBlobContainer::SpreadMarkers(int lev,
                                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
-
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.SpreadMarkers(lev, f_out);
 }
 
 
@@ -416,6 +341,9 @@ void IBMultiBlobContainer::SpreadMarkers(int lev,
 void IBMultiBlobContainer::SpreadPredictor(int lev,
                                            std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.SpreadPredictor(lev, f_out);
 }
 
 
@@ -423,7 +351,9 @@ void IBMultiBlobContainer::SpreadPredictor(int lev,
 void IBMultiBlobContainer::InterpolateMarkers(int lev,
                                               const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
 
-
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.InterpolateMarkers(lev, f_in);
 }
 
 
@@ -431,7 +361,9 @@ void IBMultiBlobContainer::InterpolateMarkers(int lev,
 void IBMultiBlobContainer::InterpolatePredictor(int lev,
                                                 const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
 
-
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.InterpolatePredictor(lev, f_in);
 }
 
 
@@ -451,28 +383,6 @@ void IBMultiBlobContainer::InitInternals(int ngrow) {
     // We _do_ want the the neighbour particles to have ID and cpu init data.
     // setIntCommComp(0, false);  // IBP_intData.phase
     // setIntCommComp(1, false);  // IBP_intData.state
-
-
-    /****************************************************************************
-     *                                                                          *
-     * Fill auxiallry data used by interpolsation                               *
-     *   -> face_coords: the face-centered coordinates used by the fluid grids  *
-     *                                                                          *
-     ***************************************************************************/
-
-    // TODO: this is only assuming 1 fluid level (level 0)
-    int lev = 0;
-
-    face_coords.resize(lev + 1);
-    const BoxArray & ba            = ParticleBoxArray(lev);
-    const DistributionMapping & dm = ParticleDistributionMap(lev);
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        const BoxArray ba_fc = convert(ba, nodal_flag_dir[d]);
-        face_coords[lev][d].define(ba_fc, dm, AMREX_SPACEDIM, ngrow);
-    }
-
-    const Geometry & geom = Geom(lev);
-    FindFaceCoords(face_coords[lev], geom);
 }
 
 
