@@ -292,7 +292,7 @@ subroutine init_rho_and_umac(lo,hi, &
 
   ! local variables
   integer          :: i,j,n
-  double precision :: half,x,y,rad,L(2),sumtot,c_loc,y1,r,r1,r2,m_e
+  double precision :: half,x,y,rad,L(2),sumtot,c_loc,y1,r,r1,r2,m_e,l1,l2
 
   double precision :: random
 
@@ -357,6 +357,67 @@ subroutine init_rho_and_umac(lo,hi, &
            end if
 
         end do
+     end do
+     !$omp end parallel do
+
+  case (4) 
+
+     !=============================================================
+     ! bubble with radius = 1/4 of domain in x
+     ! c=c_init(1,:) inside, c=c_init(2,:) outside
+     ! can be discontinous or smooth depending on smoothing_width
+     !=============================================================
+
+     u = 0.d0
+     v = 0.d0
+
+     l1 = L(2)/3
+     l2 = 2*l1
+
+     ! print *, "Hack: smoothing width = ", smoothing_width
+     ! print *, "Hack: nspecies = ", nspecies
+     ! print *, "Hack: dx = ", dx(1), " dy = ", dx(2)
+     ! print *, "Hack: c_init 1 = ", c_init(1,1:nspecies)
+     ! print *, "Hack: c_init 2 = ", c_init(2,1:nspecies)
+
+     !$omp parallel do private(i,j,k,x,y,z,r)
+     do j=lo(2),hi(2)
+        y = prob_lo(2) + (dble(j)+half)*dx(2)
+
+        !print *, "y: ", y
+        do i=lo(1),hi(1)
+           x = prob_lo(1) + (dble(i)+half)*dx(1)
+
+
+            !print *, "Hack: x = ", x, " y = ", y
+
+           if (smoothing_width .eq. 0) then
+
+              ! discontinuous interface
+              if (y .lt. l1) then
+                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+              elseif(y .lt. l2) then
+                 c(i,j,1:nspecies) = c_init(2,1:nspecies)
+              else
+                 c(i,j,1:nspecies) = c_init(1,1:nspecies)
+              endif
+
+              ! print *, "Hack: c = ", c(i,j,1:nspecies)
+              ! print *, "Hack: r = ", r, "Hack: r_ad = ", rad
+
+           else
+
+              ! smooth interface
+              c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1) + &
+                   (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
+                   (1/(1+Exp(-smoothing_width*(y-l1))) - 1/(1+Exp(-smoothing_width*(y-l2))))
+
+              ! print *, "Hack: c = ", c(i,j,1:nspecies-1)
+
+           end if           
+
+        end do
+        !print *, "c: ", c(i,j,1:nspecies)
      end do
      !$omp end parallel do
 

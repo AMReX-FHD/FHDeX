@@ -104,12 +104,24 @@ void main_driver(const char* argv)
     /////////////////////////////////////////
 
     // NOTE: only fhdSeed is used currently
-    int fhdSeed = seed_diffusion;
-    int particleSeed = 1;
-    int selectorSeed = 1;
-    int thetaSeed = 1;
-    int phiSeed = 1;
-    int generalSeed = 1;
+        // zero is a clock-based seed
+    int fhdSeed      = 0;
+    int particleSeed = 0;
+    int selectorSeed = 0;
+    int thetaSeed    = 0;
+    int phiSeed      = 0;
+    int generalSeed  = 0;
+
+    // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
+    // this should be fixed so each physical process has its own seed control
+    if (seed > 0) {
+        fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
+        particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
+        selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
+        thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
+        phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
+        generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+    }
 
     // Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
@@ -301,54 +313,54 @@ void main_driver(const char* argv)
     beqmvars[cnt++] = MEeqmcovar;                 // rho_k,rhoE   - scaled by mass fracs later
     beqmvars[cnt++] = Meqmvar;                    // rho_k,rho_l  - scaled by mass fracs later
     
-    // loop over lower triangular block matrix
-    cnt = 0;
-    int bcnt = 0;
-    int ig, jg = 0;
-    // loop over matrix blocks
-    for(int jb=0; jb<nb_sf; jb++) {
-      ig = jg;
-      for(int ib=jb; ib<nb_sf; ib++) {
-	// loop within blocks
-	for(int j=0; j<blocks[jb]; j++) {
-	  int low_ind;
-	  if(ib==jb){      // if block lies on diagonal...
-	    low_ind=j;
-	  } else {
-	    low_ind=0;
-	  }
-	  for(int i=low_ind; i<blocks[ib]; i++) {
-	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
-	    eqmvars[cnt] = beqmvars[bcnt];
+//    // loop over lower triangular block matrix
+//    cnt = 0;
+//    int bcnt = 0;
+//    int ig, jg = 0;
+//    // loop over matrix blocks
+//    for(int jb=0; jb<nb_sf; jb++) {
+//      ig = jg;
+//      for(int ib=jb; ib<nb_sf; ib++) {
+//	// loop within blocks
+//	for(int j=0; j<blocks[jb]; j++) {
+//	  int low_ind;
+//	  if(ib==jb){      // if block lies on diagonal...
+//	    low_ind=j;
+//	  } else {
+//	    low_ind=0;
+//	  }
+//	  for(int i=low_ind; i<blocks[ib]; i++) {
+//	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
+//	    eqmvars[cnt] = beqmvars[bcnt];
 
-	    // fix scale for individual species
-	    if(ib != 2 && jb != 2) { // not for energy
+//	    // fix scale for individual species
+//	    if(ib != 2 && jb != 2) { // not for energy
 
-	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
-	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
-	    	eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
-	      } else if (blocks[ib]==nspecies) {
-	    	eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
-	      } else if (blocks[jb]==nspecies) {
-	    	eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
-	      }
+//	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
+//	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
+//	    	eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
+//	      } else if (blocks[ib]==nspecies) {
+//	    	eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
+//	      } else if (blocks[jb]==nspecies) {
+//	    	eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
+//	      }
 
-	    } else {
-	      
-	      // if rho_k & energy, only scale by Yk
-	      if(blocks[ib]==nspecies && jb==2) {
-	    	eqmvars[cnt] *= rhobar[i];
-	      }
-	      
-	    }
+//	    } else {
+//	      
+//	      // if rho_k & energy, only scale by Yk
+//	      if(blocks[ib]==nspecies && jb==2) {
+//	    	eqmvars[cnt] *= rhobar[i];
+//	      }
+//	      
+//	    }
 
-	  }
-	}
-	bcnt++;
-	ig += blocks[ib];
-      }
-      jg += blocks[jb];
-    }
+//	  }
+//	}
+//	bcnt++;
+//	ig += blocks[ib];
+//      }
+//      jg += blocks[jb];
+//    }
 
     ////////////////////////////////
 
