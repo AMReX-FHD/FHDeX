@@ -242,16 +242,8 @@ public:
 private:
 
 
-    // Positions on faces
-    Vector<std::array<MultiFab, AMREX_SPACEDIM>> face_coords;
-
-    // IB marker reference data
-    Vector<IBMarkerMap> marker_ref_pos;
-
     // IB marker data
     BlobContainer markers;
-
-
 
     void InitInternals(int ngrow);
     void ReadStaticParameters();
