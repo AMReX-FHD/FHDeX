@@ -331,7 +331,9 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 void IBMultiBlobContainer::SpreadMarkers(int lev,
                                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
-
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.SpreadMarkers(lev, f_out);
 }
 
 
@@ -339,6 +341,9 @@ void IBMultiBlobContainer::SpreadMarkers(int lev,
 void IBMultiBlobContainer::SpreadPredictor(int lev,
                                            std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.SpreadPredictor(lev, f_out);
 }
 
 
@@ -346,7 +351,9 @@ void IBMultiBlobContainer::SpreadPredictor(int lev,
 void IBMultiBlobContainer::InterpolateMarkers(int lev,
                                               const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
 
-
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.InterpolateMarkers(lev, f_in);
 }
 
 
@@ -354,7 +361,9 @@ void IBMultiBlobContainer::InterpolateMarkers(int lev,
 void IBMultiBlobContainer::InterpolatePredictor(int lev,
                                                 const std::array<MultiFab, AMREX_SPACEDIM> & f_in) {
 
-
+    // Since the Blob-Container already contains all the markers, we hand this
+    // call off to the `BlobContainer markers` member.
+    markers.InterpolatePredictor(lev, f_in);
 }
 
 
