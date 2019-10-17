@@ -110,35 +110,24 @@ void IBMarkerContainer::InitList(int lev,
                 p_new.id()  = ParticleType::NextID();
                 p_new.cpu() = ParallelDescriptor::MyProc();
 
-                // Set particle position
-                p_new.pos(0) = pos[i][0];
-                p_new.pos(1) = pos[i][1];
-                p_new.pos(2) = pos[i][2];
+                for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                    // Set particle (marker) position
+                    p_new.pos(d) = pos[i][d];
 
+                    // Initialize marker velocity as well as forces to 0
+                    p_new.rdata(IBMReal::velx + d)   = 0.;
+                    p_new.rdata(IBMReal::forcex + d) = 0.;
+
+                    p_new.rdata(IBMReal::pred_posx + d)   = 0.;
+                    p_new.rdata(IBMReal::pred_velx + d)   = 0.;
+                    p_new.rdata(IBMReal::pred_forcex + d) = 0.;
+                }
+
+                // Marker metadata (pt #2 are filled in the next sweep):
+                // 1. Marker search radius
                 p_new.rdata(IBMReal::radius) = radius[i];
 
-                // Initialize marker velocity as well as forces to 0
-                p_new.rdata(IBMReal::velx)   = 0.;
-                p_new.rdata(IBMReal::vely)   = 0.;
-                p_new.rdata(IBMReal::velz)   = 0.;
-
-                p_new.rdata(IBMReal::forcex) = 0.;
-                p_new.rdata(IBMReal::forcey) = 0.;
-                p_new.rdata(IBMReal::forcez) = 0.;
-
-                p_new.rdata(IBMReal::pred_posx)   = 0.;
-                p_new.rdata(IBMReal::pred_posy)   = 0.;
-                p_new.rdata(IBMReal::pred_posz)   = 0.;
-
-                p_new.rdata(IBMReal::pred_velx)   = 0.;
-                p_new.rdata(IBMReal::pred_vely)   = 0.;
-                p_new.rdata(IBMReal::pred_velz)   = 0.;
-
-                p_new.rdata(IBMReal::pred_forcex) = 0.;
-                p_new.rdata(IBMReal::pred_forcey) = 0.;
-                p_new.rdata(IBMReal::pred_forcez) = 0.;
-
-                // These are filled in the next sweep:
+                // 2. Marker contexual (and connectivity) metadata
                 p_new.idata(IBMInt::id_0)  = -1;
                 p_new.idata(IBMInt::cpu_0) = -1;
 
@@ -258,34 +247,24 @@ void IBMarkerContainer::InitSingle(int lev, Real radius, const RealVect & pos,
             p_new.id()  = ParticleType::NextID();
             p_new.cpu() = ParallelDescriptor::MyProc();
 
-            // Set particle position
-            p_new.pos(0) = pos[0];
-            p_new.pos(1) = pos[1];
-            p_new.pos(2) = pos[2];
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // Set particle (marker) position
+                p_new.pos(d) = pos[d];
 
+                // Initialize marker velocity as well as forces to 0
+                p_new.rdata(IBMReal::velx + d)   = 0.;
+                p_new.rdata(IBMReal::forcex + d) = 0.;
+
+                p_new.rdata(IBMReal::pred_posx + d)   = 0.;
+                p_new.rdata(IBMReal::pred_velx + d)   = 0.;
+                p_new.rdata(IBMReal::pred_forcex + d) = 0.;
+            }
+
+            // Marker metadata:
+            // 1. Marker search radius
             p_new.rdata(IBMReal::radius) = radius;
 
-            // Initialize marker velocity as well as forces to 0
-            p_new.rdata(IBMReal::velx)   = 0.;
-            p_new.rdata(IBMReal::vely)   = 0.;
-            p_new.rdata(IBMReal::velz)   = 0.;
-
-            p_new.rdata(IBMReal::forcex) = 0.;
-            p_new.rdata(IBMReal::forcey) = 0.;
-            p_new.rdata(IBMReal::forcez) = 0.;
-
-            p_new.rdata(IBMReal::pred_posx)   = 0.;
-            p_new.rdata(IBMReal::pred_posy)   = 0.;
-            p_new.rdata(IBMReal::pred_posz)   = 0.;
-
-            p_new.rdata(IBMReal::pred_velx)   = 0.;
-            p_new.rdata(IBMReal::pred_vely)   = 0.;
-            p_new.rdata(IBMReal::pred_velz)   = 0.;
-
-            p_new.rdata(IBMReal::pred_forcex) = 0.;
-            p_new.rdata(IBMReal::pred_forcey) = 0.;
-            p_new.rdata(IBMReal::pred_forcez) = 0.;
-
+            // 2. Marker contexual (and connectivity) metadata
             p_new.idata(IBMInt::id_0)  = id;
             p_new.idata(IBMInt::cpu_0) = cpu;
 

@@ -35,8 +35,31 @@ struct IBBReal {
         ref_delz,
         count
     };
-};
 
+    static Vector<std::string> names() {
+        return Vector<std::string> {
+            "radius",
+            "velx",
+            "vely",
+            "velz",
+            "forcex",
+            "forcey",
+            "forcez",
+            "pred_posx",
+            "pred_posy",
+            "pred_posz",
+            "pred_velx",
+            "pred_vely",
+            "pred_velz",
+            "pred_forcex",
+            "pred_forcey",
+            "pred_forcez",
+            "ref_delx",
+            "ref_dely",
+            "ref_delz"
+        };
+    };
+};
 
 
 using IBBInt = IBMInt;
@@ -167,10 +190,7 @@ public:
     };
 
 
-    void InitList(int lev,
-                  const Vector<RealVect> & pos,
-                  const Vector<Real> & r,
-                  const Vector<Real> & rho);
+    void InitSingle(int lev, const RealVect & pos, Real r, Real rho);
 
 
     void FillMarkerPositions(int lev, int n_marker);

@@ -89,34 +89,25 @@ void BlobContainer::InitSingle(int lev,
             p_new.id()  = ParticleType::NextID();
             p_new.cpu() = ParallelDescriptor::MyProc();
 
-            // Set particle position
-            p_new.pos(0) = pos[0];
-            p_new.pos(1) = pos[1];
-            p_new.pos(2) = pos[2];
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                // Set particle (blob) and reference position
+                p_new.pos(d) = pos[d];
+                p_new.rdata(IBBReal::ref_delx + d) = 0;
 
+                // Initialize marker velocity as well as forces to 0
+                p_new.rdata(IBBReal::velx + d)   = 0.;
+                p_new.rdata(IBBReal::forcex + d) = 0.;
+
+                p_new.rdata(IBBReal::pred_posx + d)   = 0.;
+                p_new.rdata(IBBReal::pred_velx + d)   = 0.;
+                p_new.rdata(IBBReal::pred_forcex + d) = 0.;
+            }
+
+            // Blob metadata
+            // 1. Blob search radius
             p_new.rdata(IBBReal::radius) = radius;
 
-            // Initialize marker velocity as well as forces to 0
-            p_new.rdata(IBBReal::velx)   = 0.;
-            p_new.rdata(IBBReal::vely)   = 0.;
-            p_new.rdata(IBBReal::velz)   = 0.;
-
-            p_new.rdata(IBBReal::forcex) = 0.;
-            p_new.rdata(IBBReal::forcey) = 0.;
-            p_new.rdata(IBBReal::forcez) = 0.;
-
-            p_new.rdata(IBBReal::pred_posx)   = 0.;
-            p_new.rdata(IBBReal::pred_posy)   = 0.;
-            p_new.rdata(IBBReal::pred_posz)   = 0.;
-
-            p_new.rdata(IBBReal::pred_velx)   = 0.;
-            p_new.rdata(IBBReal::pred_vely)   = 0.;
-            p_new.rdata(IBBReal::pred_velz)   = 0.;
-
-            p_new.rdata(IBBReal::pred_forcex) = 0.;
-            p_new.rdata(IBBReal::pred_forcey) = 0.;
-            p_new.rdata(IBBReal::pred_forcez) = 0.;
-
+            // 2. Blob contexual metadata
             p_new.idata(IBBInt::id_0)  = id;
             p_new.idata(IBBInt::cpu_0) = cpu;
 
@@ -173,10 +164,7 @@ IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
 
 
 
-void IBMultiBlobContainer::InitList(int lev,
-                                   const Vector<RealVect> & pos,
-                                   const Vector<Real> & r,
-                                   const Vector<Real> & rho) {
+void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Real rho) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -204,53 +192,44 @@ void IBMultiBlobContainer::InitList(int lev,
         const int tile_id = mfi.LocalTileIndex();
         auto & particles = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
-        for(int i = 0; i < pos.size(); i++) {
-            // IntVect representing particle's position in the tile_box grid.
-            RealVect pos_grid = pos[i];
-            pos_grid *= inv_dx;
-            IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
-                                                   (int) pos_grid[1],
-                                                   (int) pos_grid[2]  ));
+        // IntVect representing particle's position in the tile_box grid.
+        RealVect pos_grid = pos;
+        pos_grid *= inv_dx;
+        IntVect pos_ind = IntVect(AMREX_D_DECL((int) pos_grid[0],
+                                               (int) pos_grid[1],
+                                               (int) pos_grid[2]  ));
 
-            // Add particle at position pos iff it's vector index is contained
-            // within tile_box.
-            if(tile_box.contains(pos_ind)) {
-                pcount ++;
+        // Add particle at position pos iff it's vector index is contained
+        // within tile_box.
+        if(tile_box.contains(pos_ind)) {
+            pcount ++;
 
-                ParticleType p_new;
+            ParticleType p_new;
 
-                // Set id and cpu for this particle
-                p_new.id()  = ParticleType::NextID();
-                p_new.cpu() = ParallelDescriptor::MyProc();
+            // Set id and cpu for this multiblob
+            p_new.id()  = ParticleType::NextID();
+            p_new.cpu() = ParallelDescriptor::MyProc();
 
-                // Set particle position
-                p_new.pos(0) = pos[i][0];
-                p_new.pos(1) = pos[i][1];
-                p_new.pos(2) = pos[i][2];
-
-                p_new.rdata(IBMB_realData::radius) = r[i];
+            for (int d=0; d<AMREX_SPACEDIM; ++d){
+                // Set multiblob position
+                p_new.pos(d) = pos[d];
 
                 // Initialize particle velocity (and angular velocity) as well
                 // as drag to 0
-                p_new.rdata(IBMB_realData::velx)   = 0.;
-                p_new.rdata(IBMB_realData::vely)   = 0.;
-                p_new.rdata(IBMB_realData::velz)   = 0.;
-
-                p_new.rdata(IBMB_realData::omegax) = 0.;
-                p_new.rdata(IBMB_realData::omegay) = 0.;
-                p_new.rdata(IBMB_realData::omegaz) = 0.;
-
-                p_new.rdata(IBMB_realData::dragx)  = 0.;
-                p_new.rdata(IBMB_realData::dragy)  = 0.;
-                p_new.rdata(IBMB_realData::dragz)  = 0.;
-
-                // TODO: Audit
-                p_new.idata(IBMB_intData::phase) = -1;
-                p_new.idata(IBMB_intData::state) = -1;
-
-                // Add to the data structure
-                particles.push_back(p_new);
+                p_new.rdata(IBMB_realData::velx + d)   = 0.;
+                p_new.rdata(IBMB_realData::omegax + d) = 0.;
+                p_new.rdata(IBMB_realData::dragx + d)  = 0.;
             }
+
+            // Physical radius of multiblob
+            p_new.rdata(IBMB_realData::radius) = r;
+
+            // TODO: Audit
+            p_new.idata(IBMB_intData::phase) = -1;
+            p_new.idata(IBMB_intData::state) = -1;
+
+            // Add to the data structure
+            particles.push_back(p_new);
         }
 
         const int np = pcount;
