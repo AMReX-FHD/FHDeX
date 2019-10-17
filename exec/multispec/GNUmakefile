@@ -2,13 +2,13 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../amrex/
 
-DEBUG     = TRUE
+DEBUG     = FALSE
 PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu
 DIM       = 2
-DSMC      = TRUE
+DSMC      = FALSE
 
 USE_PARTICLES = TRUE
 

@@ -3,7 +3,7 @@
 AMREX_HOME ?= ../../../amrex/
 FBOXLIB_HOME ?= ../../../FBoxLib/
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
 COMP      = gnu

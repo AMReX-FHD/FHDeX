@@ -3,7 +3,7 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx, &
 
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only : ngc, nvars, nprimvars, nspecies, &
-                                     n_cells, prob_type, molmass, Runiv, grav, membrane_cell
+                                     n_cells, prob_type, molmass, Runiv, grav, membrane_cell, rho0, prob_lo, prob_hi, t_lo, t_hi
   use compressible_namelist_module, only : bc_Yk
   use conv_module, only : get_energy, get_pressure_gas
 
@@ -17,7 +17,7 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx, &
 
   integer          :: i,j,k,l
   double precision :: pos(3),center(3),itVec(3),relpos(3)
-  double precision :: L_hlf, pi, Lf, pres, velscale, mach,x,y,z
+  double precision :: L_hlf, pi, Lf, pres, velscale, mach,x,y,z, hy
   double precision :: massvec(nspecies), intEnergy, pamb, molmix, rgasmix, alpha
   double precision :: Ygrad
 
@@ -27,8 +27,10 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx, &
   mach = 0.3
   velscale = 30565.2d0*mach
 
+  hy = (prob_hi(2) - prob_lo(2))/3d0
+
   pi = acos(-1.d0)
-  write(6,*)"into init"
+  !write(6,*)"into init"
 
   do k = lo(3), hi(3)
   do j = lo(2), hi(2)
@@ -102,7 +104,34 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx, &
         cu(i,j,k,7) = 0.d0
         
 
-     endif
+     elseif (prob_type .eq. 5) then ! Taylor Green Vortex
+
+       
+
+        cu(i,j,k,1) = rho0
+        cu(i,j,k,2) = 0
+        cu(i,j,k,3) = 0
+        cu(i,j,k,4) = 0
+        if((prob_lo(2) + itVec(2)) < hy) then
+          massvec = (/1.0,0.0/) 
+          call get_energy(intEnergy, massvec, t_lo(2));
+          cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
+          cu(i,j,k,6) = cu(i,j,k,1)
+          cu(i,j,k,7) = 0
+        elseif((prob_lo(2) + itVec(2)) < 2*hy) then
+          massvec = (/0.0,1.0/)
+          call get_energy(intEnergy, massvec, t_hi(2));
+          cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
+          cu(i,j,k,6) = 0
+          cu(i,j,k,7) = cu(i,j,k,1)
+        else
+          massvec = (/1.0,0.0/) 
+          call get_energy(intEnergy, massvec, t_lo(2));
+          cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
+          cu(i,j,k,6) = cu(i,j,k,1)
+          cu(i,j,k,7) = 0
+        endif
+      endif
 
   end do
   end do
