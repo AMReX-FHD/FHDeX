@@ -159,6 +159,10 @@ extern "C"
     void sum_fab(const int* lo, const int* hi, const amrex_real* in, const int* inlo, const int* inhi, const int* insize,
 		                const int* gs, const amrex_real* total, const int* incomp);
 
+    void x_mean_fab(const int* lo, const int* hi, const amrex_real* infab, const int* inlo, const int* inhi, const int* insize,
+                                amrex_real* outfab, const int* outlo, const int* outhi, const int* outsize,
+		                const int* gs);
+
 ///////////////////////////
 
 ///////////////////////////

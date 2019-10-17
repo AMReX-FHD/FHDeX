@@ -32,26 +32,26 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
         //NOTE: Must do stoch. fluxes first, 
 	//      because fluxes at boundaries are weighted according to BCs
 
-//        stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-//		   cons[mfi].dataPtr(),  
-//		   prim[mfi].dataPtr(),    
-//		   flux[0][mfi].dataPtr(),
-//		   flux[1][mfi].dataPtr(),
-//#if (AMREX_SPACEDIM == 3)
-//		   flux[2][mfi].dataPtr(),
-//#endif
-//		   stochFlux[0][mfi].dataPtr(),
-//		   stochFlux[1][mfi].dataPtr(),
-//#if (AMREX_SPACEDIM == 3)
-//		   stochFlux[2][mfi].dataPtr(),
-//#endif
-//		   rancorn[mfi].dataPtr(),
-//		   eta[mfi].dataPtr(),  
-//		   zeta[mfi].dataPtr(),  
-//		   kappa[mfi].dataPtr(),
-//		   chi[mfi].dataPtr(),  
-//		   D[mfi].dataPtr(),  
-//		   ZFILL(dx), &dt);
+        stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+		   cons[mfi].dataPtr(),  
+		   prim[mfi].dataPtr(),    
+		   flux[0][mfi].dataPtr(),
+		   flux[1][mfi].dataPtr(),
+#if (AMREX_SPACEDIM == 3)
+		   flux[2][mfi].dataPtr(),
+#endif
+		   stochFlux[0][mfi].dataPtr(),
+		   stochFlux[1][mfi].dataPtr(),
+#if (AMREX_SPACEDIM == 3)
+		   stochFlux[2][mfi].dataPtr(),
+#endif
+		   rancorn[mfi].dataPtr(),
+		   eta[mfi].dataPtr(),  
+		   zeta[mfi].dataPtr(),  
+		   kappa[mfi].dataPtr(),
+		   chi[mfi].dataPtr(),  
+		   D[mfi].dataPtr(),  
+		   ZFILL(dx), &dt);
 	
 	diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 		  cons[mfi].dataPtr(),  

@@ -69,6 +69,8 @@ void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & va
 
 Real SumFab(const MultiFab & in, const int ng, const int comp);
 
+void XMeanFab(const MultiFab & in, MultiFab & out, const int ng);
+
 ///////////////////////////
 // in ComputeAverages.cpp
 

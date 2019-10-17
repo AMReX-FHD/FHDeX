@@ -163,6 +163,8 @@ void main_driver(const char* argv)
     MultiFab cup2(ba,dmap,nvars,ngc);
     MultiFab cup3(ba,dmap,nvars,ngc);
 
+    MultiFab cuxav(ba,dmap,nvars,ngc);
+
     //primative quantaties
     // in C++ indexing (add +1 for F90)
     // 0            (rho; density)
@@ -172,6 +174,8 @@ void main_driver(const char* argv)
     // 6:6+ns-1     (Yk;  mass fractions)
     // 6+ns:6+2ns-1 (Xk;  mole fractions)
     MultiFab prim(ba,dmap,nprimvars,ngc);
+
+    MultiFab primxav(ba,dmap,nprimvars,ngc);
 
     //statistics    
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
@@ -512,10 +516,13 @@ void main_driver(const char* argv)
             statsCount++;
 	}
 
+        XMeanFab(cu, cuxav, 0);
+        XMeanFab(prim, primxav, 0);
+
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
-                          prim, primMeans, primVars, eta, kappa);
+            WritePlotFile(step, time, geom, cu, cuxav, cuVars,
+                          prim, primxav, primVars, eta, kappa);
         }
  
 	// collect a snapshot for structure factor
