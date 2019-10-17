@@ -2492,7 +2492,7 @@ contains
     endif
     print *, "Maximum observed speed: ", sqrt(maxspeed)
     print *, "Maximum observed displacement (fraction of radius): ", maxdist
-    print *, "Average diffusion coeffcient: ", diffinst/np
+    print *, "Average diffusion coefficient: ", diffinst/np
     !print *, "veltest: ", veltest/np
 
     deallocate(weights)
