@@ -99,7 +99,6 @@ subroutine x_mean_fab(lo, hi, infab, inlo, inhi, insize, outfab, outlo, outhi, o
   integer i,j, k, l, cellcount
   double precision xmean
  
-
   !print *, lo, hi, gs
   do l = 1, insize
     do k = lo(3) - gs, hi(3) + gs

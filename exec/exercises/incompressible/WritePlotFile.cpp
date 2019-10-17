@@ -15,6 +15,7 @@ void WritePlotFile(int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& rho,
+		   const MultiFab& rhoxav,
 		   const MultiFab& tracer,
 		   const MultiFab& pres)
 {
@@ -33,7 +34,7 @@ void WritePlotFile(int step,
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM + nspecies + 3;
+    int nPlot = 2*AMREX_SPACEDIM + nspecies + 3 + nspecies;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -64,6 +65,12 @@ void WritePlotFile(int step,
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
+    for (int i=0; i<nspecies; ++i) {
+        std::string x = "rhomean";
+        x += (48+i);
+        varNames[cnt++] = x;
+    }
+
     // reset plotfile variable counter
     cnt = 0;
 
@@ -93,6 +100,12 @@ void WritePlotFile(int step,
 
     // compute divergence and store result in plotfile
     ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
+    cnt++;
+
+    for (int i=0; i<nspecies; ++i) {
+        MultiFab::Copy(plotfile, rhoxav, i, cnt, 1, 0);
+        cnt++;
+    }
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);

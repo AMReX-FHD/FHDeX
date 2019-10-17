@@ -122,6 +122,9 @@ void main_driver(const char* argv)
     MultiFab rhotot(ba, dmap, 1, 1);
     rhotot.setVal(1.);
 
+    MultiFab rhoxav(ba, dmap, nspecies, 1);
+    rhoxav.setVal(1.);
+
     MultiFab rho(ba, dmap, nspecies, 1);
     rho.setVal(1.);
 
@@ -361,7 +364,7 @@ void main_driver(const char* argv)
     // write out initial state
     if (plot_int > 0) 
       {
-	WritePlotFile(step,time,geom,umac,rho,tracer,pres);
+	WritePlotFile(step,time,geom,umac,rho,rhoxav,tracer,pres);
       }
 
     //Time stepping loop
@@ -408,9 +411,11 @@ void main_driver(const char* argv)
 
         time = time + dt;
 
+        XMeanFab(rho, rhoxav, 0);
+
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,rho,tracer,pres);
+    	  WritePlotFile(step,time,geom,umac,rho, rhoxav,tracer,pres);
         }
     }
     
