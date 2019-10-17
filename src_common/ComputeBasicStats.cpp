@@ -40,3 +40,18 @@ Real SumFab(const MultiFab & in, const int ng, const int comp)
 
     return total;    
 }
+
+//Note comp indexes from 1.
+void XMeanFab(const MultiFab & in, MultiFab & out, const int ng)
+{
+    BL_PROFILE_VAR("SumFab()",SumFab);
+
+    for ( MFIter mfi(in); mfi.isValid(); ++mfi ) {
+        const Box& bx = mfi.validbox();
+
+        x_mean_fab(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                BL_TO_FORTRAN_FAB(in[mfi]), BL_TO_FORTRAN_FAB(out[mfi]),
+                &ng);
+    }
+ 
+}
