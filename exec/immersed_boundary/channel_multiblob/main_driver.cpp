@@ -28,6 +28,7 @@
 #include <AMReX_MultiFabUtil.H>
 
 #include <IBMarkerContainer.H>
+#include <IBMultiBlobContainer.H>
 
 
 using namespace amrex;
