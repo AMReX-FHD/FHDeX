@@ -10,7 +10,7 @@
 !  particle_count = 5120000
 
   ! NERSC, ~50% wet
-!  prob_hi(1:3) = 1e-5 1e-5 1e-5      ! physical hi coordinate
+!  prob_hi(1:3) = 8e-6 8e-6 8e-6      ! physical hi coordinate
 !  n_cells(1:3) = 256 256 256
 !  max_grid_size(1:3) = 32 32 32
 !  particle_count = 5120000
