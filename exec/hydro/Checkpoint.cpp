@@ -116,7 +116,7 @@ void WriteCheckPoint(int step,
     check = mkdir(str,0777);
     
     // random number engines
-    int n_digits = 9;
+    int n_digits = 7;
     rng_checkpoint(& step, & n_digits);
     
 }
