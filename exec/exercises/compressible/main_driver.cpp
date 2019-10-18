@@ -68,6 +68,8 @@ void main_driver(const char* argv)
         // compute wall concentrations if BCs call for it
         setup_cwall();
     }
+ 
+
 
     // make BoxArray and Geometry
     BoxArray ba;

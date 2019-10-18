@@ -267,6 +267,7 @@ public:
 
         
     Real * meanRadialDistribution;
+    Real * binVol;
     int totalBins, radialStatsCount;
     Real binSize;
 

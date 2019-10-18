@@ -387,6 +387,35 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
     }
 }
 
+//template <typename StructReal, typename StructInt>
+//void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkersCC(
+//            const Vector<RealVect> & f_in,
+//            const Vector<RealVect> & f_pos,
+//                  std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+//                  std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+//            const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+//            const Real * dx, const int ghost
+//        ) {
+
+//    for (MFIter mfi(f_out[0]); mfi.isValid(); ++mfi) {
+
+//        // Convert stagered boxes into cell centered
+//        Box tile_box = enclosedCells(mfi.tilebox());
+
+//        std::array<      FArrayBox *, AMREX_SPACEDIM> f_out_fab;
+//        std::array<      FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+//        std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
+//        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+//            f_out_fab[d]     = & f_out[d][mfi];
+//            f_weights_fab[d] = & f_weights[d][mfi];
+//            coords_fab[d]    = & coords[d][mfi];
+//        }
+
+//        SpreadMarkers(f_in, f_pos, tile_box,
+//                      f_out_fab, f_weights_fab, coords_fab, dx, ghost);
+//    }
+//}
+
 
 
 template <typename StructReal, typename StructInt>

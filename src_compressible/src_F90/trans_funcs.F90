@@ -102,6 +102,8 @@ contains
       eta = rootT*specaveta
       kappa = rootT*specavkappa
 
+      print *, "eta: ", eta, "kappa: ", kappa
+
       if(kappa .ne. kappa) then
          print *, "NAN! kappa bc", temp, specavkappa
          call exit()

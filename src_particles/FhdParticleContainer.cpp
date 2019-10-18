@@ -62,10 +62,17 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     Print() << "Bin size for radial distribution: " << binSize << std::endl;
     Print() << "Number of radial distribution bins: " << totalBins << std::endl;
 
-
     meanRadialDistribution = new Real[totalBins]();
+    binVol = new Real[totalBins]();
 
     radialStatsCount = 0;
+
+    for(int i=0;i<totalBins;i++)
+    {
+        binVol[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
+
+
+    }
 }
 
 
@@ -654,7 +661,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             
             for(int i=0;i<totalBins;i++)
             {
-                ofs << meanRadialDistribution[i] << std::endl;
+                ofs << meanRadialDistribution[i]/binVol[i] << std::endl;
             }
 
             ofs.close();

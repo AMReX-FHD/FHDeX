@@ -848,6 +848,136 @@ contains
 
     end subroutine spread_kernel
 
+    subroutine spread_kernel_cc(lo,       hi,               &
+                &                mf,     mf_lo,   mf_hi, &
+                &                weights, wf_lo,   wf_hi, &
+                &                coords, c_lo,    c_hi,  &
+                &                pos, v_spread, dx, ghost)
+
+
+        !________________________________________________________________________
+        ! ** work region
+        integer(c_int), dimension(3), intent(in   ) :: lo, hi
+        integer(c_int), intent(in   ) :: ghost
+
+        ! ** OUT: vector quantity `v_spread` is spread to MultiFab `mf`
+        integer(c_int), dimension(3), intent(in   ) :: mf_lo, mf_hi
+        real(amrex_real), intent(inout) :: mf(mf_lo(1):mf_hi(1), &
+            &                                   mf_lo(2):mf_hi(2), &
+            &                                   mf_lo(3):mf_hi(3))
+
+        ! ** OUT: total spread weights to cell centers
+        !         corresponding to the multiFab `mf`
+        integer(c_int), dimension(3), intent(in   ) :: wf_lo, wf_hi
+        real(amrex_real), intent(inout) :: weights(wf_lo(1):wf_hi(1), &
+            &                                       wf_lo(2):wf_hi(2), &
+            &                                       wf_lo(3):wf_hi(3))
+
+        ! ** IN:  coordinates of cell centered multifab `mf`
+        integer(c_int), dimension(3), intent(in   ) :: c_lo, c_hi
+        real(amrex_real), intent(in   ) :: coords(c_lo(1):c_hi(1), &
+            &                                       c_lo(2):c_hi(2), &
+            &                                       c_lo(3):c_hi(3), AMREX_SPACEDIM)
+
+        ! ** IN:  quantity to spread (v_spread), given kernel position (pos), and the
+        !         fluid grid discretization (dx)
+        real(amrex_real), dimension(AMREX_SPACEDIM), intent(in   ) :: pos, v_spread, dx
+
+
+        !________________________________________________________________________
+        ! i, j, k   => cell-centered indices
+        integer :: i, j, k, ilo, ihi, jlo, jhi, klo, khi, gs
+        ! ll        => loop counter over AMREX_SPACEDIM
+        integer :: ll
+        ! invvol    => 1/dx^AMREX_SPACEDIM
+        ! weight    => kernel weight function
+        real(amrex_real) :: invvol, weight
+        ! pos_grid  => (pos - (cell position))/dx
+        ! invdx     => 1/dx
+        real(amrex_real), dimension(AMREX_SPACEDIM) :: pos_grid, invdx
+
+
+        !________________________________________________________________________
+        ! Using function pointer to specify kernel type - some question as to
+        ! optimal approach here. DRL.
+
+        abstract interface
+          function kernel_np (r_in)
+             use amrex_fort_module,      only: amrex_real
+             real(amrex_real) :: kernel_np
+             real(amrex_real), intent (in) :: r_in
+          end function kernel_np
+        end interface
+
+        procedure (kernel_np), pointer :: kernel_ptr => null()
+
+        ! TODO: It makes sense to specify this function pointer globally (as the
+        ! pkernel_fluid parameter is also a global variable). I.e. when the
+        ! pkernel_fluid value is set => we save ourselves the followint IF
+        ! branch point. JPB.
+
+        if(pkernel_fluid .eq. 3) then
+          kernel_ptr => kernel_3p
+          gs = 2
+        else
+          kernel_ptr => kernel_6p
+          gs = 4
+        endif
+
+        !procedure (func), pointer :: f_ptr => null ()
+
+
+        !________________________________________________________________________
+        ! compute geometric quantities : 1/dx and 1/dx^AMREX_SPACEDIM
+        invdx(:) = 1d0/dx(:)
+        invvol = 1d0
+        do ll = 1, AMREX_SPACEDIM
+            invvol = invvol * invdx(ll)
+        end do
+
+        if(ghost .eq. 0) then
+          ilo = max(lo(1), int(pos(1) * invdx(1) - gs))
+          ihi = min(hi(1), int(pos(1) * invdx(1) + gs))
+          jlo = max(lo(2), int(pos(2) * invdx(2) - gs))
+          jhi = min(hi(2), int(pos(2) * invdx(2) + gs))
+          klo = max(lo(3), int(pos(3) * invdx(3) - gs))
+          khi = min(hi(3), int(pos(3) * invdx(3) + gs))
+        else
+          ilo = int(pos(1) * invdx(1) - gs)
+          ihi = int(pos(1) * invdx(1) + gs)
+          jlo = int(pos(2) * invdx(2) - gs)
+          jhi = int(pos(2) * invdx(2) + gs)
+          klo = int(pos(3) * invdx(3) - gs)
+          khi = int(pos(3) * invdx(3) + gs)
+        endif
+        !________________________________________________________________________
+        ! x-components
+        ! do k = lo(3), hi(3)
+        !     do j = lo(2), hi(2)
+        !         do i = lo(1), hi(1) + 1
+        do k = klo, khi
+            do j = jlo, jhi
+                do i = ilo, ihi
+
+                    pos_grid(:) = pos(:) - coords(i, j, k, :)
+                    pos_grid(:) = pos_grid(:) * invdx(:)
+
+                    weight = 1d0
+                    do ll = 1, AMREX_SPACEDIM
+                        weight = weight * kernel_ptr(pos_grid(ll));
+                    end do
+
+                    mf(i, j, k)     = mf(i, j, k) + v_spread(1) * weight * invvol
+
+                    weights(i, j, k) = weights(i, j, k) + weight
+                end do
+            end do
+        end do
+
+ 
+
+    end subroutine spread_kernel_cc
+
 
 
     subroutine spread_markers(lo,         hi,                  &

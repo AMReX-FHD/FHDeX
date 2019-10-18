@@ -32,7 +32,7 @@
   ! negative = assume spatially-varying coefficients
 
   !visc_coef = 1.
-  visc_coef = 1e-3		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  visc_coef = 1e-3		! [units: g*cm-1*s-1] dynamic (shear) viscosity
 
   visc_type = 2
   

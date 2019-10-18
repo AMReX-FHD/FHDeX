@@ -31,7 +31,8 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 
         //NOTE: Must do stoch. fluxes first, 
 	//      because fluxes at boundaries are weighted according to BCs
-
+    if(stoch_stress_form == 1)
+    { 
         stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 		   cons[mfi].dataPtr(),  
 		   prim[mfi].dataPtr(),    
@@ -52,7 +53,8 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		   chi[mfi].dataPtr(),  
 		   D[mfi].dataPtr(),  
 		   ZFILL(dx), &dt);
-	
+	}
+    
 	diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 		  cons[mfi].dataPtr(),  
 		  prim[mfi].dataPtr(),  
@@ -77,6 +79,7 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		  cornz[2][mfi].dataPtr(),
 		  visccorn[mfi].dataPtr(),
 		  ZFILL(dx));
+    
 
 	if (advection_type==1) {
 	

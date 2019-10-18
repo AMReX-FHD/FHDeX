@@ -97,6 +97,8 @@ extern "C"
                       amrex::Real* zeta,
                       amrex::Real* kappa);
 
+    void get_trans_coeff(amrex::Real* temp, amrex::Real* fracvec, amrex::Real* eta, amrex::Real* zeta, amrex::Real* kappa);
+
     void makecoef(const int* lo, const int* hi,
                   const amrex::Real* prim,
                   amrex::Real* eta,
