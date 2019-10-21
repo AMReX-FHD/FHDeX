@@ -1,0 +1,16 @@
+1D Advection-Diffusion structure factor code
+
+Compile with:
+
+g++ -std=c++11 main.cpp -lfftw3
+
+Solves
+
+dphi/dn = -u*dphi/dx + mu*Laplacian(phi) + sqrt(2*mu)*div(W)
+
+Using a choice of temporal integrators:
+
+    // 0 = centered advection
+    // 1 = upwind advection
+    // 2 = MOL Godunov
+    // 3 = Characteristic Godunov
