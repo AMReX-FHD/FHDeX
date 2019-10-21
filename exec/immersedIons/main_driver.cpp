@@ -330,13 +330,13 @@ void main_driver(const char* argv)
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
     if (pkernel_fluid == 3) {
-        wetRad = 0.9405*dxAv;                
+        wetRad = 0.91*dxAv;
     }
     else if (pkernel_fluid == 4) {
-        wetRad = 1.3273*dxAv;
+        wetRad = 1.255*dxAv;
     }
     else if (pkernel_fluid == 6) {
-        wetRad = 1.5705*dxAv;
+        wetRad = 1.481*dxAv;
     }
 
     for(int i=0;i<nspecies;i++) {
