@@ -98,8 +98,7 @@ subroutine x_mean_fab(lo, hi, infab, inlo, inhi, insize, outfab, outlo, outhi, o
   ! local variables
   integer i,j, k, l, cellcount
   double precision xmean
- 
-  !print *, lo, hi, gs
+
   do l = 1, insize
     do k = lo(3) - gs, hi(3) + gs
       do j = lo(2) - gs, hi(2) + gs
@@ -109,6 +108,7 @@ subroutine x_mean_fab(lo, hi, infab, inlo, inhi, insize, outfab, outlo, outhi, o
         do i = lo(1) - gs, hi(1) + gs
 
           xmean = xmean + infab(i,j,k,l)
+          
           cellcount = cellcount + 1
          
         end do
