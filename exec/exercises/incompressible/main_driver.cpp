@@ -411,6 +411,8 @@ void main_driver(const char* argv)
 
         time = time + dt;
 
+        MaxSpeed(umac);
+
         XMeanFab(rho, rhoxav, 0);
 
         if (plot_int > 0 && step%plot_int == 0) {

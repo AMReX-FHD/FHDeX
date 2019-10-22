@@ -162,7 +162,17 @@ extern "C"
     void x_mean_fab(const int* lo, const int* hi, const amrex_real* infab, const int* inlo, const int* inhi, const int* insize,
                                 amrex_real* outfab, const int* outlo, const int* outhi, const int* outsize,
 		                const int* gs);
-
+#if (AMREX_SPACEDIM == 3)
+    void max_speed(const int* lo, const int* hi, const amrex_real* ux, const int* uxlo, const int* uxhi,
+                                const amrex_real* uy, const int* uylo, const int* uyhi,
+                                const amrex_real* uz, const int* uzlo, const int* uzhi,
+                                amrex_real* maxspeed);
+#endif
+#if (AMREX_SPACEDIM == 2)
+    void max_speed(const int* lo, const int* hi, const amrex_real* ux, const int* uxlo, const int* uxhi,
+                                const amrex_real* uy, const int* uylo, const int* uyhi,
+                                amrex_real* maxspeed);
+#endif
 ///////////////////////////
 
 ///////////////////////////

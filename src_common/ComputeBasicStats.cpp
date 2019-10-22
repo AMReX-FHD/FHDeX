@@ -55,3 +55,32 @@ void XMeanFab(const MultiFab & in, MultiFab & out, const int ng)
     }
  
 }
+
+void MaxSpeed(std::array< MultiFab, AMREX_SPACEDIM >& umac)
+{
+    BL_PROFILE_VAR("MaxSpeed()",MaxSpeed);
+
+    Real maxspeed;
+
+    for ( MFIter mfi(umac[1]); mfi.isValid(); ++mfi ) {
+        const Box& bx = enclosedCells(mfi.validbox());
+#if(AMREX_SPACEDIM == 3)
+        max_speed(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                BL_TO_FORTRAN_3D(umac[1][mfi]),
+                BL_TO_FORTRAN_3D(umac[2][mfi]),
+                BL_TO_FORTRAN_3D(umac[3][mfi]),
+                &maxspeed);
+#endif
+#if(AMREX_SPACEDIM == 2)
+        max_speed(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                BL_TO_FORTRAN_3D(umac[1][mfi]),
+                BL_TO_FORTRAN_3D(umac[2][mfi]),
+                &maxspeed);
+#endif
+    }
+
+    ParallelDescriptor::ReduceRealMax(maxspeed);
+
+    Print() << "Max speed: " << maxspeed << std::endl;
+ 
+}
