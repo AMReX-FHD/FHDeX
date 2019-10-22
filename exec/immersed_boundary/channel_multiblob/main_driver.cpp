@@ -327,6 +327,8 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
     // Make sure that the nghost (last argument) is big enough!
+
+
     IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
     Vector<RealVect> marker_positions(2);
@@ -342,6 +344,26 @@ void main_driver(const char * argv) {
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
+
+
+
+    IBMultiBlobContainer ib_mbc(geom, dmap, ba, 10);
+
+    Vector<RealVect> mb_positions(1);
+    marker_positions[0] = RealVect{0.5, 0.5, 0.5};
+
+    Vector<Real> mb_radii(1), mb_rho(1);
+    for (int i=0; i<mb_radii.size(); ++i) {
+        mb_radii[i] = {0.2};
+        mb_rho[i]   = {100};
+    }
+
+    for (int i=0; i<mb_radii.size(); ++i)
+        ib_mbc.InitSingle(0, mb_positions[i], mb_radii[i], mb_rho[i]);
+
+    std::cout << "Done initializing, now filling" <<std::endl;
+    ib_mbc.FillMarkerPositions(0, 30);
+    std::cout << "Done filling" <<std::endl;
 
 
     //___________________________________________________________________________
