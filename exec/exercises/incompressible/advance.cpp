@@ -213,7 +213,8 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   //////////////////////////////////////////////////
 
   rho.FillBoundary(geom.periodicity());
-
+  rhotot.FillBoundary(geom.periodicity()); // hack
+  
   // FIXME: stage_time = 0.0
   ComputeMassFluxdiv(rho,rhotot,
   		     diff_mass_fluxdiv,diff_mass_flux,
@@ -307,6 +308,15 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   rho.mult(0.5);
 
+  // hack
+  rhotot.setVal(0.);
+  for (int i=0; i<nspecies; ++i) {
+      MultiFab::Add(rhotot,rho,i,0,1,0);
+  }
+
+  rho.FillBoundary(geom.periodicity());  // hack
+  rhotot.FillBoundary(geom.periodicity());  // hack
+  
   // // Hack: Write out mfabs
   // std::string plotfilename;
   // plotfilename = "rho_test";

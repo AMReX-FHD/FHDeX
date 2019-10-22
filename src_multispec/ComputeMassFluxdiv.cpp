@@ -58,15 +58,25 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   // compute molmtot, molarconc (primitive variables) for 
   // each-cell from rho(conserved) 
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
-    
+
+  molarconc.FillBoundary(geom.periodicity()); // hack
+  molmtot.FillBoundary(geom.periodicity()); // hack
+  
   // populate D_bar and Hessian matrix 
   ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);
+
+  D_bar.FillBoundary(geom.periodicity()); // hack
+  Hessian.FillBoundary(geom.periodicity()); // hack
   
   // compute Gamma from Hessian
   ComputeGamma(molarconc,Hessian,Gamma);
+
+  Gamma.FillBoundary(geom.periodicity()); // hack
   
   // compute rho*W*chi and zeta/Temp
   ComputeRhoWChi(rho,rhotot,molarconc,rhoWchi,D_bar);
+
+  rhoWchi.FillBoundary(geom.periodicity()); // hack
 
   // compute diffusive mass fluxes, "-F = rho*W*chi*Gamma*grad(x) - ..."
   DiffusiveMassFluxdiv(rho,rhotot,molarconc,rhoWchi,Gamma,diff_mass_fluxdiv,diff_mass_flux,geom);
