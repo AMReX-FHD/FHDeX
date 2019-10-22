@@ -46,9 +46,9 @@ BlobContainer::BlobContainer(AmrCore * amr_core, int n_nbhd)
 
 
 
-void BlobContainer::InitSingle(int lev,
-                               Real radius, const RealVect & pos, 
-                               int id, int cpu, int i_ref ) {
+void BlobContainer::AddSingle(int lev,
+                              Real radius, const RealVect & pos, 
+                              int id, int cpu, int i_ref ) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -119,13 +119,22 @@ void BlobContainer::InitSingle(int lev,
         }
     }
 
+    // Don't call `Redistribute` => if you want residstributing, use
+    // `BlobContainer::InitSingle`
+}
+
+
+
+void BlobContainer::InitSingle(int lev,
+                               Real radius, const RealVect & pos, 
+                               int id, int cpu, int i_ref ) {
+    
+    AddSingle(lev, radius, pos, id, cpu, i_ref);
     // We shouldn't need this if the particles are tiled with one tile per
     // grid, but otherwise we do need this to move particles from tile 0 to the
     // correct tile.
     Redistribute();
-
 }
-
 
 
 
@@ -318,12 +327,17 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 #pragma omp critical
 #endif
                 {
-                    // Add to list
-                    markers.InitSingle(lev, 1., pos, part.id(), part.cpu(), i);
+                    // Add to list (use the `BlobContainer::AddSingle` function
+                    // and call `BlobContainer::Redistribute` **outside** the
+                    // `IBMBIter` loop)
+                    markers.AddSingle(lev, 1., pos, part.id(), part.cpu(), i);
                 }
             }
         }
     }
+    //___________________________________________________________________________
+    // Redistribute markers to correct tiles
+    markers.Redistribute();
 }
 
 
