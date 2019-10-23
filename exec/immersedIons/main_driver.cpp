@@ -843,6 +843,8 @@ void main_driver(const char* argv)
 
             statsCount = 1;
         }
+
+        particles.RadialDistribution(simParticles, istep, ionParticle);
        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
@@ -864,9 +866,6 @@ void main_driver(const char* argv)
         }
 
         if (plot_int > 0 && istep%plot_int == 0) {
-
-            // write out G(r)
-            particles.RadialDistribution(simParticles, istep, ionParticle);
 
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,

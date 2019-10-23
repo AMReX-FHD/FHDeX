@@ -653,18 +653,18 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             meanRadialDistribution[i] = (meanRadialDistribution[i]*stepsminusone + radDist[i])*stepsinv;
         }
 
-        if(ParallelDescriptor::MyProc() == 0)
-        {
+        if (plot_int > 0 && step%plot_int == 0) {
+        
+            if(ParallelDescriptor::MyProc() == 0) {
 
-            std::string filename = Concatenate("radialDistribution",step,9);;
-            std::ofstream ofs(filename, std::ofstream::out);
+                std::string filename = Concatenate("radialDistribution",step,9);;
+                std::ofstream ofs(filename, std::ofstream::out);
             
-            for(int i=0;i<totalBins;i++)
-            {
-                ofs << meanRadialDistribution[i]/binVol[i] << std::endl;
+                for(int i=0;i<totalBins;i++) {
+                    ofs << meanRadialDistribution[i]/binVol[i] << std::endl;
+                }
+                ofs.close();
             }
-
-            ofs.close();
         }
     }
 }
