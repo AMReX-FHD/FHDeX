@@ -10,9 +10,8 @@
 #include "species.H"
 #include "surfaces.H"
 
-//#include "analysis_functions_F.H"
-//#include "StructFact_F.H"
-//#include "StructFact.H"
+#include "StructFact_F.H"
+#include "StructFact.H"
 
 #include "StochMFlux.H"
 
@@ -336,7 +335,8 @@ void main_driver(const char* argv)
         wetRad = 1.255*dxAv;
     }
     else if (pkernel_fluid == 6) {
-        wetRad = 1.481*dxAv;
+        wetRad = 1.5705*dxAv;
+//        wetRad = 1.481*dxAv;
     }
 
     for(int i=0;i<nspecies;i++) {
@@ -690,7 +690,6 @@ void main_driver(const char* argv)
     // structure factor:
     ///////////////////////////////////////////
 
-/*    
     Vector< std::string > var_names;
     int nvar_sf = 1;
     // int nvar_sf = AMREX_SPACEDIM;
@@ -709,8 +708,20 @@ void main_driver(const char* argv)
         s_pairB[d] = d;
     }
 
-    StructFact structFact(bp,dmap,var_names);
-*/
+    Real dVol = dx[0]*dx[1];
+    int tot_n_cells = n_cells[0]*n_cells[1];
+    if (AMREX_SPACEDIM == 2) {
+        dVol *= cell_depth;
+    } else if (AMREX_SPACEDIM == 3) {
+        dVol *= dx[2];
+        tot_n_cells = n_cells[2]*tot_n_cells;
+    }
+
+    Vector<Real> scaling;
+    scaling.resize(nvar_sf);
+    scaling[0] = dVol/(rho0*k_B*T_init[0]);;
+
+    StructFact structFact(bp,dmap,var_names,scaling,s_pairA,s_pairB);
 
 /*
     if (restart > 0) {
@@ -845,12 +856,14 @@ void main_driver(const char* argv)
         
 	//_______________________________________________________________________
 	// Update structure factor
-/*
         if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip-1)%struct_fact_int == 0) {
             MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
             structFact.FortStructure(struct_in_cc,geomP);
+            // plot structure factor on plot_int
+            if (istep%plot_int == 0) {
+                structFact.WritePlotFile(istep,time,geomP,"plt_SF");
+            }
         }
-*/
 
         if (plot_int > 0 && istep%plot_int == 0) {
 
@@ -876,29 +889,6 @@ void main_driver(const char* argv)
         time = time + dt;
     }
     ///////////////////////////////////////////
-
-/*    
-    if (struct_fact_int > 0) {
-
-        Real dVol = dx[0]*dx[1];
-        int tot_n_cells = n_cells[0]*n_cells[1];
-        if (AMREX_SPACEDIM == 2) {
-	    dVol *= cell_depth;
-        } else if (AMREX_SPACEDIM == 3) {
-	    dVol *= dx[2];
-	    tot_n_cells = n_cells[2]*tot_n_cells;
-        }
-
-        // let rho = 1
-        Real SFscale = dVol/(rho0*k_B*T_init[0]);
-        // SFscale = 1.0;
-        Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-        structFact.Finalize(SFscale);
-        structFact.WritePlotFile(istep,time,geomP,"plt_SF");
-        
-    }
-*/    
 
     // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
