@@ -385,6 +385,11 @@ void main_driver(const char* argv)
 
 	}
 
+        if(step == 500)
+        {
+                PrintMF (rhotot);
+        }
+
 	// Advance umac
 	advance(umac,umacNew,pres,tracer,rho,rhotot,
 		mfluxdiv_predict,mfluxdiv_correct,

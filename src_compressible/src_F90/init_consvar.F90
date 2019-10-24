@@ -113,23 +113,23 @@ subroutine init_consvar(lo, hi, cu, culo, cuhi, pu, pulo, puhi, dx, &
         cu(i,j,k,3) = 0
         cu(i,j,k,4) = 0
         if((prob_lo(2) + itVec(2)) < hy) then
-          massvec = (/1.0,0.0/) 
+          massvec = bc_Yk(1,1,1:2)
           call get_energy(intEnergy, massvec, t_lo(2));
           cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
-          cu(i,j,k,6) = cu(i,j,k,1)
-          cu(i,j,k,7) = 0
+          cu(i,j,k,6) = cu(i,j,k,1)*bc_Yk(1,1,1)
+          cu(i,j,k,7) = cu(i,j,k,1)*bc_Yk(1,1,2)
         elseif((prob_lo(2) + itVec(2)) < 2*hy) then
-          massvec = (/0.0,1.0/)
+          massvec = bc_Yk(1,2,1:2)
           call get_energy(intEnergy, massvec, t_hi(2));
           cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
-          cu(i,j,k,6) = 0
-          cu(i,j,k,7) = cu(i,j,k,1)
+          cu(i,j,k,6) = cu(i,j,k,1)*bc_Yk(1,2,1)
+          cu(i,j,k,7) = cu(i,j,k,1)*bc_Yk(1,2,2)
         else
-          massvec = (/1.0,0.0/) 
+          massvec = bc_Yk(1,1,1:2)
           call get_energy(intEnergy, massvec, t_lo(2));
           cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
-          cu(i,j,k,6) = cu(i,j,k,1)
-          cu(i,j,k,7) = 0
+          cu(i,j,k,6) = cu(i,j,k,1)*bc_Yk(1,1,1)
+          cu(i,j,k,7) = cu(i,j,k,1)*bc_Yk(1,1,2)
         endif
       endif
 

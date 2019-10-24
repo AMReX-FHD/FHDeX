@@ -2,7 +2,7 @@
 #include "common_functions_F.H"
 
 
-//Computes divergence at cell centres from velcocities at cell faces
+
 void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
                        const int incomp, const int outcomp, const int steps)
 {

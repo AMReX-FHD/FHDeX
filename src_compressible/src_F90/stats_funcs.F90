@@ -39,18 +39,24 @@ contains
               cumeans(i,j,k,l) = (cumeans(i,j,k,l)*stepsminusone + cu(i,j,k,l))*stepsinv
             enddo
 
-            fracvec = cumeans(i,j,k,6:nvars)
-            massvec = fracvec*cumeans(i,j,k,1)
+            do l=1,nprimvars
+              primmeans(i,j,k,l) = (primmeans(i,j,k,l)*stepsminusone + prim(i,j,k,l))*stepsinv
+            enddo
 
-            densitymeaninv = 1.0/cumeans(i,j,k,1)
+                !print *, "means: ", cumeans(i,j,k,l), stepsminusone
 
-            primmeans(i,j,k,1) = cumeans(i,j,k,1)
-            primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv
-            primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv
-            primmeans(i,j,k,4) = cumeans(i,j,k,4)*densitymeaninv
+!            fracvec = cumeans(i,j,k,6:nvars)
+!            massvec = fracvec*cumeans(i,j,k,1)
 
-            call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
-            call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
+!            densitymeaninv = 1.0/cumeans(i,j,k,1)
+
+!            primmeans(i,j,k,1) = cumeans(i,j,k,1)
+!            primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv
+!            primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv
+!            primmeans(i,j,k,4) = cumeans(i,j,k,4)*densitymeaninv
+
+!            call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
+!            call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
 
             totalmass = totalmass + cu(i,j,k,1)
 

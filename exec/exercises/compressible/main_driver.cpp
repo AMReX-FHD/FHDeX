@@ -522,28 +522,38 @@ void main_driver(const char* argv)
         XMeanFab(prim, primxav, 0);
 
         // write a plotfile
+
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-            WritePlotFile(step, time, geom, cu, cuxav, cuVars,
+
+            if(plot_vars == 1)
+            {
+                WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
+                          prim, primMeans, primVars, eta, kappa);
+            }else
+            {
+                WritePlotFile(step, time, geom, cu, cuxav, cuVars,
                           prim, primxav, primVars, eta, kappa);
+
+            }
         }
  
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-            structFact.FortStructure(struct_in_cc,geom);
-            if(project_dir >= 0) {
-                ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-                structFactVA.FortStructure(cuVertAvg,geom_flat);
-            }
-        }
+//	// collect a snapshot for structure factor
+//	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+//            MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
+//            structFact.FortStructure(struct_in_cc,geom);
+//            if(project_dir >= 0) {
+//                ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
+//                structFactVA.FortStructure(cuVertAvg,geom_flat);
+//            }
+//        }
 
-        // write out structure factor
-        if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
-            structFact.WritePlotFile(step,time,geom,"plt_SF");
-            if(project_dir >= 0) {
-                structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
-            }
-        }
+//        // write out structure factor
+//        if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
+//            structFact.WritePlotFile(step,time,geom,"plt_SF");
+//            if(project_dir >= 0) {
+//                structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
+//            }
+//        }
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
