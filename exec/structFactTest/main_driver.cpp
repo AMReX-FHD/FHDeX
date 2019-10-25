@@ -85,11 +85,30 @@ void main_driver(const char* argv)
     var_scaling[1] = 1.;
     var_scaling[2] = 1.;
     
-    MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, 2, 0);
+    MultiFab struct_cc;
+    struct_cc.define(ba, dmap, 2, 0);
 
     // WRITE INIT ROUTINE
-    struct_in_cc.setVal(0.);
+    struct_cc.setVal(0.);
+
+    for (MFIter mfi(struct_cc,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        const Box& bx = mfi.tilebox();
+
+        const Array4<Real>& struct_fab = struct_cc.array(mfi);
+
+        AMREX_HOST_DEVICE_FOR_4D(bx, 2, i, j, k, n,
+        {
+            if (n == 0) {
+                struct_fab(i,j,k,n) = i+j+k;
+            }
+            else if (n == 1) {
+                struct_fab(i,j,k,n) = 0.5*sqrt(i+j+k);
+            }
+        });
+
+    }
+    
 
     amrex::Vector< int > s_pairA(3);
     amrex::Vector< int > s_pairB(3);
@@ -106,7 +125,7 @@ void main_driver(const char* argv)
 
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
     
-    structFact.FortStructure(struct_in_cc,geom);
+    structFact.FortStructure(struct_cc,geom);
       
     structFact.WritePlotFile(0,0.,geom,"plt_SF");
 
