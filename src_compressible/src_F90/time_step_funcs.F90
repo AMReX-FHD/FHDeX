@@ -43,6 +43,15 @@ contains
             - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
             + dt*source(i,j,k,l)
+
+              if(cup(i,j,k,1) .lt. 0) then
+                print *, "Aborting. Negative density at", i,j,k
+                call exit(0)
+              endif
+              if(cup(i,j,k,5) .lt. 0) then
+                print *, "Aborting. Negative energy at", i,j,k
+                call exit(0)
+              endif 
        
     enddo
     enddo
@@ -111,6 +120,15 @@ contains
 #endif
               + dt*source(i,j,k,l))
 
+              if(cup2(i,j,k,1) .lt. 0) then
+                print *, "Aborting. Negative density at", i,j,k
+                call exit(0)
+              endif
+              if(cup2(i,j,k,5) .lt. 0) then
+                print *, "Aborting. Negative energy at", i,j,k
+                call exit(0)
+              endif        
+
       enddo
       enddo
       enddo
@@ -178,6 +196,15 @@ contains
               - dt*(zflux(i,j,k+1,l)-zflux(i,j,k,l))*dxinv(3)  &
 #endif
               + dt*source(i,j,k,l))
+
+              if(cu(i,j,k,1) .lt. 0) then
+                print *, "Aborting. Negative density at", i,j,k
+                call exit(0)
+              endif
+              if(cu(i,j,k,5) .lt. 0) then
+                print *, "Aborting. Negative energy at", i,j,k
+                call exit(0)
+              endif 
 
       enddo
       enddo
