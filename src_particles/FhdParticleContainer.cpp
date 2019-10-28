@@ -872,13 +872,21 @@ void FhdParticleContainer::EvaluateStats(
     const double n0 = particleInfo.n0;
     const double T0 = particleInfo.T;
 
-
     double tp = 0;
     double te = 0;
     double tm = 0;
 
-    double totalMass;    
+    double totalMass;
 
+    int cellcount_tile = 0, cellcount_proc = 0;
+    RealVector avcurrent_tile(3), avcurrent_proc(3);
+    RealVector varcurrent_tile(3), varcurrent_proc(3);
+
+    std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
+    std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
+    std::fill(varcurrent_tile.begin(), varcurrent_tile.end(), 0.);
+    std::fill(varcurrent_proc.begin(), varcurrent_proc.end(), 0.);
+    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -916,25 +924,39 @@ void FhdParticleContainer::EvaluateStats(
         const int Np = parts.numParticles();
 
         evaluate_means(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       ARLIM_3D(tile_box.loVect()),
+                       ARLIM_3D(tile_box.hiVect()),
+                       m_vector_ptrs[grid_id].dataPtr(),
+                       m_vector_size[grid_id].dataPtr(),
+                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       BL_TO_FORTRAN_3D(particleInstant[pti]),
+                       BL_TO_FORTRAN_3D(particleMeans[pti]),
+                       BL_TO_FORTRAN_3D(particleVars[pti]),
+                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt,&steps,
+                       &cellcount_tile,avcurrent_tile.dataPtr());
 
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(particleMeans[pti]),
-                         BL_TO_FORTRAN_3D(particleVars[pti]),
-
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps);
+        // gather statistics
+        cellcount_proc += cellcount_tile;
+        for (int i=0; i<3; ++i) {
+            avcurrent_proc[i] += avcurrent_tile[i];
+        }
     }
 
-    //Print() << "c++: " << delHolder6[0] << "\n";
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(cellcount_proc);
+    ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
+    // print statistics
+    Print() << "Current density mean: "
+            << avcurrent_proc[0]/cellcount_proc << "  "
+            << avcurrent_proc[1]/cellcount_proc << "  "
+            << avcurrent_proc[2]/cellcount_proc << "\n";
 
-    //Print() << "Total mass: " << totalMass << "\n";
-
+    // reset cell count
+    cellcount_tile = 0;
+    cellcount_proc = 0;
+    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -946,20 +968,35 @@ void FhdParticleContainer::EvaluateStats(
         const int Np = parts.numParticles();
 
         evaluate_corrs(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       ARLIM_3D(tile_box.loVect()),
+                       ARLIM_3D(tile_box.hiVect()),
+                       m_vector_ptrs[grid_id].dataPtr(),
+                       m_vector_size[grid_id].dataPtr(),
+                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       BL_TO_FORTRAN_3D(particleInstant[pti]),
+                       BL_TO_FORTRAN_3D(particleMeans[pti]),
+                       BL_TO_FORTRAN_3D(particleVars[pti]),
+                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
+                       &cellcount_tile, varcurrent_tile.dataPtr()
+            );
 
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(particleMeans[pti]),
-                         BL_TO_FORTRAN_3D(particleVars[pti]),
-
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps
-                        );
+        // gather statistics
+        cellcount_proc += cellcount_tile;
+        for (int i=0; i<3; ++i) {
+            varcurrent_proc[i] += varcurrent_tile[i];
+        }
     }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(cellcount_proc);
+    ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
+
+    // print statistics
+    Print() << "Current density variance: "
+            << varcurrent_proc[0]/cellcount_proc << "  "
+            << varcurrent_proc[1]/cellcount_proc << "  "
+            << varcurrent_proc[2]/cellcount_proc << "\n";
 
 }
 
