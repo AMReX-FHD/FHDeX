@@ -311,6 +311,13 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 
     double kinetic = 0;
 
+    int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    Real rejected_tile = 0., rejected_proc = 0.; // rejected moves in midpoint scheme
+    Real    moves_tile = 0.,    moves_proc = 0.; // total moves in midpoint scheme
+    Real maxspeed_tile = 0., maxspeed_proc = 0.; // max speed
+    Real  maxdist_tile = 0.,  maxdist_proc = 0.; // max displacement (fraction of radius)
+    Real diffinst_tile = 0., diffinst_proc = 0.; // average diffusion coefficient
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -323,40 +330,50 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+        np_tile = particles.numParticles();
 
-        move_ions_fhd(particles.data(), &np,
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
-                         BL_TO_FORTRAN_3D(umac[0][pti]),
-                         BL_TO_FORTRAN_3D(umac[1][pti]),
+        move_ions_fhd(particles.data(), &np_tile,
+                      &rejected_tile, &moves_tile, &maxspeed_tile,
+                      &maxdist_tile, &diffinst_tile,
+                      ARLIM_3D(tile_box.loVect()),
+                      ARLIM_3D(tile_box.hiVect()),
+                      m_vector_ptrs[grid_id].dataPtr(),
+                      m_vector_size[grid_id].dataPtr(),
+                      ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                      ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                      ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt,
+                      ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+                      BL_TO_FORTRAN_3D(umac[0][pti]),
+                      BL_TO_FORTRAN_3D(umac[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(umac[2][pti]),
+                      BL_TO_FORTRAN_3D(umac[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(efield[0][pti]),
-                         BL_TO_FORTRAN_3D(efield[1][pti]),
+                      BL_TO_FORTRAN_3D(efield[0][pti]),
+                      BL_TO_FORTRAN_3D(efield[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(efield[2][pti]),
+                      BL_TO_FORTRAN_3D(efield[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
-                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+                      BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+                      BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+                      BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
-                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
+                      BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+                      BL_TO_FORTRAN_3D(sourceTemp[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
+                      BL_TO_FORTRAN_3D(sourceTemp[2][pti]),
 #endif
-                         , BL_TO_FORTRAN_3D(mobility[pti])
-                         , surfaceList, &surfaceCount, &kinetic, &sw
-                         );
+                      BL_TO_FORTRAN_3D(mobility[pti]),
+                      surfaceList, &surfaceCount, &kinetic, &sw
+            );
 
+        // gather statistics
+        np_proc       += np_tile;
+        rejected_proc += rejected_tile;
+        moves_proc    += moves_tile;
+        maxspeed_proc = std::max(maxspeed_proc, maxspeed_tile);
+        maxdist_proc  = std::max(maxdist_proc, maxdist_tile);
+        diffinst_proc += diffinst_tile;
 
         // resize particle vectors after call to move_particles
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -366,6 +383,26 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
             pvec.resize(new_size);
         }
     }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(np_proc);
+    ParallelDescriptor::ReduceRealSum(rejected_proc);
+    ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
+    ParallelDescriptor::ReduceRealMax(maxdist_proc);
+    ParallelDescriptor::ReduceRealSum(diffinst_proc);
+
+    // write out global diagnostics
+    if (ParallelDescriptor::IOProcessor()) {
+        Print() << "I see " << np_proc << " particles\n";
+        if (move_tog == 2) {
+            Print() << "Fraction of midpoint moves rejected: " << rejected_proc/moves_proc << "\n";
+        }
+        Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
+        Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
+        Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
+    }
+    
 }
 
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -835,13 +872,21 @@ void FhdParticleContainer::EvaluateStats(
     const double n0 = particleInfo.n0;
     const double T0 = particleInfo.T;
 
-
     double tp = 0;
     double te = 0;
     double tm = 0;
 
-    double totalMass;    
+    double totalMass;
 
+    int cellcount_tile = 0, cellcount_proc = 0;
+    RealVector avcurrent_tile(3), avcurrent_proc(3);
+    RealVector varcurrent_tile(3), varcurrent_proc(3);
+
+    std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
+    std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
+    std::fill(varcurrent_tile.begin(), varcurrent_tile.end(), 0.);
+    std::fill(varcurrent_proc.begin(), varcurrent_proc.end(), 0.);
+    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -879,25 +924,39 @@ void FhdParticleContainer::EvaluateStats(
         const int Np = parts.numParticles();
 
         evaluate_means(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       ARLIM_3D(tile_box.loVect()),
+                       ARLIM_3D(tile_box.hiVect()),
+                       m_vector_ptrs[grid_id].dataPtr(),
+                       m_vector_size[grid_id].dataPtr(),
+                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       BL_TO_FORTRAN_3D(particleInstant[pti]),
+                       BL_TO_FORTRAN_3D(particleMeans[pti]),
+                       BL_TO_FORTRAN_3D(particleVars[pti]),
+                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt,&steps,
+                       &cellcount_tile,avcurrent_tile.dataPtr());
 
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(particleMeans[pti]),
-                         BL_TO_FORTRAN_3D(particleVars[pti]),
-
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps);
+        // gather statistics
+        cellcount_proc += cellcount_tile;
+        for (int i=0; i<3; ++i) {
+            avcurrent_proc[i] += avcurrent_tile[i];
+        }
     }
 
-    //Print() << "c++: " << delHolder6[0] << "\n";
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(cellcount_proc);
+    ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
+    // print statistics
+    Print() << "Current density mean: "
+            << avcurrent_proc[0]/cellcount_proc << "  "
+            << avcurrent_proc[1]/cellcount_proc << "  "
+            << avcurrent_proc[2]/cellcount_proc << "\n";
 
-    //Print() << "Total mass: " << totalMass << "\n";
-
+    // reset cell count
+    cellcount_tile = 0;
+    cellcount_proc = 0;
+    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -909,20 +968,35 @@ void FhdParticleContainer::EvaluateStats(
         const int Np = parts.numParticles();
 
         evaluate_corrs(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       ARLIM_3D(tile_box.loVect()),
+                       ARLIM_3D(tile_box.hiVect()),
+                       m_vector_ptrs[grid_id].dataPtr(),
+                       m_vector_size[grid_id].dataPtr(),
+                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       BL_TO_FORTRAN_3D(particleInstant[pti]),
+                       BL_TO_FORTRAN_3D(particleMeans[pti]),
+                       BL_TO_FORTRAN_3D(particleVars[pti]),
+                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
+                       &cellcount_tile, varcurrent_tile.dataPtr()
+            );
 
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(particleMeans[pti]),
-                         BL_TO_FORTRAN_3D(particleVars[pti]),
-
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps
-                        );
+        // gather statistics
+        cellcount_proc += cellcount_tile;
+        for (int i=0; i<3; ++i) {
+            varcurrent_proc[i] += varcurrent_tile[i];
+        }
     }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(cellcount_proc);
+    ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
+
+    // print statistics
+    Print() << "Current density variance: "
+            << varcurrent_proc[0]/cellcount_proc << "  "
+            << varcurrent_proc[1]/cellcount_proc << "  "
+            << varcurrent_proc[2]/cellcount_proc << "\n";
 
 }
 

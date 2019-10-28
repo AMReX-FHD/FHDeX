@@ -356,8 +356,8 @@ contains
                              instant, ilo, ihi, &
                              means, mlo, mhi, & 
                              vars, vlo, vhi, & 
-
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps) bind(c,name='evaluate_means')
+                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, &
+                             cellcount, avcurrent) bind(c,name='evaluate_means')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -377,9 +377,12 @@ contains
 
     type(particle_t), intent(inout), target :: particles(np)
 
+    integer         , intent(inout) :: cellcount
+    double precision, intent(inout) :: avcurrent(1:3)
+
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k, ti, tj, tk, kc, jc, cellcount
-    double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, avcurrent(3)
+    integer i,j,k, ti, tj, tk, kc, jc
+    double precision stepsminusone, stepsinv, cv, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv
 
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
@@ -444,29 +447,28 @@ contains
     do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
         do i = mlo(1), mhi(1)
-
-
-            avcurrent(1) = avcurrent(1) + means(i,j,k,12)
-            avcurrent(2) = avcurrent(2) + means(i,j,k,13)
-            avcurrent(3) = avcurrent(3) + means(i,j,k,14)
-
-                cellcount = cellcount +1
- 
+           avcurrent(1) = avcurrent(1) + means(i,j,k,12)
+           avcurrent(2) = avcurrent(2) + means(i,j,k,13)
+           avcurrent(3) = avcurrent(3) + means(i,j,k,14)
+           cellcount = cellcount +1
         enddo
       enddo
     enddo
 
-    print *, "Current density mean: ", avcurrent/cellcount
+    ! print out statistics
+    if (.false.) then
+       print *, "For grid/tile",lo,hi
+       print *, "Current density mean: ", avcurrent/cellcount
+    end if
         
   end subroutine evaluate_means
 
   subroutine evaluate_corrs(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-
-                             instant, ilo, ihi, &
-                             means, mlo, mhi, & 
-                             vars, vlo, vhi, & 
-
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps) bind(c,name='evaluate_corrs')
+                            instant, ilo, ihi, &
+                            means, mlo, mhi, & 
+                            vars, vlo, vhi, & 
+                            cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, &
+                            cellcount, varcurrent) bind(c,name='evaluate_corrs')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -486,11 +488,16 @@ contains
 
     type(particle_t), intent(inout), target :: particles(np)
 
+    integer         , intent(inout) :: cellcount
+    double precision, intent(inout) :: varcurrent(1:3)
+
     !Go through this and optimise later
 
     !double precision fac1, fac2, fac3, test, pairfrac
-    integer i,j,k, it, jt, kt, cellcount
-    double precision stepsminusone, stepsinv, lhs, rhs, tempcm, cv, ncm, velcm, momentumcm, cvinv, delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp, delix, deliy, deliz, varcurrent(3)
+    integer i,j,k, it, jt, kt
+    double precision stepsminusone, stepsinv, lhs, rhs, tempcm, cv, ncm, velcm, momentumcm, cvinv
+    double precision delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy
+    double precision densitymeaninv, deltemp, delix, deliy, deliz
 
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
@@ -570,19 +577,19 @@ contains
     do k = vlo(3), vhi(3)
       do j = vlo(2), vhi(2)
         do i = vlo(1), vhi(1)
-
-
             varcurrent(1) = varcurrent(1) + vars(i,j,k,16)
             varcurrent(2) = varcurrent(2) + vars(i,j,k,17)
             varcurrent(3) = varcurrent(3) + vars(i,j,k,18)
-
-                cellcount = cellcount +1
- 
-        enddo
+            cellcount = cellcount +1
+         enddo
       enddo
     enddo
 
-    print *, "Current density variance: ", varcurrent/cellcount
+    ! print out statistics
+    if (.false.) then
+       print *, "For grid/tile",lo,hi
+       print *, "Current density variance: ", varcurrent/cellcount
+    end if
 
   end subroutine evaluate_corrs
 
