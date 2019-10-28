@@ -68,10 +68,7 @@ using IBBInt = IBMInt;
 class BlobIter
     : public IBMarIterBase<IBBReal::count, IBBInt::count>
 {
-
-// public:
-//     using IBMarIterBase<IBBReal::count, IBBInt::count>::IBMarIterBase;
-
+    using IBMarIterBase<IBBReal::count, IBBInt::count>::IBMarIterBase;
 };
 
 
@@ -102,6 +99,10 @@ public:
 
     // Calls parent class MoveMarkers, but also updates the ref_del[x,y,z] fields
     void MoveMarkers(int lev, Real dt);
+
+    // Computes flexible for model
+    void PredictorForces(int lev, Real k);
+    void MarkerForces(int lev, Real k);
 };
 
 
@@ -171,6 +172,7 @@ public:
 
     using ParIter<IBMBReal::count, IBMBInt::count, 0, 0>::ParIter;
 };
+
 
 
 

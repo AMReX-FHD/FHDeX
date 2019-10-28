@@ -162,6 +162,39 @@ void BlobContainer::MoveMarkers(int lev, Real dt) {
 
 
 
+
+void BlobContainer::PredictorForces(int lev, Real k) {
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_forcex + d) +=
+                    - k * mark.rdata(IBBReal::pred_posx + d);
+            }
+        }
+    }
+}
+
+
+
+void BlobContainer::MarkerForces(int lev, Real k) {
+
+}
+
+
+
+
 bool IBMultiBlobContainer::use_neighbor_list  {true};
 bool IBMultiBlobContainer::sort_neighbor_list {false};
 
@@ -424,6 +457,7 @@ void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
 void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
     markers.MovePredictor(lev, dt);
 }
+
 
 
 void IBMultiBlobContainer::WritePlotFile(const std::string & dir,

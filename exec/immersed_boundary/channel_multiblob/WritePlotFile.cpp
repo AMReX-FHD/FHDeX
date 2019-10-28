@@ -57,7 +57,7 @@ void WritePlotFile(int step,
     cnt = 0;
 
     // average staggered velocities to cell-centers and copy into plotfile
-    AverageFaceToCC(umac,plotfile,cnt);
+    AverageFaceToCC(umac, plotfile, cnt);
     cnt+=AMREX_SPACEDIM;
 
     // shift staggered velocities to cell-centers and copy into plotfile
