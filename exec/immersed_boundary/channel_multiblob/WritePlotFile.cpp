@@ -82,7 +82,7 @@ void WritePlotFile(int step,
 
     // add immersed boundary markers data to plot file
     ib_mbc.WritePlotFile(plotfilename, "immbdy_markers",
-                         IBMReal::names(), IBMInt::names());
+                         IBMBReal::names(), IBMBInt::names());
 
 
     // staggered velocity

@@ -171,7 +171,7 @@ IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
                                            const DistributionMapping & dmap,
                                            const BoxArray & ba,
                                            int n_nbhd)
-    : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
+    : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             geom, dmap, ba, n_nbhd
         ),
       nghost(n_nbhd),
@@ -183,7 +183,7 @@ IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
 
 
 IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
-    : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
+    : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
       m_amr_core(amr_core),
@@ -248,17 +248,17 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Rea
 
                 // Initialize particle velocity (and angular velocity) as well
                 // as drag to 0
-                p_new.rdata(IBMB_realData::velx + d)   = 0.;
-                p_new.rdata(IBMB_realData::omegax + d) = 0.;
-                p_new.rdata(IBMB_realData::dragx + d)  = 0.;
+                p_new.rdata(IBMBReal::velx + d)   = 0.;
+                p_new.rdata(IBMBReal::omegax + d) = 0.;
+                p_new.rdata(IBMBReal::dragx + d)  = 0.;
             }
 
             // Physical radius of multiblob
-            p_new.rdata(IBMB_realData::radius) = r;
+            p_new.rdata(IBMBReal::radius) = r;
 
             // TODO: Audit
-            p_new.idata(IBMB_intData::phase) = -1;
-            p_new.idata(IBMB_intData::state) = -1;
+            p_new.idata(IBMBInt::phase) = -1;
+            p_new.idata(IBMBInt::state) = -1;
 
             // Add to the data structure
             particles.push_back(p_new);
@@ -318,7 +318,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
             //        ^^ first ^^, ^^ second  ^^
 
             // HACK: put markers slightly inside TODO: fix
-            double   r     = part.rdata(IBMB_realData::radius)*0.8;
+            double   r     = part.rdata(IBMBReal::radius)*0.8;
             RealVect pos_0 = {AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))};
 
 

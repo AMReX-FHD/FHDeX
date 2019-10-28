@@ -110,7 +110,7 @@ public:
 
 
 // IBP => Immmersed Boundary Particle
-struct IBMB_realData {
+struct IBMBReal {
     //Analogous to particle realData (p.m_data)
     // TODO: orientation?
     enum {
@@ -145,7 +145,7 @@ struct IBMB_realData {
 
 
 
-struct IBMB_intData {
+struct IBMBInt {
     //Analogous to particle intData (p.m_data)
     enum {
         phase = 0,  // ................................... TODO: Audit
@@ -164,18 +164,18 @@ struct IBMB_intData {
 
 
 class IBMBIter
-    : public amrex::ParIter<IBMB_realData::count, IBMB_intData::count, 0, 0>
+    : public amrex::ParIter<IBMBReal::count, IBMBInt::count, 0, 0>
 {
 
 public:
 
-    using ParIter<IBMB_realData::count, IBMB_intData::count, 0, 0>::ParIter;
+    using ParIter<IBMBReal::count, IBMBInt::count, 0, 0>::ParIter;
 };
 
 
 
 class IBMultiBlobContainer
-    : public amrex::NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>
+    : public amrex::NeighborParticleContainer<IBMBReal::count, IBMBInt::count>
 {
 
 public:
