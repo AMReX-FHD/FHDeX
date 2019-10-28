@@ -270,26 +270,32 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     //___________________________________________________________________________
-    // Update forces between markers
-    ib_mbc.clearNeighbors();
-    ib_mbc.fillNeighbors(); // Does ghost cells
-
-    ib_mbc.buildNeighborList(ib_mbc.CheckPair);
+    // Calculate internal force model
+    Real K = 1e4;
+    ib_mbc.PredictorForces(0, K);
 
 
-    for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
+    // //___________________________________________________________________________
+    // // Update forces between markers
+    // ib_mbc.clearNeighbors();
+    // ib_mbc.fillNeighbors(); // Does ghost cells
 
-        // Get marker data (local to current thread)
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+    // ib_mbc.buildNeighborList(ib_mbc.CheckPair);
 
-        // m_index.second is used to keep track of the neighbor list
-        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-            ParticleType & mark = markers[m_index.first];
-        }
-    }
+    // for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
+
+    //     // Get marker data (local to current thread)
+    //     TileIndex index(pti.index(), pti.LocalTileIndex());
+    //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+    //     long np = markers.size();
+
+    //     // m_index.second is used to keep track of the neighbor list
+    //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+    //         ParticleType & mark = markers[m_index.first];
+    //     }
+    // }
 
 
     //___________________________________________________________________________
@@ -394,27 +400,32 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     //___________________________________________________________________________
-    // Update forces between markers (these repeated clear/fill/build neighbor
-    // calls might be redundant)
-    ib_mbc.clearNeighbors();
-    ib_mbc.fillNeighbors(); // Does ghost cells
-
-    ib_mbc.buildNeighborList(ib_mbc.CheckPair);
+    // Calculate internal force model
+    ib_mbc.MarkerForces(0, K);
 
 
-    for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
+    // //___________________________________________________________________________
+    // // Update forces between markers (these repeated clear/fill/build neighbor
+    // // calls might be redundant)
+    // ib_mbc.clearNeighbors();
+    // ib_mbc.fillNeighbors(); // Does ghost cells
 
-        // Get marker data (local to current thread)
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+    // ib_mbc.buildNeighborList(ib_mbc.CheckPair);
 
-        // m_index.second is used to keep track of the neighbor list
-        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-            ParticleType & mark = markers[m_index.first];
-        }
-    }
+    // for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
+
+    //     // Get marker data (local to current thread)
+    //     TileIndex index(pti.index(), pti.LocalTileIndex());
+    //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+    //     long np = markers.size();
+
+    //     // m_index.second is used to keep track of the neighbor list
+    //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+    //         ParticleType & mark = markers[m_index.first];
+    //     }
+    // }
 
 
     //___________________________________________________________________________

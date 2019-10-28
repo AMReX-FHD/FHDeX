@@ -139,6 +139,12 @@ void BlobContainer::InitSingle(int lev,
 
 void BlobContainer::MovePredictor(int lev, Real dt) {
 
+    // MovePredictor preseves the property that `pred_pos[x,y,z]` is a
+    // difference to the reference position
+
+    //___________________________________________________________________________
+    // First set Set `pred_pos[x,y,z]` to the reference distances `ref_del[x,y,z]
+
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
@@ -156,13 +162,26 @@ void BlobContainer::MovePredictor(int lev, Real dt) {
         }
     }
 
+    //___________________________________________________________________________
+    // Now add dt*pred_vel[x,y,z] 
+
     IBMarkerContainerBase<IBBReal, IBBInt>::MovePredictor(lev, dt);
 }
 
 
 void BlobContainer::MoveMarkers(int lev, Real dt) {
 
+    // MoveMarkers preseves the property that `ref_del[x,y,z]` is a
+    // difference to the reference position
+
+
+    //___________________________________________________________________________
+    // First update marker position using `vel[x,y,z]
+
     IBMarkerContainerBase<IBBReal, IBBInt>::MoveMarkers(lev, dt);
+
+    //___________________________________________________________________________
+    // Now do the same with ref_del[x,y,z]
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -175,7 +194,7 @@ void BlobContainer::MoveMarkers(int lev, Real dt) {
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                part.rdata(IBBReal::ref_delx + d) =
+                part.rdata(IBBReal::ref_delx + d) +=
                     dt * part.rdata(IBBReal::velx + d);
             }
         }
@@ -497,6 +516,18 @@ void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
 
 void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
     markers.MovePredictor(lev, dt);
+}
+
+
+
+void IBMultiBlobContainer::PredictorForces(int lev, Real k) {
+    markers.PredictorForces(lev, k);
+}
+
+
+
+void IBMultiBlobContainer::MarkerForces(int lev, Real k) {
+    markers.MarkerForces(lev, k);
 }
 
 

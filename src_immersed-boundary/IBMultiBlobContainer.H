@@ -267,6 +267,9 @@ public:
     void MoveMarkers(int lev, Real dt);
     void MovePredictor(int lev, Real dt);
 
+    void PredictorForces(int lev, Real k);
+    void MarkerForces(int lev, Real k);
+
 
 
     /****************************************************************************
