@@ -264,6 +264,16 @@ public:
 
 
 
+    /****************************************************************************
+     *                                                                          *
+     * IO                                                                       *
+     *                                                                          *
+     ***************************************************************************/
+
+    void WritePlotFile(const std::string & dir, const std::string & name,
+                       const std::string & blob_name) const;
+
+
     static bool use_neighbor_list;
     static bool sort_neighbor_list;
 

@@ -18,7 +18,7 @@ void WritePlotFile(int step,
 
     BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
 
-    const std::string plotfilename = Concatenate(plot_base_name,step,7);
+    const std::string plotfilename = Concatenate(plot_base_name, step, 7);
 
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
@@ -62,7 +62,7 @@ void WritePlotFile(int step,
 
     // shift staggered velocities to cell-centers and copy into plotfile
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        ShiftFaceToCC(umac[i],0,plotfile,cnt,1);
+        ShiftFaceToCC(umac[i], 0, plotfile, cnt, 1);
         cnt++;
     }
 
@@ -78,23 +78,22 @@ void WritePlotFile(int step,
     ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
 
     // write a plotfile
-    WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);
+    WriteSingleLevelPlotfile(plotfilename, plotfile, varNames, geom, time, step);
 
     // add immersed boundary markers data to plot file
-    ib_mbc.WritePlotFile(plotfilename, "immbdy_markers",
-                         IBMBReal::names(), IBMBInt::names());
+    ib_mbc.WritePlotFile(plotfilename, "mulit-blob", "mb-markers");
 
 
     // staggered velocity
     if (plot_stag == 1) {
-      const std::string plotfilenamex = Concatenate("stagx",step,7);
-      const std::string plotfilenamey = Concatenate("stagy",step,7);
-      const std::string plotfilenamez = Concatenate("stagz",step,7);
+      const std::string plotfilenamex = Concatenate("stagx", step, 7);
+      const std::string plotfilenamey = Concatenate("stagy", step, 7);
+      const std::string plotfilenamez = Concatenate("stagz", step, 7);
 
-      WriteSingleLevelPlotfile(plotfilenamex,umac[0],{"umac"},geom,time,step);
-      WriteSingleLevelPlotfile(plotfilenamey,umac[1],{"vmac"},geom,time,step);
+      WriteSingleLevelPlotfile(plotfilenamex, umac[0], {"umac"}, geom, time, step);
+      WriteSingleLevelPlotfile(plotfilenamey, umac[1], {"vmac"}, geom, time, step);
 #if (AMREX_SPACEDIM == 3)
-      WriteSingleLevelPlotfile(plotfilenamez,umac[2],{"wmac"},geom,time,step);
+      WriteSingleLevelPlotfile(plotfilenamez, umac[2], {"wmac"}, geom, time, step);
 #endif
     }
 

@@ -426,6 +426,18 @@ void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
 }
 
 
+void IBMultiBlobContainer::WritePlotFile(const std::string & dir,
+                                         const std::string & name,
+                                         const std::string & blob_name) const {
+
+    // save multi-blob data
+    NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::WritePlotFile(
+                dir, name, IBMBReal::names(), IBMBInt::names()
+            );
+
+    // save marker data
+    markers.WritePlotFile(dir, blob_name, IBBReal::names(), IBBInt::names());
+}
 
 void IBMultiBlobContainer::InitInternals(int ngrow) {
     ReadStaticParameters();
