@@ -81,9 +81,9 @@ void main_driver(const char* argv)
 
     // for the 3 pairs
     Vector< Real > var_scaling(3);
-    var_scaling[0] = 1.;
-    var_scaling[1] = 1.;
-    var_scaling[2] = 1.;
+    var_scaling[0] = 1./dVol;
+    var_scaling[1] = 1./dVol;
+    var_scaling[2] = 1./dVol;
     
     MultiFab struct_cc;
     struct_cc.define(ba, dmap, 2, 0);
