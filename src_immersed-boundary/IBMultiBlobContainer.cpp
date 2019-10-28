@@ -137,6 +137,28 @@ void BlobContainer::InitSingle(int lev,
 }
 
 
+void BlobContainer::MovePredictor(int lev, Real dt) {
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(IBBReal::pred_posx + d) =
+                    part.rdata(IBBReal::ref_delx + d);
+            }
+        }
+    }
+
+    IBMarkerContainerBase<IBBReal, IBBInt>::MovePredictor(lev, dt);
+}
+
 
 void BlobContainer::MoveMarkers(int lev, Real dt) {
 
@@ -190,6 +212,25 @@ void BlobContainer::PredictorForces(int lev, Real k) {
 
 void BlobContainer::MarkerForces(int lev, Real k) {
 
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::forcex + d) +=
+                    - k * mark.rdata(IBBReal::ref_delx + d);
+            }
+        }
+    }
 }
 
 

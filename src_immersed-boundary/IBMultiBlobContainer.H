@@ -97,6 +97,9 @@ public:
     // not have to call `BlobContainer::Redistribute` outside the loop.
     void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
 
+    // Calls parent class MovePredictor, initilizing pred_pos[x,y,z] from
+    // ref_del[x,y,z] fields (rather than 0);
+    void MovePredictor(int lev, Real dt);
     // Calls parent class MoveMarkers, but also updates the ref_del[x,y,z] fields
     void MoveMarkers(int lev, Real dt);
 
