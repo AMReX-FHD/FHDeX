@@ -56,6 +56,8 @@ public:
 
     // indexing tiles (box index, local tile index)
     using TileIndex = std::pair<int, int>;
+    // indexing particles and corresponding spot in the neighbor list
+    using MarkerListIndex = std::pair<int, int>;
 
 
     IBMarkerContainerBase(AmrCore * amr_core, int n_nbhd);

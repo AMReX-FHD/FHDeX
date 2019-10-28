@@ -47,7 +47,7 @@ BlobContainer::BlobContainer(AmrCore * amr_core, int n_nbhd)
 
 
 void BlobContainer::AddSingle(int lev,
-                              Real radius, const RealVect & pos, 
+                              Real radius, const RealVect & pos,
                               int id, int cpu, int i_ref ) {
 
     // Inverse cell-size vector => used for determining index corresponding to
@@ -126,14 +126,111 @@ void BlobContainer::AddSingle(int lev,
 
 
 void BlobContainer::InitSingle(int lev,
-                               Real radius, const RealVect & pos, 
+                               Real radius, const RealVect & pos,
                                int id, int cpu, int i_ref ) {
-    
+
     AddSingle(lev, radius, pos, id, cpu, i_ref);
     // We shouldn't need this if the particles are tiled with one tile per
     // grid, but otherwise we do need this to move particles from tile 0 to the
     // correct tile.
     Redistribute();
+}
+
+
+void BlobContainer::MovePredictor(int lev, Real dt) {
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(IBBReal::pred_posx + d) =
+                    part.rdata(IBBReal::ref_delx + d);
+            }
+        }
+    }
+
+    IBMarkerContainerBase<IBBReal, IBBInt>::MovePredictor(lev, dt);
+}
+
+
+void BlobContainer::MoveMarkers(int lev, Real dt) {
+
+    IBMarkerContainerBase<IBBReal, IBBInt>::MoveMarkers(lev, dt);
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(IBBReal::ref_delx + d) =
+                    dt * part.rdata(IBBReal::velx + d);
+            }
+        }
+    }
+}
+
+
+
+
+void BlobContainer::PredictorForces(int lev, Real k) {
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_forcex + d) +=
+                    - k * mark.rdata(IBBReal::pred_posx + d);
+            }
+        }
+    }
+}
+
+
+
+void BlobContainer::MarkerForces(int lev, Real k) {
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::forcex + d) +=
+                    - k * mark.rdata(IBBReal::ref_delx + d);
+            }
+        }
+    }
 }
 
 
@@ -148,7 +245,7 @@ IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
                                            const DistributionMapping & dmap,
                                            const BoxArray & ba,
                                            int n_nbhd)
-    : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
+    : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             geom, dmap, ba, n_nbhd
         ),
       nghost(n_nbhd),
@@ -160,7 +257,7 @@ IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
 
 
 IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
-    : NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>(
+    : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
       m_amr_core(amr_core),
@@ -225,17 +322,17 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Rea
 
                 // Initialize particle velocity (and angular velocity) as well
                 // as drag to 0
-                p_new.rdata(IBMB_realData::velx + d)   = 0.;
-                p_new.rdata(IBMB_realData::omegax + d) = 0.;
-                p_new.rdata(IBMB_realData::dragx + d)  = 0.;
+                p_new.rdata(IBMBReal::velx + d)   = 0.;
+                p_new.rdata(IBMBReal::omegax + d) = 0.;
+                p_new.rdata(IBMBReal::dragx + d)  = 0.;
             }
 
             // Physical radius of multiblob
-            p_new.rdata(IBMB_realData::radius) = r;
+            p_new.rdata(IBMBReal::radius) = r;
 
             // TODO: Audit
-            p_new.idata(IBMB_intData::phase) = -1;
-            p_new.idata(IBMB_intData::state) = -1;
+            p_new.idata(IBMBInt::phase) = -1;
+            p_new.idata(IBMBInt::state) = -1;
 
             // Add to the data structure
             particles.push_back(p_new);
@@ -284,7 +381,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            ParticleIndex pindex(part.id(), part.cpu());
+            MarkerIndex pindex(part.id(), part.cpu());
 
             //___________________________________________________________________
             // Based on the paper:
@@ -294,9 +391,8 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
             // elt = (particle ID, particle data)
             //        ^^ first ^^, ^^ second  ^^
 
-            
             // HACK: put markers slightly inside TODO: fix
-            double   r     = part.rdata(IBMB_realData::radius)*0.8;
+            double   r     = part.rdata(IBMBReal::radius)*0.8;
             RealVect pos_0 = {AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))};
 
 
@@ -326,8 +422,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-                {
-                    // Add to list (use the `BlobContainer::AddSingle` function
+                {   // Add to list (use the `BlobContainer::AddSingle` function
                     // and call `BlobContainer::Redistribute` **outside** the
                     // `IBMBIter` loop)
                     markers.AddSingle(lev, 1., pos, part.id(), part.cpu(), i);
@@ -338,6 +433,18 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
     //___________________________________________________________________________
     // Redistribute markers to correct tiles
     markers.Redistribute();
+}
+
+
+
+void IBMultiBlobContainer::ResetPredictor(int lev) {
+    markers.ResetPredictor(lev);
+}
+
+
+
+void IBMultiBlobContainer::ResetMarkers(int lev) {
+    markers.ResetMarkers(lev);
 }
 
 
@@ -381,6 +488,31 @@ void IBMultiBlobContainer::InterpolatePredictor(int lev,
 }
 
 
+
+void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
+    markers.MoveMarkers(lev, dt);
+}
+
+
+
+void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
+    markers.MovePredictor(lev, dt);
+}
+
+
+
+void IBMultiBlobContainer::WritePlotFile(const std::string & dir,
+                                         const std::string & name,
+                                         const std::string & blob_name) const {
+
+    // save multi-blob data
+    NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::WritePlotFile(
+                dir, name, IBMBReal::names(), IBMBInt::names()
+            );
+
+    // save marker data
+    markers.WritePlotFile(dir, blob_name, IBBReal::names(), IBBInt::names());
+}
 
 void IBMultiBlobContainer::InitInternals(int ngrow) {
     ReadStaticParameters();
