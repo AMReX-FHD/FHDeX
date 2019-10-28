@@ -47,7 +47,7 @@ BlobContainer::BlobContainer(AmrCore * amr_core, int n_nbhd)
 
 
 void BlobContainer::AddSingle(int lev,
-                              Real radius, const RealVect & pos, 
+                              Real radius, const RealVect & pos,
                               int id, int cpu, int i_ref ) {
 
     // Inverse cell-size vector => used for determining index corresponding to
@@ -126,9 +126,9 @@ void BlobContainer::AddSingle(int lev,
 
 
 void BlobContainer::InitSingle(int lev,
-                               Real radius, const RealVect & pos, 
+                               Real radius, const RealVect & pos,
                                int id, int cpu, int i_ref ) {
-    
+
     AddSingle(lev, radius, pos, id, cpu, i_ref);
     // We shouldn't need this if the particles are tiled with one tile per
     // grid, but otherwise we do need this to move particles from tile 0 to the
@@ -136,6 +136,29 @@ void BlobContainer::InitSingle(int lev,
     Redistribute();
 }
 
+
+
+void BlobContainer::MoveMarkers(int lev, Real dt) {
+
+    IBMarkerContainerBase<IBBReal, IBBInt>::MoveMarkers(lev, dt);
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(IBBReal::ref_delx + d) =
+                    dt * part.rdata(IBBReal::velx + d);
+            }
+        }
+    }
+}
 
 
 
@@ -284,7 +307,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
-            ParticleIndex pindex(part.id(), part.cpu());
+            MarkerIndex pindex(part.id(), part.cpu());
 
             //___________________________________________________________________
             // Based on the paper:
@@ -294,7 +317,6 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
             // elt = (particle ID, particle data)
             //        ^^ first ^^, ^^ second  ^^
 
-            
             // HACK: put markers slightly inside TODO: fix
             double   r     = part.rdata(IBMB_realData::radius)*0.8;
             RealVect pos_0 = {AMREX_D_DECL(part.pos(0), part.pos(1), part.pos(2))};
@@ -326,8 +348,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-                {
-                    // Add to list (use the `BlobContainer::AddSingle` function
+                {   // Add to list (use the `BlobContainer::AddSingle` function
                     // and call `BlobContainer::Redistribute` **outside** the
                     // `IBMBIter` loop)
                     markers.AddSingle(lev, 1., pos, part.id(), part.cpu(), i);
@@ -338,6 +359,18 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
     //___________________________________________________________________________
     // Redistribute markers to correct tiles
     markers.Redistribute();
+}
+
+
+
+void IBMultiBlobContainer::ResetPredictor(int lev) {
+    markers.ResetPredictor(lev);
+}
+
+
+
+void IBMultiBlobContainer::ResetMarkers(int lev) {
+    markers.ResetMarkers(lev);
 }
 
 
@@ -378,6 +411,18 @@ void IBMultiBlobContainer::InterpolatePredictor(int lev,
     // Since the Blob-Container already contains all the markers, we hand this
     // call off to the `BlobContainer markers` member.
     markers.InterpolatePredictor(lev, f_in);
+}
+
+
+
+void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
+    markers.MoveMarkers(lev, dt);
+}
+
+
+
+void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
+    markers.MovePredictor(lev, dt);
 }
 
 

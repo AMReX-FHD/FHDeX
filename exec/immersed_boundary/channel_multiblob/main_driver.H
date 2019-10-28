@@ -3,16 +3,16 @@
 
 #include "common_functions.H"
 #include "gmres_functions.H"
-#include "IBMarkerContainer.H"
+#include "IBMultiBlobContainer.H"
 
 
 
 //_______________________________________________________________________________
 // Abbreviations:
-using TileIndex       = IBMarkerContainer::TileIndex;
-using MarkerListIndex = IBMarkerContainer::MarkerListIndex;
-using ParticleType    = IBMarkerContainer::ParticleType;
-using AoS             = IBMarkerContainer::AoS;
+using TileIndex       = IBMultiBlobContainer::TileIndex;
+using MarkerListIndex = IBMultiBlobContainer::MarkerListIndex;
+using ParticleType    = IBMultiBlobContainer::ParticleType;
+using AoS             = IBMultiBlobContainer::AoS;
 
 
 
@@ -26,7 +26,7 @@ using AoS             = IBMarkerContainer::AoS;
 void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
              std::array< MultiFab, AMREX_SPACEDIM > & umacNew,
              MultiFab& pres, MultiFab & tracer,
-             IBMarkerContainer & ib_mc,
+             IBMultiBlobContainer & ib_mbc,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM > & mfluxdiv_correct,
                    std::array< MultiFab, AMREX_SPACEDIM > & alpha_fc,
@@ -54,7 +54,7 @@ void WritePlotFile(const int step,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
                    const MultiFab& tracer,
                    const MultiFab& pres,
-                   const IBMarkerContainer & ib_pc);
+                   const IBMultiBlobContainer & ib_mbc);
 
 ///////////////////////////
 

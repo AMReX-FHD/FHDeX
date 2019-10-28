@@ -99,6 +99,9 @@ public:
     // **unsafe** to call **within** a `ParIter`/`MFIter loop). The user will
     // not have to call `BlobContainer::Redistribute` outside the loop.
     void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
+
+    // Calls parent class MoveMarkers, but also updates the ref_del[x,y,z] fields
+    void MoveMarkers(int lev, Real dt);
 };
 
 
@@ -186,9 +189,11 @@ public:
 
 
     // (ID, initial CPU) tuple: unique to each particle
-    using ParticleIndex = std::pair<int, int>;
-    using IBMarkerMap   = std::map<ParticleIndex, Vector<RealVect>>;
-
+    using MarkerIndex = typename IBMarkerContainerBase<IBMReal, IBMInt>::PairIndex;
+    // indexing particles and corresponding spot in the neighbor list
+    using MarkerListIndex = std::pair<int, int>;
+    // indexing tiles (box index, local tile index)
+    using TileIndex = std::pair<int, int>;
 
     // Get number of particles
     int NumberOfParticles(IBMBIter & pti){
@@ -196,10 +201,28 @@ public:
     };
 
 
+
+    /****************************************************************************
+     *                                                                          *
+     * Initialization                                                           *
+     *                                                                          *
+     ***************************************************************************/
+
+
     void InitSingle(int lev, const RealVect & pos, Real r, Real rho);
-
-
     void FillMarkerPositions(int lev, int n_marker);
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Resetting functions for internal markers                                 *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    void ResetPredictor(int lev);
+    void ResetMarkers(int lev);
 
 
     /****************************************************************************
@@ -226,6 +249,18 @@ public:
     void InterpolatePredictor(int lev,
                               const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
     //---------------------------------------------------------------------------
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Physics                                                                  *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    void MoveMarkers(int lev, Real dt);
+    void MovePredictor(int lev, Real dt);
 
 
 

@@ -27,7 +27,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
-#include <IBMarkerContainer.H>
 #include <IBMultiBlobContainer.H>
 
 
@@ -328,29 +327,10 @@ void main_driver(const char * argv) {
     // Initialize velocities (fluid and tracers)
     // Make sure that the nghost (last argument) is big enough!
 
-
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
-
-    Vector<RealVect> marker_positions(2);
-    marker_positions[0] = RealVect{0.2,  0.5, 0.5};
-    marker_positions[1] = RealVect{0.21, 0.5, 0.5};
-
-    Vector<Real> marker_radii(2);
-    marker_radii[0] = {0.02};
-    marker_radii[1] = {0.02};
-
-    int ib_label = 0; //need to fix for multiple dumbbells
-    ib_mc.InitList(0, marker_radii, marker_positions, ib_label);
-
-    ib_mc.fillNeighbors();
-    ib_mc.PrintMarkerData(0);
-
-
-
     IBMultiBlobContainer ib_mbc(geom, dmap, ba, 10);
 
     Vector<RealVect> mb_positions(1);
-    marker_positions[0] = RealVect{0.5, 0.5, 0.5};
+    mb_positions[0] = RealVect{0.5, 0.5, 0.5};
 
     Vector<Real> mb_radii(1), mb_rho(1);
     for (int i=0; i<mb_radii.size(); ++i) {
@@ -361,9 +341,7 @@ void main_driver(const char * argv) {
     for (int i=0; i<mb_radii.size(); ++i)
         ib_mbc.InitSingle(0, mb_positions[i], mb_radii[i], mb_rho[i]);
 
-    std::cout << "Done initializing, now filling" <<std::endl;
-    ib_mbc.FillMarkerPositions(0, 30);
-    std::cout << "Done filling" <<std::endl;
+    ib_mbc.FillMarkerPositions(0, 30); // HACK: hard-code number of markers
 
 
     //___________________________________________________________________________
@@ -436,7 +414,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
+        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mbc);
     }
 
 
@@ -465,7 +443,7 @@ void main_driver(const char * argv) {
 
         //___________________________________________________________________
         // Advance umac
-        advance(umac, umacNew, pres, tracer, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+        advance(umac, umacNew, pres, tracer, ib_mbc, mfluxdiv_predict, mfluxdiv_correct,
                 alpha_fc, beta, gamma, beta_ed, geom, dt);
 
 
@@ -489,7 +467,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-          WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
+          WritePlotFile(step, time, geom, umac, tracer, pres, ib_mbc);
         }
     }
 
