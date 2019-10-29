@@ -341,7 +341,7 @@ void main_driver(const char * argv) {
     for (int i=0; i<mb_radii.size(); ++i)
         ib_mbc.InitSingle(0, mb_positions[i], mb_radii[i], mb_rho[i]);
 
-    ib_mbc.FillMarkerPositions(0, 30); // HACK: hard-code number of markers
+    ib_mbc.FillMarkerPositions(0, 100); // HACK: hard-code number of markers
 
 
     //___________________________________________________________________________
