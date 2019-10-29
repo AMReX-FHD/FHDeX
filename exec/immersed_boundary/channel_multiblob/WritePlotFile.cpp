@@ -9,14 +9,14 @@ using namespace common;
 
 void WritePlotFile(int step,
                    const Real time,
-                   const Geometry geom,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                   const Geometry & geom,
+                   std::array<MultiFab, AMREX_SPACEDIM> & umac,
                    const MultiFab& tracer,
                    const MultiFab& pres,
                    const IBMultiBlobContainer & ib_mbc)
 {
 
-    BL_PROFILE_VAR("WritePlotFile()",WritePlotFile);
+    BL_PROFILE_VAR("WritePlotFile()", WritePlotFile);
 
     const std::string plotfilename = Concatenate(plot_base_name, step, 7);
 
@@ -28,7 +28,7 @@ void WritePlotFile(int step,
     // plot pressure
     // plot tracer
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM+3;
+    int nPlot = 2*AMREX_SPACEDIM + 3;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 

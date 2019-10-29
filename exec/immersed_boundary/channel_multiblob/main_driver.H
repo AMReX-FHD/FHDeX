@@ -50,10 +50,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM > & umac,
 
 void WritePlotFile(const int step,
                    const Real time,
-                   const Geometry geom,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
-                   const MultiFab& tracer,
-                   const MultiFab& pres,
+                   const Geometry & geom,
+                   std::array<MultiFab, AMREX_SPACEDIM> & umac,
+                   const MultiFab & tracer,
+                   const MultiFab & pres,
                    const IBMultiBlobContainer & ib_mbc);
 
 ///////////////////////////
