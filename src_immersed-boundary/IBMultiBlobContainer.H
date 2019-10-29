@@ -91,6 +91,8 @@ public:
     // Add marker to database **without** redistributing (this is safe to call
     // within a `ParIter`/`MFIter loop), but the user will have to call
     // `BlobContainer::Redistribute` outside the loop.
+    void AddSingle(int lev, const TileIndex & tile,
+                   Real radius, const RealVect & pos, int id, int cpu, int i);
     void AddSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
     // Add marker to database **and** redistribute this particle (this is
     // **unsafe** to call **within** a `ParIter`/`MFIter loop). The user will

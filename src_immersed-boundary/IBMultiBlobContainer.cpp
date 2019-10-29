@@ -46,6 +46,54 @@ BlobContainer::BlobContainer(AmrCore * amr_core, int n_nbhd)
 
 
 
+void BlobContainer::AddSingle(int lev, const TileIndex & tile,
+                              Real radius, const RealVect & pos,
+                              int id, int cpu, int i_ref) {
+
+
+        // Create a particle container for this grid and add the
+        // immersed-boundary particles to it. NOTE: use the square-bracket
+        // operator here, because we might need to create this tile (tiles are
+        // created as needed)
+        auto & particles = GetParticles(lev)[tile];
+
+        ParticleType p_new;
+
+        // Set id and cpu for this particle
+        p_new.id()  = ParticleType::NextID();
+        p_new.cpu() = ParallelDescriptor::MyProc();
+
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            // Set particle (blob) and reference position
+            p_new.pos(d) = pos[d];
+            p_new.rdata(IBBReal::ref_delx + d) = 0;
+
+            // Initialize marker velocity as well as forces to 0
+            p_new.rdata(IBBReal::velx + d)   = 0.;
+            p_new.rdata(IBBReal::forcex + d) = 0.;
+
+            p_new.rdata(IBBReal::pred_posx + d)   = 0.;
+            p_new.rdata(IBBReal::pred_velx + d)   = 0.;
+            p_new.rdata(IBBReal::pred_forcex + d) = 0.;
+        }
+
+        // Blob metadata
+        // 1. Blob search radius
+        p_new.rdata(IBBReal::radius) = radius;
+
+        // 2. Blob contexual metadata
+        p_new.idata(IBBInt::id_0)  = id;
+        p_new.idata(IBBInt::cpu_0) = cpu;
+
+        p_new.idata(IBBInt::id_1)  = i_ref;
+        p_new.idata(IBBInt::cpu_1) = -1;
+
+        // Add to the data structure
+        particles.push_back(p_new);
+}
+
+
+
 void BlobContainer::AddSingle(int lev,
                               Real radius, const RealVect & pos,
                               int id, int cpu, int i_ref ) {
@@ -69,7 +117,6 @@ void BlobContainer::AddSingle(int lev,
         // is within current tile box.
         const int grid_id = mfi.index();
         const int tile_id = mfi.LocalTileIndex();
-        auto & particles = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
 
 
         // IntVect representing particle's position in the tile_box grid.
@@ -83,39 +130,8 @@ void BlobContainer::AddSingle(int lev,
         // within tile_box.
         if(tile_box.contains(pos_ind)) {
 
-            ParticleType p_new;
-
-            // Set id and cpu for this particle
-            p_new.id()  = ParticleType::NextID();
-            p_new.cpu() = ParallelDescriptor::MyProc();
-
-            for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                // Set particle (blob) and reference position
-                p_new.pos(d) = pos[d];
-                p_new.rdata(IBBReal::ref_delx + d) = 0;
-
-                // Initialize marker velocity as well as forces to 0
-                p_new.rdata(IBBReal::velx + d)   = 0.;
-                p_new.rdata(IBBReal::forcex + d) = 0.;
-
-                p_new.rdata(IBBReal::pred_posx + d)   = 0.;
-                p_new.rdata(IBBReal::pred_velx + d)   = 0.;
-                p_new.rdata(IBBReal::pred_forcex + d) = 0.;
-            }
-
-            // Blob metadata
-            // 1. Blob search radius
-            p_new.rdata(IBBReal::radius) = radius;
-
-            // 2. Blob contexual metadata
-            p_new.idata(IBBInt::id_0)  = id;
-            p_new.idata(IBBInt::cpu_0) = cpu;
-
-            p_new.idata(IBBInt::id_1)  = i_ref;
-            p_new.idata(IBBInt::cpu_1) = -1;
-
-            // Add to the data structure
-            particles.push_back(p_new);
+            AddSingle(lev, std::make_pair(grid_id, tile_id),
+                      radius, pos, id, cpu, i_ref);
         }
     }
 
@@ -163,7 +179,7 @@ void BlobContainer::MovePredictor(int lev, Real dt) {
     }
 
     //___________________________________________________________________________
-    // Now add dt*pred_vel[x,y,z] 
+    // Now add dt*pred_vel[x,y,z]
 
     IBMarkerContainerBase<IBBReal, IBBInt>::MovePredictor(lev, dt);
 }
@@ -378,7 +394,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
     double inv_sqrt_n = 1./std::sqrt(n_marker);
 
 
-    fillNeighbors();
+    // fillNeighbors();
 
 
     /****************************************************************************
@@ -444,11 +460,13 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
                 {   // Add to list (use the `BlobContainer::AddSingle` function
                     // and call `BlobContainer::Redistribute` **outside** the
                     // `IBMBIter` loop)
-                    markers.AddSingle(lev, 1., pos, part.id(), part.cpu(), i);
+                    markers.AddSingle(lev, index,
+                                      1., pos, part.id(), part.cpu(), i);
                 }
             }
         }
     }
+
     //___________________________________________________________________________
     // Redistribute markers to correct tiles
     markers.Redistribute();
