@@ -20,10 +20,14 @@
 #include <IBMarkerMD.H>
 
 
+#include <immbdy_namespace.H>
+
 using namespace amrex;
 using namespace common;
 using namespace gmres;
 using namespace immbdy_md;
+
+using namespace ib_colloid;
 
 
 using ParticleVector = typename IBMarkerContainer::ParticleVector;
@@ -171,7 +175,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     int ib_lev = 0;
 
     // Parameters for spring force calculation
-    Real spr_k = 100.0 ; // spring constant
+    Real spr_k = ib_colloid::k_spring[0]; // HACK use elt 0 for now
 
     // initial distance btw markers. TODO: Need to update depending on initial
     // coordinates.
@@ -272,8 +276,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Calculate internal force model
-    Real K = 1e4;
-    ib_mbc.PredictorForces(0, K);
+    ib_mbc.PredictorForces(0, spr_k);
 
 
     // //___________________________________________________________________________
@@ -402,7 +405,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Calculate internal force model
-    ib_mbc.MarkerForces(0, K);
+    ib_mbc.MarkerForces(0, spr_k);
 
 
     // //___________________________________________________________________________

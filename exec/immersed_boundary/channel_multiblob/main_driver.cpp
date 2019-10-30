@@ -341,27 +341,30 @@ void main_driver(const char * argv) {
     // Make sure that the nghost (last argument) is big enough!
     IBMultiBlobContainer ib_mbc(geom, dmap, ba, 10);
 
-    Vector<RealVect> mb_positions(1);
-    mb_positions[0] = RealVect{0.5, 0.5, 0.5};
+    Vector<RealVect> mb_positions(n_immbdy);
+    Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);
 
-    Vector<Real> mb_radii(1), mb_rho(1);
-    for (int i=0; i<mb_radii.size(); ++i) {
-        mb_radii[i] = {0.2};
-        mb_rho[i]   = {100};
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
+        if (n_marker[i_ib] <= 0) continue;
+
+        int N  = n_marker[i_ib];
+
+        const RealVect & center = ib_colloid::center[i_ib];
+        Real radius             = ib_colloid::radius[i_ib];
+        Real rho                = ib_colloid::rho[i_ib];
+
+        Print() << "Initializing colloid:" << std::endl;
+        Print() << "N =      " << N        << std::endl;
+        Print() << "center = " << center   << std::endl;
+        Print() << "radius = " << radius   << std::endl;
+        Print() << "rho =    " << rho      << std::endl;
+
+        ib_mbc.InitSingle(0, center, radius, rho, N);
+
     }
 
-    // Vector<RealVect> mb_positions(n_immbdy);
-    // Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);
-
-    // for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
-
-    //     if (n_marker[i_ib] <= 0) continue;
-    // }
-
-    for (int i=0; i<mb_radii.size(); ++i)
-        ib_mbc.InitSingle(0, mb_positions[i], mb_radii[i], mb_rho[i]);
-
-    ib_mbc.FillMarkerPositions(0, 500); // HACK: hard-code number of markers
+    ib_mbc.FillMarkerPositions(0);
 
 
     //___________________________________________________________________________

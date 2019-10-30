@@ -305,7 +305,7 @@ IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
 
 
 
-void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Real rho) {
+void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Real rho, int N) {
 
     // Inverse cell-size vector => used for determining index corresponding to
     // IBParticle position (pos)
@@ -364,7 +364,11 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Rea
 
             // Physical radius of multiblob
             p_new.rdata(IBMBReal::radius) = r;
+            p_new.rdata(IBMBReal::rho)    = rho;
 
+
+            // Number of markers to put on surface
+            p_new.idata(IBMBInt::n_marker) = N;
             // TODO: Audit
             p_new.idata(IBMBInt::phase) = -1;
             p_new.idata(IBMBInt::state) = -1;
@@ -388,10 +392,7 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r, Rea
 
 
 
-void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
-
-
-    double inv_sqrt_n = 1./std::sqrt(n_marker);
+void IBMultiBlobContainer::FillMarkerPositions(int lev) {
 
 
     // fillNeighbors();
@@ -433,6 +434,8 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev, int n_marker) {
 
             //___________________________________________________________________
             // Fill marker using Saff spiral
+            int n_marker      = part.idata(IBMBInt::n_marker);
+            double inv_sqrt_n = 1./std::sqrt(n_marker);
             double phi = 0.;
             for (int i=0; i<n_marker; ++i) {
 

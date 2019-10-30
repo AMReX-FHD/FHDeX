@@ -121,6 +121,7 @@ struct IBMBReal {
     // TODO: orientation?
     enum {
         radius = 0,
+        rho,
         velx,
         vely,
         velz,
@@ -136,6 +137,7 @@ struct IBMBReal {
     static Vector<std::string> names() {
         return Vector<std::string> {
             "radius",
+            "rho",
             "velx",
             "vely",
             "velz",
@@ -154,13 +156,15 @@ struct IBMBReal {
 struct IBMBInt {
     //Analogous to particle intData (p.m_data)
     enum {
-        phase = 0,  // ................................... TODO: Audit
-        state,      // ................................... TODO: Audit
+        n_marker = 0,
+        phase, // ................................... TODO: Audit
+        state, // ................................... TODO: Audit
         count
     };
 
     static Vector<std::string> names() {
         return Vector<std::string> {
+            "n_marker",
             "phase",
             "state"
         };
@@ -216,8 +220,8 @@ public:
      ***************************************************************************/
 
 
-    void InitSingle(int lev, const RealVect & pos, Real r, Real rho);
-    void FillMarkerPositions(int lev, int n_marker);
+    void InitSingle(int lev, const RealVect & pos, Real r, Real rho, int N);
+    void FillMarkerPositions(int lev);
 
 
 
