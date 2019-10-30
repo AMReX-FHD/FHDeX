@@ -16,6 +16,12 @@
 #include "gmres_functions.H"
 #include "gmres_functions_F.H"
 
+#include <ib_functions.H>
+
+#include <immbdy_namespace.H>
+// Comment out if getting `duplicate symbols` error duing linking
+// #include <immbdy_namespace_declarations.H>
+
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
@@ -33,6 +39,9 @@
 using namespace amrex;
 using namespace common;
 using namespace gmres;
+
+using namespace immbdy;
+using namespace ib_colloid;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -86,13 +95,16 @@ void main_driver(const char * argv) {
 
     // read in parameters from inputs file into F90 modules NOTE: we use "+1"
     // because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(), inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(), inputs_file.size()+1);
+    read_common_namelist(inputs_file.c_str(), inputs_file.size() + 1);
+    read_gmres_namelist(inputs_file.c_str(), inputs_file.size() + 1);
+    read_immbdy_namelist(inputs_file.c_str(), inputs_file.size() + 1);
 
     // copy contents of F90 modules to C++ namespaces NOTE: any changes to
     // global settings in fortran/c++ after this point need to be synchronized
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+    InitializeImmbdyNamespace();
+    InitializeIBColloidNamespace();
 
 
     //___________________________________________________________________________
@@ -325,8 +337,8 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
-    // Make sure that the nghost (last argument) is big enough!
 
+    // Make sure that the nghost (last argument) is big enough!
     IBMultiBlobContainer ib_mbc(geom, dmap, ba, 10);
 
     Vector<RealVect> mb_positions(1);
@@ -337,6 +349,14 @@ void main_driver(const char * argv) {
         mb_radii[i] = {0.2};
         mb_rho[i]   = {100};
     }
+
+    // Vector<RealVect> mb_positions(n_immbdy);
+    // Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);
+
+    // for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
+    //     if (n_marker[i_ib] <= 0) continue;
+    // }
 
     for (int i=0; i<mb_radii.size(); ++i)
         ib_mbc.InitSingle(0, mb_positions[i], mb_radii[i], mb_rho[i]);

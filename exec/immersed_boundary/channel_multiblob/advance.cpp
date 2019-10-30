@@ -195,6 +195,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     /****************************************************************************
      *                                                                          *
      * Advance tracer                                                           *
+     * NOTE: this is a centered scheme => can be unstable of |Pe| > 2           *
      *                                                                          *
      ***************************************************************************/
 
