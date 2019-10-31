@@ -48,6 +48,7 @@ module common_namelist_module
   character(len=128), save :: chk_base_name
   integer,            save :: prob_type
   integer,            save :: restart
+  integer,            save :: particle_restart
   integer,            save :: print_int
   integer,            save :: project_eos_int
   
@@ -212,6 +213,7 @@ module common_namelist_module
   namelist /common/ chk_base_name
   namelist /common/ prob_type
   namelist /common/ restart
+  namelist /common/ particle_restart
   namelist /common/ print_int
   namelist /common/ project_eos_int
 
@@ -397,6 +399,7 @@ contains
     chk_base_name = "chk"
     prob_type = 1
     restart = -1
+    particle_restart = -1
     print_int = 0
     project_eos_int = -1
     grav(:) = 0.d0
@@ -493,7 +496,8 @@ contains
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
-                                         restart_in, print_int_in, project_eos_int_in, &
+                                         restart_in, particle_restart_in, &
+                                         print_int_in, project_eos_int_in, &
                                          grav_in, nspecies_in, molmass_in, diameter_in, &
                                          dof_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
@@ -575,6 +579,7 @@ contains
     character(kind=c_char), intent(inout) :: chk_base_name_in(chk_base_name_len)
     integer,                intent(inout) :: prob_type_in
     integer,                intent(inout) :: restart_in
+    integer,                intent(inout) :: particle_restart_in
     integer,                intent(inout) :: print_int_in
     integer,                intent(inout) :: project_eos_int_in
     double precision,       intent(inout) :: grav_in(AMREX_SPACEDIM)
@@ -708,6 +713,7 @@ contains
     chk_base_name_in = amrex_string_f_to_c(chk_base_name)
     prob_type_in = prob_type
     restart_in = restart
+    particle_restart_in = particle_restart
     print_int_in = print_int
     project_eos_int_in = project_eos_int
     grav_in = grav

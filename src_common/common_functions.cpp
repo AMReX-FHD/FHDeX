@@ -116,7 +116,7 @@ void InitializeCommonNamespace() {
                                 &fixed_dt, &cfl, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
-                                &prob_type, &restart, &print_int, &project_eos_int,
+                                &prob_type, &restart, &particle_restart, &print_int, &project_eos_int,
                                 grav.dataPtr(), &nspecies, molmass.dataPtr(), diameter.dataPtr(),
                                 dof.dataPtr(), hcv.dataPtr(), hcp.dataPtr(),
                                 rhobar.dataPtr(),

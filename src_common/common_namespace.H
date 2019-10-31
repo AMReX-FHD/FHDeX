@@ -47,6 +47,7 @@ namespace common {
     extern std::string                chk_base_name;
     extern int                        prob_type;
     extern int                        restart;
+    extern int                        particle_restart;
     extern int                        print_int;
     extern int                        project_eos_int;
 

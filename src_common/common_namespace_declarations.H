@@ -36,6 +36,7 @@ int                        common::chk_int;
 std::string                common::chk_base_name;
 int                        common::prob_type;
 int                        common::restart;
+int                        common::particle_restart;
 int                        common::print_int;
 int                        common::project_eos_int;
 amrex::Vector<amrex::Real> common::grav;

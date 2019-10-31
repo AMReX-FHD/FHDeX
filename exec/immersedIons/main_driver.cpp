@@ -649,7 +649,7 @@ void main_driver(const char* argv)
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc, crange);
 
-    if (restart < 0) {
+    if (restart < 0 && particle_restart < 0) {
         // create particles
         particles.InitParticles(ionParticle, dxp);
     }
@@ -743,7 +743,9 @@ void main_driver(const char* argv)
     StructFact structFact(bp,dmap,var_names,scaling,s_pairA,s_pairB);
 
 /*
-    if (restart > 0) {
+    // write a plotfile on restart
+    // note particle data isn't updated for plotfile generation yet
+    if (restart > 0) {    
         WritePlotFile(step-1, time, geom, geomC, geomP,
                       particleInstant, particleMeans, particleVars, particles,
                       charge, potential, efieldCC, dryMobility);
