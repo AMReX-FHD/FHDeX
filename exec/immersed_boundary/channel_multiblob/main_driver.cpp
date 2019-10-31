@@ -16,6 +16,12 @@
 #include "gmres_functions.H"
 #include "gmres_functions_F.H"
 
+#include <ib_functions.H>
+
+#include <immbdy_namespace.H>
+// Comment out if getting `duplicate symbols` error duing linking
+// #include <immbdy_namespace_declarations.H>
+
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
@@ -27,13 +33,15 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
-#include <IBMarkerContainer.H>
 #include <IBMultiBlobContainer.H>
 
 
 using namespace amrex;
 using namespace common;
 using namespace gmres;
+
+using namespace immbdy;
+using namespace ib_colloid;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the
@@ -87,13 +95,16 @@ void main_driver(const char * argv) {
 
     // read in parameters from inputs file into F90 modules NOTE: we use "+1"
     // because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(), inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(), inputs_file.size()+1);
+    read_common_namelist(inputs_file.c_str(), inputs_file.size() + 1);
+    read_gmres_namelist(inputs_file.c_str(), inputs_file.size() + 1);
+    read_immbdy_namelist(inputs_file.c_str(), inputs_file.size() + 1);
 
     // copy contents of F90 modules to C++ namespaces NOTE: any changes to
     // global settings in fortran/c++ after this point need to be synchronized
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+    InitializeImmbdyNamespace();
+    InitializeIBColloidNamespace();
 
 
     //___________________________________________________________________________
@@ -326,44 +337,34 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Initialize velocities (fluid and tracers)
+
     // Make sure that the nghost (last argument) is big enough!
-
-
-    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
-
-    Vector<RealVect> marker_positions(2);
-    marker_positions[0] = RealVect{0.2,  0.5, 0.5};
-    marker_positions[1] = RealVect{0.21, 0.5, 0.5};
-
-    Vector<Real> marker_radii(2);
-    marker_radii[0] = {0.02};
-    marker_radii[1] = {0.02};
-
-    int ib_label = 0; //need to fix for multiple dumbbells
-    ib_mc.InitList(0, marker_radii, marker_positions, ib_label);
-
-    ib_mc.fillNeighbors();
-    ib_mc.PrintMarkerData(0);
-
-
-
     IBMultiBlobContainer ib_mbc(geom, dmap, ba, 10);
 
-    Vector<RealVect> mb_positions(1);
-    marker_positions[0] = RealVect{0.5, 0.5, 0.5};
+    Vector<RealVect> mb_positions(n_immbdy);
+    Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);
 
-    Vector<Real> mb_radii(1), mb_rho(1);
-    for (int i=0; i<mb_radii.size(); ++i) {
-        mb_radii[i] = {0.2};
-        mb_rho[i]   = {100};
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
+        if (n_marker[i_ib] <= 0) continue;
+
+        int N  = n_marker[i_ib];
+
+        const RealVect & center = ib_colloid::center[i_ib];
+        Real radius             = ib_colloid::radius[i_ib];
+        Real rho                = ib_colloid::rho[i_ib];
+
+        Print() << "Initializing colloid:" << std::endl;
+        Print() << "N =      " << N        << std::endl;
+        Print() << "center = " << center   << std::endl;
+        Print() << "radius = " << radius   << std::endl;
+        Print() << "rho =    " << rho      << std::endl;
+
+        ib_mbc.InitSingle(0, center, radius, rho, N);
+
     }
 
-    for (int i=0; i<mb_radii.size(); ++i)
-        ib_mbc.InitSingle(0, mb_positions[i], mb_radii[i], mb_rho[i]);
-
-    std::cout << "Done initializing, now filling" <<std::endl;
-    ib_mbc.FillMarkerPositions(0, 30);
-    std::cout << "Done filling" <<std::endl;
+    ib_mbc.FillMarkerPositions(0);
 
 
     //___________________________________________________________________________
@@ -436,7 +437,7 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Write out initial state
     if (plot_int > 0) {
-        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
+        WritePlotFile(step, time, geom, umac, tracer, pres, ib_mbc);
     }
 
 
@@ -465,7 +466,7 @@ void main_driver(const char * argv) {
 
         //___________________________________________________________________
         // Advance umac
-        advance(umac, umacNew, pres, tracer, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
+        advance(umac, umacNew, pres, tracer, ib_mbc, mfluxdiv_predict, mfluxdiv_correct,
                 alpha_fc, beta, gamma, beta_ed, geom, dt);
 
 
@@ -489,7 +490,7 @@ void main_driver(const char * argv) {
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-          WritePlotFile(step, time, geom, umac, tracer, pres, ib_mc);
+          WritePlotFile(step, time, geom, umac, tracer, pres, ib_mbc);
         }
     }
 

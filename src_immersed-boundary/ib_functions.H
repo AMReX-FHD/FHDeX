@@ -22,7 +22,7 @@
 
 void InitializeImmbdyNamespace();
 void InitializeIBFlagellumNamespace();
-
+void InitializeIBColloidNamespace();
 
 
 // In IBGMRES.cpp

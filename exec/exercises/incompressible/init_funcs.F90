@@ -270,7 +270,7 @@ subroutine init_rho_and_umac(lo,hi, &
   use amrex_fort_module, only : amrex_real
   use common_namelist_module, only: prob_type, algorithm_type, T_init, &
                                     rho0, rhobar, initial_variance_mass, &
-                                    smoothing_width
+                                    smoothing_width, n_cells
   use multispec_namelist_module, only: alpha1, beta, delta, sigma, Dbar, Dtherm, &
                                        c_init, temp_type, sigma, is_ideal_mixture
 
@@ -371,8 +371,8 @@ subroutine init_rho_and_umac(lo,hi, &
      u = 0.d0
      v = 0.d0
 
-     l1 = L(2)/3
-     l2 = 2*l1
+     l1 = 0.35*L(2)
+     l2 = l1 + 0.3*L(2)
 
      ! print *, "Hack: smoothing width = ", smoothing_width
      ! print *, "Hack: nspecies = ", nspecies
@@ -412,6 +412,9 @@ subroutine init_rho_and_umac(lo,hi, &
                    (c_init(2,1:nspecies-1) - c_init(1,1:nspecies-1))* &
                    (1/(1+Exp(-smoothing_width*(y-l1))) - 1/(1+Exp(-smoothing_width*(y-l2))))
 
+!              if((j .lt. 16) .or. (j .gt. n_cells(2)-17) ) then
+!                c(i,j,1:nspecies-1) = c_init(1,1:nspecies-1)
+!              endif
               ! print *, "Hack: c = ", c(i,j,1:nspecies-1)
 
            end if           

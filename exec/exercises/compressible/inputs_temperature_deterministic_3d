@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0               ! physical lo coordinate
-  prob_hi(1:3) = 1.0 1.0 1.0e-1  ! physical hi coordinate
+  prob_hi(1:3) = 0.25e-4 1.0e-4 2e-6  ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -11,18 +11,18 @@
   nprimvars = 11
 
   ! number of cells in domain
-  n_cells(1:3) = 64 64 1
+  n_cells(1:3) = 8 64 1
 
   ! max number of cells in a box
 
-  max_grid_size(1:3) = 32 32 1
+  max_grid_size(1:3) = 8 16 1
   ! Time-step control
-  fixed_dt = 1e-7
+  fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
 
-  max_step = 2000
-  plot_int = 200
+  max_step = 801
+  plot_int = 50
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
@@ -34,6 +34,10 @@
   ! if visc_type = 2, L = symmetric (bulk viscosity = 0)
   ! if visc_type = 3, L = symmetric + bulk viscosity
   visc_type = 2
+
+  ! 0 - stochastic stress off, 1 - on
+  stoch_stress_form = 0
+  seed = 1
 
   ! Advection method
   ! if advection_type = 1, interpolate primitive quantities
@@ -58,7 +62,6 @@
   max_grid_projection(1:2) = 32 1
 
   n_steps_skip = 200000
-  n_steps_skip = 3000
 
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -101,7 +104,9 @@
 
   ! Xk and Yk at the wall for Dirichlet (concentrations) - set one to zero
   ! Ordering: (species 1, x-dir), (species 2, x-dir), ... (species 1, y-dir), ...
-  bc_Yk(2,1,1:3) = 0.2 0.8     ! lo BC
-  bc_Yk(2,2,1:3) = 0.3 0.7     ! hi BC
+  bc_Yk(1,1,1:2) = 0.5 0.5     ! lo BC
+  bc_Yk(1,2,1:2) = 0.5 0.5     ! hi BC
+
+  plot_means = 1
   
 /

@@ -25,6 +25,7 @@
 #include <gmres_namespace_declarations.H>
 
 #include <immbdy_namespace.H>
+// Comment out if getting `duplicate symbols` error duing linking
 // #include <immbdy_namespace_declarations.H>
 
 #include <AMReX_VisMF.H>
@@ -78,7 +79,7 @@ inline void setVal(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char * argv) {
 
-    BL_PROFILE_VAR("main_driver()",main_driver);
+    BL_PROFILE_VAR("main_driver()", main_driver);
 
 
     /****************************************************************************
@@ -343,14 +344,14 @@ void main_driver(const char * argv) {
     // Initialize immersed boundaries
     // Make sure that the nghost (last argument) is big enough!
 
-    BL_PROFILE_VAR("main_create markers", createmarkers);
+    BL_PROFILE_VAR("main_create_markers", CREATEMARKERS);
 
     // Find the optimal number of ghost cells for the IBMarkerContainer
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
 	    min_dx = std::min(min_dx, dx[d]);
 
-    // min of 8 is a HACK: something large enough but not too large
+    // min of 4 is a HACK: something large enough but not too large
     int ib_nghost = 4;
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
 
@@ -368,7 +369,6 @@ void main_driver(const char * argv) {
             << ib_nghost << " ghost cells" << std::endl;
 
     // Initialize immersed boundary container
-
     IBMarkerContainer ib_mc(geom, dmap, ba, ib_nghost);
 
     for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
@@ -410,7 +410,7 @@ void main_driver(const char * argv) {
 
     ib_mc.fillNeighbors();
     ib_mc.PrintMarkerData(0);
-    BL_PROFILE_VAR_STOP(createmarkers);
+    BL_PROFILE_VAR_STOP(CREATEMARKERS);
 
 
     //___________________________________________________________________________

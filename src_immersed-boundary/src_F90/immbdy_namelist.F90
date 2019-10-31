@@ -16,6 +16,7 @@ module immbdy_namelist_module
     integer,                       save :: n_immbdy
     logical,                       save :: contains_flagellum
     logical,                       save :: contains_fourier
+    logical,                       save :: contains_colloid
 
     integer,          allocatable, save :: n_marker(:)
     real(amrex_real), allocatable, save :: offset_0(:, :)
@@ -32,11 +33,19 @@ module immbdy_namelist_module
     real(amrex_real), allocatable, save :: b_coef(:,:,:)
     character(:),     allocatable, save :: chlamy_flagellum_datafile
 
+    integer,          allocatable, save :: colloid_n_marker(:)
+    real(amrex_real), allocatable, save :: colloid_center(:, :)
+    real(amrex_real), allocatable, save :: colloid_radius(:)
+    real(amrex_real), allocatable, save :: colloid_rho(:)
+    real(amrex_real), allocatable, save :: colloid_k_spring(:)
+
+
 
     ! most general immersed boundary information:
     namelist /immbdy/ n_immbdy
     namelist /immbdy/ contains_flagellum
     namelist /immbdy/ contains_fourier
+    namelist /immbdy/ contains_colloid
 
     ! information relevant to generic flagellum
     namelist /ib_flagellum/ n_marker
@@ -57,6 +66,12 @@ module immbdy_namelist_module
     namelist /chlamy_flagellum/ a_coef
     namelist /chlamy_flagellum/ b_coef
 
+    ! colloid data (unlike the previous fields, all colloid data have the "colloid_" prefix
+    namelist /ib_colloid/ colloid_n_marker
+    namelist /ib_colloid/ colloid_center
+    namelist /ib_colloid/ colloid_radius
+    namelist /ib_colloid/ colloid_rho
+    namelist /ib_colloid/ colloid_k_spring
 
 
 contains
@@ -138,6 +153,26 @@ contains
             close(unit=100)
         end if
 
+        if (contains_colloid) then
+
+            allocate(colloid_n_marker(n_immbdy))
+            allocate(colloid_center(AMREX_SPACEDIM, n_immbdy))
+            allocate(colloid_radius(n_immbdy))
+            allocate(colloid_rho(n_immbdy))
+            allocate(colloid_k_spring(n_immbdy))
+
+            ! default values
+            colloid_n_marker(:)  = 0
+            colloid_center(:, :) = 0
+            colloid_radius(:)    = 0
+            colloid_rho(:)       = 0
+            colloid_k_spring(:)  = 0
+
+            open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
+            read(unit=100, nml=ib_colloid)
+            close(unit=100)
+        end if
+
     end subroutine read_immbdy_namelist
 
 
@@ -161,13 +196,14 @@ contains
     end subroutine flagellum_max_markers
 
 
-    subroutine initialize_immbdy_namespace (n_immbdy_in, contains_flagellum_in, &
-            &                               contains_fourier_in               ) &
+    subroutine initialize_immbdy_namespace (n_immbdy_in, contains_flagellum_in,      &
+            &                               contains_fourier_in, contains_colloid_in)&
             bind(C, name="initialize_immbdy_namespace")
 
         integer(c_int), intent(inout) :: n_immbdy_in
         integer(c_int), intent(inout) :: contains_flagellum_in
         integer(c_int), intent(inout) :: contains_fourier_in
+        integer(c_int), intent(inout) :: contains_colloid_in
 
         n_immbdy_in = n_immbdy
 
@@ -176,6 +212,9 @@ contains
 
         contains_fourier_in = 0
         if (contains_fourier) contains_fourier_in = 1
+
+        contains_colloid_in = 0
+        if (contains_colloid) contains_colloid_in = 1
 
     end subroutine initialize_immbdy_namespace
 
@@ -250,5 +289,33 @@ contains
         b_coef_in(:) = b_coef(:, i_marker, i_immbdy)
 
     end subroutine copy_ib_fourier_data
+
+
+    subroutine initialize_ib_colloid_namespace (n_immbdy, n_marker_in, center_in,  &
+            &                                   radius_in, rho_in, k_spring_in    )&
+            bind(C, name="initialize_ib_colloid_namespace")
+
+        integer :: i, n
+
+        integer(c_int), value, intent(in) :: n_immbdy
+
+        integer(c_int),   intent(inout) :: n_marker_in(n_immbdy)
+        real(amrex_real), intent(inout) :: center_in(AMREX_SPACEDIM, n_immbdy)
+        real(amrex_real), intent(inout) :: radius_in(n_immbdy)
+        real(amrex_real), intent(inout) :: rho_in(n_immbdy)
+        real(amrex_real), intent(inout) :: k_spring_in(n_immbdy)
+
+
+        ! copy general immersed-boundary colloid parameters
+        !------------------------------------------------------------------------
+
+        n_marker_in = colloid_n_marker;
+        center_in   = colloid_center;
+        radius_in   = colloid_radius;
+        rho_in      = colloid_rho;
+        k_spring_in = colloid_k_spring;
+
+    end subroutine initialize_ib_colloid_namespace
+
 
 end module immbdy_namelist_module

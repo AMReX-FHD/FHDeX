@@ -68,10 +68,7 @@ using IBBInt = IBMInt;
 class BlobIter
     : public IBMarIterBase<IBBReal::count, IBBInt::count>
 {
-
-// public:
-//     using IBMarIterBase<IBBReal::count, IBBInt::count>::IBMarIterBase;
-
+    using IBMarIterBase<IBBReal::count, IBBInt::count>::IBMarIterBase;
 };
 
 
@@ -94,11 +91,23 @@ public:
     // Add marker to database **without** redistributing (this is safe to call
     // within a `ParIter`/`MFIter loop), but the user will have to call
     // `BlobContainer::Redistribute` outside the loop.
+    void AddSingle(int lev, const TileIndex & tile,
+                   Real radius, const RealVect & pos, int id, int cpu, int i);
     void AddSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
     // Add marker to database **and** redistribute this particle (this is
     // **unsafe** to call **within** a `ParIter`/`MFIter loop). The user will
     // not have to call `BlobContainer::Redistribute` outside the loop.
     void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
+
+    // Calls parent class MovePredictor, initilizing pred_pos[x,y,z] from
+    // ref_del[x,y,z] fields (rather than 0);
+    void MovePredictor(int lev, Real dt);
+    // Calls parent class MoveMarkers, but also updates the ref_del[x,y,z] fields
+    void MoveMarkers(int lev, Real dt);
+
+    // Computes flexible for model
+    void PredictorForces(int lev, Real k);
+    void MarkerForces(int lev, Real k);
 };
 
 
@@ -107,11 +116,12 @@ public:
 
 
 // IBP => Immmersed Boundary Particle
-struct IBMB_realData {
+struct IBMBReal {
     //Analogous to particle realData (p.m_data)
     // TODO: orientation?
     enum {
         radius = 0,
+        rho,
         velx,
         vely,
         velz,
@@ -127,6 +137,7 @@ struct IBMB_realData {
     static Vector<std::string> names() {
         return Vector<std::string> {
             "radius",
+            "rho",
             "velx",
             "vely",
             "velz",
@@ -142,16 +153,18 @@ struct IBMB_realData {
 
 
 
-struct IBMB_intData {
+struct IBMBInt {
     //Analogous to particle intData (p.m_data)
     enum {
-        phase = 0,  // ................................... TODO: Audit
-        state,      // ................................... TODO: Audit
+        n_marker = 0,
+        phase, // ................................... TODO: Audit
+        state, // ................................... TODO: Audit
         count
     };
 
     static Vector<std::string> names() {
         return Vector<std::string> {
+            "n_marker",
             "phase",
             "state"
         };
@@ -161,18 +174,19 @@ struct IBMB_intData {
 
 
 class IBMBIter
-    : public amrex::ParIter<IBMB_realData::count, IBMB_intData::count, 0, 0>
+    : public amrex::ParIter<IBMBReal::count, IBMBInt::count, 0, 0>
 {
 
 public:
 
-    using ParIter<IBMB_realData::count, IBMB_intData::count, 0, 0>::ParIter;
+    using ParIter<IBMBReal::count, IBMBInt::count, 0, 0>::ParIter;
 };
 
 
 
+
 class IBMultiBlobContainer
-    : public amrex::NeighborParticleContainer<IBMB_realData::count, IBMB_intData::count>
+    : public amrex::NeighborParticleContainer<IBMBReal::count, IBMBInt::count>
 {
 
 public:
@@ -186,9 +200,11 @@ public:
 
 
     // (ID, initial CPU) tuple: unique to each particle
-    using ParticleIndex = std::pair<int, int>;
-    using IBMarkerMap   = std::map<ParticleIndex, Vector<RealVect>>;
-
+    using MarkerIndex = typename IBMarkerContainerBase<IBMReal, IBMInt>::PairIndex;
+    // indexing particles and corresponding spot in the neighbor list
+    using MarkerListIndex = std::pair<int, int>;
+    // indexing tiles (box index, local tile index)
+    using TileIndex = std::pair<int, int>;
 
     // Get number of particles
     int NumberOfParticles(IBMBIter & pti){
@@ -196,10 +212,28 @@ public:
     };
 
 
-    void InitSingle(int lev, const RealVect & pos, Real r, Real rho);
+
+    /****************************************************************************
+     *                                                                          *
+     * Initialization                                                           *
+     *                                                                          *
+     ***************************************************************************/
 
 
-    void FillMarkerPositions(int lev, int n_marker);
+    void InitSingle(int lev, const RealVect & pos, Real r, Real rho, int N);
+    void FillMarkerPositions(int lev);
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Resetting functions for internal markers                                 *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    void ResetPredictor(int lev);
+    void ResetMarkers(int lev);
 
 
     /****************************************************************************
@@ -227,6 +261,31 @@ public:
                               const std::array<MultiFab, AMREX_SPACEDIM> & f_in);
     //---------------------------------------------------------------------------
 
+
+
+    /****************************************************************************
+     *                                                                          *
+     * Physics                                                                  *
+     *                                                                          *
+     ***************************************************************************/
+
+
+    void MoveMarkers(int lev, Real dt);
+    void MovePredictor(int lev, Real dt);
+
+    void PredictorForces(int lev, Real k);
+    void MarkerForces(int lev, Real k);
+
+
+
+    /****************************************************************************
+     *                                                                          *
+     * IO                                                                       *
+     *                                                                          *
+     ***************************************************************************/
+
+    void WritePlotFile(const std::string & dir, const std::string & name,
+                       const std::string & blob_name) const;
 
 
     static bool use_neighbor_list;

@@ -486,8 +486,16 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   
   MultiFab::Copy(plotfile, cov_mag, 0, 0, NCOV, 0); // copy structure factor into plotfile
 
+  Real dx = geom.CellSize(0);
+  Real pi = 3.1415926535897932;
+  Geometry geom2 = geom;
+  
+  RealBox real_box({AMREX_D_DECL(-pi/dx,-pi/dx,-pi/dx)},
+                   {AMREX_D_DECL( pi/dx, pi/dx, pi/dx)});
+  geom2.ProbDomain(real_box);
+  
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom,time,step);
+  WriteSingleLevelPlotfile(plotfilename1,plotfile,varNames,geom2,time,step);
   
   //////////////////////////////////////////////////////////////////////////////////
   // Write out real and imaginary components of structure factor to plot file
@@ -520,7 +528,7 @@ void StructFact::WritePlotFile(const int step, const Real time, const Geometry g
   MultiFab::Copy(plotfile,cov_imag_temp,0,NCOV,NCOV,0);
 
   // write a plotfile
-  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom,time,step);
+  WriteSingleLevelPlotfile(plotfilename2,plotfile,varNames,geom2,time,step);
 }
 
 void StructFact::StructOut(MultiFab& struct_out) {

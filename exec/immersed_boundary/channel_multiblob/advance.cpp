@@ -16,14 +16,18 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 
-#include <IBMarkerContainer.H>
+#include <IBMultiBlobContainer.H>
 #include <IBMarkerMD.H>
 
+
+#include <immbdy_namespace.H>
 
 using namespace amrex;
 using namespace common;
 using namespace gmres;
 using namespace immbdy_md;
+
+using namespace ib_colloid;
 
 
 using ParticleVector = typename IBMarkerContainer::ParticleVector;
@@ -32,14 +36,14 @@ using ParticleVector = typename IBMarkerContainer::ParticleVector;
 // argv contains the name of the inputs file entered at the command line
 void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
              std::array< MultiFab, AMREX_SPACEDIM >& umacNew,
-             MultiFab& pres, MultiFab& tracer,
-             IBMarkerContainer & ib_mc,
+             MultiFab & pres, MultiFab & tracer,
+             IBMultiBlobContainer & ib_mbc,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
              const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
                    std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-             const MultiFab& beta, const MultiFab& gamma,
+             const MultiFab & beta, const MultiFab & gamma,
              const std::array< MultiFab, NUM_EDGE >& beta_ed,
-             const Geometry geom, const Real& dt)
+             const Geometry geom, const Real & dt)
 {
 
     BL_PROFILE_VAR("advance()",advance);
@@ -171,7 +175,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     int ib_lev = 0;
 
     // Parameters for spring force calculation
-    Real spr_k = 100.0 ; // spring constant
+    Real spr_k = ib_colloid::k_spring[0]; // HACK use elt 0 for now
 
     // initial distance btw markers. TODO: Need to update depending on initial
     // coordinates.
@@ -195,6 +199,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     /****************************************************************************
      *                                                                          *
      * Advance tracer                                                           *
+     * NOTE: this is a centered scheme => can be unstable of |Pe| > 2           *
      *                                                                          *
      ***************************************************************************/
 
@@ -247,7 +252,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
 
     // crank-nicolson terms
-    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
+                alpha_fc_0, dx, theta_alpha);
 
 
     //___________________________________________________________________________
@@ -259,76 +265,41 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac_buffer[d].FillBoundary(geom.periodicity());
     }
 
-    ib_mc.ResetPredictor(0);
-    ib_mc.InterpolatePredictor(0, umac_buffer);
+    ib_mbc.ResetPredictor(0);
+    ib_mbc.InterpolatePredictor(0, umac_buffer);
 
 
     //___________________________________________________________________________
     // Move markers according to predictor velocity
-    ib_mc.MovePredictor(0, dt);
+    ib_mbc.MovePredictor(0, dt);
 
 
     //___________________________________________________________________________
-    // Update forces between markers
-    ib_mc.clearNeighbors();
-    ib_mc.fillNeighbors(); // Does ghost cells
-
-    ib_mc.buildNeighborList(ib_mc.CheckPair);
+    // Calculate internal force model
+    ib_mbc.PredictorForces(0, spr_k);
 
 
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+    // //___________________________________________________________________________
+    // // Update forces between markers
+    // ib_mbc.clearNeighbors();
+    // ib_mbc.fillNeighbors(); // Does ghost cells
 
-        // Get marker data (local to current thread)
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
-
-        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
-
-            ParticleType & mark = markers[m_index.first];
+    // ib_mbc.buildNeighborList(ib_mbc.CheckPair);
 
 
-            // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
+    // for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
 
-            int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
-                                                prev_marker, next_marker);
+    //     // Get marker data (local to current thread)
+    //     TileIndex index(pti.index(), pti.LocalTileIndex());
+    //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+    //     long np = markers.size();
 
+    //     // m_index.second is used to keep track of the neighbor list
+    //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-            if (status == 1) {        // has next, has no prev
-
-                RealVect r;
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                    r[d] = next_marker->pos(d) + next_marker->rdata(IBMReal::pred_posx + d)
-                         - (mark.pos(d) + mark.rdata(IBMReal::pred_posx + d));
-
-                Real lp  = r.vectorLength();
-                Real f_0 = spr_k * (lp-l_db)/lp;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBMReal::pred_forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBMReal::pred_forcex + d) = - f_0 * r[d];
-                }
-
-            } else if (status == 2) { // has prev, has no next
-
-                RealVect r;
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                    r[d] = mark.pos(d) + mark.rdata(IBMReal::pred_posx + d)
-                         - (prev_marker->pos(d) + prev_marker->rdata(IBMReal::pred_posx + d));
-
-
-                Real lp  = r.vectorLength();
-                Real f_0 = spr_k * (lp-l_db)/lp;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBMReal::pred_forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBMReal::pred_forcex + d) =   f_0 * r[d];
-                }
-            }
-        }
-    }
+    //         ParticleType & mark = markers[m_index.first];
+    //     }
+    // }
 
 
     //___________________________________________________________________________
@@ -341,7 +312,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     // Spread predictor forces
-    ib_mc.SpreadPredictor(0, fc_force_pred);
+    ib_mbc.SpreadPredictor(0, fc_force_pred);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_pred[d].SumBoundary(geom.periodicity());
 
@@ -423,73 +394,42 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umacNew_buffer[d].FillBoundary(geom.periodicity());
     }
 
-    ib_mc.ResetMarkers(0);
-    ib_mc.InterpolateMarkers(0, umacNew_buffer);
+    ib_mbc.ResetMarkers(0);
+    ib_mbc.InterpolateMarkers(0, umacNew_buffer);
 
     //___________________________________________________________________________
     // Move markers according to velocity
-    ib_mc.MoveMarkers(0, dt);
-    ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
+    ib_mbc.MoveMarkers(0, dt);
+    ib_mbc.Redistribute(); // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
-    // Update forces between markers (these repeated clear/fill/build neighbor
-    // calls might be redundant)
-    ib_mc.clearNeighbors();
-    ib_mc.fillNeighbors(); // Does ghost cells
-
-    ib_mc.buildNeighborList(ib_mc.CheckPair);
+    // Calculate internal force model
+    ib_mbc.MarkerForces(0, spr_k);
 
 
-    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+    // //___________________________________________________________________________
+    // // Update forces between markers (these repeated clear/fill/build neighbor
+    // // calls might be redundant)
+    // ib_mbc.clearNeighbors();
+    // ib_mbc.fillNeighbors(); // Does ghost cells
 
-        // Get marker data (local to current thread)
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
-
-        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
-
-            ParticleType & mark = markers[m_index.first];
+    // ib_mbc.buildNeighborList(ib_mbc.CheckPair);
 
 
-            // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
+    // for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
 
-            int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
-                                                prev_marker, next_marker);
+    //     // Get marker data (local to current thread)
+    //     TileIndex index(pti.index(), pti.LocalTileIndex());
+    //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+    //     long np = markers.size();
 
-            if (status == 1) {        // has next, has no prev
+    //     // m_index.second is used to keep track of the neighbor list
+    //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
-                RealVect r;
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                    r[d] = next_marker->pos(d) - mark.pos(d);
-
-                Real lp  = r.vectorLength();
-                Real f_0 = spr_k * (lp-l_db)/lp;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBMReal::forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBMReal::forcex + d) = - f_0 * r[d];
-                }
-
-            } else if (status == 2) { // has prev, has no next
-
-                RealVect r;
-                for (int d=0; d<AMREX_SPACEDIM; ++d)
-                    r[d] = mark.pos(d) - prev_marker->pos(d);
-
-                Real lp  = r.vectorLength();
-                Real f_0 = spr_k * (lp-l_db)/lp;
-
-                for (int d=0; d<AMREX_SPACEDIM; ++d) {
-                    mark.rdata(IBMReal::forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBMReal::forcex + d) =   f_0 * r[d];
-                }
-            }
-        }
-    }
+    //         ParticleType & mark = markers[m_index.first];
+    //     }
+    // }
 
 
     //___________________________________________________________________________
@@ -501,7 +441,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // Spread to the `fc_force` multifab
-    ib_mc.SpreadMarkers(0, fc_force_corr);
+    ib_mbc.SpreadMarkers(0, fc_force_corr);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_corr[d].SumBoundary(geom.periodicity());
 

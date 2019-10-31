@@ -42,7 +42,6 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 {
     InitInternals(n_nbhd);
     nghost = n_nbhd;
-
  
     double domx, domy, domz;
 
@@ -50,29 +49,36 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
+    // set the bin size equal to 1/4th the average close-range repulsion diameter
     binSize = 0;
     for(int i=0;i<nspecies;i++) {
         binSize += sigma[i];
     }
-
     binSize = binSize/((double)nspecies*4.0);
 
-    totalBins = (int)floor(((domx + domy + domz)/6.0)/((double)binSize)) - 1;
+    // radius of search - make sure it doesn't exceed a side length
+    double searchRad = (domx + domy + domz)/6.0;
+    searchRad = std::min(searchRad,domx);
+    searchRad = std::min(searchRad,domy);
+    searchRad = std::min(searchRad,domz);
+    
+    // create enough bins to look within a sphere with radius equal to "half" of the domain
+    totalBins = (int)floor((searchRad)/((double)binSize)) - 1;
 
     Print() << "Bin size for radial distribution: " << binSize << std::endl;
     Print() << "Number of radial distribution bins: " << totalBins << std::endl;
 
+    // storage for mean radial distribution
     meanRadialDistribution = new Real[totalBins]();
+
+    // compute the volume of each bin
     binVol = new Real[totalBins]();
-
-    radialStatsCount = 0;
-
-    for(int i=0;i<totalBins;i++)
-    {
+    for(int i=0;i<totalBins;i++) {
         binVol[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
-
-
     }
+
+    // how many snapshots
+    radialStatsCount = 0;
 }
 
 
@@ -311,6 +317,13 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
 
     double kinetic = 0;
 
+    int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    Real rejected_tile = 0., rejected_proc = 0.; // rejected moves in midpoint scheme
+    Real    moves_tile = 0.,    moves_proc = 0.; // total moves in midpoint scheme
+    Real maxspeed_tile = 0., maxspeed_proc = 0.; // max speed
+    Real  maxdist_tile = 0.,  maxdist_proc = 0.; // max displacement (fraction of radius)
+    Real diffinst_tile = 0., diffinst_proc = 0.; // average diffusion coefficient
+
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -323,40 +336,50 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+        np_tile = particles.numParticles();
 
-        move_ions_fhd(particles.data(), &np,
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt, ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
-                         BL_TO_FORTRAN_3D(umac[0][pti]),
-                         BL_TO_FORTRAN_3D(umac[1][pti]),
+        move_ions_fhd(particles.data(), &np_tile,
+                      &rejected_tile, &moves_tile, &maxspeed_tile,
+                      &maxdist_tile, &diffinst_tile,
+                      ARLIM_3D(tile_box.loVect()),
+                      ARLIM_3D(tile_box.hiVect()),
+                      m_vector_ptrs[grid_id].dataPtr(),
+                      m_vector_size[grid_id].dataPtr(),
+                      ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                      ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+                      ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt,
+                      ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+                      BL_TO_FORTRAN_3D(umac[0][pti]),
+                      BL_TO_FORTRAN_3D(umac[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(umac[2][pti]),
+                      BL_TO_FORTRAN_3D(umac[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(efield[0][pti]),
-                         BL_TO_FORTRAN_3D(efield[1][pti]),
+                      BL_TO_FORTRAN_3D(efield[0][pti]),
+                      BL_TO_FORTRAN_3D(efield[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(efield[2][pti]),
+                      BL_TO_FORTRAN_3D(efield[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
-                         BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+                      BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+                      BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+                      BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
 #endif
-                         BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
-                         BL_TO_FORTRAN_3D(sourceTemp[1][pti])
+                      BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+                      BL_TO_FORTRAN_3D(sourceTemp[1][pti]),
 #if (AMREX_SPACEDIM == 3)
-                         , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
+                      BL_TO_FORTRAN_3D(sourceTemp[2][pti]),
 #endif
-                         , BL_TO_FORTRAN_3D(mobility[pti])
-                         , surfaceList, &surfaceCount, &kinetic, &sw
-                         );
+                      BL_TO_FORTRAN_3D(mobility[pti]),
+                      surfaceList, &surfaceCount, &kinetic, &sw
+            );
 
+        // gather statistics
+        np_proc       += np_tile;
+        rejected_proc += rejected_tile;
+        moves_proc    += moves_tile;
+        maxspeed_proc = std::max(maxspeed_proc, maxspeed_tile);
+        maxdist_proc  = std::max(maxdist_proc, maxdist_tile);
+        diffinst_proc += diffinst_tile;
 
         // resize particle vectors after call to move_particles
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
@@ -366,6 +389,26 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
             pvec.resize(new_size);
         }
     }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(np_proc);
+    ParallelDescriptor::ReduceRealSum(rejected_proc);
+    ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
+    ParallelDescriptor::ReduceRealMax(maxdist_proc);
+    ParallelDescriptor::ReduceRealSum(diffinst_proc);
+
+    // write out global diagnostics
+    if (ParallelDescriptor::IOProcessor()) {
+        Print() << "I see " << np_proc << " particles\n";
+        if (move_tog == 2) {
+            Print() << "Fraction of midpoint moves rejected: " << rejected_proc/moves_proc << "\n";
+        }
+        Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
+        Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
+        Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
+    }
+    
 }
 
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -551,6 +594,9 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
 void FhdParticleContainer::RadialDistribution(long totalParticles, const int step, const species* particleInfo)
 {
 
+    // reset the radial distribution at n_steps_skip (if n_steps_skip > 0)
+    // OR
+    // reset the radial distribution every |n_steps_skip| (if n_steps_skip < 0)
     if ((n_steps_skip > 0 && step == n_steps_skip) ||
         (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
                     
@@ -558,16 +604,13 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
         radialStatsCount = 0;
 
-        for(int i=0;i<totalBins;i++)
-        {
+        for(int i=0;i<totalBins;i++) {
             meanRadialDistribution[i] = 0;
         }
     }
-    
-    //Print() << "STEP: " << step%struct_fact_int << std::endl;
 
-    if(struct_fact_int>0 && step%struct_fact_int == 0)
-    {
+    if(struct_fact_int>0 && step%struct_fact_int == 0) {
+        
         const int lev = 0;
         int bin;
         double domx, domy, domz, totalRad, temp;
@@ -576,25 +619,34 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         domy = (prob_hi[1] - prob_lo[1]);
         domz = (prob_hi[2] - prob_lo[2]);
 
+        // radius of search - make sure it doesn't exceed a side length
+        double searchRad = (domx + domy + domz)/6.0;
+        searchRad = std::min(searchRad,domx);
+        searchRad = std::min(searchRad,domy);
+        searchRad = std::min(searchRad,domz);
+    
         Real posx[totalParticles];
         Real posy[totalParticles];
         Real posz[totalParticles];
 
         Print() << "Calculating radial distribution\n";
+
+        // collect particle positions onto one processor
         PullDown(0, posx, -1, totalParticles);
         PullDown(0, posy, -2, totalParticles);
         PullDown(0, posz, -3, totalParticles);
 
+        // outer radial extent
         totalRad = totalBins*binSize;
 
+        // this is the bin "hit count"
         Real radDist[totalBins] = {0};
 
     #ifdef _OPENMP
     #pragma omp parallel
     #endif
-
-        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-        {       
+        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+            
             const int grid_id = pti.index();
             const int tile_id = pti.LocalTileIndex();
 
@@ -602,29 +654,43 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             auto& particles = particle_tile.GetArrayOfStructs();
             const int np = particles.numParticles();
 
+            // loop over particles
             for (int i = 0; i < np; ++i) {
                 ParticleType & part = particles[i];
                 int id = part.id();
 
+                int iilo = (posx[i]-searchRad <= prob_lo[0]) ? -1 : 0;
+                int iihi = (posx[i]+searchRad >= prob_hi[0]) ?  1 : 0;
+
+                int jjlo = (posy[i]-searchRad <= prob_lo[1]) ? -1 : 0;
+                int jjhi = (posy[i]+searchRad >= prob_hi[1]) ?  1 : 0;
+
+                int kklo = (posz[i]-searchRad <= prob_lo[2]) ? -1 : 0;
+                int kkhi = (posz[i]+searchRad >= prob_hi[2]) ?  1 : 0;
+                
                 double rad, dx, dy, dz;
+                // loop over other particles
                 for(int j = 0; j < totalParticles; j++)
                 {
-                    for(int ii = -1; ii <= 1; ii++)
+                    // assume triply periodic, check the domain and the 8 periodic images
+                    for(int ii = iilo; ii <= iihi; ii++)
                     {
-                    for(int jj = -1; jj <= 1; jj++)
+                    for(int jj = jjlo; jj <= jjhi; jj++)
                     {
-                    for(int kk = -1; kk <= 1; kk++)
+                    for(int kk = kklo; kk <= kkhi; kk++)
                     {
-                        if(i != j)
-                        {
+                        // don't compare to yourself
+                        if(i != j) {
+
+                            // get distance between particles
                             dx = posx[i]-posx[j] - ii*domx;
                             dy = posy[i]-posy[j] - jj*domy;
                             dz = posz[i]-posz[j] - kk*domz;
 
                             rad = sqrt(dx*dx + dy*dy + dz*dz);
 
-                            if(rad < totalRad)
-                            {
+                            // if particles are close enough, increment the bin
+                            if(rad < totalRad) {
                                 bin = (int)floor(rad/binSize);
                                 radDist[bin]++;
                             }
@@ -637,31 +703,41 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             }
         }
 
-        for(int i=0;i<totalParticles;i++)
-        {
-            temp = radDist[i];
-            ParallelDescriptor::ReduceRealSum(temp);
-            radDist[i] = temp/(double)totalParticles;
+        // compute total number density
+        double n0_total = 0.;
+        for (int i=0; i<nspecies; ++i) {
+            n0_total += particleInfo[i].n0;
+        }
+        
+        // collect the hit count
+        ParallelDescriptor::ReduceRealSum(radDist,totalParticles);
+            
+        // normalize by 1 / (number density * bin volume * total particle count)
+        for(int i=0;i<totalParticles;i++) {
+            radDist[i] *= 1./(n0_total*binVol[i]*(double)totalParticles);
         }
 
+        // increment number of snapshots
         radialStatsCount++;
         int stepsminusone = radialStatsCount - 1;
         double stepsinv = 1.0/(double)radialStatsCount;
 
-        for(int i=0;i<totalBins;i++)
-        {
+        // update the mean radial distribution
+        for(int i=0;i<totalBins;i++) {
             meanRadialDistribution[i] = (meanRadialDistribution[i]*stepsminusone + radDist[i])*stepsinv;
         }
 
+        // output mean radial distribution g(r) based on plot_int
         if (plot_int > 0 && step%plot_int == 0) {
-        
+            
             if(ParallelDescriptor::MyProc() == 0) {
 
                 std::string filename = Concatenate("radialDistribution",step,9);;
                 std::ofstream ofs(filename, std::ofstream::out);
-            
+
+                // normalize by
                 for(int i=0;i<totalBins;i++) {
-                    ofs << meanRadialDistribution[i]/binVol[i] << std::endl;
+                    ofs << meanRadialDistribution[i] << std::endl;
                 }
                 ofs.close();
             }
@@ -835,13 +911,21 @@ void FhdParticleContainer::EvaluateStats(
     const double n0 = particleInfo.n0;
     const double T0 = particleInfo.T;
 
-
     double tp = 0;
     double te = 0;
     double tm = 0;
 
-    double totalMass;    
+    double totalMass;
 
+    int cellcount_tile = 0, cellcount_proc = 0;
+    RealVector avcurrent_tile(3), avcurrent_proc(3);
+    RealVector varcurrent_tile(3), varcurrent_proc(3);
+
+    std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
+    std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
+    std::fill(varcurrent_tile.begin(), varcurrent_tile.end(), 0.);
+    std::fill(varcurrent_proc.begin(), varcurrent_proc.end(), 0.);
+    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -879,25 +963,39 @@ void FhdParticleContainer::EvaluateStats(
         const int Np = parts.numParticles();
 
         evaluate_means(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       ARLIM_3D(tile_box.loVect()),
+                       ARLIM_3D(tile_box.hiVect()),
+                       m_vector_ptrs[grid_id].dataPtr(),
+                       m_vector_size[grid_id].dataPtr(),
+                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       BL_TO_FORTRAN_3D(particleInstant[pti]),
+                       BL_TO_FORTRAN_3D(particleMeans[pti]),
+                       BL_TO_FORTRAN_3D(particleVars[pti]),
+                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt,&steps,
+                       &cellcount_tile,avcurrent_tile.dataPtr());
 
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(particleMeans[pti]),
-                         BL_TO_FORTRAN_3D(particleVars[pti]),
-
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps);
+        // gather statistics
+        cellcount_proc += cellcount_tile;
+        for (int i=0; i<3; ++i) {
+            avcurrent_proc[i] += avcurrent_tile[i];
+        }
     }
 
-    //Print() << "c++: " << delHolder6[0] << "\n";
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(cellcount_proc);
+    ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
+    // print statistics
+    Print() << "Current density mean: "
+            << avcurrent_proc[0]/cellcount_proc << "  "
+            << avcurrent_proc[1]/cellcount_proc << "  "
+            << avcurrent_proc[2]/cellcount_proc << "\n";
 
-    //Print() << "Total mass: " << totalMass << "\n";
-
+    // reset cell count
+    cellcount_tile = 0;
+    cellcount_proc = 0;
+    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -909,20 +1007,35 @@ void FhdParticleContainer::EvaluateStats(
         const int Np = parts.numParticles();
 
         evaluate_corrs(parts.data(),
-                         ARLIM_3D(tile_box.loVect()),
-                         ARLIM_3D(tile_box.hiVect()),
-                         m_vector_ptrs[grid_id].dataPtr(),
-                         m_vector_size[grid_id].dataPtr(),
-                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       ARLIM_3D(tile_box.loVect()),
+                       ARLIM_3D(tile_box.hiVect()),
+                       m_vector_ptrs[grid_id].dataPtr(),
+                       m_vector_size[grid_id].dataPtr(),
+                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
+                       BL_TO_FORTRAN_3D(particleInstant[pti]),
+                       BL_TO_FORTRAN_3D(particleMeans[pti]),
+                       BL_TO_FORTRAN_3D(particleVars[pti]),
+                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
+                       &cellcount_tile, varcurrent_tile.dataPtr()
+            );
 
-                         BL_TO_FORTRAN_3D(particleInstant[pti]),
-                         BL_TO_FORTRAN_3D(particleMeans[pti]),
-                         BL_TO_FORTRAN_3D(particleVars[pti]),
-
-                         BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps
-                        );
+        // gather statistics
+        cellcount_proc += cellcount_tile;
+        for (int i=0; i<3; ++i) {
+            varcurrent_proc[i] += varcurrent_tile[i];
+        }
     }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(cellcount_proc);
+    ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
+
+    // print statistics
+    Print() << "Current density variance: "
+            << varcurrent_proc[0]/cellcount_proc << "  "
+            << varcurrent_proc[1]/cellcount_proc << "  "
+            << varcurrent_proc[2]/cellcount_proc << "\n";
 
 }
 
