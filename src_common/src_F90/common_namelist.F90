@@ -126,7 +126,8 @@ module common_namelist_module
   double precision,   save :: particle_grid_refine
   double precision,   save :: es_grid_refine
   double precision,   save :: diff(MAX_SPECIES)
-
+  integer,            save :: all_dry
+  
   integer,            save :: fluid_tog
   integer,            save :: es_tog
   integer,            save :: drag_tog
@@ -185,7 +186,6 @@ module common_namelist_module
   namelist /common/ p_int_tog
   namelist /common/ particle_n0
   namelist /common/ particle_neff
-
 
   ! Time-step control
   namelist /common/ fixed_dt
@@ -277,7 +277,6 @@ module common_namelist_module
   namelist /common/ bc_therm_lo
   namelist /common/ bc_therm_hi
 
-
   ! Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
   namelist /common/ p_lo
   namelist /common/ p_hi
@@ -319,6 +318,7 @@ module common_namelist_module
   namelist /common/ particle_grid_refine
   namelist /common/ es_grid_refine
   namelist /common/ diff
+  namelist /common/ all_dry
 
   namelist /common/ fluid_tog
   namelist /common/ es_tog
@@ -358,20 +358,23 @@ contains
     integer                               :: narg, farg
     character(kind=c_char), intent(in   ) :: inputs_file(length)
     character(len=128) :: fname
-
-!    narg = command_argument_count()
-!    narg=narg+3
-!    print*, narg
-!    stop
     
     ! default values
     prob_lo(:) = 0.d0
     prob_hi(:) = 1.d0
-    ngc(:) = 1
     n_cells(:) = 1
     max_grid_size(:) = 1
     max_particle_tile_size(:) = 0
     cell_depth = 1.d0
+
+    ngc(:) = 1
+    ! nvars (no default)
+    ! nprimvars (no default)
+
+    membrane_cell = -1
+    cross_cell = 0
+    ! transmission (no default)
+    
     fixed_dt = 1.
     cfl = 0.5
     max_step = 1
@@ -444,9 +447,6 @@ contains
     p_force_tog(:) = 1
     p_int_tog(:) = 1
 
-    membrane_cell = -1
-    cross_cell = 0
-
     pkernel_fluid = 4
     pkernel_es = 4
     solve_chem = 0
@@ -460,6 +460,8 @@ contains
     graphene_tog = 0
     thermostat_tog = 0
     zero_net_force = 0
+
+    all_dry = 0
 
 
     ! read in common namelist
@@ -510,7 +512,7 @@ contains
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
                                          cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
@@ -640,7 +642,8 @@ contains
     double precision,       intent(inout) :: particle_grid_refine_in
     double precision,       intent(inout) :: es_grid_refine_in
     double precision,       intent(inout) :: diff_in(MAX_SPECIES)
-
+    integer,                intent(inout) :: all_dry_in
+    
     integer,                intent(inout) :: fluid_tog_in
     integer,                intent(inout) :: es_tog_in
     integer,                intent(inout) :: drag_tog_in
@@ -781,7 +784,8 @@ contains
     particle_grid_refine_in = particle_grid_refine
     es_grid_refine_in = es_grid_refine
     diff_in = diff
-
+    all_dry_in = all_dry
+    
     fluid_tog_in = fluid_tog
     es_tog_in = es_tog
     drag_tog_in = drag_tog

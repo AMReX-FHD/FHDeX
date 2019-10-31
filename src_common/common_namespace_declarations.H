@@ -131,6 +131,7 @@ amrex::Real                common::rmin;
 amrex::Real                common::particle_grid_refine;
 amrex::Real                common::es_grid_refine;
 amrex::Vector<amrex::Real> common::diff;
+int                        common::all_dry;
 
 int                        common::fluid_tog;
 int                        common::es_tog;

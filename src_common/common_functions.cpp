@@ -147,7 +147,7 @@ void InitializeCommonNamespace() {
                                 &cut_off,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,
-                                diff.dataPtr(), &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
+                                diff.dataPtr(), &all_dry, &fluid_tog, &es_tog, &drag_tog, &move_tog, &rfd_tog,
                                 &dry_move_tog, &sr_tog, &graphene_tog, &crange, &thermostat_tog, &zero_net_force,
                                 &images, eamp.dataPtr(), efreq.dataPtr(), ephase.dataPtr(),
                                 &plot_ascii, &solve_chem, &diffcoeff, &scaling_factor,

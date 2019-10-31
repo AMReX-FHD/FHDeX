@@ -206,7 +206,10 @@ namespace common {
 
     extern amrex::Real                particle_grid_refine;
     extern amrex::Real                es_grid_refine;
+
+    // total diffusion coefficient for immersed particle
     extern amrex::Vector<amrex::Real> diff;
+    extern int                        all_dry;
 
     extern int                        fluid_tog;
     extern int                        es_tog;

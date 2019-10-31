@@ -343,24 +343,44 @@ void main_driver(const char* argv)
         ionParticle[i].m = mass[i];
         ionParticle[i].q = qval[i];
 
-        if (diameter[i] > 0) {
+        if (diameter[i] > 0) { // positive diameter
+
+            // set diameter from inputs
             ionParticle[i].d = diameter[i];
 
-            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
-
+            // compute total diffusion from input diameter
             ionParticle[i].totalDiff = (k_B*T_init[0])/(6*3.14159265359*(diameter[i]/2.0)*visc_coef);
 
-            ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //This is probably wrong. Need to test.
-
-        }
-        else {
-            ionParticle[i].totalDiff = diff[i];            
-
-            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
-
+            // compute wet diffusion from wetRad
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
 
-            ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //Test this
+            if (all_dry == 1) {
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+            }
+            else {            
+                // dry = total - wet
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
+            }
+
+        }
+        else { // zero or negative diameter
+
+            // set total diffusion from inputs
+            ionParticle[i].totalDiff = diff[i];            
+
+            // set diameter from total diffusion (Stokes Einsten)
+            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
+
+            // compute wet diffusion from wetRad
+            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
+
+            if (all_dry == 1) {
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+            }
+            else {            
+                // dry = total - wet
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
+            }
         }
 
         Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: "
