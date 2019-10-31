@@ -335,8 +335,7 @@ void main_driver(const char* argv)
         wetRad = 1.255*dxAv;
     }
     else if (pkernel_fluid == 6) {
-        wetRad = 1.5705*dxAv;
-//        wetRad = 1.481*dxAv;
+        wetRad = 1.481*dxAv;
     }
 
     for(int i=0;i<nspecies;i++) {
