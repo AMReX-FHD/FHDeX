@@ -866,16 +866,27 @@ void main_driver(const char* argv)
         }
 
         // timer for g(r)
-        Real time_radial1 = ParallelDescriptor::second();
+        Real time_PC1 = ParallelDescriptor::second();
 
         // compute g(r)
         particles.RadialDistribution(simParticles, istep, ionParticle);
 
         // timer for g(r)
-        Real time_radial2 = ParallelDescriptor::second() - time_radial1;
-        ParallelDescriptor::ReduceRealMax(time_radial2);
-        amrex::Print() << "Time spend computing radial distribution = " << time_radial2 << std::endl;
-
+        Real time_PC2 = ParallelDescriptor::second() - time_PC1;
+        ParallelDescriptor::ReduceRealMax(time_PC2);
+        amrex::Print() << "Time spend computing radial distribution = " << time_PC2 << std::endl;
+        
+        // timer for g(x), g(y), g(z)
+        time_PC1 = ParallelDescriptor::second();
+        
+        // compute g(x), g(y), g(z)
+        particles.CartesianDistribution(simParticles, istep, ionParticle);
+        
+        // timer for g(x), g(y), g(z)
+        time_PC2 = ParallelDescriptor::second() - time_PC1;
+        ParallelDescriptor::ReduceRealMax(time_PC2);
+        amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
+        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
