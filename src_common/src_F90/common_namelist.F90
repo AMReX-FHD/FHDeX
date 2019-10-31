@@ -25,7 +25,6 @@ module common_namelist_module
   integer,            save :: pkernel_fluid
   integer,            save :: pkernel_es
   double precision,   save :: qval(MAX_SPECIES)
-  double precision,   save :: perm
 
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
@@ -171,7 +170,6 @@ module common_namelist_module
   namelist /common/ cross_cell     !cell to compute spatial correlation
   namelist /common/ transmission
 
-  namelist /common/ perm                !es permativity
   namelist /common/ qval                !charge on an ion
   namelist /common/ pkernel_fluid       !peskin kernel for fluid
   namelist /common/ pkernel_es          !peskin kernel for es
@@ -477,7 +475,7 @@ contains
                                          max_grid_size_in, max_particle_tile_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, transmission_in, &
-                                         perm_in, qval_in, pkernel_fluid_in, pkernel_es_in,&
+                                         qval_in, pkernel_fluid_in, pkernel_es_in,&
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
@@ -549,7 +547,6 @@ contains
     integer,                intent(inout) :: cross_cell_in
     double precision,       intent(inout) :: transmission_in
 
-    double precision,       intent(inout) :: perm_in
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
     integer,                intent(inout) :: pkernel_fluid_in
     integer,                intent(inout) :: pkernel_es_in
@@ -683,7 +680,6 @@ contains
     cross_cell_in = cross_cell
     transmission_in = transmission
 
-    perm_in = perm
     qval_in = qval
     pkernel_fluid_in = pkernel_fluid
     pkernel_es_in = pkernel_es

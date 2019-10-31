@@ -25,7 +25,6 @@ amrex::Real                common::transmission;
 int                        common::pkernel_fluid;
 int                        common::pkernel_es;
 amrex::Vector<amrex::Real> common::qval;
-amrex::Real                common::perm;
 
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
