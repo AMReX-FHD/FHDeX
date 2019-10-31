@@ -22,12 +22,24 @@ module common_namelist_module
   integer,            save :: cross_cell
   double precision,   save :: transmission
 
+  double precision,   save :: qval(MAX_SPECIES)
   integer,            save :: pkernel_fluid
   integer,            save :: pkernel_es
-  double precision,   save :: qval(MAX_SPECIES)
 
+  double precision,   save :: mass(MAX_SPECIES)
+  double precision,   save :: nfrac(MAX_SPECIES)
+  
+  integer,            save :: particle_placement
+  integer,            save :: particle_count(MAX_SPECIES)
+  integer,            save :: p_move_tog(MAX_SPECIES)
+  integer,            save :: p_force_tog(MAX_SPECIES)
+  integer,            save :: p_int_tog(MAX_SPECIES)
+  double precision,   save :: particle_n0(MAX_SPECIES)
+  double precision,   save :: particle_neff
+  
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
+
   integer,            save :: max_step
   integer,            save :: plot_int
   integer,            save :: plot_stag
@@ -38,36 +50,51 @@ module common_namelist_module
   integer,            save :: restart
   integer,            save :: print_int
   integer,            save :: project_eos_int
+  
   double precision,   save :: grav(AMREX_SPACEDIM)
-  integer,            save :: nspecies
-  double precision,   save :: molmass(MAX_SPECIES)
   double precision,   save :: rhobar(MAX_SPECIES)
   double precision,   save :: rho0
+
+  integer,            save :: nspecies
+  double precision,   save :: molmass(MAX_SPECIES)
+  double precision,   save :: diameter(MAX_SPECIES)
+
+  integer,            save :: dof(MAX_SPECIES)
+  double precision,   save :: hcv(MAX_SPECIES)
+  double precision,   save :: hcp(MAX_SPECIES)
+
   double precision,   save :: variance_coef_mom
   double precision,   save :: variance_coef_mass
   double precision,   save :: k_B
   double precision,   save :: Runiv
   double precision,   save :: T_init(2)
+
   integer,            save :: algorithm_type
   integer,            save :: advection_type
   integer,            save :: barodiffusion_type
   integer,            save :: use_bl_rng
+
   integer,            save :: seed
+  
   integer,            save :: seed_momentum
   integer,            save :: seed_diffusion
   integer,            save :: seed_reaction
   integer,            save :: seed_init_mass
   integer,            save :: seed_init_momentum
+
   double precision,   save :: visc_coef
   integer,            save :: visc_type
+
   integer,            save :: filtering_width
   integer,            save :: stoch_stress_form
+
   double precision,   save :: u_init(2)
   double precision,   save :: perturb_width
   double precision,   save :: smoothing_width
   double precision,   save :: initial_variance_mom
   double precision,   save :: initial_variance_mass
   double precision,   save :: domega
+
   integer,            save :: bc_vel_lo(AMREX_SPACEDIM)
   integer,            save :: bc_vel_hi(AMREX_SPACEDIM)
   integer,            save :: bc_es_lo(AMREX_SPACEDIM)
@@ -79,8 +106,10 @@ module common_namelist_module
 
   double precision,   save :: p_lo(AMREX_SPACEDIM)
   double precision,   save :: p_hi(AMREX_SPACEDIM)
+  
   double precision,   save :: t_lo(AMREX_SPACEDIM)
   double precision,   save :: t_hi(AMREX_SPACEDIM)
+
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
 
@@ -89,44 +118,30 @@ module common_namelist_module
 
   integer,            save :: struct_fact_int
   integer,            save :: n_steps_skip
+
   integer,            save :: project_dir
   integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
+
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
-
-  double precision,   save :: diameter(MAX_SPECIES)
-  integer,            save :: dof(MAX_SPECIES)
-  double precision,   save :: hcv(MAX_SPECIES)
-  double precision,   save :: hcp(MAX_SPECIES)
-
-  double precision,   save :: mass(MAX_SPECIES)
-  double precision,   save :: nfrac(MAX_SPECIES)
-
-  integer,            save :: particle_placement
-  integer,            save :: particle_count(MAX_SPECIES)
-  integer,            save :: p_move_tog(MAX_SPECIES)
-  integer,            save :: p_force_tog(MAX_SPECIES)
-  integer,            save :: p_int_tog(MAX_SPECIES)
-  double precision,   save :: particle_n0(MAX_SPECIES)
-  double precision,   save :: particle_neff
 
   double precision,   save :: permitivitty
   double precision,   save :: cut_off
   double precision,   save :: rmin
   double precision,   save :: eepsilon(MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES)
-  double precision,   save :: poisson_rel_tol
-
-  integer,            save :: poisson_max_iter
+  
   integer,            save :: poisson_verbose
   integer,            save :: poisson_bottom_verbose
+  integer,            save :: poisson_max_iter
+  double precision,   save :: poisson_rel_tol
 
   double precision,   save :: particle_grid_refine
   double precision,   save :: es_grid_refine
   double precision,   save :: diff(MAX_SPECIES)
   integer,            save :: all_dry
-  
+
   integer,            save :: fluid_tog
   integer,            save :: es_tog
   integer,            save :: drag_tog
@@ -162,17 +177,16 @@ module common_namelist_module
   namelist /common/ max_particle_tile_size ! max number of cells in a box
   namelist /common/ cell_depth
 
-  namelist /common/ ngc           !number of ghost cells
-  namelist /common/ nvars         !number of conserved variables
-  namelist /common/ nprimvars     !number of primative variables
-
-  namelist /common/ membrane_cell  !location of membrane
-  namelist /common/ cross_cell     !cell to compute spatial correlation
+  namelist /common/ ngc           ! number of ghost cells
+  namelist /common/ nvars         ! number of conserved variables
+  namelist /common/ nprimvars     ! number of primative variables
+  namelist /common/ membrane_cell ! location of membrane
+  namelist /common/ cross_cell    ! cell to compute spatial correlation
   namelist /common/ transmission
 
-  namelist /common/ qval                !charge on an ion
-  namelist /common/ pkernel_fluid       !peskin kernel for fluid
-  namelist /common/ pkernel_es          !peskin kernel for es
+  namelist /common/ qval                ! charge on an ion
+  namelist /common/ pkernel_fluid       ! peskin kernel for fluid
+  namelist /common/ pkernel_es          ! peskin kernel for es
 
   namelist /common/ mass
   namelist /common/ nfrac
@@ -214,7 +228,6 @@ module common_namelist_module
   namelist /common/ dof
   namelist /common/ hcv
   namelist /common/ hcp
-
 
   ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
   namelist /common/ variance_coef_mom
@@ -308,6 +321,7 @@ module common_namelist_module
   namelist /common/ rmin
   namelist /common/ eepsilon
   namelist /common/ sigma
+  
   namelist /common/ poisson_verbose
   namelist /common/ poisson_bottom_verbose
   namelist /common/ poisson_max_iter
@@ -506,7 +520,8 @@ contains
                                          project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
-                                         particle_placement_in, particle_count_in, p_move_tog_in, p_force_tog_in, p_int_tog_in, particle_neff_in,&
+                                         particle_placement_in, particle_count_in, p_move_tog_in, &
+                                         p_force_tog_in, p_int_tog_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
                                          cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
@@ -518,6 +533,12 @@ contains
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in) &
                                          bind(C, name="initialize_common_namespace")
 
+    double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: max_particle_tile_size_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: cell_depth_in
 
     double precision,       intent(inout) :: mass_in(MAX_SPECIES)
     double precision,       intent(inout) :: nfrac_in(MAX_SPECIES)
@@ -528,14 +549,7 @@ contains
     integer,                intent(inout) :: p_force_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
-
-
-    double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
-    double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: max_particle_tile_size_in(AMREX_SPACEDIM)
-    double precision,       intent(inout) :: cell_depth_in
+    
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
 
