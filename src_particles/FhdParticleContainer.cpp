@@ -56,8 +56,14 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     }
     binSize = binSize/((double)nspecies*4.0);
 
+    // radius of search - make sure it doesn't exceed a side length
+    double searchRad = (domx + domy + domz)/6.0;
+    searchRad = std::min(searchRad,domx);
+    searchRad = std::min(searchRad,domy);
+    searchRad = std::min(searchRad,domz);
+    
     // create enough bins to look within a sphere with radius equal to "half" of the domain
-    totalBins = (int)floor(((domx + domy + domz)/6.0)/((double)binSize)) - 1;
+    totalBins = (int)floor((searchRad)/((double)binSize)) - 1;
 
     Print() << "Bin size for radial distribution: " << binSize << std::endl;
     Print() << "Number of radial distribution bins: " << totalBins << std::endl;
@@ -613,6 +619,12 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         domy = (prob_hi[1] - prob_lo[1]);
         domz = (prob_hi[2] - prob_lo[2]);
 
+        // radius of search - make sure it doesn't exceed a side length
+        double searchRad = (domx + domy + domz)/6.0;
+        searchRad = std::min(searchRad,domx);
+        searchRad = std::min(searchRad,domy);
+        searchRad = std::min(searchRad,domz);
+    
         Real posx[totalParticles];
         Real posy[totalParticles];
         Real posz[totalParticles];
@@ -647,16 +659,25 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
                 ParticleType & part = particles[i];
                 int id = part.id();
 
+                int iilo = (posx[i]-searchRad <= prob_lo[0]) ? -1 : 0;
+                int iihi = (posx[i]+searchRad >= prob_hi[0]) ?  1 : 0;
+
+                int jjlo = (posy[i]-searchRad <= prob_lo[1]) ? -1 : 0;
+                int jjhi = (posy[i]+searchRad >= prob_hi[1]) ?  1 : 0;
+
+                int kklo = (posz[i]-searchRad <= prob_lo[2]) ? -1 : 0;
+                int kkhi = (posz[i]+searchRad >= prob_hi[2]) ?  1 : 0;
+                
                 double rad, dx, dy, dz;
                 // loop over other particles
                 for(int j = 0; j < totalParticles; j++)
                 {
                     // assume triply periodic, check the domain and the 8 periodic images
-                    for(int ii = -1; ii <= 1; ii++)
+                    for(int ii = iilo; ii <= iihi; ii++)
                     {
-                    for(int jj = -1; jj <= 1; jj++)
+                    for(int jj = jjlo; jj <= jjhi; jj++)
                     {
-                    for(int kk = -1; kk <= 1; kk++)
+                    for(int kk = kklo; kk <= kkhi; kk++)
                     {
                         // don't compare to yourself
                         if(i != j) {
