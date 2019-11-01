@@ -865,27 +865,35 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-        // timer for g(r)
-        Real time_PC1 = ParallelDescriptor::second();
+        // g(r)
+        if(radialdist_int>0 && step%radialdist_int == 0) {
+            
+            // timer
+            Real time_PC1 = ParallelDescriptor::second();
 
-        // compute g(r)
-        particles.RadialDistribution(simParticles, istep, ionParticle);
+            // compute g(r)
+            particles.RadialDistribution(simParticles, istep, ionParticle);
 
-        // timer for g(r)
-        Real time_PC2 = ParallelDescriptor::second() - time_PC1;
-        ParallelDescriptor::ReduceRealMax(time_PC2);
-        amrex::Print() << "Time spend computing radial distribution = " << time_PC2 << std::endl;
+            // timer
+            Real time_PC2 = ParallelDescriptor::second() - time_PC1;
+            ParallelDescriptor::ReduceRealMax(time_PC2);
+            amrex::Print() << "Time spend computing radial distribution = " << time_PC2 << std::endl;
+        }
+
+        // g(x), g(y), g(z)
+        if(cartdist_int>0 && step%cartdist_int == 0) {
+
+            // timer
+            Real time_PC1 = ParallelDescriptor::second();
         
-        // timer for g(x), g(y), g(z)
-        time_PC1 = ParallelDescriptor::second();
-        
-        // compute g(x), g(y), g(z)
-        particles.CartesianDistribution(simParticles, istep, ionParticle);
-        
-        // timer for g(x), g(y), g(z)
-        time_PC2 = ParallelDescriptor::second() - time_PC1;
-        ParallelDescriptor::ReduceRealMax(time_PC2);
-        amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
+            // compute g(x), g(y), g(z)
+            particles.CartesianDistribution(simParticles, istep, ionParticle);
+            
+            // timer
+            Real time_PC2 = ParallelDescriptor::second() - time_PC1;
+            ParallelDescriptor::ReduceRealMax(time_PC2);
+            amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
+        }
         
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
