@@ -44,7 +44,6 @@
   ! negative = assume spatially-varying coefficients
   visc_coef = 1e-2
   visc_type = 1
-  !perm = 1. check this isn't being used.
 
   !particle initialization
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain

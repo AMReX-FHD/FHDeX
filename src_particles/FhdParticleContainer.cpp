@@ -56,23 +56,40 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     }
     binSize = binSize/((double)nspecies*4.0);
 
+    // radial: radius of search
+    // cartesian: distance of search
+    double searchDist = (domx + domy + domz)/6.0; // this is 1/2 the "average" domain side length
+    
+    // make sure searchDist doesn't exceed a domain side length
+    searchDist = std::min(searchDist,domx);
+    searchDist = std::min(searchDist,domy);
+    searchDist = std::min(searchDist,domz);
+    
     // create enough bins to look within a sphere with radius equal to "half" of the domain
-    totalBins = (int)floor(((domx + domy + domz)/6.0)/((double)binSize)) - 1;
+    totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
 
-    Print() << "Bin size for radial distribution: " << binSize << std::endl;
-    Print() << "Number of radial distribution bins: " << totalBins << std::endl;
-
+    Print() << "Bin size for pair correlation function: " << binSize << std::endl;
+    Print() << "Number of pair correlation bins: " << totalBins << std::endl;
+    
     // storage for mean radial distribution
     meanRadialDistribution = new Real[totalBins]();
 
+    // storage for mean Cartesian distributions
+    meanXDistribution = new Real[totalBins]();
+    meanYDistribution = new Real[totalBins]();
+    meanZDistribution = new Real[totalBins]();
+
     // compute the volume of each bin
-    binVol = new Real[totalBins]();
+    binVolRadial = new Real[totalBins]();
     for(int i=0;i<totalBins;i++) {
-        binVol[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
+        binVolRadial[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
     }
+
+    binVolCartesian = binSize * searchDist * searchDist;    
 
     // how many snapshots
     radialStatsCount = 0;
+    cartesianStatsCount = 0;
 }
 
 
@@ -607,12 +624,18 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         
         const int lev = 0;
         int bin;
-        double domx, domy, domz, totalRad, temp;
+        double domx, domy, domz, totalDist, temp;
 
         domx = (prob_hi[0] - prob_lo[0]);
         domy = (prob_hi[1] - prob_lo[1]);
         domz = (prob_hi[2] - prob_lo[2]);
 
+        // radius of search - make sure it doesn't exceed a side length
+        double searchDist = (domx + domy + domz)/6.0;
+        searchDist = std::min(searchDist,domx);
+        searchDist = std::min(searchDist,domy);
+        searchDist = std::min(searchDist,domz);
+    
         Real posx[totalParticles];
         Real posy[totalParticles];
         Real posz[totalParticles];
@@ -625,7 +648,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         PullDown(0, posz, -3, totalParticles);
 
         // outer radial extent
-        totalRad = totalBins*binSize;
+        totalDist = totalBins*binSize;
 
         // this is the bin "hit count"
         Real radDist[totalBins] = {0};
@@ -647,16 +670,25 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
                 ParticleType & part = particles[i];
                 int id = part.id();
 
+                int iilo = (posx[i]-searchDist <= prob_lo[0]) ? -1 : 0;
+                int iihi = (posx[i]+searchDist >= prob_hi[0]) ?  1 : 0;
+
+                int jjlo = (posy[i]-searchDist <= prob_lo[1]) ? -1 : 0;
+                int jjhi = (posy[i]+searchDist >= prob_hi[1]) ?  1 : 0;
+
+                int kklo = (posz[i]-searchDist <= prob_lo[2]) ? -1 : 0;
+                int kkhi = (posz[i]+searchDist >= prob_hi[2]) ?  1 : 0;
+                
                 double rad, dx, dy, dz;
                 // loop over other particles
                 for(int j = 0; j < totalParticles; j++)
                 {
                     // assume triply periodic, check the domain and the 8 periodic images
-                    for(int ii = -1; ii <= 1; ii++)
+                    for(int ii = iilo; ii <= iihi; ii++)
                     {
-                    for(int jj = -1; jj <= 1; jj++)
+                    for(int jj = jjlo; jj <= jjhi; jj++)
                     {
-                    for(int kk = -1; kk <= 1; kk++)
+                    for(int kk = kklo; kk <= kkhi; kk++)
                     {
                         // don't compare to yourself
                         if(i != j) {
@@ -669,7 +701,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
                             rad = sqrt(dx*dx + dy*dy + dz*dz);
 
                             // if particles are close enough, increment the bin
-                            if(rad < totalRad) {
+                            if(rad < totalDist) {
                                 bin = (int)floor(rad/binSize);
                                 radDist[bin]++;
                             }
@@ -689,11 +721,11 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         }
         
         // collect the hit count
-        ParallelDescriptor::ReduceRealSum(radDist,totalParticles);
+        ParallelDescriptor::ReduceRealSum(radDist,totalBins);
             
         // normalize by 1 / (number density * bin volume * total particle count)
-        for(int i=0;i<totalParticles;i++) {
-            radDist[i] *= 1./(n0_total*binVol[i]*(double)totalParticles);
+        for(int i=0;i<totalBins;i++) {
+            radDist[i] *= 1./(n0_total*binVolRadial[i]*(double)totalParticles);
         }
 
         // increment number of snapshots
@@ -717,6 +749,178 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
                 // normalize by
                 for(int i=0;i<totalBins;i++) {
                     ofs << meanRadialDistribution[i] << std::endl;
+                }
+                ofs.close();
+            }
+        }
+    }
+}
+
+void FhdParticleContainer::CartesianDistribution(long totalParticles, const int step, const species* particleInfo)
+{
+
+    // reset the Cartesian distribution at n_steps_skip (if n_steps_skip > 0)
+    // OR
+    // reset the Cartesian distribution every |n_steps_skip| (if n_steps_skip < 0)
+    if ((n_steps_skip > 0 && step == n_steps_skip) ||
+        (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
+                    
+        Print() << "Resetting Cartesian distribution collection.\n";
+
+        cartesianStatsCount = 0;
+
+        for(int i=0;i<totalBins;i++) {
+            meanXDistribution[i] = 0;
+            meanYDistribution[i] = 0;
+            meanZDistribution[i] = 0;
+        }
+    }
+
+    if(struct_fact_int>0 && step%struct_fact_int == 0) {
+        
+        const int lev = 0;
+        int bin;
+        double domx, domy, domz, totalDist, temp;
+
+        domx = (prob_hi[0] - prob_lo[0]);
+        domy = (prob_hi[1] - prob_lo[1]);
+        domz = (prob_hi[2] - prob_lo[2]);
+
+        // distance of search - make sure it doesn't exceed a side length
+        double searchDist = (domx + domy + domz)/6.0;
+        searchDist = std::min(searchDist,domx);
+        searchDist = std::min(searchDist,domy);
+        searchDist = std::min(searchDist,domz);
+    
+        Real posx[totalParticles];
+        Real posy[totalParticles];
+        Real posz[totalParticles];
+
+        Print() << "Calculating Cartesian distribution\n";
+
+        // collect particle positions onto one processor
+        PullDown(0, posx, -1, totalParticles);
+        PullDown(0, posy, -2, totalParticles);
+        PullDown(0, posz, -3, totalParticles);
+
+        // outer extent
+        totalDist = totalBins*binSize;
+
+        // this is the bin "hit count"
+        Real XDist[totalBins] = {0};
+        Real YDist[totalBins] = {0};
+        Real ZDist[totalBins] = {0};
+
+    #ifdef _OPENMP
+    #pragma omp parallel
+    #endif
+        for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+            
+            const int grid_id = pti.index();
+            const int tile_id = pti.LocalTileIndex();
+
+            auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+            auto& particles = particle_tile.GetArrayOfStructs();
+            const int np = particles.numParticles();
+
+            // loop over particles
+            for (int i = 0; i < np; ++i) {
+                ParticleType & part = particles[i];
+                int id = part.id();
+
+                int iilo = (posx[i]-searchDist <= prob_lo[0]) ? -1 : 0;
+                int iihi = (posx[i]+searchDist >= prob_hi[0]) ?  1 : 0;
+
+                int jjlo = (posy[i]-searchDist <= prob_lo[1]) ? -1 : 0;
+                int jjhi = (posy[i]+searchDist >= prob_hi[1]) ?  1 : 0;
+
+                int kklo = (posz[i]-searchDist <= prob_lo[2]) ? -1 : 0;
+                int kkhi = (posz[i]+searchDist >= prob_hi[2]) ?  1 : 0;
+
+                double dx, dy, dz;
+                // loop over other particles
+                for(int j = 0; j < totalParticles; j++)
+                {
+                    // assume triply periodic, check the domain and the 8 periodic images
+                    for(int ii = iilo; ii <= iihi; ii++)
+                    {
+                    for(int jj = jjlo; jj <= jjhi; jj++)
+                    {
+                    for(int kk = kklo; kk <= kkhi; kk++)
+                    {
+                        // don't compare to yourself
+                        if(i != j) {
+
+                            // get distance between particles
+                            dx = abs(posx[i]-posx[j] - ii*domx);
+                            dy = abs(posy[i]-posy[j] - jj*domy);
+                            dz = abs(posz[i]-posz[j] - kk*domz);
+
+                            // if particles are close enough, increment the bin
+                            if(dx < totalDist) {
+                                bin = (int)floor(dx/binSize);
+                                XDist[bin]++;
+                            }
+                            if(dy < totalDist) {
+                                bin = (int)floor(dy/binSize);
+                                YDist[bin]++;
+                            }
+                            if(dz < totalDist) {
+                                bin = (int)floor(dz/binSize);
+                                ZDist[bin]++;
+                            }
+                        }
+                    }
+                    }
+                    }                
+                    
+                }
+            }
+        }
+
+        // compute total number density
+        double n0_total = 0.;
+        for (int i=0; i<nspecies; ++i) {
+            n0_total += particleInfo[i].n0;
+        }
+        
+        // collect the hit count
+        ParallelDescriptor::ReduceRealSum(XDist,totalBins);
+        ParallelDescriptor::ReduceRealSum(YDist,totalBins);
+        ParallelDescriptor::ReduceRealSum(ZDist,totalBins);
+            
+        // normalize by 1 / (number density * bin volume * total particle count)
+        for(int i=0;i<totalBins;i++) {
+            XDist[i] *= 1./(n0_total*binVolCartesian*(double)totalParticles);
+            YDist[i] *= 1./(n0_total*binVolCartesian*(double)totalParticles);
+            ZDist[i] *= 1./(n0_total*binVolCartesian*(double)totalParticles);
+        }
+
+        // increment number of snapshots
+        cartesianStatsCount++;
+        int stepsminusone = cartesianStatsCount - 1;
+        double stepsinv = 1.0/(double)cartesianStatsCount;
+
+        // update the mean Cartesian distribution
+        for(int i=0;i<totalBins;i++) {
+            meanXDistribution[i] = (meanXDistribution[i]*stepsminusone + XDist[i])*stepsinv;
+            meanYDistribution[i] = (meanYDistribution[i]*stepsminusone + YDist[i])*stepsinv;
+            meanZDistribution[i] = (meanZDistribution[i]*stepsminusone + ZDist[i])*stepsinv;
+        }
+
+        // output mean Cartesian distribution g(x), g(y), g(z) based on plot_int
+        if (plot_int > 0 && step%plot_int == 0) {
+            
+            if(ParallelDescriptor::MyProc() == 0) {
+
+                std::string filename = Concatenate("cartesianDistribution",step,9);;
+                std::ofstream ofs(filename, std::ofstream::out);
+
+                // normalize by
+                for(int i=0;i<totalBins;i++) {
+                    ofs << meanXDistribution[i] << " "
+                        << meanYDistribution[i] << " "
+                        << meanZDistribution[i] << " " << std::endl;
                 }
                 ofs.close();
             }
@@ -1266,5 +1470,11 @@ FhdParticleContainer::numWrongCell()
 
 void FhdParticleContainer::PostRestart()
 {
+    Redistribute();
+    
     UpdateCellVectors();
+    
+    ReBin();
+    clearNeighbors();
+    fillNeighbors();
 }

@@ -22,13 +22,24 @@ module common_namelist_module
   integer,            save :: cross_cell
   double precision,   save :: transmission
 
+  double precision,   save :: qval(MAX_SPECIES)
   integer,            save :: pkernel_fluid
   integer,            save :: pkernel_es
-  double precision,   save :: qval(MAX_SPECIES)
-  double precision,   save :: perm
 
+  double precision,   save :: mass(MAX_SPECIES)
+  double precision,   save :: nfrac(MAX_SPECIES)
+  
+  integer,            save :: particle_placement
+  integer,            save :: particle_count(MAX_SPECIES)
+  integer,            save :: p_move_tog(MAX_SPECIES)
+  integer,            save :: p_force_tog(MAX_SPECIES)
+  integer,            save :: p_int_tog(MAX_SPECIES)
+  double precision,   save :: particle_n0(MAX_SPECIES)
+  double precision,   save :: particle_neff
+  
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
+
   integer,            save :: max_step
   integer,            save :: plot_int
   integer,            save :: plot_stag
@@ -37,38 +48,54 @@ module common_namelist_module
   character(len=128), save :: chk_base_name
   integer,            save :: prob_type
   integer,            save :: restart
+  integer,            save :: particle_restart
   integer,            save :: print_int
   integer,            save :: project_eos_int
+  
   double precision,   save :: grav(AMREX_SPACEDIM)
-  integer,            save :: nspecies
-  double precision,   save :: molmass(MAX_SPECIES)
   double precision,   save :: rhobar(MAX_SPECIES)
   double precision,   save :: rho0
+
+  integer,            save :: nspecies
+  double precision,   save :: molmass(MAX_SPECIES)
+  double precision,   save :: diameter(MAX_SPECIES)
+
+  integer,            save :: dof(MAX_SPECIES)
+  double precision,   save :: hcv(MAX_SPECIES)
+  double precision,   save :: hcp(MAX_SPECIES)
+
   double precision,   save :: variance_coef_mom
   double precision,   save :: variance_coef_mass
   double precision,   save :: k_B
   double precision,   save :: Runiv
   double precision,   save :: T_init(2)
+
   integer,            save :: algorithm_type
   integer,            save :: advection_type
   integer,            save :: barodiffusion_type
   integer,            save :: use_bl_rng
+
   integer,            save :: seed
+  
   integer,            save :: seed_momentum
   integer,            save :: seed_diffusion
   integer,            save :: seed_reaction
   integer,            save :: seed_init_mass
   integer,            save :: seed_init_momentum
+
   double precision,   save :: visc_coef
   integer,            save :: visc_type
+
   integer,            save :: filtering_width
   integer,            save :: stoch_stress_form
+
   double precision,   save :: u_init(2)
   double precision,   save :: perturb_width
   double precision,   save :: smoothing_width
   double precision,   save :: initial_variance_mom
   double precision,   save :: initial_variance_mass
   double precision,   save :: domega
+
   integer,            save :: bc_vel_lo(AMREX_SPACEDIM)
   integer,            save :: bc_vel_hi(AMREX_SPACEDIM)
   integer,            save :: bc_es_lo(AMREX_SPACEDIM)
@@ -80,8 +107,10 @@ module common_namelist_module
 
   double precision,   save :: p_lo(AMREX_SPACEDIM)
   double precision,   save :: p_hi(AMREX_SPACEDIM)
+  
   double precision,   save :: t_lo(AMREX_SPACEDIM)
   double precision,   save :: t_hi(AMREX_SPACEDIM)
+
   double precision,   save :: wallspeed_lo(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
   double precision,   save :: wallspeed_hi(AMREX_SPACEDIM-1,AMREX_SPACEDIM)
 
@@ -90,42 +119,29 @@ module common_namelist_module
 
   integer,            save :: struct_fact_int
   integer,            save :: n_steps_skip
+
   integer,            save :: project_dir
   integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
+
   integer,            save :: histogram_unit
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
-
-  double precision,   save :: diameter(MAX_SPECIES)
-  integer,            save :: dof(MAX_SPECIES)
-  double precision,   save :: hcv(MAX_SPECIES)
-  double precision,   save :: hcp(MAX_SPECIES)
-
-  double precision,   save :: mass(MAX_SPECIES)
-  double precision,   save :: nfrac(MAX_SPECIES)
-
-  integer,            save :: particle_placement
-  integer,            save :: particle_count(MAX_SPECIES)
-  integer,            save :: p_move_tog(MAX_SPECIES)
-  integer,            save :: p_force_tog(MAX_SPECIES)
-  integer,            save :: p_int_tog(MAX_SPECIES)
-  double precision,   save :: particle_n0(MAX_SPECIES)
-  double precision,   save :: particle_neff
 
   double precision,   save :: permitivitty
   double precision,   save :: cut_off
   double precision,   save :: rmin
   double precision,   save :: eepsilon(MAX_SPECIES)
   double precision,   save :: sigma(MAX_SPECIES)
-  double precision,   save :: poisson_rel_tol
-
-  integer,            save :: poisson_max_iter
+  
   integer,            save :: poisson_verbose
   integer,            save :: poisson_bottom_verbose
+  integer,            save :: poisson_max_iter
+  double precision,   save :: poisson_rel_tol
 
   double precision,   save :: particle_grid_refine
   double precision,   save :: es_grid_refine
   double precision,   save :: diff(MAX_SPECIES)
+  integer,            save :: all_dry
 
   integer,            save :: fluid_tog
   integer,            save :: es_tog
@@ -162,18 +178,16 @@ module common_namelist_module
   namelist /common/ max_particle_tile_size ! max number of cells in a box
   namelist /common/ cell_depth
 
-  namelist /common/ ngc           !number of ghost cells
-  namelist /common/ nvars         !number of conserved variables
-  namelist /common/ nprimvars     !number of primative variables
-
-  namelist /common/ membrane_cell  !location of membrane
-  namelist /common/ cross_cell     !cell to compute spatial correlation
+  namelist /common/ ngc           ! number of ghost cells
+  namelist /common/ nvars         ! number of conserved variables
+  namelist /common/ nprimvars     ! number of primative variables
+  namelist /common/ membrane_cell ! location of membrane
+  namelist /common/ cross_cell    ! cell to compute spatial correlation
   namelist /common/ transmission
 
-  namelist /common/ perm                !es permativity
-  namelist /common/ qval                !charge on an ion
-  namelist /common/ pkernel_fluid       !peskin kernel for fluid
-  namelist /common/ pkernel_es          !peskin kernel for es
+  namelist /common/ qval                ! charge on an ion
+  namelist /common/ pkernel_fluid       ! peskin kernel for fluid
+  namelist /common/ pkernel_es          ! peskin kernel for es
 
   namelist /common/ mass
   namelist /common/ nfrac
@@ -185,7 +199,6 @@ module common_namelist_module
   namelist /common/ p_int_tog
   namelist /common/ particle_n0
   namelist /common/ particle_neff
-
 
   ! Time-step control
   namelist /common/ fixed_dt
@@ -200,6 +213,7 @@ module common_namelist_module
   namelist /common/ chk_base_name
   namelist /common/ prob_type
   namelist /common/ restart
+  namelist /common/ particle_restart
   namelist /common/ print_int
   namelist /common/ project_eos_int
 
@@ -216,7 +230,6 @@ module common_namelist_module
   namelist /common/ dof
   namelist /common/ hcv
   namelist /common/ hcp
-
 
   ! stochastic forcing amplitudes (1 for physical values, 0 to run them off)
   namelist /common/ variance_coef_mom
@@ -277,7 +290,6 @@ module common_namelist_module
   namelist /common/ bc_therm_lo
   namelist /common/ bc_therm_hi
 
-
   ! Pressure drop are periodic inflow/outflow walls (bc_[hi,lo]=-2).
   namelist /common/ p_lo
   namelist /common/ p_hi
@@ -311,6 +323,7 @@ module common_namelist_module
   namelist /common/ rmin
   namelist /common/ eepsilon
   namelist /common/ sigma
+  
   namelist /common/ poisson_verbose
   namelist /common/ poisson_bottom_verbose
   namelist /common/ poisson_max_iter
@@ -319,6 +332,7 @@ module common_namelist_module
   namelist /common/ particle_grid_refine
   namelist /common/ es_grid_refine
   namelist /common/ diff
+  namelist /common/ all_dry
 
   namelist /common/ fluid_tog
   namelist /common/ es_tog
@@ -358,20 +372,23 @@ contains
     integer                               :: narg, farg
     character(kind=c_char), intent(in   ) :: inputs_file(length)
     character(len=128) :: fname
-
-!    narg = command_argument_count()
-!    narg=narg+3
-!    print*, narg
-!    stop
     
     ! default values
     prob_lo(:) = 0.d0
     prob_hi(:) = 1.d0
-    ngc(:) = 1
     n_cells(:) = 1
     max_grid_size(:) = 1
     max_particle_tile_size(:) = 0
     cell_depth = 1.d0
+
+    ngc(:) = 1
+    ! nvars (no default)
+    ! nprimvars (no default)
+
+    membrane_cell = -1
+    cross_cell = 0
+    ! transmission (no default)
+    
     fixed_dt = 1.
     cfl = 0.5
     max_step = 1
@@ -382,6 +399,7 @@ contains
     chk_base_name = "chk"
     prob_type = 1
     restart = -1
+    particle_restart = -1
     print_int = 0
     project_eos_int = -1
     grav(:) = 0.d0
@@ -444,9 +462,6 @@ contains
     p_force_tog(:) = 1
     p_int_tog(:) = 1
 
-    membrane_cell = -1
-    cross_cell = 0
-
     pkernel_fluid = 4
     pkernel_es = 4
     solve_chem = 0
@@ -460,6 +475,8 @@ contains
     graphene_tog = 0
     thermostat_tog = 0
     zero_net_force = 0
+
+    all_dry = 0
 
 
     ! read in common namelist
@@ -475,11 +492,12 @@ contains
                                          max_grid_size_in, max_particle_tile_size_in, cell_depth_in, ngc_in, &
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, transmission_in, &
-                                         perm_in, qval_in, pkernel_fluid_in, pkernel_es_in,&
+                                         qval_in, pkernel_fluid_in, pkernel_es_in,&
                                          fixed_dt_in, cfl_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
-                                         restart_in, print_int_in, project_eos_int_in, &
+                                         restart_in, particle_restart_in, &
+                                         print_int_in, project_eos_int_in, &
                                          grav_in, nspecies_in, molmass_in, diameter_in, &
                                          dof_in, hcv_in, hcp_in, rhobar_in, &
                                          rho0_in, variance_coef_mom_in, &
@@ -506,11 +524,12 @@ contains
                                          project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
-                                         particle_placement_in, particle_count_in, p_move_tog_in, p_force_tog_in, p_int_tog_in, particle_neff_in,&
+                                         particle_placement_in, particle_count_in, p_move_tog_in, &
+                                         p_force_tog_in, p_int_tog_in, particle_neff_in,&
                                          particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
                                          cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
-                                         particle_grid_refine_in, es_grid_refine_in, diff_in, &
+                                         particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
                                          fluid_tog_in, es_tog_in, drag_tog_in, move_tog_in, rfd_tog_in, &
                                          dry_move_tog_in, sr_tog_in, graphene_tog_in, crange_in, &
                                          thermostat_tog_in, zero_net_force_in, images_in, eamp_in, efreq_in, ephase_in, &
@@ -518,6 +537,12 @@ contains
                                          source_strength_in, regrid_int_in, do_reflux_in, particle_motion_in) &
                                          bind(C, name="initialize_common_namespace")
 
+    double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
+    integer,                intent(inout) :: max_particle_tile_size_in(AMREX_SPACEDIM)
+    double precision,       intent(inout) :: cell_depth_in
 
     double precision,       intent(inout) :: mass_in(MAX_SPECIES)
     double precision,       intent(inout) :: nfrac_in(MAX_SPECIES)
@@ -528,14 +553,7 @@ contains
     integer,                intent(inout) :: p_force_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: p_int_tog_in(MAX_SPECIES)
     integer,                intent(inout) :: particle_placement_in
-
-
-    double precision,       intent(inout) :: prob_lo_in(AMREX_SPACEDIM)
-    double precision,       intent(inout) :: prob_hi_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: n_cells_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: max_grid_size_in(AMREX_SPACEDIM)
-    integer,                intent(inout) :: max_particle_tile_size_in(AMREX_SPACEDIM)
-    double precision,       intent(inout) :: cell_depth_in
+    
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
 
@@ -547,7 +565,6 @@ contains
     integer,                intent(inout) :: cross_cell_in
     double precision,       intent(inout) :: transmission_in
 
-    double precision,       intent(inout) :: perm_in
     double precision,       intent(inout) :: qval_in(MAX_SPECIES)
     integer,                intent(inout) :: pkernel_fluid_in
     integer,                intent(inout) :: pkernel_es_in
@@ -562,6 +579,7 @@ contains
     character(kind=c_char), intent(inout) :: chk_base_name_in(chk_base_name_len)
     integer,                intent(inout) :: prob_type_in
     integer,                intent(inout) :: restart_in
+    integer,                intent(inout) :: particle_restart_in
     integer,                intent(inout) :: print_int_in
     integer,                intent(inout) :: project_eos_int_in
     double precision,       intent(inout) :: grav_in(AMREX_SPACEDIM)
@@ -640,7 +658,8 @@ contains
     double precision,       intent(inout) :: particle_grid_refine_in
     double precision,       intent(inout) :: es_grid_refine_in
     double precision,       intent(inout) :: diff_in(MAX_SPECIES)
-
+    integer,                intent(inout) :: all_dry_in
+    
     integer,                intent(inout) :: fluid_tog_in
     integer,                intent(inout) :: es_tog_in
     integer,                intent(inout) :: drag_tog_in
@@ -680,7 +699,6 @@ contains
     cross_cell_in = cross_cell
     transmission_in = transmission
 
-    perm_in = perm
     qval_in = qval
     pkernel_fluid_in = pkernel_fluid
     pkernel_es_in = pkernel_es
@@ -695,6 +713,7 @@ contains
     chk_base_name_in = amrex_string_f_to_c(chk_base_name)
     prob_type_in = prob_type
     restart_in = restart
+    particle_restart_in = particle_restart
     print_int_in = print_int
     project_eos_int_in = project_eos_int
     grav_in = grav
@@ -781,7 +800,8 @@ contains
     particle_grid_refine_in = particle_grid_refine
     es_grid_refine_in = es_grid_refine
     diff_in = diff
-
+    all_dry_in = all_dry
+    
     fluid_tog_in = fluid_tog
     es_tog_in = es_tog
     drag_tog_in = drag_tog

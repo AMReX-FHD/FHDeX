@@ -29,7 +29,6 @@ namespace common {
     extern int                        cross_cell;    //cell to compute spatial correlation
     extern amrex::Real                transmission;
 
-    extern amrex::Real                perm;
     extern amrex::Vector<amrex::Real> qval;
     extern int                        pkernel_fluid;
     extern int                        pkernel_es;
@@ -48,6 +47,7 @@ namespace common {
     extern std::string                chk_base_name;
     extern int                        prob_type;
     extern int                        restart;
+    extern int                        particle_restart;
     extern int                        print_int;
     extern int                        project_eos_int;
 
@@ -206,7 +206,10 @@ namespace common {
 
     extern amrex::Real                particle_grid_refine;
     extern amrex::Real                es_grid_refine;
+
+    // total diffusion coefficient for immersed particle
     extern amrex::Vector<amrex::Real> diff;
+    extern int                        all_dry;
 
     extern int                        fluid_tog;
     extern int                        es_tog;
