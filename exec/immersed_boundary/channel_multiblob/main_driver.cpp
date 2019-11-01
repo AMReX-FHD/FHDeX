@@ -353,14 +353,16 @@ void main_driver(const char * argv) {
         const RealVect & center = ib_colloid::center[i_ib];
         Real radius             = ib_colloid::radius[i_ib];
         Real rho                = ib_colloid::rho[i_ib];
+        Real k_spring           = ib_colloid::k_spring[i_ib];
 
         Print() << "Initializing colloid:" << std::endl;
-        Print() << "N =      " << N        << std::endl;
-        Print() << "center = " << center   << std::endl;
-        Print() << "radius = " << radius   << std::endl;
-        Print() << "rho =    " << rho      << std::endl;
+        Print() << "N =        " << N        << std::endl;
+        Print() << "center =   " << center   << std::endl;
+        Print() << "radius =   " << radius   << std::endl;
+        Print() << "rho =      " << rho      << std::endl;
+        Print() << "k_spring = " << k_spring << std::endl;
 
-        ib_mbc.InitSingle(0, center, radius, rho, N);
+        ib_mbc.InitSingle(0, center, radius, rho, N, k_spring);
 
     }
 

@@ -30,6 +30,7 @@ struct IBBReal {
         pred_forcex,
         pred_forcey,
         pred_forcez,
+        k_spring,
         ref_delx,
         ref_dely,
         ref_delz,
@@ -54,6 +55,7 @@ struct IBBReal {
             "pred_forcex",
             "pred_forcey",
             "pred_forcez",
+            "k_spring",
             "ref_delx",
             "ref_dely",
             "ref_delz"
@@ -91,13 +93,15 @@ public:
     // Add marker to database **without** redistributing (this is safe to call
     // within a `ParIter`/`MFIter loop), but the user will have to call
     // `BlobContainer::Redistribute` outside the loop.
-    void AddSingle(int lev, const TileIndex & tile,
-                   Real radius, const RealVect & pos, int id, int cpu, int i);
-    void AddSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
+    void AddSingle(int lev, const TileIndex & tile, Real radius, Real k_spring,
+                   const RealVect & pos, int id, int cpu, int i);
+    void AddSingle(int lev, Real radius, Real k_spring,
+                   const RealVect & pos, int id, int cpu, int i);
     // Add marker to database **and** redistribute this particle (this is
     // **unsafe** to call **within** a `ParIter`/`MFIter loop). The user will
     // not have to call `BlobContainer::Redistribute` outside the loop.
-    void InitSingle(int lev, Real radius, const RealVect & pos, int id, int cpu, int i);
+    void InitSingle(int lev, Real radius, Real k_spring,
+                    const RealVect & pos, int id, int cpu, int i);
 
     // Calls parent class MovePredictor, initilizing pred_pos[x,y,z] from
     // ref_del[x,y,z] fields (rather than 0);
@@ -105,9 +109,11 @@ public:
     // Calls parent class MoveMarkers, but also updates the ref_del[x,y,z] fields
     void MoveMarkers(int lev, Real dt);
 
-    // Computes flexible for model
+    // Computes flexible anchoring forces for model
     void PredictorForces(int lev, Real k);
+    void PredictorForces(int lev);
     void MarkerForces(int lev, Real k);
+    void MarkerForces(int lev);
 };
 
 
@@ -131,6 +137,7 @@ struct IBMBReal {
         dragx,    // ..................................... TODO: Audit
         dragy,    // ..................................... TODO: Audit
         dragz,    // ..................................... TODO: Audit
+        k_spring,
         count     // Awesome little trick!
     };
 
@@ -146,7 +153,8 @@ struct IBMBReal {
             "omegaz",
             "dragx",
             "dragy",
-            "dragz"
+            "dragz",
+            "k_spring"
         };
     };
 };
@@ -220,7 +228,8 @@ public:
      ***************************************************************************/
 
 
-    void InitSingle(int lev, const RealVect & pos, Real r, Real rho, int N);
+    void InitSingle(int lev, const RealVect & pos, Real r, Real rho,
+                    int n_marker, Real k_spring);
     void FillMarkerPositions(int lev);
 
 
@@ -274,7 +283,9 @@ public:
     void MovePredictor(int lev, Real dt);
 
     void PredictorForces(int lev, Real k);
+    void PredictorForces(int lev);
     void MarkerForces(int lev, Real k);
+    void MarkerForces(int lev);
 
 
 

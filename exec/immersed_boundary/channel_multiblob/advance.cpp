@@ -174,14 +174,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     int ib_lev = 0;
 
-    // Parameters for spring force calculation
-    Real spr_k = ib_colloid::k_spring[0]; // HACK use elt 0 for now
-
-    // initial distance btw markers. TODO: Need to update depending on initial
-    // coordinates.
-    Real l_db = 0.01;
-
-
 
     /****************************************************************************
      *                                                                          *
@@ -276,7 +268,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Calculate internal force model
-    ib_mbc.PredictorForces(0, spr_k);
+    ib_mbc.PredictorForces(0);
 
 
     // //___________________________________________________________________________
@@ -405,7 +397,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Calculate internal force model
-    ib_mbc.MarkerForces(0, spr_k);
+    ib_mbc.MarkerForces(0);
 
 
     // //___________________________________________________________________________
