@@ -19,8 +19,6 @@
   fixed_dt = 1e-4
 
   ! Controls for number of steps between actions
-  ! max_step = 200000
-  ! plot_int = 200000
   plot_base_name = "flo"
   max_step = 2000
   plot_int = 10

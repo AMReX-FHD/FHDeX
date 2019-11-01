@@ -84,8 +84,6 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         advFluxdiv[i].setVal(0);
     }
 
-    // Tracer advective terms
-    MultiFab advFluxdivS(ba, dmap, 1, 1);
 
 
     //___________________________________________________________________________
@@ -247,6 +245,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Spread forces to predictor f^(n+1/2) = S(F^(n+1/2))
+    // Remember: Spread, Fold Fill, Sum
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_pred;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         fc_force_pred[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
@@ -286,7 +285,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
                 alpha_fc_0, dx, theta_alpha);
 
 
-    // Compute pressure gradient due to the BC: gp = Gp
+    //___________________________________________________________________________
+    // Compute pressure, and pressure gradient due to the BC: gp = Gp
     pres.setVal(0.); // Initial guess for pressure
     SetPressureBC(pres, geom); // Apply pressure boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
@@ -383,6 +383,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     //___________________________________________________________________________
     // Spread forces to corrector: f^(n+1) = S(F^(n+1))
+    // Remember: Spread, Fold Fill, Sum
     std::array<MultiFab, AMREX_SPACEDIM> fc_force_corr;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
         fc_force_corr[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
@@ -428,6 +429,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     //             umac, Lumac, alpha_fc_0, dx, theta_alpha);
 
 
+    //___________________________________________________________________________
+    // Compute pressure, and pressure gradient due to the BC: gp = Gp
     // Note that the pressure gradient due to the BC is left unchanged
     pres.setVal(0.); // Initial guess for pressure
     SetPressureBC(pres, geom); // Apply pressure boundary conditions
