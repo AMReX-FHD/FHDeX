@@ -60,10 +60,10 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     // cartesian: distance of search
     double searchDist = (domx + domy + domz)/6.0; // this is 1/2 the "average" domain side length
     
-    // make sure searchDist doesn't exceed a domain side length
-    searchDist = std::min(searchDist,domx);
-    searchDist = std::min(searchDist,domy);
-    searchDist = std::min(searchDist,domz);
+    // make sure searchDist doesn't exceed half a domain side length
+    searchDist = std::min(searchDist,0.5*domx);
+    searchDist = std::min(searchDist,0.5*domy);
+    searchDist = std::min(searchDist,0.5*domz);
     
     // create enough bins to look within a sphere with radius equal to "half" of the domain
     totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
@@ -73,7 +73,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     
     // storage for mean radial distribution
     meanRadialDistribution = new Real[totalBins]();
-
+        
     // storage for mean Cartesian distributions
     meanXDistribution = new Real[totalBins]();
     meanYDistribution = new Real[totalBins]();
@@ -85,7 +85,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
         binVolRadial[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
     }
 
-    binVolCartesian = binSize * searchDist * searchDist;    
+    binVolCartesian =  2.*binSize * 2.*searchDist * 2.*searchDist;
 
     // how many snapshots
     radialStatsCount = 0;
@@ -628,11 +628,11 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // radius of search - make sure it doesn't exceed a side length
+    // radius of search - make sure it doesn't exceed half a domain side length
     double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,domx);
-    searchDist = std::min(searchDist,domy);
-    searchDist = std::min(searchDist,domz);
+    searchDist = std::min(searchDist,0.5*domx);
+    searchDist = std::min(searchDist,0.5*domy);
+    searchDist = std::min(searchDist,0.5*domz);
     
     Real posx[totalParticles];
     Real posy[totalParticles];
@@ -782,11 +782,11 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // distance of search - make sure it doesn't exceed a side length
+    // distance of search - make sure it doesn't exceed half a domain side length
     double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,domx);
-    searchDist = std::min(searchDist,domy);
-    searchDist = std::min(searchDist,domz);
+    searchDist = std::min(searchDist,0.5*domx);
+    searchDist = std::min(searchDist,0.5*domy);
+    searchDist = std::min(searchDist,0.5*domz);
     
     Real posx[totalParticles];
     Real posy[totalParticles];
@@ -818,7 +818,7 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
-
+        
         // loop over particles
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
@@ -832,7 +832,7 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
 
             int kklo = (posz[i]-searchDist <= prob_lo[2]) ? -1 : 0;
             int kkhi = (posz[i]+searchDist >= prob_hi[2]) ?  1 : 0;
-
+            
             double dx, dy, dz;
             // loop over other particles
             for(int j = 0; j < totalParticles; j++)
@@ -853,15 +853,15 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                                 dz = abs(posz[i]-posz[j] - kk*domz);
 
                                 // if particles are close enough, increment the bin
-                                if(dx < totalDist) {
+                                if(dx < totalDist && dy < searchDist && dz < searchDist) {
                                     bin = (int)floor(dx/binSize);
                                     XDist[bin]++;
                                 }
-                                if(dy < totalDist) {
+                                if(dy < totalDist && dx < searchDist && dz < searchDist) {
                                     bin = (int)floor(dy/binSize);
                                     YDist[bin]++;
                                 }
-                                if(dz < totalDist) {
+                                if(dz < totalDist && dx < searchDist && dy < searchDist) {
                                     bin = (int)floor(dz/binSize);
                                     ZDist[bin]++;
                                 }
@@ -879,7 +879,7 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
     for (int i=0; i<nspecies; ++i) {
         n0_total += particleInfo[i].n0;
     }
-        
+ 
     // collect the hit count
     ParallelDescriptor::ReduceRealSum(XDist,totalBins);
     ParallelDescriptor::ReduceRealSum(YDist,totalBins);
