@@ -118,6 +118,8 @@ module common_namelist_module
   double precision,   save :: potential_hi(AMREX_SPACEDIM)
 
   integer,            save :: struct_fact_int
+  integer,            save :: radialdist_int
+  integer,            save :: cartdist_int
   integer,            save :: n_steps_skip
 
   integer,            save :: project_dir
@@ -305,8 +307,10 @@ module common_namelist_module
   namelist /common/ potential_lo
   namelist /common/ potential_hi
 
-  ! structure factor analysis
+  ! structure factor and radial/cartesian pair correlation function analysis
   namelist /common/ struct_fact_int
+  namelist /common/ radialdist_int
+  namelist /common/ cartdist_int
   namelist /common/ n_steps_skip
 
   ! projection
@@ -451,6 +455,8 @@ contains
     potential_lo(:) = 0
     potential_hi(:) = 0
     struct_fact_int = 0
+    radialdist_int = 0
+    cartdist_int = 0
     n_steps_skip = 0
     project_dir = -1
     max_grid_projection(:) = 1
@@ -520,7 +526,8 @@ contains
                                          t_lo_in, t_hi_in, &
                                          wallspeed_lo_in, wallspeed_hi_in, &
                                          potential_lo_in, potential_hi_in, &
-                                         struct_fact_int_in, n_steps_skip_in, &
+                                         struct_fact_int_in, radialdist_int_in, &
+                                         cartdist_int_in, n_steps_skip_in, &
                                          project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
@@ -637,6 +644,8 @@ contains
     double precision,       intent(inout) :: potential_hi_in(AMREX_SPACEDIM)
 
     integer,                intent(inout) :: struct_fact_int_in
+    integer,                intent(inout) :: radialdist_int_in
+    integer,                intent(inout) :: cartdist_int_in
     integer,                intent(inout) :: n_steps_skip_in
     integer,                intent(inout) :: project_dir_in
     integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
@@ -770,6 +779,8 @@ contains
     potential_hi_in = potential_hi
 
     struct_fact_int_in = struct_fact_int
+    radialdist_int_in = radialdist_int
+    cartdist_int_in = cartdist_int
     n_steps_skip_in = n_steps_skip
     project_dir_in = project_dir
     max_grid_projection_in = max_grid_projection

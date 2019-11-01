@@ -99,6 +99,8 @@ amrex::Vector<amrex::Real> common::potential_lo;
 amrex::Vector<amrex::Real> common::potential_hi;
 
 int                        common::struct_fact_int;
+int                        common::radialdist_int;
+int                        common::cartdist_int;
 int                        common::n_steps_skip;
 int                        common::project_dir;
 amrex::Vector<int>         common::max_grid_projection;
