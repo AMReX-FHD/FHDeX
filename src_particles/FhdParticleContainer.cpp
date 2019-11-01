@@ -1466,11 +1466,5 @@ FhdParticleContainer::numWrongCell()
 
 void FhdParticleContainer::PostRestart()
 {
-    Redistribute();
-    
     UpdateCellVectors();
-    
-    ReBin();
-    clearNeighbors();
-    fillNeighbors();
 }
