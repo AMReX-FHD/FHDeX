@@ -543,6 +543,26 @@ void IBMultiBlobContainer::ResetMarkers(int lev) {
 
 
 
+void IBMultiBlobContainer::ResetDrag(int lev) {
+
+    for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = this->GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                part.rdata(IBMBReal::dragx + d) = 0.;
+        }
+    }
+}
+
+
+
 void IBMultiBlobContainer::SpreadMarkers(int lev,
                                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const {
 
@@ -618,6 +638,70 @@ void IBMultiBlobContainer::MarkerForces(int lev) {
 }
 
 
+std::map<IBMultiBlobContainer::MarkerIndex, IBMultiBlobContainer::ParticleType *>
+IBMultiBlobContainer::GetParticleDict(int lev) {
+
+    std::map<MarkerIndex, ParticleType *> particle_dict;
+
+    for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = this->GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            MarkerIndex parent = std::make_pair(part.idata(IBBInt::id_0),
+                                                part.idata(IBBInt::cpu_0));
+
+            // check if already in ParticleDict NOTE: c++20 has contains()
+            auto search = particle_dict.find(parent);
+            // if not in map, add pointer
+            if (search == particle_dict.end()) particle_dict[parent] = & part;
+            else {
+                for (const auto & elt : particle_dict) {
+                    Print() << elt.first.first << ", " << elt.first.second
+                            << " : " << elt.second << std::endl;
+                }
+                Abort("Already in dict! I've no fecking idea why!");
+            }
+        }
+
+        // Now do the same of the neighbor data
+        ParticleVector & nbhd_data = GetNeighbors(lev, index.first, index.second);
+        long nn = nbhd_data.size();
+        for (int j=0; j<nn; ++j) {
+
+            ParticleType & part = nbhd_data[j];
+
+            MarkerIndex parent = std::make_pair(part.idata(IBBInt::id_0),
+                                                part.idata(IBBInt::cpu_0));
+
+            // check if already in ParticleDict NOTE: c++20 has contains()
+            auto search = particle_dict.find(parent);
+            // if not in map, add pointer
+            if (search == particle_dict.end()) particle_dict[parent] = & part;
+            // DON'T check if already in list (neighbors can appear multiple
+            // times). Also don't overwrite REAL particle data with neighbor
+            // data, that would just lead to too much copying of data.
+        }
+    }
+
+    return particle_dict;
+}
+
+
+
+void IBMultiBlobContainer::AccumulateDrag(int lev) {
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+
+}
+
+
 
 void IBMultiBlobContainer::WritePlotFile(const std::string & dir,
                                          const std::string & name,
@@ -631,6 +715,8 @@ void IBMultiBlobContainer::WritePlotFile(const std::string & dir,
     // save marker data
     markers.WritePlotFile(dir, blob_name, IBBReal::names(), IBBInt::names());
 }
+
+
 
 void IBMultiBlobContainer::InitInternals(int ngrow) {
     ReadStaticParameters();

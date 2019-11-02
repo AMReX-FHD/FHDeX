@@ -243,6 +243,8 @@ public:
 
     void ResetPredictor(int lev);
     void ResetMarkers(int lev);
+    void ResetDrag(int lev);
+
 
 
     /****************************************************************************
@@ -287,6 +289,10 @@ public:
     void MarkerForces(int lev, Real k);
     void MarkerForces(int lev);
 
+    // Compute Drag Force
+    std::map<MarkerIndex, ParticleType *> GetParticleDict(int lev);
+    void AccumulateDrag(int lev);
+
 
 
     /****************************************************************************
@@ -295,8 +301,10 @@ public:
      *                                                                          *
      ***************************************************************************/
 
+
     void WritePlotFile(const std::string & dir, const std::string & name,
                        const std::string & blob_name) const;
+
 
 
     static bool use_neighbor_list;
@@ -328,7 +336,6 @@ private:
     // TODO: this might not be used anymore:
     AmrCore * m_amr_core;
     int nghost;
-
 
 };
 
