@@ -638,6 +638,7 @@ void IBMultiBlobContainer::MarkerForces(int lev) {
 }
 
 
+
 std::map<IBMultiBlobContainer::MarkerIndex, IBMultiBlobContainer::ParticleType *>
 IBMultiBlobContainer::GetParticleDict(int lev) {
 
@@ -653,8 +654,9 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
 
-            MarkerIndex parent = std::make_pair(part.idata(IBBInt::id_0),
-                                                part.idata(IBBInt::cpu_0));
+            MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+
+            std::cout << "processing: " << parent.first << " " << parent.second << std::endl;
 
             // check if already in ParticleDict NOTE: c++20 has contains()
             auto search = particle_dict.find(parent);
@@ -662,8 +664,8 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
             if (search == particle_dict.end()) particle_dict[parent] = & part;
             else {
                 for (const auto & elt : particle_dict) {
-                    Print() << elt.first.first << ", " << elt.first.second
-                            << " : " << elt.second << std::endl;
+                    std::cout << elt.first.first << ", " << elt.first.second
+                              << " : " << elt.second << std::endl;
                 }
                 Abort("Already in dict! I've no fecking idea why!");
             }
@@ -698,6 +700,14 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
     std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
+    std::cout << "map size " << particle_dict.size() << std::endl;
+    for (const auto & elt : particle_dict) {
+        std::cout << elt.first.first << ", " << elt.first.second
+                  << " : " << elt.second << std::endl;
+    }
+
+
+
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
@@ -713,6 +723,8 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
             BlobContainer::ParticleType & mark = marker_data[m_index.first];
             MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
                                                 mark.idata(IBBInt::cpu_0));
+
+            std::cout << "testing: " << particle_dict.size() << ", " << parent.first << " " << parent.second << std::endl;
 
             ParticleType * target = particle_dict.at(parent);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -744,6 +756,9 @@ void IBMultiBlobContainer::InitInternals(int ngrow) {
     ReadStaticParameters();
 
     this->SetVerbose(0);
+
+    // Needed to copy force data back to owner
+    this->setEnableInverse(true);
 
     // Turn off certain components for ghost particle communication
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates

@@ -407,6 +407,13 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     ib_mbc.MarkerForces(0);
 
+    // Move Multi-Blobs
+    ib_mbc.ResetDrag(0);
+    ib_mbc.clearNeighbors();
+    ib_mbc.fillNeighbors();
+    ib_mbc.AccumulateDrag(0);
+    ib_mbc.sumNeighbors(IBMBReal::dragx, AMREX_SPACEDIM, 0, 0);
+
 
     // //___________________________________________________________________________
     // // Update forces between markers (these repeated clear/fill/build neighbor
