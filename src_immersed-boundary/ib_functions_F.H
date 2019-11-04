@@ -26,7 +26,7 @@ extern "C"
     void flagellum_max_markers(int * max_n_makers);
 
     void initialize_immbdy_namespace(int * n_immbdy, int * contains_flagellum,
-                                     int * contains_fourier);
+                                     int * contains_fourier, int * contains_colloid);
 
     void initialize_ib_flagellum_namespace(
             int          n_immbdy,   int *        n_markers, void *       offset_0,
@@ -37,6 +37,11 @@ extern "C"
 
     void copy_ib_fourier_data(int i_marker, int i_immbdy,
                               int * N, void * a_coef, void * b_coef);
+
+    void initialize_ib_colloid_namespace(
+            int          n_immbdy, int *        n_markers, void *       center, 
+            amrex_real * radius,   amrex_real * rho,       amrex_real * k_spring
+        );
 
     void test_interface(
             void * particle_info, int * np

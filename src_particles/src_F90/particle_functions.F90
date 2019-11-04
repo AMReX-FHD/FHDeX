@@ -2132,7 +2132,8 @@ contains
 
   end subroutine set_pos
 
-  subroutine move_ions_fhd(particles, np, lo, hi, &
+  subroutine move_ions_fhd(particles, np, rejected, moves, maxspeed, maxdist, diffinst, &
+                           lo, hi, &
                            cell_part_ids, cell_part_cnt, clo, chi, plo, phi, &
                            dx, dt, plof, dxf, dxe, &
                            velx, velxlo, velxhi, &
@@ -2160,18 +2161,19 @@ contains
                            surfaces, ns, kinetic, sw) &
                            bind(c,name="move_ions_fhd")
 
-    integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw, mlo(3), mhi(3)
-    integer,          intent(in   )         :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
-    integer,          intent(in   )         :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
+    integer,          intent(in   ) :: np, ns
+    integer,          intent(in   ) :: lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3)
+    integer,          intent(in   ) :: efylo(3), efyhi(3), efxlo(3), efxhi(3), sw, mlo(3), mhi(3)
+    integer,          intent(in   ) :: sourcexlo(3), sourcexhi(3), sourceylo(3), sourceyhi(3)
+    integer,          intent(in   ) :: coordsxlo(3), coordsxhi(3), coordsylo(3), coordsyhi(3)
 #if (AMREX_SPACEDIM == 3)
-    integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
+    integer,          intent(in   ) :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
 #endif
     type(particle_t), intent(inout), target :: particles(np)
     type(surface_t),  intent(in),    target :: surfaces(ns)
-
-    double precision, intent(in   )         :: dx(3), dxf(3), dxe(3), dt, plo(3), phi(3), plof(3)
-    double precision, intent(inout)         :: kinetic
-
+    double precision, intent(in   ) :: dx(3), dxf(3), dxe(3), dt, plo(3), phi(3), plof(3)
+    double precision, intent(inout) :: kinetic
+    double precision, intent(inout) :: rejected, moves, maxspeed, maxdist, diffinst
     double precision, intent(in   ) :: velx(velxlo(1):velxhi(1),velxlo(2):velxhi(2),velxlo(3):velxhi(3))
     double precision, intent(in   ) :: vely(velylo(1):velyhi(1),velylo(2):velyhi(2),velylo(3):velyhi(3))
 #if (AMREX_SPACEDIM == 3)
@@ -2206,8 +2208,11 @@ contains
     integer(c_int), pointer :: cell_parts(:)
     type(particle_t), pointer :: part
     type(surface_t), pointer :: surf
-    real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3), &
-         diffest, diffav, distav, diffinst, veltest, posold(3), rejected, moves, maxspeed, speed, mb(3), dist, maxdist
+    real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std
+    real(amrex_real) normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt
+    real(amrex_real) domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3)
+    real(amrex_real) diffest, diffav, distav, veltest, posold(3)
+    real(amrex_real) speed, mb(3), dist
 
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
@@ -2486,14 +2491,17 @@ contains
        end do
     end do
 
-    print *, "I see ", np, " particles." 
-    if(move_tog .eq. 2) then
-       print *, "Fraction of midpoint moves rejected: ", rejected/moves
-    endif
-    print *, "Maximum observed speed: ", sqrt(maxspeed)
-    print *, "Maximum observed displacement (fraction of radius): ", maxdist
-    print *, "Average diffusion coefficient: ", diffinst/np
-    !print *, "veltest: ", veltest/np
+    ! write out grid/tile diagnostics
+    if (.false.) then
+       print *, "On grid/tile ", lo, hi
+       print *, "I see ", np, " particles." 
+       if(move_tog .eq. 2) then
+          print *, "Fraction of midpoint moves rejected: ", rejected/moves
+       endif
+       print *, "Maximum observed speed: ", sqrt(maxspeed)
+       print *, "Maximum observed displacement (fraction of radius): ", maxdist
+       print *, "Average diffusion coefficient: ", diffinst/np
+    end if
 
     deallocate(weights)
     deallocate(indicies)

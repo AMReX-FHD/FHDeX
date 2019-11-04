@@ -335,8 +335,7 @@ void main_driver(const char* argv)
         wetRad = 1.255*dxAv;
     }
     else if (pkernel_fluid == 6) {
-        wetRad = 1.5705*dxAv;
-//        wetRad = 1.481*dxAv;
+        wetRad = 1.481*dxAv;
     }
 
     for(int i=0;i<nspecies;i++) {
@@ -344,24 +343,44 @@ void main_driver(const char* argv)
         ionParticle[i].m = mass[i];
         ionParticle[i].q = qval[i];
 
-        if (diameter[i] > 0) {
+        if (diameter[i] > 0) { // positive diameter
+
+            // set diameter from inputs
             ionParticle[i].d = diameter[i];
 
-            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
-
+            // compute total diffusion from input diameter
             ionParticle[i].totalDiff = (k_B*T_init[0])/(6*3.14159265359*(diameter[i]/2.0)*visc_coef);
 
-            ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //This is probably wrong. Need to test.
-
-        }
-        else {
-            ionParticle[i].totalDiff = diff[i];            
-
-            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
-
+            // compute wet diffusion from wetRad
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
 
-            ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //Test this
+            if (all_dry == 1) {
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+            }
+            else {            
+                // dry = total - wet
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
+            }
+
+        }
+        else { // zero or negative diameter
+
+            // set total diffusion from inputs
+            ionParticle[i].totalDiff = diff[i];            
+
+            // set diameter from total diffusion (Stokes Einsten)
+            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
+
+            // compute wet diffusion from wetRad
+            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
+
+            if (all_dry == 1) {
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+            }
+            else {            
+                // dry = total - wet
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
+            }
         }
 
         Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: "
@@ -630,7 +649,7 @@ void main_driver(const char* argv)
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc, crange);
 
-    if (restart < 0) {
+    if (restart < 0 && particle_restart < 0) {
         // create particles
         particles.InitParticles(ionParticle, dxp);
     }
@@ -724,7 +743,9 @@ void main_driver(const char* argv)
     StructFact structFact(bp,dmap,var_names,scaling,s_pairA,s_pairB);
 
 /*
-    if (restart > 0) {
+    // write a plotfile on restart
+    // note particle data isn't updated for plotfile generation yet
+    if (restart > 0) {    
         WritePlotFile(step-1, time, geom, geomC, geomP,
                       particleInstant, particleMeans, particleVars, particles,
                       charge, potential, efieldCC, dryMobility);
@@ -846,17 +867,36 @@ void main_driver(const char* argv)
             statsCount = 1;
         }
 
-        // timer for g(r)
-        Real time_radial1 = ParallelDescriptor::second();
+        // g(r)
+        if(radialdist_int>0 && step%radialdist_int == 0) {
+            
+            // timer
+            Real time_PC1 = ParallelDescriptor::second();
 
-        // compute g(r)
-        particles.RadialDistribution(simParticles, istep, ionParticle);
+            // compute g(r)
+            particles.RadialDistribution(simParticles, istep, ionParticle);
 
-        // timer for g(r)
-        Real time_radial2 = ParallelDescriptor::second() - time_radial1;
-        ParallelDescriptor::ReduceRealMax(time_radial2);
-        amrex::Print() << "Time spend computing radial distribution = " << time_radial2 << std::endl;
+            // timer
+            Real time_PC2 = ParallelDescriptor::second() - time_PC1;
+            ParallelDescriptor::ReduceRealMax(time_PC2);
+            amrex::Print() << "Time spend computing radial distribution = " << time_PC2 << std::endl;
+        }
 
+        // g(x), g(y), g(z)
+        if(cartdist_int>0 && step%cartdist_int == 0) {
+
+            // timer
+            Real time_PC1 = ParallelDescriptor::second();
+        
+            // compute g(x), g(y), g(z)
+            particles.CartesianDistribution(simParticles, istep, ionParticle);
+            
+            // timer
+            Real time_PC2 = ParallelDescriptor::second() - time_PC1;
+            ParallelDescriptor::ReduceRealMax(time_PC2);
+            amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
+        }
+        
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d) {

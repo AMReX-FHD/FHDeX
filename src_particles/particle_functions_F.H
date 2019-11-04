@@ -64,44 +64,46 @@ extern "C"
                         int* flux);
 
     void move_ions_fhd(void* particles,
-                        const int *np,
-                        const int *lo,
-                        const int *hi,
-                        int** c_vectors,
-                        int* sizes,
-                        const int* clo,
-                        const int* chi,
-                        const amrex_real* plo,
-                        const amrex_real* phi,
-                        const amrex_real* dx,
-                        const amrex_real* dt,
-                        const amrex_real* plof,
-                        const amrex_real* dxf,
-                        const amrex_real* dxe,
-                         const amrex_real* velx, const int* velxlo, const int* velxhi,
-                         const amrex_real* vely, const int* velylo, const int* velyhi,
+                       const int *np_tile,
+                       const amrex_real *rejected_tile,
+                       const amrex_real *moves_tile,
+                       const amrex_real *maxspeed_tile,
+                       const amrex_real *maxdist_tile,
+                       const amrex_real *diffinst_tile,                   
+                       const int *lo, const int *hi,
+                       int** c_vectors,
+                       int* sizes,
+                       const int* clo,
+                       const int* chi,
+                       const amrex_real* plo, const amrex_real* phi,
+                       const amrex_real* dx,
+                       const amrex_real* dt,
+                       const amrex_real* plof,
+                       const amrex_real* dxf,
+                       const amrex_real* dxe,
+                       const amrex_real* velx, const int* velxlo, const int* velxhi,
+                       const amrex_real* vely, const int* velylo, const int* velyhi,
 #if (AMREX_SPACEDIM == 3)
-                         const amrex_real* velz, const int* velzlo, const int* velzhi,
+                       const amrex_real* velz, const int* velzlo, const int* velzhi,
 #endif
-                         const amrex_real* efx, const int* efxlo, const int* efxhi,
-                         const amrex_real* efy, const int* efylo, const int* efyhi,
+                       const amrex_real* efx, const int* efxlo, const int* efxhi,
+                       const amrex_real* efy, const int* efylo, const int* efyhi,
 #if (AMREX_SPACEDIM == 3)
-                         const amrex_real* efz, const int* efzlo, const int* efzhi,
+                       const amrex_real* efz, const int* efzlo, const int* efzhi,
 #endif
-                         const amrex_real* coordsx, const int* coordsxlo, const int* coordsxhi,
-                         const amrex_real* coordsy, const int* coordsylo, const int* coordsyhi,
+                       const amrex_real* coordsx, const int* coordsxlo, const int* coordsxhi,
+                       const amrex_real* coordsy, const int* coordsylo, const int* coordsyhi,
 #if (AMREX_SPACEDIM == 3)
-                         const amrex_real* coordsz, const int* coordszlo, const int* coordszhi,
+                       const amrex_real* coordsz, const int* coordszlo, const int* coordszhi,
 #endif
-
-                         const amrex_real* sourcex, const int* sourcexlo, const int* sourcexhi,
-                         const amrex_real* sourcey, const int* sourceylo, const int* sourceyhi,
+                       const amrex_real* sourcex, const int* sourcexlo, const int* sourcexhi,
+                       const amrex_real* sourcey, const int* sourceylo, const int* sourceyhi,
 #if (AMREX_SPACEDIM == 3)
-                        const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
+                       const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
-                        const amrex_real* mobility, const int* mlo, const int* mhi,
-                        const void* surfaces,
-                        const int* ns, amrex_real * kinetic, int* sw);
+                       const amrex_real* mobility, const int* mlo, const int* mhi,
+                       const void* surfaces,
+                       const int* ns, amrex_real * kinetic, int* sw);
 
     void spread_ions_fhd(void* particles,
                         const int *np,
@@ -284,28 +286,30 @@ extern "C"
 
 
    void evaluate_means(void* particles,
-                        const int* lo, const int* hi,
-                        int** c_vectors, int* sizes, const int* clo, const int* chi,
-                        amrex_real* instant, const int* ilo, const int* ihi,
-                        amrex_real* means, const int* mlo, const int* mhi,
-                        amrex_real* vars, const int* vlo, const int* vhi,
-
-                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
-                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps);
+                       const int* lo, const int* hi,
+                       int** c_vectors, int* sizes, const int* clo, const int* chi,
+                       amrex_real* instant, const int* ilo, const int* ihi,
+                       amrex_real* means, const int* mlo, const int* mhi,
+                       amrex_real* vars, const int* vlo, const int* vhi,
+                       amrex_real* cellVols, const int* cvlo, const int* cvhi,
+                       const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps,
+                       int* cellcount, amrex_real* avcurrent);
 
    void evaluate_corrs(void* particles,
-                        const int* lo, const int* hi,
-                        int** c_vectors, int* sizes, const int* clo, const int* chi,
-                        amrex_real* instant, const int* ilo, const int* ihi,
-                        amrex_real* means, const int* mlo, const int* mhi,
-                        amrex_real* vars, const int* vlo, const int* vhi,
+                       const int* lo, const int* hi,
+                       int** c_vectors, int* sizes, const int* clo, const int* chi,
+                       amrex_real* instant, const int* ilo, const int* ihi,
+                       amrex_real* means, const int* mlo, const int* mhi,
+                       amrex_real* vars, const int* vlo, const int* vhi,
+                       amrex_real* cellVols, const int* cvlo, const int* cvhi,
+                       const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps,
+                       int* cellcount, amrex_real* varcurrent);
 
-                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
-                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps);
+   void sync_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce,
+                       amrex_real* spec3zForce, void* particles, const int* np, const int* length);
 
-   void sync_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce, amrex_real* spec3zForce, void* particles, const int* np, const int* length);
-
-   void force_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce, amrex_real* spec3zForce, void* particles, const int* np, const int* length);
+   void force_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce,
+                        amrex_real* spec3zForce, void* particles, const int* np, const int* length);
 
 
    void user_force_calc_init(const char* inputs_file, const int length);

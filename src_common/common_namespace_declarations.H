@@ -25,7 +25,6 @@ amrex::Real                common::transmission;
 int                        common::pkernel_fluid;
 int                        common::pkernel_es;
 amrex::Vector<amrex::Real> common::qval;
-amrex::Real                common::perm;
 
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
@@ -37,6 +36,7 @@ int                        common::chk_int;
 std::string                common::chk_base_name;
 int                        common::prob_type;
 int                        common::restart;
+int                        common::particle_restart;
 int                        common::print_int;
 int                        common::project_eos_int;
 amrex::Vector<amrex::Real> common::grav;
@@ -99,6 +99,8 @@ amrex::Vector<amrex::Real> common::potential_lo;
 amrex::Vector<amrex::Real> common::potential_hi;
 
 int                        common::struct_fact_int;
+int                        common::radialdist_int;
+int                        common::cartdist_int;
 int                        common::n_steps_skip;
 int                        common::project_dir;
 amrex::Vector<int>         common::max_grid_projection;
@@ -131,6 +133,7 @@ amrex::Real                common::rmin;
 amrex::Real                common::particle_grid_refine;
 amrex::Real                common::es_grid_refine;
 amrex::Vector<amrex::Real> common::diff;
+int                        common::all_dry;
 
 int                        common::fluid_tog;
 int                        common::es_tog;

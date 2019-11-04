@@ -18,11 +18,12 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 1000
-  plot_int = -1
+  max_step = 100
+  plot_int = 10
   plot_ascii = 0
-  struct_fact_int = -1
-  n_steps_skip = -100
+  radialdist_int = 1
+  cartdist_int = 1
+  n_steps_skip = 10
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
@@ -44,7 +45,6 @@
   ! negative = assume spatially-varying coefficients
   visc_coef = 1e-2
   visc_type = 1
-  !perm = 1. check this isn't being used.
 
   !particle initialization
   ! 1 = spread evenly per cell (not implemented yet), 2 = spread randomly over domain
@@ -54,7 +54,7 @@
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-  particle_n0 = 6.02e19 6.02e19
+  particle_n0 = 6.02e18 6.02e18
 
   !Species info
   !--------------

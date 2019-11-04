@@ -71,7 +71,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
 
-        for (int i=0; i<np; ++i) {
+        for (int i = 0; i < np; ++ i) {
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -186,11 +186,11 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
 
-        for (int i = 0; i < np; ++i) {
+        for (int i = 0; i < np; ++ i) {
             ParticleType & part = particles[i];
 
             for (int d=0; d<AMREX_SPACEDIM; ++d)
-                part.rdata(StructReal::pred_posx + d) =
+                part.rdata(StructReal::pred_posx + d) +=
                     dt * part.rdata(StructReal::pred_velx + d);
         }
     }

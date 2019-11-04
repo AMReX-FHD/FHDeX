@@ -12,12 +12,13 @@ void InitializeImmbdyNamespace() {
 
     n_immbdy = 0;
     contains_flagellum = false;
+    contains_colloid   = false;
 
-    int cf = 0, cfourier = 0;
-    initialize_immbdy_namespace(& n_immbdy, & cf, & cfourier);
+    int cf = 0, cfourier = 0, ccolloid = 0;
+    initialize_immbdy_namespace(& n_immbdy, & cf, & cfourier, & ccolloid);
     if (cf == 1) contains_flagellum = true;
     if (cfourier == 1) contains_fourier = true;
-
+    if (ccolloid == 1) contains_colloid = true;
 }
 
 
@@ -108,4 +109,23 @@ void InitializeIBFlagellumNamespace() {
 
 
     }
+}
+
+
+
+void InitializeIBColloidNamespace() {
+
+    ib_colloid::n_marker.resize(n_immbdy);
+    ib_colloid::center.resize(n_immbdy);
+    ib_colloid::radius.resize(n_immbdy);
+    ib_colloid::rho.resize(n_immbdy);
+    ib_colloid::k_spring.resize(n_immbdy);
+
+    initialize_ib_colloid_namespace(n_immbdy,
+                                    ib_colloid::n_marker.dataPtr(),
+                                    ib_colloid::center.dataPtr(),
+                                    ib_colloid::radius.dataPtr(),
+                                    ib_colloid::rho.dataPtr(),
+                                    ib_colloid::k_spring.dataPtr());
+
 }
