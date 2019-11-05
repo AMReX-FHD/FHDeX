@@ -644,7 +644,10 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
 
     std::map<MarkerIndex, ParticleType *> particle_dict;
 
-    for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
+    // ParIter skips tiles without particles => Iterate over MultiFab instead
+    // of ParticleIter. Note also that AmrexParticleContainer uses strange
+    // tiling => don't turn off tiling (particles are stored in tile)
+    for(MFIter pti = this->MakeMFIter(lev, true); pti.isValid(); ++pti) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
@@ -662,13 +665,13 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
             auto search = particle_dict.find(parent);
             // if not in map, add pointer
             if (search == particle_dict.end()) particle_dict[parent] = & part;
-            else {
-                for (const auto & elt : particle_dict) {
-                    std::cout << elt.first.first << ", " << elt.first.second
-                              << " : " << elt.second << std::endl;
-                }
-                Abort("Already in dict! I've no fecking idea why!");
-            }
+            // else {
+            //     for (const auto & elt : particle_dict) {
+            //         std::cout << elt.first.first << ", " << elt.first.second
+            //                   << " : " << elt.second << std::endl;
+            //     }
+            //     Abort("Already in dict! I've no fecking idea why!");
+            // }
         }
 
         // Now do the same of the neighbor data
@@ -678,8 +681,9 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
 
             ParticleType & part = nbhd_data[j];
 
-            MarkerIndex parent = std::make_pair(part.idata(IBBInt::id_0),
-                                                part.idata(IBBInt::cpu_0));
+            MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+
+            std::cout << "neighbor: " << parent.first << " " << parent.second << std::endl;
 
             // check if already in ParticleDict NOTE: c++20 has contains()
             auto search = particle_dict.find(parent);
@@ -752,52 +756,137 @@ void IBMultiBlobContainer::WritePlotFile(const std::string & dir,
 
 
 
+void IBMultiBlobContainer::PrintMarkerData(int lev) const {
+
+    // Inverse cell-size vector => max is used for determining IBParticle
+    // radius in units of cell size
+    Vector<Real> inv_dx = {AMREX_D_DECL(this->Geom(lev).InvCellSize(0),
+                                        this->Geom(lev).InvCellSize(1),
+                                        this->Geom(lev).InvCellSize(2)   )};
+
+    // Find max inv_dx (in case we have an anisotropic grid)
+    Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
+
+
+    amrex::AllPrintToFile("ib_marker_data") << "Particles on each box:" << std::endl;
+
+
+    long local_count = 0;
+
+    // ParIter skips tiles without particles => Iterate over MultiFab instead
+    // of ParticleIter. Note also that AmrexParticleContainer uses strange
+    // tiling => don't turn off tiling (particles are stored in tile)
+    for(MFIter pti = this->MakeMFIter(lev, true); pti.isValid(); ++pti) {
+        // MuliFabs are indexed using a pair: (BoxArray index, tile index):
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        // Neighbours are stored as raw data (see below)
+        int ng = this->neighbors[lev].at(index).size();
+
+        auto & particle_data = this->GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        local_count += np;
+
+        // Print current box info
+        AllPrintToFile("ib_marker_data") << "Box:"         << pti.index()
+                                         << " "            << pti.tilebox()
+                                         << ", count: "    << np
+                                         << ", nb count: " << ng
+                                         << std::endl;
+
+        // Print IBMarker
+        AllPrintToFile("ib_marker_data") << " * IBMarkers:" << std::endl;
+
+        const AoS & particles = particle_data.GetArrayOfStructs();
+        for(int i = 0; i < np; i++){
+            const ParticleType & part = particles[i];
+
+            AllPrintToFile("ib_marker_data") << "   +--> " << part << std::endl;
+        }
+
+        // Print neighbour IBParticles
+        AllPrintToFile("ib_marker_data") << " * Grown IBParticles:" << std::endl;
+
+        // TODO: HAXOR!!! This should be fixed ASAP: if I understand this
+        // correctly, the neighbor data contains the particle data as a binary
+        // array (char). By casting to ParticleType, what we're doing is
+        // interpreting the data in neighbours[index] as valid particle data.
+        // Also we stride the neighbors[index] array in units of
+        // sizeof(ParticleData). All of this is a little too dangerous for my
+        // taste: never hide what you're doing from your compiler!!!
+        const ParticleType * nbhd_data = (ParticleType *) this->neighbors[lev].at(index).dataPtr();
+        for(int i = 0; i < ng; i++){
+            const ParticleType & part = nbhd_data[i];
+
+            AllPrintToFile("ib_marker_data") << "   +--> " << part << std::endl;
+        }
+    }
+
+    AllPrintToFile("ib_marker_data") << "Total for this process: "
+                                       << local_count << std::endl << std::endl;
+}
+
+
+
 void IBMultiBlobContainer::InitInternals(int ngrow) {
+
     ReadStaticParameters();
 
     this->SetVerbose(0);
 
-    // Needed to copy force data back to owner
-    this->setEnableInverse(true);
-
     // Turn off certain components for ghost particle communication
     // Field numbers: {0, 1, 2} => {x, y, z} particle coordinates
-    //      => 3 corresponds to the start of IBP_realData
-    // setRealCommComp(4, false);   // IBP_realData.volume
+    //      => 3 corresponds to the start of IBM_realData
+    for (int i=3; i < IBMBReal::count + 3; ++i)
+        this->setRealCommComp(i,  true);
 
     // Field numbers: {0, 1} => {ID, CPU}
-    //      => 2 corresponds to the start of IBP_intData
+    //      => 2 corresponds to the start of IBM_intData
     // We _do_ want the the neighbour particles to have ID and cpu init data.
-    // setIntCommComp(0, false);  // IBP_intData.phase
-    // setIntCommComp(1, false);  // IBP_intData.state
+    for (int i = 2; i < IBMBInt::count + 2; ++i)
+        this->setIntCommComp(i, true);
+
+
+    //for (int d=0; d<AMREX_SPACEDIM; ++d) {
+    //    this->setRealCommComp(StructReal::pred_forcex + d, false);
+    //    this->setRealCommComp(StructReal::forcex + d, false);
+    //}
+
+    // Needed to copy force data back to owner
+    this->setEnableInverse(true);
 }
 
 
 
 void IBMultiBlobContainer::ReadStaticParameters() {
+
     static bool initialized = false;
 
     if (!initialized) {
         ParmParse pp("particles");
 
         // AMReX default is false => enable by default
-        do_tiling = true;
+        this->do_tiling = true;
         // Allow user to overwrite
-        pp.query("do_tiling",  do_tiling);
+        pp.query("do_tiling",  this->do_tiling);
 
         // If tiling is enabled, make sure that the tile size is at least the
         // number of ghost cells (otherwise strange things happen)
-        if (do_tiling)
-            tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
+        if (this->do_tiling)
+            this->tile_size = IntVect{AMREX_D_DECL(max_grid_size[0],
+                                                   max_grid_size[1],
+                                                   max_grid_size[2])};
+            //this->tile_size = IntVect{AMREX_D_DECL(nghost, nghost, nghost)};
+
         // User can overwrite
         Vector<int> ts(BL_SPACEDIM);
         if (pp.queryarr("tile_size", ts))
-            tile_size = IntVect(ts);
+            this->tile_size = IntVect(ts);
 
-        pp.query("use_neighbor_list", use_neighbor_list);
-        pp.query("sort_neighbor_list", sort_neighbor_list);
+        // pp.query("use_neighbor_list", use_neighbor_list);
+        // pp.query("sort_neighbor_list", sort_neighbor_list);
 
         initialized = true;
     }
 }
-

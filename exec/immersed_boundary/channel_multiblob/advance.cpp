@@ -411,8 +411,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mbc.ResetDrag(0);
     ib_mbc.clearNeighbors();
     ib_mbc.fillNeighbors();
-    ib_mbc.AccumulateDrag(0);
-    ib_mbc.sumNeighbors(IBMBReal::dragx, AMREX_SPACEDIM, 0, 0);
+    //ib_mbc.AccumulateDrag(0);
+    //ib_mbc.sumNeighbors(IBMBReal::dragx, AMREX_SPACEDIM, 0, 0);
 
 
     // //___________________________________________________________________________
