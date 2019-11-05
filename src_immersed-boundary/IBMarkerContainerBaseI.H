@@ -224,7 +224,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
                 ParticleType & part = particles[i];
                 id = part.id();
                 //std::cout << id << " of " << totalParticles << std::endl;
-                list[id] = particles[i].rdata(StructReal::radius + element);
+                list[id-1] = particles[i].rdata(StructReal::radius + element);
             }
 
         } else {
@@ -232,7 +232,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
             for (int i = 0; i < np; ++i) {
                 ParticleType & part = particles[i];
                 id = part.id();
-                list[id] = part.pos((-element)-1);
+                list[id-1] = part.pos((-element)-1);
             }
         }
     }
@@ -294,7 +294,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUp(
                 ParticleType & part = particles[i];
                 id = part.id();
 
-                particles[i].rdata(StructReal::radius + element) = list[id];
+                particles[i].rdata(StructReal::radius + element) = list[id-1];
             }
 
         } else {
@@ -303,7 +303,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUp(
                 ParticleType & part = particles[i];
                 id = part.id();
 
-                particles[i].pos((-element)-1) = list[id];
+                particles[i].pos((-element)-1) = list[id-1];
             }
         }
     }
