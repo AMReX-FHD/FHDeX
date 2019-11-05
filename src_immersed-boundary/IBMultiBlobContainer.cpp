@@ -432,8 +432,8 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r,
         total_np += np;
     }
 
-    ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
-    amrex::Print() << "Total number of generated particles: " << total_np << std::endl;
+    // ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
+    // amrex::Print() << "Total number of generated particles: " << total_np << std::endl;
 
     // We shouldn't need this if the particles are tiled with one tile per
     // grid, but otherwise we do need this to move particles from tile 0 to the
@@ -824,7 +824,7 @@ void IBMultiBlobContainer::PrintMarkerData(int lev) const {
     }
 
     AllPrintToFile("ib_marker_data") << "Total for this process: "
-                                       << local_count << std::endl << std::endl;
+                                     << local_count << std::endl << std::endl;
 }
 
 
@@ -846,12 +846,6 @@ void IBMultiBlobContainer::InitInternals(int ngrow) {
     // We _do_ want the the neighbour particles to have ID and cpu init data.
     for (int i = 2; i < IBMBInt::count + 2; ++i)
         this->setIntCommComp(i, true);
-
-
-    //for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //    this->setRealCommComp(StructReal::pred_forcex + d, false);
-    //    this->setRealCommComp(StructReal::forcex + d, false);
-    //}
 
     // Needed to copy force data back to owner
     this->setEnableInverse(true);
