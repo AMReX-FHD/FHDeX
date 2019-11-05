@@ -72,7 +72,11 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     Print() << "Number of pair correlation bins: " << totalBins << std::endl;
     
     // storage for mean radial distribution
-    meanRadialDistribution = new Real[totalBins]();
+    meanRadialDistribution    = new Real[totalBins]();
+    meanRadialDistribution_pp = new Real[totalBins]();
+    meanRadialDistribution_pm = new Real[totalBins]();
+    meanRadialDistribution_mp = new Real[totalBins]();
+    meanRadialDistribution_mm = new Real[totalBins]();
         
     // storage for mean Cartesian distributions
     meanXDistribution = new Real[totalBins]();
@@ -620,7 +624,11 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         radialStatsCount = 0;
 
         for(int i=0;i<totalBins;i++) {
-            meanRadialDistribution[i] = 0;
+            meanRadialDistribution   [i] = 0;
+            meanRadialDistribution_pp[i] = 0;
+            meanRadialDistribution_pm[i] = 0;
+            meanRadialDistribution_mp[i] = 0;
+            meanRadialDistribution_mm[i] = 0;
         }
     }
         
@@ -641,6 +649,8 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     Real posx[totalParticles];
     Real posy[totalParticles];
     Real posz[totalParticles];
+    
+    Real charge[totalParticles];
 
     Print() << "Calculating radial distribution\n";
 
@@ -648,13 +658,18 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     PullDown(0, posx, -1, totalParticles);
     PullDown(0, posy, -2, totalParticles);
     PullDown(0, posz, -3, totalParticles);
-
+    PullDown(0, charge, 27, totalParticles);
+    
     // outer radial extent
     totalDist = totalBins*binSize;
 
     // this is the bin "hit count"
-    Real radDist[totalBins] = {0};
-
+    Real radDist   [totalBins] = {0};
+    Real radDist_pp[totalBins] = {0};
+    Real radDist_pm[totalBins] = {0};
+    Real radDist_mp[totalBins] = {0};
+    Real radDist_mm[totalBins] = {0};
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
@@ -669,51 +684,62 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
         // loop over particles
         for (int i = 0; i < np; ++i) {
+            
             ParticleType & part = particles[i];
-            int id = part.id();
 
-            int iilo = (posx[i]-searchDist <= prob_lo[0]) ? -1 : 0;
-            int iihi = (posx[i]+searchDist >= prob_hi[0]) ?  1 : 0;
+            int iilo = (part.pos(0)-searchDist <= prob_lo[0]) ? -1 : 0;
+            int iihi = (part.pos(0)+searchDist >= prob_hi[0]) ?  1 : 0;
 
-            int jjlo = (posy[i]-searchDist <= prob_lo[1]) ? -1 : 0;
-            int jjhi = (posy[i]+searchDist >= prob_hi[1]) ?  1 : 0;
+            int jjlo = (part.pos(1)-searchDist <= prob_lo[1]) ? -1 : 0;
+            int jjhi = (part.pos(1)+searchDist >= prob_hi[1]) ?  1 : 0;
 
-            int kklo = (posz[i]-searchDist <= prob_lo[2]) ? -1 : 0;
-            int kkhi = (posz[i]+searchDist >= prob_hi[2]) ?  1 : 0;
+            int kklo = (part.pos(2)-searchDist <= prob_lo[2]) ? -1 : 0;
+            int kkhi = (part.pos(2)+searchDist >= prob_hi[2]) ?  1 : 0;
                 
             double rad, dx, dy, dz;
             // loop over other particles
-            for(int j = 0; j < totalParticles; j++)
-            {
+            for(int j = 0; j < totalParticles; j++) {
+                
                 // assume triply periodic, check the domain and the 8 periodic images
-                for(int ii = iilo; ii <= iihi; ii++)
-                {
-                    for(int jj = jjlo; jj <= jjhi; jj++)
-                    {
-                        for(int kk = kklo; kk <= kkhi; kk++)
-                        {
-                            // don't compare to yourself
-                            if(i != j) {
+                for(int ii = iilo; ii <= iihi; ii++) {
+                for(int jj = jjlo; jj <= jjhi; jj++) {
+                for(int kk = kklo; kk <= kkhi; kk++) {
 
-                                // get distance between particles
-                                dx = posx[i]-posx[j] - ii*domx;
-                                dy = posy[i]-posy[j] - jj*domy;
-                                dz = posz[i]-posz[j] - kk*domz;
+                    // get distance between particles
+                    dx = part.pos(0)-posx[j] - ii*domx;
+                    dy = part.pos(1)-posy[j] - jj*domy;
+                    dz = part.pos(2)-posz[j] - kk*domz;
 
-                                rad = sqrt(dx*dx + dy*dy + dz*dz);
+                    rad = sqrt(dx*dx + dy*dy + dz*dz);
 
-                                // if particles are close enough, increment the bin
-                                if(rad < totalDist) {
-                                    bin = (int)floor(rad/binSize);
-                                    radDist[bin]++;
-                                }
+                    // if particles are close enough, increment the bin
+                    if(rad < totalDist && rad > 0.) {
+
+                        bin = (int)floor(rad/binSize);
+                        radDist[bin]++;
+                            
+                        if (part.rdata(FHD_realData::q) > 0) {
+                            if (charge[j] > 0) {
+                                radDist_pp[bin]++;
+                            }
+                            else if (charge[j] < 0) {
+                                radDist_pm[bin]++;
+                            }
+                        }
+                        else if (part.rdata(FHD_realData::q) < 0) {
+                            if (charge[j] > 0) {
+                                radDist_mp[bin]++;
+                            }
+                            else if (charge[j] < 0) {
+                                radDist_mm[bin]++;
                             }
                         }
                     }
+                }
+                }
                 }                
-                    
-            }
-        }
+            }  // loop over j (total particles)
+        } // loop over i (np; local particles)
     }
 
     // compute total number density
@@ -723,11 +749,19 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     }
         
     // collect the hit count
-    ParallelDescriptor::ReduceRealSum(radDist,totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist   ,totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist_pp,totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist_pm,totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist_mp,totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist_mm,totalBins);
             
     // normalize by 1 / (number density * bin volume * total particle count)
     for(int i=0;i<totalBins;i++) {
-        radDist[i] *= 1./(n0_total*binVolRadial[i]*(double)totalParticles);
+        radDist   [i] *= 1./(n0_total*binVolRadial[i]*(double)totalParticles);
+        radDist_pp[i] *= 1./(n0_total*binVolRadial[i]*(double)totalParticles);
+        radDist_pm[i] *= 1./(n0_total*binVolRadial[i]*(double)totalParticles);
+        radDist_mp[i] *= 1./(n0_total*binVolRadial[i]*(double)totalParticles);
+        radDist_mm[i] *= 1./(n0_total*binVolRadial[i]*(double)totalParticles);
     }
 
     // increment number of snapshots
@@ -737,7 +771,11 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
     // update the mean radial distribution
     for(int i=0;i<totalBins;i++) {
-        meanRadialDistribution[i] = (meanRadialDistribution[i]*stepsminusone + radDist[i])*stepsinv;
+        meanRadialDistribution   [i] = (meanRadialDistribution   [i]*stepsminusone + radDist   [i])*stepsinv;
+        meanRadialDistribution_pp[i] = (meanRadialDistribution_pp[i]*stepsminusone + radDist_pp[i])*stepsinv;
+        meanRadialDistribution_pm[i] = (meanRadialDistribution_pm[i]*stepsminusone + radDist_pm[i])*stepsinv;
+        meanRadialDistribution_mp[i] = (meanRadialDistribution_mp[i]*stepsminusone + radDist_mp[i])*stepsinv;
+        meanRadialDistribution_mm[i] = (meanRadialDistribution_mm[i]*stepsminusone + radDist_mm[i])*stepsinv;
     }
 
     // output mean radial distribution g(r) based on plot_int
@@ -750,7 +788,12 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
             // normalize by
             for(int i=0;i<totalBins;i++) {
-                ofs << meanRadialDistribution[i] << std::endl;
+                ofs << (i+0.5)*binSize << " "
+                    << meanRadialDistribution   [i] << " "
+                    << meanRadialDistribution_pp[i] << " "
+                    << meanRadialDistribution_pm[i] << " "
+                    << meanRadialDistribution_mp[i] << " "
+                    << meanRadialDistribution_mm[i] << std::endl;
             }
             ofs.close();
         }
