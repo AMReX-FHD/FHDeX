@@ -30,7 +30,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
             for(int i_spec=0; i_spec < nspecies; i_spec++) {
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
                     ParticleType p;
-                    p.id()  = ParticleType::NextID() + 1;
+                    p.id()  = ParticleType::NextID() - 1;
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = 0;
                 
