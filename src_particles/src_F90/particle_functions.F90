@@ -1455,6 +1455,8 @@ contains
 
     wcheck = 0
 
+    !print *, part%pos
+
     do k = -(ks-1), ks
        do j = -(ks-1), ks
           do i = -(ks-1), ks
@@ -2319,6 +2321,8 @@ contains
 #endif
                       runtime = runtime - inttime
 
+                      !print *, "Pos2pre: ", part%pos, " runtime: ", runtime, " intsurf ", intsurf
+
                       if(intsurf .gt. 0) then
 
                          surf => surfaces(intsurf)
@@ -2464,6 +2468,8 @@ contains
                 diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
 
                 diffinst = diffinst + diffest
+
+                !print *, "Diffest: ", diffest
 
                 !              part%step_count = part%step_count + 1
 

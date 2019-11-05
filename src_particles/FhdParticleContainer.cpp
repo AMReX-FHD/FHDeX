@@ -90,6 +90,10 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     // how many snapshots
     radialStatsCount = 0;
     cartesianStatsCount = 0;
+
+    //Remove files that we will be appending to.
+    remove("diffusionEst");
+    remove("conductivityEst");
 }
 
 
@@ -1427,7 +1431,9 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 
 
     Real diffTotal = 0;
+    Real tt;
     long nTotal = 0;
+    Real sumPosQ[3] = {0,0,0};
 
     for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
@@ -1437,19 +1443,36 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         long np = particles.size();
         nTotal += np;
 
-        //Real sqrPosQ = 0
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
 
             Real sqrPos = 0;
             for (int d=0; d<AMREX_SPACEDIM; ++d){
                 sqrPos += pow(part.rdata(FHD_realData::ax + d),2);
-                //sumPosQ += pow(part.rdata(FHD_realData::ax + d)*part.rdata(FHD_realData::q),2);
+                sumPosQ[d] += part.rdata(FHD_realData::ax + d)*part.rdata(FHD_realData::q);
             }
 
             diffTotal += sqrPos/(6.0*part.rdata(FHD_realData::travelTime));
+            tt = part.rdata(FHD_realData::travelTime);
+        }
+
+        if(reset == 1)
+        {
+            for (int i=0; i<np; ++i) {
+                ParticleType & part = particles[i];
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d){
+                    part.rdata(FHD_realData::ax + d) = 0;
+                }
+                part.rdata(FHD_realData::travelTime) = 0;
+            }
         }
     }
+
+    ParallelDescriptor::ReduceRealSum(sumPosQ[0]);
+    ParallelDescriptor::ReduceRealSum(sumPosQ[1]);
+    ParallelDescriptor::ReduceRealSum(sumPosQ[2]);
+
     ParallelDescriptor::ReduceRealSum(diffTotal);
     ParallelDescriptor::ReduceLongSum(nTotal);
 
@@ -1458,9 +1481,20 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         std::string filename = "diffusionEst";
         std::ofstream ofs(filename, std::ofstream::app);
     
-        for(int i=0;i<totalBins;i++) {
-            ofs << diffTotal/nTotal << std::endl;
-        }
+        ofs << diffTotal/nTotal << std::endl;
+        
+        ofs.close();
+    }
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+
+        Real domainVol = (prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
+        Real condTotal = (pow(sumPosQ[0],2) + pow(sumPosQ[1],2) + pow(sumPosQ[2],2))/(6.0*k_B*T_init[0]*domainVol*tt);
+
+        std::string filename = "conductivityEst";
+        std::ofstream ofs(filename, std::ofstream::app);
+        ofs << condTotal << std::endl;
         ofs.close();
     }
     

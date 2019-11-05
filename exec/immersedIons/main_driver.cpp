@@ -383,11 +383,19 @@ void main_driver(const char* argv)
             }
         }
 
-        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: "
-                << ionParticle[i].dryDiff << ", total diffusion: " << ionParticle[i].totalDiff << "\n";
-        Print() << "Species " << i << " wet radius: " << wetRad << ", dry radius: "
-                << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << ", total radius: "
-                << ionParticle[i].d/2.0 << "\n";
+        if (all_dry == 1 && fluid_tog != 0) {
+            Abort("Abort: Don't use all_dry=1 and fluid_tog!=0 together");
+        }
+
+        Print() << "Species " << i << "\n"
+                << " total diffusion: " << ionParticle[i].totalDiff << "\n"
+                << " wet diffusion: " << ionParticle[i].wetDiff
+                << " percent wet: " << 100.*ionParticle[i].wetDiff/ionParticle[i].totalDiff << "\n"
+                << " dry diffusion: " << ionParticle[i].dryDiff
+                << " percent dry: " << 100.*ionParticle[i].dryDiff/ionParticle[i].totalDiff << "\n"
+                << " total radius: " << ionParticle[i].d/2.0 << "\n"
+                << " wet radius: " << wetRad << "\n"
+                << " dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << "\n";
 
         if (ionParticle[i].dryDiff < 0) {
             Print() << "Negative dry diffusion in species " << i << "\n";
@@ -842,7 +850,15 @@ void main_driver(const char* argv)
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
                                surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-            particles.MeanSqrCalc(0, 0);
+            if(istep == n_steps_skip)
+            {
+                particles.MeanSqrCalc(0, 1);
+            }else
+            {
+                particles.MeanSqrCalc(0, 0);
+            }
+
+            //particles.MeanSqrCalc(0, 0);
 
             particles.Redistribute();
             particles.ReBin();
