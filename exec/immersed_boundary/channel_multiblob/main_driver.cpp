@@ -336,10 +336,30 @@ void main_driver(const char * argv) {
      ***************************************************************************/
 
     //___________________________________________________________________________
-    // Initialize velocities (fluid and tracers)
-
+    // Initialize immersed boundaries
     // Make sure that the nghost (last argument) is big enough!
-    IBMultiBlobContainer ib_mbc(geom, dmap, ba, 4);
+
+    // Find the optimal number of ghost cells for the IBMultiBlobContainer
+    Real min_dx = dx[0];
+    for (int d=1; d<AMREX_SPACEDIM; ++d)
+	    min_dx = std::min(min_dx, dx[d]);
+
+    // min of 4 is a HACK: something large enough but not too large
+    int ib_nghost = 4;
+    for (int i_ib=0; i_ib < n_immbdy; ++i_ib) {
+
+        if (n_marker[i_ib] <= 0) continue;
+
+        Real radius = ib_colloid::radius[i_ib];
+
+        int min_nghost = radius/min_dx;
+        ib_nghost      = std::max(ib_nghost, min_nghost);
+    }
+
+    Print() << "Initializing IBMultiBlobContainer with "
+            << ib_nghost << " ghost cells" << std::endl;
+
+    IBMultiBlobContainer ib_mbc(geom, dmap, ba, ib_nghost);
 
     Vector<RealVect> mb_positions(n_immbdy);
     Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);
