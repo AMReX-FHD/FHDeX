@@ -28,7 +28,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = xfacelo(2), xfacehi(2)
       do i = xfacelo(1), xfacehi(1) !iterate into ghost cells
          xface(i,j,k,1) = i*dx(1)+real_lo(1)
-    	end do
+      end do
     end do
   end do
 
@@ -36,7 +36,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = xfacelo(2), xfacehi(2)
       do i = xfacelo(1), xfacehi(1)
          xface(i,j,k,2) = (j+0.5)*dx(2)+real_lo(2)
-    	end do
+      end do
     end do
   end do
 
@@ -45,7 +45,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = xfacelo(2), xfacehi(2)
       do i = xfacelo(1), xfacehi(1)
          xface(i,j,k,3) = (k+0.5)*dx(3)+real_lo(3)
-    	end do
+      end do
     end do
   end do
 #endif
@@ -54,7 +54,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = yfacelo(2), yfacehi(2)
       do i = yfacelo(1), yfacehi(1)
          yface(i,j,k,1) = (i+0.5)*dx(1)+real_lo(1)
-    	end do
+      end do
     end do
   end do
 
@@ -62,7 +62,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = yfacelo(2), yfacehi(2)
       do i = yfacelo(1), yfacehi(1)
          yface(i,j,k,2) = (j)*dx(2)+real_lo(2)
-    	end do
+      end do
     end do
   end do
 
@@ -71,7 +71,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = yfacelo(2), yfacehi(2)
       do i = yfacelo(1), yfacehi(1)
          yface(i,j,k,3) = (k+0.5)*dx(3)+real_lo(3)
-    	end do
+      end do
     end do
   end do
 #endif
@@ -81,7 +81,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = zfacelo(2), zfacehi(2)
       do i = zfacelo(1), zfacehi(1) !iterate into ghost cells
          zface(i,j,k,1) = (i+0.5)*dx(1)+real_lo(1)
-    	end do
+      end do
     end do
   end do
 
@@ -89,7 +89,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = zfacelo(2), zfacehi(2)
       do i = zfacelo(1), zfacehi(1)
          zface(i,j,k,2) = (j+0.5)*dx(2)+real_lo(2)
-    	end do
+      end do
     end do
   end do
 
@@ -97,7 +97,7 @@ subroutine find_face_coords(real_lo, real_hi, xface, xfacelo, xfacehi, yface, yf
     do j = zfacelo(2), zfacehi(2)
       do i = zfacelo(1), zfacehi(1)
          zface(i,j,k,3) = (k)*dx(3)+real_lo(3)
-    	end do
+      end do
     end do
   end do
 #endif
@@ -133,7 +133,7 @@ subroutine find_center_coords(real_lo, real_hi, centers, lo, hi, dx) bind(C, nam
          centers(i,j,k,1) = (i+0.5)*dx(1)+real_lo(1)
          centers(i,j,k,2) = (j+0.5)*dx(2)+real_lo(2)
          centers(i,j,k,3) = (k+0.5)*dx(3)+real_lo(3)
-    	end do
+      end do
     end do
   end do
 #endif
@@ -145,7 +145,7 @@ subroutine find_center_coords(real_lo, real_hi, centers, lo, hi, dx) bind(C, nam
       do i = lo(1), hi(1) !iterate into ghost cells
          centers(i,j,1) = (i+0.5)*dx(1)+real_lo(1)
          centers(i,j,2) = (j+0.5)*dx(2)+real_lo(2)
-    	end do
+      end do
     end do
 #endif
 
