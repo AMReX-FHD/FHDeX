@@ -339,7 +339,7 @@ void main_driver(const char * argv) {
     // Initialize velocities (fluid and tracers)
 
     // Make sure that the nghost (last argument) is big enough!
-    IBMultiBlobContainer ib_mbc(geom, dmap, ba, 16);
+    IBMultiBlobContainer ib_mbc(geom, dmap, ba, 4);
 
     Vector<RealVect> mb_positions(n_immbdy);
     Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);
@@ -367,6 +367,11 @@ void main_driver(const char * argv) {
     }
 
     ib_mbc.FillMarkerPositions(0);
+
+
+    // ib_mbc.clearNeighbors();
+    ib_mbc.fillNeighbors();
+    ib_mbc.PrintMarkerData(0);
 
 
     //___________________________________________________________________________

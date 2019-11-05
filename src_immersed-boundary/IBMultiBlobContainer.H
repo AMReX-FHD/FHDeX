@@ -199,6 +199,18 @@ class IBMultiBlobContainer
 
 public:
 
+    using NeighborParticleContainer<IBMBReal::count, IBMBInt::count>
+          ::NeighborParticleContainer;
+
+    using MyConstIBMarIter = ParConstIter<IBMBReal::count, IBMBInt::count, 0, 0>;
+    using MyIBMarIter      = IBMarIterBase<IBMBReal::count, IBMBInt::count>;
+
+    using ParticleType = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::ParticleType;
+    using PairIndex = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::PairIndex;
+    using AoS = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::AoS;
+
+
+
     IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd);
     IBMultiBlobContainer(const Geometry & geom, const DistributionMapping & dmap,
                          const BoxArray & ba, int n_nbhd);
@@ -208,7 +220,7 @@ public:
 
 
     // (ID, initial CPU) tuple: unique to each particle
-    using MarkerIndex = typename IBMarkerContainerBase<IBMReal, IBMInt>::PairIndex;
+    using MarkerIndex = typename IBMarkerContainerBase<IBMBReal, IBMBInt>::PairIndex;
     // indexing particles and corresponding spot in the neighbor list
     using MarkerListIndex = std::pair<int, int>;
     // indexing tiles (box index, local tile index)
@@ -304,6 +316,7 @@ public:
 
     void WritePlotFile(const std::string & dir, const std::string & name,
                        const std::string & blob_name) const;
+    void PrintMarkerData(int lev) const;
 
 
 
