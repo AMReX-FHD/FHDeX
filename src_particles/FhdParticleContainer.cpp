@@ -1423,6 +1423,50 @@ FhdParticleContainer::SetVel(int rank, int id, Real x, Real y, Real z)
 }
 
 void
+FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
+
+
+    Real diffTotal = 0;
+    long nTotal = 0;
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+        nTotal += np;
+
+        //Real sqrPosQ = 0
+        for (int i=0; i<np; ++i) {
+            ParticleType & part = particles[i];
+
+            Real sqrPos = 0;
+            for (int d=0; d<AMREX_SPACEDIM; ++d){
+                sqrPos += pow(part.rdata(FHD_realData::ax + d),2);
+                //sumPosQ += pow(part.rdata(FHD_realData::ax + d)*part.rdata(FHD_realData::q),2);
+            }
+
+            diffTotal += sqrPos/(6.0*part.rdata(FHD_realData::travelTime));
+        }
+    }
+    ParallelDescriptor::ReduceRealSum(diffTotal);
+    ParallelDescriptor::ReduceLongSum(nTotal);
+
+    if(ParallelDescriptor::MyProc() == 0) {
+
+        std::string filename = "diffusionEst";
+        std::ofstream ofs(filename, std::ofstream::app);
+    
+        for(int i=0;i<totalBins;i++) {
+            ofs << diffTotal/nTotal << std::endl;
+        }
+        ofs.close();
+    }
+    
+}
+
+void
 FhdParticleContainer::correctCellVectors(int old_index, int new_index, 
 						int grid, const ParticleType& p)
 {

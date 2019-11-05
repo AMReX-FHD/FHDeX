@@ -186,6 +186,8 @@ public:
     void SetPosition(int rank, int id, Real x, Real y, Real z);
     void SetVel(int rank, int id, Real x, Real y, Real z);
 
+    void MeanSqrCalc(int lev, int reset);
+
     void DoRFDbase(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
