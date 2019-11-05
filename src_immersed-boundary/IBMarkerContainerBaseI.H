@@ -979,9 +979,20 @@ void IBMarkerContainerBase<StructReal, StructInt>::InitInternals(int ngrow) {
     face_coords.resize(lev + 1);
     const BoxArray & ba            = this->ParticleBoxArray(lev);
     const DistributionMapping & dm = this->ParticleDistributionMap(lev);
+
+    // Determine the minimal ngrow (which depends on the kernel order): This
+    // needs to be AT LEAST 1 larger than the `gs` value used in
+    // [spread,interpolate]_kernel
+    int ngc_min_fluid = common::pkernel_fluid == 3 ? 3 : 5;
+    int ngc_min_es    = common::pkernel_es == 3 ? 3 : 5;
+    // Let's be on the safe side and use the larger out of the
+    // fluid/electro-static kernels
+    int ngrow_min    = std::max(ngc_min_es, ngc_min_fluid);
+    int ngrow_coords = std::max(ngrow, ngrow_min);
+
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         const BoxArray ba_fc = convert(ba, nodal_flag_dir[d]);
-        face_coords[lev][d].define(ba_fc, dm, AMREX_SPACEDIM, ngrow);
+        face_coords[lev][d].define(ba_fc, dm, AMREX_SPACEDIM, ngrow_coords);
     }
 
     const Geometry & geom = this->Geom(lev);

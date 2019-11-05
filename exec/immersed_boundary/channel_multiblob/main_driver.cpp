@@ -339,7 +339,7 @@ void main_driver(const char * argv) {
     // Initialize velocities (fluid and tracers)
 
     // Make sure that the nghost (last argument) is big enough!
-    IBMultiBlobContainer ib_mbc(geom, dmap, ba, 8);
+    IBMultiBlobContainer ib_mbc(geom, dmap, ba, 4);
 
     Vector<RealVect> mb_positions(n_immbdy);
     Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);
