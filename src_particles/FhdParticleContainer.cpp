@@ -1462,9 +1462,9 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
                 ParticleType & part = particles[i];
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d){
-                    part.rdata(FHD_realData::ax + d) = part.pos(d);
-                    part.rdata(FHD_realData::travelTime) = 0;
+                    part.rdata(FHD_realData::ax + d) = 0;
                 }
+                part.rdata(FHD_realData::travelTime) = 0;
             }
         }
     }
