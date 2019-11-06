@@ -58,6 +58,8 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
             {
                 ParticleType p;
                 p.id()  = ParticleType::NextID();
+
+                Print() << "ID: " << p.id() << endl;
                 p.cpu() = ParallelDescriptor::MyProc();
                 p.idata(FHD_intData::sorted) = 0;
                 
@@ -142,7 +144,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
 		// set distance for which we do direct, short range coulomb force calculation
 		// in p3m to be 6.5*dx_poisson_grid
-		        p.rdata(FHD_realData::p3m_radius) = 6.5*dxp[0];   
+                p.rdata(FHD_realData::p3m_radius) = (pkernel_es + 0.5)*dxp[0];  
 
                 particle_tile.push_back(p);
 

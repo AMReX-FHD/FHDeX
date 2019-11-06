@@ -23,7 +23,7 @@
 #include "StochMFlux.H"
 //#include "StructFact.H"
 
-#include "hydro_test_functions_F.H"
+//#include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
@@ -34,7 +34,7 @@
 
 //#include "electrostatic.H"
 
-#include "debug_functions_F.H"
+//#include "debug_functions_F.H"
 #include "AMReX_ArrayLim.H"
 
 //#include <IBMarkerContainer.H>
@@ -773,18 +773,18 @@ void main_driver(const char* argv)
 
         if(step == 2)
         {
-            particles.SetPosition(0, 0, prob_hi[0]/4.0 + 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
-            particles.SetPosition(1, 0, prob_hi[0]/4.0 - 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+            particles.SetPosition(0, 1, prob_hi[0]/4.0 + 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+            particles.SetPosition(1, 1, prob_hi[0]/4.0 - 1.5*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
         }
         if(step == 3)
         {
-            particles.SetPosition(0, 0, prob_hi[0] - 1.5*dxp[0], prob_hi[1] - 1.5*dxp[1], prob_hi[2] - 1.5*dxp[2]);
-            particles.SetPosition(0, 0, prob_lo[0] + 1.5*dxp[0], prob_lo[1] + 1.5*dxp[1], prob_lo[2] + 1.5*dxp[2]);
+            particles.SetPosition(0, 1, prob_hi[0] - 1.5*dxp[0], prob_hi[1] - 1.5*dxp[1], prob_hi[2] - 1.5*dxp[2]);
+            particles.SetPosition(0, 1, prob_lo[0] + 1.5*dxp[0], prob_lo[1] + 1.5*dxp[1], prob_lo[2] + 1.5*dxp[2]);
         }
         if(step == 4)
         {
-            particles.SetPosition(0, 0, prob_hi[0]/2.0 + 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
-            particles.SetPosition(1, 0, prob_hi[0]/2.0 - 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+            particles.SetPosition(0, 1, prob_hi[0]/2.0 + 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
+            particles.SetPosition(1, 1, prob_hi[0]/2.0 - 4*dxp[0], prob_hi[1]/4.0, prob_hi[2]/4.0);
         }
 
 
