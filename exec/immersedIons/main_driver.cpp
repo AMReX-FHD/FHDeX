@@ -854,7 +854,8 @@ void main_driver(const char* argv)
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
                                surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-            if(istep == n_steps_skip)
+            if((n_steps_skip > 0 && istep == n_steps_skip) ||
+            (n_steps_skip < 0 && istep%n_steps_skip == 0) )
             {
                 particles.MeanSqrCalc(0, 1);
             }else

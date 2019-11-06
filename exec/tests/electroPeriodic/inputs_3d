@@ -94,7 +94,7 @@
   pkernel_es = 6
 
   ! Stochastic parameters
-  seed = 0
+  seed = 1
   k_B = 1.38064852e-16
   T_init(1) = 295.00
   variance_coef_mom = 1
