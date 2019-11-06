@@ -359,7 +359,9 @@ void main_driver(const char * argv) {
     Print() << "Initializing IBMultiBlobContainer with "
             << ib_nghost << " ghost cells" << std::endl;
 
-    IBMultiBlobContainer ib_mbc(geom, dmap, ba, ib_nghost);
+    // Set the IB-marker container class to use only 2 ghost cells (last
+    // argument in IBMultiBlobContainer constructor)
+    IBMultiBlobContainer ib_mbc(geom, dmap, ba, ib_nghost, 2);
 
     Vector<RealVect> mb_positions(n_immbdy);
     Vector<Real> mb_radii(n_immbdy), mb_rho(n_immbdy);

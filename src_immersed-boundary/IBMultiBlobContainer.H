@@ -211,9 +211,9 @@ public:
 
 
 
-    IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd);
+    IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd, int blob_nbhd);
     IBMultiBlobContainer(const Geometry & geom, const DistributionMapping & dmap,
-                         const BoxArray & ba, int n_nbhd);
+                         const BoxArray & ba, int n_nbhd, int blob_nbhd);
 
     // TODO: Audit
     virtual ~IBMultiBlobContainer() {};

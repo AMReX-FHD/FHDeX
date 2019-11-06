@@ -329,25 +329,26 @@ bool IBMultiBlobContainer::sort_neighbor_list {false};
 IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
                                            const DistributionMapping & dmap,
                                            const BoxArray & ba,
-                                           int n_nbhd)
+                                           int n_nbhd, int blob_nbhd)
     : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             geom, dmap, ba, n_nbhd
         ),
       nghost(n_nbhd),
-      markers(geom, dmap, ba, n_nbhd)
+      markers(geom, dmap, ba, blob_nbhd)
 {
     InitInternals(n_nbhd);
 }
 
 
 
-IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
+IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd,
+                                           int blob_nbhd)
     : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
       m_amr_core(amr_core),
       nghost(n_nbhd),
-      markers(amr_core, n_nbhd)
+      markers(amr_core, blob_nbhd)
 
 {
     InitInternals(n_nbhd);
