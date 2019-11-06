@@ -637,26 +637,7 @@ void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, do
 }
 
 void FhdParticleContainer::RadialDistribution(long totalParticles, const int step, const species* particleInfo)
-{
-
-    // reset the radial distribution at n_steps_skip (if n_steps_skip > 0)
-    // OR
-    // reset the radial distribution every |n_steps_skip| (if n_steps_skip < 0)
-    if ((n_steps_skip > 0 && step == n_steps_skip) ||
-        (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
-                    
-        Print() << "Resetting radial distribution collection.\n";
-
-        radialStatsCount = 0;
-
-        for(int i=0;i<totalBins;i++) {
-            meanRadialDistribution   [i] = 0;
-            meanRadialDistribution_pp[i] = 0;
-            meanRadialDistribution_pm[i] = 0;
-            meanRadialDistribution_mm[i] = 0;
-        }
-    }
-        
+{        
     const int lev = 0;
     int bin;
     double domx, domy, domz, totalDist, temp;
@@ -818,38 +799,28 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             ofs.close();
         }
     }
-    
-}
 
-void FhdParticleContainer::CartesianDistribution(long totalParticles, const int step, const species* particleInfo)
-{
-
-    // reset the Cartesian distribution at n_steps_skip (if n_steps_skip > 0)
+    // reset the radial distribution at n_steps_skip (if n_steps_skip > 0)
     // OR
-    // reset the Cartesian distribution every |n_steps_skip| (if n_steps_skip < 0)
+    // reset the radial distribution every |n_steps_skip| (if n_steps_skip < 0)
     if ((n_steps_skip > 0 && step == n_steps_skip) ||
         (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
                     
-        Print() << "Resetting Cartesian distribution collection.\n";
+        Print() << "Resetting radial distribution collection.\n";
 
-        cartesianStatsCount = 0;
+        radialStatsCount = 0;
 
         for(int i=0;i<totalBins;i++) {
-            meanXDistribution   [i] = 0;
-            meanXDistribution_pp[i] = 0;
-            meanXDistribution_pm[i] = 0;
-            meanXDistribution_mm[i] = 0;
-            meanYDistribution   [i] = 0;
-            meanYDistribution_pp[i] = 0;
-            meanYDistribution_pm[i] = 0;
-            meanYDistribution_mm[i] = 0;
-            meanZDistribution   [i] = 0;
-            meanZDistribution_pp[i] = 0;
-            meanZDistribution_pm[i] = 0;
-            meanZDistribution_mm[i] = 0;
+            meanRadialDistribution   [i] = 0;
+            meanRadialDistribution_pp[i] = 0;
+            meanRadialDistribution_pm[i] = 0;
+            meanRadialDistribution_mm[i] = 0;
         }
-    }
-        
+    }    
+}
+
+void FhdParticleContainer::CartesianDistribution(long totalParticles, const int step, const species* particleInfo)
+{        
     const int lev = 0;
     int bin;
     double domx, domy, domz, totalDist, temp;
@@ -1098,6 +1069,32 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                     << meanZDistribution_mm[i] << " " << std::endl;
             }
             ofs.close();
+        }
+    }
+
+    // reset the Cartesian distribution at n_steps_skip (if n_steps_skip > 0)
+    // OR
+    // reset the Cartesian distribution every |n_steps_skip| (if n_steps_skip < 0)
+    if ((n_steps_skip > 0 && step == n_steps_skip) ||
+        (n_steps_skip < 0 && step%n_steps_skip == 0) ) {
+                    
+        Print() << "Resetting Cartesian distribution collection.\n";
+
+        cartesianStatsCount = 0;
+
+        for(int i=0;i<totalBins;i++) {
+            meanXDistribution   [i] = 0;
+            meanXDistribution_pp[i] = 0;
+            meanXDistribution_pm[i] = 0;
+            meanXDistribution_mm[i] = 0;
+            meanYDistribution   [i] = 0;
+            meanYDistribution_pp[i] = 0;
+            meanYDistribution_pm[i] = 0;
+            meanYDistribution_mm[i] = 0;
+            meanZDistribution   [i] = 0;
+            meanZDistribution_pp[i] = 0;
+            meanZDistribution_pm[i] = 0;
+            meanZDistribution_mm[i] = 0;
         }
     }
 }
