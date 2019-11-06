@@ -269,8 +269,12 @@ public:
 
     int totalBins;
     Real binSize;
-        
-    Real *meanRadialDistribution;
+
+    Real *meanRadialDistribution   ;
+    Real *meanRadialDistribution_pp;
+    Real *meanRadialDistribution_pm;
+    Real *meanRadialDistribution_mp;
+    Real *meanRadialDistribution_mm;
     Real *binVolRadial;
     int radialStatsCount;
 

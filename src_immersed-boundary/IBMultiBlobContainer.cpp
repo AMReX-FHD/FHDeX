@@ -329,25 +329,26 @@ bool IBMultiBlobContainer::sort_neighbor_list {false};
 IBMultiBlobContainer::IBMultiBlobContainer(const Geometry & geom,
                                            const DistributionMapping & dmap,
                                            const BoxArray & ba,
-                                           int n_nbhd)
+                                           int n_nbhd, int blob_nbhd)
     : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             geom, dmap, ba, n_nbhd
         ),
       nghost(n_nbhd),
-      markers(geom, dmap, ba, n_nbhd)
+      markers(geom, dmap, ba, blob_nbhd)
 {
     InitInternals(n_nbhd);
 }
 
 
 
-IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd)
+IBMultiBlobContainer::IBMultiBlobContainer(AmrCore * amr_core, int n_nbhd,
+                                           int blob_nbhd)
     : NeighborParticleContainer<IBMBReal::count, IBMBInt::count>(
             amr_core->GetParGDB(), n_nbhd
         ),
       m_amr_core(amr_core),
       nghost(n_nbhd),
-      markers(amr_core, n_nbhd)
+      markers(amr_core, blob_nbhd)
 
 {
     InitInternals(n_nbhd);
@@ -432,8 +433,8 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r,
         total_np += np;
     }
 
-    ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
-    amrex::Print() << "Total number of generated particles: " << total_np << std::endl;
+    // ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
+    // amrex::Print() << "Total number of generated particles: " << total_np << std::endl;
 
     // We shouldn't need this if the particles are tiled with one tile per
     // grid, but otherwise we do need this to move particles from tile 0 to the
@@ -659,19 +660,10 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
 
             MarkerIndex parent = std::make_pair(part.id(), part.cpu());
 
-            std::cout << "processing: " << parent.first << " " << parent.second << std::endl;
-
             // check if already in ParticleDict NOTE: c++20 has contains()
             auto search = particle_dict.find(parent);
             // if not in map, add pointer
             if (search == particle_dict.end()) particle_dict[parent] = & part;
-            // else {
-            //     for (const auto & elt : particle_dict) {
-            //         std::cout << elt.first.first << ", " << elt.first.second
-            //                   << " : " << elt.second << std::endl;
-            //     }
-            //     Abort("Already in dict! I've no fecking idea why!");
-            // }
         }
 
         // Now do the same of the neighbor data
@@ -682,8 +674,6 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
             ParticleType & part = nbhd_data[j];
 
             MarkerIndex parent = std::make_pair(part.id(), part.cpu());
-
-            std::cout << "neighbor: " << parent.first << " " << parent.second << std::endl;
 
             // check if already in ParticleDict NOTE: c++20 has contains()
             auto search = particle_dict.find(parent);
@@ -704,14 +694,6 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
     std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
-    std::cout << "map size " << particle_dict.size() << std::endl;
-    for (const auto & elt : particle_dict) {
-        std::cout << elt.first.first << ", " << elt.first.second
-                  << " : " << elt.second << std::endl;
-    }
-
-
-
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
@@ -727,8 +709,6 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
             BlobContainer::ParticleType & mark = marker_data[m_index.first];
             MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
                                                 mark.idata(IBBInt::cpu_0));
-
-            std::cout << "testing: " << particle_dict.size() << ", " << parent.first << " " << parent.second << std::endl;
 
             ParticleType * target = particle_dict.at(parent);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -824,7 +804,7 @@ void IBMultiBlobContainer::PrintMarkerData(int lev) const {
     }
 
     AllPrintToFile("ib_marker_data") << "Total for this process: "
-                                       << local_count << std::endl << std::endl;
+                                     << local_count << std::endl << std::endl;
 }
 
 
@@ -846,12 +826,6 @@ void IBMultiBlobContainer::InitInternals(int ngrow) {
     // We _do_ want the the neighbour particles to have ID and cpu init data.
     for (int i = 2; i < IBMBInt::count + 2; ++i)
         this->setIntCommComp(i, true);
-
-
-    //for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    //    this->setRealCommComp(StructReal::pred_forcex + d, false);
-    //    this->setRealCommComp(StructReal::forcex + d, false);
-    //}
 
     // Needed to copy force data back to owner
     this->setEnableInverse(true);
