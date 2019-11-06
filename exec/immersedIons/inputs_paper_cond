@@ -81,7 +81,7 @@
   !------------
   permitivitty = 692.96e-21
 
-  crange = 4       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
+  crange = 5       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
   eamp = 1.e14 0 0  !external electric field properties
@@ -98,8 +98,8 @@
 
   !Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
   !--------
-  pkernel_fluid = 6
-  pkernel_es = 6
+  pkernel_fluid = 4
+  pkernel_es = 4
 
   ! Stochastic parameters
   seed = 0
