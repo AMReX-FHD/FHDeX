@@ -94,6 +94,23 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     //Remove files that we will be appending to.
     remove("diffusionEst");
     remove("conductivityEst");
+
+    Real dr = threepmRange/threepmBins;
+
+    threepmVals[0] = 0;
+    threepmMin[0] = 0;
+    threepmMax[0] = 0;
+    threepmPoints[0] = 0;
+
+
+    for(int i=1;i<threepmBins;i++)
+    {
+       threepmPoints[i] = i*dr;
+
+       threepmMax[i] = 0;
+       threepmMin[i] = 10000000;
+    }
+
 }
 
 
@@ -1385,7 +1402,7 @@ FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
             AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
             long np = particles.size();
  
-            ParticleType & part = particles[id];
+            ParticleType & part = particles[id-1];
 
             part.pos(0) = x;
             part.pos(1) = y;
@@ -1416,7 +1433,7 @@ FhdParticleContainer::SetVel(int rank, int id, Real x, Real y, Real z)
             AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
             long np = particles.size();
  
-            ParticleType & part = particles[id];
+            ParticleType & part = particles[id-1];
 
             part.rdata(FHD_realData::velx) = x;
             part.rdata(FHD_realData::vely) = y;
@@ -1496,6 +1513,147 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         std::ofstream ofs(filename, std::ofstream::app);
         ofs << condTotal << std::endl;
         ofs.close();
+    }
+    
+}
+
+void
+FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) {
+
+
+    int lev = 0;
+
+    Real x0,y0,z0,x1,y1,z1, costheta, sintheta, cosphi, sinphi;
+
+    Real dr = threepmCurrentBin*(threepmRange/threepmBins)*dx[0];
+
+    if(threepmCurrentBin == threepmBins)
+    {
+        setMeasureFinal = 2;
+    }
+    if(threepmCurrentBin > threepmBins)
+    {
+        setMeasureFinal = 3;
+    }
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        if(setMeasureFinal == 0)
+        {
+            
+
+            ParticleType & part0 = particles[0];
+            ParticleType & part1 = particles[1];
+
+            x0 = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
+            y0 = prob_lo[1] + get_uniform_func()*(prob_hi[1]-prob_lo[1]);
+            z0 = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
+    
+            SetPosition(0, 1, x0, y0, z0);
+
+
+
+            get_angles(&costheta, &sintheta, &cosphi, &sinphi);
+
+            x1 = x0 + dr*sintheta*cosphi;
+            y1 = y0 + dr*sintheta*sinphi;
+            z1 = z0 + dr*costheta;
+
+            SetPosition(0, 2, x1, y1, z1);
+        }
+
+        if(setMeasureFinal == 1)
+        {
+            
+
+            ParticleType & part0 = particles[0];
+            ParticleType & part1 = particles[1];
+
+            Real ee = (permitivitty*4*3.142);
+
+            Real re = threepmCurrentBin*(threepmRange/threepmBins)/(1);
+
+            Real forceNorm = -(dx[0]*dx[0])*ee/(part0.rdata(FHD_realData::q)*part1.rdata(FHD_realData::q));
+
+            //Print() << "Force: " << part0.rdata(FHD_realData::forcex) << ", " << part0.rdata(FHD_realData::forcey) << ", " << part0.rdata(FHD_realData::forcez) << std::endl;
+
+            Real forceMag = sqrt(pow(part0.rdata(FHD_realData::forcex),2) + pow(part0.rdata(FHD_realData::forcey),2) + pow(part0.rdata(FHD_realData::forcez),2))*forceNorm;
+
+            threepmVals[threepmCurrentBin] = (threepmVals[threepmCurrentBin]*(threepmCurrentSample - 1) + forceMag)/threepmCurrentSample;
+
+            if(forceMag < threepmMin[threepmCurrentBin])
+            {
+                threepmMin[threepmCurrentBin] = forceMag;
+            }
+
+            if(forceMag > threepmMax[threepmCurrentBin])
+            {
+                threepmMax[threepmCurrentBin] = forceMag;
+            }
+
+            Print() << "Bin " << threepmCurrentBin << " norm: " << threepmVals[threepmCurrentBin] << endl;
+
+            threepmCurrentSample++;
+
+            if(threepmCurrentSample > threepmSamples)
+            {
+                threepmCurrentSample = 1;
+                threepmCurrentBin++;
+            }             
+        }
+
+    }
+
+    if(setMeasureFinal == 2)
+    {
+
+        Print() << "Outputting correction data\n";
+        std::string filename = "threepmPoints";
+        std::ofstream ofs0(filename, std::ofstream::out);
+
+        // normalize by
+        for(int i=0;i<threepmBins;i++) {
+            ofs0 << threepmPoints[i] << ", ";
+        }
+        ofs0 << std::endl;
+        ofs0.close();
+
+        filename = "threepmMax";
+        std::ofstream ofs1(filename, std::ofstream::out);
+
+        // normalize by
+        for(int i=0;i<threepmBins;i++) {
+            ofs1 << threepmMax[i] << ", ";
+        }
+        ofs1 << std::endl;
+        ofs1.close();
+
+        filename = "threepmMin";
+        std::ofstream ofs2(filename, std::ofstream::out);
+
+        // normalize by
+        for(int i=0;i<threepmBins;i++) {
+            ofs2 << threepmMin[i] << ", ";
+        }
+        ofs2 << std::endl;
+        ofs2.close();
+
+        filename = "threepmVals";
+        std::ofstream ofs3(filename, std::ofstream::out);
+
+        // normalize by
+        for(int i=0;i<threepmBins;i++) {
+            ofs3 << threepmVals[i] << ", ";
+        }
+        ofs3 << std::endl;
+        ofs3.close();
+
+        threepmCurrentBin++;
     }
     
 }

@@ -188,6 +188,8 @@ public:
 
     void MeanSqrCalc(int lev, int reset);
 
+    void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
+
     void DoRFDbase(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
@@ -276,7 +278,17 @@ public:
     Real *meanYDistribution;
     Real *meanZDistribution;
     Real binVolCartesian;
-    int cartesianStatsCount;    
+    int cartesianStatsCount;   
+
+    int  threepmBins = 50;
+    int  threepmCurrentBin = 1;
+    int  threepmCurrentSample = 1;
+    int  threepmSamples = 40;
+    Real threepmVals[50];
+    Real threepmMax[50];
+    Real threepmMin[50];
+    Real threepmPoints[50]; 
+    Real threepmRange = 5; 
 
 protected:
 
