@@ -32,12 +32,10 @@ program read_cond
   nintervals = npts / (interval)
   average = 0.
   
-  do j=1,nintervals
+  do j=n_intervals_skip+1,nintervals
      cond_temp = cond(j*interval)
      print*,cond_temp
-     if (j > n_intervals_skip) then
-        average = average + cond_temp
-     end if
+     average = average + cond_temp
   end do
 
   average = average / (nintervals-n_intervals_skip)
