@@ -6,7 +6,7 @@
     
   n_cells(1:3) = 32 32 32
   ! max number of cells in a box
-  max_grid_size(1:3) = 16 16 32
+  max_grid_size(1:3) = 32 32 32
   max_particle_tile_size(1:3) = 256 256 256 ! set to zero to use max_grid_size, setting a very large number will also use max grid size, but will also ensure that refined es and particle grids will do the same.
 
   ! above settings are for fluid grid. EM and particle grid (the grid for finding neighbour lists) are coarsened or refined off these grids. <1 = refine, >1 = coarsen.
@@ -18,12 +18,12 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 1000
-  plot_int = 100
+  max_step = 40000
+  plot_int = 10000
   plot_ascii = 0
   radialdist_int = 1
-  cartdist_int = 1
-  n_steps_skip = 100
+  cartdist_int = 0
+  n_steps_skip = -10000
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
@@ -93,11 +93,11 @@
 
   !Peskin kernel (Currently 3, 4, & 6 implemented) (keep these the same for now)
   !--------
-  pkernel_fluid = 6
-  pkernel_es = 6
+  pkernel_fluid = 4
+  pkernel_es = 4
 
   ! Stochastic parameters
-  seed = 1
+  seed = 0
   k_B = 1.38064852e-16
   T_init(1) = 295.00
   variance_coef_mom = 1
