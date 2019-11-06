@@ -273,14 +273,26 @@ public:
     Real *meanRadialDistribution   ;
     Real *meanRadialDistribution_pp;
     Real *meanRadialDistribution_pm;
-    Real *meanRadialDistribution_mp;
     Real *meanRadialDistribution_mm;
+    
     Real *binVolRadial;
     int radialStatsCount;
 
-    Real *meanXDistribution;
-    Real *meanYDistribution;
-    Real *meanZDistribution;
+    Real *meanXDistribution   ;
+    Real *meanXDistribution_pp;
+    Real *meanXDistribution_pm;
+    Real *meanXDistribution_mm;
+    
+    Real *meanYDistribution   ;
+    Real *meanYDistribution_pp;
+    Real *meanYDistribution_pm;
+    Real *meanYDistribution_mm;
+    
+    Real *meanZDistribution   ;
+    Real *meanZDistribution_pp;
+    Real *meanZDistribution_pm;
+    Real *meanZDistribution_mm;
+    
     Real binVolCartesian;
     int cartesianStatsCount;   
 
