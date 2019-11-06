@@ -126,7 +126,7 @@ int                        common::poisson_bottom_verbose;
 int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
-amrex::Real                common::permitivitty;
+amrex::Real                common::permittivity;
 amrex::Real                common::cut_off;
 amrex::Real                common::rmin;
 

@@ -1728,7 +1728,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             ParticleType & part0 = particles[0];
             ParticleType & part1 = particles[1];
 
-            Real ee = (permitivitty*4*3.142);
+            Real ee = (permittivity*4*3.142);
 
             Real re = threepmCurrentBin*(threepmRange/threepmBins)/(1);
 

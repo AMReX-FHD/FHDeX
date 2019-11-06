@@ -74,7 +74,7 @@
 
   !Interaction parameters
   !------------
-  permitivitty = 692.96e-21
+  permittivity = 692.96e-21
 
   crange = 5       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use

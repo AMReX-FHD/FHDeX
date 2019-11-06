@@ -6,7 +6,7 @@ module particle_functions_module
   use species_type_module, only: species_t
   use rng_functions_module
   use surfaces_module
-  use common_namelist_module, only: k_B, T_init, permitivitty, eepsilon, images, pkernel_es, &
+  use common_namelist_module, only: k_B, T_init, permittivity, eepsilon, images, pkernel_es, &
                                     prob_lo, prob_hi, bc_es_lo, bc_es_hi, rmin, p_int_tog, &
                                     fixed_dt, graphene_tog, mass, particle_n0, particle_neff, &
                                     visc_type, variance_coef_mom, pkernel_fluid, dry_move_tog, &
@@ -47,7 +47,7 @@ contains
     integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs, imag
     real(amrex_real) :: dx(3), dx0(3), dr, dr2, rtdr2, maxdist, ee
 
-    ee = (1d0/(permitivitty*4*3.142))
+    ee = (1d0/(permittivity*4*3.142))
 
     dx0 = part1%pos-part2%pos
 
@@ -346,7 +346,7 @@ contains
     ! so that we only reference the p3m radius once (assuming it's the same forall particles)
     p3m_radius = particles(1)%p3m_radius
 
-    ee = 1.d0/(permitivitty*4*3.142) 
+    ee = 1.d0/(permittivity*4*3.142) 
     dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
 
 
@@ -1777,7 +1777,7 @@ contains
 
 
     if(mq .eq. 0) then
-       qm = pvol*part%q/permitivitty
+       qm = pvol*part%q/permittivity
 
     else
        qm = part%mass
