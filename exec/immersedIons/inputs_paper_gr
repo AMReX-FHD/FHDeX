@@ -18,12 +18,12 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 100
-  plot_int = 10
+  max_step = 1000
+  plot_int = 100
   plot_ascii = 0
   radialdist_int = 1
-  cartdist_int = 0
-  n_steps_skip = -10
+  cartdist_int = 1
+  n_steps_skip = 100
 
   ! Toggles 0=off, 1=on
   fluid_tog = 1 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve
