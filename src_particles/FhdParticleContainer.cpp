@@ -107,6 +107,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     //Remove files that we will be appending to.
     remove("diffusionEst");
     remove("conductivityEst");
+    remove("currentEst");
 
     Real dr = threepmRange/threepmBins;
 
@@ -1340,11 +1341,6 @@ void FhdParticleContainer::EvaluateStats(
     ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
-    // print statistics
-    Print() << "Current density mean: "
-            << avcurrent_proc[0]/cellcount_proc << "  "
-            << avcurrent_proc[1]/cellcount_proc << "  "
-            << avcurrent_proc[2]/cellcount_proc << "\n";
 
     // reset cell count
     cellcount_tile = 0;
@@ -1385,11 +1381,18 @@ void FhdParticleContainer::EvaluateStats(
     ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
 
-    // print statistics
-    Print() << "Current density variance: "
+    // write out current mean and variance to file
+    if(ParallelDescriptor::MyProc() == 0) {
+        std::string filename = "currentEst";
+        std::ofstream ofs(filename, std::ofstream::app);
+        ofs << avcurrent_proc[0]/cellcount_proc << "  "
+            << avcurrent_proc[1]/cellcount_proc << "  "
+            << avcurrent_proc[2]/cellcount_proc << "  "
             << varcurrent_proc[0]/cellcount_proc << "  "
             << varcurrent_proc[1]/cellcount_proc << "  "
             << varcurrent_proc[2]/cellcount_proc << "\n";
+        ofs.close();
+    }
 
 }
 
@@ -1658,7 +1661,6 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
     }
 
     if(ParallelDescriptor::MyProc() == 0) {
-
 
         Real domainVol = (prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
         Real condTotal = (pow(sumPosQ[0],2) + pow(sumPosQ[1],2) + pow(sumPosQ[2],2))/(6.0*k_B*T_init[0]*domainVol*tt);
