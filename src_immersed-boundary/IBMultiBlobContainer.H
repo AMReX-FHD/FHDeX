@@ -202,11 +202,7 @@ public:
     using NeighborParticleContainer<IBMBReal::count, IBMBInt::count>
           ::NeighborParticleContainer;
 
-    using MyConstIBMarIter = ParConstIter<IBMBReal::count, IBMBInt::count, 0, 0>;
-    using MyIBMarIter      = IBMarIterBase<IBMBReal::count, IBMBInt::count>;
-
     using ParticleType = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::ParticleType;
-    using PairIndex = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::PairIndex;
     using AoS = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::AoS;
 
 
@@ -304,6 +300,8 @@ public:
     // Compute Drag Force
     std::map<MarkerIndex, ParticleType *> GetParticleDict(int lev);
     void AccumulateDrag(int lev);
+
+    void MoveBlob(int lev, Real dt);
 
 
 

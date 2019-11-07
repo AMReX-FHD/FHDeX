@@ -19,8 +19,7 @@
   fixed_dt = 1e-5
 
   ! Controls for number of steps between actions
-  ! max_step = 200000
-  ! plot_int = 200000
+  plot_base_name = "flo"
   max_step = 200000
   plot_int = 100
 
@@ -88,5 +87,28 @@
   gmres_max_inner = 5                   ! max number of inner iterations, or restart number
   gmres_max_iter = 100                  ! max number of gmres iterations
   gmres_min_iter = 1                    ! min number of gmres iterations
+
+/
+
+
+&immbdy
+
+  n_immbdy = 1
+
+  contains_flagellum = false
+  contains_fourier   = false
+  contains_colloid   = true
+
+/
+
+
+&ib_colloid
+
+  colloid_n_marker(1:1) = 100
+  colloid_center(:, 1)  = .5 .5 .5
+  colloid_radius(1)     = 0.2
+  colloid_rho(1)        = 1.
+
+  colloid_k_spring(1)   = 1e4
 
 /

@@ -154,6 +154,7 @@ void BlobContainer::InitSingle(int lev, Real radius, Real k_spring,
 }
 
 
+
 void BlobContainer::MovePredictor(int lev, Real dt) {
 
     // MovePredictor preseves the property that `pred_pos[x,y,z]` is a
@@ -184,6 +185,7 @@ void BlobContainer::MovePredictor(int lev, Real dt) {
 
     IBMarkerContainerBase<IBBReal, IBBInt>::MovePredictor(lev, dt);
 }
+
 
 
 void BlobContainer::MoveMarkers(int lev, Real dt) {
@@ -462,7 +464,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev) {
 #endif
     for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
@@ -717,6 +719,56 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
             }
         }
     }
+}
+
+
+
+void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+    for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i = 0; i < np; ++ i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(IBMBReal::velx + d) +=
+                    dt * part.rdata(IBMBReal::dragx + d);
+                part.pos(d) += dt * part.rdata(IBMBReal::velx + d);
+            }
+        }
+    }
+
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::ref_delx + d) -=
+                    dt*blob->rdata(IBMBReal::velx + d);
+            }
+        }
+    }
+
+
 }
 
 
