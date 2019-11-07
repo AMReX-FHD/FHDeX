@@ -131,12 +131,18 @@ struct IBMBReal {
         velx,
         vely,
         velz,
+        forcex,
+        forcey,
+        forcez,
+        pred_forcex,
+        pred_forcey,
+        pred_forcez,
         omegax,
         omegay,
         omegaz,
-        dragx,    // ..................................... TODO: Audit
-        dragy,    // ..................................... TODO: Audit
-        dragz,    // ..................................... TODO: Audit
+        dragx,
+        dragy,
+        dragz,
         k_spring,
         count     // Awesome little trick!
     };
@@ -148,6 +154,12 @@ struct IBMBReal {
             "velx",
             "vely",
             "velz",
+            "forcex",
+            "forcey",
+            "forcez",
+            "pred_forcex",
+            "pred_forcey",
+            "pred_forcez",
             "omegax",
             "omegay",
             "omegaz",

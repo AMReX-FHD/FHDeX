@@ -414,6 +414,10 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r,
                 p_new.rdata(IBMBReal::velx + d)   = 0.;
                 p_new.rdata(IBMBReal::omegax + d) = 0.;
                 p_new.rdata(IBMBReal::dragx + d)  = 0.;
+
+                // Initialize external forcing
+                p_new.rdata(IBMBReal::pred_forcex + d) = 0.;
+                p_new.rdata(IBMBReal::forcex + d)      = 0.;
             }
 
             // Physical radius of multiblob
@@ -613,6 +617,7 @@ void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
 
     markers.MoveMarkers(lev, dt);
 
+
     //___________________________________________________________________________
     // Now update ref_del[x,y,z] according to blob COM velocity
 
@@ -652,9 +657,9 @@ void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
 
     markers.MovePredictor(lev, dt);
 
+
     //___________________________________________________________________________
     // Now update pred_pos[x,y,z] according to blob COM velocity
-
 
     std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
@@ -681,31 +686,139 @@ void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
             }
         }
     }
-
 }
 
 
 
 void IBMultiBlobContainer::PredictorForces(int lev) {
+
     markers.PredictorForces(lev);
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_forcex + d) +=
+                    blob->rdata(IBMBReal::pred_forcex + d);
+            }
+        }
+    }
 }
 
 
 
 void IBMultiBlobContainer::PredictorForces(int lev, Real k) {
+
     markers.PredictorForces(lev, k);
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_forcex + d) +=
+                    blob->rdata(IBMBReal::pred_forcex + d);
+            }
+        }
+    }
+
 }
 
 
 
 void IBMultiBlobContainer::MarkerForces(int lev, Real k) {
+
     markers.MarkerForces(lev, k);
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::forcex + d) +=
+                    blob->rdata(IBMBReal::forcex + d);
+            }
+        }
+    }
 }
 
 
 
 void IBMultiBlobContainer::MarkerForces(int lev) {
+
     markers.MarkerForces(lev);
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::forcex + d) +=
+                    blob->rdata(IBMBReal::forcex + d);
+            }
+        }
+    }
 }
 
 
