@@ -129,7 +129,7 @@ module common_namelist_module
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
 
-  double precision,   save :: permitivitty
+  double precision,   save :: permittivity
   double precision,   save :: cut_off
   double precision,   save :: rmin
   double precision,   save :: eepsilon(MAX_SPECIES)
@@ -322,7 +322,7 @@ module common_namelist_module
   namelist /common/ density_weights
   namelist /common/ shift_cc_to_boundary
 
-  namelist /common/ permitivitty
+  namelist /common/ permittivity
   namelist /common/ cut_off
   namelist /common/ rmin
   namelist /common/ eepsilon
@@ -533,7 +533,7 @@ contains
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, p_move_tog_in, &
                                          p_force_tog_in, p_int_tog_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
+                                         particle_n0_in, mass_in, nfrac_in, permittivity_in, &
                                          cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
@@ -655,7 +655,7 @@ contains
 
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
-    double precision,       intent(inout) :: permitivitty_in
+    double precision,       intent(inout) :: permittivity_in
     double precision,       intent(inout) :: cut_off_in
     double precision,       intent(inout) :: rmin_in
     double precision,       intent(inout) :: poisson_rel_tol_in
@@ -802,7 +802,7 @@ contains
     poisson_bottom_verbose_in = poisson_bottom_verbose
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
-    permitivitty_in = permitivitty
+    permittivity_in = permittivity
     cut_off_in = cut_off
     rmin_in = rmin
     eepsilon_in = eepsilon

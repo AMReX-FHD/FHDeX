@@ -188,6 +188,8 @@ public:
 
     void MeanSqrCalc(int lev, int reset);
 
+    void BuildCorrectionTable(const Real* dx, int setMeasureFinal);
+
     void DoRFDbase(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
@@ -271,16 +273,38 @@ public:
     Real *meanRadialDistribution   ;
     Real *meanRadialDistribution_pp;
     Real *meanRadialDistribution_pm;
-    Real *meanRadialDistribution_mp;
     Real *meanRadialDistribution_mm;
+    
     Real *binVolRadial;
     int radialStatsCount;
 
-    Real *meanXDistribution;
-    Real *meanYDistribution;
-    Real *meanZDistribution;
+    Real *meanXDistribution   ;
+    Real *meanXDistribution_pp;
+    Real *meanXDistribution_pm;
+    Real *meanXDistribution_mm;
+    
+    Real *meanYDistribution   ;
+    Real *meanYDistribution_pp;
+    Real *meanYDistribution_pm;
+    Real *meanYDistribution_mm;
+    
+    Real *meanZDistribution   ;
+    Real *meanZDistribution_pp;
+    Real *meanZDistribution_pm;
+    Real *meanZDistribution_mm;
+    
     Real binVolCartesian;
-    int cartesianStatsCount;    
+    int cartesianStatsCount;   
+
+    int  threepmBins = 50;
+    int  threepmCurrentBin = 1;
+    int  threepmCurrentSample = 1;
+    int  threepmSamples = 40;
+    Real threepmVals[50];
+    Real threepmMax[50];
+    Real threepmMin[50];
+    Real threepmPoints[50]; 
+    Real threepmRange = 5; 
 
 protected:
 

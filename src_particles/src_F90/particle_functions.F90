@@ -6,7 +6,7 @@ module particle_functions_module
   use species_type_module, only: species_t
   use rng_functions_module
   use surfaces_module
-  use common_namelist_module, only: k_B, T_init, permitivitty, eepsilon, images, pkernel_es, &
+  use common_namelist_module, only: k_B, T_init, permittivity, eepsilon, images, pkernel_es, &
                                     prob_lo, prob_hi, bc_es_lo, bc_es_hi, rmin, p_int_tog, &
                                     fixed_dt, graphene_tog, mass, particle_n0, particle_neff, &
                                     visc_type, variance_coef_mom, pkernel_fluid, dry_move_tog, &
@@ -47,7 +47,7 @@ contains
     integer :: i,j,k, bound, ii, jj, kk, imagecounter, xswitch, partno, n, pairs, imag
     real(amrex_real) :: dx(3), dx0(3), dr, dr2, rtdr2, maxdist, ee
 
-    ee = (1d0/(permitivitty*4*3.142))
+    ee = (1d0/(permittivity*4*3.142))
 
     dx0 = part1%pos-part2%pos
 
@@ -204,7 +204,7 @@ contains
     real(amrex_real), intent(inout) :: mag
     real(amrex_real), intent(in   ) :: dx(3)
 
-    real(amrex_real) :: vals(70), points(70), r_cell_frac, m, r_norm
+    real(amrex_real) :: vals6(70), points6(70), vals4(50), points4(50),r_cell_frac, m, r_norm
     integer          :: r_cell
 
     !!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -212,7 +212,7 @@ contains
     !!!!!!!!!!!!!!!!!!!!!!!!!!
 
     ! this is force per dx**2
-    vals =(/0., 0.0130335, 0.0259347, 0.0384891, 0.0507132, 0.0624416, 0.0735093, &
+    vals6 =(/0., 0.0130335, 0.0259347, 0.0384891, 0.0507132, 0.0624416, 0.0735093, &
          0.0837511, 0.0931669, 0.101922, 0.109521, 0.116293, 0.121745, &
          0.126535, 0.130335, 0.132978, 0.134134, 0.135621, 0.13529, 0.134629, &
          0.133308, 0.130995, 0.129343, 0.126205, 0.122075, 0.118276, 0.115137, &
@@ -225,11 +225,25 @@ contains
          0.0251088, 0.0242829, 0.0236221, 0.0229613, 0.0221354, 0.0214746, &
          0.0209791/)
     ! these are fractions of cell size dx
-    points =(/0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, &
+    points6 =(/0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3, &
          1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, &
          2.8, 2.9, 3., 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4., 4.1, &
          4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5., 5.1, 5.2, 5.3, 5.4, 5.5, &
          5.6, 5.7, 5.8, 5.9, 6., 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9/)
+
+    vals4 =(/0., 0.0191993, 0.0384104, 0.0561438, 0.0745141, 0.0914394, 0.106869, &
+            0.121719, 0.134211, 0.145262, 0.154958, 0.162921, 0.168841, 0.173264, &
+            0.176417, 0.17854, 0.177695, 0.175969, 0.174664, 0.17083, 0.165755, &
+            0.162663, 0.156037, 0.148626, 0.144648, 0.1381, 0.131473, 0.12615, &
+            0.120057, 0.112581, 0.106808, 0.100863, 0.0947845, 0.0905315, 0.0856055, &
+            0.0818209, 0.0768459, 0.0728331, 0.0694836, 0.0650267, 0.0627171, 0.0591556, &
+            0.0561682, 0.0539003, 0.0511791, 0.0492405, 0.0470903, 0.0453286, 0.043644, 0.0417381/)
+
+    ! these are fractions of cell size dx
+    points4 =(/0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, &
+              1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, &
+              2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1, &
+              4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9/)
 
     ! Divison/multiplication by 0.1 below is bc the spacing in the table above is 0.1
     r_norm = r/dx(1)                ! separation dist in units of dx=dy=dz
@@ -243,11 +257,18 @@ contains
     if (pkernel_es .eq. 6) then 
 
        ! do linear interpolation of force between vals(i+1) and val(i) 
-       m = (vals(r_cell+1)-vals(r_cell))/(points(r_cell+1)-points(r_cell))
+       m = (vals6(r_cell+1)-vals6(r_cell))/(points6(r_cell+1)-points6(r_cell))
 
-       mag  = m*r_cell_frac + vals(r_cell)
-    else 
-       print*, "P3M not implemented for pkernel \ne 6!"
+       mag  = m*r_cell_frac + vals6(r_cell)
+
+    elseif (pkernel_es .eq. 4) then 
+
+       ! do linear interpolation of force between vals(i+1) and val(i) 
+       m = (vals4(r_cell+1)-vals4(r_cell))/(points4(r_cell+1)-points4(r_cell))
+
+       mag  = m*r_cell_frac + vals4(r_cell)
+    else
+       print*, "P3M implemented only for pkernel 4 and 6!"
        ! throw error
     endif
 
@@ -325,7 +346,7 @@ contains
     ! so that we only reference the p3m radius once (assuming it's the same forall particles)
     p3m_radius = particles(1)%p3m_radius
 
-    ee = 1.d0/(permitivitty*4*3.142) 
+    ee = 1.d0/(permittivity*4*3.142) 
     dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
 
 
@@ -1756,7 +1777,7 @@ contains
 
 
     if(mq .eq. 0) then
-       qm = pvol*part%q/permitivitty
+       qm = pvol*part%q/permittivity
 
     else
        qm = part%mass

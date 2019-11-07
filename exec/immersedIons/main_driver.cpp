@@ -776,6 +776,8 @@ void main_driver(const char* argv)
             sourceTemp[d].setVal(0.0);      // reset source terms
         }
 
+        //particles.BuildCorrectionTable(dxp,0);
+
         if (rfd_tog==1) {
             // Apply RFD force to fluid
             //particles.RFD(0, dx, sourceTemp, RealFaceCoords);
@@ -815,6 +817,8 @@ void main_driver(const char* argv)
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
                              surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
+        //particles.BuildCorrectionTable(dxp,1);
+
         if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
             // compute the random numbers needed for the stochastic momentum forcing
             sMflux.fillMStochastic();
@@ -850,15 +854,16 @@ void main_driver(const char* argv)
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
                                surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-            if(istep == n_steps_skip)
-            {
+            // reset statistics after step n_steps_skip
+            // if n_steps_skip is negative, we use it as an interval
+            if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+                (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
+
                 particles.MeanSqrCalc(0, 1);
-            }else
-            {
+            }
+            else {
                 particles.MeanSqrCalc(0, 0);
             }
-
-            //particles.MeanSqrCalc(0, 0);
 
             particles.Redistribute();
             particles.ReBin();

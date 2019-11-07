@@ -147,7 +147,7 @@ void InitializeCommonNamespace() {
                                 p_move_tog.dataPtr(), p_force_tog.dataPtr(),
                                 p_int_tog.dataPtr(), &particle_neff,
                                 particle_n0.dataPtr(), mass.dataPtr(), nfrac.dataPtr(),
-                                &permitivitty,
+                                &permittivity,
                                 &cut_off,&rmin, eepsilon.dataPtr(), sigma.dataPtr(),
                                 &poisson_verbose, &poisson_bottom_verbose, &poisson_max_iter,
                                 &poisson_rel_tol, &particle_grid_refine, &es_grid_refine,

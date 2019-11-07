@@ -74,7 +74,7 @@
 
   !Interaction parameters
   !------------
-  permitivitty = 692.96e-21
+  permittivity = 692.96e-21
   !cut_off = 8.732e-8    !cutoff range for close range potential - this is being calculated off sigma now.
   rmin = 1e-8     !Minimum range to prevent blow up of force.  NOTE, THIS IS A RADIUS, THE OTHER VALUES ARE DIAMETER. YES THIS IS STUPID.
   crange = 4       !cell depth when building neighbour lists
