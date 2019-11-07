@@ -607,13 +607,81 @@ void IBMultiBlobContainer::InterpolatePredictor(int lev,
 
 
 void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
+
+    //___________________________________________________________________________
+    // First update marker position using `vel[x,y,z]
+
     markers.MoveMarkers(lev, dt);
+
+    //___________________________________________________________________________
+    // Now update ref_del[x,y,z] according to blob COM velocity
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::ref_delx + d) -=
+                    dt * blob->rdata(IBMBReal::velx + d);
+            }
+        }
+    }
 }
 
 
 
 void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
+
+    //___________________________________________________________________________
+    // First update marker predictor position using `vel[x,y,z]
+
     markers.MovePredictor(lev, dt);
+
+    //___________________________________________________________________________
+    // Now update pred_pos[x,y,z] according to blob COM velocity
+
+
+    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_posx + d) -=
+                    dt * blob->rdata(IBMBReal::velx + d);
+            }
+        }
+    }
+
 }
 
 

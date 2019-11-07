@@ -251,6 +251,10 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move markers according to predictor velocity
 
+    // MoveMarkers needs the neighbor list to be filled
+    ib_mbc.clearNeighbors();
+    ib_mbc.fillNeighbors();
+
     ib_mbc.MovePredictor(0, dt);
 
 
@@ -398,6 +402,12 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move markers according to velocity
 
+    // MoveMarkers needs the neighbor list to be filled (TODO: this might be
+    // redundant work, as we're already filling neighbors in the predictor
+    // step)
+    ib_mbc.clearNeighbors();
+    ib_mbc.fillNeighbors();
+
     ib_mbc.MoveMarkers(0, dt);
     ib_mbc.Redistribute(); // Don't forget to send particles to the right CPU
 
@@ -409,8 +419,6 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Move Multi-Blobs
     ib_mbc.ResetDrag(0);
-    ib_mbc.clearNeighbors();
-    ib_mbc.fillNeighbors();
     ib_mbc.AccumulateDrag(0);
     ib_mbc.sumNeighbors(IBMBReal::dragx, AMREX_SPACEDIM, 0, 0);
 
