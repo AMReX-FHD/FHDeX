@@ -84,8 +84,8 @@
   ! external field
   eamp = 0 0 0     ! no field
 !  eamp = 1e14 0 0  !strong field
-!  eamp = 1e14 0 0  !medium field
-!  eamp = 1e11 0 0  !weak field
+!  eamp = 1e13 0 0  !medium field
+!  eamp = 1e12 0 0  !weak field
   efreq = 0 0 0
   ephase = 0 0 0     
 
