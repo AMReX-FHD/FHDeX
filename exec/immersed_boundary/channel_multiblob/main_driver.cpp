@@ -386,10 +386,27 @@ void main_driver(const char * argv) {
         Print() << "k_spring = " << k_spring << std::endl;
 
         ib_mbc.InitSingle(0, center, radius, rho, N, k_spring);
-
     }
 
     ib_mbc.FillMarkerPositions(0);
+
+
+    for (IBMBIter pti(ib_mbc, 0); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
+        IBMultiBlobContainer::AoS & markers =
+            ib_mbc.GetParticles(0).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
+            mark.rdata(IBMBReal::pred_forcey) = 1.;
+            mark.rdata(IBMBReal::forcey)      = 1.;
+        }
+    }
+
 
 
     ib_mbc.clearNeighbors();

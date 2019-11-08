@@ -688,6 +688,13 @@ void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
     }
 }
 
+   
+
+void IBMultiBlobContainer::RedistributeMarkers() {
+    markers.Redistribute();
+}
+
+
 
 
 void IBMultiBlobContainer::PredictorForces(int lev) {
@@ -828,6 +835,7 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
 
     std::map<MarkerIndex, ParticleType *> particle_dict;
 
+
     // ParIter skips tiles without particles => Iterate over MultiFab instead
     // of ParticleIter. Note also that AmrexParticleContainer uses strange
     // tiling => don't turn off tiling (particles are stored in tile)
@@ -843,10 +851,9 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
 
             MarkerIndex parent = std::make_pair(part.id(), part.cpu());
 
-            // check if already in ParticleDict NOTE: c++20 has contains()
-            auto search = particle_dict.find(parent);
-            // if not in map, add pointer
-            if (search == particle_dict.end()) particle_dict[parent] = & part;
+            // Overwrite neighbor data with "real" particle data => don't check
+            // if (ID, CPU) is already in dict
+            particle_dict[parent] = & part;
         }
 
         // Now do the same of the neighbor data

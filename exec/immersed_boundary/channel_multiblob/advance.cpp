@@ -244,24 +244,24 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFABPhysBCMacVel(umac[d], geom, d);
     }
 
-    ib_mbc.ResetPredictor(0);
-    ib_mbc.InterpolatePredictor(0, umac_buffer);
+    ib_mbc.ResetPredictor(ib_lev);
+    ib_mbc.InterpolatePredictor(ib_lev, umac_buffer);
 
 
     //___________________________________________________________________________
     // Move markers according to predictor velocity
 
-    // MoveMarkers needs the neighbor list to be filled
+    // MovePredictor needs the neighbor list to be filled
     ib_mbc.clearNeighbors();
     ib_mbc.fillNeighbors();
 
-    ib_mbc.MovePredictor(0, dt);
+    ib_mbc.MovePredictor(ib_lev, dt);
 
 
     //___________________________________________________________________________
     // Calculate internal force model
 
-    ib_mbc.PredictorForces(0);
+    ib_mbc.PredictorForces(ib_lev);
 
 
     // //___________________________________________________________________________
@@ -299,7 +299,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
     // Spread predictor forces
-    ib_mbc.SpreadPredictor(0, fc_force_pred);
+    ib_mbc.SpreadPredictor(ib_lev, fc_force_pred);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_pred[d].SumBoundary(geom.periodicity());
 
@@ -395,8 +395,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFABPhysBCMacVel(umacNew[d], geom, d);
     }
 
-    ib_mbc.ResetMarkers(0);
-    ib_mbc.InterpolateMarkers(0, umacNew_buffer);
+    ib_mbc.ResetMarkers(ib_lev);
+    ib_mbc.InterpolateMarkers(ib_lev, umacNew_buffer);
 
 
     //___________________________________________________________________________
@@ -408,19 +408,60 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     ib_mbc.clearNeighbors();
     ib_mbc.fillNeighbors();
 
-    ib_mbc.MoveMarkers(0, dt);
-    ib_mbc.Redistribute(); // Don't forget to send particles to the right CPU
+    ib_mbc.MoveMarkers(ib_lev, dt);
+    ib_mbc.RedistributeMarkers(); // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
     // Calculate internal force model
 
-    ib_mbc.MarkerForces(0);
+    ib_mbc.MarkerForces(ib_lev);
+
+    //___________________________________________________________________________
+    // Move Multi-Blobs
+
+    // Accumulate hydrodynamic drag forces
+    ib_mbc.ResetDrag(ib_lev);
+    ib_mbc.AccumulateDrag(ib_lev);
+    ib_mbc.sumNeighbors(IBMBReal::dragx, AMREX_SPACEDIM, 0, 0);
+
+    for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
+        IBMultiBlobContainer::AoS & markers =
+            ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                std::cout << mark.rdata(IBMBReal::dragx + d) << std::endl;
+        }
+    }
+
 
     // Move Multi-Blobs
-    ib_mbc.ResetDrag(0);
-    ib_mbc.AccumulateDrag(0);
-    ib_mbc.sumNeighbors(IBMBReal::dragx, AMREX_SPACEDIM, 0, 0);
+    ib_mbc.MoveBlob(ib_lev, dt);
+    ib_mbc.Redistribute(); // Don't forget to send particles to the right CPU
+
+    // Diagnostics: print COM positions
+    for (IBMBIter pti(ib_mbc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
+        IBMultiBlobContainer::AoS & markers =
+            ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                std::cout << mark.pos(d) << std::endl;
+        }
+    }
 
 
     // //___________________________________________________________________________
@@ -458,7 +499,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // Spread to the `fc_force` multifab
-    ib_mbc.SpreadMarkers(0, fc_force_corr);
+    ib_mbc.SpreadMarkers(ib_lev, fc_force_corr);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
         fc_force_corr[d].SumBoundary(geom.periodicity());
 
