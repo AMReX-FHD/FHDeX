@@ -81,8 +81,10 @@
   crange = 5       !cell depth when building neighbour lists USING PARTICLE GRID CELL SIZE
   images = 0    !if pairwise Coulomb interactions have been selected, this is the number of periodic images to use
 
-  eamp = 0    0 0  !external electric field properties
+  ! external field
+  eamp = 0 0 0     ! no field
 !  eamp = 1e14 0 0  !strong field
+!  eamp = 1e14 0 0  !medium field
 !  eamp = 1e11 0 0  !weak field
   efreq = 0 0 0
   ephase = 0 0 0     
