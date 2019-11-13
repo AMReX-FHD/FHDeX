@@ -19,7 +19,7 @@
   fixed_dt = 1e-5
 
   ! Controls for number of steps between actions
-  plot_base_name = "flo"
+  plot_base_name = "grav"
   max_step = 200000
   plot_int = 100
 
