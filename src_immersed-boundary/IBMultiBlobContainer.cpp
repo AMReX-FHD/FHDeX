@@ -918,9 +918,9 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
                 target->rdata(IBMBReal::dragx + d) -=
                     mark.rdata(IBBReal::forcex + d);
             }
-
-            total_np += np;
         }
+
+        total_np += np;
     }
 
 
