@@ -1,5 +1,5 @@
 F90EXE_sources += ib_fort_utils.F90
-F90EXE_sources += set_particle_properties.F90
-F90EXE_sources += constant_mod.F90
 F90EXE_sources += param_mod.F90
+F90EXE_sources += constant_mod.F90
+F90EXE_sources += set_particle_properties.F90
 F90EXE_sources += immbdy_namelist.F90

@@ -439,7 +439,7 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r,
         total_np += np;
     }
 
-    // ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
+    // ParallelDescriptor::ReduceIntSum(total_np, ParallelDescriptor::IOProcessorNumber());
     // amrex::Print() << "Total number of generated particles: " << total_np << std::endl;
 
     // We shouldn't need this if the particles are tiled with one tile per
@@ -462,6 +462,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev) {
      *                                                                          *
      ***************************************************************************/
 
+    int total_np = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -527,9 +528,18 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev) {
                     markers.AddSingle(lev, index, 1., k_spring, pos, part.id(),
                                       part.cpu(), i);
                 }
+
+                total_np += n_marker;
             }
         }
     }
+
+
+    ParallelDescriptor::ReduceIntSum(total_np,
+                                     ParallelDescriptor::IOProcessorNumber());
+
+    amrex::Print() << "Total number of generated markers: "
+                   << total_np << std::endl;
 
     //___________________________________________________________________________
     // Redistribute markers to correct tiles
@@ -884,6 +894,9 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
     std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
+    int total_np = 0;
+
+
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
@@ -905,8 +918,17 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
                 target->rdata(IBMBReal::dragx + d) -=
                     mark.rdata(IBBReal::forcex + d);
             }
+
+            total_np += np;
         }
     }
+
+
+    ParallelDescriptor::ReduceIntSum(total_np,
+                                     ParallelDescriptor::IOProcessorNumber());
+
+    amrex::Print() << "Total number of markers contributing to drag: "
+                   << total_np << std::endl;
 }
 
 
