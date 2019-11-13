@@ -528,9 +528,9 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev) {
                     markers.AddSingle(lev, index, 1., k_spring, pos, part.id(),
                                       part.cpu(), i);
                 }
-
-                total_np += n_marker;
             }
+
+            total_np += n_marker;
         }
     }
 
