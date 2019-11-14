@@ -732,7 +732,7 @@ void IBMultiBlobContainer::PredictorForces(int lev) {
             ParticleType * blob = particle_dict.at(parent);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 mark.rdata(IBBReal::pred_forcex + d) +=
-                    blob->rdata(IBMBReal::pred_forcex + d);
+                    blob->rdata(IBMBReal::pred_forcex + d)/blob->idata(IBMBInt::n_marker);
             }
         }
     }
@@ -765,7 +765,7 @@ void IBMultiBlobContainer::PredictorForces(int lev, Real k) {
             ParticleType * blob = particle_dict.at(parent);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 mark.rdata(IBBReal::pred_forcex + d) +=
-                    blob->rdata(IBMBReal::pred_forcex + d);
+                    blob->rdata(IBMBReal::pred_forcex + d)/blob->idata(IBMBInt::n_marker);
             }
         }
     }
@@ -799,7 +799,7 @@ void IBMultiBlobContainer::MarkerForces(int lev, Real k) {
             ParticleType * blob = particle_dict.at(parent);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 mark.rdata(IBBReal::forcex + d) +=
-                    blob->rdata(IBMBReal::forcex + d);
+                    blob->rdata(IBMBReal::forcex + d)/blob->idata(IBMBInt::n_marker);
             }
         }
     }
@@ -832,7 +832,7 @@ void IBMultiBlobContainer::MarkerForces(int lev) {
             ParticleType * blob = particle_dict.at(parent);
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 mark.rdata(IBBReal::forcex + d) +=
-                    blob->rdata(IBMBReal::forcex + d);
+                    blob->rdata(IBMBReal::forcex + d)/blob->idata(IBMBInt::n_marker);
             }
         }
     }

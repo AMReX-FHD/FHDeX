@@ -402,8 +402,8 @@ void main_driver(const char * argv) {
         for (int i=0; i<np; ++i) {
 
             ParticleType & mark = markers[i];
-            mark.rdata(IBMBReal::pred_forcey) = 1.;
-            mark.rdata(IBMBReal::forcey)      = 1.;
+            mark.rdata(IBMBReal::pred_forcey) = 10.;
+            mark.rdata(IBMBReal::forcey)      = 10.;
         }
     }
 
