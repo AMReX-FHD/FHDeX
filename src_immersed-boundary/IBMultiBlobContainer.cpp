@@ -631,12 +631,14 @@ void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
     //___________________________________________________________________________
     // Now update ref_del[x,y,z] according to blob COM velocity
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -671,12 +673,14 @@ void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
     //___________________________________________________________________________
     // Now update pred_pos[x,y,z] according to blob COM velocity
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -698,7 +702,7 @@ void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
     }
 }
 
-   
+
 
 void IBMultiBlobContainer::RedistributeMarkers() {
     markers.Redistribute();
@@ -711,12 +715,14 @@ void IBMultiBlobContainer::PredictorForces(int lev) {
 
     markers.PredictorForces(lev);
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
-        // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -744,12 +750,14 @@ void IBMultiBlobContainer::PredictorForces(int lev, Real k) {
 
     markers.PredictorForces(lev, k);
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
-        // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -778,12 +786,14 @@ void IBMultiBlobContainer::MarkerForces(int lev, Real k) {
 
     markers.MarkerForces(lev, k);
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
-        // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -811,12 +821,14 @@ void IBMultiBlobContainer::MarkerForces(int lev) {
 
     markers.MarkerForces(lev);
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
-        // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -852,19 +864,19 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
     for(MFIter pti = this->MakeMFIter(lev, true); pti.isValid(); ++pti) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = this->GetParticles(lev).at(index);
-        long np = particle_data.size();
+        // auto & particle_data = this->GetParticles(lev).at(index);
+        // long np = particle_data.size();
 
-        AoS & particles = particle_data.GetArrayOfStructs();
-        for (int i = 0; i < np; ++i) {
-            ParticleType & part = particles[i];
+        // AoS & particles = particle_data.GetArrayOfStructs();
+        // for (int i = 0; i < np; ++i) {
+        //     ParticleType & part = particles[i];
 
-            MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+        //     MarkerIndex parent = std::make_pair(part.id(), part.cpu());
 
-            // Overwrite neighbor data with "real" particle data => don't check
-            // if (ID, CPU) is already in dict
-            particle_dict[parent] = & part;
-        }
+        //     // Overwrite neighbor data with "real" particle data => don't check
+        //     // if (ID, CPU) is already in dict
+        //     particle_dict[parent] = & part;
+        // }
 
         // Now do the same of the neighbor data
         ParticleVector & nbhd_data = GetNeighbors(lev, index.first, index.second);
@@ -878,11 +890,70 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
             // check if already in ParticleDict NOTE: c++20 has contains()
             auto search = particle_dict.find(parent);
             // if not in map, add pointer
-            if (search == particle_dict.end()) particle_dict[parent] = & part;
+            /*if (search == particle_dict.end())*/ particle_dict[parent] = & part;
             // DON'T check if already in list (neighbors can appear multiple
             // times). Also don't overwrite REAL particle data with neighbor
             // data, that would just lead to too much copying of data.
         }
+    }
+
+
+    for(IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        auto & particle_data = this->GetParticles(lev).at(index);
+        long np = particle_data.size();
+
+        AoS & particles = particle_data.GetArrayOfStructs();
+        for (int i = 0; i < np; ++i) {
+            ParticleType & part = particles[i];
+
+            MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+
+            // Overwrite neighbor data with "real" particle data => don't check
+            // if (ID, CPU) is already in dict
+            particle_dict[parent] = & part;
+        }
+    }
+
+
+    return particle_dict;
+}
+
+
+
+
+std::map<IBMultiBlobContainer::MarkerIndex, IBMultiBlobContainer::ParticleType *>
+IBMultiBlobContainer::GetParticleDict(int lev, const TileIndex & index) {
+
+    std::map<MarkerIndex, ParticleType *> particle_dict;
+
+    ParticleVector & nbhd_data = GetNeighbors(lev, index.first, index.second);
+    long nn = nbhd_data.size();
+    for (int j=0; j<nn; ++j) {
+
+        ParticleType & part = nbhd_data[j];
+
+        MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+
+        // check if already in ParticleDict NOTE: c++20 has contains()
+        auto search = particle_dict.find(parent);
+        particle_dict[parent] = & part;
+    }
+
+
+    auto & particle_data = this->GetParticles(lev).at(index);
+    long np = particle_data.size();
+
+    AoS & particles = particle_data.GetArrayOfStructs();
+    for (int i = 0; i < np; ++i) {
+        ParticleType & part = particles[i];
+
+        MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+
+        // Overwrite neighbor data with "real" particle data => don't check
+        // if (ID, CPU) is already in dict
+        particle_dict[parent] = & part;
     }
 
     return particle_dict;
@@ -890,17 +961,20 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
 
 
 
+
 void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     int total_np = 0;
 
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
-        // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -935,11 +1009,13 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
 void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    // std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
 
     for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
 
@@ -948,7 +1024,8 @@ void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
 
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 part.rdata(IBMBReal::velx + d) +=
-                    dt * part.rdata(IBMBReal::dragx + d);
+                    dt *( part.rdata(IBMBReal::dragx + d) +
+                          part.rdata(IBMBReal::forcex + d)  );
                 part.pos(d) += dt * part.rdata(IBMBReal::velx + d);
             }
         }
@@ -958,6 +1035,8 @@ void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -977,8 +1056,6 @@ void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
             }
         }
     }
-
-
 }
 
 

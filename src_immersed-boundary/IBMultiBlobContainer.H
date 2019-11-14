@@ -313,6 +313,8 @@ public:
 
     // Compute Drag Force
     std::map<MarkerIndex, ParticleType *> GetParticleDict(int lev);
+    std::map<MarkerIndex, ParticleType *> GetParticleDict(int lev,
+                                                          const TileIndex & tile);
     void AccumulateDrag(int lev);
 
     void MoveBlob(int lev, Real dt);

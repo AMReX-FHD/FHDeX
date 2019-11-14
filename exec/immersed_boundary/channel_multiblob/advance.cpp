@@ -437,7 +437,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             ParticleType & mark = markers[i];
             for (int d=0; d<AMREX_SPACEDIM; ++d)
-                std::cout << mark.rdata(IBMBReal::dragx + d) << std::endl;
+                std::cout << "drag_" << d << " = "
+                          << mark.rdata(IBMBReal::dragx + d)
+                          << std::endl;
         }
     }
 
@@ -459,7 +461,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
             ParticleType & mark = markers[i];
             for (int d=0; d<AMREX_SPACEDIM; ++d)
-                std::cout << mark.pos(d) << std::endl;
+                std::cout << "pos_" << d << " = "
+                           << mark.pos(d)
+                           << std::endl;
         }
     }
 
