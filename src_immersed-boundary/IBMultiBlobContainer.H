@@ -311,12 +311,16 @@ public:
     void MarkerForces(int lev, Real k);
     void MarkerForces(int lev);
 
-    // Compute Drag Force
-    std::map<MarkerIndex, ParticleType *> GetParticleDict(int lev);
-    std::map<MarkerIndex, ParticleType *> GetParticleDict(int lev,
-                                                          const TileIndex & tile);
-    void AccumulateDrag(int lev);
 
+    // Map Multi-Blob (CPU,ID) to particle pointers (for fast reference lookup)
+    std::map<MarkerIndex, ParticleType *> GetParticleDict(
+                int lev, const TileIndex & tile
+            );
+
+
+    // Compute Drag Force
+    void AccumulateDrag(int lev);
+    // Move MultiBlobs according to drag force
     void MoveBlob(int lev, Real dt);
 
 
