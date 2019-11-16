@@ -889,7 +889,7 @@ void main_driver(const char* argv)
         }
 
         // g(r)
-        if(radialdist_int>0 && step%radialdist_int == 0) {
+        if(radialdist_int>0 && istep%radialdist_int == 0) {
             
             // timer
             Real time_PC1 = ParallelDescriptor::second();
@@ -904,7 +904,7 @@ void main_driver(const char* argv)
         }
 
         // g(x), g(y), g(z)
-        if(cartdist_int>0 && step%cartdist_int == 0) {
+        if(cartdist_int>0 && istep%cartdist_int == 0) {
 
             // timer
             Real time_PC1 = ParallelDescriptor::second();
