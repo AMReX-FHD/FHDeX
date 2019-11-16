@@ -378,7 +378,7 @@ void main_driver(const char * argv) {
         Real rho                = ib_colloid::rho[i_ib];
         Real k_spring           = ib_colloid::k_spring[i_ib];
 
-        Print() << "Initializing colloid:" << std::endl;
+        Print() << "Initializing colloid:"   << std::endl;
         Print() << "N =        " << N        << std::endl;
         Print() << "center =   " << center   << std::endl;
         Print() << "radius =   " << radius   << std::endl;
@@ -402,8 +402,8 @@ void main_driver(const char * argv) {
         for (int i=0; i<np; ++i) {
 
             ParticleType & mark = markers[i];
-            mark.rdata(IBMBReal::pred_forcey) = 10.;
-            mark.rdata(IBMBReal::forcey)      = 10.;
+            mark.rdata(IBMBReal::pred_forcey) = 100.;
+            mark.rdata(IBMBReal::forcey)      = 100.;
         }
     }
 
