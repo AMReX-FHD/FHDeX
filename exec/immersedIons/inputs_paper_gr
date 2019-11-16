@@ -20,7 +20,7 @@
 
   ! Controls for number of steps between actions
   max_step = 100000
-  plot_int = 10
+  plot_int = 10000
   n_steps_skip = -10000
   plot_ascii = 0
   radialdist_int = 1
