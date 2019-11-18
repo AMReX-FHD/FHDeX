@@ -882,6 +882,7 @@ IBMultiBlobContainer::GetParticleDict(int lev, const TileIndex & index) {
 void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
     int total_np = 0;
+    Real max_del = 0;
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
@@ -902,10 +903,16 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
                                                 mark.idata(IBBInt::cpu_0));
 
             ParticleType * target = particle_dict.at(parent);
+            Real mag_del = 0;
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 target->rdata(IBMBReal::dragx + d) -=
                     mark.rdata(IBBReal::forcex + d);
+
+                mag_del += mark.rdata(IBBReal::ref_delx + d)*mark.rdata(IBBReal::ref_delx + d);
             }
+
+            mag_del = std::sqrt(mag_del);
+            max_del = std::max(max_del, mag_del);
         }
 
         total_np += np;
@@ -917,6 +924,12 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
     amrex::Print() << "Total number of markers contributing to drag: "
                    << total_np << std::endl;
+
+    ParallelDescriptor::ReduceRealSum(max_del,
+                                     ParallelDescriptor::IOProcessorNumber());
+
+    amrex::Print() << "Maximum |ref_del| for markers contributing to drag: "
+                   << max_del << std::endl;
 }
 
 
