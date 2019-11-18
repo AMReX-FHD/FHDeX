@@ -37,6 +37,6 @@ program std
 
   print*,'mean',temp1
   print*,'standard deviation',temp2
-  print*,'error bar',temp2/sqrt(dble(npts))
+  print*,'standard error',temp2/sqrt(dble(npts))
 
 end program std
