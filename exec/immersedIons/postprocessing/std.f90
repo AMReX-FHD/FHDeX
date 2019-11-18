@@ -35,6 +35,8 @@ program std
   end do
   temp2 = sqrt(temp2/npts)
 
+  print*,'mean',temp1
   print*,'standard deviation',temp2
+  print*,'error bar',temp2/sqrt(npts)
 
 end program std
