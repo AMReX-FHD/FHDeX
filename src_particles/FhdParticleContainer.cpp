@@ -57,47 +57,54 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     
     if (searchDist > 0.5*domx || searchDist > 0.5*domy || searchDist > 0.5*domz) {
         Abort("searchDist is greater than half the domain length");
-    }        
-
-    // create enough bins to look within a sphere with radius equal to "half" of the domain
-    totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
-
-    Print() << "Bin size for pair correlation function: " << binSize << std::endl;
-    Print() << "Number of pair correlation bins: " << totalBins << std::endl;
-    
-    // storage for mean radial distribution
-    meanRadialDistribution    = new Real[totalBins]();
-    meanRadialDistribution_pp = new Real[totalBins]();
-    meanRadialDistribution_pm = new Real[totalBins]();
-    meanRadialDistribution_mm = new Real[totalBins]();
-        
-    // storage for mean Cartesian distributions
-    meanXDistribution    = new Real[totalBins]();
-    meanXDistribution_pp = new Real[totalBins]();
-    meanXDistribution_pm = new Real[totalBins]();
-    meanXDistribution_mm = new Real[totalBins]();
-    
-    meanYDistribution    = new Real[totalBins]();
-    meanYDistribution_pp = new Real[totalBins]();
-    meanYDistribution_pm = new Real[totalBins]();
-    meanYDistribution_mm = new Real[totalBins]();
-
-    meanZDistribution = new Real[totalBins]();
-    meanZDistribution_pp = new Real[totalBins]();
-    meanZDistribution_pm = new Real[totalBins]();
-    meanZDistribution_mm = new Real[totalBins]();
-
-    // compute the volume of each bin
-    binVolRadial = new Real[totalBins]();
-    for(int i=0;i<totalBins;i++) {
-        binVolRadial[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
     }
 
-    binVolCartesian =  2.*binSize * 2.*searchDist * 2.*searchDist;
+    if (radialdist_int > 0 || cartdist_int > 0) {
 
-    // how many snapshots
-    radialStatsCount = 0;
-    cartesianStatsCount = 0;
+        // create enough bins to look within a sphere with radius equal to "half" of the domain
+        totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
+
+        Print() << "Bin size for pair correlation function: " << binSize << std::endl;
+        Print() << "Number of pair correlation bins: " << totalBins << std::endl;
+    
+        // compute the volume of each bin
+        binVolRadial = new Real[totalBins]();
+        for(int i=0;i<totalBins;i++) {
+            binVolRadial[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
+        }
+
+        binVolCartesian =  2.*binSize * 2.*searchDist * 2.*searchDist;
+
+        // how many snapshots
+        radialStatsCount = 0;
+        cartesianStatsCount = 0;
+    }
+    
+    // storage for mean radial distribution
+    if (radialdist_int > 0) {
+        meanRadialDistribution    = new Real[totalBins]();
+        meanRadialDistribution_pp = new Real[totalBins]();
+        meanRadialDistribution_pm = new Real[totalBins]();
+        meanRadialDistribution_mm = new Real[totalBins]();
+    }
+        
+    // storage for mean Cartesian distributions
+    if (cartdist_int > 0) {
+        meanXDistribution    = new Real[totalBins]();
+        meanXDistribution_pp = new Real[totalBins]();
+        meanXDistribution_pm = new Real[totalBins]();
+        meanXDistribution_mm = new Real[totalBins]();
+    
+        meanYDistribution    = new Real[totalBins]();
+        meanYDistribution_pp = new Real[totalBins]();
+        meanYDistribution_pm = new Real[totalBins]();
+        meanYDistribution_mm = new Real[totalBins]();
+
+        meanZDistribution    = new Real[totalBins]();
+        meanZDistribution_pp = new Real[totalBins]();
+        meanZDistribution_pm = new Real[totalBins]();
+        meanZDistribution_mm = new Real[totalBins]();
+    }
 
     //Remove files that we will be appending to.
     remove("diffusionEst");
