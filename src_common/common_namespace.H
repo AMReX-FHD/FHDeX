@@ -168,6 +168,9 @@ namespace common {
     extern int                        radialdist_int;
     extern int                        cartdist_int;
     extern int                        n_steps_skip;
+    extern amrex::Real                binSize;
+    extern amrex::Real                searchDist;
+    
 
     // projection 
     extern int                        project_dir;

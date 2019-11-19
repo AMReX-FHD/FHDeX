@@ -49,21 +49,16 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // set the bin size equal to 1/4th the average close-range repulsion diameter
-    binSize = 0;
-    for(int i=0;i<nspecies;i++) {
-        binSize += sigma[i];
+    if (radialdist_int > 0 || cartdist_int > 0) {
+        if (binSize == 0. || searchDist == 0.) {
+            Abort("Must set binSize and searchDist if computing g(r)");
+        }
     }
-    binSize = binSize/((double)nspecies*4.0);
-
-    // radial: radius of search
-    // cartesian: distance of search
-    // make sure it doesn't exceed half a domain side length
-    double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,0.5*domx);
-    searchDist = std::min(searchDist,0.5*domy);
-    searchDist = std::min(searchDist,0.5*domz);
     
+    if (searchDist > 0.5*domx || searchDist > 0.5*domy || searchDist > 0.5*domz) {
+        Abort("searchDist is greater than half the domain length");
+    }        
+
     // create enough bins to look within a sphere with radius equal to "half" of the domain
     totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
 
@@ -647,12 +642,6 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // radius of search - make sure it doesn't exceed half a domain side length
-    double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,0.5*domx);
-    searchDist = std::min(searchDist,0.5*domy);
-    searchDist = std::min(searchDist,0.5*domz);
-    
     Real posx[totalParticles];
     Real posy[totalParticles];
     Real posz[totalParticles];
@@ -830,12 +819,6 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // distance of search - make sure it doesn't exceed half a domain side length
-    double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,0.5*domx);
-    searchDist = std::min(searchDist,0.5*domy);
-    searchDist = std::min(searchDist,0.5*domz);
-    
     Real posx[totalParticles];
     Real posy[totalParticles];
     Real posz[totalParticles];

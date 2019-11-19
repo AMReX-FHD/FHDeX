@@ -139,7 +139,7 @@ void InitializeCommonNamespace() {
                                 wallspeed_lo.dataPtr(), wallspeed_hi.dataPtr(),
                                 potential_lo.dataPtr(), potential_hi.dataPtr(),
                                 &struct_fact_int, &radialdist_int, &cartdist_int,
-                                &n_steps_skip,
+                                &n_steps_skip, &binSize, &searchDist,
 				&project_dir, max_grid_projection.dataPtr(),
                                 &histogram_unit,
                                 density_weights.dataPtr(), shift_cc_to_boundary.dataPtr(),

@@ -56,6 +56,7 @@ extern "C"
                                      amrex::Real* potential_lo, amrex::Real* potential_hi,
                                      int* struct_fact_int, int* radialdist_int,
                                      int* cartdist_int, int* n_steps_skip,
+                                     amrex::Real* binSize, amrex::Real* searchDist,
 				     int* project_dir, int* max_grid_projection,
                                      int* histogram_unit, amrex::Real* density_weights,
                                      int* shift_cc_to_boundary,

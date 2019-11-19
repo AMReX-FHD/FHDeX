@@ -102,6 +102,8 @@ int                        common::struct_fact_int;
 int                        common::radialdist_int;
 int                        common::cartdist_int;
 int                        common::n_steps_skip;
+amrex::Real                common::binSize;
+amrex::Real                common::searchDist;
 int                        common::project_dir;
 amrex::Vector<int>         common::max_grid_projection;
 int                        common::histogram_unit;
