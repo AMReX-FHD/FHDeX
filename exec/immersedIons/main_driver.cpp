@@ -928,7 +928,7 @@ void main_driver(const char* argv)
         
 	//_______________________________________________________________________
 	// Update structure factor
-        if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip-1)%struct_fact_int == 0) {
+        if (struct_fact_int > 0 && istep > abs(n_steps_skip) && (istep-abs(n_steps_skip)-1)%struct_fact_int == 0) {
             MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
             structFact.FortStructure(struct_in_cc,geomP);
             // plot structure factor on plot_int
