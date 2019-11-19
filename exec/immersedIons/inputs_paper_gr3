@@ -2,8 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0          ! physical lo coordinate
-  prob_hi(1:3) = 3.2e-6 3.2e-6 3.2e-6 ! physical hi coordinate - 14% wet
-!  prob_hi(1:3) = 0.8e-6 0.8e-6 0.8e-6 ! physical hi coordinate - 56% wet
+  prob_hi(1:3) = 0.8e-6 0.8e-6 0.8e-6 ! physical hi coordinate - 56% wet
     
   n_cells(1:3) = 32 32 32
   ! max number of cells in a box
@@ -26,7 +25,7 @@
   radialdist_int = 1
   cartdist_int = 0
 
-  binsize = 2e-8
+  binsize = 0.5e-8
   searchDist = 4.e-7
 
   ! Toggles 0=off, 1=on
@@ -58,8 +57,7 @@
   ! real particles per simulator particle
   particle_neff = 1
   ! ignore if particle_count is positive
-!  particle_n0 = 6.02e20 6.02e20  ! 1M
-  particle_n0 = 6.02e19 6.02e19  ! 0.1M
+  particle_n0 = 6.02e20 6.02e20  ! 1M
 
   !Species info
   !--------------
