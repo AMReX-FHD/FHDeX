@@ -1595,7 +1595,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 
 
     Real diffTotal = 0;
-    Real tt;
+    Real tt = 0.; // set to zero to protect against grids with no particles
     long nTotal = 0;
     Real sumPosQ[3] = {0,0,0};
 
@@ -1639,6 +1639,9 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 
     ParallelDescriptor::ReduceRealSum(diffTotal);
     ParallelDescriptor::ReduceLongSum(nTotal);
+
+    // protect against grids with no particles
+    ParallelDescriptor::ReduceRealMax(tt);
 
     if(ParallelDescriptor::MyProc() == 0) {
 
