@@ -1262,7 +1262,6 @@ void FhdParticleContainer::EvaluateStats(
 
     double totalMass;
 
-    int cellcount_tile = 0, cellcount_proc = 0;
     RealVector avcurrent_tile(3), avcurrent_proc(3);
     RealVector varcurrent_tile(3), varcurrent_proc(3);
 
@@ -1270,6 +1269,9 @@ void FhdParticleContainer::EvaluateStats(
     std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
     std::fill(varcurrent_tile.begin(), varcurrent_tile.end(), 0.);
     std::fill(varcurrent_proc.begin(), varcurrent_proc.end(), 0.);
+    
+    BoxArray ba = particleMeans.boxArray();
+    long cellcount = ba.numPts();
     
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -1318,24 +1320,17 @@ void FhdParticleContainer::EvaluateStats(
                        BL_TO_FORTRAN_3D(particleMeans[pti]),
                        BL_TO_FORTRAN_3D(particleVars[pti]),
                        BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt,&steps,
-                       &cellcount_tile,avcurrent_tile.dataPtr());
+                       avcurrent_tile.dataPtr());
 
         // gather statistics
-        cellcount_proc += cellcount_tile;
         for (int i=0; i<3; ++i) {
             avcurrent_proc[i] += avcurrent_tile[i];
         }
     }
 
     // gather statistics
-    ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
-
-    // reset cell count
-    cellcount_tile = 0;
-    cellcount_proc = 0;
-    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -1357,30 +1352,28 @@ void FhdParticleContainer::EvaluateStats(
                        BL_TO_FORTRAN_3D(particleMeans[pti]),
                        BL_TO_FORTRAN_3D(particleVars[pti]),
                        BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
-                       &cellcount_tile, varcurrent_tile.dataPtr()
+                       varcurrent_tile.dataPtr()
             );
 
         // gather statistics
-        cellcount_proc += cellcount_tile;
         for (int i=0; i<3; ++i) {
             varcurrent_proc[i] += varcurrent_tile[i];
         }
     }
 
     // gather statistics
-    ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
-
+    
     // write out current mean and variance to file
     if(ParallelDescriptor::MyProc() == 0) {
         std::string filename = "currentEst";
         std::ofstream ofs(filename, std::ofstream::app);
-        ofs << avcurrent_proc[0]/cellcount_proc << "  "
-            << avcurrent_proc[1]/cellcount_proc << "  "
-            << avcurrent_proc[2]/cellcount_proc << "  "
-            << varcurrent_proc[0]/cellcount_proc << "  "
-            << varcurrent_proc[1]/cellcount_proc << "  "
-            << varcurrent_proc[2]/cellcount_proc << "\n";
+        ofs << avcurrent_proc[0]/cellcount << "  "
+            << avcurrent_proc[1]/cellcount << "  "
+            << avcurrent_proc[2]/cellcount << "  "
+            << varcurrent_proc[0]/cellcount << "  "
+            << varcurrent_proc[1]/cellcount << "  "
+            << varcurrent_proc[2]/cellcount << "\n";
         ofs.close();
     }
 

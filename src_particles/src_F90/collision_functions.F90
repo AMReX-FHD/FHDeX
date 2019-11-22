@@ -357,7 +357,7 @@ contains
                              means, mlo, mhi, & 
                              vars, vlo, vhi, & 
                              cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, &
-                             cellcount, avcurrent) bind(c,name='evaluate_means')
+                             avcurrent) bind(c,name='evaluate_means')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -377,7 +377,6 @@ contains
 
     type(particle_t), intent(inout), target :: particles(np)
 
-    integer         , intent(inout) :: cellcount
     double precision, intent(inout) :: avcurrent(1:3)
 
     !double precision fac1, fac2, fac3, test, pairfrac
@@ -442,7 +441,6 @@ contains
     enddo
 
     avcurrent = 0
-    cellcount = 0
 
     do k = mlo(3), mhi(3)
       do j = mlo(2), mhi(2)
@@ -450,17 +448,10 @@ contains
            avcurrent(1) = avcurrent(1) + means(i,j,k,12)
            avcurrent(2) = avcurrent(2) + means(i,j,k,13)
            avcurrent(3) = avcurrent(3) + means(i,j,k,14)
-           cellcount = cellcount +1
         enddo
       enddo
     enddo
 
-    ! print out statistics
-    if (.false.) then
-       print *, "For grid/tile",lo,hi
-       print *, "Current density mean: ", avcurrent/cellcount
-    end if
-        
   end subroutine evaluate_means
 
   subroutine evaluate_corrs(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
@@ -468,7 +459,7 @@ contains
                             means, mlo, mhi, & 
                             vars, vlo, vhi, & 
                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, &
-                            cellcount, varcurrent) bind(c,name='evaluate_corrs')
+                            varcurrent) bind(c,name='evaluate_corrs')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
@@ -488,7 +479,6 @@ contains
 
     type(particle_t), intent(inout), target :: particles(np)
 
-    integer         , intent(inout) :: cellcount
     double precision, intent(inout) :: varcurrent(1:3)
 
     !Go through this and optimise later
@@ -572,7 +562,6 @@ contains
     enddo
 
     varcurrent = 0
-    cellcount = 0
 
     do k = vlo(3), vhi(3)
       do j = vlo(2), vhi(2)
@@ -580,16 +569,9 @@ contains
             varcurrent(1) = varcurrent(1) + vars(i,j,k,16)
             varcurrent(2) = varcurrent(2) + vars(i,j,k,17)
             varcurrent(3) = varcurrent(3) + vars(i,j,k,18)
-            cellcount = cellcount +1
          enddo
       enddo
     enddo
-
-    ! print out statistics
-    if (.false.) then
-       print *, "For grid/tile",lo,hi
-       print *, "Current density variance: ", varcurrent/cellcount
-    end if
 
   end subroutine evaluate_corrs
 
