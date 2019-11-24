@@ -248,21 +248,6 @@ contains
       do j = lo(2), hi(2)
         do i = lo(1), hi(1)
 
-          instant(i,j,k,1) = 0;
-          instant(i,j,k,2) = 0;
-          instant(i,j,k,3) = 0;
-          instant(i,j,k,4) = 0;
-          instant(i,j,k,5) = 0;
-          instant(i,j,k,6) = 0;
-          instant(i,j,k,7) = 0;
-          instant(i,j,k,8) = 0;
-          instant(i,j,k,9) = 0;
-          instant(i,j,k,10) = 0;
-          instant(i,j,k,11) = 0;
-          instant(i,j,k,12) = 0;
-          instant(i,j,k,13) = 0;
-          instant(i,j,k,14) = 0;
-
           cell_np = cell_part_cnt(i,j,k)
           call c_f_pointer(cell_part_ids(i,j,k), cell_parts, [cell_np])
 
@@ -277,7 +262,7 @@ contains
           do p = 1, cell_np
 
             part => particles(cell_parts(p))
-
+            
             instant(i,j,k,2) = instant(i,j,k,2) + part%mass
 
             instant(i,j,k,3) = instant(i,j,k,3) + part%vel(1)
@@ -309,7 +294,6 @@ contains
           enddo
 
           instant(i,j,k,2) = instant(i,j,k,2)*neff/cellvols(i,j,k)
-
    
           instant(i,j,k,3) = instant(i,j,k,3)*membersinv
           instant(i,j,k,4) = instant(i,j,k,4)*membersinv
@@ -319,14 +303,11 @@ contains
           instant(i,j,k,13) = instant(i,j,k,13)*neff/cellvols(i,j,k)
           instant(i,j,k,14) = instant(i,j,k,14)*neff/cellvols(i,j,k)
 
-
           instant(i,j,k,7) = instant(i,j,k,7)*neff/cellvols(i,j,k)
           instant(i,j,k,8) = instant(i,j,k,8)*neff/cellvols(i,j,k)
           instant(i,j,k,9) = instant(i,j,k,9)*neff/cellvols(i,j,k)
 
           instant(i,j,k,10) = instant(i,j,k,10)*neff/cellvols(i,j,k)
-
-          !print *, density(i,j,k)
 
           rmean = 0
 
@@ -336,12 +317,14 @@ contains
 
             rmean = rmean + part%R
 
-            instant(i,j,k,6) = instant(i,j,k,6) + (1d0/part%R)*( (instant(i,j,k,3)-part%vel(1))**2 + (instant(i,j,k,4)-part%vel(2))**2 + (instant(i,j,k,5)-part%vel(3))**2 )
+            instant(i,j,k,6) = instant(i,j,k,6) + &
+                 (1d0/part%R)*( (instant(i,j,k,3)-part%vel(1))**2 &
+                               +(instant(i,j,k,4)-part%vel(2))**2 &
+                               +(instant(i,j,k,5)-part%vel(3))**2 )
 
           enddo
 
           instant(i,j,k,6) = instant(i,j,k,6)*membersinv*0.33333333333333333
-
 
           instant(i,j,k,11) = instant(i,j,k,2)*rmean*instant(i,j,k,5)
 
@@ -351,31 +334,26 @@ contains
 
   end subroutine evaluate_fields
 
-  subroutine evaluate_means(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-
-                             instant, ilo, ihi, &
-                             means, mlo, mhi, & 
-                             vars, vlo, vhi, & 
-                             cellvols, cvlo, cvhi, np, neff, n0, T0,delt, steps, &
-                             avcurrent) bind(c,name='evaluate_means')
+  subroutine evaluate_means(lo, hi, &
+                            instant, ilo, ihi, &
+                            means, mlo, mhi, & 
+                            vars, vlo, vhi, & 
+                            cellvols, cvlo, cvhi, &
+                            n0, T0, delt, steps, &
+                            avcurrent) bind(c,name='evaluate_means')
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
 
     implicit none
 
-    integer,          intent(in      ) :: np, steps, lo(3), hi(3), clo(3), chi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), mlo(3), mhi(3), vlo(3), vhi(3)
-    double precision, intent(in      ) :: neff, delt, n0, T0
+    integer,          intent(in      ) :: steps, lo(3), hi(3), cvlo(3), cvhi(3), ilo(3), ihi(3), mlo(3), mhi(3), vlo(3), vhi(3)
+    double precision, intent(in      ) :: delt, n0, T0
 
     double precision, intent(inout   ) :: cellvols(cvlo(1):cvhi(1),cvlo(2):cvhi(2),cvlo(3):cvhi(3))
     double precision, intent(inout   ) :: instant(ilo(1):ihi(1),ilo(2):ihi(2),ilo(3):ihi(3),14)
     double precision, intent(inout   ) :: means(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),14)
     double precision, intent(inout   ) :: vars(vlo(1):vhi(1),vlo(2):vhi(2),vlo(3):vhi(3),18)
-
-    type(c_ptr), intent(inout)      :: cell_part_ids(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-    integer(c_int), intent(inout)   :: cell_part_cnt(clo(1):chi(1), clo(2):chi(2), clo(3):chi(3))
-
-    type(particle_t), intent(inout), target :: particles(np)
 
     double precision, intent(inout) :: avcurrent(1:3)
 
@@ -386,7 +364,7 @@ contains
     stepsminusone = steps - 1
     stepsinv = 1d0/steps
 
-    cvinv = 2.0/(3.0*particles(1)%R)
+    cvinv = 2.0/(3.0)
     cv = 1.0/cvinv
 
     do k = mlo(3), mhi(3)
@@ -434,7 +412,7 @@ contains
 
           means(i,j,k,1) = (means(i,j,k,1)*stepsminusone + means(i,j,k,1))*stepsinv !members
 
-          means(i,j,k,11) = particles(1)%R*cvinv*(means(i,j,k,10) -0.5*densitymeaninv*(means(i,j,k,7)*means(i,j,k,7) + means(i,j,k,8)*means(i,j,k,8) + means(i,j,k,9)*means(i,j,k,9))  ) !pressure - wrong for multispec
+          means(i,j,k,11) = cvinv*(means(i,j,k,10) -0.5*densitymeaninv*(means(i,j,k,7)*means(i,j,k,7) + means(i,j,k,8)*means(i,j,k,8) + means(i,j,k,9)*means(i,j,k,9))  ) !pressure - wrong for multispec
 
         enddo
       enddo
@@ -635,7 +613,7 @@ contains
           do p = 1, cell_np
 
             part => particles(cell_parts(p))
-
+            
             instant(i,j,k,3) = instant(i,j,k,3) + part%vel(1)
             instant(i,j,k,4) = instant(i,j,k,4) + part%vel(2)
             instant(i,j,k,5) = instant(i,j,k,5) + part%vel(3)

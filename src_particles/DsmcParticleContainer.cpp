@@ -266,27 +266,18 @@ void DsmcParticleContainer::EvaluateStats(MultiFab& particleInstant,
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np);
     }
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+    // FIXME - tiling doesn't work
+    for (MFIter mfi(particleInstant,false); mfi.isValid(); ++mfi ) {
         
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
+        const Box& tile_box  = mfi.tilebox();
 
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-        evaluate_means(parts.data(),
-                       ARLIM_3D(tile_box.loVect()),
+        evaluate_means(ARLIM_3D(tile_box.loVect()),
                        ARLIM_3D(tile_box.hiVect()),
-                       m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),
-                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
-                       BL_TO_FORTRAN_3D(particleInstant[pti]),
-                       BL_TO_FORTRAN_3D(particleMeans[pti]),
-                       BL_TO_FORTRAN_3D(particleVars[pti]),
-                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
+                       BL_TO_FORTRAN_3D(particleInstant[mfi]),
+                       BL_TO_FORTRAN_3D(particleMeans[mfi]),
+                       BL_TO_FORTRAN_3D(particleVars[mfi]),
+                       BL_TO_FORTRAN_3D(cellVols[mfi]),
+                       &n0,&T0,&delt,&steps,
                        avcurrent_tile.dataPtr());
 
         // gather statistics
