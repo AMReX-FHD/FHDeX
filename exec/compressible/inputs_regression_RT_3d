@@ -22,6 +22,11 @@
   plot_int = 3
   plot_base_name = "RT_3d_plt"
 
+  ! random number seed
+  ! 0        = unpredictable seed based on clock
+  ! positive = fixed seed
+  seed = 1
+
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
   ! if algorithm_type = 2, multispecies
