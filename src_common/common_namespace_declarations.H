@@ -102,6 +102,8 @@ int                        common::struct_fact_int;
 int                        common::radialdist_int;
 int                        common::cartdist_int;
 int                        common::n_steps_skip;
+amrex::Real                common::binSize;
+amrex::Real                common::searchDist;
 int                        common::project_dir;
 amrex::Vector<int>         common::max_grid_projection;
 int                        common::histogram_unit;
@@ -126,7 +128,7 @@ int                        common::poisson_bottom_verbose;
 int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
-amrex::Real                common::permitivitty;
+amrex::Real                common::permittivity;
 amrex::Real                common::cut_off;
 amrex::Real                common::rmin;
 

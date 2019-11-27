@@ -378,7 +378,7 @@ void main_driver(const char * argv) {
         Real rho                = ib_colloid::rho[i_ib];
         Real k_spring           = ib_colloid::k_spring[i_ib];
 
-        Print() << "Initializing colloid:" << std::endl;
+        Print() << "Initializing colloid:"   << std::endl;
         Print() << "N =        " << N        << std::endl;
         Print() << "center =   " << center   << std::endl;
         Print() << "radius =   " << radius   << std::endl;
@@ -386,10 +386,27 @@ void main_driver(const char * argv) {
         Print() << "k_spring = " << k_spring << std::endl;
 
         ib_mbc.InitSingle(0, center, radius, rho, N, k_spring);
-
     }
 
     ib_mbc.FillMarkerPositions(0);
+
+
+    for (IBMBIter pti(ib_mbc, 0); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
+        IBMultiBlobContainer::AoS & markers =
+            ib_mbc.GetParticles(0).at(index).GetArrayOfStructs();
+        long np = markers.size();
+
+        for (int i=0; i<np; ++i) {
+
+            ParticleType & mark = markers[i];
+            mark.rdata(IBMBReal::pred_forcey) = 100.;
+            mark.rdata(IBMBReal::forcey)      = 100.;
+        }
+    }
+
 
 
     ib_mbc.clearNeighbors();

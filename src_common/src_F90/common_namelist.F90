@@ -121,6 +121,8 @@ module common_namelist_module
   integer,            save :: radialdist_int
   integer,            save :: cartdist_int
   integer,            save :: n_steps_skip
+  double precision,   save :: binsize
+  double precision,   save :: searchdist
 
   integer,            save :: project_dir
   integer,            save :: max_grid_projection(AMREX_SPACEDIM-1)
@@ -129,7 +131,7 @@ module common_namelist_module
   double precision,   save :: density_weights(MAX_SPECIES)
   integer,            save :: shift_cc_to_boundary(AMREX_SPACEDIM,LOHI)
 
-  double precision,   save :: permitivitty
+  double precision,   save :: permittivity
   double precision,   save :: cut_off
   double precision,   save :: rmin
   double precision,   save :: eepsilon(MAX_SPECIES)
@@ -312,6 +314,8 @@ module common_namelist_module
   namelist /common/ radialdist_int
   namelist /common/ cartdist_int
   namelist /common/ n_steps_skip
+  namelist /common/ binsize
+  namelist /common/ searchdist
 
   ! projection
   namelist /common/ project_dir
@@ -322,7 +326,7 @@ module common_namelist_module
   namelist /common/ density_weights
   namelist /common/ shift_cc_to_boundary
 
-  namelist /common/ permitivitty
+  namelist /common/ permittivity
   namelist /common/ cut_off
   namelist /common/ rmin
   namelist /common/ eepsilon
@@ -458,6 +462,8 @@ contains
     radialdist_int = 0
     cartdist_int = 0
     n_steps_skip = 0
+    binsize = 0.
+    searchDist = 0.
     project_dir = -1
     max_grid_projection(:) = 1
     histogram_unit = 0
@@ -528,12 +534,13 @@ contains
                                          potential_lo_in, potential_hi_in, &
                                          struct_fact_int_in, radialdist_int_in, &
                                          cartdist_int_in, n_steps_skip_in, &
+                                         binsize_in, searchdist_in, &
                                          project_dir_in, max_grid_projection_in, &
                                          histogram_unit_in, density_weights_in, &
                                          shift_cc_to_boundary_in, &
                                          particle_placement_in, particle_count_in, p_move_tog_in, &
                                          p_force_tog_in, p_int_tog_in, particle_neff_in,&
-                                         particle_n0_in, mass_in, nfrac_in, permitivitty_in, &
+                                         particle_n0_in, mass_in, nfrac_in, permittivity_in, &
                                          cut_off_in, rmin_in, eepsilon_in, sigma_in, poisson_verbose_in, &
                                          poisson_bottom_verbose_in, poisson_max_iter_in, poisson_rel_tol_in, &
                                          particle_grid_refine_in, es_grid_refine_in, diff_in, all_dry_in, &
@@ -647,6 +654,8 @@ contains
     integer,                intent(inout) :: radialdist_int_in
     integer,                intent(inout) :: cartdist_int_in
     integer,                intent(inout) :: n_steps_skip_in
+    double precision,       intent(inout) :: binsize_in
+    double precision,       intent(inout) :: searchdist_in
     integer,                intent(inout) :: project_dir_in
     integer,                intent(inout) :: max_grid_projection_in(AMREX_SPACEDIM-1)
     integer,                intent(inout) :: histogram_unit_in
@@ -655,7 +664,7 @@ contains
 
     double precision,       intent(inout) :: eepsilon_in(MAX_SPECIES)
     double precision,       intent(inout) :: sigma_in(MAX_SPECIES)
-    double precision,       intent(inout) :: permitivitty_in
+    double precision,       intent(inout) :: permittivity_in
     double precision,       intent(inout) :: cut_off_in
     double precision,       intent(inout) :: rmin_in
     double precision,       intent(inout) :: poisson_rel_tol_in
@@ -782,6 +791,8 @@ contains
     radialdist_int_in = radialdist_int
     cartdist_int_in = cartdist_int
     n_steps_skip_in = n_steps_skip
+    binsize_in = binsize
+    searchdist_in = searchdist
     project_dir_in = project_dir
     max_grid_projection_in = max_grid_projection
     histogram_unit_in = histogram_unit
@@ -802,7 +813,7 @@ contains
     poisson_bottom_verbose_in = poisson_bottom_verbose
     poisson_max_iter_in = poisson_max_iter
     poisson_rel_tol_in = poisson_rel_tol
-    permitivitty_in = permitivitty
+    permittivity_in = permittivity
     cut_off_in = cut_off
     rmin_in = rmin
     eepsilon_in = eepsilon

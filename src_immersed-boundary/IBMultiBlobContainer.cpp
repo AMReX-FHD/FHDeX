@@ -154,6 +154,7 @@ void BlobContainer::InitSingle(int lev, Real radius, Real k_spring,
 }
 
 
+
 void BlobContainer::MovePredictor(int lev, Real dt) {
 
     // MovePredictor preseves the property that `pred_pos[x,y,z]` is a
@@ -184,6 +185,7 @@ void BlobContainer::MovePredictor(int lev, Real dt) {
 
     IBMarkerContainerBase<IBBReal, IBBInt>::MovePredictor(lev, dt);
 }
+
 
 
 void BlobContainer::MoveMarkers(int lev, Real dt) {
@@ -412,6 +414,10 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r,
                 p_new.rdata(IBMBReal::velx + d)   = 0.;
                 p_new.rdata(IBMBReal::omegax + d) = 0.;
                 p_new.rdata(IBMBReal::dragx + d)  = 0.;
+
+                // Initialize external forcing
+                p_new.rdata(IBMBReal::pred_forcex + d) = 0.;
+                p_new.rdata(IBMBReal::forcex + d)      = 0.;
             }
 
             // Physical radius of multiblob
@@ -433,7 +439,7 @@ void IBMultiBlobContainer::InitSingle(int lev, const RealVect & pos, Real r,
         total_np += np;
     }
 
-    // ParallelDescriptor::ReduceIntSum(total_np,ParallelDescriptor::IOProcessorNumber());
+    // ParallelDescriptor::ReduceIntSum(total_np, ParallelDescriptor::IOProcessorNumber());
     // amrex::Print() << "Total number of generated particles: " << total_np << std::endl;
 
     // We shouldn't need this if the particles are tiled with one tile per
@@ -456,13 +462,14 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev) {
      *                                                                          *
      ***************************************************************************/
 
+    int total_np = 0;
 
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
     for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
 
-        PairIndex index(pti.index(), pti.LocalTileIndex());
+        TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
         long np = particles.size();
@@ -522,8 +529,17 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev) {
                                       part.cpu(), i);
                 }
             }
+
+            total_np += n_marker;
         }
     }
+
+
+    ParallelDescriptor::ReduceIntSum(total_np,
+                                     ParallelDescriptor::IOProcessorNumber());
+
+    amrex::Print() << "Total number of generated markers: "
+                   << total_np << std::endl;
 
     //___________________________________________________________________________
     // Redistribute markers to correct tiles
@@ -605,84 +621,256 @@ void IBMultiBlobContainer::InterpolatePredictor(int lev,
 
 
 void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
+
+    //___________________________________________________________________________
+    // First update marker position using `vel[x,y,z]
+
     markers.MoveMarkers(lev, dt);
+
+
+    //___________________________________________________________________________
+    // Now update ref_del[x,y,z] according to blob COM velocity
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::ref_delx + d) -=
+                    dt * blob->rdata(IBMBReal::velx + d);
+            }
+        }
+    }
 }
 
 
 
 void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
+
+    //___________________________________________________________________________
+    // First update marker predictor position using `vel[x,y,z]
+
     markers.MovePredictor(lev, dt);
+
+
+    //___________________________________________________________________________
+    // Now update pred_pos[x,y,z] according to blob COM velocity
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_posx + d) -=
+                    dt * blob->rdata(IBMBReal::velx + d);
+            }
+        }
+    }
 }
 
 
 
+void IBMultiBlobContainer::RedistributeMarkers() {
+    markers.Redistribute();
+}
+
+
+
+
 void IBMultiBlobContainer::PredictorForces(int lev) {
+
     markers.PredictorForces(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_forcex + d) +=
+                    blob->rdata(IBMBReal::pred_forcex + d)/blob->idata(IBMBInt::n_marker);
+            }
+        }
+    }
 }
 
 
 
 void IBMultiBlobContainer::PredictorForces(int lev, Real k) {
+
     markers.PredictorForces(lev, k);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::pred_forcex + d) +=
+                    blob->rdata(IBMBReal::pred_forcex + d)/blob->idata(IBMBInt::n_marker);
+            }
+        }
+    }
+
 }
 
 
 
 void IBMultiBlobContainer::MarkerForces(int lev, Real k) {
+
     markers.MarkerForces(lev, k);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::forcex + d) +=
+                    blob->rdata(IBMBReal::forcex + d)/blob->idata(IBMBInt::n_marker);
+            }
+        }
+    }
 }
 
 
 
 void IBMultiBlobContainer::MarkerForces(int lev) {
+
     markers.MarkerForces(lev);
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::forcex + d) +=
+                    blob->rdata(IBMBReal::forcex + d)/blob->idata(IBMBInt::n_marker);
+            }
+        }
+    }
 }
 
 
 
 std::map<IBMultiBlobContainer::MarkerIndex, IBMultiBlobContainer::ParticleType *>
-IBMultiBlobContainer::GetParticleDict(int lev) {
+IBMultiBlobContainer::GetParticleDict(int lev, const TileIndex & index) {
 
     std::map<MarkerIndex, ParticleType *> particle_dict;
 
-    // ParIter skips tiles without particles => Iterate over MultiFab instead
-    // of ParticleIter. Note also that AmrexParticleContainer uses strange
-    // tiling => don't turn off tiling (particles are stored in tile)
-    for(MFIter pti = this->MakeMFIter(lev, true); pti.isValid(); ++pti) {
+    ParticleVector & nbhd_data = GetNeighbors(lev, index.first, index.second);
+    long nn = nbhd_data.size();
+    for (int j=0; j<nn; ++j) {
 
-        TileIndex index(pti.index(), pti.LocalTileIndex());
-        auto & particle_data = this->GetParticles(lev).at(index);
-        long np = particle_data.size();
+        ParticleType & part = nbhd_data[j];
 
-        AoS & particles = particle_data.GetArrayOfStructs();
-        for (int i = 0; i < np; ++i) {
-            ParticleType & part = particles[i];
+        MarkerIndex parent = std::make_pair(part.id(), part.cpu());
 
-            MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+        // check if already in ParticleDict NOTE: c++20 has contains()
+        auto search = particle_dict.find(parent);
+        particle_dict[parent] = & part;
+    }
 
-            // check if already in ParticleDict NOTE: c++20 has contains()
-            auto search = particle_dict.find(parent);
-            // if not in map, add pointer
-            if (search == particle_dict.end()) particle_dict[parent] = & part;
-        }
 
-        // Now do the same of the neighbor data
-        ParticleVector & nbhd_data = GetNeighbors(lev, index.first, index.second);
-        long nn = nbhd_data.size();
-        for (int j=0; j<nn; ++j) {
+    auto & particle_data = this->GetParticles(lev).at(index);
+    long np = particle_data.size();
 
-            ParticleType & part = nbhd_data[j];
+    AoS & particles = particle_data.GetArrayOfStructs();
+    for (int i = 0; i < np; ++i) {
+        ParticleType & part = particles[i];
 
-            MarkerIndex parent = std::make_pair(part.id(), part.cpu());
+        MarkerIndex parent = std::make_pair(part.id(), part.cpu());
 
-            // check if already in ParticleDict NOTE: c++20 has contains()
-            auto search = particle_dict.find(parent);
-            // if not in map, add pointer
-            if (search == particle_dict.end()) particle_dict[parent] = & part;
-            // DON'T check if already in list (neighbors can appear multiple
-            // times). Also don't overwrite REAL particle data with neighbor
-            // data, that would just lead to too much copying of data.
-        }
+        // Overwrite neighbor data with "real" particle data => don't check
+        // if (ID, CPU) is already in dict
+        particle_dict[parent] = & part;
     }
 
     return particle_dict;
@@ -690,14 +878,18 @@ IBMultiBlobContainer::GetParticleDict(int lev) {
 
 
 
+
 void IBMultiBlobContainer::AccumulateDrag(int lev) {
 
-    std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev);
+    int total_np = 0;
+    Real max_del = 0;
 
     for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
 
-        // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
         long np = marker_data.size();
@@ -711,9 +903,81 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
                                                 mark.idata(IBBInt::cpu_0));
 
             ParticleType * target = particle_dict.at(parent);
+            Real mag_del = 0;
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
                 target->rdata(IBMBReal::dragx + d) -=
                     mark.rdata(IBBReal::forcex + d);
+
+                mag_del += mark.rdata(IBBReal::ref_delx + d)*mark.rdata(IBBReal::ref_delx + d);
+            }
+
+            mag_del = std::sqrt(mag_del);
+            max_del = std::max(max_del, mag_del);
+        }
+
+        total_np += np;
+    }
+
+
+    ParallelDescriptor::ReduceIntSum(total_np,
+                                     ParallelDescriptor::IOProcessorNumber());
+
+    amrex::Print() << "Total number of markers contributing to drag: "
+                   << total_np << std::endl;
+
+    ParallelDescriptor::ReduceRealSum(max_del,
+                                     ParallelDescriptor::IOProcessorNumber());
+
+    amrex::Print() << "Maximum |ref_del| for markers contributing to drag: "
+                   << max_del << std::endl;
+}
+
+
+
+void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
+
+    for (IBMBIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        for (int i = 0; i < np; ++ i) {
+            ParticleType & part = particles[i];
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                part.rdata(IBMBReal::velx + d) +=
+                    dt *( part.rdata(IBMBReal::dragx + d) +
+                          part.rdata(IBMBReal::forcex + d)  );
+                part.pos(d) += dt * part.rdata(IBMBReal::velx + d);
+            }
+        }
+    }
+
+
+    for (BlobIter pti(markers, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
+
+        BlobContainer::AoS & marker_data =
+            markers.GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = marker_data.size();
+
+        // m_index.second is used to keep track of the neighbor list
+        // currently we don't use the neighbor list, but we might in future
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            BlobContainer::ParticleType & mark = marker_data[m_index.first];
+            MarkerIndex parent = std::make_pair(mark.idata(IBBInt::id_0),
+                                                mark.idata(IBBInt::cpu_0));
+
+            ParticleType * blob = particle_dict.at(parent);
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                mark.rdata(IBBReal::ref_delx + d) -=
+                    dt*blob->rdata(IBMBReal::velx + d);
             }
         }
     }

@@ -854,16 +854,17 @@ void main_driver(const char* argv)
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
                                surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-            if((n_steps_skip > 0 && istep == n_steps_skip) ||
-            (n_steps_skip < 0 && istep%n_steps_skip == 0) )
-            {
+
+            // reset statistics after step n_steps_skip
+            // if n_steps_skip is negative, we use it as an interval
+            if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+                (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
+
                 particles.MeanSqrCalc(0, 1);
-            }else
-            {
+            }
+            else {
                 particles.MeanSqrCalc(0, 0);
             }
-
-            //particles.MeanSqrCalc(0, 0);
 
             particles.Redistribute();
             particles.ReBin();
@@ -889,7 +890,7 @@ void main_driver(const char* argv)
         }
 
         // g(r)
-        if(radialdist_int>0 && step%radialdist_int == 0) {
+        if(radialdist_int>0 && istep%radialdist_int == 0) {
             
             // timer
             Real time_PC1 = ParallelDescriptor::second();
@@ -904,7 +905,7 @@ void main_driver(const char* argv)
         }
 
         // g(x), g(y), g(z)
-        if(cartdist_int>0 && step%cartdist_int == 0) {
+        if(cartdist_int>0 && istep%cartdist_int == 0) {
 
             // timer
             Real time_PC1 = ParallelDescriptor::second();
@@ -928,7 +929,7 @@ void main_driver(const char* argv)
         
 	//_______________________________________________________________________
 	// Update structure factor
-        if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip-1)%struct_fact_int == 0) {
+        if (struct_fact_int > 0 && istep > abs(n_steps_skip) && (istep-abs(n_steps_skip)-1)%struct_fact_int == 0) {
             MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
             structFact.FortStructure(struct_in_cc,geomP);
             // plot structure factor on plot_int

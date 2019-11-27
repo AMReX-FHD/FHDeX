@@ -233,9 +233,11 @@ void DsmcParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
     double totalMass;
 
-    int cellcount_tile = 0, cellcount_proc = 0;
     RealVector avcurrent_tile(3), avcurrent_proc(3);
     RealVector varcurrent_tile(3), varcurrent_proc(3);
+    
+    BoxArray ba = particleMeans.boxArray();
+    long cellcount = ba.numPts();
 
     std::fill(avcurrent_tile.begin(), avcurrent_tile.end(), 0.);
     std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
@@ -264,50 +266,35 @@ void DsmcParticleContainer::EvaluateStats(MultiFab& particleInstant,
                          BL_TO_FORTRAN_3D(cellVols[pti]),&Neff, &Np);
     }
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) {
+    // FIXME - tiling doesn't work
+    for (MFIter mfi(particleInstant,false); mfi.isValid(); ++mfi ) {
         
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
+        const Box& tile_box  = mfi.tilebox();
 
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-        evaluate_means(parts.data(),
-                       ARLIM_3D(tile_box.loVect()),
+        evaluate_means(ARLIM_3D(tile_box.loVect()),
                        ARLIM_3D(tile_box.hiVect()),
-                       m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),
-                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
-                       BL_TO_FORTRAN_3D(particleInstant[pti]),
-                       BL_TO_FORTRAN_3D(particleMeans[pti]),
-                       BL_TO_FORTRAN_3D(particleVars[pti]),
-                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
-                       &cellcount_tile,avcurrent_tile.dataPtr());
+                       BL_TO_FORTRAN_3D(particleInstant[mfi]),
+                       BL_TO_FORTRAN_3D(particleMeans[mfi]),
+                       BL_TO_FORTRAN_3D(particleVars[mfi]),
+                       BL_TO_FORTRAN_3D(cellVols[mfi]),
+                       &n0,&T0,&delt,&steps,
+                       avcurrent_tile.dataPtr());
 
         // gather statistics
-        cellcount_proc += cellcount_tile;
         for (int i=0; i<3; ++i) {
             avcurrent_proc[i] += avcurrent_tile[i];
         }
     }
 
     // gather statistics
-    ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
     // print statistics
     Print() << "Current density mean: "
-            << avcurrent_proc[0]/cellcount_proc << "  "
-            << avcurrent_proc[1]/cellcount_proc << "  "
-            << avcurrent_proc[2]/cellcount_proc << "\n";
+            << avcurrent_proc[0]/cellcount << "  "
+            << avcurrent_proc[1]/cellcount << "  "
+            << avcurrent_proc[2]/cellcount << "\n";
 
-    // reset cell count
-    cellcount_tile = 0;
-    cellcount_proc = 0;
-    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -329,25 +316,23 @@ void DsmcParticleContainer::EvaluateStats(MultiFab& particleInstant,
                        BL_TO_FORTRAN_3D(particleMeans[pti]),
                        BL_TO_FORTRAN_3D(particleVars[pti]),
                        BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
-                       &cellcount_tile, varcurrent_tile.dataPtr()
+                       varcurrent_tile.dataPtr()
             );
 
         // gather statistics
-        cellcount_proc += cellcount_tile;
         for (int i=0; i<3; ++i) {
             varcurrent_proc[i] += varcurrent_tile[i];
         }
     }
 
     // gather statistics
-    ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
 
     // print statistics
     Print() << "Current density variance: "
-            << varcurrent_proc[0]/cellcount_proc << "  "
-            << varcurrent_proc[1]/cellcount_proc << "  "
-            << varcurrent_proc[2]/cellcount_proc << "\n";
+            << varcurrent_proc[0]/cellcount << "  "
+            << varcurrent_proc[1]/cellcount << "  "
+            << varcurrent_proc[2]/cellcount << "\n";
 }
 
 void DsmcParticleContainer::WriteParticlesAscii(std::string asciiName)

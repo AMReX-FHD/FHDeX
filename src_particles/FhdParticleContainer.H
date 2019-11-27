@@ -268,7 +268,6 @@ public:
     static bool sort_neighbor_list;
 
     int totalBins;
-    Real binSize;
 
     Real *meanRadialDistribution   ;
     Real *meanRadialDistribution_pp;

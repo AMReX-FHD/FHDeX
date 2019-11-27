@@ -105,12 +105,12 @@ void main_driver(const char* argv)
 
     // NOTE: only fhdSeed is used currently
         // zero is a clock-based seed
-    int fhdSeed      = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed    = 0;
-    int phiSeed      = 0;
-    int generalSeed  = 0;
+    int fhdSeed      = seed;
+    int particleSeed = seed;
+    int selectorSeed = seed;
+    int thetaSeed    = seed;
+    int phiSeed      = seed;
+    int generalSeed  = seed;
 
     // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
     // this should be fixed so each physical process has its own seed control
@@ -484,6 +484,12 @@ void main_driver(const char* argv)
 
     // Write initial plotfile
     conservedToPrimitive(prim, cu);
+
+    // Set BC: 1) fill boundary 2) physical
+    cu.FillBoundary(geom.periodicity());
+    prim.FillBoundary(geom.periodicity());
+    setBC(prim, cu);
+    
     if (plot_int > 0) {
 	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, eta, kappa);

@@ -49,64 +49,67 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // set the bin size equal to 1/4th the average close-range repulsion diameter
-    binSize = 0;
-    for(int i=0;i<nspecies;i++) {
-        binSize += sigma[i];
+    if (radialdist_int > 0 || cartdist_int > 0) {
+        if (binSize == 0. || searchDist == 0.) {
+            Abort("Must set binSize and searchDist if computing g(r)");
+        }
     }
-    binSize = binSize/((double)nspecies*4.0);
-
-    // radial: radius of search
-    // cartesian: distance of search
-    // make sure it doesn't exceed half a domain side length
-    double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,0.5*domx);
-    searchDist = std::min(searchDist,0.5*domy);
-    searchDist = std::min(searchDist,0.5*domz);
     
-    // create enough bins to look within a sphere with radius equal to "half" of the domain
-    totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
+    if (searchDist > 0.5*domx || searchDist > 0.5*domy || searchDist > 0.5*domz) {
+        Abort("searchDist is greater than half the domain length");
+    }
 
-    Print() << "Bin size for pair correlation function: " << binSize << std::endl;
-    Print() << "Number of pair correlation bins: " << totalBins << std::endl;
+    if (radialdist_int > 0 || cartdist_int > 0) {
+
+        // create enough bins to look within a sphere with radius equal to "half" of the domain
+        totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
+
+        Print() << "Bin size for pair correlation function: " << binSize << std::endl;
+        Print() << "Number of pair correlation bins: " << totalBins << std::endl;
+    
+        // compute the volume of each bin
+        binVolRadial = new Real[totalBins]();
+        for(int i=0;i<totalBins;i++) {
+            binVolRadial[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
+        }
+
+        binVolCartesian =  2.*binSize * 2.*searchDist * 2.*searchDist;
+
+        // how many snapshots
+        radialStatsCount = 0;
+        cartesianStatsCount = 0;
+    }
     
     // storage for mean radial distribution
-    meanRadialDistribution    = new Real[totalBins]();
-    meanRadialDistribution_pp = new Real[totalBins]();
-    meanRadialDistribution_pm = new Real[totalBins]();
-    meanRadialDistribution_mm = new Real[totalBins]();
+    if (radialdist_int > 0) {
+        meanRadialDistribution    = new Real[totalBins]();
+        meanRadialDistribution_pp = new Real[totalBins]();
+        meanRadialDistribution_pm = new Real[totalBins]();
+        meanRadialDistribution_mm = new Real[totalBins]();
+    }
         
     // storage for mean Cartesian distributions
-    meanXDistribution    = new Real[totalBins]();
-    meanXDistribution_pp = new Real[totalBins]();
-    meanXDistribution_pm = new Real[totalBins]();
-    meanXDistribution_mm = new Real[totalBins]();
+    if (cartdist_int > 0) {
+        meanXDistribution    = new Real[totalBins]();
+        meanXDistribution_pp = new Real[totalBins]();
+        meanXDistribution_pm = new Real[totalBins]();
+        meanXDistribution_mm = new Real[totalBins]();
     
-    meanYDistribution    = new Real[totalBins]();
-    meanYDistribution_pp = new Real[totalBins]();
-    meanYDistribution_pm = new Real[totalBins]();
-    meanYDistribution_mm = new Real[totalBins]();
+        meanYDistribution    = new Real[totalBins]();
+        meanYDistribution_pp = new Real[totalBins]();
+        meanYDistribution_pm = new Real[totalBins]();
+        meanYDistribution_mm = new Real[totalBins]();
 
-    meanZDistribution = new Real[totalBins]();
-    meanZDistribution_pp = new Real[totalBins]();
-    meanZDistribution_pm = new Real[totalBins]();
-    meanZDistribution_mm = new Real[totalBins]();
-
-    // compute the volume of each bin
-    binVolRadial = new Real[totalBins]();
-    for(int i=0;i<totalBins;i++) {
-        binVolRadial[i]= (4.0/3.0)*3.14159265359*(pow((i+1)*binSize,3) - pow((i)*binSize,3));
+        meanZDistribution    = new Real[totalBins]();
+        meanZDistribution_pp = new Real[totalBins]();
+        meanZDistribution_pm = new Real[totalBins]();
+        meanZDistribution_mm = new Real[totalBins]();
     }
-
-    binVolCartesian =  2.*binSize * 2.*searchDist * 2.*searchDist;
-
-    // how many snapshots
-    radialStatsCount = 0;
-    cartesianStatsCount = 0;
 
     //Remove files that we will be appending to.
     remove("diffusionEst");
     remove("conductivityEst");
+    remove("currentEst");
 
     Real dr = threepmRange/threepmBins;
 
@@ -646,12 +649,6 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // radius of search - make sure it doesn't exceed half a domain side length
-    double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,0.5*domx);
-    searchDist = std::min(searchDist,0.5*domy);
-    searchDist = std::min(searchDist,0.5*domz);
-    
     Real posx[totalParticles];
     Real posy[totalParticles];
     Real posz[totalParticles];
@@ -829,12 +826,6 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
     domy = (prob_hi[1] - prob_lo[1]);
     domz = (prob_hi[2] - prob_lo[2]);
 
-    // distance of search - make sure it doesn't exceed half a domain side length
-    double searchDist = (domx + domy + domz)/6.0;
-    searchDist = std::min(searchDist,0.5*domx);
-    searchDist = std::min(searchDist,0.5*domy);
-    searchDist = std::min(searchDist,0.5*domz);
-    
     Real posx[totalParticles];
     Real posy[totalParticles];
     Real posz[totalParticles];
@@ -1271,7 +1262,6 @@ void FhdParticleContainer::EvaluateStats(
 
     double totalMass;
 
-    int cellcount_tile = 0, cellcount_proc = 0;
     RealVector avcurrent_tile(3), avcurrent_proc(3);
     RealVector varcurrent_tile(3), varcurrent_proc(3);
 
@@ -1279,6 +1269,12 @@ void FhdParticleContainer::EvaluateStats(
     std::fill(avcurrent_proc.begin(), avcurrent_proc.end(), 0.);
     std::fill(varcurrent_tile.begin(), varcurrent_tile.end(), 0.);
     std::fill(varcurrent_proc.begin(), varcurrent_proc.end(), 0.);
+    
+    BoxArray ba = particleMeans.boxArray();
+    long cellcount = ba.numPts();
+
+    // zero instantaneous values
+    particleInstant.setVal(0.);
     
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
@@ -1305,51 +1301,30 @@ void FhdParticleContainer::EvaluateStats(
 
     }
 
-
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
+    // FIXME - tiling doesn't work
+    for (MFIter mfi(particleInstant,false); mfi.isValid(); ++mfi )
     {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
+        const Box& tile_box  = mfi.tilebox();
 
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& parts = particle_tile.GetArrayOfStructs();
-        const int Np = parts.numParticles();
-
-        evaluate_means(parts.data(),
-                       ARLIM_3D(tile_box.loVect()),
+        evaluate_means(ARLIM_3D(tile_box.loVect()),
                        ARLIM_3D(tile_box.hiVect()),
-                       m_vector_ptrs[grid_id].dataPtr(),
-                       m_vector_size[grid_id].dataPtr(),
-                       ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-                       ARLIM_3D(m_vector_ptrs[grid_id].hiVect()), 
-                       BL_TO_FORTRAN_3D(particleInstant[pti]),
-                       BL_TO_FORTRAN_3D(particleMeans[pti]),
-                       BL_TO_FORTRAN_3D(particleVars[pti]),
-                       BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt,&steps,
-                       &cellcount_tile,avcurrent_tile.dataPtr());
+                       BL_TO_FORTRAN_3D(particleInstant[mfi]),
+                       BL_TO_FORTRAN_3D(particleMeans[mfi]),
+                       BL_TO_FORTRAN_3D(particleVars[mfi]),
+                       BL_TO_FORTRAN_3D(cellVols[mfi]),
+                       &n0,&T0,&delt,&steps,
+                       avcurrent_tile.dataPtr());
 
         // gather statistics
-        cellcount_proc += cellcount_tile;
         for (int i=0; i<3; ++i) {
             avcurrent_proc[i] += avcurrent_tile[i];
         }
     }
-
+    
     // gather statistics
-    ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(avcurrent_proc.dataPtr(),3);
 
-    // print statistics
-    Print() << "Current density mean: "
-            << avcurrent_proc[0]/cellcount_proc << "  "
-            << avcurrent_proc[1]/cellcount_proc << "  "
-            << avcurrent_proc[2]/cellcount_proc << "\n";
-
-    // reset cell count
-    cellcount_tile = 0;
-    cellcount_proc = 0;
-    
+    // FIXME - this needs to be converted to an MFIter so it works (like evaluate_means)    
     for (FhdParIter pti(*this, lev); pti.isValid(); ++pti) 
     {
         const int grid_id = pti.index();
@@ -1371,26 +1346,30 @@ void FhdParticleContainer::EvaluateStats(
                        BL_TO_FORTRAN_3D(particleMeans[pti]),
                        BL_TO_FORTRAN_3D(particleVars[pti]),
                        BL_TO_FORTRAN_3D(cellVols[pti]), &Np,&Neff,&n0,&T0,&delt, &steps,
-                       &cellcount_tile, varcurrent_tile.dataPtr()
+                       varcurrent_tile.dataPtr()
             );
 
         // gather statistics
-        cellcount_proc += cellcount_tile;
         for (int i=0; i<3; ++i) {
             varcurrent_proc[i] += varcurrent_tile[i];
         }
     }
 
     // gather statistics
-    ParallelDescriptor::ReduceIntSum(cellcount_proc);
     ParallelDescriptor::ReduceRealSum(varcurrent_proc.dataPtr(),3);
 
-    // print statistics
-    Print() << "Current density variance: "
-            << varcurrent_proc[0]/cellcount_proc << "  "
-            << varcurrent_proc[1]/cellcount_proc << "  "
-            << varcurrent_proc[2]/cellcount_proc << "\n";
-
+    // write out current mean and variance to file
+    if(ParallelDescriptor::MyProc() == 0) {
+        std::string filename = "currentEst";
+        std::ofstream ofs(filename, std::ofstream::app);
+        ofs << avcurrent_proc[0]/cellcount << "  "
+            << avcurrent_proc[1]/cellcount << "  "
+            << avcurrent_proc[2]/cellcount << "  "
+            << varcurrent_proc[0]/cellcount << "  "
+            << varcurrent_proc[1]/cellcount << "  "
+            << varcurrent_proc[2]/cellcount << "\n";
+        ofs.close();
+    }
 }
 
 void FhdParticleContainer::WriteParticlesAscii(std::string asciiName)
@@ -1602,7 +1581,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 
 
     Real diffTotal = 0;
-    Real tt;
+    Real tt = 0.; // set to zero to protect against grids with no particles
     long nTotal = 0;
     Real sumPosQ[3] = {0,0,0};
 
@@ -1647,6 +1626,9 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
     ParallelDescriptor::ReduceRealSum(diffTotal);
     ParallelDescriptor::ReduceLongSum(nTotal);
 
+    // protect against grids with no particles
+    ParallelDescriptor::ReduceRealMax(tt);
+
     if(ParallelDescriptor::MyProc() == 0) {
 
         std::string filename = "diffusionEst";
@@ -1658,7 +1640,6 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
     }
 
     if(ParallelDescriptor::MyProc() == 0) {
-
 
         Real domainVol = (prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
         Real condTotal = (pow(sumPosQ[0],2) + pow(sumPosQ[1],2) + pow(sumPosQ[2],2))/(6.0*k_B*T_init[0]*domainVol*tt);
@@ -1728,7 +1709,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             ParticleType & part0 = particles[0];
             ParticleType & part1 = particles[1];
 
-            Real ee = (permitivitty*4*3.142);
+            Real ee = (permittivity*4*3.142);
 
             Real re = threepmCurrentBin*(threepmRange/threepmBins)/(1);
 

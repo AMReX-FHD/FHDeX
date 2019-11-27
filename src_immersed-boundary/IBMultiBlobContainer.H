@@ -131,12 +131,18 @@ struct IBMBReal {
         velx,
         vely,
         velz,
+        forcex,
+        forcey,
+        forcez,
+        pred_forcex,
+        pred_forcey,
+        pred_forcez,
         omegax,
         omegay,
         omegaz,
-        dragx,    // ..................................... TODO: Audit
-        dragy,    // ..................................... TODO: Audit
-        dragz,    // ..................................... TODO: Audit
+        dragx,
+        dragy,
+        dragz,
         k_spring,
         count     // Awesome little trick!
     };
@@ -148,6 +154,12 @@ struct IBMBReal {
             "velx",
             "vely",
             "velz",
+            "forcex",
+            "forcey",
+            "forcez",
+            "pred_forcex",
+            "pred_forcey",
+            "pred_forcez",
             "omegax",
             "omegay",
             "omegaz",
@@ -202,11 +214,7 @@ public:
     using NeighborParticleContainer<IBMBReal::count, IBMBInt::count>
           ::NeighborParticleContainer;
 
-    using MyConstIBMarIter = ParConstIter<IBMBReal::count, IBMBInt::count, 0, 0>;
-    using MyIBMarIter      = IBMarIterBase<IBMBReal::count, IBMBInt::count>;
-
     using ParticleType = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::ParticleType;
-    using PairIndex = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::PairIndex;
     using AoS = typename NeighborParticleContainer<IBMBReal::count, IBMBInt::count>::AoS;
 
 
@@ -296,14 +304,24 @@ public:
     void MoveMarkers(int lev, Real dt);
     void MovePredictor(int lev, Real dt);
 
+    void RedistributeMarkers();
+
     void PredictorForces(int lev, Real k);
     void PredictorForces(int lev);
     void MarkerForces(int lev, Real k);
     void MarkerForces(int lev);
 
+
+    // Map Multi-Blob (CPU,ID) to particle pointers (for fast reference lookup)
+    std::map<MarkerIndex, ParticleType *> GetParticleDict(
+                int lev, const TileIndex & tile
+            );
+
+
     // Compute Drag Force
-    std::map<MarkerIndex, ParticleType *> GetParticleDict(int lev);
     void AccumulateDrag(int lev);
+    // Move MultiBlobs according to drag force
+    void MoveBlob(int lev, Real dt);
 
 
 

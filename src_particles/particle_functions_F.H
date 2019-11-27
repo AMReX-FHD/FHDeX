@@ -285,15 +285,14 @@ extern "C"
 
 
 
-   void evaluate_means(void* particles,
-                       const int* lo, const int* hi,
-                       int** c_vectors, int* sizes, const int* clo, const int* chi,
+   void evaluate_means(const int* lo, const int* hi,
                        amrex_real* instant, const int* ilo, const int* ihi,
                        amrex_real* means, const int* mlo, const int* mhi,
                        amrex_real* vars, const int* vlo, const int* vhi,
                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
-                       const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps,
-                       int* cellcount, amrex_real* avcurrent);
+                       const amrex_real* n0, const amrex_real* T0,
+                       const amrex_real* delt, int* steps,
+                       amrex_real* avcurrent);
 
    void evaluate_corrs(void* particles,
                        const int* lo, const int* hi,
@@ -303,7 +302,7 @@ extern "C"
                        amrex_real* vars, const int* vlo, const int* vhi,
                        amrex_real* cellVols, const int* cvlo, const int* cvhi,
                        const int* np, const amrex_real* neff, const amrex_real* n0, const amrex_real* T0, const amrex_real* delt, int* steps,
-                       int* cellcount, amrex_real* varcurrent);
+                       amrex_real* varcurrent);
 
    void sync_particles(amrex_real* spec3xPos, amrex_real* spec3yPos, amrex_real* spec3zPos, amrex_real* spec3xForce, amrex_real* spec3yForce,
                        amrex_real* spec3zForce, void* particles, const int* np, const int* length);
