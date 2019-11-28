@@ -870,6 +870,14 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
+        /*
+        // FIXME
+        // NOTE: this stats resetting should eventually be moved to *after* the statsCount++ line below
+        // this way, e.g., plot 10 will contain the average of steps 1-10
+        // instead of the instantaneous value at step 10
+        // however this has the same effect on currentEst so the diagnostics
+        // in immersedIons/postprocessing will have to be updated to account for this        
+        */
         // reset statistics after step n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
@@ -917,9 +925,12 @@ void main_driver(const char* argv)
             ParallelDescriptor::ReduceRealMax(time_PC2);
             amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
         }
-        
+
+        // compute particle fields, means, anv variances
+        // also write out time-averaged current to currentEst
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
+        // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
         }
