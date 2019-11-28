@@ -871,7 +871,7 @@ void main_driver(const char* argv)
         }
 
         /*
-        // FIXME
+        // FIXME - AJN
         // NOTE: this stats resetting should eventually be moved to *after* the statsCount++ line below
         // this way, e.g., plot 10 will contain the average of steps 1-10
         // instead of the instantaneous value at step 10
@@ -948,7 +948,11 @@ void main_driver(const char* argv)
             }
         }
 
-        if (plot_int > 0 && istep%plot_int == 0) {
+        // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
+        // because the time-averaging for the fields resets at n_steps_skip
+        // see the FIXME - AJN note above
+        if (plot_int > 0 && istep%plot_int == 0 ||
+            ( plot_int > 1 && (istep+1)%plot_int == 0) ) {
 
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
