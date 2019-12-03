@@ -23,7 +23,27 @@ using namespace compressible;
 
 void mui_exchange(MultiFab& cu, const amrex::Real* dx, const amrex::Real dt)
 {
+    for (MFIter mfi(cu,false);mfi.isValid();++mfi)
+    {
+        const Box& bx = mfi.tilebox();
 
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+
+        const Array4<Real> & cu_fab = cu.array(mfi);
+
+        for (int n = 0; n < nspecies; ++n) {
+            for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        //Print() << cu_fab(i,j,k,5+n) << std::endl;
+                    }
+                }
+            }
+        }
+    }
+
+    return;
 }
 
 // argv contains the name of the inputs file entered at the command line
