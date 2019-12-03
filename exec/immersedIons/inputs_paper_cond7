@@ -23,7 +23,7 @@
   es_grid_refine = 1
 
   ! Time-step control
-  fixed_dt = 1e-13
+  fixed_dt = 0.5e-13
 
   ! Controls for number of steps between actions
   max_step = 5000000
