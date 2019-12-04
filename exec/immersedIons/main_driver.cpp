@@ -714,41 +714,32 @@ void main_driver(const char* argv)
     ComputeDryMobility(dryMobility, ionParticle, geom);
 
     ///////////////////////////////////////////
-    // structure factor:
+    // structure factor for charge-charge
     ///////////////////////////////////////////
 
-    Vector< std::string > var_names;
-    int nvar_sf = 1;
-    // int nvar_sf = AMREX_SPACEDIM;
-    var_names.resize(nvar_sf);
-    var_names[0] = "charge";
+    Vector< std::string > var_names_charge;
+    int nvar_sf_charge = 1;
+    var_names_charge.resize(nvar_sf_charge);
+    var_names_charge[0] = "charge";
 
-    MultiFab struct_in_cc;
-    struct_in_cc.define(bp, dmap, nvar_sf, 0);
+    MultiFab struct_cc_charge;
+    struct_cc_charge.define(bp, dmap, nvar_sf_charge, 0);
 
-    amrex::Vector< int > s_pairA(nvar_sf);
-    amrex::Vector< int > s_pairB(nvar_sf);
+    amrex::Vector< int > s_pairA_charge(nvar_sf_charge);
+    amrex::Vector< int > s_pairB_charge(nvar_sf_charge);
 
     // Select which variable pairs to include in structure factor:
-    for (int d=0; d<nvar_sf; d++) {
-        s_pairA[d] = d;
-        s_pairB[d] = d;
-    }
+    s_pairA_charge[0] = 0;
+    s_pairB_charge[0] = 0;
 
-    Real dVol = dx[0]*dx[1];
-    int tot_n_cells = n_cells[0]*n_cells[1];
-    if (AMREX_SPACEDIM == 2) {
-        dVol *= cell_depth;
-    } else if (AMREX_SPACEDIM == 3) {
-        dVol *= dx[2];
-        tot_n_cells = n_cells[2]*tot_n_cells;
-    }
+    Vector<Real> scaling_charge;
+    scaling_charge.resize(nvar_sf_charge);
+    scaling_charge[0] = 1.;
 
-    Vector<Real> scaling;
-    scaling.resize(nvar_sf);
-    scaling[0] = 1.;
+    StructFact structFact_charge(bp,dmap,var_names_charge,scaling_charge,
+                                 s_pairA_charge,s_pairB_charge);
 
-    StructFact structFact(bp,dmap,var_names,scaling,s_pairA,s_pairB);
+
 
 /*
     // write a plotfile on restart
@@ -940,11 +931,11 @@ void main_driver(const char* argv)
 	//_______________________________________________________________________
 	// Update structure factor
         if (struct_fact_int > 0 && istep > abs(n_steps_skip) && (istep-abs(n_steps_skip)-1)%struct_fact_int == 0) {
-            MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
-            structFact.FortStructure(struct_in_cc,geomP);
+            MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
+            structFact_charge.FortStructure(struct_cc_charge,geomP);
             // plot structure factor on plot_int
             if (istep%plot_int == 0) {
-                structFact.WritePlotFile(istep,time,geomP,"plt_SF");
+                structFact_charge.WritePlotFile(istep,time,geomP,"plt_SF_charge");
             }
         }
 
