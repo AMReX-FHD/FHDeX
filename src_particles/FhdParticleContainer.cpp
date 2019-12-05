@@ -1601,6 +1601,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
                 sqrPos += pow(part.rdata(FHD_realData::ax + d),2);
                 sumPosQ[d] += part.rdata(FHD_realData::ax + d)*part.rdata(FHD_realData::q);
             }
+            std::cout << part.rdata(FHD_realData::ax) << std::endl;
 
             diffTotal += sqrPos/(6.0*part.rdata(FHD_realData::travelTime));
             tt = part.rdata(FHD_realData::travelTime);
