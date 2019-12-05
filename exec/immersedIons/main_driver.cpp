@@ -714,41 +714,74 @@ void main_driver(const char* argv)
     ComputeDryMobility(dryMobility, ionParticle, geom);
 
     ///////////////////////////////////////////
-    // structure factor:
+    // structure factor for charge-charge
     ///////////////////////////////////////////
 
-    Vector< std::string > var_names;
-    int nvar_sf = 1;
-    // int nvar_sf = AMREX_SPACEDIM;
-    var_names.resize(nvar_sf);
-    var_names[0] = "charge";
+    // names of variables in struct_cc_charge
+    Vector< std::string > var_names_charge(1);
+    var_names_charge[0] = "charge";
 
-    MultiFab struct_in_cc;
-    struct_in_cc.define(bp, dmap, nvar_sf, 0);
+    // variables we want to FFT
+    MultiFab struct_cc_charge;
+    struct_cc_charge.define(bp, dmap, 1, 0);
 
-    amrex::Vector< int > s_pairA(nvar_sf);
-    amrex::Vector< int > s_pairB(nvar_sf);
+    // these are the number of pairs we want to report
+    int nvar_sf_charge = 1;
+    amrex::Vector< int > s_pairA_charge(nvar_sf_charge);
+    amrex::Vector< int > s_pairB_charge(nvar_sf_charge);
 
     // Select which variable pairs to include in structure factor:
-    for (int d=0; d<nvar_sf; d++) {
-        s_pairA[d] = d;
-        s_pairB[d] = d;
+    s_pairA_charge[0] = 0; // charge-charge
+    s_pairB_charge[0] = 0;
+
+    Vector<Real> scaling_charge(nvar_sf_charge);
+    for (int i=0; i<nvar_sf_charge; ++i) {
+        scaling_charge[i] = 1.;
     }
 
-    Real dVol = dx[0]*dx[1];
-    int tot_n_cells = n_cells[0]*n_cells[1];
-    if (AMREX_SPACEDIM == 2) {
-        dVol *= cell_depth;
-    } else if (AMREX_SPACEDIM == 3) {
-        dVol *= dx[2];
-        tot_n_cells = n_cells[2]*tot_n_cells;
+    StructFact structFact_charge(bp,dmap,var_names_charge,scaling_charge,
+                                 s_pairA_charge,s_pairB_charge);
+
+    ///////////////////////////////////////////
+    // structure factor for vel-vel
+    ///////////////////////////////////////////
+
+    // names of variables in struct_cc_vel
+    Vector< std::string > var_names_vel(AMREX_SPACEDIM);
+    var_names_vel[0] = "xvel";
+    var_names_vel[1] = "yvel";
+    var_names_vel[2] = "zvel";
+
+    // variables we want to FFT
+    MultiFab struct_cc_vel;
+    struct_cc_vel.define(bp, dmap, AMREX_SPACEDIM, 0);
+
+    // these are the number of pairs we want to report
+    int nvar_sf_vel = 6;
+    amrex::Vector< int > s_pairA_vel(nvar_sf_vel);
+    amrex::Vector< int > s_pairB_vel(nvar_sf_vel);
+
+    // Select which variable pairs to include in structure factor:
+    s_pairA_vel[0] = 0; // xvel-xvel
+    s_pairB_vel[0] = 0;
+    s_pairA_vel[1] = 0; // xvel-yvel
+    s_pairB_vel[1] = 1;
+    s_pairA_vel[2] = 0; // xvel-zvel
+    s_pairB_vel[2] = 2;
+    s_pairA_vel[3] = 1; // yvel-yvel
+    s_pairB_vel[3] = 1;
+    s_pairA_vel[4] = 1; // yvel-zvel
+    s_pairB_vel[4] = 2;
+    s_pairA_vel[5] = 2; // zvel-zvel
+    s_pairB_vel[5] = 2;
+    
+    Vector<Real> scaling_vel(nvar_sf_vel);
+    for (int i=0; i<nvar_sf_vel; ++i) {
+        scaling_vel[i] = 1.;
     }
 
-    Vector<Real> scaling;
-    scaling.resize(nvar_sf);
-    scaling[0] = 1.;
-
-    StructFact structFact(bp,dmap,var_names,scaling,s_pairA,s_pairB);
+    StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
+                              s_pairA_vel,s_pairB_vel);
 
 /*
     // write a plotfile on restart
@@ -871,6 +904,14 @@ void main_driver(const char* argv)
             Print() << "Finish move.\n";
         }
 
+        /*
+        // FIXME - AJN
+        // NOTE: this stats resetting should eventually be moved to *after* the statsCount++ line below
+        // this way, e.g., plot 10 will contain the average of steps 1-10
+        // instead of the instantaneous value at step 10
+        // however this has the same effect on currentEst so the diagnostics
+        // in immersedIons/postprocessing will have to be updated to account for this        
+        */
         // reset statistics after step n_steps_skip
         // if n_steps_skip is negative, we use it as an interval
         if ((n_steps_skip > 0 && istep == n_steps_skip) ||
@@ -918,9 +959,12 @@ void main_driver(const char* argv)
             ParallelDescriptor::ReduceRealMax(time_PC2);
             amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
         }
-        
+
+        // compute particle fields, means, anv variances
+        // also write out time-averaged current to currentEst
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
+        // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
         }
@@ -930,15 +974,29 @@ void main_driver(const char* argv)
 	//_______________________________________________________________________
 	// Update structure factor
         if (struct_fact_int > 0 && istep > abs(n_steps_skip) && (istep-abs(n_steps_skip)-1)%struct_fact_int == 0) {
-            MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
-            structFact.FortStructure(struct_in_cc,geomP);
+
+            // charge
+            MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
+            structFact_charge.FortStructure(struct_cc_charge,geomP);
+
+            // velocity
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ShiftFaceToCC(umac[d],0,struct_cc_vel,d,1);
+            }
+            structFact_vel.FortStructure(struct_cc_vel,geom);
+            
             // plot structure factor on plot_int
             if (istep%plot_int == 0) {
-                structFact.WritePlotFile(istep,time,geomP,"plt_SF");
+                structFact_charge.WritePlotFile(istep,time,geomP,"plt_SF_charge");
+                structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
             }
         }
 
-        if (plot_int > 0 && istep%plot_int == 0) {
+        // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
+        // because the time-averaging for the fields resets at n_steps_skip
+        // see the FIXME - AJN note above
+        if (plot_int > 0 && istep%plot_int == 0 ||
+            ( plot_int > 1 && (istep+1)%plot_int == 0) ) {
 
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
