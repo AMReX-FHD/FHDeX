@@ -12,33 +12,80 @@
 
 #include "StructFact.H"
 
-#include <mui.h>
-#include <iostream>
-using namespace std;
-using namespace mui;
-
 using namespace amrex;
 using namespace common;
 using namespace compressible;
 
-void mui_exchange(MultiFab& cu, const amrex::Real* dx, const amrex::Real dt)
+// mui
+#include <mui.h>
+using namespace mui;
+
+// main routine to update cu through mui
+void mui_exchange(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
-    for (MFIter mfi(cu,false);mfi.isValid();++mfi)
+    // assuming the interface is perpendicular to the z-axis 
+    // and includes cells with the smallest value of z (i.e. k=0)
+
+    // mui push
+    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-
         Dim3 lo = lbound(bx);
         Dim3 hi = ubound(bx);
-
         const Array4<Real> & cu_fab = cu.array(mfi);
 
+        // unless bx contains cells at the interface, skip 
+        int k = 0;
+        if (k<lo.z || k>hi.z) continue;
+
         for (int n = 0; n < nspecies; ++n) {
-            for (int k = lo.z; k <= hi.z; ++k) {
-                for (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        //Print() << cu_fab(i,j,k,5+n) << std::endl;
-                    }
+
+            std::string channel = "CH_density";
+            channel += '0'+(n+1);
+
+            for (int j = lo.y; j<= hi.y; ++j) {
+                for (int i = lo.x; i<=hi.x; ++i) {
+                    double x = prob_lo[0]+(i+0.5)*dx[0];
+                    double y = prob_lo[1]+(j+0.5)*dx[1];
+                    uniface.push(channel,{x,y},cu_fab(i,j,k,5+n));
                 }
+            }
+        }
+    }
+
+    uniface.commit(step);
+
+    // mui fetch
+    mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
+    mui::chrono_sampler_exact2d t;
+
+    for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
+    {
+        const Box& bx = mfi.tilebox();
+        Dim3 lo = lbound(bx);
+        Dim3 hi = ubound(bx);
+        const Array4<Real> & cu_fab = cu.array(mfi);
+
+        // unless bx contains cells at the interface, skip 
+        int k = 0;
+        if (k<lo.z || k>hi.z) continue;
+
+        for (int j = lo.y; j<= hi.y; ++j) {
+            for (int i = lo.x; i<=hi.x; ++i) {
+
+                double x = prob_lo[0]+(i+0.5)*dx[0];
+                double y = prob_lo[1]+(j+0.5)*dx[1];
+
+                int sum = 0;
+                for (int n = 0; n < nspecies; ++n) {
+
+                    std::string channel = "CH_dn";
+                    channel += '0'+(n+1);
+
+                    sum += uniface.fetch(channel,{x,y},step,s,t);
+                }
+
+                std::cout << sum << std::endl;
             }
         }
     }
@@ -525,6 +572,8 @@ void main_driver(const char* argv)
                       prim, primMeans, primVars, eta, kappa);
     }
 
+    mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
+
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
@@ -534,7 +583,7 @@ void main_driver(const char* argv)
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-        mui_exchange(cu, dx, dt);
+        mui_exchange(cu, dx, uniface, step);
 
         conservedToPrimitive(prim, cu);
 
