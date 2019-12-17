@@ -3,11 +3,13 @@ inputs_paper_gr2 - 1.0M, 14% wet
 inputs_paper_gr3 - 1.0M, 55% wet
 inputs_paper_gr4 - 0.1M, 14% wet, neutral
 
-
-
-inputs_paper_cond4 - 0.1M, no E, 0% wet
-inputs_paper_cond5 - 0.1M, no E, 44% wet
-inputs_paper_cond6 - 0.1M, no E, 88% wet
-inputs_paper_cond7 - 0.1M, Strong E, 0% wet
-inputs_paper_cond8 - 0.1M, Strong E, 44% wet
-inputs_paper_cond9 - 0.1M, Strong E, 88% wet
+inputs_paper_cond1  - 0.01M, no E, 0% wet
+inputs_paper_cond2  - 0.01M, no E, 44% wet
+inputs_paper_cond3  - 0.01M, no E, 88% wet
+inputs_paper_cond4  - 0.1M, no E, 0% wet
+inputs_paper_cond5  - 0.1M, no E, 44% wet
+inputs_paper_cond6  - 0.1M, no E, 88% wet
+inputs_paper_cond7  - 0.1M, Strong E, 0% wet
+inputs_paper_cond8  - 0.1M, Strong E, 44% wet
+inputs_paper_cond9  - 0.1M, Strong E, 88% wet
+inputs_paper_cond10 - 0.1M, Weak E, 88% wet
