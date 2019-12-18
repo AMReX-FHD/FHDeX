@@ -1,5 +1,6 @@
 module multifab_physbc_module
 
+  use amrex_error_module
   use amrex_fort_module,      only : amrex_real
   use common_namelist_module, only : bc_vel_lo, bc_vel_hi, bc_es_lo, bc_es_hi, potential_lo, potential_hi
 
@@ -259,11 +260,11 @@ end subroutine fab_physbc_macstress
 
   end subroutine fab_electricbc
 
-  pure subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-                                  dom_lo, dom_hi,              &
-                                  data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-                                  ngc, dim_fill_ghost)         &
-                                  bind(C, name="fab_potentialbc")
+  subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                             dom_lo, dom_hi,              &
+                             data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                             ngc, dim_fill_ghost)         &
+                             bind(C, name="fab_potentialbc")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -289,6 +290,9 @@ end subroutine fab_physbc_macstress
           do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
              do i = 1, 1 ! always fill the ghost cells at the bc face
 
+                if (potential_lo(1) .ne. 0.) then
+                   call amrex_error("potential bc needs inhomog neumann bc implemented")
+                end if
                 data(lo(1)-i, j, :) = data(lo(1)-1+i, j, :)
 
              end do
@@ -309,6 +313,9 @@ end subroutine fab_physbc_macstress
           do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
              do i = 1, 1 ! always fill the ghost cells at the bc face
 
+                if (potential_hi(1) .ne. 0.) then
+                   call amrex_error("potential bc needs inhomog neumann bc implemented")
+                end if
                 data(hi(1)+i, j, :) = data(hi(1)+1-i, j, :)
 
              end do
@@ -336,6 +343,9 @@ end subroutine fab_physbc_macstress
           do j = 1, 1 ! always fill the ghost cells at the bc face
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                if (potential_lo(2) .ne. 0.) then
+                   call amrex_error("potential bc needs inhomog neumann bc implemented")
+                end if
                 data(i, lo(2)-j, :) = data(i, lo(2)-1+j, :)
 
              end do
@@ -358,6 +368,9 @@ end subroutine fab_physbc_macstress
           do j = 1, 1 ! always fill the ghost cells at the bc face
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                if (potential_hi(2) .ne. 0.) then
+                   call amrex_error("potential bc needs inhomog neumann bc implemented")
+                end if
                 data(i, hi(2)+j, :) = data(i, hi(2)+1-j, :)
 
              end do
@@ -375,11 +388,11 @@ end subroutine fab_physbc_macstress
 
   end subroutine fab_potentialbc
 
-  pure subroutine fab_potentialbc_solver(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-                                         dom_lo, dom_hi,              &
-                                         data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-                                         ngc, dim_fill_ghost)         &
-                                         bind(C, name="fab_potentialbc_solver")
+  subroutine fab_potentialbc_solver(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                                    dom_lo, dom_hi,              &
+                                    data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                                    ngc, dim_fill_ghost)         &
+                                    bind(C, name="fab_potentialbc_solver")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -925,11 +938,11 @@ end subroutine fab_physbc_macstress
 
   end subroutine fab_electricbc
 
-  pure subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-                                  dom_lo, dom_hi,              &
-                                  data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-                                  ngc, dim_fill_ghost)         &
-                                  bind(C, name="fab_potentialbc")
+  subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                             dom_lo, dom_hi,              &
+                             data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                             ngc, dim_fill_ghost)         &
+                             bind(C, name="fab_potentialbc")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -957,6 +970,9 @@ end subroutine fab_physbc_macstress
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, 1 ! always fill the ghost cells at the bc face
 
+                   if (potential_lo(1) .ne. 0.) then
+                      call amrex_error("potential bc needs inhomog neumann bc implemented")
+                   end if
                    data(lo(1)-i, j, k, :) = data(lo(1)-1+i, j, k, :)
 
                 end do
@@ -981,6 +997,9 @@ end subroutine fab_physbc_macstress
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, 1 ! always fill the ghost cells at the bc face
 
+                   if (potential_hi(1) .ne. 0.) then
+                      call amrex_error("potential bc needs inhomog neumann bc implemented")
+                   end if
                    data(hi(1)+i, j, k, :) = data(hi(1)+1-i, j, k, :)
 
                 end do
@@ -1010,6 +1029,9 @@ end subroutine fab_physbc_macstress
              do j = 1, 1 ! always fill the ghost cells at the bc face
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
+                   if (potential_lo(2) .ne. 0.) then
+                      call amrex_error("potential bc needs inhomog neumann bc implemented")
+                   end if
                    data(i, lo(2)-j, k, :) = data(i, lo(2)-1+j, k, :)
 
                 end do
@@ -1033,7 +1055,10 @@ end subroutine fab_physbc_macstress
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = 1, 1 ! always fill the ghost cells at the bc face
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
+                   
+                   if (potential_hi(2) .ne. 0.) then
+                      call amrex_error("potential bc needs inhomog neumann bc implemented")
+                   end if
                    data(i, hi(2)+j, k, :) = data(i, hi(2)+1-j, k, :)
 
                 end do
@@ -1061,7 +1086,10 @@ end subroutine fab_physbc_macstress
           do k = 1, 1 ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
+                   
+                   if (potential_lo(3) .ne. 0.) then
+                      call amrex_error("potential bc needs inhomog neumann bc implemented")
+                   end if
                    data(i, j, lo(3)-k, :) = data(i, j, lo(3)-1+k, :)
 
                 end do
@@ -1086,7 +1114,10 @@ end subroutine fab_physbc_macstress
           do k = 1, 1 ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
+                   
+                   if (potential_hi(3) .ne. 0.) then
+                      call amrex_error("potential bc needs inhomog neumann bc implemented")
+                   end if
                    data(i, j, hi(3)+k, :) = data(i, j, hi(3)+1-k, :)
 
                 end do
@@ -1107,11 +1138,11 @@ end subroutine fab_physbc_macstress
 
   end subroutine fab_potentialbc
 
-  pure subroutine fab_potentialbc_solver(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-                                         dom_lo, dom_hi,              &
-                                         data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-                                         ngc, dim_fill_ghost)         &
-                                         bind(C, name="fab_potentialbc_solver")
+  subroutine fab_potentialbc_solver(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                                    dom_lo, dom_hi,              &
+                                    data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                                    ngc, dim_fill_ghost)         &
+                                    bind(C, name="fab_potentialbc_solver")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
