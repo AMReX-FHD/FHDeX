@@ -27,11 +27,13 @@ void esSolve(MultiFab& potential, MultiFab& charge,
             }
             if(bc_es_lo[i] == 2)
             {
-                lo_linop_bc[i] = LinOpBCType::Neumann;
+                lo_linop_bc[i] = LinOpBCType::inhomogNeumann;
+//                lo_linop_bc[i] = LinOpBCType::Neumann;
             }
             if(bc_es_hi[i] == 2)
             {
-                hi_linop_bc[i] = LinOpBCType::Neumann;
+                hi_linop_bc[i] = LinOpBCType::inhomogNeumann;
+//                hi_linop_bc[i] = LinOpBCType::Neumann;
             }
             if(bc_es_lo[i] == 1)
             {                 
@@ -42,9 +44,6 @@ void esSolve(MultiFab& potential, MultiFab& charge,
                 hi_linop_bc[i] = LinOpBCType::Dirichlet;
             }
         }
-
-          //MOVED TO OCCUR BEFOR SUMBOUNDARY!
-//        MultiFABPhysBCCharge(charge, geom); //Adjust spread charge distribtion near boundaries from 
 
         const BoxArray& ba = charge.boxArray();
         const DistributionMapping& dmap = charge.DistributionMap();
@@ -60,7 +59,12 @@ void esSolve(MultiFab& potential, MultiFab& charge,
                                         hi_linop_bc[1],
                                         hi_linop_bc[2])});
 
-        linop.setLevelBC(0, nullptr);
+        // fill in ghost cells with Dirichlet/Neumann values
+        // the ghost cells will hold the value ON the boundary
+        MultiFABPotentialBC_solver(potential,geom);
+
+        // tell MLPoisson about these potentially inhomogeneous BC values
+        linop.setLevelBC(0, &potential);
 
         //Multi Level Multi Grid
         MLMG mlmg(linop);
@@ -69,13 +73,14 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         mlmg.setMaxIter(poisson_max_iter);
         mlmg.setVerbose(poisson_verbose);
         mlmg.setBottomVerbose(poisson_bottom_verbose);
-
+        
         //Do solve
         mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
-
             
         potential.FillBoundary(geom.periodicity());
-        MultiFABPotentialBC(potential, geom); //set ghost cell values so electric field is calculated properly
+        // set ghost cell values so electric field is calculated properly
+        // the ghost cells will hold the values extrapolated to the ghost CC
+        MultiFABPotentialBC(potential, geom); 
 
         //Find e field, gradient from cell centers to faces
         ComputeCentredGrad(potential, efield, geom);
