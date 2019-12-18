@@ -197,19 +197,24 @@ extern "C"
                     const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
     void fab_electricbc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * efield, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
+                        const int * dom_lo, const int * dom_hi,
+                        amrex::Real * efield, const int * p_lo, const int * p_hi,
+                        const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
     void fab_potentialbc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * potential, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
+                         const int * dom_lo, const int * dom_hi,
+                         amrex::Real * potential, const int * p_lo, const int * p_hi,
+                         const int * p_ncomp, int ngc, const int * dim_fill_ghost);
+
+    void fab_potentialbc_solver(const int * lo,     const int * hi,
+                                const int * dom_lo, const int * dom_hi,
+                                amrex::Real * potential, const int * p_lo, const int * p_hi,
+                                const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
    void fab_chargebc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * charge, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
+                     const int * dom_lo, const int * dom_hi,
+                     amrex::Real * charge, const int * p_lo, const int * p_hi,
+                     const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
     void fab_physbc_domainvel(const int * lo,     const int * hi,
                               const int * dom_lo, const int * dom_hi,
