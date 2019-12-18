@@ -292,7 +292,7 @@ void MultiFABPotentialBC(MultiFab & data, const IntVect & dim_fill_ghost,
 
 */
 void MultiFABPotentialBC_solver(MultiFab & data, const Geometry & geom) {
-    MultiFABPotentialBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
+    MultiFABPotentialBC_solver(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
 }
 
 void MultiFABPotentialBC_solver(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
