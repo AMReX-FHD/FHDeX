@@ -245,7 +245,7 @@ void MultiFABElectricBC(MultiFab & data, const IntVect & dim_fill_ghost,
 
 /* MultiFABPotentialBC
 
-   Note that potential currently only operates on 1 layer of ghost cells.
+   Note that this currently only operates on 1 layer of ghost cells.
    This routine fills ghost cells with the value extrapolated TO the ghost cell-center
    This is NOT the same as filling the ghost cell with the value on the boundary
    The Poisson solver needs a separate routine to fill ghost cells with the value ON
@@ -271,20 +271,23 @@ void MultiFABPotentialBC(MultiFab & data, const IntVect & dim_fill_ghost,
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
 
+    const Real* dx = geom.CellSize();
+    
     for (MFIter mfi(data); mfi.isValid(); ++mfi) {
 
         const Box & bx = mfi.validbox();
         fab_potentialbc(BL_TO_FORTRAN_BOX(bx),
-                       BL_TO_FORTRAN_BOX(dom),
-                       BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
-                       dim_fill_ghost.getVect());
+                        BL_TO_FORTRAN_BOX(dom),
+                        BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
+                        dim_fill_ghost.getVect(),
+                        ZFILL(dx));
     }
     #endif
 }
 
 /* MultiFABPotentialBC_solver
 
-   Note that potential currently only operates on 1 layer of ghost cells.
+   Note that this currently only operates on 1 layer of ghost cells.
    This routine fills ghost cells with the value ON the boundary.
    It works for inhomogeneous Neumann and inhomogeneous Dirichlet
    This routine is not to be confused with MultiFABPotentialBC, which fill ghost
