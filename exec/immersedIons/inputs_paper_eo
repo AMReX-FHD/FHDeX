@@ -20,6 +20,7 @@
   ! Controls for number of steps between actions
   max_step = 3000000
   plot_int = 30000
+  chk_int  = 30000
   plot_ascii = 0
   struct_fact_int = -1
   n_steps_skip = -30000
