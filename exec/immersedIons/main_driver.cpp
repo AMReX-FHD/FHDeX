@@ -1014,9 +1014,16 @@ void main_driver(const char* argv)
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip
         // see the FIXME - AJN note above
-        if (plot_int > 0 && istep%plot_int == 0 ||
-            ( plot_int > 1 && (istep+1)%plot_int == 0) ) {
-
+        bool writePlt = false;
+        if (plot_int > 0) {
+            if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+                writePlt = (istep%plot_int == 0);
+            }
+            else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+                writePlt = ((istep+1)%plot_int == 0);
+            }
+        }
+        if (writePlt) {
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
                           particleInstant, particleMeans, particleVars, particles,
