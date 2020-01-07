@@ -259,11 +259,84 @@ end subroutine fab_physbc_macstress
 
   end subroutine fab_electricbc
 
-  pure subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-       &                     dom_lo, dom_hi,              &
-       &                     data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-       &                     ngc, dim_fill_ghost)         &
-       &                     bind(C, name="fab_potentialbc")
+  subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                             dom_lo, dom_hi,              &
+                             data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                             ngc, dim_fill_ghost, dx)     &
+                             bind(C, name="fab_potentialbc")
+
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
+         &                             d_lo(3), d_hi(3), d_ncomp
+    integer,          intent(in   ) :: dim_fill_ghost(2)
+    integer, value,   intent(in   ) :: ngc
+    real(amrex_real), intent(inout) :: data(d_lo(1):d_hi(1), &
+         &                                  d_lo(2):d_hi(2), d_ncomp)
+    real(amrex_real), intent(in   ) :: dx(3)
+
+    ! ** loop indices
+    integer :: i,j
+
+    !____________________________________________________________________________
+    ! Apply BC to X faces
+
+    if (lo(1) .eq. dom_lo(1)) then ! lower bound
+       if (bc_es_lo(1) .eq. 2) then ! Neumann
+          do j = lo(2), hi(2)
+             data(lo(1)-1, j, :) = data(lo(1), j, :) - dx(1)*potential_lo(1)
+          end do
+       elseif (bc_es_lo(1) .eq. 1) then ! Dirichlet
+          do j = lo(2), hi(2)
+             data(lo(1)-1, j, :) = -data(lo(1), j, :) + 2*potential_lo(1)
+          end do
+       end if
+    end if
+
+    if (hi(1) .eq. dom_hi(1)) then ! upper bound
+       if (bc_es_hi(1) .eq. 2) then ! Neumann
+          do j = lo(2), hi(2)
+             data(hi(1)+1 j, :) = data(hi(1), j, :) + dx(1)*potential_hi(1)
+          end do
+       elseif (bc_es_hi(1) .eq. 1) then ! Dirichlet
+          do j = lo(2), hi(2)
+             data(hi(1)+1, j, :) = -data(hi(1), j, :) + 2*potential_hi(1)
+          end do
+       end if
+    end if
+
+    !____________________________________________________________________________
+    ! Apply BC to Y faces
+    
+    if (lo(2) .eq. dom_lo(2)) then ! lower bound
+       if (bc_es_lo(2) .eq. 2) then ! Neumann
+          do i = lo(1), hi(1)
+             data(i, lo(2)-1, :) = data(i, lo(2), :) - dx(2)*potential_lo(2)
+          end do
+       elseif (bc_es_lo(2) .eq. 1) then ! Dirichlet
+          do i = lo(1), hi(1)
+             data(i, lo(2)-1, :) = -data(i, lo(2), :) + 2*potential_lo(2)
+          end do
+       end if
+    end if
+
+    if (hi(2) .eq. dom_hi(2)) then ! upper bound
+       if (bc_es_hi(2) .eq. 2) then ! Neumann
+          do i = lo(1), hi(1)
+             data(i, hi(2)+1, :) = data(i, hi(2), :) + dx(2)*potential_hi(2)
+          end do
+       elseif (bc_es_hi(2) .eq. 1) then ! Direchlet
+          do i = lo(1), hi(1)
+             data(i, hi(2)+1, :) = -data(i, hi(2), :) + 2*potential_hi(2)
+          end do
+       end if
+    end if
+
+  end subroutine fab_potentialbc
+
+  subroutine fab_potentialbc_solver(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                                    dom_lo, dom_hi,              &
+                                    data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                                    ngc, dim_fill_ghost)         &
+                                    bind(C, name="fab_potentialbc_solver")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -275,105 +348,61 @@ end subroutine fab_physbc_macstress
     ! ** loop indices
     integer :: i,j
 
-    ! ** number of ghost cells to fill in each dimension
-    integer, dimension(2) :: ngc_eff
-
-    ngc_eff(:) = ngc*dim_fill_ghost(:)
-
-
     !____________________________________________________________________________
     ! Apply BC to X faces
-
+    
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
-       if(bc_es_lo(1) .eq. 2) then ! Neumann
-          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-             do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                data(lo(1)-i, j, :) = data(lo(1)-1+i, j, :)
-
-             end do
+       if (bc_es_lo(1) .eq. 2) then ! Neumann
+          do j = lo(2), hi(2)
+             data(lo(1)-1, j, :) = potential_lo(1)
           end do
-       elseif(bc_es_lo(1) .eq. 1) then ! Dirichlet
-          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-             do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                data(lo(1)-i, j, :) = -data(lo(1)-1+i, j, :) + 2*potential_lo(1)
-
-             end do
+       elseif (bc_es_lo(1) .eq. 1) then ! Dirichlet
+          do j = lo(2), hi(2)
+             data(lo(1)-1, j, :) = potential_lo(1)
           end do
        end if
     end if
 
-    if(hi(1) .eq. dom_hi(1)) then ! upper bound
-       if(bc_es_hi(1) .eq. 2) then ! Neumann
-          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-             do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                data(hi(1)+i, j, :) = data(hi(1)+1-i, j, :)
-
-             end do
+    if (hi(1) .eq. dom_hi(1)) then ! upper bound
+       if (bc_es_hi(1) .eq. 2) then ! Neumann
+          do j = lo(2), hi(2)
+             data(hi(1)+1, j, :) = potential_hi(1)
           end do
-       elseif(bc_es_hi(1) .eq. 1) then ! Dirichlet
-
-          do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-             do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                data(hi(1)+i, j, :) = -data(hi(1)+1-i, j, :) + 2*potential_hi(1)
-
-             end do
+       elseif (bc_es_hi(1) .eq. 1) then ! Dirichlet
+          do j = lo(2), hi(2)
+             data(hi(1)+1, j, :) = potential_hi(1)
           end do
        end if
-
     end if
-
 
     !____________________________________________________________________________
     ! Apply BC to Y faces
 
-    if(lo(2) .eq. dom_lo(2)) then ! lower bound
-       if(bc_es_lo(2) .eq. 2) then ! Neumann
-
-          do j = 1, 1 ! always fill the ghost cells at the bc face
-             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                data(i, lo(2)-j, :) = data(i, lo(2)-1+j, :)
-
-             end do
+    if (lo(2) .eq. dom_lo(2)) then ! lower bound
+       if (bc_es_lo(2) .eq. 2) then ! Neumann
+          do i = lo(1), hi(1)
+             data(i, lo(2)-1, :) = potential_lo(2)
           end do
-
-       elseif(bc_es_lo(2) .eq. 1) then ! Dirichlet
-          do j = 1, 1 ! always fill the ghost cells at the bc face
-             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                data(i, lo(2)-j, :) = -data(i, lo(2)-1+j, :) + 2*potential_lo(2)
-
-             end do
-          end do
-
-       end if
-    end if
-
-    if(hi(2) .eq. dom_hi(2)) then ! upper bound
-       if(bc_es_hi(2) .eq. 2) then ! Neumann
-          do j = 1, 1 ! always fill the ghost cells at the bc face
-             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                data(i, hi(2)+j, :) = data(i, hi(2)+1-j, :)
-
-             end do
-          end do
-       elseif(bc_es_hi(2) .eq. 1) then ! Direchlet
-          do j = 1, 1 ! always fill the ghost cells at the bc face
-             do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                data(i, hi(2)+j, :) = -data(i, hi(2)+1-j, :) + 2*potential_hi(2)
-
-             end do
+       elseif (bc_es_lo(2) .eq. 1) then ! Dirichlet
+          do i = lo(1), hi(1)
+             data(i, lo(2)-1, :) = potential_lo(2)
           end do
        end if
     end if
 
-  end subroutine fab_potentialbc
+    if (hi(2) .eq. dom_hi(2)) then ! upper bound
+       if (bc_es_hi(2) .eq. 2) then ! Neumann
+          do i = lo(1), hi(1)
+             data(i, hi(2)+1, :) = potential_hi(2)
+          end do
+       elseif (bc_es_hi(2) .eq. 1) then ! Direchlet
+          do i = lo(1), hi(1)
+             data(i, hi(2)+1, :) = potential_hi(2)
+          end do
+       end if
+    end if
+
+  end subroutine fab_potentialbc_solver
 
   pure subroutine fab_chargebc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
        &                     dom_lo, dom_hi,              &
@@ -784,7 +813,7 @@ end subroutine fab_physbc_macstress
     end if
 
     if (hi(3) .eq. dom_hi(3)) then ! upper bound
-       if (bc_es_hi(3) .eq. 2) then ! no slip thermal
+       if (bc_es_hi(3) .eq. 2) then ! Neumann
           do k = 1, ngc ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
@@ -794,7 +823,7 @@ end subroutine fab_physbc_macstress
                 end do
              end do
           end do
-       elseif (bc_es_hi(3) .eq. 1) then ! no slip thermal
+       elseif (bc_es_hi(3) .eq. 1) then ! Dirichlet
           do k = 1, ngc ! always fill the ghost cells at the bc face
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
@@ -809,11 +838,136 @@ end subroutine fab_physbc_macstress
 
   end subroutine fab_electricbc
 
-  pure subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
-       &                     dom_lo, dom_hi,              &
-       &                     data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
-       &                     ngc, dim_fill_ghost)         &
-       &                     bind(C, name="fab_potentialbc")
+  subroutine fab_potentialbc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                             dom_lo, dom_hi,              &
+                             data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                             ngc, dim_fill_ghost, dx)     &
+                             bind(C, name="fab_potentialbc")
+
+    integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
+         &                             d_lo(3), d_hi(3), d_ncomp
+    integer,          intent(in   ) :: dim_fill_ghost(3)
+    integer, value,   intent(in   ) :: ngc
+    real(amrex_real), intent(inout) :: data(d_lo(1):d_hi(1), &
+         &                                  d_lo(2):d_hi(2), &
+         &                                  d_lo(3):d_hi(3), d_ncomp)
+    real(amrex_real), intent(in   ) :: dx(3)
+
+    ! ** loop indices
+    integer :: i,j,k
+
+    !____________________________________________________________________________
+    ! Apply BC to X faces
+
+    if (lo(1) .eq. dom_lo(1)) then ! lower bound
+       if (bc_es_lo(1) .eq. 2) then ! Neumann
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(lo(1)-1, j, k, :) = data(lo(1), j, k, :) - dx(1)*potential_lo(1)
+             end do
+          end do
+       elseif (bc_es_lo(1) .eq. 1) then !Dirichlet
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(lo(1)-1, j, k, :) = -data(lo(1), j, k, :) + 2*potential_lo(1)
+             end do
+          end do
+       end if
+    end if
+
+    if (hi(1) .eq. dom_hi(1)) then ! upper bound
+       if (bc_es_hi(1) .eq. 2) then !Neumann
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(hi(1)+1, j, k, :) = data(hi(1), j, k, :) + dx(1)*potential_hi(1)
+             end do
+          end do
+       elseif (bc_es_hi(1) .eq. 1) then ! Dirichlet
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(hi(1)+1, j, k, :) = -data(hi(1), j, k, :) + 2*potential_hi(1)
+             end do
+          end do
+       end if
+    end if
+
+    !____________________________________________________________________________
+    ! Apply BC to Y faces
+
+    if (lo(2) .eq. dom_lo(2)) then ! lower bound
+       if (bc_es_lo(2) .eq. 2) then ! Neumann
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, lo(2)-1, k, :) = data(i, lo(2), k, :) - dx(2)*potential_lo(2)
+             end do
+          end do
+       elseif (bc_es_lo(2) .eq. 1) then ! Dirichlet
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, lo(2)-1, k, :) = -data(i, lo(2), k, :) + 2*potential_lo(2)
+             end do
+          end do
+       end if
+    end if
+
+    if (hi(2) .eq. dom_hi(2)) then ! upper bound
+       if (bc_es_hi(2) .eq. 2) then ! Neumann
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, hi(2)+1, k, :) = data(i, hi(2), k, :) + dx(2)*potential_hi(2)
+             end do
+          end do
+       elseif (bc_es_hi(2) .eq. 1) then ! Dirichlet
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, hi(2)+1, k, :) = -data(i, hi(2), k, :) + 2*potential_hi(2)
+             end do
+          end do
+       end if
+    end if
+
+    !____________________________________________________________________________
+    ! Apply BC to Z faces
+
+    if (lo(3) .eq. dom_lo(3)) then ! lower bound
+       if (bc_es_lo(3) .eq. 2) then ! Neumann
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, lo(3)-1, :) = data(i, j, lo(3), :) - dx(3)*potential_lo(3)
+             end do
+          end do
+       elseif (bc_es_lo(3) .eq. 1) then ! Dirichlet
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, lo(3)-1, :) = -data(i, j, lo(3), :) + 2*potential_lo(3)
+             end do
+          end do
+       end if
+    end if
+
+    if (hi(3) .eq. dom_hi(3)) then ! upper bound
+       if (bc_es_hi(3) .eq. 2) then ! Neumann
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, hi(3)+1, :) = data(i, j, hi(3), :) + dx(3)*potential_hi(3)
+             end do
+          end do
+       elseif (bc_es_hi(3) .eq. 1) then ! Dirichlet
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, hi(3)+1, :) = -data(i, j, hi(3), :) + 2*potential_hi(3)
+             end do
+          end do
+       end if
+    end if
+
+  end subroutine fab_potentialbc
+
+  subroutine fab_potentialbc_solver(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
+                                    dom_lo, dom_hi,              &
+                                    data,   d_lo, d_hi, d_ncomp, & ! dim(d_lo) == dim(d_hi) == 3
+                                    ngc, dim_fill_ghost)         &
+                                    bind(C, name="fab_potentialbc_solver")
 
     integer,          intent(in   ) :: lo(3), hi(3), dom_lo(3), dom_hi(3), &
          &                             d_lo(3), d_hi(3), d_ncomp
@@ -826,34 +980,20 @@ end subroutine fab_physbc_macstress
     ! ** loop indices
     integer :: i,j,k
 
-    ! ** number of ghost cells to fill in each dimension
-    integer, dimension(3) :: ngc_eff
-
-    ngc_eff(:) = ngc*dim_fill_ghost(:)
-
-
     !____________________________________________________________________________
     ! Apply BC to X faces
 
     if (lo(1) .eq. dom_lo(1)) then ! lower bound
        if (bc_es_lo(1) .eq. 2) then ! Neumann
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                   data(lo(1)-i, j, k, :) = data(lo(1)-1+i, j, k, :)
-
-                end do
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(lo(1)-1, j, k, :) = potential_lo(1)
              end do
           end do
        elseif (bc_es_lo(1) .eq. 1) then !Dirichlet
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                   data(lo(1)-i, j, k, :) = -data(lo(1)-1+i, j, k, :) + 2*potential_lo(1)
-
-                end do
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(lo(1)-1, j, k, :) = potential_lo(1)
              end do
           end do
        end if
@@ -861,23 +1001,15 @@ end subroutine fab_physbc_macstress
 
     if (hi(1) .eq. dom_hi(1)) then ! upper bound
        if (bc_es_hi(1) .eq. 2) then !Neumann
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                   data(hi(1)+i, j, k, :) = data(hi(1)+1-i, j, k, :)
-
-                end do
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(hi(1)+1, j, k, :) = potential_hi(1)
              end do
           end do
        elseif (bc_es_hi(1) .eq. 1) then ! Dirichlet
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = 1, 1 ! always fill the ghost cells at the bc face
-
-                   data(hi(1)+i, j, k, :) = -data(hi(1)+1-i, j, k, :) + 2*potential_hi(1)
-
-                end do
+          do k = lo(3), hi(3)
+             do j = lo(2), hi(2)
+                data(hi(1)+1, j, k, :) = potential_hi(1)
              end do
           end do
        end if
@@ -890,23 +1022,15 @@ end subroutine fab_physbc_macstress
 
     if (lo(2) .eq. dom_lo(2)) then ! lower bound
        if (bc_es_lo(2) .eq. 2) then ! Neumann
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = 1, 1 ! always fill the ghost cells at the bc face
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, lo(2)-j, k, :) = data(i, lo(2)-1+j, k, :)
-
-                end do
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, lo(2)-1, k, :) = potential_lo(2)
              end do
           end do
        elseif (bc_es_lo(2) .eq. 1) then ! Dirichlet
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = 1, 1 ! always fill the ghost cells at the bc face
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, lo(2)-j, k, :) = -data(i, lo(2)-1+j, k, :) + 2*potential_lo(2)
-
-                end do
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, lo(2)-1, k, :) = potential_lo(2)
              end do
           end do
        end if
@@ -914,82 +1038,56 @@ end subroutine fab_physbc_macstress
 
     if (hi(2) .eq. dom_hi(2)) then ! upper bound
        if (bc_es_hi(2) .eq. 2) then ! Neumann
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = 1, 1 ! always fill the ghost cells at the bc face
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, hi(2)+j, k, :) = data(i, hi(2)+1-j, k, :)
-
-                end do
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, hi(2)+1, k, :) = potential_hi(2)
              end do
           end do
        elseif (bc_es_hi(2) .eq. 1) then ! Dirichlet
-          do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
-             do j = 1, 1 ! always fill the ghost cells at the bc face
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, hi(2)+j, k, :) = -data(i, hi(2)+1-j, k, :) + 2*potential_hi(2)
-
-                end do
+          do k = lo(3), hi(3)
+             do i = lo(1), hi(1)
+                data(i, hi(2)+1, k, :) = potential_hi(2)
              end do
           end do
        end if
     end if
-
 
     !____________________________________________________________________________
     ! Apply BC to Z faces
 
     if (lo(3) .eq. dom_lo(3)) then ! lower bound
        if (bc_es_lo(3) .eq. 2) then ! Neumann
-          do k = 1, 1 ! always fill the ghost cells at the bc face
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, j, lo(3)-k, :) = data(i, j, lo(3)-1+k, :)
-
-                end do
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, lo(3)-1, :) = potential_lo(3)
              end do
           end do
        elseif (bc_es_lo(3) .eq. 1) then ! Dirichlet
-          do k = 1, 1 ! always fill the ghost cells at the bc face
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, j, lo(3)-k, :) = -data(i, j, lo(3)-1+k, :) + 2*potential_lo(3)
-
-                end do
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, lo(3)-1, :) = potential_lo(3)
              end do
           end do
        end if
-
     end if
 
     if (hi(3) .eq. dom_hi(3)) then ! upper bound
-       if (bc_es_hi(3) .eq. 2) then ! no slip thermal
-          do k = 1, 1 ! always fill the ghost cells at the bc face
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, j, hi(3)+k, :) = data(i, j, hi(3)+1-k, :)
-
-                end do
+       if (bc_es_hi(3) .eq. 2) then ! Neumann
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, hi(3)+1, :) = potential_hi(3)
              end do
           end do
-       elseif (bc_es_hi(3) .eq. 1) then ! no slip thermal
-          do k = 1, 1 ! always fill the ghost cells at the bc face
-             do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
-                do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
-
-                   data(i, j, hi(3)+k, :) = -data(i, j, hi(3)+1-k, :) + 2*potential_hi(3)
-
-                end do
+       elseif (bc_es_hi(3) .eq. 1) then ! Dirichlet
+          do j = lo(2), hi(2)
+             do i = lo(1), hi(1)
+                data(i, j, hi(3)+1, :) = potential_hi(3)
              end do
           end do
        end if
     end if
 
-  end subroutine fab_potentialbc
+  end subroutine fab_potentialbc_solver
 
   pure subroutine fab_chargebc(lo,     hi,                  & ! dim(lo) == dim(hi) == 3
        &                     dom_lo, dom_hi,              &
@@ -1148,7 +1246,7 @@ end subroutine fab_physbc_macstress
     end if
 
     if (hi(3) .eq. dom_hi(3)) then ! upper bound
-       if (bc_es_hi(3) .eq. 2) then ! no slip thermal
+       if (bc_es_hi(3) .eq. 2) then ! Neumann
           do k = 1, ngc
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
@@ -1158,7 +1256,7 @@ end subroutine fab_physbc_macstress
                 end do
              end do
           end do
-       elseif (bc_es_hi(3) .eq. 1) then ! no slip thermal
+       elseif (bc_es_hi(3) .eq. 1) then ! Dirichlet
           do k = 1, ngc
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)

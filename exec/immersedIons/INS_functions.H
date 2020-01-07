@@ -18,7 +18,11 @@ void WritePlotFile(int step,
                    const MultiFab& particleVars,
                    FhdParticleContainer& particles,
                    const MultiFab& charge,
+                   const MultiFab& chargeM,
+                   const MultiFab& chargeV,
                    const MultiFab& potential,
+                   const MultiFab& potentialM,
+                   const MultiFab& potentialV,
                    const std::array< MultiFab, AMREX_SPACEDIM >& efield,
                    const MultiFab& mobility);
 
@@ -50,7 +54,11 @@ void WriteCheckPoint(int step,
                      const FhdParticleContainer& particles,
                      const MultiFab& particleMeans,
                      const MultiFab& particleVars,
-                     const MultiFab& potential);
+                     const MultiFab& chargeM,
+                     const MultiFab& chargeV,
+                     const MultiFab& potential,
+                     const MultiFab& potentialM,
+                     const MultiFab& potentialV);
 
 void ReadCheckPoint(int& step,
                     amrex::Real& time,
@@ -61,7 +69,11 @@ void ReadCheckPoint(int& step,
                     MultiFab& pres,
                     MultiFab& particleMeans,
                     MultiFab& particleVars,
-                    MultiFab& potential);
+                    MultiFab& chargeM,
+                    MultiFab& chargeV,
+                    MultiFab& potential,
+                    MultiFab& potentialM,
+                    MultiFab& potentialV);
 
 void ReadCheckPointParticles(FhdParticleContainer& particles);
 

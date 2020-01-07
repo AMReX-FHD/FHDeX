@@ -96,8 +96,8 @@ void main_driver(const char* argv)
     // umac needs extra ghost cells for Peskin kernels
     // note if we are restarting, these are defined and initialized to the checkpoint data
     std::array< MultiFab, AMREX_SPACEDIM > umac;
-    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // for storing basic fluid stats
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // for storing basic fluid stats
+    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
+    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // variance
 
     // pressure for GMRES solve; 1 ghost cell
     MultiFab pres;
@@ -109,6 +109,12 @@ void main_driver(const char* argv)
 
     // MF for electric potential
     MultiFab potential;
+    MultiFab potentialM;
+    MultiFab potentialV;
+
+    // MF for charge mean and variance
+    MultiFab chargeM;
+    MultiFab chargeV;
     
     if (restart < 0) {
         
@@ -146,8 +152,8 @@ void main_driver(const char* argv)
         
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-            umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-            umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+            umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
             umac [d].setVal(0.);
             umacM[d].setVal(0.);
             umacV[d].setVal(0.);
@@ -221,13 +227,23 @@ void main_driver(const char* argv)
 
         //Cell centred es potential
         potential.define(bp, dmap, 1, ngp);
+        potentialM.define(bp, dmap, 1, 1);
+        potentialV.define(bp, dmap, 1, 1);
         potential.setVal(0.);
+        potentialM.setVal(0.);
+        potentialV.setVal(0.);
+        
+        chargeM.define(bp, dmap, 1, 1);  // mean
+        chargeV.define(bp, dmap, 1, 1);  // variance
+        chargeM.setVal(0);
+        chargeV.setVal(0);
     }
     else {
         
         // restart from checkpoint
         ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,pres,
-                       particleMeans,particleVars,potential);
+                       particleMeans,particleVars,chargeM,chargeV,
+                       potential,potentialM,potentialV);
 
         // grab DistributionMap from umac
         dmap = umac[0].DistributionMap();
@@ -680,8 +696,10 @@ void main_driver(const char* argv)
 
     //charage density for RHS of Poisson Eq.
     MultiFab charge(bp, dmap, 1, ngp);
-    MultiFab chargeTemp(bp, dmap, 1, ngp);
     charge.setVal(0);
+
+    // temporary used to help collect charge
+    MultiFab chargeTemp(bp, dmap, 1, ngp);
     chargeTemp.setVal(0);
 
     //mass density on ES grid - not necessary
@@ -968,7 +986,9 @@ void main_driver(const char* argv)
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
         }
-
+        ComputeBasicStats(potential, potentialM, potentialV, 1, 1, statsCount);
+        ComputeBasicStats(charge   , chargeM   , chargeV   , 1, 1, statsCount);
+        
         statsCount++;
         
 	//_______________________________________________________________________
@@ -995,13 +1015,20 @@ void main_driver(const char* argv)
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip
         // see the FIXME - AJN note above
-        if (plot_int > 0 && istep%plot_int == 0 ||
-            ( plot_int > 1 && (istep+1)%plot_int == 0) ) {
-
+        bool writePlt = false;
+        if (plot_int > 0) {
+            if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+                writePlt = (istep%plot_int == 0);
+            }
+            else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+                writePlt = ((istep+1)%plot_int == 0);
+            }
+        }
+        if (writePlt) {
             // This write particle data and associated fields and electrostatic fields
             WritePlotFile(istep, time, geom, geomC, geomP,
                           particleInstant, particleMeans, particleVars, particles,
-                          charge, potential, efieldCC, dryMobility);
+                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
 
             // Writes instantaneous flow field and some other stuff? Check with Guy.
             WritePlotFileHydro(istep, time, geom, umac, pres, umacM, umacV);
@@ -1009,7 +1036,8 @@ void main_driver(const char* argv)
 
         if (chk_int > 0 && istep%chk_int == 0) {
             WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, pres,
-                            particles, particleMeans, particleVars, potential);
+                            particles, particleMeans, particleVars, chargeM, chargeV,
+                            potential, potentialM, potentialV);
         }
 
         // timer for time step
