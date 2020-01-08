@@ -149,7 +149,10 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
 
         //Assuming tile=box for now, i.e. no tiling.
         IntVect smallEnd = tile_box.smallEnd();
-        IntVect bigEnd = tile_box.bigEnd();       
+        IntVect bigEnd = tile_box.bigEnd();
+
+        //Note we are resetting the particle ID count here, this is only valid if one rank is doing the generating.
+        ParticleType::NextID(1);
 
         if(ParallelDescriptor::MyProc() == 0 && mfi.LocalTileIndex() == 0 && proc0_enter) {
 
@@ -159,6 +162,7 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
                 for (int i_part=0; i_part<particleInfo[i_spec].total;i_part++) {
 
                     ParticleType p;
+
                     p.id()  = ParticleType::NextID();
                     p.cpu() = ParallelDescriptor::MyProc();
                     p.idata(FHD_intData::sorted) = 0;

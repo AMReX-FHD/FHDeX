@@ -218,6 +218,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
         long np = particles.size();
 
         int id;
+
+       //std::cout << "Proc " << ParallelDescriptor::MyProc() << " sees " << np << " particles." <<std::endl;
+
         if (element >= 0) {
 
             for (int i = 0; i < np; ++i) {
@@ -233,6 +236,9 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
                 ParticleType & part = particles[i];
                 id = part.id();
                 list[id-1] = part.pos((-element)-1);
+
+              //  std::cout << "Proc " << ParallelDescriptor::MyProc() << " storing " << part.pos((-element)-1)
+                //                               << " from " << i << " in position " << id-1 << std::endl;
             }
         }
     }

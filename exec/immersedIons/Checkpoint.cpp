@@ -430,9 +430,17 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
         else if(pkernel_fluid == 6) {
             ang = 4;
         }
-    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    Box domain(dom_lo, dom_hi);
+
+    Box minBox = bc.minimalBox();
+
+//    //IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+//    //IntVect dom_hi(AMREX_D_DECL(n_cells[0]/2-1, n_cells[1]/2-1, n_cells[2]/2-1));
+
+//    IntVect dom_lo
+//    IntVect dom_hi(AMREX_D_DECL(n_cells[0]/2-1, n_cells[1]/2-1, n_cells[2]/2-1));
+
+
+//    Box domain(dom_lo, dom_hi);
 
     RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
                        {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
@@ -445,16 +453,22 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
         }
     }
 
-    Geometry geomC(domain,&realDomain,CoordSys::cartesian,is_periodic_c.data());    
+    Geometry geomC(minBox,&realDomain,CoordSys::cartesian,is_periodic_c.data());
    
+//    Print() <<  "domain: " << domain << std::endl;
+//    Print() <<  "geom: " << geomC << std::endl;
+//    Print() <<  "Box Array: " << bc << std::endl;
+//    Print() <<  "Dist Map: " << dm << std::endl;
 
     FhdParticleContainer particlesTemp(geomC, dm, bc, 1);
     
     // restore particles
+
+    //cout << "Restoring!\n";
     particlesTemp.Restart(checkpointname,"particle");
-
+    //cout << "Restored!\n";
     int np = particlesTemp.TotalNumberOfParticles();
-
+    //particlesTemp.Checkpoint("testcheck","particle");
     Print() << "Checkpoint contains " << np << " particles." <<std::endl;
 
     Real posx[np];
@@ -464,15 +478,29 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
 
     Real sigma[np];
     Real epsilon[np];
-    int species[np];
+    int speciesV[np];
 
     Real diffwet[np];
     Real diffdry[np];
     Real difftot[np];
 
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 1 started." <<std::endl;
+
     particlesTemp.PullDown(0, posx, -1, np);
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 1 finished." <<std::endl;
+
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " particle 5 xPos: " << posx[4] << std:: endl;
+
+    //ParallelDescriptor::Barrier();
+
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " through barrier." << std:: endl;
+
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 2 started." <<std::endl;
     particlesTemp.PullDown(0, posy, -2, np);
+    //std::cout << "Proc " << ParallelDescriptor::MyProc() << " pull down 2 finished." <<std::endl;
+
     particlesTemp.PullDown(0, posz, -3, np);
+
     particlesTemp.PullDown(0, charge, 27, np);
 
     particlesTemp.PullDown(0, sigma, 43, np);
@@ -482,10 +510,11 @@ void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleI
     particlesTemp.PullDown(0, diffwet, 41, np);
     particlesTemp.PullDown(0, difftot, 42, np);
 
-    particlesTemp.PullDownInt(0, species, 5, np);
+    particlesTemp.PullDownInt(0, speciesV, 4, np);
 
 
-    particles.ReInitParticles(particleInfo, dxp, posx, posy, posz, charge, sigma, epsilon, species, diffdry, diffwet, difftot);
+
+    particles.ReInitParticles(particleInfo, dxp, posx, posy, posz, charge, sigma, epsilon, speciesV, diffdry, diffwet, difftot);
 
 
     //particles.PostRestart();

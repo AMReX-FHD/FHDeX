@@ -801,17 +801,12 @@ void main_driver(const char* argv)
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
 
-/*
-    // write a plotfile on restart
-    // note particle data isn't updated for plotfile generation yet
-    if (restart > 0) {    
-        WritePlotFile(step-1, time, geom, geomC, geomP,
-                      particleInstant, particleMeans, particleVars, particles,
-                      charge, potential, efieldCC, dryMobility);
-        
-        WritePlotFileHydro(step-1,time,geom,umac,pres, umacM, umacV);
-    }
-*/
+    WritePlotFile(0, time, geom, geomC, geomP,
+                  particleInstant, particleMeans, particleVars, particles,
+                  charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+
+    // Writes instantaneous flow field and some other stuff? Check with Guy.
+    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
     
     //Time stepping loop
     for (int istep=step; istep<=max_step; ++istep) {
