@@ -377,6 +377,78 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     }
 
     amrex::Print() << "Restart particles from checkpoint " << checkpointname << "\n";
+
+    std::string line, word;
+    
+        int temp;
+        std::string File(checkpointname + "/Header");
+        Vector<char> fileCharPtr;
+        ParallelDescriptor::ReadAndBcastFile(File, fileCharPtr);
+        std::string fileCharPtrString(fileCharPtr.dataPtr());
+        std::istringstream is(fileCharPtrString, std::istringstream::in);
+
+        // read in title line
+        std::getline(is, line);
+
+        // read in time step number
+        is >> temp;
+        GotoNextLine(is);
+
+        // read in time
+        is >> temp;
+        GotoNextLine(is);
+
+        // read in statsCount
+        is >> temp;
+        GotoNextLine(is);
+
+        // read in BoxArray (fluid) from Header
+        BoxArray ba;
+        ba.readFrom(is);
+        GotoNextLine(is);
+
+        // read in BoxArray (particle) from Header
+        BoxArray bc;
+        bc.readFrom(is);
+        GotoNextLine(is);
+
+        BoxArray bp;
+        bp.readFrom(is);
+        GotoNextLine(is);
+
+        // create a distribution mapping
+        DistributionMapping dm { bc, ParallelDescriptor::NProcs() };
+        
+        //set number of ghost cells to fit whole peskin kernel
+        int ang = 1;
+        if(pkernel_fluid == 3) {
+            ang = 2;
+        }
+        else if(pkernel_fluid == 4) {
+            ang = 3;
+        }
+        else if(pkernel_fluid == 6) {
+            ang = 4;
+        }
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
+
+    RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                       {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+
+    Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
+            is_periodic_c[i] = 1;
+        }
+    }
+
+    Geometry geomC(domain,&realDomain,CoordSys::cartesian,is_periodic_c.data());    
+   
+
+    FhdParticleContainer particlesTemp(geomC, dm, bc, 1);
     
     // restore particles
     particles.Restart(checkpointname,"particle");
