@@ -254,6 +254,55 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
     // ParallelDescriptor::ReduceRealSum(std::move(tmp)); // Ask Weiqun why tmp needs to be &&?
 }
 
+template <typename StructReal, typename StructInt>
+void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
+            int lev, int * list, int element, int totalParticles
+        ) {
+
+    int temp;
+
+    for (int i = 0; i < totalParticles; ++i) {
+        //std::cout << i << " of " << totalParticles << std::endl;
+        list[i] = 0;
+    }
+
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = particles.size();
+
+        int id;
+        if (element >= 0) {
+
+            for (int i = 0; i < np; ++i) {
+                ParticleType & part = particles[i];
+                id = part.id();
+                //std::cout << id << " of " << totalParticles << std::endl;
+                list[id-1] = particles[i].idata(StructInt::sorted + element);
+            }
+
+        } 
+    }
+
+    //I'm sure there is an array version of this but this will do for now.
+    // There is: void amrex::ParallelDescriptor::ReduceRealSum (Vector< std::reference_wrapper< Real > > &&)
+    // the commented code below should do the trick (but it has not been tested)
+    for (int i=0; i<totalParticles; ++i) {
+        temp = list[i];
+        ParallelDescriptor::ReduceIntSum(temp);
+        list[i] = temp;
+    }
+    // Vectorized alternative (warning: untested!):
+    // // Create a vector wrapping the `list` array:
+    // Vector<std::reference_wrapper<Real>> tmp(totalParticles);
+    // for (int i=0; i<totalParticles; ++i) tmp[i] = & list[i];
+
+    // // Vectorized parallel reduce:
+    // ParallelDescriptor::ReduceRealSum(std::move(tmp)); // Ask Weiqun why tmp needs to be &&?
+}
+
 
 
 template <typename StructReal, typename StructInt>

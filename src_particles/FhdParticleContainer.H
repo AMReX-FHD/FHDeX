@@ -170,6 +170,8 @@ public:
 
     void InitParticles(species* particleInfo, const Real* dxp);
 
+    void ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * species, Real * diffdry, Real * diffwet, Real * difftotal);
+
     void PostRestart();
 
     void WriteParticlesAscii(string asciiName);

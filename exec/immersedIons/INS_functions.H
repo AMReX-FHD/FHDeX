@@ -75,7 +75,7 @@ void ReadCheckPoint(int& step,
                     MultiFab& potentialM,
                     MultiFab& potentialV);
 
-void ReadCheckPointParticles(FhdParticleContainer& particles);
+void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp);
 
 ///////////////////////////
 

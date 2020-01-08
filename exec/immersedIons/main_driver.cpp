@@ -678,7 +678,7 @@ void main_driver(const char* argv)
         particles.InitParticles(ionParticle, dxp);
     }
     else {
-        ReadCheckPointParticles(particles);
+        ReadCheckPointParticles(particles, ionParticle, dxp);
     }
 
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations

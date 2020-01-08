@@ -18,14 +18,15 @@
   fixed_dt = 1e-13
 
   ! Controls for number of steps between actions
-  max_step = 50
+  max_step = 20
   plot_int = 5
   plot_ascii = 1
   struct_fact_int = 5
   n_steps_skip = 100
 
+  chk_int = 5
   restart = -1
-  particle_restart = -1
+  particle_restart = 5
 
   ! Toggles 0=off, 1=on
   fluid_tog = 3 ! 0=Do nothing, 1=Do stokes solve, 2=Do low Mach solve

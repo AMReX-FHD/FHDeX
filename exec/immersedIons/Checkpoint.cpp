@@ -361,7 +361,7 @@ void ReadCheckPoint(int& step,
     rng_restart(&restart,&digits);
 }
 
-void ReadCheckPointParticles(FhdParticleContainer& particles) {
+void ReadCheckPointParticles(FhdParticleContainer& particles, species* particleInfo, const Real* dxp) {
     
     // timer for profiling
     BL_PROFILE_VAR("ReadCheckPointParticles()",ReadCheckPointParticles);
@@ -451,8 +451,57 @@ void ReadCheckPointParticles(FhdParticleContainer& particles) {
     FhdParticleContainer particlesTemp(geomC, dm, bc, 1);
     
     // restore particles
-    particles.Restart(checkpointname,"particle");
+    particlesTemp.Restart(checkpointname,"particle");
 
-    particles.PostRestart();
+    int np = particlesTemp.TotalNumberOfParticles();
 
+    Print() << "Checkpoint contains " << np << " particles." <<std::endl;
+
+    Real posx[np];
+    Real posy[np];
+    Real posz[np];
+    Real charge[np];
+
+    Real sigma[np];
+    Real epsilon[np];
+    int species[np];
+
+    Real diffwet[np];
+    Real diffdry[np];
+    Real difftot[np];
+
+    particlesTemp.PullDown(0, posx, -1, np);
+    particlesTemp.PullDown(0, posy, -2, np);
+    particlesTemp.PullDown(0, posz, -3, np);
+    particlesTemp.PullDown(0, charge, 27, np);
+
+    particlesTemp.PullDown(0, sigma, 43, np);
+    particlesTemp.PullDown(0, epsilon, 44, np);
+
+    particlesTemp.PullDown(0, diffdry, 40, np);
+    particlesTemp.PullDown(0, diffwet, 41, np);
+    particlesTemp.PullDown(0, difftot, 42, np);
+
+    particlesTemp.PullDownInt(0, species, 5, np);
+
+
+    particles.ReInitParticles(particleInfo, dxp, posx, posy, posz, charge, sigma, epsilon, species, diffdry, diffwet, difftot);
+
+
+    //particles.PostRestart();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
