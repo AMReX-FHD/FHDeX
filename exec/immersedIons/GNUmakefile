@@ -3,7 +3,7 @@
 AMREX_HOME ?= ../../../amrex/
 FHDeX ?= ../../
 FIONS = $(FHDeX)/exec/immersedIons
-HYDROLIB_HOME := ../../../LowMachFHD/HydroGrid
+#HYDROLIB_HOME := ../../../LowMachFHD/HydroGrid
 
 DEBUG     = FALSE
 PROFILE   = FALSE
@@ -98,8 +98,8 @@ include $(FHDeX)/src_immersed-boundary/MakeBase.package
 VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
 INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
 
-include $(HYDROLIB_HOME)/GPackage_noRNG.mak
-VPATH_LOCATIONS += $(HYDROLIB_HOME)
+#include $(HYDROLIB_HOME)/GPackage_noRNG.mak
+#VPATH_LOCATIONS += $(HYDROLIB_HOME)
 
 include $(FIONS)/Make.package
 include $(FIONS)/Make_precheck.package

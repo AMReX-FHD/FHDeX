@@ -23,7 +23,7 @@
 #include "StochMFlux.H"
 //#include "StructFact.H"
 
-#include "hydro_test_functions_F.H"
+//#include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
@@ -34,7 +34,7 @@
 
 //#include "electrostatic.H"
 
-#include "debug_functions_F.H"
+//#include "debug_functions_F.H"
 #include "AMReX_ArrayLim.H"
 
 //#include <IBMarkerContainer.H>

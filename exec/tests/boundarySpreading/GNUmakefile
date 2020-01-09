@@ -2,7 +2,7 @@
 # If you set AMREX_HOME as an environment variable, this line will be ignored
 AMREX_HOME ?= ../../../../amrex/
 FHDeX ?= ../../../
-FIONS = $(FHDeX)/exec/immersedIons
+FIONS = $(FHDeX)/exec/tests/boundarySpreading
 HYDROLIB_HOME := ../../../../LowMachFHD/HydroGrid
 
 DEBUG     = FALSE
@@ -98,12 +98,11 @@ include $(FHDeX)/src_immersed-boundary/MakeBase.package
 VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
 INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
 
-#include $(HYDROLIB_HOME)/GPackage_noRNG.mak
-#VPATH_LOCATIONS += $(HYDROLIB_HOME)
+include $(HYDROLIB_HOME)/GPackage_noRNG.mak
+VPATH_LOCATIONS += $(HYDROLIB_HOME)
 
 include $(FIONS)/Make.package
 include $(FIONS)/Make_precheck.package
-include $(FIONS)/Make_debug.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

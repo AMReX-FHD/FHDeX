@@ -103,7 +103,7 @@ INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
 
 include $(FIONS)/Make.package
 include $(FIONS)/Make_precheck.package
-include $(FIONS)/Make_debug.package
+#include $(FIONS)/Make_debug.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
