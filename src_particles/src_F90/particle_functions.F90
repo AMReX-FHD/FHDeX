@@ -2471,6 +2471,7 @@ contains
                 !print *, "After: ", part%abspos
 
                 dist = sqrt(dot_product(dt*part%vel,dt*part%vel))/part%radius
+                !print *, "Dist: ", dist, dt, part%radius
 
                 if(dist .gt. maxdist) then
 

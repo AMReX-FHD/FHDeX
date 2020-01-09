@@ -387,6 +387,8 @@ void main_driver(const char* argv)
             // set diameter from total diffusion (Stokes Einsten)
             ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
 
+               // std::cout << "Species " << i << " radius: " << ionParticle[i].d << std::endl;
+
             // compute wet diffusion from wetRad
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
 

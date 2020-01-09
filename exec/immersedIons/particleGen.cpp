@@ -130,7 +130,7 @@ void FhdParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 
 }
 
-void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * species, Real * diffdry, Real * diffwet, Real * difftotal)
+void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal)
 {
     const int lev = 0;
     const Geometry& geom = Geom(lev);
@@ -226,22 +226,22 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
                     p.rdata(FHD_realData::diffAv) = 0;
                     p.rdata(FHD_realData::stepCount) = 0;
 
-                    p.idata(FHD_intData::species) = species[pcount];
+                    p.idata(FHD_intData::species) = speciesV[pcount];
 
-                    p.rdata(FHD_realData::mass) = particleInfo[species[pcount]].m; //mass
-                    p.rdata(FHD_realData::R) = particleInfo[species[pcount]].R; //R
-                    p.rdata(FHD_realData::radius) = particleInfo[species[pcount]].d/2.0; //radius
+                    p.rdata(FHD_realData::mass) = particleInfo[speciesV[pcount]-1].m; //mass
+                    p.rdata(FHD_realData::R) = particleInfo[speciesV[pcount]-1].R; //R
+                    p.rdata(FHD_realData::radius) = particleInfo[speciesV[pcount]-1].d/2.0; //radius
                     p.rdata(FHD_realData::accelFactor) = -6*3.14159265359*p.rdata(FHD_realData::radius)/p.rdata(FHD_realData::mass); //acceleration factor (replace with amrex c++ constant for pi...)
                     p.rdata(FHD_realData::dragFactor) = 6*3.14159265359*p.rdata(FHD_realData::radius); //drag factor
                     //p.rdata(FHD_realData::dragFactor) = 0; //drag factor
                     //p.rdata(FHD_realData::dragFactor) = 6*3.14159265359*dx[0]*1.322; //drag factor
 
-                    p.rdata(FHD_realData::wetDiff) = particleInfo[species[pcount]].wetDiff;
-                    p.rdata(FHD_realData::dryDiff) = particleInfo[species[pcount]].dryDiff;
-                    p.rdata(FHD_realData::totalDiff) = particleInfo[species[pcount]].totalDiff;
+                    p.rdata(FHD_realData::wetDiff) = particleInfo[speciesV[pcount]-1].wetDiff;
+                    p.rdata(FHD_realData::dryDiff) = particleInfo[speciesV[pcount]-1].dryDiff;
+                    p.rdata(FHD_realData::totalDiff) = particleInfo[speciesV[pcount]-1].totalDiff;
 
-                    p.rdata(FHD_realData::sigma) = particleInfo[species[pcount]].sigma;
-                    p.rdata(FHD_realData::eepsilon) = particleInfo[species[pcount]].eepsilon;
+                    p.rdata(FHD_realData::sigma) = particleInfo[speciesV[pcount]-1].sigma;
+                    p.rdata(FHD_realData::eepsilon) = particleInfo[speciesV[pcount]-1].eepsilon;
 
 
                     p.rdata(FHD_realData::potential) = 0;                 
@@ -252,6 +252,9 @@ void FhdParticleContainer::ReInitParticles(species* particleInfo, const Real* dx
                     p.rdata(FHD_realData::p3m_radius) = (pkernel_es + 0.5)*dxp[0];
 
                     particle_tile.push_back(p);
+
+
+                    Print() << "Generating radius " << speciesV[pcount]-1 << ", " << particleInfo[speciesV[pcount]-1].d/2.0 << std::endl;
 
                     pcount++;
                 }

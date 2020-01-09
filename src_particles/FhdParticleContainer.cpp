@@ -226,7 +226,6 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
     buildNeighborList(CheckPair);
 
-
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
