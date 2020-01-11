@@ -294,7 +294,7 @@ end subroutine fab_physbc_macstress
     if (hi(1) .eq. dom_hi(1)) then ! upper bound
        if (bc_es_hi(1) .eq. 2) then ! Neumann
           do j = lo(2), hi(2)
-             data(hi(1)+1 j, :) = data(hi(1), j, :) + dx(1)*potential_hi(1)
+             data(hi(1)+1, j, :) = data(hi(1), j, :) + dx(1)*potential_hi(1)
           end do
        elseif (bc_es_hi(1) .eq. 1) then ! Dirichlet
           do j = lo(2), hi(2)
