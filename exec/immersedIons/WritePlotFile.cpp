@@ -142,7 +142,7 @@ void WritePlotFile(int step,
 
     WriteSingleLevelPlotfile(cplotfilename,cplotfile,cvarNames,cgeom,time,step);
 
-    //WriteSingleLevelPlotfile(mplotfilename,mobility,fvarNames,geom,time,step);
+    WriteSingleLevelPlotfile(mplotfilename,mobility,fvarNames,geom,time,step);
 
     WriteSingleLevelPlotfile(eplotfilename,eplotfile,evarNames,egeom,time,step);
 

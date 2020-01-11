@@ -2397,22 +2397,24 @@ contains
 
                 if (dry_move_tog .eq. 1) then
 
-                   !Get fluid cell - possibly replace this with peskin interp
-                   fi(1) = floor((part%pos(1) - plof(1))*dxfinv(1))
-                   fi(2) = floor((part%pos(2) - plof(2))*dxfinv(2))
-#if (BL_SPACEDIM == 3)
-                   fi(3) = floor((part%pos(3) - plof(3))*dxfinv(3))
-#else
-                   fi(3) = 0
-#endif
-                   mb(1) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 1)
-                   mb(2) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 2)
-#if (BL_SPACEDIM == 3)
-                   mb(3) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 3)
-#endif
+!                   !Get fluid cell - possibly replace this with peskin interp
+!                   fi(1) = floor((part%pos(1) - plof(1))*dxfinv(1))
+!                   fi(2) = floor((part%pos(2) - plof(2))*dxfinv(2))
+!#if (BL_SPACEDIM == 3)
+!                   fi(3) = floor((part%pos(3) - plof(3))*dxfinv(3))
+!#else
+!                   fi(3) = 0
+!#endif
+!                   mb(1) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 1)
+!                   mb(2) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 2)
+!#if (BL_SPACEDIM == 3)
+!                   mb(3) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 3)
+!#endif
+
+                   call get_explicit_mobility(mb, part%dry_diff, part%pos, plo, phi)
                    call dry(dt,part,dry_terms, mb)
 
-                   ! print *, "wet: ", part%vel
+                   !print *, "mobility: ", mb
 
                    part%vel = part%vel + dry_terms
                 endif
@@ -3059,6 +3061,89 @@ contains
     tmob = max(1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5)),0d0)
 
   end subroutine get_mobility
+
+  subroutine get_mobility_diff(nmob, tmob, diff, z)
+
+    real(amrex_real),intent(in   ) :: z, diff
+    real(amrex_real),intent(inout) :: nmob, tmob
+
+    real(amrex_real) a
+
+    a = k_b*t_init(1)/(diff*visc_coef*3.142*6)
+
+    !print *, "z, a, nmob: ", z, a, nmob
+
+    nmob = max(1 - 9*a/(8*z) + (a**3)/(2*z**3) - (a**5)/(8*(z**5)),0d0)
+    tmob = max(1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5)),0d0)
+
+  end subroutine get_mobility_diff
+
+  subroutine get_explicit_mobility(mob, diff, pos, plo, phi)
+
+    real(amrex_real),intent(in   ) :: pos(3), diff, plo(3), phi(3)
+    real(amrex_real),intent(inout) :: mob(3)
+
+    real(amrex_real) nmob, tmob, z
+
+    mob(1:3) = 1
+
+    if((bc_vel_lo(1) .eq. 2) .and. (bc_vel_hi(1) .eq. 2)) then
+
+       z = pos(1)
+
+       if(z .gt. (phi(1)-plo(1))/2.0) then
+          z = phi(1) - z
+       endif
+
+       call get_mobility_diff(nmob, tmob, diff, z)
+
+       mob(1) = nmob
+       mob(2) = tmob
+#if (BL_SPACEDIM == 3)               
+       mob(3) = tmob
+#endif
+    endif
+
+    if((bc_vel_lo(2) .eq. 2) .and. (bc_vel_hi(2) .eq. 2)) then
+
+       z = pos(2)
+
+       if(z .gt. (phi(2)-plo(2))/2.0) then
+          z = phi(2) - z
+       endif
+
+       call get_mobility_diff(nmob, tmob, diff, z)
+
+       mob(1) = tmob
+       mob(2) = nmob
+#if (BL_SPACEDIM == 3)               
+       mob(3) = tmob
+#endif
+    endif
+
+
+#if (BL_SPACEDIM == 3)               
+    if((bc_vel_lo(3) .eq. 2) .and. (bc_vel_hi(3) .eq. 2)) then
+
+       z = pos(3)
+
+       if(z .gt. (phi(3)-plo(3))/2.0) then
+          z = phi(3) - z
+       endif
+
+       call get_mobility_diff(nmob, tmob, diff, z)
+
+       mob(1) = tmob
+       mob(2) = tmob
+#if (BL_SPACEDIM == 3)               
+       mob(3) = nmob
+#endif
+
+    endif
+#endif
+
+    !print *, "z, a, nmob: ", z, a, nmob
+  end subroutine get_explicit_mobility
 
   subroutine compute_dry_mobility(lo, hi, mobility, mlo, mhi, dx, plo, phi, ngc, species) &
                                   bind(c,name="compute_dry_mobility")
