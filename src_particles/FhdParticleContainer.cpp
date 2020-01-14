@@ -1513,8 +1513,13 @@ FhdParticleContainer::PrintParticles()
         {
             ParticleType & part = particles[i];
 
+            double bigM  = part.rdata(FHD_realData::totalDiff)/(T_init[0]*k_B);
+
             std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", force: " << part.rdata(FHD_realData::forcex) << ", " << part.rdata(FHD_realData::forcey) << ", " << part.rdata(FHD_realData::forcez) << std::endl;
             std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", position/q: " << part.pos(0) << ", " << part.pos(1) << ", " << part.pos(2) << ", " << part.rdata(FHD_realData::q) << std::endl;
+            std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", vel: " << part.rdata(FHD_realData::velx) << ", " << part.rdata(FHD_realData::vely) << ", " << part.rdata(FHD_realData::velz) << std::endl;
+            std::cout << "Particle " << ParallelDescriptor::MyProc() << ", " << i << ", normalised mobility: " << (part.rdata(FHD_realData::velx)/part.rdata(FHD_realData::forcex))/bigM << ", " << (part.rdata(FHD_realData::vely)/part.rdata(FHD_realData::forcey))/bigM
+                                                                                                                                                                         << ", " << (part.rdata(FHD_realData::velz)/part.rdata(FHD_realData::forcez))/bigM << std::endl;
 
         }
     }
