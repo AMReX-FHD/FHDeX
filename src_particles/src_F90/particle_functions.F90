@@ -2411,7 +2411,7 @@ contains
 !                   mb(3) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 3)
 !#endif
 
-                   call get_explicit_mobility(mb, part%dry_diff, part%pos, plo, phi)
+                   call get_explicit_mobility(mb, part%total_diff, part%pos, plo, phi)
                    call dry(dt,part,dry_terms, mb)
 
                    !print *, "mobility: ", mb
