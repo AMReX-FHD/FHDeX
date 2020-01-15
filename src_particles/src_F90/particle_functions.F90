@@ -2411,7 +2411,7 @@ contains
 !                   mb(3) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 3)
 !#endif
 
-                   call get_explicit_mobility(mb, part%total_diff, part%pos, plo, phi)
+                   call get_explicit_mobility(mb, part, plo, phi)
                    call dry(dt,part,dry_terms, mb)
 
                    !print *, "mobility: ", mb
@@ -3062,26 +3062,37 @@ contains
 
   end subroutine get_mobility
 
-  subroutine get_mobility_diff(nmob, tmob, diff, z)
+  subroutine get_mobility_diff(nmob, tmob, part, z)
 
-    real(amrex_real),intent(in   ) :: z, diff
+    real(amrex_real),intent(in   ) :: z
     real(amrex_real),intent(inout) :: nmob, tmob
+    type(particle_t),intent(in   ), target :: part
 
-    real(amrex_real) a
+    real(amrex_real) a, h
 
-    a = k_b*t_init(1)/(diff*visc_coef*3.142*6)
+    a = k_b*t_init(1)/(part%total_diff*visc_coef*3.142*6)
+
+    h = z/a
 
     !print *, "z, a, nmob: ", z, a, nmob
 
-    nmob = max(1 - 9*a/(8*z) + (a**3)/(2*z**3) - (a**5)/(8*(z**5)),0d0)
-    tmob = max(1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5)),0d0)
+!    nmob = max(1 - 9*a/(8*z) + (a**3)/(2*z**3) - (a**5)/(8*(z**5)),0d0)
+!    tmob = max(1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5)),0d0)
+
+    tmob = max(1.0178739157211536 + 0.27555274006079666/(0.5122778234075493 + h)**3 - 0.5103722002042806/(0.5122778234075493 + h)**2 - 0.5751429346433427/(0.5122778234075493 + h),0d0)
+
+    nmob = max(0.9603792424884368 + 8.065409511535329/(1.6044917433014263 + h)**3 - 6.93794418399698/(1.6044917433014263 + h)**2 - 0.34962956857881305/(1.6044917433014263 + h),0d0)
+
+
+  print *, "mobs: ", tmob, nmob, "h: ", h, "a: ", a
 
   end subroutine get_mobility_diff
 
-  subroutine get_explicit_mobility(mob, diff, pos, plo, phi)
+  subroutine get_explicit_mobility(mob, part, plo, phi)
 
-    real(amrex_real),intent(in   ) :: pos(3), diff, plo(3), phi(3)
+    real(amrex_real),intent(in   ) :: plo(3), phi(3)
     real(amrex_real),intent(inout) :: mob(3)
+    type(particle_t),intent(in   ), target :: part
 
     real(amrex_real) nmob, tmob, z
 
@@ -3089,13 +3100,13 @@ contains
 
     if((bc_vel_lo(1) .eq. 2) .and. (bc_vel_hi(1) .eq. 2)) then
 
-       z = pos(1)
+       z = part%pos(1)
 
        if(z .gt. (phi(1)-plo(1))/2.0) then
           z = phi(1) - z
        endif
 
-       call get_mobility_diff(nmob, tmob, diff, z)
+       call get_mobility_diff(nmob, tmob, part, z)
 
        mob(1) = nmob
        mob(2) = tmob
@@ -3106,13 +3117,13 @@ contains
 
     if((bc_vel_lo(2) .eq. 2) .and. (bc_vel_hi(2) .eq. 2)) then
 
-       z = pos(2)
+       z = part%pos(2)
 
        if(z .gt. (phi(2)-plo(2))/2.0) then
           z = phi(2) - z
        endif
 
-       call get_mobility_diff(nmob, tmob, diff, z)
+       call get_mobility_diff(nmob,tmob, part, z)
 
        mob(1) = tmob
        mob(2) = nmob
@@ -3125,13 +3136,13 @@ contains
 #if (BL_SPACEDIM == 3)               
     if((bc_vel_lo(3) .eq. 2) .and. (bc_vel_hi(3) .eq. 2)) then
 
-       z = pos(3)
+       z = part%pos(3)
 
        if(z .gt. (phi(3)-plo(3))/2.0) then
           z = phi(3) - z
        endif
 
-       call get_mobility_diff(nmob, tmob, diff, z)
+       call get_mobility_diff(nmob,tmob, part, z)
 
        mob(1) = tmob
        mob(2) = tmob

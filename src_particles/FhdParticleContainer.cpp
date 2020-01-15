@@ -1538,14 +1538,21 @@ FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
 
             AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
             long np = particles.size();
+
+            if(id <= np)
+            {
  
-            ParticleType & part = particles[id-1];
+                ParticleType & part = particles[id-1];
 
-            part.pos(0) = x;
-            part.pos(1) = y;
-            part.pos(2) = z;
+                part.pos(0) = x;
+                part.pos(1) = y;
+                part.pos(2) = z;
 
-            std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+                std::cout << "Rank " << ParallelDescriptor::MyProc() << " particle " << id << " moving to " << x << ", " << y << ", " << z << std::endl;
+            }else
+            {
+                std::cout << "Particle does not exist!\n";
+            }
            
         }
     }

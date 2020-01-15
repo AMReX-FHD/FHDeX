@@ -803,12 +803,12 @@ void main_driver(const char* argv)
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
 
-    WritePlotFile(0, time, geom, geomC, geomP,
-                  particleInstant, particleMeans, particleVars, particles,
-                  charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+//    WritePlotFile(0, time, geom, geomC, geomP,
+//                  particleInstant, particleMeans, particleVars, particles,
+//                  charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
 
-    // Writes instantaneous flow field and some other stuff? Check with Guy.
-    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
+//    // Writes instantaneous flow field and some other stuff? Check with Guy.
+//    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
     
     //Time stepping loop
     for (int istep=step; istep<=max_step; ++istep) {
@@ -818,7 +818,7 @@ void main_driver(const char* argv)
 
 //        if(istep == 1)
 //        {
-//            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]/16.0);
+//            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]/4.0);
 //           
 //        }
     
