@@ -21,8 +21,10 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn,
-             const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
+             const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt)
 {
+
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
     /////////////////////////////////////////////////////
     // Initialize white noise fields
@@ -106,22 +108,52 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dx, dt);
+                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
-        rk3_stage1(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),  
-                   source[mfi].dataPtr(),
-                   flux[0][mfi].dataPtr(),
-                   flux[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                   flux[2][mfi].dataPtr(),
-#endif
-      	           ZFILL(dx), &dt);   
+        const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cup_fab = cup.array(mfi);
+        const Array4<Real> & source_fab = source.array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& xflux_fab = flux[0].array(mfi);,
+                     Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
+                     Array4<Real const> const& zflux_fab = flux[2].array(mfi););
+
+        AMREX_HOST_DEVICE_FOR_4D(bx, nvars, i, j, k, n,
+        {
+            cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
+                ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
+                               + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
+                               + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]) )
+                + dt*source_fab(i,j,k,n);
+        });
+
+//  what to do about tests
+
+//              if(cup(i,j,k,1) .lt. 0) then
+//                print *, "Aborting. Negative density at", i,j,k
+//                call exit(0)
+//              endif
+//              if(cup(i,j,k,5) .lt. 0) then
+//                print *, "Aborting. Negative energy at", i,j,k
+//                call exit(0)
+//              endif
+//
+
+        AMREX_HOST_DEVICE_FOR_4D(bx, 3, i, j, k, n,
+        {
+            cup_fab(i,j,k,n+1) += dt * cu_fab(i,j,k,0)*grav[n];
+        });
+
+
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            cup_fab(i,j,k,4) += dt * (  grav[0]*cu_fab(i,j,k,1)
+                                      + grav[1]*cu_fab(i,j,k,2)
+                                      + grav[2]*cu_fab(i,j,k,3));
+        });
     }
 
     conservedToPrimitive(prim, cup);
@@ -162,23 +194,52 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dx, dt);
+                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
-        rk3_stage2(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),  
-                   cup2[mfi].dataPtr(), 
-                   source[mfi].dataPtr(),
-                   flux[0][mfi].dataPtr(),
-                   flux[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                   flux[2][mfi].dataPtr(),
-#endif
-      	           ZFILL(dx), &dt);
+        const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cup_fab = cup.array(mfi);
+        const Array4<Real> & cup2_fab = cup2.array(mfi);
+        const Array4<Real> & source_fab = source.array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& xflux_fab = flux[0].array(mfi);,
+                     Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
+                     Array4<Real const> const& zflux_fab = flux[2].array(mfi););
+
+        AMREX_HOST_DEVICE_FOR_4D(bx, nvars, i, j, k, n,
+        {
+            cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+                                       ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
+                                                      + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
+                                                      + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]))
+                                       +dt*source_fab(i,j,k,n)  );
+        });
+
+//  what to do about tests
+
+//              if(cup(i,j,k,1) .lt. 0) then
+//                print *, "Aborting. Negative density at", i,j,k
+//                call exit(0)
+//              endif
+//              if(cup(i,j,k,5) .lt. 0) then
+//                print *, "Aborting. Negative energy at", i,j,k
+//                call exit(0)
+//              endif
+//
+
+        AMREX_HOST_DEVICE_FOR_4D(bx, 3, i, j, k, n,
+        {
+            cup2_fab(i,j,k,n+1) += 0.25* dt * cup_fab(i,j,k,0)*grav[n];
+        });
+
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            cup2_fab(i,j,k,4) += 0.25 * dt * (  grav[0]*cup_fab(i,j,k,1)
+                                              + grav[1]*cup_fab(i,j,k,2)
+                                              + grav[2]*cup_fab(i,j,k,3));
+        });
     }
         
     conservedToPrimitive(prim, cup2);
@@ -219,24 +280,54 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dx, dt);
+                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
-        rk3_stage3(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),
-                   cup2[mfi].dataPtr(), 
-                   source[mfi].dataPtr(),
-                   flux[0][mfi].dataPtr(),
-                   flux[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                   flux[2][mfi].dataPtr(),
-#endif
-      	           ZFILL(dx), &dt);
-    
+        const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cup2_fab = cup2.array(mfi);
+        const Array4<Real> & source_fab = source.array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& xflux_fab = flux[0].array(mfi);,
+                     Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
+                     Array4<Real const> const& zflux_fab = flux[2].array(mfi););
+
+        
+        AMREX_HOST_DEVICE_FOR_4D(bx, nvars, i, j, k, n,
+        {
+            cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+                                    (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
+                                                     + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
+                                                     + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]) )
+                                    + dt*source_fab(i,j,k,n) );
+            
+        });
+        
+//  what to do about tests
+
+//              if(cup(i,j,k,1) .lt. 0) then
+//                print *, "Aborting. Negative density at", i,j,k
+//                call exit(0)
+//              endif
+//              if(cup(i,j,k,5) .lt. 0) then
+//                print *, "Aborting. Negative energy at", i,j,k
+//                call exit(0)
+//              endif
+//
+
+        AMREX_HOST_DEVICE_FOR_4D(bx, 3, i, j, k, n,
+        {
+            cu_fab(i,j,k,n+1) += 2./3.* dt * cup2_fab(i,j,k,0)*grav[n];
+        });
+
+        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        {
+            cu_fab(i,j,k,4) += 2./3. * dt * (  grav[0]*cup2_fab(i,j,k,1)
+                                             + grav[1]*cup2_fab(i,j,k,2)
+                                             + grav[2]*cup2_fab(i,j,k,3) );
+        });
+        
     }
         
     conservedToPrimitive(prim, cu);

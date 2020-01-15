@@ -107,44 +107,6 @@ extern "C"
                   amrex::Real* chi,
                   amrex::Real* Dij);
 
-    void rk3_stage1(const int* lo, const int* hi,
-                    amrex::Real* cu,
-                    amrex::Real* cup,
-                    const amrex::Real* source,
-                    const amrex::Real* xflux,
-                    const amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-                    const amrex::Real* zflux,
-#endif
-                    const amrex::Real* dx,
-                    const amrex::Real* dt);
-
-    void rk3_stage2(const int* lo, const int* hi,
-                    const amrex::Real* cu,
-                    amrex::Real* cup,
-                    const amrex::Real* cup2,
-                    const amrex::Real* source,
-                    const amrex::Real* xflux,
-                    const amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-                    const amrex::Real* zflux,
-#endif
-                    const amrex::Real* dx,
-                    const amrex::Real* dt);
-
-    void rk3_stage3(const int* lo, const int* hi,
-                    amrex::Real* cu,
-                    const amrex::Real* cup,
-                    const amrex::Real* cup2,
-                    const amrex::Real* source,
-                    const amrex::Real* xflux,
-                    const amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-                    const amrex::Real* zflux,
-#endif
-                    const amrex::Real* dx,
-                    const amrex::Real* dt);
-
     void cons_to_prim(const int* lo, const int* hi,
                       const amrex::Real* cons,
                       amrex::Real* prim);
