@@ -183,7 +183,7 @@ contains
 
       dxinv = 1d0/dx
       twothirds = 2d0/3d0
-
+      
       do l=1,nvars
       do k=lo(3),hi(3)
       do j=lo(2),hi(2)
@@ -234,7 +234,7 @@ contains
 
       enddo
       enddo
-      enddo
+   enddo
 
   end subroutine rk3_stage3
 
