@@ -27,7 +27,7 @@ void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domai
 {
     BL_PROFILE_VAR("ComputeBasicStats()",ComputeBasicStats);
 
-    Real result = (MaskedSum(instant, comp, geom.periodicity())*geom.CellSize())/domainVol;
+    Real result = (MaskedSum(instant, comp, geom.periodicity())*geom.CellSize()[0])/domainVol;
 
     if(ParallelDescriptor::MyProc() == 0) {
         std::ofstream ofs(filename, std::ofstream::app);
