@@ -115,7 +115,17 @@ include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
 INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
 VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
 
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
+ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
+    LIBRARIES += -L$(FFTW_DIR) -lfftw3
+    ifeq ($(USE_OMP), TRUE)
+	LIBRARIES += -lfftw3_omp
+    endif
+    ifeq ($(USE_MPI), TRUE)
+	LIBRARIES += -lfftw3_mpi
+    endif
+else
+    $(info NERSC_HOST not empty => relying on compiler wrapper for fftw3)
+endif
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
