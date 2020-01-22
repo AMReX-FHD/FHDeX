@@ -67,6 +67,10 @@ void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab &
 void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
                 const int incomp, const int outcomp, const int steps);
 
+void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);
+
+Real MaskedSum (const MultiFab & inFab,int comp, const Geometry geom);
+
 Real SumFab(const MultiFab & in, const int ng, const int comp);
 
 void XMeanFab(const MultiFab & in, MultiFab & out, const int ng);

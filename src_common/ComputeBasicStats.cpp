@@ -23,6 +23,38 @@ void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & va
     }
 }
 
+void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom)
+{
+    BL_PROFILE_VAR("ComputeBasicStats()",ComputeBasicStats);
+
+    Real result = (MaskedSum(instant, comp, geom.periodicity())*geom.CellSize())/domainVol;
+
+    if(ParallelDescriptor::MyProc() == 0) {
+        std::ofstream ofs(filename, std::ofstream::app);
+        ofs << result/domainVol << "\n";
+        ofs.close();
+    }
+
+}
+
+Real MaskedSum(const MultiFab & inFab,int comp, const Periodicity& period)
+{
+    MultiFab tmpmf(inFab.boxArray(), inFab.DistributionMap(), 1, 0,
+                   MFInfo(), inFab.Factory());
+
+    MultiFab::Copy(tmpmf, inFab, comp, 0, 1, 0);
+
+//#ifdef AMREX_USE_EB
+//    if ( this -> hasEBFabFactory() && set_covered )
+//        EB_set_covered( tmpmf, 0.0 );
+//#endif
+
+    auto mask = tmpmf.OverlapMask(period);
+    MultiFab::Divide(tmpmf, *mask, 0, 0, 1, 0);
+
+    return tmpmf.sum(0, 0);
+}
+
 //Note comp indexes from 1.
 Real SumFab(const MultiFab & in, const int ng, const int comp)
 {

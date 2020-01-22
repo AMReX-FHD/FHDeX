@@ -818,7 +818,7 @@ void main_driver(const char* argv)
 
 //        if(istep == 1)
 //        {
-//            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]/4.0);
+//            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]/128.0);
 //           
 //        }
     
@@ -991,6 +991,8 @@ void main_driver(const char* argv)
         }
         ComputeBasicStats(potential, potentialM, potentialV, 1, 1, statsCount);
         ComputeBasicStats(charge   , chargeM   , chargeV   , 1, 1, statsCount);
+
+        OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
         
         statsCount++;
         

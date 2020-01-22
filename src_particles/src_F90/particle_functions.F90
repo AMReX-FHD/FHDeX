@@ -2397,21 +2397,21 @@ contains
 
                 if (dry_move_tog .eq. 1) then
 
-!                   !Get fluid cell - possibly replace this with peskin interp
-!                   fi(1) = floor((part%pos(1) - plof(1))*dxfinv(1))
-!                   fi(2) = floor((part%pos(2) - plof(2))*dxfinv(2))
-!#if (BL_SPACEDIM == 3)
-!                   fi(3) = floor((part%pos(3) - plof(3))*dxfinv(3))
-!#else
-!                   fi(3) = 0
-!#endif
-!                   mb(1) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 1)
-!                   mb(2) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 2)
-!#if (BL_SPACEDIM == 3)
-!                   mb(3) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 3)
-!#endif
+                   !Get fluid cell - possibly replace this with peskin interp
+                   fi(1) = floor((part%pos(1) - plof(1))*dxfinv(1))
+                   fi(2) = floor((part%pos(2) - plof(2))*dxfinv(2))
+#if (BL_SPACEDIM == 3)
+                   fi(3) = floor((part%pos(3) - plof(3))*dxfinv(3))
+#else
+                   fi(3) = 0
+#endif
+                   mb(1) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 1)
+                   mb(2) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 2)
+#if (BL_SPACEDIM == 3)
+                   mb(3) = mobility(fi(1),fi(2),fi(3),(part%species-1)*AMREX_SPACEDIM + 3)
+#endif
 
-                   call get_explicit_mobility(mb, part, plo, phi)
+                   !call get_explicit_mobility(mb, part, plo, phi)
                    call dry(dt,part,dry_terms, mb)
 
                    !print *, "mobility: ", mb
@@ -3075,16 +3075,20 @@ contains
     h = z/a
 
     !print *, "z, a, nmob: ", z, a, nmob
-
+    !Single plane approximation
 !    nmob = max(1 - 9*a/(8*z) + (a**3)/(2*z**3) - (a**5)/(8*(z**5)),0d0)
 !    tmob = max(1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5)),0d0)
 
-    tmob = max(1.0178739157211536 + 0.27555274006079666/(0.5122778234075493 + h)**3 - 0.5103722002042806/(0.5122778234075493 + h)**2 - 0.5751429346433427/(0.5122778234075493 + h),0d0)
+    !1e-6, diff 1.1708e-05 1.326e-05
+    !tmob = max(1.0178739157211536 + 0.27555274006079666/(0.5122778234075493 + h)**3 - 0.5103722002042806/(0.5122778234075493 + h)**2 - 0.5751429346433427/(0.5122778234075493 + h),0d0)
+    !nmob = max(0.9603792424884368 + 8.065409511535329/(1.6044917433014263 + h)**3 - 6.93794418399698/(1.6044917433014263 + h)**2 - 0.34962956857881305/(1.6044917433014263 + h),0d0)
 
-    nmob = max(0.9603792424884368 + 8.065409511535329/(1.6044917433014263 + h)**3 - 6.93794418399698/(1.6044917433014263 + h)**2 - 0.34962956857881305/(1.6044917433014263 + h),0d0)
+    !0.4708e-6, diff 1.1708e-05 1.326e-05
+    tmob = max(0.9371039095096281 + 1.5874321625764354/(0.8489848414496414 + h)**3 - 2.658541103314216/(0.8489848414496414 + h)**2 - 0.13496873388676958/(0.8489848414496414 + h),0d0)
+    nmob = max(0.8784836695101248 + 16.178193275967942/(1.8846739602964013 + h)**3 - 13.450951287145715/(1.8846739602964013 + h)**2 - 0.9286418269991527/(1.8846739602964013 + h),0d0)
 
 
-  print *, "mobs: ", tmob, nmob, "h: ", h, "a: ", a
+  !print *, "mobs: ", tmob, nmob, "h: ", h, "a: ", a
 
   end subroutine get_mobility_diff
 
