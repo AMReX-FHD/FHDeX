@@ -56,7 +56,7 @@ subroutine user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yF
   integer :: i
   real(c_double) :: time
 
-  time=step*fixed_dt
+  time=(step-1)*fixed_dt
   
   do i = 1, nspecies
     write(*,*) "t=", time, " total n_particles for species: ", i, particleInfo(i)%total, " total=", length
