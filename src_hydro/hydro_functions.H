@@ -1,4 +1,4 @@
-#ifndef _hydro_functions_H
+#ifndef _hydro_functions_H_
 #define _hydro_functions_H_
 
 #include <AMReX.H>

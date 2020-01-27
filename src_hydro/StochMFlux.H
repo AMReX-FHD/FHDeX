@@ -1,4 +1,4 @@
-#ifndef _StochMFlux_H
+#ifndef _StochMFlux_H_
 #define _StochMFlux_H_
 
 #include <AMReX.H>
