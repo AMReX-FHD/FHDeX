@@ -90,8 +90,8 @@ VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
 INCLUDE_LOCATIONS += $(FHDeX)/src_electrostatic
 
 include $(FHDeX)/src_immersed-boundary/MakeBase.package
-VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
-INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
+VPATH_LOCATIONS   += $(FHDeX)/src_immersed-boundary
+INCLUDE_LOCATIONS += $(FHDeX)/src_immersed-boundary
 
 include $(HYDROLIB_HOME)/GPackage_noRNG.mak
 VPATH_LOCATIONS += $(HYDROLIB_HOME)
