@@ -90,7 +90,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(efield[d], external[d], 0, 0, 1, efield[d].nGrow());
         efield[d].FillBoundary(geom.periodicity());
-        //MultiFABElectricBC(efield[d], d, geom);
+        MultiFABElectricBC(efield[d], d, geom);
     }
 
 }

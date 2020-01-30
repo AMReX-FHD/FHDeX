@@ -809,7 +809,7 @@ void main_driver(const char* argv)
 
 //    // Writes instantaneous flow field and some other stuff? Check with Guy.
 //    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
-    
+    remove("bulkFlowEst");
     //Time stepping loop
     for (int istep=step; istep<=max_step; ++istep) {
 
@@ -992,6 +992,7 @@ void main_driver(const char* argv)
         ComputeBasicStats(potential, potentialM, potentialV, 1, 1, statsCount);
         ComputeBasicStats(charge   , chargeM   , chargeV   , 1, 1, statsCount);
 
+        //Don't forget to add a remove(filename) so it doesn't append to old data
         OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
         
         statsCount++;
