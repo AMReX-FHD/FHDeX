@@ -127,7 +127,7 @@ VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
 #    $(info NERSC_HOST not empty => relying on compiler wrapper for fftw3)
 #endif
 
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
+LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 
