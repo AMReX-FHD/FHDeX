@@ -312,7 +312,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 
 
 template <typename StructReal, typename StructInt>
-void IBMarkerContainerBase<StructReal, StructInt>::PushUp(
+void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
             int lev, Real * list, int element, int totalParticles
         ) {
 
@@ -349,7 +349,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUp(
                 ParticleType & part = particles[i];
                 id = part.id();
 
-                particles[i].rdata(StructReal::radius + element) = list[id-1];
+                particles[i].rdata(StructReal::radius + element) = particles[i].rdata(StructReal::radius + element) + list[id-1];
             }
 
         } else {
@@ -358,7 +358,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUp(
                 ParticleType & part = particles[i];
                 id = part.id();
 
-                particles[i].pos((-element)-1) = list[id-1];
+                particles[i].pos((-element)-1) = particles[i].pos((-element)-1) + list[id-1];
             }
         }
     }
