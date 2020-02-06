@@ -660,7 +660,7 @@ contains
              !print *, r , (1.122*particles(i)%sigma/2.0)
              if (r .lt. (1.122*particles(i)%sigma/2.0)) then ! NOTE! Should be able to set neighbor cell list with cut_off distance in mind
 
-                !print *, "Repulsing, ", i, r
+                !print *, "Repulsing, ", i, r, dx
                 rcount = rcount + 1
 
                 call repulsive_force(particles(i),particles(nl(j)),dx,r2) 
@@ -3102,7 +3102,7 @@ contains
     tmob = (tmobtotal*part%total_diff - tmobwet*part%wet_diff)/part%dry_diff
     nmob = (nmobtotal*part%total_diff - nmobwet*part%wet_diff)/part%dry_diff
 
-  print *, "mobs: ", tmob, nmob
+  !print *, "mobs: ", tmob, nmob
 
   end subroutine get_mobility_diff
 
