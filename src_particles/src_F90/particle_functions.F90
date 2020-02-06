@@ -3102,7 +3102,7 @@ contains
     tmob = (tmobtotal*part%total_diff - tmobwet*part%wet_diff)/part%dry_diff
     nmob = (nmobtotal*part%total_diff - nmobwet*part%wet_diff)/part%dry_diff
 
-  !print *, "mobs: ", tmob, nmob
+  print *, "mobs: ", tmob, nmob
 
   end subroutine get_mobility_diff
 

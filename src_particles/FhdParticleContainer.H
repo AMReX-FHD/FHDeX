@@ -222,7 +222,7 @@ public:
                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                     const surface* surfaceList, const int surfaceCount, int sw);
     
-    void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
+    //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
     void RadialDistribution(long totalParticles, const int step, const species* particleInfo);
     void CartesianDistribution(long totalParticles, const int step, const species* particleInfo);

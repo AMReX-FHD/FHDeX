@@ -553,90 +553,90 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 
 }
 
-void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length, const int step, const species* particleInfo)
-{
-    
+//void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length, const int step, const species* particleInfo)
+//{
+//    
 
-    const int lev = 0;
-    double temp;
-
-
-#ifdef _OPENMP
-#pragma omp parallel
-#endif
+//    const int lev = 0;
+//    double temp;
 
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+//#ifdef _OPENMP
+//#pragma omp parallel
+//#endif
 
-        sync_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
 
-    }
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+//        
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& particles = particle_tile.GetArrayOfStructs();
+//        const int np = particles.numParticles();
 
-    //I'm sure there is an array version of this but this will do for now.
-    for(int i=0;i<length;i++)
-    {
-        temp = spec3xPos[i];
-        ParallelDescriptor::ReduceRealSum(temp);
-        spec3xPos[i] = temp;
+//        sync_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
 
-        temp = spec3yPos[i];
-        ParallelDescriptor::ReduceRealSum(temp);
-        spec3yPos[i] = temp;
+//    }
 
-        temp = spec3zPos[i];
-        ParallelDescriptor::ReduceRealSum(temp);
-        spec3zPos[i] = temp;
+//    //I'm sure there is an array version of this but this will do for now.
+//    for(int i=0;i<length;i++)
+//    {
+//        temp = spec3xPos[i];
+//        ParallelDescriptor::ReduceRealSum(temp);
+//        spec3xPos[i] = temp;
 
-        spec3xForce[i] = 0;
-        spec3yForce[i] = 0;
-        spec3zForce[i] = 0;
-    }
+//        temp = spec3yPos[i];
+//        ParallelDescriptor::ReduceRealSum(temp);
+//        spec3yPos[i] = temp;
 
-    if(ParallelDescriptor::MyProc() == 0)
-    {
+//        temp = spec3zPos[i];
+//        ParallelDescriptor::ReduceRealSum(temp);
+//        spec3zPos[i] = temp;
 
-        user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length, &step, particleInfo);
+//        spec3xForce[i] = 0;
+//        spec3yForce[i] = 0;
+//        spec3zForce[i] = 0;
+//    }
 
-    }
+//    if(ParallelDescriptor::MyProc() == 0)
+//    {
 
-    for(int i=0;i<length;i++)
-    {
-        temp = spec3xForce[i];
-        ParallelDescriptor::ReduceRealSum(temp);
-        spec3xForce[i] = temp;
+//        user_force_calc(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, &length, &step, particleInfo);
 
-        temp = spec3yForce[i];
-        ParallelDescriptor::ReduceRealSum(temp);
-        spec3yForce[i] = temp;
+//    }
 
-        temp = spec3zForce[i];
-        ParallelDescriptor::ReduceRealSum(temp);
-        spec3zForce[i] = temp;
+//    for(int i=0;i<length;i++)
+//    {
+//        temp = spec3xForce[i];
+//        ParallelDescriptor::ReduceRealSum(temp);
+//        spec3xForce[i] = temp;
 
-    }
+//        temp = spec3yForce[i];
+//        ParallelDescriptor::ReduceRealSum(temp);
+//        spec3yForce[i] = temp;
 
-    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-    {
-        const int grid_id = pti.index();
-        const int tile_id = pti.LocalTileIndex();
-        const Box& tile_box  = pti.tilebox();
-        
-        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-        auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+//        temp = spec3zForce[i];
+//        ParallelDescriptor::ReduceRealSum(temp);
+//        spec3zForce[i] = temp;
 
-        force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
+//    }
 
-    }
-}
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+//        
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& particles = particle_tile.GetArrayOfStructs();
+//        const int np = particles.numParticles();
+
+//        force_particles(spec3xPos, spec3yPos, spec3zPos, spec3xForce, spec3yForce, spec3zForce, particles.data(), &np, &length);                    
+
+//    }
+//}
 
 void FhdParticleContainer::RadialDistribution(long totalParticles, const int step, const species* particleInfo)
 {        

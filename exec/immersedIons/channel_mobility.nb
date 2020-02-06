@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[    118455,       2420]
-NotebookOptionsPosition[    114561,       2360]
-NotebookOutlinePosition[    114899,       2375]
-CellTagsIndexPosition[    114856,       2372]
+NotebookDataLength[    119148,       2439]
+NotebookOptionsPosition[    115028,       2375]
+NotebookOutlinePosition[    115366,       2390]
+CellTagsIndexPosition[    115323,       2387]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -2356,6 +2356,21 @@ Cell["\<\
  CellLabel->
   "Out[3467]//FortranForm=",ExpressionUUID->"9e75b1c2-0ccc-41c2-86ab-\
 087bb31e7b46"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"NotebookDirectory", "[", "]"}]], "Input",
+ CellChangeTimes->{{3.789838132231731*^9, 3.7898381362612743`*^9}},
+ CellLabel->
+  "In[495]:=",ExpressionUUID->"1f09383d-ae71-4971-8490-dfb10c3770ee"],
+
+Cell[BoxData["\<\"/home/drladiges/projects/FHDeX/exec/immersedIons/\"\>"], \
+"Output",
+ CellChangeTimes->{3.789838136989974*^9},
+ CellLabel->
+  "Out[495]=",ExpressionUUID->"45f8a2e9-a144-4bc6-a6df-ad6b818c16ca"]
 }, Open  ]]
 },
 WindowSize->{1280, 1388},
@@ -2421,6 +2436,10 @@ Cell[92361, 1963, 21528, 373, 658, "Output",ExpressionUUID->"21c3d69e-d3ea-44c5-
 Cell[CellGroupData[{
 Cell[113926, 2341, 217, 5, 31, "Input",ExpressionUUID->"171ac932-db02-4a0a-968a-40ff0a8cdbd8"],
 Cell[114146, 2348, 399, 9, 69, "Output",ExpressionUUID->"9e75b1c2-0ccc-41c2-86ab-087bb31e7b46"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[114582, 2362, 216, 4, 31, "Input",ExpressionUUID->"1f09383d-ae71-4971-8490-dfb10c3770ee"],
+Cell[114801, 2368, 211, 4, 35, "Output",ExpressionUUID->"45f8a2e9-a144-4bc6-a6df-ad6b818c16ca"]
 }, Open  ]]
 }
 ]
