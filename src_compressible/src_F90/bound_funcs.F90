@@ -23,10 +23,115 @@ contains
     real(amrex_real), intent(inout) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nprimvars)
     real(amrex_real), intent(inout) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
 
-    integer :: i,j,k,l
+    integer :: i,j,k,l,bcell
 
     real(amrex_real) :: massvec(nspecies), fracvec(nspecies), intenergy, temp, rho, pt
     real(amrex_real) :: Ywall(nspecies), Xwall(nspecies)
+
+      !Internal special case:
+
+      bcell = membrane_cell
+
+      if(bcell .ge. 0) then !Apply if membrane
+
+         if(lo(1) .eq. bcell) then !Interior rhs, apply slip adiabatic
+
+            !print *, "Bcell!"
+
+            do k = lo(3)-ngc(3),hi(3)+ngc(3)
+               do j = lo(2)-ngc(2),hi(2)+ngc(2)
+                  do i = 1, ngc(1)
+                     ! temperature and pressure -- adiabatic
+                     prim(lo(1)-i,j,k,5) = prim(lo(1)-1+i,j,k,5)
+                     prim(lo(1)-i,j,k,6) = prim(lo(1)-1+i,j,k,6)
+                     ! momentum, velocity, rho, rhoY, rhoE -- slip
+                     cons(lo(1)-i,j,k,2) = -cons(lo(1)-1+i,j,k,2)
+                     cons(lo(1)-i,j,k,3) = cons(lo(1)-1+i,j,k,3)
+                     cons(lo(1)-i,j,k,4) = cons(lo(1)-1+i,j,k,4)
+
+                     prim(lo(1)-i,j,k,2) = -prim(lo(1)-1+i,j,k,2)
+                     prim(lo(1)-i,j,k,3) = prim(lo(1)-1+i,j,k,3)
+                     prim(lo(1)-i,j,k,4) = prim(lo(1)-1+i,j,k,4)
+
+                     ! thermal & species (+pressure) BCs must be enforced first
+                     fracvec = prim(lo(1)-i,j,k,6+1:6+nspecies)
+                     temp = prim(lo(1)-i,j,k,5)
+                     pt = prim(lo(1)-i,j,k,6)
+
+                     call get_density(pt, rho, temp, fracvec)
+                     call get_energy(intenergy, fracvec, temp)
+                     ! call get_density_gas(pt, rho, temp)
+                     ! call get_energy_gas(pt, intenergy)
+
+                     ! total density depends on temperature
+                     prim(lo(1)-i,j,k,1) = rho
+                     cons(lo(1)-i,j,k,1) = rho
+                     if (algorithm_type .eq. 2) then
+                        do l = 1, nspecies
+                           cons(lo(1)-i,j,k,5+l) = rho*prim(lo(1)-i,j,k,6+l)
+                        enddo
+                     endif
+
+                     ! must be last BC enforced: depends on rho, vel, & temp
+                     cons(lo(1)-i,j,k,5) = rho*intenergy + 0.5*rho*(prim(lo(1)-i,j,k,2)**2 + &
+                     prim(lo(1)-i,j,k,3)**2 + prim(lo(1)-i,j,k,4)**2)
+
+
+                  enddo
+               enddo
+            enddo
+
+         endif
+
+
+         if(hi(1) .eq. bcell-1) then !Interior lhs, apply slip adiabatic
+
+            do k = lo(3)-ngc(3),hi(3)+ngc(3)
+               do j = lo(2)-ngc(2),hi(2)+ngc(2)
+                  do i = 1, ngc(1)
+                     ! temperature and pressure -- adiabatic
+                     prim(hi(1)+i,j,k,5) = prim(hi(1)+1-i,j,k,5)
+                     prim(hi(1)+i,j,k,6) = prim(hi(1)+1-i,j,k,6)
+                     ! momentum, velocity, rho, rhoY, rhoE -- slip
+                     cons(hi(1)+i,j,k,2) = -cons(hi(1)+1-i,j,k,2)
+                     cons(hi(1)+i,j,k,3) = cons(hi(1)+1-i,j,k,3)
+                     cons(hi(1)+i,j,k,4) = cons(hi(1)+1-i,j,k,4)
+
+                     prim(hi(1)+i,j,k,2) = -prim(hi(1)+1-i,j,k,2)
+                     prim(hi(1)+i,j,k,3) = prim(hi(1)+1-i,j,k,3)
+                     prim(hi(1)+i,j,k,4) = prim(hi(1)+1-i,j,k,4)
+
+                     ! thermal & species (+pressure) BCs must be enforced first
+                     fracvec = prim(hi(1)+i,j,k,6+1:6+nspecies)
+                     temp = prim(hi(1)+i,j,k,5)
+                     pt = prim(hi(1)+i,j,k,6)
+
+                     call get_density(pt, rho, temp, fracvec)
+                     call get_energy(intenergy, fracvec, temp)
+                     ! call get_density_gas(pt, rho, temp)
+                     ! call get_energy_gas(pt, intenergy)
+
+                     ! total density depends on temperature
+                     prim(hi(1)+i,j,k,1) = rho
+                     cons(hi(1)+i,j,k,1) = rho
+                     if (algorithm_type .eq. 2) then
+                        do l = 1, nspecies
+                           cons(hi(1)+i,j,k,5+l) = rho*prim(hi(1)+i,j,k,6+l)
+                        enddo
+                     endif
+
+                     ! must be last BC enforced: depends on rho, vel, & temp
+                     cons(hi(1)+i,j,k,5) = rho*intenergy + 0.5*rho*(prim(hi(1)+i,j,k,2)**2 + &
+                           prim(hi(1)+i,j,k,3)**2 + prim(hi(1)+i,j,k,4)**2)
+
+
+                  enddo
+               enddo
+            enddo
+         endif
+
+      endif
+
 
     Ywall = 0.0d0
     Xwall = 0.0d0
