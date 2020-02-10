@@ -1970,9 +1970,9 @@ contains
 
     part%pos = part%pos + delta*normalrand/2
 
-    part%force(1) = k_B*T_init(1)*normalrand(1)/(delta)
-    part%force(2) = k_B*T_init(1)*normalrand(2)/(delta)
-    part%force(3) = k_B*T_init(1)*normalrand(3)/(delta)
+    part%force(1) = variance_coef_mom*k_B*T_init(1)*normalrand(1)/(delta)
+    part%force(2) = variance_coef_mom*k_B*T_init(1)*normalrand(2)/(delta)
+    part%force(3) = variance_coef_mom*k_B*T_init(1)*normalrand(3)/(delta)
 
     !print *, "F: ", part%force
 
