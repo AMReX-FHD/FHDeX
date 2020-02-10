@@ -113,7 +113,7 @@ void InitializeCommonNamespace() {
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,
                                 qval.dataPtr(), &pkernel_fluid, &pkernel_es,
-                                &fixed_dt, &cfl, &max_step,
+                                &fixed_dt, &cfl, &rfd_delta, &max_step,
                                 &plot_int, &plot_stag, temp_plot_base_name, 128,
                                 &chk_int, temp_chk_base_name, 128,
                                 &prob_type, &restart, &particle_restart, &print_int, &project_eos_int,

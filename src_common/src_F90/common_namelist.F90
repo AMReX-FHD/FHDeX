@@ -40,6 +40,8 @@ module common_namelist_module
   double precision,   save :: fixed_dt
   double precision,   save :: cfl
 
+  double precision,   save :: rfd_delta
+
   integer,            save :: max_step
   integer,            save :: plot_int
   integer,            save :: plot_stag
@@ -207,6 +209,9 @@ module common_namelist_module
   ! Time-step control
   namelist /common/ fixed_dt
   namelist /common/ cfl
+
+  !random finite difference size, fraction of cell size
+  namelist /common/ rfd_delta
 
   ! Controls for number of steps between actions
   namelist /common/ max_step
@@ -399,6 +404,7 @@ contains
     
     fixed_dt = 1.
     cfl = 0.5
+    rfd_delta = 1e-5
     max_step = 1
     plot_int = 0
     plot_stag = 0
@@ -505,7 +511,7 @@ contains
                                          nvars_in, nprimvars_in, &
                                          membrane_cell_in, cross_cell_in, transmission_in, &
                                          qval_in, pkernel_fluid_in, pkernel_es_in,&
-                                         fixed_dt_in, cfl_in, max_step_in, plot_int_in, plot_stag_in, &
+                                         fixed_dt_in, cfl_in, rfd_delta_in, max_step_in, plot_int_in, plot_stag_in, &
                                          plot_base_name_in, plot_base_name_len, chk_int_in, &
                                          chk_base_name_in, chk_base_name_len, prob_type_in, &
                                          restart_in, particle_restart_in, &
@@ -570,6 +576,7 @@ contains
     
     double precision,       intent(inout) :: fixed_dt_in
     double precision,       intent(inout) :: cfl_in
+    double precision,       intent(inout) :: rfd_delta_in
 
     integer,                intent(inout) :: ngc_in(AMREX_SPACEDIM)
     integer,                intent(inout) :: nvars_in
@@ -723,6 +730,7 @@ contains
 
     fixed_dt_in = fixed_dt
     cfl_in = cfl
+    rfd_delta_in = rfd_delta
     max_step_in = max_step
     plot_int_in = plot_int
     plot_stag_in = plot_stag

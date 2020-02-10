@@ -21,7 +21,7 @@ extern "C"
                                      int* membrane_cell, int* cross_cell, amrex::Real* transmission,
                                      amrex::Real* qval, int* pkernel_fluid, int* pkernel_es,
                                      amrex::Real* fixed_dt,
-                                     amrex::Real* cfl, int* max_step, int* plot_int, int* plot_stag,
+                                     amrex::Real* cfl, amrex::Real* rfd_delta, int* max_step, int* plot_int, int* plot_stag,
                                      const char* plot_base_name,
                                      const int plot_base_name_len,
                                      int* chk_int,

@@ -11,7 +11,7 @@ module particle_functions_module
                                     fixed_dt, graphene_tog, mass, particle_n0, particle_neff, &
                                     visc_type, variance_coef_mom, pkernel_fluid, dry_move_tog, &
                                     move_tog, nspecies, drag_tog, es_tog, rfd_tog, qval, &
-                                    visc_coef, bc_vel_lo, bc_vel_hi
+                                    visc_coef, bc_vel_lo, bc_vel_hi, rfd_delta
 
   implicit none
 
@@ -1959,7 +1959,8 @@ contains
     volinv = 1/(dxf(1)*dxf(2)*dxf(3))
     dxfinv = 1/dxf
 
-    delta = 1d-6*dxf(1)
+    !delta = 1d-4*dxf(1)
+    delta = rfd_delta*dxf(1)
 
     !print*, "Fluid vel: ", uloc, wloc, vloc
 

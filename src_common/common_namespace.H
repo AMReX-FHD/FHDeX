@@ -37,6 +37,9 @@ namespace common {
     extern amrex::Real                fixed_dt;
     extern amrex::Real                cfl;
 
+    // Random finite difference size, fraction of cell
+    extern amrex::Real                rfd_delta;
+
     // Controls for number of steps between actions
     extern int                        max_step;
     extern int                        plot_int;

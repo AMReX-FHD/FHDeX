@@ -28,6 +28,7 @@ amrex::Vector<amrex::Real> common::qval;
 
 amrex::Real                common::fixed_dt;
 amrex::Real                common::cfl;
+amrex::Real                common::rfd_delta;
 int                        common::max_step;
 int                        common::plot_int;
 int                        common::plot_stag;
