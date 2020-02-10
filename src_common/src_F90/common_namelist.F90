@@ -456,6 +456,10 @@ contains
     bc_therm_lo(:) = 0
     bc_therm_hi(:) = 0
 
+    drag_tog = 0
+    particle_grid_refine = 1
+    es_grid_refine = 1
+
     t_lo(:) = 0
     t_hi(:) = 0
     p_lo(:) = 0

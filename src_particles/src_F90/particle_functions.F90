@@ -2920,7 +2920,7 @@ contains
 
        part => particles(p)
 
-       if(rfd_tog .eq. 1) then
+       if((rfd_tog .eq. 1) .and. (variance_coef_mom .ne. 0)) then
           part%force = 0
 
           call rfd(weights, indicies, &
