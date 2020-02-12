@@ -6,7 +6,7 @@
 #include "hydro_functions_F.H"
 
 #include "analysis_functions_F.H"
-#include "StochMFlux.H"
+#include "StochMomFlux.H"
 #include "StructFact.H"
 
 #include "rng_functions_F.H"
@@ -200,8 +200,8 @@ void main_driver(const char* argv)
     Vector< amrex::Real > weights;
     weights = {1.0};
 
-    // Declare object of StochMFlux class
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
+    // Declare object of StochMomFlux class
+    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
 
@@ -297,7 +297,7 @@ void main_driver(const char* argv)
 	  sMflux.fillMStochastic();
 
 	  // compute stochastic momentum force
-	  sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	  sMflux.StochMomFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	}
 
 	// Advance umac

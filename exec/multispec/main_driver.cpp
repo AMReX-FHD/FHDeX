@@ -3,7 +3,7 @@
 #include "multispec_test_functions_F.H"
 
 //#include "analysis_functions_F.H"
-#include "StochMFlux.H"
+#include "StochMomFlux.H"
 //#include "StructFact.H"
 
 #include "rng_functions_F.H"
@@ -243,8 +243,8 @@ void main_driver(const char* argv)
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
     
-    // Declare object of StochMFlux class 
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
+    // Declare object of StochMomFlux class 
+    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
 
@@ -375,9 +375,9 @@ void main_driver(const char* argv)
 	  sMflux.fillMStochastic();
 
 	  // compute stochastic force terms
-	  sMflux.StochMFluxDiv(mfluxdiv_predict,0,eta_cc,eta_ed,temp_cc,temp_ed,
+	  sMflux.StochMomFluxDiv(mfluxdiv_predict,0,eta_cc,eta_ed,temp_cc,temp_ed,
 			     weights,dt);
-	  sMflux.StochMFluxDiv(mfluxdiv_correct,0,eta_cc,eta_ed,temp_cc,temp_ed,
+	  sMflux.StochMomFluxDiv(mfluxdiv_correct,0,eta_cc,eta_ed,temp_cc,temp_ed,
 			     weights,dt);
 
 	}

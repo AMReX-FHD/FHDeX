@@ -2,19 +2,19 @@
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "hydro_functions_F.H"
-#include "StochMFlux.H"
+#include "StochMomFlux.H"
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
 
 
-StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
+StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
 		       int n_rngs_in) {
 
-  BL_PROFILE_VAR("StochMFlux::StochMFlux()",StochMFlux);
+  BL_PROFILE_VAR("StochMomFlux::StochMomFlux()",StochMomFlux);
 
   if (filtering_width != 0) {
-    Abort("StochMFlux: filtering_width != 0 not fully implemented yet");
+    Abort("StochMomFlux: filtering_width != 0 not fully implemented yet");
   }
 
   n_rngs = n_rngs_in;
@@ -55,7 +55,7 @@ StochMFlux::StochMFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geo
 }
 
 
-void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
+void StochMomFlux::weightMflux(Vector< amrex::Real > weights) {
 
     mflux_cc_weighted.setVal(0.0);
     for (int d=0; d<NUM_EDGE; ++d) {
@@ -71,9 +71,9 @@ void StochMFlux::weightMflux(Vector< amrex::Real > weights) {
     }
 }
 
-void StochMFlux::fillMStochastic() {
+void StochMomFlux::fillMStochastic() {
 
-    BL_PROFILE_VAR("StochMFlux::fillMStochastic()",StochMFlux);
+    BL_PROFILE_VAR("StochMomFlux::fillMStochastic()",StochMomFlux);
 
     for (int i=0; i<n_rngs; ++i) {
 
@@ -107,7 +107,7 @@ void StochMFlux::fillMStochastic() {
     }
 }
 
-void StochMFlux::MfluxBC() {
+void StochMomFlux::MfluxBC() {
 
 #if (AMREX_SPACEDIM == 2)
 
@@ -703,7 +703,7 @@ void mult_by_sqrt_eta_temp (const Box & tbx,
 
 }
 
-void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
+void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
 				      const std::array< MultiFab, NUM_EDGE >& eta_ed,
 				      const MultiFab& temp_cc,
 				      const std::array< MultiFab, NUM_EDGE >& temp_ed,
@@ -785,7 +785,7 @@ void StochMFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
   }
 }
 
-void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
+void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
                                const int& increment,
                                const MultiFab& eta_cc,
                                const std::array< MultiFab, NUM_EDGE >& eta_ed,
@@ -794,17 +794,17 @@ void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
                                const Vector< amrex::Real >& weights,
                                const amrex::Real& dt) {
 
-  BL_PROFILE_VAR("StochMFlux::StochMfluxDiv()",StochMfluxDiv);
+  BL_PROFILE_VAR("StochMomFlux::StochMfluxDiv()",StochMfluxDiv);
 
   // Take linear combination of mflux multifabs at each stage
-  StochMFlux::weightMflux(weights);
+  StochMomFlux::weightMflux(weights);
 
   // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
-  StochMFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
+  StochMomFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
 
   // multiply noise stored in mflux_ed_weighted
   // on walls by 0 (for slip) or sqrt(2) (for no-slip)
-  StochMFlux::MfluxBC();
+  StochMomFlux::MfluxBC();
 
   // sync up random numbers at boundaries and ghost cells
   for (int d=0; d<NUM_EDGE; ++d) {
@@ -814,7 +814,7 @@ void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
   mflux_cc_weighted.FillBoundary(geom.periodicity());
 
   if (filtering_width > 0) {
-      Abort("StochMFlux: filtering_width != 0 not fully implemented yet");
+      Abort("StochMomFlux: filtering_width != 0 not fully implemented yet");
       // need calls to filter_stoch_m_flux for mflux_ed and mflux_cc
       /*
 
@@ -919,7 +919,7 @@ void StochMFlux::StochMFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
   }
 }
 
-void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+void StochMomFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 				  const MultiFab& rhotot, const MultiFab& Temp,
 				  const amrex::Real& variance) {
 
@@ -952,7 +952,7 @@ void StochMFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
   }
 }
 
-void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
+void StochMomFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
 				       const std::array< MultiFab, AMREX_SPACEDIM >& rhotot_fc,
 				       const std::array< MultiFab, AMREX_SPACEDIM >& Temp_fc,
 				       const amrex::Real& variance) {
@@ -1020,7 +1020,7 @@ void StochMFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m
   }
 }
 
-void StochMFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
+void StochMomFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
   std::string plotfilename;
   std::string dimStr = "xyz";
 

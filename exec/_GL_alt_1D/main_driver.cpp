@@ -4,7 +4,7 @@
 
 //#include "hydro_functions.H"
 //#include "hydro_functions_F.H"
-//#include "StochMFlux.H"
+//#include "StochMomFlux.H"
 //#include "StructFact.H"
 
 #include "rng_functions_F.H"

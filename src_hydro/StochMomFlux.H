@@ -1,5 +1,5 @@
-#ifndef _StochMFlux_H_
-#define _StochMFlux_H_
+#ifndef _StochMomFlux_H_
+#define _StochMomFlux_H_
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -10,7 +10,7 @@
 using namespace amrex;
 using namespace common;
 
-class StochMFlux {
+class StochMomFlux {
 
   const int ncomp_ed = 2;
   int n_rngs;
@@ -30,14 +30,14 @@ class StochMFlux {
 
 public:
 
-  StochMFlux(                 BoxArray,DistributionMapping,Geometry,int);
+  StochMomFlux(                 BoxArray,DistributionMapping,Geometry,int);
   void fillMStochastic(       );
   void weightMflux(           Vector< amrex::Real >);
   void multbyVarSqrtEtaTemp(  const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
 			      const amrex::Real&);
   void MfluxBC                ();
-  void StochMFluxDiv(         std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+  void StochMomFluxDiv(         std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
                               const int&, const amrex::MultiFab&,
 			      const std::array< amrex::MultiFab, NUM_EDGE >&, const amrex::MultiFab&,
 			      const std::array< amrex::MultiFab, NUM_EDGE >&,

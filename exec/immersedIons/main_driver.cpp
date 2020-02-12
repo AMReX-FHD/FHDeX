@@ -13,7 +13,7 @@
 #include "StructFact_F.H"
 #include "StructFact.H"
 
-#include "StochMFlux.H"
+#include "StochMomFlux.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
@@ -569,9 +569,9 @@ void main_driver(const char* argv)
         stochMfluxdivC[d].setVal(0.0);
     }
 
-    // Declare object of StochMFlux class
+    // Declare object of StochMomFlux class
     int n_rngs = 1; // we only need 1 stage of random numbers
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
+    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
     // weights for random number stages
     Vector< amrex::Real> weights;
@@ -879,11 +879,11 @@ void main_driver(const char* argv)
             sMflux.fillMStochastic();
 
             // compute stochastic momentum force
-            sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+            sMflux.StochMomFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 
             // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
             if (fluid_tog ==2) {
-                sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+                sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
             }
         }
 
