@@ -383,6 +383,8 @@ contains
        near_wall_below = 0 ! reset for each particle
        near_wall_above = 0 ! reset for each particle
 
+       !print *, "particle ", i, " force before p3m     ", particles(i)%force
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!
        ! Peform correction in the presence of walls. 
        ! 
@@ -424,7 +426,6 @@ contains
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
-             
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
 
@@ -466,7 +467,7 @@ contains
              ! coulomb
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
              !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(i)%q)/r2
-             ! p3m 
+             ! p3m
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
           endif
@@ -475,7 +476,7 @@ contains
        nneighbors = nl(index)
        index = index + 1
 
-       ! print *, "particle ", i, " has ", nneighbors, " neighbours."
+       !print *, "particle ", i, " has ", nneighbors, " neighbours. Force ", particles(i)%force
 
 
        ! loop through neighbor list
@@ -499,7 +500,7 @@ contains
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
              ! print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
-             !print *, "particle ", i, " force ", particles(i)%force
+             !print *, "particle ", i, " force ", particles(i)%force, particles(i)%pos, particles(nl(j))%pos
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!
              ! Compute correction for fact that the above, sr coulomb interactions accounted for in poisson solve
@@ -508,6 +509,7 @@ contains
              ! Currently only implemented for pkernel=6
 !!!!!!!!!!!!!!!!!!!!!!!!!!
                 !print *, "calling with ", r, (particles(i)%p3m_radius)
+
              call compute_p3m_force_mag(r, correction_force_mag, dx)
 
              ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
@@ -538,7 +540,7 @@ contains
                       particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
                       !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(nl(j))%q)/r2
 
-                      ! p3m 
+                      ! p3m
                       call compute_p3m_force_mag(r, correction_force_mag, dx)
                       particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
 
@@ -2736,7 +2738,7 @@ contains
             part, ks, dxe)
 
        poisson_force = poisson_force + part%force
-       !print*, "Poisson force on particle ", p, "is: ", poisson_force
+      !print*, "Poisson force on particle ", p, "is: ", poisson_force
        !print*, "particle ", p, " force after emf:    ", part%force
        !------------------
 

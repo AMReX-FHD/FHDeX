@@ -499,7 +499,15 @@ contains
     zero_net_force = 0
 
     all_dry = 0
+    particle_neff = 1
 
+    eamp(:) =  0
+    efreq(:) = 0
+    ephase(:) = 0
+
+    qval(:) = 0
+
+    crange = pkernel_fluid + 1
 
     ! read in common namelist
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
