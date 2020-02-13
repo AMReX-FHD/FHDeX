@@ -707,15 +707,7 @@ void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
                                         const amrex::Real& dt) {
 
     const Real* dx = geom.CellSize();
-
-    Real dVol = dx[0]*dx[1];
-    if (AMREX_SPACEDIM == 2) {
-        dVol *= cell_depth;
-    } else {
-        if (AMREX_SPACEDIM == 3) {
-            dVol *= dx[2];
-        }
-    }
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
 
     // Compute variance using computed differential volume
     Real variance = sqrt(variance_coef_mom*2.0*k_B/(dVol*dt));
@@ -958,14 +950,7 @@ void StochMomFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&
                                          const amrex::Real& variance) {
 
     const Real* dx = geom.CellSize();
-    Real dVol = dx[0]*dx[1];
-    if (AMREX_SPACEDIM == 2) {
-        dVol *= cell_depth;
-    } else {
-        if (AMREX_SPACEDIM == 3) {
-            dVol *= dx[2];
-        }
-    }
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
 
     // Initialize variances
     Real variance_mom = std::abs(variance)*k_B/dVol;
