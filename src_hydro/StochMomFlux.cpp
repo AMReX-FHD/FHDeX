@@ -144,8 +144,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_lo[0] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // hi-x domain boundary
@@ -175,8 +174,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_hi[0] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // lo-y domain boundary
@@ -206,8 +204,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_lo[1] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // hi-y domain boundary
@@ -237,8 +234,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_hi[1] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
 #elif (AMREX_SPACEDIM == 3)
@@ -296,8 +292,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_lo[0] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // hi-x domain boundary, y-facing fluxes
@@ -353,8 +348,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_hi[0] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // lo-y domain boundary, x-facing fluxes
@@ -410,8 +404,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_lo[1] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // hi-y domain boundary, x-facing fluxes
@@ -467,8 +460,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_hi[1] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // lo-z domain boundary, x-facing fluxes
@@ -524,8 +516,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_lo[2] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
     // hi-z domain boundary, x-facing fluxes
@@ -581,8 +572,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_hi[2] != -1) {
-        // DEBUGING deterministic boundary conditions
-        // Abort("MfluxBC unsupported bc type");
+        Abort("MfluxBC unsupported bc type");
     }
 
 #endif
@@ -801,7 +791,7 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
                                    const Vector< amrex::Real >& weights,
                                    const amrex::Real& dt) {
 
-    BL_PROFILE_VAR("StochMomFlux::StochMfluxDiv()",StochMfluxDiv);
+    BL_PROFILE_VAR("StochMomFlux::StochMomFluxDiv()",StochMomFluxDiv);
 
     // Take linear combination of mflux multifabs at each stage
     StochMomFlux::weightMflux(weights);
