@@ -34,15 +34,20 @@ public:
     // fill stoch_W_fc with random numbers
     void fillMassStochastic();
     
+    // create weighted sum of stage RNGs and store in stoch_W_fc_weighted
     void weightMassFlux(Vector< amrex::Real >);
     
+    // scale random numbers that lie on physical boundaries appropriately
     void StochMassFluxBC();
     
-    void StochMassFluxDiv(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
-                          const int&, const amrex::MultiFab&,
-                          const std::array< amrex::MultiFab, NUM_EDGE >&, const amrex::MultiFab&,
-                          const std::array< amrex::MultiFab, NUM_EDGE >&,
-                          const amrex::Vector< amrex::Real >&, const amrex::Real&);
+    void StochMassFluxDiv(const MultiFab& rho,
+                          const MultiFab& rhotot,
+                          const std::array<MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
+                          MultiFab& stoch_mass_fluxdiv,
+                          std::array<MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                          const amrex::Real& dt,
+                          const Vector< amrex::Real >& weights,
+                          int increment=0);
 
 };
 

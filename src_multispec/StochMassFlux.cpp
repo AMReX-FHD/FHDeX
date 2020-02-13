@@ -1,12 +1,12 @@
 #include "rng_functions.H"
 #include "gmres_functions.H"
 #include "common_functions.H"
-#include "hydro_functions_F.H"
+#include "multispec_functions.H"
+#include "multispec_namespace.H"
+
 #include "StochMassFlux.H"
 
-#include <AMReX_MultiFabUtil.H>
-#include <AMReX_VisMF.H>
-
+using namespace multispec;
 
 // initialize n_rngs, geom
 // build MultiFabs to hold random numbers
@@ -35,23 +35,19 @@ StochMassFlux::StochMassFlux(BoxArray ba_in, DistributionMapping dmap_in, Geomet
     }
 }
 
-
+// create weighted sum of stage RNGs and store in stoch_W_fc_weighted
 void StochMassFlux::weightMassFlux(Vector< amrex::Real > weights) {
 
-    /*
-    mflux_cc_weighted.setVal(0.0);
-    for (int d=0; d<NUM_EDGE; ++d) {
-        mflux_ed_weighted[d].setVal(0.0);
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        stoch_W_fc_weighted[d].setVal(0.);
     }
 
     // add weighted contribution of fluxes
     for (int i=0; i<n_rngs; ++i) {
-        MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, AMREX_SPACEDIM, std::max(1,filtering_width));
         for (int d=0; d<NUM_EDGE; ++d) {
-            MultiFab::Saxpy(mflux_ed_weighted[d], weights[i], mflux_ed[i][d], 0, 0, ncomp_ed, filtering_width);
+            MultiFab::Saxpy(stoch_W_fc_weighted[d], weights[i], stoch_W_fc[i][d], 0, 0, nspecies, 0);
         }
     }
-    */
 }
 
 // fill stoch_W_fc with random numbers
@@ -65,9 +61,10 @@ void StochMassFlux::fillMassStochastic() {
                 MultiFABFillRandom(stoch_W_fc[i][n],comp,1.0,geom);
             }
         }
-    }    
+    }
 }
 
+// scale random numbers that lie on physical boundaries appropriately
 void StochMassFlux::StochMassFluxBC() {
 
     // lo-x domain boundary
@@ -256,114 +253,56 @@ void StochMassFlux::StochMassFluxBC() {
 
 }
 
-void StochMassFlux::StochMassFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_force,
-                                     const int& increment,
-                                     const MultiFab& eta_cc,
-                                     const std::array< MultiFab, NUM_EDGE >& eta_ed,
-                                     const MultiFab& temp_cc,
-                                     const std::array< MultiFab, NUM_EDGE >& temp_ed,
+void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
+                                     const MultiFab& rhotot,
+                                     const std::array<MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
+                                     MultiFab& stoch_mass_fluxdiv,
+                                     std::array<MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                                     const amrex::Real& dt,
                                      const Vector< amrex::Real >& weights,
-                                     const amrex::Real& dt) {
+                                     int increment) {
 
     BL_PROFILE_VAR("StochMassFlux::StochMassFluxDiv()",StochMassFluxDiv);
 
-    // Take linear combination of mflux multifabs at each stage
+    // take linear combination of mflux multifabs at each stage
+    // store result in stoch_W_fc_weighted
+    // note we do this here instead of in fillMassStochastic because we have weights now
     StochMassFlux::weightMassFlux(weights);
 
-    // multiply noise stored in mflux_ed_weighted
+    // multiply noise stored in stoch_W_fc_weighted
     // on walls by 0 or on reservoirs by sqrt(2)
     StochMassFlux::StochMassFluxBC();
 
-    // calculate divergence and add to stoch_m_force
-    Real dxinv = 1./(geom.CellSize()[0]);
-/*
-    // Loop over boxes
-    for (MFIter mfi(mflux_cc_weighted); mfi.isValid(); ++mfi) {
-
-        const Array4<Real const> & flux_cc = mflux_cc_weighted.array(mfi);
-#if (AMREX_SPACEDIM == 2)
-        const Array4<Real const> & flux_nd = mflux_ed_weighted[0].array(mfi);
-#elif (AMREX_SPACEDIM == 3)
-        const Array4<Real const> & flux_xy = mflux_ed_weighted[0].array(mfi);
-        const Array4<Real const> & flux_xz = mflux_ed_weighted[1].array(mfi);
-        const Array4<Real const> & flux_yz = mflux_ed_weighted[2].array(mfi);
-#endif
-
-        AMREX_D_TERM(const Array4<Real> & divx = m_force[0].array(mfi);,
-                     const Array4<Real> & divy = m_force[1].array(mfi);,
-                     const Array4<Real> & divz = m_force[2].array(mfi););
-
-        AMREX_D_TERM(Box bx_x = mfi.validbox();,
-                     Box bx_y = mfi.validbox();,
-                     Box bx_z = mfi.validbox(););
-
-        AMREX_D_TERM(bx_x.growHi(0);,
-                     bx_y.growHi(1);,
-                     bx_z.growHi(2););
-
-#if (AMREX_SPACEDIM == 2)
-        if (increment == 1) {
-            amrex::ParallelFor(bx_x,bx_y,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                                                   flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
-                               },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divy(i,j,k) += (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
-                                                   flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
-                               });
-	}
-	else if (increment == 0) {
-            amrex::ParallelFor(bx_x,bx_y,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                                                  flux_nd(i,j+1,k,0) - flux_nd(i,j,k,0)) * dxinv;
-                               },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divy(i,j,k) = (flux_nd(i+1,j,k,1) - flux_nd(i,j,k,1) +
-                                                  flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1)) * dxinv;
-                               });
-	}
-#elif (AMREX_SPACEDIM == 3)
-        if (increment == 1) {
-            amrex::ParallelFor(bx_x,bx_y,bx_z,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divx(i,j,k) += (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                                                   flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
-                                                   flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
-                               },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divy(i,j,k) += (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
-                                                   flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
-                                                   flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
-                               },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divz(i,j,k) += (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
-                                                   flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
-                                                   flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
-                               });
-	}
-	else if (increment == 0) {
-            amrex::ParallelFor(bx_x,bx_y,bx_z,
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divx(i,j,k) = (flux_cc(i,j,k,0) - flux_cc(i-1,j,k,0) +
-                                                  flux_xy(i,j+1,k,0) - flux_xy(i,j,k,0) +
-                                                  flux_xz(i,j,k+1,0) - flux_xz(i,j,k,0)) * dxinv;
-                               },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divy(i,j,k) = (flux_xy(i+1,j,k,1) - flux_xy(i,j,k,1) +
-                                                  flux_cc(i,j,k,1) - flux_cc(i,j-1,k,1) +
-                                                  flux_yz(i,j,k+1,0) - flux_yz(i,j,k,0)) * dxinv;
-                               },
-                               [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                                   divz(i,j,k) = (flux_xz(i+1,j,k,1) - flux_xz(i,j,k,1) +
-                                                  flux_yz(i,j+1,k,1) - flux_yz(i,j,k,1) +
-                                                  flux_cc(i,j,k,2) - flux_cc(i,j,k-1,2)) * dxinv;
-                               });
-	}
-#endif
+    // copy weighted stochastic noise stages into stoch_mass_flux
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(stoch_mass_flux[d], stoch_W_fc_weighted[d], 0, 0, nspecies, 0);
     }
-*/
+
+    const Real* dx = geom.CellSize();
+    Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
+    Real variance = sqrt(2.*k_B*variance_coef_mass/(dVol*dt));
+    
+    // compute variance X sqrtLonsager_fc X stoch_mass_flux X variance
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MatvecMul(stoch_mass_flux[d], sqrtLonsager_fc[d]);
+        stoch_mass_flux[d].mult(variance);
+    }
+
+    // sync the fluxes at the boundaries
+    Abort("StochMassFlux - FIXME sync");
+
+    // If there are walls with zero-flux boundary conditions
+    if (is_nonisothermal == 1) {
+        Abort("StochMassFlux: is_nonisothermal==1 not supported yet");
+    }
+    
+    // correct fluxes to ensure mass conservation to roundoff
+    if (correct_flux == 1 && nspecies > 1) {
+        CorrectionFlux(rho,rhotot,stoch_mass_flux);
+    }
+
+    // compute divergence of stochastic flux
+    ComputeDiv(stoch_mass_fluxdiv,stoch_mass_flux,0,0,nspecies,geom,increment);
     
 }
 
