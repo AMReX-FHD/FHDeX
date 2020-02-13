@@ -23,7 +23,7 @@ class StochMassFlux {
 
     // temporary storage of linear combinations of random number stages
     // multiplied by variance...
-    std::array< MultiFab, NUM_EDGE >  stoch_W_fc_weighted;
+    std::array< MultiFab, AMREX_SPACEDIM >  stoch_W_fc_weighted;
 
 public:
 
