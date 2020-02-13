@@ -120,8 +120,8 @@ void StochMomFlux::MfluxBC() {
     // lo-x domain boundary
     if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[0] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
@@ -151,8 +151,8 @@ void StochMomFlux::MfluxBC() {
     // hi-x domain boundary
     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[0] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
@@ -182,8 +182,8 @@ void StochMomFlux::MfluxBC() {
     // lo-y domain boundary
     if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[1] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
@@ -213,8 +213,8 @@ void StochMomFlux::MfluxBC() {
     // hi-y domain boundary
     if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[1] == 1) ? 0. : sqrt(2.);
 
         // domain grown nodally based on mflux_ed_weighted[0] nodality (xy)
@@ -247,8 +247,8 @@ void StochMomFlux::MfluxBC() {
     // lo-x domain boundary, z-facing fluxes
     if (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[0] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
@@ -304,8 +304,8 @@ void StochMomFlux::MfluxBC() {
     // hi-x domain boundary, z-facing fluxes
     if (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[0] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
@@ -361,8 +361,8 @@ void StochMomFlux::MfluxBC() {
     // lo-y domain boundary, z-facing fluxes
     if (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[1] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
@@ -418,8 +418,8 @@ void StochMomFlux::MfluxBC() {
     // hi-y domain boundary, z-facing fluxes
     if (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[1] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
@@ -475,8 +475,8 @@ void StochMomFlux::MfluxBC() {
     // lo-z domain boundary, y-facing fluxes
     if (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_lo[2] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
@@ -532,8 +532,8 @@ void StochMomFlux::MfluxBC() {
     // hi-z domain boundary, y-facing fluxes
     if (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) {
 
-        // 0 = slip wall   : multiply fluxes on wall by 0
-        // 1 = no-slip wall: multiply fluxes on wall by sqrt(2)
+        // 1 = slip wall   : multiply fluxes on wall by 0
+        // 2 = no-slip wall: multiply fluxes on wall by sqrt(2)
         Real factor = (bc_vel_hi[2] == 1) ? 0. : sqrt(2.);
 
         ////////////////////////////////////////////////
