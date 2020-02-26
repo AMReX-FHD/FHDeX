@@ -330,11 +330,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
         
     }
 
-    //doMembrane(cu,prim,flux,geom,dxp,dt);  
     conservedToPrimitive(prim, cu);
+
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
+
+    //doMembrane(cu,prim,flux,geom,dxp,dt);
+
     setBC(prim, cu);
 
 }

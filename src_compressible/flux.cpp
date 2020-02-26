@@ -80,7 +80,7 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		  visccorn[mfi].dataPtr(),
 		  ZFILL(dx));
     
-/*
+
 	if (advection_type==1) {
 	
             hyp_flux_prim(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
@@ -105,6 +105,6 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 #endif
                           ZFILL(dx));
 
-	}*/
+	}
     }
 }

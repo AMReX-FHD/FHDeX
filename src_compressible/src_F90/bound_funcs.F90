@@ -36,8 +36,6 @@ contains
 
          if(lo(1) .eq. bcell) then !Interior rhs, apply slip adiabatic
 
-            !print *, "Bcell!"
-
             do k = lo(3)-ngc(3),hi(3)+ngc(3)
                do j = lo(2)-ngc(2),hi(2)+ngc(2)
                   do i = 1, ngc(1)
