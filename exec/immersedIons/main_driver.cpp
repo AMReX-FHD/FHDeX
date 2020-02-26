@@ -372,6 +372,7 @@ void main_driver(const char* argv)
 
             if (all_dry == 1) {
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+                ionParticle[i].wetDiff = 0;
             }
             else {            
                 // dry = total - wet
@@ -394,6 +395,7 @@ void main_driver(const char* argv)
 
             if (all_dry == 1) {
                 ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+                ionParticle[i].wetDiff = 0;
             }
             else {            
                 // dry = total - wet
