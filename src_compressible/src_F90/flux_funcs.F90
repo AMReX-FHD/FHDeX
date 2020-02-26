@@ -1152,6 +1152,41 @@ contains
 
     endif
 
+      !wall cell - hard wired for specular adiabatic for now
+      if(lo(1) .eq. membrane_cell) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+
+              xflux(membrane_cell,j,k,2) = 0
+              xflux(membrane_cell,j,k,3) = 0
+              xflux(membrane_cell,j,k,4) = 0
+              xflux(membrane_cell,j,k,5) = 0
+
+!              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
+!              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
+
+          end do
+        end do
+      endif
+
+      !wall cell
+      if(hi(1) .eq. membrane_cell-1) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+
+              xflux(membrane_cell,j,k,2) = 0
+              xflux(membrane_cell,j,k,3) = 0
+              xflux(membrane_cell,j,k,4) = 0
+              xflux(membrane_cell,j,k,5) = 0
+
+!              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
+!              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
+
+          end do
+        end do
+      endif
+
+
 !!!!!!!!!!!!!! y-flux BCs !!!!!!!!!!!!!!
 
     !if on lower bound

@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 2.5e-4 3.125e-5 3.906e-6 ! physical hi coordinate
+  prob_hi(1:3) = 2.5e-4 2.5e-6 1.25e-6 ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -11,22 +11,22 @@
   nprimvars = 14
 
   ! number of cells in domain
-  n_cells(1:3) = 64 8 1
+  n_cells(1:3) = 80 2 1
   ! max number of cells in a box
-  max_grid_size(1:3) = 32 8 1
+  max_grid_size(1:3) = 40 2 1
 
   ! Time-step control
   fixed_dt = 1e-12
 
   ! Controls for number of steps between actions
 
-  max_step = 400000
-  plot_int = 200
+  max_step = 1000000
+  plot_int = 500
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
   ! if algorithm_type = 2, multispecies
-  algorithm_type = 1
+  algorithm_type = 2
 
   ! Viscous tensor form
   ! if visc_type = 1, L = not-symmetric (bulk viscosity = 0)
@@ -37,7 +37,7 @@
   ! Advection method
   ! if advection_type = 1, interpolate primitive quantities
   ! if advection_type = 2, interpolate conserved quantities
-  advection_type = 2
+  advection_type = 2 
 
   ! Problem specification
   ! if prob_type = 1, constant species concentration
@@ -48,14 +48,14 @@
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
   runiv = 8.314462175e7
-  T_init(1) = 300
-  rho0 = 4.83e-4
+  T_init(1) = 400
+  rho0 = 1.78e-3
 
-  struct_fact_int = 10
-  n_steps_skip = 4000000
+  struct_fact_int = 1
+  n_steps_skip = 1000000
 
-  membrane_cell = 32
-  transmission = 0.0125
+  membrane_cell = 40
+  transmission = 0.1
   
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -75,24 +75,25 @@
 
   
   ! Temperature if thermal BC specified
-  t_hi(1:3) = 300 300 300
-  t_lo(1:3) = 300 300 300
+  t_hi(1:3) = 509.905 400 400
+  t_lo(1:3) = 277.57 300 300
 
   !Kinetic species info
   !--------------
-  nspecies = 2
+  nspecies = 4
 
-  molmass = 39.9480, 39.9480
-  diameter = 3.63e-8, 3.63e-8
-  rhobar =  0.25, 0.25
+  molmass = 39.9480, 39.9480, 39.9480, 39.9480
+  diameter = 3.66e-8, 3.66e-8, 3.66e-8, 3.66e-8
+  rhobar =  0.25, 0.25, 0.25, 0.25
 
   ! Enter negative dof to use hcv & hcp values
-  dof =  3, 3
-  hcv = -1 -1 
-  hcp = -1 -1 
+  dof =  3, 3, 3, 3
+  hcv = -1 -1 -1 -1
+  hcp = -1 -1 -1 -1
 
 /
 
 &compressible
+
   
 /
