@@ -5,22 +5,17 @@
 #include "gmres_functions.H"
 
 ///////////////////////////
-// in advance.cpp
-void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
-	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
-	     amrex::MultiFab& pres,
-	     amrex::MultiFab& rho, amrex::MultiFab& rhotot,
-	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	     const amrex::MultiFab& beta, const amrex::MultiFab& gamma,
-# if (AMREX_SPACEDIM == 2)
-	     const std::array< amrex::MultiFab, 1 >& beta_ed,
-# endif
-# if (AMREX_SPACEDIM == 3)
-	     const std::array< amrex::MultiFab, 3 >& beta_ed,
-# endif
-	     const amrex::Geometry geom, const amrex::Real& dt);
+// in advance_timestep_inertial.cpp
+
+void advance_timestep_inertial(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
+                               amrex::MultiFab& pres,
+                               amrex::MultiFab& rho, amrex::MultiFab& rhotot,
+                               const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
+                               const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+                               std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                               const amrex::MultiFab& beta, const amrex::MultiFab& gamma,
+                               const std::array< amrex::MultiFab, NUM_EDGE >& beta_ed,
+                               const amrex::Geometry geom, const amrex::Real& dt);
 
 ///////////////////////////
 

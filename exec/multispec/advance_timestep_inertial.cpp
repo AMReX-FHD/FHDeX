@@ -24,23 +24,22 @@ using namespace gmres;
 using namespace multispec;
 
 // argv contains the name of the inputs file entered at the command line
-void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 
-	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew, 
-	       MultiFab& pres, 
-	       MultiFab& rho, MultiFab& rhotot,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-	       std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	       const MultiFab& beta, const MultiFab& gamma,
-	       const std::array< MultiFab, NUM_EDGE >& beta_ed, 
-	       const Geometry geom, const Real& dt)
+void advance_timestep_inertial(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 
+                                 MultiFab& pres, 
+                                 MultiFab& rho, MultiFab& rhotot,
+                                 const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
+                                 const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
+                                 std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                                 const MultiFab& beta, const MultiFab& gamma,
+                                 const std::array< MultiFab, NUM_EDGE >& beta_ed, 
+                                 const Geometry geom, const Real& dt)
 {
   
   BL_PROFILE_VAR("advance()",advance);
 
   const Real* dx = geom.CellSize();
   const Real dtinv = 1.0/dt;
-  Real theta_alpha = 1.;
+  Real theta_alpha = dtinv;
   Real norm_pre_rhs;
 
   const BoxArray& ba = beta.boxArray();
@@ -245,14 +244,16 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // initial guess for new solution
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
+
   }
   pres.setVal(0.);  // initial guess
 
   // call GMRES to compute predictor
+  /*
   GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
 	alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
 	theta_alpha,geom,norm_pre_rhs);
+  */
 
   //////////////////////////////////////////////////
 
@@ -271,7 +272,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // 		     stoch_mass_flux,dt,0.0,geom);
 
   for(int i=0; i<nspecies; i++) {
-    MkAdvSFluxdiv(umacNew,rhoPred,adv_mass_fluxdiv,dx,geom,i,0);
+    MkAdvSFluxdiv(umac,rhoPred,adv_mass_fluxdiv,dx,geom,i,0);
   }
 
   diff_mass_fluxdiv.mult(-dt);
@@ -299,13 +300,13 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // Compute predictor advective term
   AverageCCToFace(rhotot, 0, rhotot_face, 0, 1);
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
-    umacNew[d].FillBoundary(geom.periodicity());
-    MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
+    umac[d].FillBoundary(geom.periodicity());
+    MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 0);
     MultiFab::Multiply(uMom[d], rhotot_face[d], 0, 0, 1, 0);
     uMom[d].FillBoundary(geom.periodicity());
   }
 
-  MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
+  MkAdvMFluxdiv(umac,uMom,advFluxdivPred,dx,0);
 
   // ADVANCE STEP (crank-nicolson + heun's method)
 
@@ -333,19 +334,15 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     gmres_rhs_u[d].FillBoundary(geom.periodicity());
 
     // initial guess for new solution
-    MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
+    MultiFab::Copy(umac[d], umac[d], 0, 0, 1, 0);
   }
 	       
   pres.setVal(0.);  // initial guess
 
   // call GMRES here
-  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+  GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,
 	alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
 	theta_alpha,geom,norm_pre_rhs);
-
-  for (int d=0; d<AMREX_SPACEDIM; d++) {
-    MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);
-  }
 
   //////////////////////////////////////////////////
 

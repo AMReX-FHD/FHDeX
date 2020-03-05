@@ -48,19 +48,41 @@ void main_driver(const char* argv)
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
+    //=============================================================
+    // Initialization
+    //=============================================================
+    
     std::string inputs_file = argv;
 
     // read in parameters from inputs file into F90 modules
     // we use "+1" because of amrex_string_c_to_f expects a null char termination
-    read_common_namelist(inputs_file.c_str(),inputs_file.size()+1);
+    read_common_namelist   (inputs_file.c_str(),inputs_file.size()+1);
     read_multispec_namelist(inputs_file.c_str(),inputs_file.size()+1);
-    read_gmres_namelist(inputs_file.c_str(),inputs_file.size()+1);
+    read_gmres_namelist    (inputs_file.c_str(),inputs_file.size()+1);
 
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeMultispecNamespace();
     InitializeGmresNamespace();
 
+    // for reservoirs, make sure the Dirichlet conditions for concentration sum to 1
+    //
+    //
+    //
+
+    // one common seed; not split by process yet like the original code
+    int fhdSeed = seed;
+    
+    // these are unused
+    int particleSeed = 2;
+    int selectorSeed = 3;
+    int thetaSeed = 4;
+    int phiSeed = 5;
+    int generalSeed = 6;
+
+    //Initialise rngs
+    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+    
     // is the problem periodic?
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -69,10 +91,26 @@ void main_driver(const char* argv)
         }
     }
 
+    int ng_s; // ghost cells for density MultiFabs
+    if (advection_type == 0) {
+        ng_s = 2; // centered advection
+    }
+    else if (advection_type <= 3) {
+        ng_s = 3; // bilinear limited, biliniear unlimited, or unlimited quad bds
+    }
+    else if (advection_type == 4) {
+        ng_s = 4; // limited quad bds
+    }
+
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
-    {
+    
+    if (restart >= 0) {
+        Abort("restart not implemented yet");
+    }
+    else {
+        
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
         Box domain(dom_lo, dom_hi);
@@ -90,43 +128,62 @@ void main_driver(const char* argv)
 
         // This defines a Geometry object
         geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    }
 
-    Real dt = fixed_dt;
-    Real dtinv = 1.0/dt;
-    const Real* dx = geom.CellSize();
+    }
 
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
-
-    /////////////////////////////////////////
-    //Initialise rngs
-    /////////////////////////////////////////
-    const int n_rngs = 1;
-
-    int fhdSeed = 1;
-    int particleSeed = 2;
-    int selectorSeed = 3;
-    int thetaSeed = 4;
-    int phiSeed = 5;
-    int generalSeed = 6;
-
-    //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
-    /////////////////////////////////////////
-
-    ///////////////////////////////////////////
-    // rho, alpha, beta, gamma:
-    ///////////////////////////////////////////
     
-    MultiFab rhotot(ba, dmap, 1, 1);
-    rhotot.setVal(1.);
+    Real dt = fixed_dt;
+    Real dtinv = 1.0/dt;
+    const Real* dx = geom.CellSize();
+    
+    /////////////////////////////////////////
+    //Initialise rngs
+    /////////////////////////////////////////
 
-    MultiFab rho(ba, dmap, nspecies, 1);
-    rho.setVal(1.);
+    int n_rngs_mass;
+    int n_rngs_mom;
+    
+    if (algorithm_type == 2 || algorithm_type == 5) {
+        n_rngs_mass = 2;
+        n_rngs_mom = 2;  
+    }
+    else if (algorithm_type == 6) {
+        n_rngs_mass = 2;
+        n_rngs_mom = 1;  
+    }
+    else {
+        n_rngs_mass = 1;
+        n_rngs_mom = 1;        
+    }
+    
+    /////////////////////////////////////////
+    
+    MultiFab rho_old   (ba, dmap, nspecies, ng_s);
+    MultiFab rhotot_old(ba, dmap, 1       , ng_s);
+    MultiFab pi        (ba, dmap, 1       , 1);
+
+    // staggered velocities
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        umac[d].setVal(0.);
+    }
+
+    // data structures to help with reservoirs
+    //
+    //
+    //
+
+    // build layouts for staggered multigrid solver and macproject within preconditioner
+    //
+    //
+    //
+
+    
 
     // alpha_fc arrays
-    Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
@@ -163,75 +220,55 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // eta & temperature
     const Real eta_const = visc_coef;
-    const Real temp_const = T_init[0];      // [units: K]
+    const Real Temp_const = T_init[0];      // [units: K]
 
     // eta & temperature cell centered
     MultiFab  eta_cc;
-    MultiFab temp_cc;
+    MultiFab Temp_cc;
     // eta & temperature nodal
     std::array< MultiFab, NUM_EDGE >   eta_ed;
-    std::array< MultiFab, NUM_EDGE >  temp_ed;
+    std::array< MultiFab, NUM_EDGE >  Temp_ed;
     // eta cell-centered
     eta_cc.define(ba, dmap, 1, 1);
     // temperature cell-centered
-    temp_cc.define(ba, dmap, 1, 1);
+    Temp_cc.define(ba, dmap, 1, 1);
 #if (AMREX_SPACEDIM == 2)
     // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
     // temperature nodal
-    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+    Temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
     // eta nodal
     eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
     eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
     eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
     // temperature nodal
-    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    Temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    Temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    Temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
 
     // Initalize eta & temperature multifabs
     // eta cell-centered
     eta_cc.setVal(eta_const);
     // temperature cell-centered
-    temp_cc.setVal(temp_const);
+    Temp_cc.setVal(Temp_const);
 #if (AMREX_SPACEDIM == 2)
     // eta nodal
     eta_ed[0].setVal(eta_const);
     // temperature nodal
-    temp_ed[0].setVal(temp_const);
+    Temp_ed[0].setVal(Temp_const);
 #elif (AMREX_SPACEDIM == 3)
     // eta nodal
     eta_ed[0].setVal(eta_const);
     eta_ed[1].setVal(eta_const);
     eta_ed[2].setVal(eta_const);
     // temperature nodal
-    temp_ed[0].setVal(temp_const);
-    temp_ed[1].setVal(temp_const);
-    temp_ed[2].setVal(temp_const);
+    Temp_ed[0].setVal(Temp_const);
+    Temp_ed[1].setVal(Temp_const);
+    Temp_ed[2].setVal(Temp_const);
 #endif
     ///////////////////////////////////////////
-
-    ///////////////////////////////////////////
-    // Mass and momentum flux divergence MultiFabs:
-    ///////////////////////////////////////////
-
-    // mflux divergence, staggered in x,y,z
-
-    // Define mfluxdiv predictor multifabs
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_predict[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      mfluxdiv_predict[d].setVal(0.0);
-    }
-
-    // Define mfluxdiv corrector multifabs
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      mfluxdiv_correct[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      mfluxdiv_correct[d].setVal(0.0);
-    }
     
     ///////////////////////////////////////////
 
@@ -244,26 +281,9 @@ void main_driver(const char* argv)
     weights = {1.0};
     
     // Declare object of StochMomFlux class 
-    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
+    StochMomFlux sMflux(ba,dmap,geom,n_rngs_mom);
 
     ///////////////////////////////////////////
-
-    // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
-    pres.setVal(0.);  // initial guess
-
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      umac[d].setVal(0.0);
-    }
-
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      umacNew[d].setVal(0.0);
-    }
 
     ///////////////////////////////////////////
     // structure factor:
@@ -302,68 +322,82 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
-    const RealBox& realDomain = geom.ProbDomain();
-    int dm;
-
+    // initialize rho and umac in valid region only
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
 
 	init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
-			  BL_TO_FORTRAN_FAB(rho[mfi]),
+			  BL_TO_FORTRAN_FAB(rho_old[mfi]),
 			  BL_TO_FORTRAN_ANYD(umac[0][mfi]),
 			  BL_TO_FORTRAN_ANYD(umac[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
 			  BL_TO_FORTRAN_ANYD(umac[2][mfi]),
 #endif
-			  dx, geom.ProbLo(), geom.ProbHi(),
-			  ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+			  dx, geom.ProbLo(), geom.ProbHi());
     }
+
+    // initialize pi, including ghost cells
+    pi.setVal(0.);  
+
+    // compute rhotot from rho in VALID REGION
+    //
+    //
+    //
+
+    // fill rho and rhotot ghost cells
+    //
+    //
+    //
+
+    // pressure ghost cells
+    //
+    //
+    //
+
+    //=======================================================
+    // Build multifabs for all the variables
+    //=======================================================
+
+
+    MultiFab rho_new(ba, dmap, nspecies, ng_s);
+    MultiFab rhotot_new(ba, dmap, 1, ng_s);
+
+
+
+
+                                
+
+    
     
     // Add initial equilibrium fluctuations
-    sMflux.addMfluctuations(umac, rhotot, temp_cc, initial_variance_mom);
+    sMflux.addMfluctuations(umac, rhotot_old, Temp_cc, initial_variance_mom);
     
     // Project umac onto divergence free field
-    MultiFab macphi(ba,dmap,1,1);
-    MultiFab macrhs(ba,dmap,1,1);
-    macrhs.setVal(0.0);
-    MacProj(umac,rhotot,geom,true);
-
-    // initial guess for new solution
-    for (int d; d<AMREX_SPACEDIM; d++) {
-      MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
-    }
+    MacProj(umac,rhotot_old,geom,true);
 
     int step = 0;
     Real time = 0.;
 
     // write out initial state
-    if (plot_int > 0) 
-      {
-	WritePlotFile(step,time,geom,umac,rho,pres);
-      }
+    if (plot_int > 0) {
+	WritePlotFile(step,time,geom,umac,rho_old,pi);
+    }
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
-	if(variance_coef_mom != 0.0) {
-    
-	  // Fill stochastic terms
-	  sMflux.fillMStochastic();
-
-	  // compute stochastic force terms
-	  sMflux.StochMomFluxDiv(mfluxdiv_predict,0,eta_cc,eta_ed,temp_cc,temp_ed,
-			     weights,dt);
-	  sMflux.StochMomFluxDiv(mfluxdiv_correct,0,eta_cc,eta_ed,temp_cc,temp_ed,
-			     weights,dt);
-
-	}
-
-	// Advance umac
-	advance(umac,umacNew,pres,rho,rhotot,
-		mfluxdiv_predict,mfluxdiv_correct,
-		alpha_fc,beta,gamma,beta_ed,geom,dt);
+        if (algorithm_type == 0) {
+            /*
+            advance_timestep_inertial(umac,pi,rho_old,rhotot_old,
+                                      alpha_fc,beta,gamma,beta_ed,geom,dt);
+            */
+        }
+        else {
+            Print() << "algorithm_type " << algorithm_type << std::endl;
+            Abort("algorithm_type not supported");
+        }
 
 	//////////////////////////////////////////////////
 	
@@ -387,9 +421,13 @@ void main_driver(const char* argv)
         time = time + dt;
 
         if (plot_int > 0 && step%plot_int == 0) {
-          // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,rho,pres);
+    	  WritePlotFile(step,time,geom,umac,rho_new,pi);
         }
+
+        // set old state to new state
+        // rho
+        // rhotot
+        
     }
     
     /*
@@ -404,7 +442,7 @@ void main_driver(const char* argv)
       }
     
       // let rhotot = 1
-      Real SFscale = dVol/(k_B*temp_const);
+      Real SFscale = dVol/(k_B*Temp_const);
       // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
       
       structFact.Finalize(SFscale);
