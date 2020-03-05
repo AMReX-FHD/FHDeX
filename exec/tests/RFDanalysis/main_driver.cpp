@@ -22,7 +22,6 @@
 #include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "electrostatic.H"
 

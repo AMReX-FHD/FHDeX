@@ -1,7 +1,6 @@
 #include <main_driver.H>
 
 #include <hydro_functions.H>
-#include <hydro_functions_F.H>
 
 #include <gmres_functions.H>
 

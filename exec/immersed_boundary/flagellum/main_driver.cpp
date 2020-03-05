@@ -2,7 +2,6 @@
 #include <main_driver_F.H>
 
 #include <hydro_functions.H>
-#include <hydro_functions_F.H>
 
 //#include <analysis_functions_F.H>
 #include <StochMomFlux.H>

@@ -1,7 +1,6 @@
 #include "rng_functions.H"
 #include "gmres_functions.H"
 #include "common_functions.H"
-#include "hydro_functions_F.H"
 #include "StochMomFlux.H"
 
 #include <AMReX_MultiFabUtil.H>

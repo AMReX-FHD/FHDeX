@@ -13,7 +13,6 @@
 #include "gmres_functions.H"
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "multispec_functions.H"
 #include "multispec_functions_F.H"
