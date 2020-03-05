@@ -2,11 +2,9 @@
 #include "gmres_functions.H"
 #include "common_functions.H"
 #include "multispec_functions.H"
-#include "multispec_namespace.H"
 
 #include "StochMassFlux.H"
 
-using namespace multispec;
 
 // initialize n_rngs, geom
 // build MultiFabs to hold random numbers

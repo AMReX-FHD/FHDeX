@@ -1,11 +1,8 @@
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
 
 #include "common_functions.H"
 
-#include "multispec_namespace.H"
 
-using namespace multispec;
 using namespace amrex;
 
 void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,

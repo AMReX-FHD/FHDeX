@@ -1,8 +1,5 @@
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
-#include "multispec_namespace.H"
 
-using namespace multispec;
 
 void InitializeMultispecNamespace() {
 

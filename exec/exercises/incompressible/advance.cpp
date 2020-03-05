@@ -6,15 +6,12 @@
 #include "gmres_functions.H"
 
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
 
-#include "multispec_namespace.H"
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace multispec;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 

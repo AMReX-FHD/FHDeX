@@ -15,13 +15,11 @@
 #include "hydro_functions.H"
 
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
 
 #include "common_namespace_declarations.H"
 
 #include "gmres_namespace_declarations.H"
 
-#include "multispec_namespace.H"
 #include "multispec_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
@@ -30,7 +28,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace multispec;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
