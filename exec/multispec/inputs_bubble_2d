@@ -3,14 +3,14 @@
   ! Problem specification
   prob_lo(1:2) = 0.0 0.0       ! physical lo coordinate
   prob_hi(1:2) = 1.0 1.0       ! physical hi coordinate
-  cell_depth = 1.0e-7
-  !cell_depth = 0.015625
+
+  cell_depth = 1.0
 
   ! if prob_type = 0, zero initial velocity
   ! if prob_type = 1, vortex
   ! if prob_type = 2, KH - sine
   ! if prob_type = 3, KH - smooth
-  prob_type = 1
+  prob_type = 12
   
   ! number of cells in domain
   n_cells(1:2) = 64 64
@@ -18,11 +18,11 @@
   max_grid_size(1:2) = 32 32
 
   ! Time-step control
-  fixed_dt = 2e-4
+  fixed_dt = 0.01
 
   ! Controls for number of steps between actions
-  max_step = 30000
-  plot_int = 1
+  max_step = 100
+  plot_int = 10
 
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
@@ -31,17 +31,16 @@
   ! positive = assume constant coefficients
   ! negative = assume spatially-varying coefficients
 
-  !visc_coef = 1.
-  visc_coef = 1e-3		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
+  visc_coef = 1.d-1		! [units: g*cm-1*s-1] dynamic (shear) viscosity of water
 
-  visc_type = 2
+  visc_type = -2
   
   ! Stochastic parameters
-  variance_coef_mom = 1.
-  initial_variance_mom = 1.
+  variance_coef_mom = 0
+  initial_variance_mom = 0
 
-  k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
-  T_init(1) = 295	! [units: K]
+  k_B = 1.            	! [units: cm2*g*s-2*K-1]
+  T_init(1) = 1. 	! [units: K]
 
   struct_fact_int = 0
   n_steps_skip = 0

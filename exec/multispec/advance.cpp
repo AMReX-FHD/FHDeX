@@ -26,7 +26,7 @@ using namespace multispec;
 // argv contains the name of the inputs file entered at the command line
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 
 	       std::array< MultiFab, AMREX_SPACEDIM >& umacNew, 
-	       MultiFab& pres, MultiFab& tracer,
+	       MultiFab& pres, 
 	       MultiFab& rho, MultiFab& rhotot,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	       const std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
@@ -90,7 +90,6 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
     rhotot_face[d].setVal(0.0);
   }
   
-  MultiFab tracerPred(ba,dmap,1,1);
   MultiFab advFluxdivS(ba,dmap,1,1);
 
   MultiFab rhoPred(ba,dmap,nspecies,1);
@@ -183,29 +182,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     umac[d].FillBoundary(geom.periodicity());
   }
-  
-  //////////////////////////
-  // Advance tracer
-  //////////////////////////
 
-  // Compute tracer:
-  tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0,0);
-  advFluxdivS.mult(dt, 1);
-
-  // compute predictor
-  MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
-  MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
-  tracerPred.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0,0);
-  advFluxdivS.mult(dt, 1);
-
-  // advance in time
-  MultiFab::Add(tracer, tracerPred, 0, 0, 1, 0);
-  MultiFab::Add(tracer, advFluxdivS, 0, 0, 1, 0);
-  tracer.mult(0.5, 1);
-
-  // amrex::Print() << "tracer L0 norm = " << tracer.norm0() << "\n";
   //////////////////////////
 
   //////////////////////////////////////////////////
