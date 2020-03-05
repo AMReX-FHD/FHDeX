@@ -1,5 +1,4 @@
 #include "gmres_functions.H"
-#include "gmres_namespace.H"
 
 #include "AMReX_ArrayLim.H"
 #include "AMReX_Box.H"

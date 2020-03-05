@@ -22,7 +22,6 @@
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
 #include "multispec_namespace.H"
@@ -35,7 +34,6 @@
 
 using namespace amrex;
 using namespace common;
-using namespace gmres;
 using namespace multispec;
 
 // argv contains the name of the inputs file entered at the command line

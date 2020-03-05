@@ -6,6 +6,10 @@
 #include <AMReX_Vector.H>
 
 #include "gmres_functions_F.H"
+#include "gmres_namespace.H"
+
+using namespace gmres;
+using namespace amrex;
 
 #ifndef _num_edge_
 #define _num_edge_
@@ -15,9 +19,6 @@
     const int NUM_EDGE = 3;
 #endif
 #endif
-
-
-using namespace amrex;
 
 // copy contents of gmres_params_module to C++ gmres namespace
 void InitializeGmresNamespace();

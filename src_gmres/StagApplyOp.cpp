@@ -6,7 +6,6 @@
 
 #include "gmres_functions.H"
 
-#include "gmres_namespace.H"
 
 using namespace common;
 

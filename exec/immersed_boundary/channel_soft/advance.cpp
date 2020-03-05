@@ -10,7 +10,6 @@
 
 #include "gmres_functions.H"
 
-#include "gmres_namespace.H"
 
 #include "ib_functions.H"
 
@@ -20,7 +19,6 @@
 
 using namespace amrex;
 using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(AmrCoreAdv & amr_core_adv,

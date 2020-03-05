@@ -20,7 +20,6 @@
 #include <common_namespace.H>
 #include <common_namespace_declarations.H>
 
-#include <gmres_namespace.H>
 #include <gmres_namespace_declarations.H>
 
 #include <immbdy_namespace.H>
@@ -39,7 +38,6 @@
 using namespace amrex;
 
 using namespace common;
-using namespace gmres;
 
 using namespace immbdy;
 using namespace immbdy_md;

@@ -5,7 +5,6 @@
 #include "common_functions_F.H"
 #include "common_namespace.H"
 
-#include "gmres_namespace.H"
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFabUtil.H>
@@ -16,7 +15,6 @@
 #include <AMReX_MLMG.H>
 
 using namespace common;
-using namespace gmres;
 
 // umac enters with face-centered, time-centered Utilde^* and should leave with Utilde
 // macphi is the solution to the elliptic solve

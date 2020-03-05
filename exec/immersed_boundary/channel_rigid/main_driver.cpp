@@ -18,7 +18,6 @@
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
 #include <AMReX_ParmParse.H>
@@ -32,7 +31,6 @@
 
 using namespace amrex;
 using namespace common;
-using namespace gmres;
 
 
 // (ID, init CPU) tuple: unique to each particle

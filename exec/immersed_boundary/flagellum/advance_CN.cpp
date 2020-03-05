@@ -5,7 +5,6 @@
 
 #include <gmres_functions.H>
 
-#include <gmres_namespace.H>
 
 #include <immbdy_namespace.H>
 
@@ -14,7 +13,6 @@
 
 using namespace amrex;
 
-using namespace gmres;
 
 using namespace immbdy;
 using namespace immbdy_md;

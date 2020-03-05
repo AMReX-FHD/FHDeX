@@ -3,14 +3,12 @@
 #include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_namespace.H"
 
 #include <AMReX_MLMG.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLLinOp.H>
 
 using namespace common;
-using namespace gmres;
 
 void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
              MultiFab& mac_rhs,

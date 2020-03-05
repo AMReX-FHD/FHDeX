@@ -9,7 +9,6 @@
 #include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
 #include "rng_functions.H"
@@ -22,7 +21,6 @@
 
 //#include "electrostatic.H"
 
-using namespace gmres;
 using namespace common;
 using namespace std;
 //using namespace amrex;

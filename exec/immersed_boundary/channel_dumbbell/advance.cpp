@@ -10,7 +10,6 @@
 
 #include "gmres_functions.H"
 
-#include "gmres_namespace.H"
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -21,7 +20,6 @@
 
 using namespace amrex;
 using namespace common;
-using namespace gmres;
 using namespace immbdy_md;
 
 

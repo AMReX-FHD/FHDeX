@@ -5,7 +5,6 @@
 #include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_namespace.H"
 
 
 #include <ib_functions.H>
@@ -15,7 +14,6 @@
 
 
 using namespace common;
-using namespace gmres;
 
 
 void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,

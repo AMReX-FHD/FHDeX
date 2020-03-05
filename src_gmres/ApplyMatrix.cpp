@@ -3,11 +3,9 @@
 #include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_namespace.H"
 
 
 using namespace common;
-using namespace gmres;
 
 // This computes A x = b explicitly
 void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,

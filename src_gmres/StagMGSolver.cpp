@@ -1,5 +1,4 @@
 #include "gmres_functions.H"
-#include "gmres_namespace.H"
 
 #include "common_functions.H"
 #include "common_namespace.H"
@@ -7,7 +6,6 @@
 #include <AMReX_VisMF.H>
 
 using namespace amrex;
-using namespace gmres;
 using namespace common;
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
