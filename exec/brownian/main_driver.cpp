@@ -3,7 +3,6 @@
 #include "common_functions.H"
 #include "gmres_functions.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "gmres_namespace_declarations.H"
@@ -27,7 +26,6 @@
 
 //#include "electrostatic.H"
 
-using namespace common;
 //using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line

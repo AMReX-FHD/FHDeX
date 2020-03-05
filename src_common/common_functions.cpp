@@ -1,9 +1,7 @@
 #include "common_functions.H"
-#include "common_namespace.H"
 
 #include <AMReX_ParmParse.H>
 
-using namespace common;
 
 void InitializeCommonNamespace() {
 

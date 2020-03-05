@@ -14,7 +14,6 @@
 
 #include "gmres_functions.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "gmres_namespace_declarations.H"
@@ -29,7 +28,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
 
 
 // (ID, init CPU) tuple: unique to each particle

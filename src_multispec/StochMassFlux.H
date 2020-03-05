@@ -5,10 +5,9 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
 
-#include <common_namespace.H>
+#include "common_functions.H"
 
 using namespace amrex;
-using namespace common;
 
 class StochMassFlux {
 

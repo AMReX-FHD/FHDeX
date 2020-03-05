@@ -1,11 +1,9 @@
 #include "gmres_functions.H"
 
 #include "common_functions.H"
-#include "common_namespace.H"
 #include <AMReX_VisMF.H>
 
 using namespace amrex;
-using namespace common;
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
 // if abs(visc_type) = 1, L = div beta grad

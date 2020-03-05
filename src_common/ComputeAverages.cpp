@@ -1,10 +1,8 @@
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
 #include "AMReX_PlotFileUtil.H"
 
-using namespace common;
 
 int greatest_common_factor(int,int);
 void factor(int,int*,int);

@@ -20,7 +20,6 @@
 // Comment out if getting `duplicate symbols` error duing linking
 // #include <immbdy_namespace_declarations.H>
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "gmres_namespace_declarations.H"
@@ -34,7 +33,6 @@
 
 
 using namespace amrex;
-using namespace common;
 
 using namespace immbdy;
 using namespace ib_colloid;

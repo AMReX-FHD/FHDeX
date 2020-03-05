@@ -6,7 +6,6 @@
 
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
 #include "exec_functions.H"
 
@@ -14,7 +13,6 @@
 
 #include <algorithm>
 
-using namespace common;
 using namespace amrex;
 
 void RK2step(MultiFab& phi, MultiFab& phin, MultiFab& rannums, 

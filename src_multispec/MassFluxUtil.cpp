@@ -4,10 +4,8 @@
 #include "common_functions.H"
 
 #include "multispec_namespace.H"
-#include "common_namespace.H"
 
 using namespace multispec;
-using namespace common;
 using namespace amrex;
 
 void ComputeMolconcMolmtot(const MultiFab& rho,

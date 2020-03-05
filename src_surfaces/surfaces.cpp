@@ -1,9 +1,9 @@
 #include "surfaces.H"
 #include <math.h>
-#include "common_namespace.H"
+
+#include "common_functions.H"
 
 using namespace amrex;
-using namespace common;
 
 double getTheta(double nx, double ny, double nz)
 {

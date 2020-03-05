@@ -5,7 +5,6 @@
 
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
 
@@ -18,7 +17,6 @@
 
 
 using namespace amrex;
-using namespace common;
 using namespace immbdy_md;
 
 

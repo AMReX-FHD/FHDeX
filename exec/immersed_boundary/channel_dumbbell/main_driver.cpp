@@ -14,7 +14,6 @@
 
 #include "gmres_functions.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "gmres_namespace_declarations.H"
@@ -28,7 +27,6 @@
 
 
 using namespace amrex;
-using namespace common;
 
 
 //! Defines staggered MultiFab arrays (BoxArrays set according to the

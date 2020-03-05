@@ -7,7 +7,6 @@
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
 #include <common_functions.H>
-#include <common_namespace.H>
 
 #include <DsmcParticleContainer.H>
 #include <ib_functions_F.H>
@@ -23,7 +22,6 @@
 #include <fstream>
 
 
-using namespace common;
 using namespace amrex;
 
 

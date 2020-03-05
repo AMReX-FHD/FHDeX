@@ -6,9 +6,7 @@
 
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
-using namespace common;
 
 void WritePlotFileHydro(int step,
                    const amrex::Real time,

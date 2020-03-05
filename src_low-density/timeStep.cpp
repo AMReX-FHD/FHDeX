@@ -6,9 +6,7 @@
 #include "rng_functions.H"
 #include "rng_functions_F.H"
 
-#include "common_namespace.H"
 
-using namespace common;
 
 void eulerStep(MultiFab& cu, std::array<MultiFab,AMREX_SPACEDIM>& flux, 
                std::array<MultiFab, AMREX_SPACEDIM>& stochFlux, 

@@ -1,9 +1,7 @@
 #include "common_functions.H"
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
 
-using namespace common;
 
 void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
                  std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,

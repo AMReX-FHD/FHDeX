@@ -2,9 +2,7 @@
 #include "compressible_functions_F.H"
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
-using namespace common;
 
 void calculateFlux(const MultiFab& cons,
                    std::array<MultiFab, AMREX_SPACEDIM>& flux,

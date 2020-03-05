@@ -6,9 +6,7 @@
 #include "rng_functions.H"
 #include "rng_functions_F.H"
 
-#include "common_namespace.H"
 
-using namespace common;
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,

@@ -1,5 +1,4 @@
 #include "common_functions.H"
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "compressible_functions.H"
@@ -12,7 +11,6 @@
 #include "StructFact.H"
 
 using namespace amrex;
-using namespace common;
 using namespace compressible;
 
 // argv contains the name of the inputs file entered at the command line

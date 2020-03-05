@@ -69,7 +69,7 @@ namespace common {
     extern amrex::Real                variance_coef_mass;
     extern amrex::Real                k_B;
     extern amrex::Real                Runiv;
-    extern amrex::Vector<Real>        T_init;
+    extern amrex::Vector<amrex::Real> T_init;
 
     // Algorithm control / selection
     extern int                        algorithm_type;

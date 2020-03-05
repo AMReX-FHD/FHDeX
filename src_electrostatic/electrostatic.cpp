@@ -1,10 +1,8 @@
 #include "electrostatic.H"
-#include "common_namespace.H"
 #include "common_functions.H"
 #include <AMReX_MLMG.H>
 
 using namespace amrex;
-using namespace common;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
              std::array< MultiFab, AMREX_SPACEDIM >& efield,

@@ -4,7 +4,6 @@
 
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
 
@@ -13,7 +12,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,

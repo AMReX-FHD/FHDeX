@@ -2,10 +2,8 @@
 #include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_namespace.H"
 
 using namespace amrex;
-using namespace common;
 
 void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
 		   const MultiFab& s,

@@ -3,9 +3,7 @@
 #include "rng_functions.H"
 #include "rng_functions_F.H"
 
-#include "common_namespace.H"
 
-using namespace common;
 using namespace amrex;
 
 void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance,

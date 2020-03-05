@@ -9,7 +9,6 @@
 //#include <AMReX_NeighborParticles.H>
 
 //#include <common_functions.H>
-//#include <common_namespace.H>
 
 //#include <ib_functions_F.H>
 

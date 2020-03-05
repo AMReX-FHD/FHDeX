@@ -9,7 +9,9 @@
 #include <AMReX_ArrayLim.H>
 
 #include "common_functions_F.H"
+#include "common_namespace.H"
 
+using namespace common;
 using namespace amrex;
 
 // copy contents of common_params_module to C++ common namespace

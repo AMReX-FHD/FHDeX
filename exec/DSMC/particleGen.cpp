@@ -1,11 +1,9 @@
 #include "INS_functions.H"
 #include "common_functions.H"
 #include "DsmcParticleContainer.H"
-#include <common_namespace.H>
 
 #include "species.H"
 
-using namespace common;
 void DsmcParticleContainer::InitParticles(species* particleInfo, const Real* dxp)
 {
     

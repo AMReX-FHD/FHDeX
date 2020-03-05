@@ -1,12 +1,10 @@
 
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
 
 
-using namespace common;
 
 //Takes cell centred and nodal viscosity multifabs, and face centred velocity
 //multifab, and outputs to face-centered velocity multifab.

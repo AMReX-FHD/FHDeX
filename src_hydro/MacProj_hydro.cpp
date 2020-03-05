@@ -2,7 +2,6 @@
 #include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_namespace.H"
 
 
 #include <AMReX_BoxArray.H>
@@ -13,7 +12,6 @@
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
 
-using namespace common;
 
 // umac enters with face-centered, time-centered Utilde^* and should leave with Utilde
 // macphi is the solution to the elliptic solve

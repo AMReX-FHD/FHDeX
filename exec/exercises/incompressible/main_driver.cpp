@@ -18,7 +18,6 @@
 #include "multispec_functions.H"
 #include "multispec_functions_F.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "gmres_namespace_declarations.H"
@@ -32,7 +31,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
 using namespace multispec;
 
 // argv contains the name of the inputs file entered at the command line

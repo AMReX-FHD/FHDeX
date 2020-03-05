@@ -1,10 +1,8 @@
 #include "compressible_functions.H"
 #include "compressible_functions_F.H"
 
-#include "common_namespace.H"
 
 
-using namespace common;
 
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar, const int steps, const amrex::Real* dx)

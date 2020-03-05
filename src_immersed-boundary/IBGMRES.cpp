@@ -1,7 +1,6 @@
 #include <AMReX_VisMF.H>
 
 #include "common_functions.H"
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
 
@@ -12,7 +11,6 @@
 #include <IBParticleContainer.H>
 
 
-using namespace common;
 
 
 void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
