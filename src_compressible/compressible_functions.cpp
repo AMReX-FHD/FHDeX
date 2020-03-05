@@ -1,8 +1,5 @@
 #include "compressible_functions.H"
-#include "compressible_functions_F.H"
-#include "compressible_namespace.H"
 
-using namespace compressible;
 
 void InitializeCompressibleNamespace() {
 

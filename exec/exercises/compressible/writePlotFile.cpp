@@ -2,9 +2,7 @@
  
 #include "common_functions.H"
 
-#include "compressible_namespace.H"
 
-using namespace compressible;
 
 void WritePlotFile(int step,
                    const amrex::Real time,

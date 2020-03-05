@@ -8,6 +8,10 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
 
+#include "compressible_functions_F.H"
+#include "compressible_namespace.H"
+
+using namespace compressible;
 using namespace amrex;
 
 // copy contents of compressible_params_module to C++ compressible namespace
@@ -23,9 +27,9 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornz,
                    MultiFab& visccorn,
                    MultiFab& rancorn,
-                   const amrex::Geometry geom,
-		   const amrex::Vector< amrex::Real >& stoch_weights,
-	           const amrex::Real* dx, const amrex::Real dt);
+                   const Geometry geom,
+		   const Vector< Real >& stoch_weights,
+	           const Real* dx, const Real dt);
 
 void calculateTransportCoeffs(const MultiFab& prim, 
 			      MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
@@ -41,7 +45,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn,
-             const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
+             const Geometry geom, const Real* dx, const Real dt);
 
 void conservedToPrimitive(MultiFab& prim, const MultiFab& cons);
 
@@ -51,21 +55,21 @@ void setBC(MultiFab& prim, MultiFab& cons);
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
-                   const int steps, const amrex::Real* dx);
+                   const int steps, const Real* dx);
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
-                const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
+                const Geometry geom, const Real* dx, const Real dt);
 
 void WritePlotFile(int step,
-                   const amrex::Real time,
-                   const amrex::Geometry geom,
-	           const amrex::MultiFab& cu,
-	           const amrex::MultiFab& cuMeans,
-	           const amrex::MultiFab& cuVars,
-	           const amrex::MultiFab& prim,
-	           const amrex::MultiFab& primMeans,
-	           const amrex::MultiFab& primVars,
-                   const amrex::MultiFab& eta, 
-		   const amrex::MultiFab& kappa);
+                   const Real time,
+                   const Geometry geom,
+	           const MultiFab& cu,
+	           const MultiFab& cuMeans,
+	           const MultiFab& cuVars,
+	           const MultiFab& prim,
+	           const MultiFab& primMeans,
+	           const MultiFab& primVars,
+                   const MultiFab& eta, 
+		   const MultiFab& kappa);
 
 #endif

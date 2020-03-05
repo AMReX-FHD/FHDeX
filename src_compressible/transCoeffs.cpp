@@ -1,5 +1,4 @@
 #include "compressible_functions.H"
-#include "compressible_functions_F.H"
 
 void calculateTransportCoeffs(const MultiFab& prim, 
 			      MultiFab& eta, MultiFab& zeta, MultiFab& kappa,

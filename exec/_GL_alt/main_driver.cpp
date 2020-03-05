@@ -13,7 +13,6 @@
 #include "common_namespace_declarations.H"
 
 //#include "compressible_functions.H"
-//#include "compressible_functions_F.H"
 
 #include "exec_functions.H"
 #include "GL_functions.H"

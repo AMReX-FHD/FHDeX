@@ -1,5 +1,4 @@
 #include "compressible_functions.H"
-#include "compressible_functions_F.H"
 
 void conservedToPrimitive(MultiFab& prim, const MultiFab& cons)
 {
