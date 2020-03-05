@@ -15,7 +15,7 @@
 
 #include <IBMarkerContainer.H>
 #include <ib_functions_F.H>
-#include "rng_functions_F.H"
+#include "rng_functions.H"
 
 #include <iostream>
 

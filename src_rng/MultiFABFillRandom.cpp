@@ -1,10 +1,6 @@
 #include "common_functions.H"
 
 #include "rng_functions.H"
-#include "rng_functions_F.H"
-
-
-using namespace amrex;
 
 void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance,
                         const Geometry& geom)

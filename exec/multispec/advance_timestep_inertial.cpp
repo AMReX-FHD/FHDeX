@@ -11,7 +11,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
-using namespace amrex;
 
 // argv contains the name of the inputs file entered at the command line
 void advance_timestep_inertial(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 

@@ -13,7 +13,7 @@
 #include <common_namespace.H>
 
 #include <species.H>
-#include "rng_functions_F.H"
+#include "rng_functions.H"
 #include "surfaces.H"
 #include "particle_functions_F.H"
 

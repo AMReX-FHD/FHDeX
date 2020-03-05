@@ -8,7 +8,6 @@
 #include "gmres_namespace_declarations.H"
 
 #include "INS_functions.H"
-#include "rng_functions_F.H"
 
 #include "species.H"
 #include "surfaces.H"

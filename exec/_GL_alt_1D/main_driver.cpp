@@ -6,7 +6,6 @@
 //#include "StochMomFlux.H"
 //#include "StructFact.H"
 
-#include "rng_functions_F.H"
 
 #include "common_functions.H"
 

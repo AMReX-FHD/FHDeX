@@ -7,8 +7,6 @@
 
 #include "common_functions.H"
 
-using namespace amrex;
-
 class StochMomFlux {
 
     const int ncomp_ed = 2;
