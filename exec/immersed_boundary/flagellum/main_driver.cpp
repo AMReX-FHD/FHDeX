@@ -14,7 +14,6 @@
 #include <common_functions_F.H>
 
 #include <gmres_functions.H>
-#include <gmres_functions_F.H>
 
 #include <ib_functions.H>
 

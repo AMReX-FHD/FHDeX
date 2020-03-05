@@ -1,5 +1,4 @@
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 
 #include "common_functions.H"

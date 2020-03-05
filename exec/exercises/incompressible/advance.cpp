@@ -6,7 +6,6 @@
 #include "common_functions_F.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
 #include "multispec_functions.H"
 #include "multispec_functions_F.H"

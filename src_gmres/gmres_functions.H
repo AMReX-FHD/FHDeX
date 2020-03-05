@@ -5,6 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
 
+#include "gmres_functions_F.H"
 
 #ifndef _num_edge_
 #define _num_edge_

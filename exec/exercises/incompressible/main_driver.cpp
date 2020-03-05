@@ -12,7 +12,6 @@
 #include "common_functions_F.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"

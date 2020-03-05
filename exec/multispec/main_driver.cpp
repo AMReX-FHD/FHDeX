@@ -12,7 +12,6 @@
 #include "common_functions_F.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
 #include "hydro_functions.H"
 #include "hydro_functions_F.H"
@@ -34,7 +33,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
-using namespace amrex;
 using namespace common;
 using namespace gmres;
 using namespace multispec;
