@@ -11,7 +11,7 @@ module particle_functions_module
                                     fixed_dt, graphene_tog, mass, particle_n0, particle_neff, &
                                     visc_type, variance_coef_mom, pkernel_fluid, dry_move_tog, &
                                     move_tog, nspecies, drag_tog, es_tog, rfd_tog, qval, &
-                                    visc_coef, bc_vel_lo, bc_vel_hi, rfd_delta
+                                    visc_coef, bc_vel_lo, bc_vel_hi, rfd_delta, sigma
 
   implicit none
 
@@ -804,7 +804,7 @@ contains
                       surf => surfaces(intsurf)
 
 
-                      call apply_bc(surf, part, intside, domsize, push, time, inttime)
+                      call apply_bc(surf, part, intside, domsize, push, time, inttime)                      
 
                       if(push .eq. 1) then
 
@@ -1425,10 +1425,11 @@ contains
 #if (BL_SPACEDIM == 3)
                          coordsw, coordswlo, coordswhi, &
 #endif
-                         part, ks, plof)
+                         part, ks, plof, rejected)
     
     double precision, intent(in   ) :: dxf(3), dxfinv(3), plof(3)
     integer,          intent(in   ) :: ks, coordsulo(3), coordsvlo(3), coordswlo(3), coordsuhi(3), coordsvhi(3), coordswhi(3)
+    double precision, intent(inout) :: rejected
     type(particle_t), intent(in   ) :: part
     double precision, intent(inout) :: weights(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3)
     integer         , intent(inout) :: indicies(-(ks-1):ks,-(ks-1):ks,-(ks-1):ks,3,3)
@@ -1478,102 +1479,114 @@ contains
 
     wcheck = 0
 
-   ! print *, "pos: ", part%pos, " ks: ", ks, " fi: ", fi, " cell: ", dxf
+    rejected = 0
 
-    do k = -(ks-1), ks
-       do j = -(ks-1), ks
-          do i = -(ks-1), ks
+    if(  (((fi(1)-(ks-1)) .ge. coordsulo(1)) .and. ((fi(1)+ks) .le. coordsuhi(1)))  .and. (((fi(2)-(ks-1)+fn(2)) .ge. coordsulo(2)) .and. ((fi(2)+ks+fn(2)) .le. coordsuhi(2))) .and. (((fi(3)-(ks-1)+fn(3)) .ge. coordsulo(3)) .and. ((fi(3)+ks+fn(3)) .le. coordsuhi(3))) ) then
 
-         !print *, "cord: ", fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3)      
+        if( ((((fi(1)-(ks-1)+fn(1)) .ge. coordsvlo(1)) .and. (fi(1)+ks+fn(1)) .le. coordsvhi(1)))  .and. (((fi(2)-(ks-1)) .ge. coordsvlo(2)) .and. ((fi(2)+ks) .le. coordsvhi(2))) .and. (((fi(3)-(ks-1)+fn(3)) .ge. coordsvlo(3)) .and. ((fi(3)+ks+fn(3)) .le. coordsvhi(3))) ) then
 
-             xx = part%pos(1) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),1)
-             yy = part%pos(2) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),2)
-             zz = part%pos(3) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),3)
+          if( ((((fi(1)-(ks-1)+fn(1)) .ge. coordswlo(1)) .and. (fi(1)+ks+fn(1)) .le. coordswhi(1)))  .and. (((fi(2)-(ks-1)+fn(2)) .ge. coordswlo(2)) .and. ((fi(2)+ks+fn(2)) .le. coordswhi(2))) .and. (((fi(3)-(ks-1)) .ge. coordswlo(3)) .and. ((fi(3)+ks) .le. coordswhi(3))) ) then
 
-             if(pkernel_fluid .eq. 3) then
-                call peskin_3pt(xx*dxfinv(1),w1)
-                call peskin_3pt(yy*dxfinv(2),w2)
-                call peskin_3pt(zz*dxfinv(3),w3)
-             elseif(pkernel_fluid .eq. 4) then
-                call peskin_4pt(xx*dxfinv(1),w1)
-                call peskin_4pt(yy*dxfinv(2),w2)
-                call peskin_4pt(zz*dxfinv(3),w3)
-             elseif(pkernel_fluid .eq. 6) then
-                call peskin_6pt(xx*dxfinv(1),w1)
-                call peskin_6pt(yy*dxfinv(2),w2)
-                call peskin_6pt(zz*dxfinv(3),w3)
-             endif
+      do k = -(ks-1), ks
+         do j = -(ks-1), ks
+            do i = -(ks-1), ks
 
-             weights(i,j,k,1) = w1*w2*w3
+           !print *, "cord: ", fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3)      
 
-             indicies(i,j,k,1,1) = fi(1)+i
-             indicies(i,j,k,1,2) = fi(2)+j+fn(2)
-             indicies(i,j,k,1,3) = fi(3)+k+fn(3)
+               xx = part%pos(1) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),1)
+               yy = part%pos(2) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),2)
+               zz = part%pos(3) - coordsu(fi(1)+i,fi(2)+j+fn(2),fi(3)+k+fn(3),3)
 
-             wcheck(1) = wcheck(1) + weights(i,j,k,1)
+               if(pkernel_fluid .eq. 3) then
+                  call peskin_3pt(xx*dxfinv(1),w1)
+                  call peskin_3pt(yy*dxfinv(2),w2)
+                  call peskin_3pt(zz*dxfinv(3),w3)
+               elseif(pkernel_fluid .eq. 4) then
+                  call peskin_4pt(xx*dxfinv(1),w1)
+                  call peskin_4pt(yy*dxfinv(2),w2)
+                  call peskin_4pt(zz*dxfinv(3),w3)
+               elseif(pkernel_fluid .eq. 6) then
+                  call peskin_6pt(xx*dxfinv(1),w1)
+                  call peskin_6pt(yy*dxfinv(2),w2)
+                  call peskin_6pt(zz*dxfinv(3),w3)
+               endif
 
-             !print*, "xw: ", w1, "I: ", indicies(i,j,k,1,1), indicies(i,j,k,1,2), "D: ", xx*dxfinv(1), yy*dxfinv(2)
+               weights(i,j,k,1) = w1*w2*w3
 
-             !print*, weights(i,j,k,1)
+               indicies(i,j,k,1,1) = fi(1)+i
+               indicies(i,j,k,1,2) = fi(2)+j+fn(2)
+               indicies(i,j,k,1,3) = fi(3)+k+fn(3)
 
-             xx = part%pos(1) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),1)
-             yy = part%pos(2) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),2)
-             zz = part%pos(3) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),3)
+               wcheck(1) = wcheck(1) + weights(i,j,k,1)
 
-             if(pkernel_fluid .eq. 3) then
-                call peskin_3pt(xx*dxfinv(1),w1)
-                call peskin_3pt(yy*dxfinv(2),w2)
-                call peskin_3pt(zz*dxfinv(3),w3)
-             elseif(pkernel_fluid .eq. 4) then
-                call peskin_4pt(xx*dxfinv(1),w1)
-                call peskin_4pt(yy*dxfinv(2),w2)
-                call peskin_4pt(zz*dxfinv(3),w3)
-             elseif(pkernel_fluid .eq. 6) then
-                call peskin_6pt(xx*dxfinv(1),w1)
-                call peskin_6pt(yy*dxfinv(2),w2)
-                call peskin_6pt(zz*dxfinv(3),w3)
-             endif
+               !print*, "xw: ", w1, "I: ", indicies(i,j,k,1,1), indicies(i,j,k,1,2), "D: ", xx*dxfinv(1), yy*dxfinv(2)
 
-             weights(i,j,k,2) = w1*w2*w3
+               !print *, "Accessing: ", fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3)
 
-             indicies(i,j,k,2,1) = fi(1)+i+fn(1)
-             indicies(i,j,k,2,2) = fi(2)+j
-             indicies(i,j,k,2,3) = fi(3)+k+fn(3)
+               xx = part%pos(1) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),1)
+               yy = part%pos(2) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),2)
+               zz = part%pos(3) - coordsv(fi(1)+i+fn(1),fi(2)+j,fi(3)+k+fn(3),3)
 
-             wcheck(2) = wcheck(2) + weights(i,j,k,2)
+               if(pkernel_fluid .eq. 3) then
+                  call peskin_3pt(xx*dxfinv(1),w1)
+                  call peskin_3pt(yy*dxfinv(2),w2)
+                  call peskin_3pt(zz*dxfinv(3),w3)
+               elseif(pkernel_fluid .eq. 4) then
+                  call peskin_4pt(xx*dxfinv(1),w1)
+                  call peskin_4pt(yy*dxfinv(2),w2)
+                  call peskin_4pt(zz*dxfinv(3),w3)
+               elseif(pkernel_fluid .eq. 6) then
+                  call peskin_6pt(xx*dxfinv(1),w1)
+                  call peskin_6pt(yy*dxfinv(2),w2)
+                  call peskin_6pt(zz*dxfinv(3),w3)
+               endif
+
+               weights(i,j,k,2) = w1*w2*w3
+
+               indicies(i,j,k,2,1) = fi(1)+i+fn(1)
+               indicies(i,j,k,2,2) = fi(2)+j
+               indicies(i,j,k,2,3) = fi(3)+k+fn(3)
+
+               wcheck(2) = wcheck(2) + weights(i,j,k,2)
 
 
-             xx = part%pos(1) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,1)
-             yy = part%pos(2) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,2)
-             zz = part%pos(3) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,3)
+               xx = part%pos(1) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,1)
+               yy = part%pos(2) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,2)
+               zz = part%pos(3) - coordsw(fi(1)+i+fn(1),fi(2)+j+fn(2),fi(3)+k,3)
 
-             if(pkernel_fluid .eq. 3) then
-                call peskin_3pt(xx*dxfinv(1),w1)
-                call peskin_3pt(yy*dxfinv(2),w2)
-                call peskin_3pt(zz*dxfinv(3),w3)
-             elseif(pkernel_fluid .eq. 4) then
-                call peskin_4pt(xx*dxfinv(1),w1)
-                call peskin_4pt(yy*dxfinv(2),w2)
-                call peskin_4pt(zz*dxfinv(3),w3)
-             elseif(pkernel_fluid .eq. 6) then
-                call peskin_6pt(xx*dxfinv(1),w1)
-                call peskin_6pt(yy*dxfinv(2),w2)
-                call peskin_6pt(zz*dxfinv(3),w3)
-             endif
+               if(pkernel_fluid .eq. 3) then
+                  call peskin_3pt(xx*dxfinv(1),w1)
+                  call peskin_3pt(yy*dxfinv(2),w2)
+                  call peskin_3pt(zz*dxfinv(3),w3)
+               elseif(pkernel_fluid .eq. 4) then
+                  call peskin_4pt(xx*dxfinv(1),w1)
+                  call peskin_4pt(yy*dxfinv(2),w2)
+                  call peskin_4pt(zz*dxfinv(3),w3)
+               elseif(pkernel_fluid .eq. 6) then
+                  call peskin_6pt(xx*dxfinv(1),w1)
+                  call peskin_6pt(yy*dxfinv(2),w2)
+                  call peskin_6pt(zz*dxfinv(3),w3)
+               endif
 
-             weights(i,j,k,3) = w1*w2*w3
+               weights(i,j,k,3) = w1*w2*w3
 
-             indicies(i,j,k,3,1) = fi(1)+i+fn(1)
-             indicies(i,j,k,3,2) = fi(2)+j+fn(2)
-             indicies(i,j,k,3,3) = fi(3)+k
+               indicies(i,j,k,3,1) = fi(1)+i+fn(1)
+               indicies(i,j,k,3,2) = fi(2)+j+fn(2)
+               indicies(i,j,k,3,3) = fi(3)+k
 
-             wcheck(3) = wcheck(3) + weights(i,j,k,3)
+               wcheck(3) = wcheck(3) + weights(i,j,k,3)
 
-             !print *, i, j, k,  weights(i,j,k,:)
+               !print *, i, j, k,  weights(i,j,k,:)
 
-          enddo
-       enddo
-    enddo
+            enddo
+         enddo
+      enddo
+
+      rejected =  0      
+
+    endif
+    endif
+    endif
 
 
     !print*, "Total: ", wcheck
@@ -1914,6 +1927,7 @@ contains
        if(boundflag .eq. 1) then
           part%vel = oldvel
           rejected = rejected + 1
+          print *, "Midpoint interpolation rejected."
        endif
 
     endif
@@ -1958,7 +1972,7 @@ contains
 #endif
 
     integer :: i, j, k, ii, jj, kk
-    double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm, dxfinv(3)
+    double precision :: uloc, vloc, wloc, volinv, normalrand(3), delta, norm, dxfinv(3), rejected
 
     volinv = 1/(dxf(1)*dxf(2)*dxf(3))
     dxfinv = 1/dxf
@@ -1986,7 +2000,7 @@ contains
 #if (BL_SPACEDIM == 3)
                      coordsz, coordszlo, coordszhi, &
 #endif
-                     part, ks, plof)
+                     part, ks, plof, rejected)
 
     call spread_op(weights, indicies, &
                    sourceu, sourceulo, sourceuhi, &
@@ -2004,7 +2018,7 @@ contains
 #if (BL_SPACEDIM == 3)
                      coordsz, coordszlo, coordszhi, &
 #endif
-                     part, ks, plof)
+                     part, ks, plof, rejected)
 
     part%force(1) = -k_B*T_init(1)*normalrand(1)/(delta)
     part%force(2) = -k_B*T_init(1)*normalrand(2)/(delta)
@@ -2239,7 +2253,7 @@ contains
     real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std
     real(amrex_real) normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt
     real(amrex_real) domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3)
-    real(amrex_real) diffest, diffav, distav, veltest, posold(3)
+    real(amrex_real) diffest, diffav, distav, veltest, posold(3), velold(3)
     real(amrex_real) speed, mb(3), dist
 
     double precision, allocatable :: weights(:,:,:,:)
@@ -2258,7 +2272,7 @@ contains
 
     domsize = phi - plo
 
-    adj = 0.9999
+    adj = 0.99999
     adjalt = 2d0*(1d0 - adj)
 
     dxinv = 1.d0/dx
@@ -2293,9 +2307,8 @@ contains
 
              do while (p <= new_np)
 
-
                 part => particles(cell_parts(p))
-
+ 
                 !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
 
                 call get_weights(dxf, dxfinv, weights, indicies, &
@@ -2304,7 +2317,7 @@ contains
 #if (BL_SPACEDIM == 3)
                      coordsz, coordszlo, coordszhi, &
 #endif
-                     part, ks, plof)
+                     part, ks, plof, rejected)
 
                 !use weights and indicies to interpolate velocity fields onto particle
 
@@ -2322,6 +2335,7 @@ contains
                 if(move_tog .eq. 2) then !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
                    posold = part%pos
+                   velold = part%vel
 
                    runtime = dt*0.5
 
@@ -2332,6 +2346,7 @@ contains
                       call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
                       !intsurf = 0
                       !inttime = runtime
+
 
                       posalt(1) = inttime*part%vel(1)*adjalt
                       posalt(2) = inttime*part%vel(2)*adjalt
@@ -2345,9 +2360,7 @@ contains
 #if (BL_SPACEDIM == 3)
                       part%pos(3) = part%pos(3) + inttime*part%vel(3)*adj
 #endif
-                      runtime = runtime - inttime
-
-                      !print *, "Pos2pre: ", part%pos, " runtime: ", runtime, " intsurf ", intsurf
+                      
 
                       if(intsurf .gt. 0) then
 
@@ -2357,24 +2370,31 @@ contains
 
                            call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
-                           if(push .eq. 1) then
+                           runtime = runtime - inttime
 
-                              part%pos(1) = part%pos(1) + posalt(1)
-                              part%pos(2) = part%pos(2) + posalt(2)
+                         else
+
+                          runtime = runtime - inttime
+
+                          part%pos(1) = part%pos(1) + runtime*part%vel(1)
+                          part%pos(2) = part%pos(2) + runtime*part%vel(2)
 #if (BL_SPACEDIM == 3)
-                              part%pos(3) = part%pos(3) + posalt(3)
+                          part%pos(3) = part%pos(3) + runtime*part%vel(3)
 #endif
-                           endif
+                          runtime = 0
+
                         endif
 
+                      else
+                       runtime = 0
+
                       endif
+
 
                    end do
 
                    midpoint = 1
                    moves = moves + 1
-
-                        !print *, "Pos2: ", part%pos!
 
                    call get_weights(dxf, dxfinv, weights, indicies, &
                         coordsx, coordsxlo, coordsxhi, &
@@ -2382,20 +2402,22 @@ contains
 #if (BL_SPACEDIM == 3)
                         coordsz, coordszlo, coordszhi, &
 #endif
-                        part, ks, plof)
+                        part, ks, plof, rejected)
 
-                   !print *, "midweights"
 
-                   call inter_op(weights, indicies, &
-                        velx, velxlo, velxhi, &
-                        vely, velylo, velyhi, &
+                   if(rejected .ne. 0) then
+                     call inter_op(weights, indicies, &
+                          velx, velxlo, velxhi, &
+                          vely, velylo, velyhi, &
 #if (BL_SPACEDIM == 3)
-                        velz, velzlo, velzhi, &
+                          velz, velzlo, velzhi, &
 #endif
-                        part, ks, dxf, boundflag, midpoint, rejected)
+                          part, ks, dxf, boundflag, midpoint, rejected)
 
-                   !print *, "midinter"
-                   part%pos = posold
+                    endif
+                    part%pos = posold
+        
+
                 endif
 
                 runtime = dt
@@ -2417,8 +2439,6 @@ contains
 !#endif
                    call get_explicit_mobility(mb, part, plo, phi)
                    call dry(dt,part,dry_terms, mb)
-
-                   !print *, "mobility: ", mb
 
                    part%vel = part%vel + dry_terms
                 endif
@@ -2453,6 +2473,8 @@ contains
 
                       surf => surfaces(intsurf)
 
+                      !print *, "Intersecting ", intsurf, part%pos
+
                       call apply_bc(surf, part, intside, domsize, push, 1, 1)
 
                       if(push .eq. 1) then
@@ -2477,7 +2499,6 @@ contains
                 !print *, "After: ", part%abspos
 
                 dist = sqrt(dot_product(dt*part%vel,dt*part%vel))/part%radius
-                !print *, "Dist: ", dist, dt, part%radius
 
                 if(dist .gt. maxdist) then
 
@@ -2496,6 +2517,7 @@ contains
                 diffest = (norm(1)**2 + norm(2)**2 + norm(3)**2)/(6*part%travel_time)
 
                 diffinst = diffinst + diffest
+ 
 
                 !print *, "Diffest: ", diffest
 
@@ -2503,6 +2525,7 @@ contains
 
                 ! if it has changed cells, remove from vector.
                 ! otherwise continue
+!                print *, "HERE1!"
                 ni(1) = floor((part%pos(1) - plo(1))*dxinv(1))
                 ni(2) = floor((part%pos(2) - plo(2))*dxinv(2))
 #if (BL_SPACEDIM == 3)
@@ -2518,6 +2541,8 @@ contains
                    p = p + 1
                 end if
              end do
+
+
 
              cell_part_cnt(i,j,k) = new_np
 
@@ -2622,7 +2647,7 @@ contains
     type(particle_t), pointer :: part, part2
     type(surface_t), pointer :: surf
     real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
-         diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv, sep
+         diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv, sep, rejected
 
     double precision, allocatable :: weights(:,:,:,:)
     integer, allocatable :: indicies(:,:,:,:,:)
@@ -2688,7 +2713,7 @@ contains
 #if (BL_SPACEDIM == 3)
             coordsz, coordszlo, coordszhi, &
 #endif
-            part, ks, plof)
+            part, ks, plof, rejected)
        !print *, "finish weights", p
        if(drag_tog .eq. 1) then
 
@@ -2749,7 +2774,7 @@ contains
 #if (BL_SPACEDIM == 3)
             coordsz, coordszlo, coordszhi, &
 #endif
-            part, ks, plof)
+            part, ks, plof, rejected)
 
        !  print*, "SPREAD"
 
@@ -3073,12 +3098,12 @@ contains
     real(amrex_real),intent(inout) :: nmob, tmob
 
     !0.4706e-6, diff 1.1708e-05 1.326e-05
-    tmob = max(0.935656798937413 + 10.48743922905448/(1.456211069295241 + h)**5 - 7.45512854038917/(1.456211069295241 + h)**3 - 0.1666926153450568/(1.456211069295241 + h),0d0)
-    nmob = max(0.8784836695101248 + 16.178193275967942/(1.8846739602964013 + h)**3 - 13.450951287145715/(1.8846739602964013 + h)**2 + 0.9286418269991527/(1.8846739602964013 + h),0d0)
+!    tmob = max(0.935656798937413 + 10.48743922905448/(1.456211069295241 + h)**5 - 7.45512854038917/(1.456211069295241 + h)**3 - 0.1666926153450568/(1.456211069295241 + h),0d0)
+!   nmob = max(0.8784836695101248 + 16.178193275967942/(1.8846739602964013 + h)**3 - 13.450951287145715/(1.8846739602964013 + h)**2 + 0.9286418269991527/(1.8846739602964013 + h),0d0)
 
     !Single plane approximation
-!    nmob = max(1 - 9*a/(8*z) + (a**3)/(2*z**3) - (a**5)/(8*(z**5)),0d0)
-!    tmob = max(1 - 9*a/(16*z) + 2*(a**3)/(16*(z**3)) - (a**5)/(16*(z**5)),0d0)
+    nmob = max(1 - 9/(8*h) + 1/(2*h**3) - 1/(8*(h**5)),0d0)
+    tmob = max(1 - 9/(16*h) + 2/(16*(h**3)) -1/(16*(h**5)),0d0)
 
     !1e-6, diff 1.1708e-05 1.326e-05
 !    tmob = max(0.975240720746649 + 0.6618096094545308/(0.6399549837528644 + h)**3 - 1.261848923090074/(0.6399549837528644 + h)**2 -  0.2682891286963005/(0.6399549837528644 + h),0d0)
@@ -3105,10 +3130,8 @@ contains
     call mob_interp(hwet, tmobwet, nmobwet)
     call mob_interp(htotal, tmobtotal, nmobtotal)
 
-    tmob = (tmobtotal*part%total_diff - tmobwet*part%wet_diff)/part%dry_diff
-    nmob = (nmobtotal*part%total_diff - nmobwet*part%wet_diff)/part%dry_diff
-
-  !print *, "mobs: ", tmob, nmob
+    tmob = max((tmobtotal*part%total_diff - tmobwet*part%wet_diff)/part%dry_diff,0.0)
+    nmob = max((nmobtotal*part%total_diff - nmobwet*part%wet_diff)/part%dry_diff,0.0)
 
   end subroutine get_mobility_diff
 

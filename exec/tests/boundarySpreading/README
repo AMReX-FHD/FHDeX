@@ -1,2 +1,0 @@
-Test of force spreading near walls
-Run this with two mpi ranks, the force spread to each box is shown near the expected result. There are seperate input files for slip and no slip bcs.

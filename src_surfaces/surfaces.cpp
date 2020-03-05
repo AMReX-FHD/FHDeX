@@ -68,13 +68,15 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[0].porosityLeft = 1;
         surfaceList[0].porosityRight = 1;
     }
-    else if(bc_vel_lo[0] == 3)
+    else if(bc_vel_lo[0] == 2)
     {
         surfaceList[0].periodicity = 0;
         surfaceList[0].porosityLeft = 0;
         surfaceList[0].porosityRight = 0;
         surfaceList[0].specularityLeft = 1;
         surfaceList[0].specularityRight = 1;
+
+       // surfaceList[0].x0 = domainLo[0] + sigma[0]/2.0;
     }
     else{
 
@@ -147,13 +149,15 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[1].porosityLeft = 1;
         surfaceList[1].porosityRight = 1;
     }
-    else if (bc_vel_hi[0] == 3) 
+    else if (bc_vel_hi[0] == 2) 
     {
         surfaceList[1].periodicity = 0;
         surfaceList[1].porosityLeft = 0;
         surfaceList[1].porosityRight = 0;
         surfaceList[1].specularityLeft = 1;
         surfaceList[1].specularityRight = 1;
+
+      //  surfaceList[1].x0 = domainHi[0] - sigma[0]/2.0;
     }
     else{
         surfaceList[1].periodicity = 0;
@@ -227,13 +231,15 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[2].porosityLeft = 1;
         surfaceList[2].porosityRight = 1;
     }
-    else if (bc_vel_lo[1] == 3) 
+    else if (bc_vel_lo[1] == 2) 
     {
         surfaceList[2].periodicity = 0;
         surfaceList[2].porosityLeft = 0;
         surfaceList[2].porosityRight = 0;
         surfaceList[2].specularityLeft = 1;
         surfaceList[2].specularityRight = 1;
+
+       // surfaceList[2].y0 = domainLo[1] + sigma[0]/2.0;
     }
     else{
         surfaceList[2].periodicity = 0;
@@ -306,13 +312,15 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[3].porosityLeft = 1;
         surfaceList[3].porosityRight = 1;
     }
-    else if (bc_vel_hi[1] == 3) 
+    else if (bc_vel_hi[1] == 2) 
     {
         surfaceList[3].periodicity = 0;
         surfaceList[3].porosityLeft = 0;
         surfaceList[3].porosityRight = 0;
         surfaceList[3].specularityLeft = 1;
         surfaceList[3].specularityRight = 1;
+
+       // surfaceList[3].y0 = domainHi[1] - sigma[0]/2.0;
     }
     else{
         surfaceList[3].periodicity = 0;
@@ -385,13 +393,15 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[4].porosityLeft = 1;
         surfaceList[4].porosityRight = 1;
     }
-    else if (bc_vel_lo[2] == 3) 
+    else if (bc_vel_lo[2] == 2) 
     {
         surfaceList[4].periodicity = 0;
         surfaceList[4].porosityLeft = 0;
         surfaceList[4].porosityRight = 0;
         surfaceList[4].specularityLeft = 1;
         surfaceList[4].specularityRight = 1;
+
+       // surfaceList[4].z0 = domainLo[2] + sigma[0]/2.0;
     }
     else{
         surfaceList[4].periodicity = 0;
@@ -479,13 +489,15 @@ void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainL
         surfaceList[5].porosityLeft = 1;
         surfaceList[5].porosityRight = 1;
     }
-    else if (bc_vel_hi[2] == 3) 
+    else if (bc_vel_hi[2] == 2) 
     {
         surfaceList[5].periodicity = 0;
         surfaceList[5].porosityLeft = 0;
         surfaceList[5].porosityRight = 0;
         surfaceList[5].specularityLeft = 1;
         surfaceList[5].specularityRight = 1;
+
+       // surfaceList[5].z0 = domainHi[2] - sigma[0]/2.0;
     }
     else{
         surfaceList[5].periodicity = 0;

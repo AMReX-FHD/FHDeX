@@ -1,2 +1,0 @@
-Test of periodic electrostatics using p3m.
-Run this with two mpi ranks, the calculated forces and expected result printed out for a range of particle pair configurations. The Mathematica file shows the calculation of the expected answer.
