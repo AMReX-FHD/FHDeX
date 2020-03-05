@@ -8,7 +8,7 @@
 // in advance.cpp
 void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
-	     amrex::MultiFab& pres, amrex::MultiFab& tracer,
+	     amrex::MultiFab& pres,
 	     amrex::MultiFab& rho, amrex::MultiFab& rhotot,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
 	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
@@ -32,7 +32,6 @@ void WritePlotFile(const int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& rho,
-		   const MultiFab& tracer,
                    const MultiFab& pres);
 
 ///////////////////////////

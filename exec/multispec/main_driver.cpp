@@ -248,9 +248,6 @@ void main_driver(const char* argv)
 
     ///////////////////////////////////////////
 
-    // tracer
-    MultiFab tracer(ba,dmap,1,1);
-
     // pressure for GMRES solve
     MultiFab pres(ba,dmap,1,1);
     pres.setVal(0.);  // initial guess
@@ -320,25 +317,6 @@ void main_driver(const char* argv)
 #endif
 			  dx, geom.ProbLo(), geom.ProbHi(),
 			  ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-        
-        // AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-        //                             BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
-        //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-        //              dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-        //                             BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
-        //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-        //              dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-        //                             BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-        //                             geom.ProbLo(), geom.ProbHi() ,&dm, 
-        //                             ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
-
-    	// initialize tracer
-        init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    		   BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    		   dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
     }
     
     // Add initial equilibrium fluctuations
@@ -361,7 +339,7 @@ void main_driver(const char* argv)
     // write out initial state
     if (plot_int > 0) 
       {
-	WritePlotFile(step,time,geom,umac,rho,tracer,pres);
+	WritePlotFile(step,time,geom,umac,rho,pres);
       }
 
     //Time stepping loop
@@ -383,7 +361,7 @@ void main_driver(const char* argv)
 	}
 
 	// Advance umac
-	advance(umac,umacNew,pres,tracer,rho,rhotot,
+	advance(umac,umacNew,pres,rho,rhotot,
 		mfluxdiv_predict,mfluxdiv_correct,
 		alpha_fc,beta,gamma,beta_ed,geom,dt);
 
@@ -410,7 +388,7 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0) {
           // write out umac & pres to a plotfile
-    	  WritePlotFile(step,time,geom,umac,rho,tracer,pres);
+    	  WritePlotFile(step,time,geom,umac,rho,pres);
         }
     }
     
@@ -439,7 +417,5 @@ void main_driver(const char* argv)
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
-
-    // exit(0);
 
 }

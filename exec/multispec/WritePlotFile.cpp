@@ -15,7 +15,6 @@ void WritePlotFile(int step,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
 		   const MultiFab& rho,
-		   const MultiFab& tracer,
 		   const MultiFab& pres)
 {
     
@@ -31,9 +30,8 @@ void WritePlotFile(int step,
     // plot all the velocity variables (averaged)
     // plot all the velocity variables (shifted)
     // plot pressure
-    // plot tracer
     // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM + nspecies + 3;
+    int nPlot = 2*AMREX_SPACEDIM + nspecies + 2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -56,11 +54,10 @@ void WritePlotFile(int step,
 
     for (int i=0; i<nspecies; ++i) {
         std::string x = "rho";
-        x += (48+i);
+        x += (49+i);
         varNames[cnt++] = x;
     }
 
-    varNames[cnt++] = "tracer";
     varNames[cnt++] = "pres";
     varNames[cnt++] = "divergence";
 
@@ -82,10 +79,6 @@ void WritePlotFile(int step,
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
         cnt++;
     }
-
-    // copy tracer into plotfile
-    MultiFab::Copy(plotfile, tracer, 0, cnt, 1, 0);
-    cnt++;
 
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
