@@ -2,10 +2,11 @@
 #include "multispec_test_functions.H"
 #include "multispec_test_functions_F.H"
 
-//#include "analysis_functions_F.H"
+#include "StochMassFlux.H"
 #include "StochMomFlux.H"
-//#include "StructFact.H"
 
+//#include "analysis_functions_F.H"
+#include "StructFact.H"
 
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -87,6 +88,8 @@ void main_driver(const char* argv)
         ng_s = 4; // limited quad bds
     }
 
+    Real dt;
+
     // make BoxArray and Geometry
     BoxArray ba;
     Geometry geom;
@@ -119,32 +122,6 @@ void main_driver(const char* argv)
     // how boxes are distrubuted among MPI processes
     DistributionMapping dmap(ba);
     
-    Real dt = fixed_dt;
-    Real dtinv = 1.0/dt;
-    const Real* dx = geom.CellSize();
-    
-    /////////////////////////////////////////
-    //Initialise rngs
-    /////////////////////////////////////////
-
-    int n_rngs_mass;
-    int n_rngs_mom;
-    
-    if (algorithm_type == 2 || algorithm_type == 5) {
-        n_rngs_mass = 2;
-        n_rngs_mom = 2;  
-    }
-    else if (algorithm_type == 6) {
-        n_rngs_mass = 2;
-        n_rngs_mom = 1;  
-    }
-    else {
-        n_rngs_mass = 1;
-        n_rngs_mom = 1;        
-    }
-    
-    /////////////////////////////////////////
-    
     MultiFab rho_old   (ba, dmap, nspecies, ng_s);
     MultiFab rhotot_old(ba, dmap, 1       , ng_s);
     MultiFab pi        (ba, dmap, 1       , 1);
@@ -157,172 +134,37 @@ void main_driver(const char* argv)
     }
 
     // data structures to help with reservoirs
+    // 
     //
     //
-    //
+
+    // get grid spacing
+    const Real* dx = geom.CellSize();
 
     // build layouts for staggered multigrid solver and macproject within preconditioner
     //
     //
     //
 
+    if (restart < 0) {
     
+        // initialize rho and umac in valid region only
+        for ( MFIter mfi(rho_old); mfi.isValid(); ++mfi ) {
+            const Box& bx = mfi.validbox();
 
-    // alpha_fc arrays
-    std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      alpha_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-      alpha_fc[d].setVal(dtinv);
-    }
-
-    // beta cell centred
-    MultiFab beta(ba, dmap, 1, 1);
-    beta.setVal(visc_coef);
-
-    // beta on nodes in 2d
-    // beta on edges in 3d
-    std::array< MultiFab, NUM_EDGE > beta_ed;
-#if (AMREX_SPACEDIM == 2)
-    beta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
-#elif (AMREX_SPACEDIM == 3)
-    beta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    beta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    beta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    beta_ed[0].setVal(visc_coef);
-    beta_ed[1].setVal(visc_coef);
-    beta_ed[2].setVal(visc_coef);
-#endif
-
-    // cell-centered gamma
-    MultiFab gamma(ba, dmap, 1, 1);
-    gamma.setVal(0.);
-
-    ///////////////////////////////////////////
-
-    ///////////////////////////////////////////
-    // Define & initalize eta & temperature multifabs
-    ///////////////////////////////////////////
-    // eta & temperature
-    const Real eta_const = visc_coef;
-    const Real Temp_const = T_init[0];      // [units: K]
-
-    // eta & temperature cell centered
-    MultiFab  eta_cc;
-    MultiFab Temp_cc;
-    // eta & temperature nodal
-    std::array< MultiFab, NUM_EDGE >   eta_ed;
-    std::array< MultiFab, NUM_EDGE >  Temp_ed;
-    // eta cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
-    // temperature cell-centered
-    Temp_cc.define(ba, dmap, 1, 1);
-#if (AMREX_SPACEDIM == 2)
-    // eta nodal
-    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-    // temperature nodal
-    Temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
-#elif (AMREX_SPACEDIM == 3)
-    // eta nodal
-    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-    // temperature nodal
-    Temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
-    Temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
-    Temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
-#endif
-
-    // Initalize eta & temperature multifabs
-    // eta cell-centered
-    eta_cc.setVal(eta_const);
-    // temperature cell-centered
-    Temp_cc.setVal(Temp_const);
-#if (AMREX_SPACEDIM == 2)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    // temperature nodal
-    Temp_ed[0].setVal(Temp_const);
-#elif (AMREX_SPACEDIM == 3)
-    // eta nodal
-    eta_ed[0].setVal(eta_const);
-    eta_ed[1].setVal(eta_const);
-    eta_ed[2].setVal(eta_const);
-    // temperature nodal
-    Temp_ed[0].setVal(Temp_const);
-    Temp_ed[1].setVal(Temp_const);
-    Temp_ed[2].setVal(Temp_const);
-#endif
-    ///////////////////////////////////////////
-    
-    ///////////////////////////////////////////
-
-    ///////////////////////////////////////////
-    // Stochastic flux divergence class
-    ///////////////////////////////////////////
-
-    Vector< amrex::Real > weights;
-    // weights = {std::sqrt(0.5), std::sqrt(0.5)};
-    weights = {1.0};
-    
-    // Declare object of StochMomFlux class 
-    StochMomFlux sMflux(ba,dmap,geom,n_rngs_mom);
-
-    ///////////////////////////////////////////
-
-    ///////////////////////////////////////////
-    // structure factor:
-    ///////////////////////////////////////////
-
-    /*
-    Vector< std::string > var_names;
-    var_names.resize(AMREX_SPACEDIM);
-    int cnt = 0;
-    std::string x;
-    for (int d=0; d<var_names.size(); d++) {
-      x = "vel";
-      x += (120+d);
-      var_names[cnt++] = x;
-    }
-
-    MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
-    
-    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
-    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
-
-    // Select which variable pairs to include in structure factor:
-    s_pairA[0] = 0;
-    s_pairB[0] = 0;
-    s_pairA[1] = 1;
-    s_pairB[1] = 1;
+            init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
+                              BL_TO_FORTRAN_FAB(rho_old[mfi]),
+                              BL_TO_FORTRAN_ANYD(umac[0][mfi]),
+                              BL_TO_FORTRAN_ANYD(umac[1][mfi]),
 #if (AMREX_SPACEDIM == 3)
-    s_pairA[2] = 2;
-    s_pairB[2] = 2;
+                              BL_TO_FORTRAN_ANYD(umac[2][mfi]),
 #endif
-    
-    StructFact structFact(ba,dmap,var_names);
-    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
-    */
+                              dx, geom.ProbLo(), geom.ProbHi());
+        }
 
-    ///////////////////////////////////////////
-
-    // initialize rho and umac in valid region only
-    for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
-
-	init_rho_and_umac(BL_TO_FORTRAN_BOX(bx),
-			  BL_TO_FORTRAN_FAB(rho_old[mfi]),
-			  BL_TO_FORTRAN_ANYD(umac[0][mfi]),
-			  BL_TO_FORTRAN_ANYD(umac[1][mfi]),
-#if (AMREX_SPACEDIM == 3)
-			  BL_TO_FORTRAN_ANYD(umac[2][mfi]),
-#endif
-			  dx, geom.ProbLo(), geom.ProbHi());
+        // initialize pi, including ghost cells
+        pi.setVal(0.);
     }
-
-    // initialize pi, including ghost cells
-    pi.setVal(0.);  
 
     // compute rhotot from rho in VALID REGION
     //
@@ -343,9 +185,162 @@ void main_driver(const char* argv)
     // Build multifabs for all the variables
     //=======================================================
 
+    MultiFab rho_new          (ba, dmap, nspecies, ng_s);
+    MultiFab rhotot_new       (ba, dmap, 1       , ng_s);
+    MultiFab Temp             (ba, dmap, 1       , ng_s);
+    MultiFab diff_mass_fluxdiv(ba, dmap, nspecies, 0);
+    MultiFab eta              (ba, dmap, 1       , 1);
+    MultiFab kappa            (ba, dmap, 1       , 1);
+    
+    /////////////////////////////////////////
 
-    MultiFab rho_new(ba, dmap, nspecies, ng_s);
-    MultiFab rhotot_new(ba, dmap, 1, ng_s);
+    // eta and Temp on nodes (2d) or edges (3d)
+    std::array< MultiFab, NUM_EDGE > eta_ed;
+    std::array< MultiFab, NUM_EDGE > Temp_ed;
+#if (AMREX_SPACEDIM == 2)
+    eta_ed[0].define (convert(ba,nodal_flag), dmap, 1, 0);
+    Temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 0);
+#elif (AMREX_SPACEDIM == 3)
+    eta_ed[0].define (convert(ba,nodal_flag_xy), dmap, 1, 0);
+    eta_ed[1].define (convert(ba,nodal_flag_xz), dmap, 1, 0);
+    eta_ed[2].define (convert(ba,nodal_flag_yz), dmap, 1, 0);
+    Temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    Temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    Temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+#endif
+
+    MultiFab stoch_mass_fluxdiv(ba,dmap,nspecies,0);
+    std::array< MultiFab, AMREX_SPACEDIM > stoch_mass_flux;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+    }
+
+    // random numbers
+
+    int n_rngs_mass;
+    int n_rngs_mom;
+    
+    if (algorithm_type == 2 || algorithm_type == 5) {
+        n_rngs_mass = 2;
+        n_rngs_mom = 2;  
+    }
+    else if (algorithm_type == 6) {
+        n_rngs_mass = 2;
+        n_rngs_mom = 1;  
+    }
+    else {
+        n_rngs_mass = 1;
+        n_rngs_mom = 1;        
+    }
+    
+    // Declare object of StochMassFlux and StochMomFlux class es
+    StochMassFlux sMassFlux(ba,dmap,geom,n_rngs_mass);
+    StochMomFlux  sMomFlux (ba,dmap,geom,n_rngs_mom);
+
+    // save random state for writing checkpoint
+    //
+    //
+    //
+
+    //=====================================================================
+    // Initialize values
+    //=====================================================================
+
+    // initial Temp and Temp_ed
+    //
+    //
+    //
+
+    // initialize eta and kappa
+    //
+    //
+    //
+
+    // now that we have eta, we can initialize the inhomogeneous velocity bc's
+    // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
+    //
+    //
+    //
+
+    // velocity boundary conditions
+    //
+    //
+    //
+
+    if (restart < 0) {
+
+        if ((algorithm_type != 2) && (initial_variance_mom != 0.)) {
+            // Add initial equilibrium fluctuations
+            sMomFlux.addMfluctuations(umac, rhotot_old, Temp, initial_variance_mom);
+
+            // velocity boundary conditions
+            //
+            //
+            //
+        }
+
+        dt = fixed_dt;
+    }
+
+    ///////////////////////////////////////////
+    // structure factor:
+    ///////////////////////////////////////////
+
+    // variables are velocity and concentrations
+    int structVars = AMREX_SPACEDIM+nspecies;
+    
+    Vector< std::string > var_names;
+    var_names.resize(structVars);
+    
+    int cnt = 0;
+    std::string x;
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "vel";
+      x += (120+d);
+      var_names[cnt++] = x;
+    }
+
+    // c1, c2, etc.
+    for (int d=0; d<nspecies; d++) {
+      x = "c";
+      x += (49+d);
+      var_names[cnt++] = x;
+    }
+    
+    MultiFab SF(ba, dmap, structVars, 0);
+
+    // need to use dVol for scaling
+    Real dVol = dx[0]*dx[1];
+    if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+    } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+    }
+    
+    Vector< Real > var_scaling(structVars*structVars);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./dVol;
+    }
+
+#if 1
+    // option to compute all pairs
+    StructFact structFact(ba,dmap,var_names,var_scaling);
+#else
+    // option to compute only specified pairs
+    int nPairs = 2;
+    amrex::Vector< int > s_pairA(nPairs);
+    amrex::Vector< int > s_pairB(nPairs);
+
+    // Select which variable pairs to include in structure factor:
+    s_pairA[0] = 0;
+    s_pairB[0] = 0;
+    s_pairA[1] = 1;
+    s_pairB[1] = 1;
+    
+    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+#endif
 
 
 
@@ -354,8 +349,6 @@ void main_driver(const char* argv)
 
     
     
-    // Add initial equilibrium fluctuations
-    sMflux.addMfluctuations(umac, rhotot_old, Temp_cc, initial_variance_mom);
     
     // Project umac onto divergence free field
     MacProj(umac,rhotot_old,geom,true);
