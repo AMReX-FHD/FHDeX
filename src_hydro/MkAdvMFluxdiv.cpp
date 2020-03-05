@@ -2,7 +2,6 @@
 #include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 #include "common_namespace.H"
 
 using namespace common;

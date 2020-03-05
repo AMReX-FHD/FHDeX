@@ -1,5 +1,4 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
                      MultiFab& cc, int cc_comp)

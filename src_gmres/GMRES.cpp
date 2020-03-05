@@ -1,7 +1,6 @@
 #include <AMReX_VisMF.H>
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 #include "common_namespace.H"
 
 #include "gmres_functions.H"

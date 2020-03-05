@@ -1,5 +1,4 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 
 void FindNodalValues(const MultiFab& inFab, MultiFab& outFab, const MultiFab& ccFab)

@@ -1,5 +1,4 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 
 //Computes divergence at cell centres from velcocities at cell faces
