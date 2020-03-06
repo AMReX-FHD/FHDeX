@@ -88,6 +88,8 @@ void main_driver(const char* argv)
         ng_s = 4; // limited quad bds
     }
 
+    int init_step;
+    Real time;
     Real dt;
 
     // make BoxArray and Geometry
@@ -98,6 +100,9 @@ void main_driver(const char* argv)
         Abort("restart not implemented yet");
     }
     else {
+
+        init_step = 1;
+        time = start_time;
         
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
@@ -309,7 +314,7 @@ void main_driver(const char* argv)
       var_names[cnt++] = x;
     }
     
-    MultiFab SF(ba, dmap, structVars, 0);
+    MultiFab structFactMF(ba, dmap, structVars, 0);
 
     // need to use dVol for scaling
     Real dVol = dx[0]*dx[1];
@@ -319,7 +324,7 @@ void main_driver(const char* argv)
 	dVol *= dx[2];
     }
     
-    Vector< Real > var_scaling(structVars*structVars);
+    Vector< Real > var_scaling(structVars*(structVars+1)/2);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
     }
@@ -342,27 +347,68 @@ void main_driver(const char* argv)
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
 
+    /*
+      this routine is only called for all inertial simulations (both restart and non-restart)
+      it does the following:
+      1. fill mass random numbers
+      2. computes mass fluxes and flux divergences
+      if restarting, the subroutine ends; otherwise
+      3. perform an initial projection
 
+      overdamped schemes need to do 1. and 2. within the advance_timestep routine
+      in principle, performing an initial projection for overdamped will change
+      the reference state for the GMRES solver
+      For overdamped the first ever solve cannot have a good reference state
+      so in general there is the danger it will be less accurate than subsequent solves
+      but I do not see how one can avoid that
+      From this perspective it may be useful to keep initial_projection even in overdamped
+      because different gmres tolerances may be needed in the first step than in the rest
+    */
+    //
+    // Initial Projection
+    //
 
-
-                                
-
+    if (restart < 0) {
     
-    
-    
-    // Project umac onto divergence free field
-    MacProj(umac,rhotot_old,geom,true);
+        // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
+        if (n_steps_skip == 0 && struct_fact_int > 0) {
 
-    int step = 0;
-    Real time = 0.;
+            // add this snapshot to the average in the structure factor
 
-    // write out initial state
-    if (plot_int > 0) {
-	WritePlotFile(step,time,geom,umac,rho_old,pi);
+            // copy velocities into structFactMF
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+            }
+            // copy concentrations into structFactMF
+            MultiFab::Copy(structFactMF,rho_old,0,AMREX_SPACEDIM,nspecies,0);
+            for(int d=0; d<nspecies; d++) {
+                MultiFab::Divide(structFactMF,rhotot_old,0,AMREX_SPACEDIM+d,1,0);
+            }
+            structFact.FortStructure(structFactMF,geom);
+        }
+        
+        // write initial plotfile and structure factor
+        if (plot_int > 0) {
+            WritePlotFile(0,0.,geom,umac,rho_old,pi);
+            if (n_steps_skip == 0 && struct_fact_int > 0) {
+                structFact.WritePlotFile(0,0.,geom,"plt_SF");
+            }
+        }
+
+        // write initial checkpoint
+        //
+        //
+        //
+
+        // use stats_int to write initial vertical and horizontal averages (hstat and vstat files)
+        //
+        //
+        //
+
     }
 
     //Time stepping loop
-    for(step=1;step<=max_step;++step) {
+    for(int step=init_step;step<=max_step;++step) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
@@ -379,17 +425,22 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 	
-	///////////////////////////////////////////
-	// Update structure factor
-	///////////////////////////////////////////
-	/*
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  for(int d=0; d<AMREX_SPACEDIM; d++) {
-	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	  }
-	  structFact.FortStructure(struct_in_cc,geom);
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+
+            // add this snapshot to the average in the structure factor
+
+            // copy velocities into structFactMF
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+            }
+            // copy concentrations into structFactMF
+            MultiFab::Copy(structFactMF,rho_new,0,AMREX_SPACEDIM,nspecies,0);
+            for(int d=0; d<nspecies; d++) {
+                MultiFab::Divide(structFactMF,rhotot_new,0,AMREX_SPACEDIM+d,1,0);
+            }
+            structFact.FortStructure(structFactMF,geom);
         }
-	*/
+	
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
@@ -400,33 +451,16 @@ void main_driver(const char* argv)
 
         if (plot_int > 0 && step%plot_int == 0) {
     	  WritePlotFile(step,time,geom,umac,rho_new,pi);
+          if (step > n_steps_skip && struct_fact_int > 0) {
+              structFact.WritePlotFile(step,time,geom,"plt_SF");
+          }
         }
 
         // set old state to new state
-        // rho
-        // rhotot
+        MultiFab::Copy(rho_old   ,rho_new   ,0,0,nspecies,ng_s);
+        MultiFab::Copy(rhotot_old,rhotot_new,0,0,       1,ng_s);
         
     }
-    
-    /*
-    if (struct_fact_int > 0) {
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-    
-      // let rhotot = 1
-      Real SFscale = dVol/(k_B*Temp_const);
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-      structFact.Finalize(SFscale);
-      structFact.WritePlotFile(step,time,geom,"plt_SF");
-    }
-    */
 
     // Call the timer again and compute the maximum difference between the start time 
     // and stop time over all processors
