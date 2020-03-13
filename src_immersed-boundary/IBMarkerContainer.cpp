@@ -166,7 +166,7 @@ void IBMarkerContainer::InitList(int lev,
         // Get neighbor marker data (from neighboring threads)
         ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
 
-        long np = markers.size();
+        long np = pti.numParticles();
         long nn = nbhd_data.size();
 
         // Sweep over particles, check N^2 candidates for previous list member
@@ -376,7 +376,7 @@ int IBMarkerContainer::ConnectedMarkers(
     // Get marker data
     AoS & particles = GetParticles(lev).at(tile).GetArrayOfStructs();
     ParticleType & part = particles[part_index.first];
-    long np = particles.size();
+    long np = GetParticles(lev).at(tile).numParticles();
 
     // Get neighbor marker data (from neighboring threads)
     ParticleVector & nbhd_data = GetNeighbors(lev, tile.first, tile.second);
@@ -457,7 +457,7 @@ void IBMarkerContainer::LocalIBMarkerInfo(Vector<IBM_info> & info,
 
 
     auto & particle_data = GetParticles(lev).at(index);
-    long np = particle_data.size();
+    long np = particle_data.numParticles();
 
     // Iterate over local particle data
     const AoS & particles = particle_data.GetArrayOfStructs();

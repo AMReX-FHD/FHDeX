@@ -389,7 +389,7 @@ void main_driver(const char * argv) {
         IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
         IBMultiBlobContainer::AoS & markers =
             ib_mbc.GetParticles(0).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mbc.GetParticles(0).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
 
