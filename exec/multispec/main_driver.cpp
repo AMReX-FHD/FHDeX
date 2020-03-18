@@ -172,9 +172,7 @@ void main_driver(const char* argv)
     }
 
     // compute rhotot from rho in VALID REGION
-    //
-    //
-    //
+    ComputeRhotot(rho_old,rhotot_old);
 
     // fill rho and rhotot ghost cells
     //
@@ -413,10 +411,16 @@ void main_driver(const char* argv)
         Real step_strt_time = ParallelDescriptor::second();
 
         if (algorithm_type == 0) {
+            // inertial
             /*
             advance_timestep_inertial(umac,pi,rho_old,rhotot_old,
                                       alpha_fc,beta,gamma,beta_ed,geom,dt);
             */
+        }
+        else if (algorithm_type == 6) {
+            // boussinesq
+            Print() << "algorithm_type " << algorithm_type << std::endl;
+            Abort("algorithm_type not supported");
         }
         else {
             Print() << "algorithm_type " << algorithm_type << std::endl;

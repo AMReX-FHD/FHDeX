@@ -3,10 +3,7 @@
 
 #define MAX_SPECIES 10
 
-#include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Vector.H>
-#include <AMReX_MLABecLaplacian.H>
 
 #include "multispec_functions_F.H"
 #include "multispec_namespace.H"
@@ -91,7 +88,8 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   const MultiFab& rhotot,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
-  
+
+// compute rhotot from rho in VALID REGION
 void ComputeRhotot(const MultiFab& rho,
 		   MultiFab& rhotot);
 

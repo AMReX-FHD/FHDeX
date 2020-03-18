@@ -2,7 +2,6 @@
 
 #include "common_functions.H"
 
-
 using namespace amrex;
 
 void ComputeMolconcMolmtot(const MultiFab& rho,
@@ -28,18 +27,17 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 
 }
 
+// compute rhotot from rho in VALID REGION
 void ComputeRhotot(const MultiFab& rho,
 		   MultiFab& rhotot)
 {
   
     BL_PROFILE_VAR("ComputeRhotot()",ComputeRhotot);
 
-    int nspecies = rho.nComp();
-    
     rhotot.setVal(0.0);
-    
-    for (int i=0; i<nspecies; i++)
-      MultiFab::Add (rhotot,rho,i,0,1,0);
+    for (int i=0; i<nspecies; i++) {
+        MultiFab::Add(rhotot,rho,i,0,1,0);
+    }
 
 }
 
