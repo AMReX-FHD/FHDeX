@@ -1,13 +1,9 @@
-
 #include "common_functions.H"
-
-
 #include "gmres_functions.H"
 
+// compute (alpha - L_beta) phi
 
-
-//Takes cell centred and nodal viscosity multifabs, and face centred velocity
-//multifab, and outputs to face-centered velocity multifab.
+// we must retain custom lambda's because the boxes sometimes loop with stride 2
 
 AMREX_GPU_HOST_DEVICE
 inline
