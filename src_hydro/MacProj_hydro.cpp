@@ -135,24 +135,23 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
 
     for ( MFIter mfi(solverrhs); mfi.isValid(); ++mfi) {
 
-      const Box& bx = mfi.validbox();
+        const Box& bx = mfi.validbox();
 
-      AMREX_D_TERM(Array4<Real const> const& umac_fab = umac[0].array(mfi);,
-                   Array4<Real const> const& vmac_fab = umac[1].array(mfi);,
-                   Array4<Real const> const& wmac_fab = umac[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& umac_fab = umac[0].array(mfi);,
+                     Array4<Real const> const& vmac_fab = umac[1].array(mfi);,
+                     Array4<Real const> const& wmac_fab = umac[2].array(mfi););
 
 
-      Array4<Real>       const& solverrhs_fab = solverrhs.array(mfi);
-      Array4<Real const> const&    macrhs_fab =    macrhs.array(mfi);
+        Array4<Real>       const& solverrhs_fab = solverrhs.array(mfi);
+        Array4<Real const> const&    macrhs_fab =    macrhs.array(mfi);
 
-      AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             solverrhs_fab(i,j,k) = macrhs_fab(i,j,k) -
                 AMREX_D_TERM(   ( umac_fab(i+1,j,k) - umac_fab(i,j,k) ) / dx[0],
                               - ( vmac_fab(i,j+1,k) - vmac_fab(i,j,k) ) / dx[1],
                               - ( wmac_fab(i,j,k+1) - wmac_fab(i,j,k) ) / dx[2] );;
         });
-
     }
 }
 

@@ -116,7 +116,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                      Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
                      Array4<Real const> const& zflux_fab = flux[2].array(mfi););
 
-        AMREX_HOST_DEVICE_FOR_4D(bx, nvars, i, j, k, n,
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
                 ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
@@ -137,13 +137,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 //              endif
 //
 
-        AMREX_HOST_DEVICE_FOR_4D(bx, 3, i, j, k, n,
+        amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             cup_fab(i,j,k,n+1) += dt * cu_fab(i,j,k,0)*grav[n];
         });
 
-
-        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cup_fab(i,j,k,4) += dt * (  grav[0]*cu_fab(i,j,k,1)
                                       + grav[1]*cu_fab(i,j,k,2)
@@ -203,7 +202,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                      Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
                      Array4<Real const> const& zflux_fab = flux[2].array(mfi););
 
-        AMREX_HOST_DEVICE_FOR_4D(bx, nvars, i, j, k, n,
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
                                        ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
@@ -224,12 +223,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 //              endif
 //
 
-        AMREX_HOST_DEVICE_FOR_4D(bx, 3, i, j, k, n,
+        amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             cup2_fab(i,j,k,n+1) += 0.25* dt * cup_fab(i,j,k,0)*grav[n];
         });
 
-        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cup2_fab(i,j,k,4) += 0.25 * dt * (  grav[0]*cup_fab(i,j,k,1)
                                               + grav[1]*cup_fab(i,j,k,2)
@@ -288,8 +287,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
                      Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
                      Array4<Real const> const& zflux_fab = flux[2].array(mfi););
 
-        
-        AMREX_HOST_DEVICE_FOR_4D(bx, nvars, i, j, k, n,
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
                                     (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
@@ -311,12 +309,12 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 //              endif
 //
 
-        AMREX_HOST_DEVICE_FOR_4D(bx, 3, i, j, k, n,
+        amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             cu_fab(i,j,k,n+1) += 2./3.* dt * cup2_fab(i,j,k,0)*grav[n];
         });
 
-        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             cu_fab(i,j,k,4) += 2./3. * dt * (  grav[0]*cup2_fab(i,j,k,1)
                                              + grav[1]*cup2_fab(i,j,k,2)

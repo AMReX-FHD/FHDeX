@@ -135,10 +135,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_nd_xlo;
             Array4<Real> const& mflux_nd = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_nd(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_nd(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -165,10 +165,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_nd_xhi;
             Array4<Real> const& mflux_nd = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_nd(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_nd(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -195,10 +195,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_nd_ylo;
             Array4<Real> const& mflux_nd = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_nd(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_nd(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -225,10 +225,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_nd_yhi;
             Array4<Real> const& mflux_nd = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_nd(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_nd(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -260,10 +260,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xy_xlo;
             Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xy(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -281,10 +281,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xz_xlo;
             Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -316,10 +316,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xy_xhi;
             Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xy(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -337,10 +337,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xz_xhi;
             Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -372,10 +372,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xy_ylo;
             Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xy(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -393,10 +393,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_yz_ylo;
             Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_yz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -428,10 +428,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xy_yhi;
             Array4<Real> const& mflux_xy = (mflux_ed_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xy(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xy(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -449,10 +449,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_yz_yhi;
             Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_yz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -484,10 +484,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xz_zlo;
             Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -505,10 +505,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_yz_zlo;
             Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_yz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -540,10 +540,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_xz_zhi;
             Array4<Real> const& mflux_xz = (mflux_ed_weighted[1]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_xz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_xz(i,j,k,n) *= factor;
+                });
             }
         }
 
@@ -561,10 +561,10 @@ void StochMomFlux::MfluxBC() {
             const Box& b = bx & dom_yz_zhi;
             Array4<Real> const& mflux_yz = (mflux_ed_weighted[2]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, 2, i, j, k, n,
-                                         {
-                                             mflux_yz(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    mflux_yz(i,j,k,n) *= factor;
+                });
             }
         }
 

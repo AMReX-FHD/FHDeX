@@ -5,7 +5,6 @@
 void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance,
                         const Geometry& geom)
 {
-
     BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
 
 #ifdef AMREX_USE_CUDA
@@ -13,7 +12,7 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         const Box& bx = mfi.validbox();
         const Array4<Real>& mf_fab = mf.array(mfi);
-        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             mf_fab(i,j,k,comp) = amrex::RandomNormal(0.,1.);
         });
@@ -44,7 +43,6 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance,
                             const Geometry& geom)
 {
-
     BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
 
     double myTopNumber, myBottomNumber;

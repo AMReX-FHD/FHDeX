@@ -94,7 +94,7 @@ void main_driver(const char* argv)
 
         const Array4<Real>& struct_fab = struct_cc.array(mfi);
 
-        AMREX_HOST_DEVICE_FOR_4D(bx, 2, i, j, k, n,
+        amrex::ParallelFor(bx, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (n == 0) {
                 struct_fab(i,j,k,n) = i+j+k;

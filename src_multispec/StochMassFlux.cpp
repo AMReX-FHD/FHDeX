@@ -84,10 +84,10 @@ void StochMassFlux::StochMassFluxBC() {
             const Box& b = bx & dom_xlo;
             Array4<Real> const& flux = (stoch_W_fc_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, nspecies, i, j, k, n,
-                                         {
-                                             flux(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -114,10 +114,10 @@ void StochMassFlux::StochMassFluxBC() {
             const Box& b = bx & dom_xhi;
             Array4<Real> const& flux = (stoch_W_fc_weighted[0]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, nspecies, i, j, k, n,
-                                         {
-                                             flux(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n) *= factor;
+                });
             }
         }
         
@@ -145,10 +145,10 @@ void StochMassFlux::StochMassFluxBC() {
             const Box& b = bx & dom_ylo;
             Array4<Real> const& flux = (stoch_W_fc_weighted[1]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, nspecies, i, j, k, n,
-                                         {
-                                             flux(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -175,10 +175,10 @@ void StochMassFlux::StochMassFluxBC() {
             const Box& b = bx & dom_yhi;
             Array4<Real> const& flux = (stoch_W_fc_weighted[1]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, nspecies, i, j, k, n,
-                                         {
-                                             flux(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -207,10 +207,10 @@ void StochMassFlux::StochMassFluxBC() {
             const Box& b = bx & dom_zlo;
             Array4<Real> const& flux = (stoch_W_fc_weighted[2]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, nspecies, i, j, k, n,
-                                         {
-                                             flux(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n) *= factor;
+                });
             }
         }
     }
@@ -237,10 +237,10 @@ void StochMassFlux::StochMassFluxBC() {
             const Box& b = bx & dom_zhi;
             Array4<Real> const& flux = (stoch_W_fc_weighted[2]).array(mfi);
             if (b.ok()) {
-                AMREX_HOST_DEVICE_FOR_4D(b, nspecies, i, j, k, n,
-                                         {
-                                             flux(i,j,k,n) *= factor;
-                                         });
+                amrex::ParallelFor(b, nspecies, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    flux(i,j,k,n) *= factor;
+                });
             }
         }
     }

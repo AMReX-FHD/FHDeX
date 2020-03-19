@@ -33,10 +33,20 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                       Array4<Real const> const& wmac_fab = umac[2].array(mfi););
 
          if (increment == 1) {
+             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+             {
+                 s_update_fab(i,j,k,n+comp) -= 
+                     + dxinv*( 0.5*(s_fab(i+1,j,k,n+comp)+s_fab(i,j,k,n+comp))*umac_fab(i+1,j,k) - 0.5*(s_fab(i,j,k,n+comp)+s_fab(i-1,j,k,n+comp))*umac_fab(i,j,k) )
+                     + dxinv*( 0.5*(s_fab(i,j+1,k,n+comp)+s_fab(i,j,k,n+comp))*vmac_fab(i,j+1,k) - 0.5*(s_fab(i,j,k,n+comp)+s_fab(i,j-1,k,n+comp))*vmac_fab(i,j,k) )
+#if (AMREX_SPACEDIM == 3)
+                     + dxinv*( 0.5*(s_fab(i,j,k+1,n+comp)+s_fab(i,j,k,n+comp))*wmac_fab(i,j,k+1) - 0.5*(s_fab(i,j,k,n+comp)+s_fab(i,j,k-1,n+comp))*wmac_fab(i,j,k) )
+#endif
+                     ;
+             });
 
          }
          else {
-             AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
              {
                  s_update_fab(i,j,k,n+comp) = 
                      - dxinv*( 0.5*(s_fab(i+1,j,k,n+comp)+s_fab(i,j,k,n+comp))*umac_fab(i+1,j,k) - 0.5*(s_fab(i,j,k,n+comp)+s_fab(i-1,j,k,n+comp))*umac_fab(i,j,k) )
