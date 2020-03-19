@@ -288,8 +288,10 @@ void stag_applyop_visc_m1 (Box const& tbx,
         }
     }
 #endif
+    
+}
 
-}AMREX_GPU_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE
 inline
 void stag_applyop_visc_p2 (Box const& tbx,
 			   AMREX_D_DECL(Box const& xbx,
@@ -775,6 +777,10 @@ void StagApplyOp(const Geometry & geom,
                                      theta_alpha, bt, gt, offset, color, dx_gpu);
             });            
         }
+        else {
+            Abort("StagApplyOp.cpp: visc_type not supported");
+        }
+            
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {

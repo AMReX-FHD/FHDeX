@@ -701,14 +701,13 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
         Array4<Real      > const& phi_c_fab = phi_c.array(mfi);
         Array4<Real const> const& phi_f_fab = phi_f.array(mfi);
 
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
 #if (AMREX_SPACEDIM==2)
-        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
         {
             phi_c_fab(i,j,k) = 0.25*(  phi_f_fab(2*i,2*j  ,k) + phi_f_fab(2*i+1,2*j  ,k)
                                      + phi_f_fab(2*i,2*j+1,k) + phi_f_fab(2*i+1,2*j+1,k) );
         });
 #elif (AMREX_SPACEDIM == 3)
-        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
         {
             phi_c_fab(i,j,k) = 0.125*(  phi_f_fab(2*i,2*j  ,2*k  ) + phi_f_fab(2*i+1,2*j  ,2*k  )
                                       + phi_f_fab(2*i,2*j+1,2*k  ) + phi_f_fab(2*i+1,2*j+1,2*k  )
@@ -719,212 +718,6 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
     }
 
     phi_c.FillBoundary(geom_c.periodicity());
-}
-
-AMREX_GPU_HOST_DEVICE
-inline
-void stag_restriction_simple0 (const Box & tbx,
-                               AMREX_D_DECL(const Box & xbx,
-					    const Box & ybx,
-					    const Box & zbx),
-                               AMREX_D_DECL(const Array4<Real> & phix_c,
-					    const Array4<Real> & phiy_c,
-					    const Array4<Real> & phiz_c),
-                               AMREX_D_DECL(const Array4<Real const> & phix_f,
-					    const Array4<Real const> & phiy_f,
-					    const Array4<Real const> & phiz_f)
-			       ) noexcept {
-
-    // xbx, ybx, and zbx are the face-centered boxes
-
-    // if running on the host: tlo is the minimal box contains the union of the
-    // face-centered grid boxes
-
-    // if running on the gpu: tlo is a box with a single point that comes from
-    // the union of the face-centered grid boxes
-
-    const auto tlo = lbound(tbx);
-    const auto thi = ubound(tbx);
-
-    // if running on the host, x/y/zlo and x/y/zhi are set to the lower/upper
-    // bounds of x/y/zbx
-
-    // if running on the gpu, x/y/zlo and x/y/zhi are set to the single point
-    // defined by tlo, unless tlo is outside of the union of the face-centered
-    // grid boxes, in which case they are set to values that make sure the loop
-    // is not entered
-
-    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
-                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
-                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
-
-    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
-                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
-                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
-
-#if (AMREX_SPACEDIM == 2)
-
-    for (int k=xlo.z; k<=xhi.z; ++k) {
-    for (int j=xlo.y; j<=xhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i=xlo.x; i<=xhi.x; ++i) {
-        phix_c(i,j,k) = 0.25*( phix_f(2*i  ,2*j,k) + phix_f(2*i  ,2*j+1,k))
-                     + 0.125*( phix_f(2*i+1,2*j,k) + phix_f(2*i+1,2*j+1,k)
-                              +phix_f(2*i-1,2*j,k) + phix_f(2*i-1,2*j+1,k));
-    }
-    }
-    }
-
-    for (int k = ylo.z; k <= yhi.z; ++k) {
-    for (int j = ylo.y; j <= yhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = ylo.x; i <= yhi.x; ++i) {
-        phiy_c(i,j,k) = 0.25*( phiy_f(2*i,2*j  ,k) + phiy_f(2*i+1,2*j  ,k))
-                     + 0.125*( phiy_f(2*i,2*j+1,k) + phiy_f(2*i+1,2*j+1,k)
-                              +phiy_f(2*i,2*j-1,k) + phiy_f(2*i+1,2*j-1,k));
-    }
-    }
-    }
-
-#elif (AMREX_SPACEDIM == 3)
-
-    for (int k=xlo.z; k<=xhi.z; ++k) {
-    for (int j=xlo.y; j<=xhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i=xlo.x; i<=xhi.x; ++i) {
-        phix_c(i,j,k) = 0.125* ( phix_f(2*i  ,2*j,2*k  ) + phix_f(2*i  ,2*j+1,2*k  )
-                                +phix_f(2*i  ,2*j,2*k+1) + phix_f(2*i  ,2*j+1,2*k+1) )
-                     + 0.0625* ( phix_f(2*i+1,2*j,2*k  ) + phix_f(2*i+1,2*j+1,2*k  )
-                                +phix_f(2*i+1,2*j,2*k+1) + phix_f(2*i+1,2*j+1,2*k+1) )
-                     + 0.0625* ( phix_f(2*i-1,2*j,2*k  ) + phix_f(2*i-1,2*j+1,2*k  )
-                                +phix_f(2*i-1,2*j,2*k+1) + phix_f(2*i-1,2*j+1,2*k+1) );
-    }
-    }
-    }
-
-    for (int k = ylo.z; k <= yhi.z; ++k) {
-    for (int j = ylo.y; j <= yhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = ylo.x; i <= yhi.x; ++i) {
-          phiy_c(i,j,k) = 0.125* ( phiy_f(2*i,2*j  ,2*k  ) + phiy_f(2*i+1,2*j  ,2*k  )
-                                  +phiy_f(2*i,2*j  ,2*k+1) + phiy_f(2*i+1,2*j  ,2*k+1) )
-                       + 0.0625* ( phiy_f(2*i,2*j+1,2*k  ) + phiy_f(2*i+1,2*j+1,2*k  )
-                                  +phiy_f(2*i,2*j+1,2*k+1) + phiy_f(2*i+1,2*j+1,2*k+1) )
-                       + 0.0625* ( phiy_f(2*i,2*j-1,2*k  ) + phiy_f(2*i+1,2*j-1,2*k  )
-                                  +phiy_f(2*i,2*j-1,2*k+1) + phiy_f(2*i+1,2*j-1,2*k+1) );
-    }
-    }
-    }
-
-    for (int k = zlo.z; k <= zhi.z; ++k) {
-    for (int j = zlo.y; j <= zhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = zlo.x; i <= zhi.x; ++i) {
-        phiz_c(i,j,k) = 0.125* ( phiz_f(2*i,2*j  ,2*k  ) + phiz_f(2*i+1,2*j  ,2*k  )
-                                +phiz_f(2*i,2*j+1,2*k  ) + phiz_f(2*i+1,2*j+1,2*k  ) )
-                     + 0.0625* ( phiz_f(2*i,2*j  ,2*k+1) + phiz_f(2*i+1,2*j  ,2*k+1)
-                                +phiz_f(2*i,2*j+1,2*k+1) + phiz_f(2*i+1,2*j+1,2*k+1) )
-                     + 0.0625* ( phiz_f(2*i,2*j  ,2*k-1) + phiz_f(2*i+1,2*j  ,2*k-1)
-                                +phiz_f(2*i,2*j+1,2*k-1) + phiz_f(2*i+1,2*j+1,2*k-1) );
-    }
-    }
-    }
-#endif
-}
-
-AMREX_GPU_HOST_DEVICE
-inline
-void stag_restriction_simple1 (const Box & tbx,
-                               AMREX_D_DECL(const Box & xbx,
-					    const Box & ybx,
-					    const Box & zbx),
-                               AMREX_D_DECL(const Array4<Real> & phix_c,
-					    const Array4<Real> & phiy_c,
-					    const Array4<Real> & phiz_c),
-                               AMREX_D_DECL(const Array4<Real const> & phix_f,
-					    const Array4<Real const> & phiy_f,
-					    const Array4<Real const> & phiz_f)
-                              ) noexcept {
-
-    // xbx, ybx, and zbx are the face-centered boxes
-
-    // if running on the host: tlo is the minimal box contains the union of the
-    // face-centered grid boxes
-
-    // if running on the gpu: tlo is a box with a single point that comes from
-    // the union of the face-centered grid boxes
-
-    const auto tlo = lbound(tbx);
-    const auto thi = ubound(tbx);
-
-    // if running on the host, x/y/zlo and x/y/zhi are set to the lower/upper
-    // bounds of x/y/zbx
-
-    // if running on the gpu, x/y/zlo and x/y/zhi are set to the single point
-    // defined by tlo, unless tlo is outside of the union of the face-centered
-    // grid boxes, in which case they are set to values that make sure the loop
-    // is not entered
-
-    AMREX_D_TERM(const auto xlo = amrex::elemwiseMax(tlo, lbound(xbx));,
-                 const auto ylo = amrex::elemwiseMax(tlo, lbound(ybx));,
-                 const auto zlo = amrex::elemwiseMax(tlo, lbound(zbx)););
-
-    AMREX_D_TERM(const auto xhi = amrex::elemwiseMin(thi, ubound(xbx));,
-                 const auto yhi = amrex::elemwiseMin(thi, ubound(ybx));,
-                 const auto zhi = amrex::elemwiseMin(thi, ubound(zbx)););
-
-#if (AMREX_SPACEDIM == 2)
-
-    for (int k=xlo.z; k<=xhi.z; ++k) {
-    for (int j=xlo.y; j<=xhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i=xlo.x; i<=xhi.x; ++i) {
-        phix_c(i,j,k) = 0.5*(phix_f(2*i,2*j,k) + phix_f(2*i,2*j+1,k));
-    }
-    }
-    }
-
-    for (int k = ylo.z; k <= yhi.z; ++k) {
-    for (int j = ylo.y; j <= yhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = ylo.x; i <= yhi.x; ++i) {
-        phiy_c(i,j,k) = 0.5*(phiy_f(2*i,2*j,k) + phiy_f(2*i+1,2*j,k));
-    }
-    }
-    }
-
-#elif (AMREX_SPACEDIM == 3)
-
-    for (int k=xlo.z; k<=xhi.z; ++k) {
-    for (int j=xlo.y; j<=xhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i=xlo.x; i<=xhi.x; ++i) {
-        phix_c(i,j,k) = 0.25* ( phix_f(2*i,2*j,2*k  ) + phix_f(2*i,2*j+1,2*k  )
-                               +phix_f(2*i,2*j,2*k+1) + phix_f(2*i,2*j+1,2*k+1) );
-    }
-    }
-    }
-
-    for (int k = ylo.z; k <= yhi.z; ++k) {
-    for (int j = ylo.y; j <= yhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = ylo.x; i <= yhi.x; ++i) {
-          phiy_c(i,j,k) = 0.25* ( phiy_f(2*i,2*j,2*k  ) + phiy_f(2*i+1,2*j,2*k  )
-                                 +phiy_f(2*i,2*j,2*k+1) + phiy_f(2*i+1,2*j,2*k+1) );
-    }
-    }
-    }
-
-    for (int k = zlo.z; k <= zhi.z; ++k) {
-    for (int j = zlo.y; j <= zhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = zlo.x; i <= zhi.x; ++i) {
-        phiz_c(i,j,k) = 0.25* ( phiz_f(2*i,2*j  ,2*k) + phiz_f(2*i+1,2*j  ,2*k)
-                               +phiz_f(2*i,2*j+1,2*k) + phiz_f(2*i+1,2*j+1,2*k) );
-    }
-    }
-    }
-#endif
 }
 
 void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
@@ -954,20 +747,81 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                      Array4<Real const> const& phiz_f_fab = phi_f[2].array(mfi););
 
         if (simple_stencil == 0) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+
+#if (AMREX_SPACEDIM == 2)            
+            amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                stag_restriction_simple0(tbx, AMREX_D_DECL(bx_x, bx_y, bx_z),
-                                         AMREX_D_DECL(phix_c_fab, phiy_c_fab, phiz_c_fab),
-                                         AMREX_D_DECL(phix_f_fab, phiy_f_fab, phiz_f_fab));
+                phix_c_fab(i,j,k) = 0.25*( phix_f_fab(2*i  ,2*j,k) + phix_f_fab(2*i  ,2*j+1,k))
+                                 + 0.125*( phix_f_fab(2*i+1,2*j,k) + phix_f_fab(2*i+1,2*j+1,k)
+                                          +phix_f_fab(2*i-1,2*j,k) + phix_f_fab(2*i-1,2*j+1,k));
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phiy_c_fab(i,j,k) = 0.25*( phiy_f_fab(2*i,2*j  ,k) + phiy_f_fab(2*i+1,2*j  ,k))
+                                 + 0.125*( phiy_f_fab(2*i,2*j+1,k) + phiy_f_fab(2*i+1,2*j+1,k)
+                                          +phiy_f_fab(2*i,2*j-1,k) + phiy_f_fab(2*i+1,2*j-1,k));
             });
+#elif (AMREX_SPACEDIM == 3)
+            amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phix_c_fab(i,j,k) = 0.125* ( phix_f_fab(2*i  ,2*j,2*k  ) + phix_f_fab(2*i  ,2*j+1,2*k  )
+                                            +phix_f_fab(2*i  ,2*j,2*k+1) + phix_f_fab(2*i  ,2*j+1,2*k+1) )
+                                 + 0.0625* ( phix_f_fab(2*i+1,2*j,2*k  ) + phix_f_fab(2*i+1,2*j+1,2*k  )
+                                            +phix_f_fab(2*i+1,2*j,2*k+1) + phix_f_fab(2*i+1,2*j+1,2*k+1) )
+                                 + 0.0625* ( phix_f_fab(2*i-1,2*j,2*k  ) + phix_f_fab(2*i-1,2*j+1,2*k  )
+                                            +phix_f_fab(2*i-1,2*j,2*k+1) + phix_f_fab(2*i-1,2*j+1,2*k+1) );
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phiy_c_fab(i,j,k) = 0.125* ( phiy_f_fab(2*i,2*j  ,2*k  ) + phiy_f_fab(2*i+1,2*j  ,2*k  )
+                                            +phiy_f_fab(2*i,2*j  ,2*k+1) + phiy_f_fab(2*i+1,2*j  ,2*k+1) )
+                                 + 0.0625* ( phiy_f_fab(2*i,2*j+1,2*k  ) + phiy_f_fab(2*i+1,2*j+1,2*k  )
+                                            +phiy_f_fab(2*i,2*j+1,2*k+1) + phiy_f_fab(2*i+1,2*j+1,2*k+1) )
+                                 + 0.0625* ( phiy_f_fab(2*i,2*j-1,2*k  ) + phiy_f_fab(2*i+1,2*j-1,2*k  )
+                                            +phiy_f_fab(2*i,2*j-1,2*k+1) + phiy_f_fab(2*i+1,2*j-1,2*k+1) );
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phiz_c_fab(i,j,k) = 0.125* ( phiz_f_fab(2*i,2*j  ,2*k  ) + phiz_f_fab(2*i+1,2*j  ,2*k  )
+                                            +phiz_f_fab(2*i,2*j+1,2*k  ) + phiz_f_fab(2*i+1,2*j+1,2*k  ) )
+                                 + 0.0625* ( phiz_f_fab(2*i,2*j  ,2*k+1) + phiz_f_fab(2*i+1,2*j  ,2*k+1)
+                                            +phiz_f_fab(2*i,2*j+1,2*k+1) + phiz_f_fab(2*i+1,2*j+1,2*k+1) )
+                                 + 0.0625* ( phiz_f_fab(2*i,2*j  ,2*k-1) + phiz_f_fab(2*i+1,2*j  ,2*k-1)
+                                            +phiz_f_fab(2*i,2*j+1,2*k-1) + phiz_f_fab(2*i+1,2*j+1,2*k-1) );
+            });
+#endif
         }
         else if (simple_stencil == 1) {
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+
+#if (AMREX_SPACEDIM == 2)            
+            amrex::ParallelFor(bx_x, bx_y, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                stag_restriction_simple1(tbx, AMREX_D_DECL(bx_x, bx_y, bx_z),
-                                         AMREX_D_DECL(phix_c_fab, phiy_c_fab, phiz_c_fab),
-                                         AMREX_D_DECL(phix_f_fab, phiy_f_fab, phiz_f_fab));
+                phix_c_fab(i,j,k) = 0.5*(phix_f_fab(2*i,2*j,k) + phix_f_fab(2*i,2*j+1,k));
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phiy_c_fab(i,j,k) = 0.5*(phiy_f_fab(2*i,2*j,k) + phiy_f_fab(2*i+1,2*j,k));
             });
+#elif (AMREX_SPACEDIM == 3)
+            amrex::ParallelFor(bx_x, bx_y, bx_z, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phix_c_fab(i,j,k) = 0.25* ( phix_f_fab(2*i,2*j,2*k  ) + phix_f_fab(2*i,2*j+1,2*k  )
+                                           +phix_f_fab(2*i,2*j,2*k+1) + phix_f_fab(2*i,2*j+1,2*k+1) );
+
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phiy_c_fab(i,j,k) = 0.25* ( phiy_f_fab(2*i,2*j,2*k  ) + phiy_f_fab(2*i+1,2*j,2*k  )
+                                           +phiy_f_fab(2*i,2*j,2*k+1) + phiy_f_fab(2*i+1,2*j,2*k+1) );
+
+            },
+                               [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                phiz_c_fab(i,j,k) = 0.25* ( phiz_f_fab(2*i,2*j  ,2*k) + phiz_f_fab(2*i+1,2*j  ,2*k)
+                                           +phiz_f_fab(2*i,2*j+1,2*k) + phiz_f_fab(2*i+1,2*j+1,2*k) );
+
+            });
+#endif
         }
     }
 }
@@ -987,80 +841,10 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
         Array4<Real      > const& phi_c_fab = phi_c.array(mfi);
         Array4<Real const> const& phi_f_fab = phi_f.array(mfi);
 
-        AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             phi_c_fab(i,j,k) = phi_f_fab(2*i,2*j,2*k);
         });
-    }
-}
-
-
-
-AMREX_GPU_HOST_DEVICE
-inline
-void edge_restriction (const Box & tbx,
-                       const Box & xybx,
-                       const Box & xzbx,
-                       const Box & yzbx,
-                       const Array4<Real> & phixy_c,
-                       const Array4<Real> & phixz_c,
-                       const Array4<Real> & phiyz_c,
-                       const Array4<Real const> & phixy_f,
-                       const Array4<Real const> & phixz_f,
-                       const Array4<Real const> & phiyz_f) noexcept {
-
-    // xybx, xzbx, and yzbx are the edge-centered boxes
-
-    // if running on the host: tlo is the minimal box contains the union of the
-    // fedge-centered grid boxes
-
-    // if running on the gpu: tlo is a box with a single point that comes from
-    // the union of the edge-centered grid boxes
-
-    const auto tlo = lbound(tbx);
-    const auto thi = ubound(tbx);
-
-    // if running on the host, xylo/hi  are set to the lower/upper
-    // bounds of xybx
-
-    // if running on the gpu, xylo/hi, etc., are set to the single point
-    // defined by tlo, unless tlo is outside of the union of the edge-centered
-    // grid boxes, in which case they are set to values that make sure the loop
-    // is not entered
-
-    const auto xylo = amrex::elemwiseMax(tlo, lbound(xybx));
-    const auto xzlo = amrex::elemwiseMax(tlo, lbound(xzbx));
-    const auto yzlo = amrex::elemwiseMax(tlo, lbound(yzbx));
-
-    const auto xyhi = amrex::elemwiseMin(thi, ubound(xybx));
-    const auto xzhi = amrex::elemwiseMin(thi, ubound(xzbx));
-    const auto yzhi = amrex::elemwiseMin(thi, ubound(yzbx));
-
-    for (int k=xylo.z; k<=xyhi.z; ++k) {
-    for (int j=xylo.y; j<=xyhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i=xylo.x; i<=xyhi.x; ++i) {
-        phixy_c(i,j,k) = 0.5*(phixy_f(2*i,2*j,2*k)+phixy_f(2*i,2*j,2*k+1));
-    }
-    }
-    }
-
-    for (int k = xzlo.z; k <= xzhi.z; ++k) {
-    for (int j = xzlo.y; j <= xzhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = xzlo.x; i <= xzhi.x; ++i) {
-        phixz_c(i,j,k) =  0.5*(phixz_f(2*i,2*j,2*k)+phixz_f(2*i,2*j+1,2*k));
-    }
-    }
-    }
-
-    for (int k = yzlo.z; k <= yzhi.z; ++k) {
-    for (int j = yzlo.y; j <= yzhi.y; ++j) {
-    AMREX_PRAGMA_SIMD
-    for (int i = yzlo.x; i <= yzhi.x; ++i) {
-        phiyz_c(i,j,k) =  0.5*(phiyz_f(2*i,2*j,2*k)+phiyz_f(2*i+1,2*j,2*k));
-    }
-    }
     }
 }
 
@@ -1092,11 +876,17 @@ void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
         Array4<Real const> const& phixz_f_fab = phi_f[1].array(mfi);
         Array4<Real const> const& phiyz_f_fab = phi_f[2].array(mfi);
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+        amrex::ParallelFor(bx_xy, bx_xz, bx_yz, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            edge_restriction(tbx, bx_xy, bx_xz, bx_yz,
-                             phixy_c_fab, phixz_c_fab, phiyz_c_fab,
-                             phixy_f_fab, phixz_f_fab, phiyz_f_fab);
+            phixy_c_fab(i,j,k) = 0.5*(phixy_f_fab(2*i,2*j,2*k)+phixy_f_fab(2*i,2*j,2*k+1));
+        },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            phixz_c_fab(i,j,k) =  0.5*(phixz_f_fab(2*i,2*j,2*k)+phixz_f_fab(2*i,2*j+1,2*k));
+        },
+                           [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            phiyz_c_fab(i,j,k) =  0.5*(phiyz_f_fab(2*i,2*j,2*k)+phiyz_f_fab(2*i+1,2*j,2*k));
         });
     }
 }
@@ -2274,9 +2064,38 @@ void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
                                        AMREX_D_DECL(do_x,do_y,do_z),
                                        offset, color, omega, dx_gpu);
             });
+        }
+        else if (visc_type == 3) {
 
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+            {
+                stag_mg_update_visc_p3(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
+                                       AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
+                                       AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
+                                       AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
+                                       AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
+                                       AMREX_D_DECL(do_x,do_y,do_z),
+                                       b, c, offset, color, omega, dx_gpu);
+            });
 
         }
+        else if (visc_type == -3) {
 
+            AMREX_LAUNCH_HOST_DEVICE_LAMBDA(index_bounds, tbx,
+            {
+                stag_mg_update_visc_m3(tbx, AMREX_D_DECL(bx_x,bx_y,bx_z),
+                                       AMREX_D_DECL(phix_fab,phiy_fab,phiz_fab),
+                                       AMREX_D_DECL(rhsx_fab,rhsy_fab,rhsz_fab),
+                                       AMREX_D_DECL(Lphix_fab,Lphiy_fab,Lphiz_fab),
+                                       AMREX_D_DECL(alphax_fab,alphay_fab,alphaz_fab),
+                                       beta_cc_fab, beta_xy_fab,
+#if (AMREX_SPACEDIM == 3)
+                                       beta_xz_fab, beta_yz_fab,
+#endif
+                                       gamma_cc_fab,
+                                       AMREX_D_DECL(do_x,do_y,do_z),
+                                       offset, color, omega, dx_gpu);
+            });
+        }
     }
 }
