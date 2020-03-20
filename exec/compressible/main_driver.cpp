@@ -512,6 +512,8 @@ void main_driver(const char* argv)
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
+        if (restart > 0 && step==1) ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
+
         // timer
         Real ts1 = ParallelDescriptor::second();
     
@@ -539,6 +541,11 @@ void main_driver(const char* argv)
                           prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
             //WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
                           //prim, primMeans, primVars, spatialCross, eta, kappa);
+        }
+
+        if (chk_int > 0 && step > 0 && step%chk_int == 0)
+        {
+           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
         }
  
 	// collect a snapshot for structure factor

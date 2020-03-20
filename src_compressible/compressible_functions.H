@@ -87,4 +87,32 @@ void yzAverage(const MultiFab& consMean,
                MultiFab& primVarAv, 
                MultiFab& spatialCrossAv);
 
+void WriteCheckPoint(int step,
+                     const Real time,
+                     int statsCount,
+                     const Geometry geom,
+                     const MultiFab& cu,
+                     const MultiFab& cuMeans,
+                     const MultiFab& cuVars,
+                     const MultiFab& prim,
+                     const MultiFab& primMeans,
+                     const MultiFab& primVars,
+                     const MultiFab& spatialCross, 
+                     const MultiFab& eta, 
+                     const MultiFab& kappa);
+
+void ReadCheckPoint(int& step,
+                     Real& time,
+                     int& statsCount,
+                     Geometry geom,
+                     MultiFab& cu,
+                     MultiFab& cuMeans,
+                     MultiFab& cuVars,
+                     MultiFab& prim,
+                     MultiFab& primMeans,
+                     MultiFab& primVars,
+                     MultiFab& spatialCross,
+                     MultiFab& eta,
+                     MultiFab& kappa);
+
 #endif
