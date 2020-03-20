@@ -1,43 +1,10 @@
 #include "common_functions.H"
-
 #include "MultiFABPhysBC.H"
 
-/* MultiFABPhysBCPres
-
-   Fill ghost cell based on 'pressure' boundary conditions
-   We test on bc_vel_lo/hi.  If they are slip or no-slip conditions
-   we use homogeneous Neumann conditions
-
-*/
-
-// this version fills ghost cells in all spatial directions
-// you can get into trouble accessing uninitilized data using this with mixed bc
-// types (wall/wall) at corners when ghost cell data enters uninitialized
-void MultiFABPhysBCPres(MultiFab & data, const Geometry & geom) {
-
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    MultiFABPhysBCPres(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
-}
-
-// this version fills ghost cells in spatial directions 0:seq_fill_ghost
-void MultiFABPhysBCPres(MultiFab & data, int seq_fill_ghost, const Geometry & geom) {
-
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
-    for(int i=0; i<=seq_fill_ghost; i++)
-        fill_ghost[i] = 1;
-
-    MultiFABPhysBCPres(data, fill_ghost, geom);
-}
-
-// this version fills ghost cells in an arbitrary number of spatial directions
-void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
+// Fill 1 ghost cell for pressure based on the velocity boundary conditions.
+// We test on bc_vel_lo/hi.  If they are slip or no-slip conditions
+// we use homogeneous Neumann conditions
+void MultiFABPhysBCPres(MultiFab & data, int sComp, int nComp,
                         const Geometry & geom) {
 
     if (geom.isAllPeriodic()) {
@@ -57,16 +24,14 @@ void MultiFABPhysBCPres(MultiFab & data, const IntVect & dim_fill_ghost,
 
     for (MFIter mfi(data, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
-        // Select how much of the ghost region to fill
-        IntVect ngv = data.nGrowVect() * dim_fill_ghost;
-        Box bx      = mfi.growntilebox(ngv);
+        // one ghost cell
+        Box bx = mfi.growntilebox(1);
 
         const Array4<Real> & data_fab = data.array(mfi);
-        int n_comp = data.nComp();
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            physbc_pres_fab(tbx, dom, data_fab, bc_lo, bc_hi, 0, n_comp);
+            physbc_pres_fab(tbx, dom, data_fab, bc_lo, bc_hi, sComp, nComp);
         });
     }
 }
@@ -82,23 +47,6 @@ void MultiFABPhysBCDomainVel(MultiFab & vel, const amrex::Geometry & geom, int d
     }
 
     MultiFABPhysBCDomainVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
-}
-
-void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost,
-                             const Geometry & geom, int dim) {
-
-
-    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCDomainVel");
-
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
-    for(int i=0; i<=seq_fill_ghost; i++)
-        fill_ghost[i] = 1;
-
-    MultiFABPhysBCDomainVel(vel, fill_ghost, geom, dim);
 }
 
 void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost,
@@ -148,23 +96,6 @@ void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim) {
     }
 
     MultiFABPhysBCMacVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
-}
-
-void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost,
-                          const Geometry & geom, int dim) {
-
-
-    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCMacVel");
-
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
-    for(int i=0; i<=seq_fill_ghost; i++)
-        fill_ghost[i] = 1;
-
-    MultiFABPhysBCMacVel(vel, fill_ghost, geom, dim);
 }
 
 void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost,
@@ -361,25 +292,11 @@ void MultiFABPhysBCDomainStress(MultiFab & stress,
     MultiFABPhysBCDomainStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
 }
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost,
-                                const Geometry & geom, int dim) {
-
-    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCDomainStress");
-        
-    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
-    for(int i=0; i<=seq_fill_ghost; i++)
-        fill_ghost[i] = 1;
-
-    MultiFABPhysBCDomainStress(stress, fill_ghost, geom, dim);
-}
-
 void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost,
                                 const Geometry & geom, int dim) {
 
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
-
-        
 
     for (MFIter mfi(stress); mfi.isValid(); ++mfi) {
 
@@ -398,18 +315,6 @@ void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghos
 */
 void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim) {
     MultiFABPhysBCMacStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
-}
-
-void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost,
-                             const Geometry & geom, int dim) {
-
-    Abort("MultiFABPhysBC.cpp: Do not call this instance of MultiFABPhysBCMacStress");
-    
-    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
-    for(int i=0; i<=seq_fill_ghost; i++)
-        fill_ghost[i] = 1;
-
-    MultiFABPhysBCMacStress(stress, fill_ghost, geom, dim);
 }
 
 void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost,

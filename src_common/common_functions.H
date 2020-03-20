@@ -97,48 +97,40 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
  *                                                                              *
  *******************************************************************************/
 
+void MultiFABPhysBCPres(MultiFab& data, int sComp, int nComp, const Geometry& geom);
+
 // Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCPres(MultiFab & pressure, const Geometry & geom);
+void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 // These don't assume that the ghost cells are non-nan
-void MultiFABPhysBCPres(MultiFab & pressure, int seq_fill_ghost, const Geometry & geom);
-void MultiFABPhysBCPres(MultiFab & pressure, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFABPhysBCDomainVel(MultiFab& vel, const IntVect& dim_fill_ghost, const Geometry& geom, int dim);
 
 // Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCDomainVel(MultiFab & vel, const Geometry & geom, int dim);
-// These don't assume that the ghost cells are non-nan
-void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
-
+void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
 // Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim);
-// Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
+void MultiFABPhysBCMacVel(MultiFab& vel, const IntVect& dim_fill_ghost, const Geometry& geom, int dim);
 
-//Functions to modify the stress & efield near the boundaries due to/for peskin particles
+//Functions to modify the stress& efield near the boundaries due to/for peskin particles
 
-void MultiFABElectricBC(MultiFab & efield, const Geometry & geom);
-void MultiFABElectricBC(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
-void MultiFABElectricBC(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFABElectricBC(MultiFab& efield, const Geometry& geom);
+void MultiFABElectricBC(MultiFab& efield, int seq_fill_ghost, const Geometry& geom);
+void MultiFABElectricBC(MultiFab& efield, const IntVect& dim_fill_ghost, const Geometry& geom);
 
-void MultiFABPotentialBC(MultiFab & potential, const Geometry & geom);
-void MultiFABPotentialBC(MultiFab & potential, int seq_fill_ghost, const Geometry & geom);
-void MultiFABPotentialBC(MultiFab & potential, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFABPotentialBC(MultiFab& potential, const Geometry& geom);
+void MultiFABPotentialBC(MultiFab& potential, int seq_fill_ghost, const Geometry& geom);
+void MultiFABPotentialBC(MultiFab& potential, const IntVect& dim_fill_ghost, const Geometry& geom);
 
-void MultiFABPotentialBC_solver(MultiFab & potential, const Geometry & geom);
-void MultiFABPotentialBC_solver(MultiFab & potential, int seq_fill_ghost, const Geometry & geom);
-void MultiFABPotentialBC_solver(MultiFab & potential, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFABPotentialBC_solver(MultiFab& potential, const Geometry& geom);
+void MultiFABPotentialBC_solver(MultiFab& potential, int seq_fill_ghost, const Geometry& geom);
+void MultiFABPotentialBC_solver(MultiFab& potential, const IntVect& dim_fill_ghost, const Geometry& geom);
 
-void MultiFABPhysBCCharge(MultiFab & efield, const Geometry & geom);
-void MultiFABPhysBCCharge(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
-void MultiFABPhysBCCharge(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFABPhysBCCharge(MultiFab& efield, const Geometry& geom);
+void MultiFABPhysBCCharge(MultiFab& efield, int seq_fill_ghost, const Geometry& geom);
+void MultiFABPhysBCCharge(MultiFab& efield, const IntVect& dim_fill_ghost, const Geometry& geom);
 
-void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim);
-void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
+void MultiFABPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
+void MultiFABPhysBCMacStress(MultiFab& stress, const IntVect& dim_fill_ghost, const Geometry& geom, int dim);
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, const amrex::Geometry & geom, int dim);
-void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
+void MultiFABPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
+void MultiFABPhysBCDomainStress(MultiFab& stress, const IntVect& dim_fill_ghost, const Geometry& geom, int dim);
 
 #endif
