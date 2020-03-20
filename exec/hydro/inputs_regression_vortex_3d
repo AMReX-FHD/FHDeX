@@ -22,8 +22,6 @@
   max_step = 3
   plot_int = 3
 
-  plot_base_name = "vortex_3d_plt"
-
   ! Viscous friction L phi operator
   ! if abs(visc_type) = 1, L = div beta grad
   ! if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
