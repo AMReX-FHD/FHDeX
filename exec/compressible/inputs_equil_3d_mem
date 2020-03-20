@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0      ! physical lo coordinate
-  prob_hi(1:3) = 2.5e-4 2.5e-6 1.25e-6 ! physical hi coordinate
+  prob_hi(1:3) = 2.5e-4 1.25e-5 1.25e-5 ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -11,17 +11,19 @@
   nprimvars = 14
 
   ! number of cells in domain
-  n_cells(1:3) = 80 2 1
+  n_cells(1:3) = 80 10 10
   ! max number of cells in a box
-  max_grid_size(1:3) = 40 2 1
+  max_grid_size(1:3) = 40 10 10
 
   ! Time-step control
   fixed_dt = 1e-12
 
   ! Controls for number of steps between actions
 
-  max_step = 1000000
-  plot_int = 500
+  max_step = 5000000
+  plot_int = 1000000
+  struct_fact_int = 1
+  n_steps_skip = 1000000
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
@@ -48,14 +50,12 @@
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
   runiv = 8.314462175e7
-  T_init(1) = 400
+  T_init(1) = 350
   rho0 = 1.78e-3
 
-  struct_fact_int = 1
-  n_steps_skip = 1000000
-
-  membrane_cell = 40
-  transmission = 0.1
+  membrane_cell = -1
+  transmission = 0.0
+  cross_cell = 19
   
   ! Boundary conditions:
   ! NOTE: setting bc_vel to periodic sets all the other bc's to periodic)
@@ -75,8 +75,8 @@
 
   
   ! Temperature if thermal BC specified
-  t_hi(1:3) = 509.905 400 400
-  t_lo(1:3) = 277.57 300 300
+  t_hi(1:3) = 508.5 400 400
+  t_lo(1:3) = 280.8 300 300
 
   !Kinetic species info
   !--------------
@@ -95,5 +95,8 @@
 
 &compressible
 
+  ! write out means and variances to plotfile
+  plot_means = 1
+  plot_vars = 1
   
 /

@@ -13,6 +13,7 @@ void WritePlotFile(int step,
 	           const amrex::MultiFab& prim,
 	           const amrex::MultiFab& primMeans,
 	           const amrex::MultiFab& primVars,
+                   const amrex::MultiFab& spatialCross,
 		   const amrex::MultiFab& eta,
 		   const amrex::MultiFab& kappa)
 {
@@ -32,7 +33,9 @@ void WritePlotFile(int step,
     if (plot_vars == 1) {
         nplot += 10;
     }
-    
+   
+    nplot += 6; //spatial correl
+
     amrex::BoxArray ba = cuMeans.boxArray();
     amrex::DistributionMapping dmap = cuMeans.DistributionMap();
 
@@ -87,6 +90,10 @@ void WritePlotFile(int step,
         amrex::MultiFab::Copy(plotfile,primVars,0,cnt,numvars,0);
         cnt+=numvars;
     }
+
+    numvars = 6;
+    amrex::MultiFab::Copy(plotfile,spatialCross,0,cnt,numvars,0);
+    cnt+=numvars;
 
     // eta
     numvars = 1;
@@ -157,6 +164,14 @@ void WritePlotFile(int step,
         varNames[cnt++] = "uzVar";
         varNames[cnt++] = "tVar";
     }
+
+    varNames[cnt++] = "Energy-densityCross";
+    varNames[cnt++] = "Energy-energyCross";
+    varNames[cnt++] = "Momentum-densityCross";
+
+    varNames[cnt++] = "Temperature-temperatureCross";
+    varNames[cnt++] = "Temperature-densityCross";
+    varNames[cnt++] = "Velocity-densityCross";
 
     varNames[cnt++] = "eta";
     varNames[cnt++] = "kappa";

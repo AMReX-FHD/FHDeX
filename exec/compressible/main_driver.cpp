@@ -174,6 +174,9 @@ void main_driver(const char* argv)
     //statistics    
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
     MultiFab cuVars   (ba,dmap,nvars,ngc);
+    MultiFab cuMeansAv(ba,dmap,nvars,ngc);
+    MultiFab cuVarsAv(ba,dmap,nvars,ngc);
+
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     
@@ -181,9 +184,22 @@ void main_driver(const char* argv)
 
     MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
+    MultiFab primMeansAv(ba,dmap,nprimvars,ngc);
+    MultiFab primVarsAv(ba,dmap,nprimvars + 5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
     
+    Real delHolder1[n_cells[1]*n_cells[2]];
+    Real delHolder2[n_cells[1]*n_cells[2]];
+    Real delHolder3[n_cells[1]*n_cells[2]];
+    Real delHolder4[n_cells[1]*n_cells[2]];
+    Real delHolder5[n_cells[1]*n_cells[2]];
+    Real delHolder6[n_cells[1]*n_cells[2]];
+
+    MultiFab spatialCross(ba,dmap,6,ngc);
+
+    MultiFab spatialCrossAv(ba,dmap,6,ngc);
+
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
@@ -490,7 +506,7 @@ void main_driver(const char* argv)
     
     if (plot_int > 0) {
 	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
-                      prim, primMeans, primVars, eta, kappa);
+                      prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
     //Time stepping loop
@@ -512,18 +528,21 @@ void main_driver(const char* argv)
         
         // compute mean and variances
 	if (step > n_steps_skip) {
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, statsCount, dx);
+            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
             statsCount++;
 	}
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
-                          prim, primMeans, primVars, eta, kappa);
+           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+            WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
+                          prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
+            //WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
+                          //prim, primMeans, primVars, spatialCross, eta, kappa);
         }
  
 	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+	/*if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
             structFact.FortStructure(struct_in_cc,geom);
             if(project_dir >= 0) {
@@ -538,12 +557,17 @@ void main_driver(const char* argv)
             if(project_dir >= 0) {
                 structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
             }
-        }
+        }*/
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2);
         amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
+
+        if(step%500 == 0)
+        {
+                amrex::Print() << "Advanced step " << step << "\n";
+        }
         
         time = time + dt;
     }

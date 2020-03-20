@@ -55,6 +55,9 @@ void setBC(MultiFab& prim, MultiFab& cons);
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
+                   MultiFab& spatialCross,
+                   Real* delHolder1, Real* delHolder2, Real* delHolder3,
+                   Real* delHolder4, Real* delHolder5, Real* delHolder6,
                    const int steps, const Real* dx);
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
@@ -69,7 +72,19 @@ void WritePlotFile(int step,
 	           const MultiFab& prim,
 	           const MultiFab& primMeans,
 	           const MultiFab& primVars,
+                   const MultiFab& spatialCross,
                    const MultiFab& eta, 
 		   const MultiFab& kappa);
+
+void yzAverage(const MultiFab& consMean, 
+               const MultiFab& consVar, 
+               const MultiFab& primMean, 
+               const MultiFab& primVar, 
+               const MultiFab& spatialCross, 
+               MultiFab& consMeanAv, 
+               MultiFab& consVarAv, 
+               MultiFab& primMeanAv, 
+               MultiFab& primVarAv, 
+               MultiFab& spatialCrossAv);
 
 #endif
