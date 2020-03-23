@@ -45,8 +45,7 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         return;
     }
 
-    // Physical Domain and make sure that the domain index type matches the
-    // velocity index type
+    // grow the domain box by 1 in the dim direct
     Box dom(geom.Domain());
     dom.surroundingNodes(dim);
 
@@ -82,8 +81,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
         return;
     }
 
-    // Physical Domain and make sure that the domain index type matches the
-    // velocity index type
+    // grow the domain box by 1 in the dim direct
     Box dom(geom.Domain());
     dom.surroundingNodes(dim);
 
