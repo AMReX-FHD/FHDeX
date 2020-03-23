@@ -281,7 +281,7 @@ inline void physbc_macvel_fab(const Box & tbx,
                               const Array4<Real> & data,
                               const GpuArray<int, AMREX_SPACEDIM> & bc_lo,
                               const GpuArray<int, AMREX_SPACEDIM> & bc_hi,
-                              int start_cmp, int n_cmp, int dim) {
+                              int dim) {
 
     //___________________________________________________________________________
     // Total work region => the loops below will actually only iterate over
@@ -296,15 +296,13 @@ inline void physbc_macvel_fab(const Box & tbx,
     // Apply x-physbc to data
     if ((dim != 0) && (bc_lo[0] == 1 || bc_lo[0] == 2) && (tlo.x <= dom_lo.x)) {
         Real fac = (bc_lo[0] == 1) ? 1. : -1.;
-        for (int n = start_cmp; n < start_cmp + n_cmp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
         for (int j = tlo.y; j <= thi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = tlo.x; i < dom_lo.x; ++i) {
             int offset = dom_lo.x - i;
             int i_real = dom_lo.x + offset - 1;
-            data(i, j, k, n) = fac*data(i_real, j, k, n);
-        }
+            data(i, j, k) = fac*data(i_real, j, k);
         }
         }
         }
@@ -312,15 +310,13 @@ inline void physbc_macvel_fab(const Box & tbx,
 
     if ((dim != 0) && (bc_lo[0] == 1 || bc_hi[0] == 2) && (thi.x >= dom_hi.x)) {
         Real fac = (bc_hi[0] == 1) ? 1. : -1.;
-        for (int n = start_cmp; n < start_cmp + n_cmp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
         for (int j = tlo.y; j <= thi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = dom_hi.x + 1; i <= thi.x; ++i) {
             int offset = i - dom_hi.x;
             int i_real = dom_hi.x - offset + 1;
-            data(i, j, k, n) = fac*data(i_real, j, k, n);
-        }
+            data(i, j, k) = fac*data(i_real, j, k);
         }
         }
         }
@@ -332,15 +328,13 @@ inline void physbc_macvel_fab(const Box & tbx,
 #if (AMREX_SPACEDIM >= 2)
     if ((dim != 1) && (bc_lo[1] == 1 || bc_lo[1] == 2) && (tlo.y <= dom_lo.y)) {
         Real fac = (bc_lo[1] == 1) ? 1. : -1.;
-        for (int n = start_cmp; n < start_cmp + n_cmp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
         for (int j = tlo.y; j < dom_lo.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = tlo.x; i <= thi.x; ++i) {
             int offset = dom_lo.y - j;
             int j_real = dom_lo.y + offset - 1;
-            data(i, j, k, n) = fac*data(i, j_real, k, n);
-        }
+            data(i, j, k) = fac*data(i, j_real, k);
         }
         }
         }
@@ -348,15 +342,13 @@ inline void physbc_macvel_fab(const Box & tbx,
 
     if ((dim != 1) && (bc_hi[1] == 1 || bc_hi[1] == 2) && (thi.y >= dom_hi.y)) {
         Real fac = (bc_hi[1] == 1) ? 1. : -1.;
-        for (int n = start_cmp; n < start_cmp + n_cmp; ++n) {
         for (int k = tlo.z; k <= thi.z; ++k) {
         for (int j = dom_hi.y + 1; j <= thi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = tlo.x; i <= thi.x; ++i) {
             int offset = j - dom_hi.y;
             int j_real = dom_hi.y - offset + 1;
-            data(i, j, k, n) = fac*data(i, j_real, k, n);
-        }
+            data(i, j, k) = fac*data(i, j_real, k);
         }
         }
         }
@@ -368,15 +360,13 @@ inline void physbc_macvel_fab(const Box & tbx,
 #if (AMREX_SPACEDIM >= 3)
     if ((dim != 2) && (bc_lo[2] == 1 || bc_lo[2] == 2) && (tlo.z <= dom_lo.z)) {
         Real fac = (bc_lo[2] == 1) ? 1. : -1.;
-        for (int n = start_cmp; n < start_cmp + n_cmp; ++n) {
         for (int k = tlo.z; k < dom_lo.z; ++k) {
         for (int j = tlo.y; j <= thi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = tlo.x; i <= thi.x; ++i) {
             int offset = dom_lo.z - k;
             int k_real = dom_lo.z + offset - 1;
-            data(i, j, k, n) = fac*data(i, j, k_real, n);
-        }
+            data(i, j, k) = fac*data(i, j, k_real);
         }
         }
         }
@@ -384,15 +374,13 @@ inline void physbc_macvel_fab(const Box & tbx,
 
     if ((dim != 2) && (bc_hi[2] == 1 || bc_hi[2] == 2) && (thi.z >= dom_hi.z)) {
         Real fac = (bc_hi[2] == 1) ? 1. : -1.;
-        for (int n = start_cmp; n < start_cmp + n_cmp; ++n) {
         for (int k = dom_hi.z + 1; k <= thi.z; ++k) {
         for (int j = tlo.y; j <= thi.y; ++j) {
         AMREX_PRAGMA_SIMD
         for (int i = tlo.x; i <= thi.x; ++i) {
             int offset = k - dom_hi.z;
             int k_real = dom_hi.z - offset + 1;
-            data(i, j, k, n) = fac*data(i, j, k_real, n);
-        }
+            data(i, j, k) = fac*data(i, j, k_real);
         }
         }
         }

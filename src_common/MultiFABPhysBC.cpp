@@ -38,7 +38,7 @@ void MultiFABPhysBCPres(MultiFab& data, int sComp, int nComp,
 
 // Set the value of normal velocity on walls to zero
 // Set the value of normal ghost cells to the inverse reflection of the interior
-// The latter is needed for Peskin kernels and also
+// We fill all the ghost cells - they are needed for Perskin kernels and
 // to avoid intermediate NaN propagation in BDS
 void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
@@ -63,7 +63,6 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
 
-        // Select how much of the ghost region to fill
         Box bx = mfi.growntilebox(ng);
 
         const Array4<Real>& data_fab = vel.array(mfi);
@@ -75,21 +74,10 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
     }
 }
 
-/* MultiFABPhysBCMacVel
-
-*/
-
+// Set the value of tranverse ghost cells to +/- the reflection of the interior
+// (+ for slip walls, - for no-slip)
+// We fill all the ghost cells - they are needed for Perskin kernels
 void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
-
-    if (geom.isAllPeriodic()) {
-        return;
-    }
-
-    MultiFABPhysBCMacVel(vel, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
-}
-
-void MultiFABPhysBCMacVel(MultiFab& vel, const IntVect& dim_fill_ghost,
-			  const Geometry& geom, int dim) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -100,6 +88,8 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const IntVect& dim_fill_ghost,
     Box dom(geom.Domain());
     dom.surroundingNodes(dim);
 
+    int ng = vel.nGrow();
+    
     // Send BCs to GPU
     GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_vel_lo[0],
                                                      common::bc_vel_lo[1],
@@ -110,17 +100,14 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const IntVect& dim_fill_ghost,
 
     for (MFIter mfi(vel); mfi.isValid(); ++mfi) {
 
-        // techinically you should only have to grow in the 2 directions that are NOT dim
-        // since we are filling transverse velocity ghost cells
-        IntVect ngv = vel.nGrowVect();
-        Box bx      = mfi.growntilebox(ngv);
+        Box bx = mfi.growntilebox(ng);
 
         const Array4<Real>& data_fab = vel.array(mfi);
         int n_comp = vel.nComp();
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            physbc_macvel_fab(tbx, dom, data_fab, bc_lo, bc_hi, 0, n_comp, dim);
+            physbc_macvel_fab(tbx, dom, data_fab, bc_lo, bc_hi, dim);
         });
     }
 }
