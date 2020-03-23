@@ -83,10 +83,9 @@ void MaxSpeed(std::array< MultiFab, AMREX_SPACEDIM >& umac);
 ///////////////////////////
 // in ComputeAverages.cpp
 
-void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
-
-// void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
-
+void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
+                            const int dir, const int incomp, const int ncomp,
+                            const int findredist=0);
 ///////////////////////////
 // in MultiFABPhysBC.cpp
 
@@ -97,7 +96,7 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
  *                                                                              *
  *******************************************************************************/
 
-void MultiFABPhysBCPres(MultiFab& data, int sComp, int nComp, const Geometry& geom);
+void MultiFABPhysBCPres(MultiFab& data, const Geometry& geom);
 
 void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 

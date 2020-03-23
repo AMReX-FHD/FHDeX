@@ -4,8 +4,7 @@
 // Fill 1 ghost cell for pressure based on the velocity boundary conditions.
 // We test on bc_vel_lo/hi.  If they are slip or no-slip conditions
 // we use homogeneous Neumann conditions
-void MultiFABPhysBCPres(MultiFab& data, int sComp, int nComp,
-                        const Geometry& geom) {
+void MultiFABPhysBCPres(MultiFab& data, const Geometry& geom) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -31,7 +30,7 @@ void MultiFABPhysBCPres(MultiFab& data, int sComp, int nComp,
 
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
         {
-            physbc_pres_fab(tbx, dom, data_fab, bc_lo, bc_hi, sComp, nComp);
+            physbc_pres_fab(tbx, dom, data_fab, bc_lo, bc_hi);
         });
     }
 }
