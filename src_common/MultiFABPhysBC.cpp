@@ -1,10 +1,9 @@
 #include "common_functions.H"
-#include "MultiFABPhysBC.H"
 
 // Fill 1 ghost cell for pressure based on the velocity boundary conditions.
 // We test on bc_vel_lo/hi.  If they are slip or no-slip conditions
 // we use homogeneous Neumann conditions
-void MultiFABPhysBCPres(MultiFab& data, const Geometry& geom) {
+void MultiFABPhysBCPres(MultiFab& phi, const Geometry& geom) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -13,26 +12,84 @@ void MultiFABPhysBCPres(MultiFab& data, const Geometry& geom) {
     // Physical Domain
     Box dom(geom.Domain());
 
-    // Send BCs to GPU
-    GpuArray<int, AMREX_SPACEDIM> bc_lo{AMREX_D_DECL(common::bc_vel_lo[0],
-                                                     common::bc_vel_lo[1],
-                                                     common::bc_vel_lo[2])};
-    GpuArray<int, AMREX_SPACEDIM> bc_hi{AMREX_D_DECL(common::bc_vel_hi[0],
-                                                     common::bc_vel_hi[1],
-                                                     common::bc_vel_hi[2])};
-
-    for (MFIter mfi(data, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // one ghost cell
         Box bx = mfi.growntilebox(1);
 
-        const Array4<Real>& data_fab = data.array(mfi);
+        const Array4<Real>& data = phi.array(mfi);
 
-        AMREX_LAUNCH_HOST_DEVICE_LAMBDA(bx, tbx,
-        {
-            physbc_pres_fab(tbx, dom, data_fab, bc_lo, bc_hi);
-        });
+        //___________________________________________________________________________
+        // Apply x-physbc to data
+
+        // lo-x faces
+        // bc_vel check is to see if we have a wall bc
+        // bx/dom comparison is to see if the grid touches a wall        
+        if (((bc_vel_lo[0] == 1) || (bc_vel_lo[0] == 2)) && (bx.smallEnd(0) < dom.smallEnd(0))) {
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i < dom.smallEnd(0)) {
+                    data(i,j,k) = data(-i,j,k);
+                }
+            });
+        }
+        
+        if (((bc_vel_hi[0] == 1) || (bc_vel_hi[0] == 2)) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i > dom.bigEnd(0)) {
+                    data(i,j,k) = data(2*dom.bigEnd(0)-i+1,j,k);
+                }
+            });
+        }
+
+
+#if (AMREX_SPACEDIM >= 2)
+        //___________________________________________________________________________
+        // Apply y-physbc to data
+        if (((bc_vel_lo[1] == 1) || (bc_vel_lo[1] == 2)) && (bx.smallEnd(1) < dom.smallEnd(1))) {
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j < dom.smallEnd(1)) {
+                    data(i,j,k) = data(i,-j,k);
+                }
+            });
+        }
+
+        if (((bc_vel_hi[1] == 1) || (bc_vel_hi[1] == 2)) && (bx.bigEnd(1) > dom.bigEnd(1))) {
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j > dom.bigEnd(1)) {
+                    data(i,j,k) = data(i,2*dom.bigEnd(1)-j+1,k);
+                }
+            });
     }
+#endif
+
+
+#if (AMREX_SPACEDIM >= 3)
+        //___________________________________________________________________________
+        // Apply z-physbc to data
+        if (((bc_vel_lo[2] == 1) || (bc_vel_lo[2] == 2)) && (bx.smallEnd(2) < dom.smallEnd(2))) {
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k < dom.smallEnd(2)) {
+                    data(i,j,k) = data(i,j,-k);
+                }
+            });
+        }
+
+        if (((bc_vel_hi[2] == 1) || (bc_vel_hi[2] == 2)) && (bx.bigEnd(2) > dom.bigEnd(2))) {
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k > dom.bigEnd(2)) {
+                    data(i,j,k) = data(i,j,2*dom.bigEnd(2)-k+1);
+                }
+            });
+        }
+#endif
+        
+    } // end MFIter
 }
 
 // Set the value of normal velocity on walls to zero
