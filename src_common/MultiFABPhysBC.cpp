@@ -47,7 +47,6 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     // grow the domain box by 1 in the dim direction
     Box dom(geom.Domain());
-    dom.surroundingNodes(dim);
 
     int ng = vel.nGrow();
 
@@ -80,14 +79,14 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         }
 
         // hi-x faces
-        if ((dim == 0) && (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
+        if ((dim == 0) && (bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {        
-                if (i > dom.bigEnd(0)) {
-                    data(i,j,k) = -data(2*dom.bigEnd(0)-i,j,k);
+                if (i > dom.bigEnd(0)+1) {
+                    data(i,j,k) = -data(2*dom.bigEnd(0)+2-i,j,k);
                 }           
-                else if (i == dom.bigEnd(0)) {
+                else if (i == dom.bigEnd(0)+1) {
                     data(i,j,k) = 0.;
                 }
             });
@@ -113,14 +112,14 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         }
 
         // hi-y faces
-        if ((dim == 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1))) {
+        if ((dim == 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {        
-                if (j > dom.bigEnd(1)) {
-                    data(i,j,k) = -data(i,2*dom.bigEnd(1)-j,k);
+                if (j > dom.bigEnd(1)+1) {
+                    data(i,j,k) = -data(i,2*dom.bigEnd(1)+2-j,k);
                 }           
-                else if (j == dom.bigEnd(1)) {
+                else if (j == dom.bigEnd(1)+1) {
                     data(i,j,k) = 0.;
                 }
             });
@@ -147,14 +146,14 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         }
 
         // hi-z faces
-        if ((dim == 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2))) {
+        if ((dim == 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
 
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {        
-                if (k > dom.bigEnd(2)) {
-                    data(i,j,k) = -data(i,j,2*dom.bigEnd(2)-k);
+                if (k > dom.bigEnd(2)+1) {
+                    data(i,j,k) = -data(i,j,2*dom.bigEnd(2)+2-k);
                 }           
-                else if (k == dom.bigEnd(2)) {
+                else if (k == dom.bigEnd(2)+1) {
                     data(i,j,k) = 0.;
                 }
             });
@@ -173,9 +172,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
         return;
     }
 
-    // grow the domain box by 1 in the dim direction
     Box dom(geom.Domain());
-    dom.surroundingNodes(dim);
 
     int ng = vel.nGrow();
 
@@ -192,7 +189,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
         // dim != 0 means we are doing y and z-velocity on x-faces
         // bc_vel check is to see if we have a wall bc
         // bx/dom comparison is to see if the grid touches a wall 
-        if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
+        if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) < dom.smallEnd(0))) {
             Real fac = (bc_vel_lo[0] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -202,7 +199,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
             });
         }
 
-        if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
+        if ((dim != 0) && (bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) > dom.bigEnd(0))) {
             Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -215,7 +212,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 
         //___________________________________________________________________________
         // Apply y-physbc to data
-        if ((dim != 1) && (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
+        if ((dim != 1) && (bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) < dom.smallEnd(1))) {
             Real fac = (bc_vel_lo[1] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -225,7 +222,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
             });
         }
 
-        if ((dim != 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1))) {
+        if ((dim != 1) && (bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) > dom.bigEnd(1))) {
             Real fac = (bc_vel_hi[1] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -239,7 +236,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
         //___________________________________________________________________________
         // Apply z-physbc to data
 #if (AMREX_SPACEDIM >= 3)
-        if ((dim != 2) && (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
+        if ((dim != 2) && (bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) < dom.smallEnd(2))) {
             Real fac = (bc_vel_lo[2] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
@@ -249,7 +246,7 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
             });
         }
 
-        if ((dim != 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2))) {
+        if ((dim != 2) && (bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) > dom.bigEnd(2))) {
             Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
