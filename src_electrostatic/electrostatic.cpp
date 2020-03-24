@@ -5,12 +5,12 @@
 using namespace amrex;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
-             std::array< MultiFab, AMREX_SPACEDIM >& efield,
+             std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
              const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
 {
-    AMREX_D_TERM(efield[0].setVal(0);,
-                 efield[1].setVal(0);,
-                 efield[2].setVal(0););
+    AMREX_D_TERM(efieldCC[0].setVal(0);,
+                 efieldCC[1].setVal(0);,
+                 efieldCC[2].setVal(0););
 
     if(es_tog==1 || es_tog==3)
     {
@@ -81,14 +81,14 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         MultiFABPotentialBC(potential, geom); 
 
         //Find e field, gradient from cell centers to faces
-        ComputeCentredGrad(potential, efield, geom);
+        ComputeCentredGrad(potential, efieldCC, geom);
     }
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Add(efield[d], external[d], 0, 0, 1, efield[d].nGrow());
-        efield[d].FillBoundary(geom.periodicity());
-        MultiFABElectricBC(efield[d], d, geom);
+        MultiFab::Add(efieldCC[d], external[d], 0, 0, 1, efieldCC[d].nGrow());
+        efieldCC[d].FillBoundary(geom.periodicity());
+        MultiFABElectricBC(efieldCC[d], geom);
     }
 
 }
