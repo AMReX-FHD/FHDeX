@@ -41,7 +41,7 @@
   ! Advection method
   ! if advection_type = 1, interpolate primitive quantities
   ! if advection_type = 2, interpolate conserved quantities
-  advection_type = 2 
+  advection_type = 2
 
   ! Problem specification
   ! if prob_type = 1, constant species concentration
@@ -52,7 +52,7 @@
   ! Initial parameters
   k_B = 1.38064852e-16	! [units: cm2*g*s-2*K-1]
   runiv = 8.314462175e7
-  T_init(1) = 350
+  T_init(1) = 400
   rho0 = 1.78e-3
 
   membrane_cell = -1
