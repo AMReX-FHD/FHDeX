@@ -196,12 +196,6 @@ extern "C"
                     amrex::Real * pressure, const int * p_lo, const int * p_hi,
                     const int * p_ncomp, int ngc, const int * dim_fill_ghost);
 
-    void fab_potentialbc(const int * lo,     const int * hi,
-                         const int * dom_lo, const int * dom_hi,
-                         amrex::Real * potential, const int * p_lo, const int * p_hi,
-                         const int * p_ncomp, int ngc, const int * dim_fill_ghost,
-                         const amrex_real* dx);
-
     void fab_potentialbc_solver(const int * lo,     const int * hi,
                                 const int * dom_lo, const int * dom_hi,
                                 amrex::Real * potential, const int * p_lo, const int * p_hi,

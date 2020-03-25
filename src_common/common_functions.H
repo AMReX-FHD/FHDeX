@@ -105,8 +105,6 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
 void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom);
 
 void MultiFABPotentialBC(MultiFab& potential, const Geometry& geom);
-void MultiFABPotentialBC(MultiFab& potential, int seq_fill_ghost, const Geometry& geom);
-void MultiFABPotentialBC(MultiFab& potential, const IntVect& dim_fill_ghost, const Geometry& geom);
 
 void MultiFABPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 void MultiFABPotentialBC_solver(MultiFab& potential, int seq_fill_ghost, const Geometry& geom);

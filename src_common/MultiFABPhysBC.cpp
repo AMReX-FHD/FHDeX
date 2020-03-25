@@ -416,46 +416,166 @@ void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     } // end MFIter
 }
 
-/* MultiFABPotentialBC
+// Fill one ghost cell for a component of the electric potential
+// we test on bc_es_lo/hi
+// 2 point stencil involving boundary value and interior value
+// 1 = Dirichlet
+// 2 = Neumann
+// This routine fills ghost cells with the value extrapolated TO the ghost cell-center
+// This is NOT the same as filling the ghost cell with the value on the boundary
+// The Poisson solver needs a separate routine to fill ghost cells with the value ON
+// the boundary for inhomogeneous Neumann and inhomogeneous Dirichlet; for this we
+// use MultiFABPotentialBC_solver
+void MultiFABPotentialBC(MultiFab& phi, const Geometry& geom) {
+#if (AMREX_SPACEDIM >= 2)
+    
+    if (geom.isAllPeriodic()) {
+        return;
+    }
 
-   Note that this currently only operates on 1 layer of ghost cells.
-   This routine fills ghost cells with the value extrapolated TO the ghost cell-center
-   This is NOT the same as filling the ghost cell with the value on the boundary
-   The Poisson solver needs a separate routine to fill ghost cells with the value ON
-   the boundary for inhomogeneous Neumann and inhomogeneous Dirichlet; for this we
-   use MultiFABPotentialBC_solver
-
-*/
-void MultiFABPotentialBC(MultiFab& data, const Geometry& geom) {
-    MultiFABPotentialBC(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
-}
-
-void MultiFABPotentialBC(MultiFab& data, int seq_fill_ghost, const Geometry& geom) {
-
-    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
-    for(int i=0; i<=seq_fill_ghost; i++)
-        fill_ghost[i] = 1;
-
-    MultiFABPotentialBC(data, fill_ghost, geom);
-}
-
-void MultiFABPotentialBC(MultiFab& data, const IntVect& dim_fill_ghost,
-                        const Geometry& geom) {
-    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
 
-    const Real* dx = geom.CellSize();
-    
-    for (MFIter mfi(data); mfi.isValid(); ++mfi) {
+    const Real* dx_vec  = geom.CellSize();
+    GpuArray<Real,AMREX_SPACEDIM> dx{AMREX_D_DECL(dx_vec[0], dx_vec[1], dx_vec[2])};
 
-        const Box& bx = mfi.validbox();
-        fab_potentialbc(BL_TO_FORTRAN_BOX(bx),
-                        BL_TO_FORTRAN_BOX(dom),
-                        BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
-                        dim_fill_ghost.getVect(),
-                        ZFILL(dx));
-    }
-    #endif
+    for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
+
+        // fill ONE ghost cell
+        Box bx = mfi.growntilebox(1);
+
+        const Array4<Real>& data = phi.array(mfi);
+
+        //___________________________________________________________________________
+        // Apply x-physbc to data
+
+        // bx/dom comparison is to see if the grid touches a wall
+        // bc_es check is to see if we have a physical boundary condition
+        if (bx.smallEnd(0) < dom.smallEnd(0)) {
+            if (bc_es_lo[0] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < dom.smallEnd(0)) {
+                        data(i,j,k) = -data(i+1,j,k) + 2.*potential_lo[0];
+                    }
+                });
+            }                
+            else if (bc_es_lo[0] == 2) { // Neumann
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < dom.smallEnd(0)) {
+                        data(i,j,k) = data(i+1,j,k) - dx[0]*potential_lo[0];
+                    }                    
+                });
+            }
+        }
+
+        if (bx.bigEnd(0) > dom.bigEnd(0)) {
+            if (bc_es_hi[0] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > dom.bigEnd(0)) {
+                        data(i,j,k) = -data(i-1,j,k) + 2.*potential_hi[0];
+                    }
+                });
+            }                
+            else if (bc_es_hi[0] == 2) { // Neumann
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > dom.bigEnd(0)) {
+                        data(i,j,k) = data(i-1,j,k) + dx[0]*potential_hi[0];
+                    }                    
+                });
+            }
+        }
+
+        //___________________________________________________________________________
+        // Apply y-physbc to data
+
+        if (bx.smallEnd(1) < dom.smallEnd(1)) {
+            if (bc_es_lo[1] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) {
+                        data(i,j,k) = -data(i,j+1,k) + 2.*potential_lo[1];
+                    }
+                });
+            }                
+            else if (bc_es_lo[1] == 2) { // Neumann
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < dom.smallEnd(1)) {
+                        data(i,j,k) = data(i,j+1,k) - dx[1]*potential_lo[1];
+                    }                    
+                });
+            }
+        }
+
+        if (bx.bigEnd(1) > dom.bigEnd(1)) {
+            if (bc_es_hi[1] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > dom.bigEnd(1)) {
+                        data(i,j,k) = -data(i,j-1,k) + 2.*potential_hi[1];
+                    }
+                });
+            }                
+            else if (bc_es_hi[1] == 2) { // Neumann
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > dom.bigEnd(1)) {
+                        data(i,j,k) = data(i,j-1,k) + dx[1]*potential_hi[1];
+                    }                    
+                });
+            }
+        }
+
+                                   
+#endif
+#if (AMREX_SPACEDIM >= 3)
+
+        //___________________________________________________________________________
+        // Apply z-physbc to data
+
+        if (bx.smallEnd(2) < dom.smallEnd(2)) {
+            if (bc_es_lo[2] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < dom.smallEnd(2)) {
+                        data(i,j,k) = -data(i,j,k+1) + 2.*potential_lo[2];
+                    }
+                });
+            }                
+            else if (bc_es_lo[2] == 2) { // Neumann
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < dom.smallEnd(2)) {
+                        data(i,j,k) = data(i,j,k+1) - dx[2]*potential_lo[2];
+                    }                    
+                });
+            }
+        }
+
+        if (bx.bigEnd(2) > dom.bigEnd(2)) {
+            if (bc_es_hi[2] == 1) { // Dirichlet
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > dom.bigEnd(2)) {
+                        data(i,j,k) = -data(i,j,k-1) + 2.*potential_hi[2];
+                    }
+                });
+            }                
+            else if (bc_es_hi[2] == 2) { // Neumann
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > dom.bigEnd(2)) {
+                        data(i,j,k) = data(i,j,k-1) + dx[2]*potential_hi[2];
+                    }                    
+                });
+            }
+        }
+#endif
+        
+    } // end MFIter
 }
 
 /* MultiFABPotentialBC_solver
