@@ -89,13 +89,6 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
 ///////////////////////////
 // in MultiFABPhysBC.cpp
 
-/********************************************************************************
- *                                                                              *
- * Functions to fill physical boundary conditions                               *
- *  -> dim_fill_ghost sets for which dimension to fill ghost cells              *
- *                                                                              *
- *******************************************************************************/
-
 void MultiFABPhysBCPres(MultiFab& data, const Geometry& geom);
 
 void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
@@ -107,8 +100,6 @@ void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom);
 void MultiFABPotentialBC(MultiFab& potential, const Geometry& geom);
 
 void MultiFABPotentialBC_solver(MultiFab& potential, const Geometry& geom);
-void MultiFABPotentialBC_solver(MultiFab& potential, int seq_fill_ghost, const Geometry& geom);
-void MultiFABPotentialBC_solver(MultiFab& potential, const IntVect& dim_fill_ghost, const Geometry& geom);
 
 void MultiFABPhysBCCharge(MultiFab& efield, const Geometry& geom);
 void MultiFABPhysBCCharge(MultiFab& efield, int seq_fill_ghost, const Geometry& geom);
