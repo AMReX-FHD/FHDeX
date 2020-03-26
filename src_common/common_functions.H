@@ -101,9 +101,7 @@ void MultiFABPotentialBC(MultiFab& potential, const Geometry& geom);
 
 void MultiFABPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 
-void MultiFABPhysBCCharge(MultiFab& efield, const Geometry& geom);
-void MultiFABPhysBCCharge(MultiFab& efield, int seq_fill_ghost, const Geometry& geom);
-void MultiFABPhysBCCharge(MultiFab& efield, const IntVect& dim_fill_ghost, const Geometry& geom);
+void MultiFABPhysBCCharge(MultiFab& charge, const Geometry& geom);
 
 void MultiFABPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
 void MultiFABPhysBCMacStress(MultiFab& stress, const IntVect& dim_fill_ghost, const Geometry& geom, int dim);

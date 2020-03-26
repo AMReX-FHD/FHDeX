@@ -688,36 +688,102 @@ void MultiFABPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
     } // end MFIter
 }
 
-/* MultiFABPhysBCCharge
+// positive-fold-add or negative-fold-add charge from ghost cells ghost cells into valid region
+// for Dirichlet potential (bc_es==1), negative-fold-add
+// for Neumann potential (bc_es==2), positive-fold-add
+// charge is cell-centered with 1 component
+// note for wall-wall corners, the folding is also done in ghost cells so we get corner charges back in
+void MultiFABPhysBCCharge(MultiFab& charge, const Geometry& geom) {
+    
+#if (AMREX_SPACEDIM >= 2)
+    
+    if (geom.isAllPeriodic()) {
+        return;
+    }
 
-*/
-void MultiFABPhysBCCharge(MultiFab& data, const Geometry& geom) {
-    MultiFABPhysBCCharge(data, IntVect{AMREX_D_DECL(1, 1, 1)}, geom);
-}
-
-void MultiFABPhysBCCharge(MultiFab& data, int seq_fill_ghost, const Geometry& geom) {
-
-    IntVect fill_ghost{AMREX_D_DECL(0, 0, 0)};
-    for(int i=0; i<=seq_fill_ghost; i++)
-        fill_ghost[i] = 1;
-
-    MultiFABPhysBCCharge(data, fill_ghost, geom);
-}
-
-void MultiFABPhysBCCharge(MultiFab& data, const IntVect& dim_fill_ghost,
-                        const Geometry& geom) {
-    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
 
-    for (MFIter mfi(data); mfi.isValid(); ++mfi) {
+    int ng = charge.nGrow();
 
-        const Box& bx = mfi.validbox();
-        fab_chargebc(BL_TO_FORTRAN_BOX(bx),
-                       BL_TO_FORTRAN_BOX(dom),
-                       BL_TO_FORTRAN_FAB(data[mfi]), data.nGrow(),
-                       dim_fill_ghost.getVect());
-    }
-    #endif
+    for (MFIter mfi(charge); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.growntilebox(ng);
+
+        const Array4<Real>& data = charge.array(mfi);
+
+        //___________________________________________________________________________
+        // Apply x-physbc to data
+        
+        // bc_es check is to see if we have a physical boundary condition
+        // bx/dom comparison is to see if the grid touches a wall 
+        if ((bc_es_lo[0] == 1 || bc_es_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
+            Real fac = (bc_es_lo[0] == 1) ? -1. : 1.;
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i >= 0 && i < ng) {
+                    data(i,j,k) = data(i,j,k) + fac*data(-i-1,j,k);
+                }
+            });
+        }
+
+        if ((bc_es_lo[0] == 1 || bc_es_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
+            Real fac = (bc_es_hi[0] == 1) ? -1. : 1.;
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (i <= dom.bigEnd(0) && i > dom.bigEnd(0)-ng) {
+                    data(i,j,k) = data(i,j,k) + fac*data(2*dom.bigEnd(0)-i+1,j,k);
+                }
+            });
+        }
+
+        //___________________________________________________________________________
+        // Apply y-physbc to data
+        if ((bc_es_lo[1] == 1 || bc_es_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
+            Real fac = (bc_es_lo[1] == 1) ? -1. : 1.;
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j >= 0 && j < ng) {
+                    data(i,j,k) = data(i,j,k) + fac*data(i,-j-1,k);
+                }
+            });
+        }
+
+        if ((bc_es_hi[1] == 1 || bc_es_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1))) {
+            Real fac = (bc_es_hi[1] == 1) ? -1. : 1.;
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (j <= dom.bigEnd(1) && j > dom.bigEnd(1)-ng) {
+                    data(i,j,k) = data(i,j,k) + fac*data(i,2*dom.bigEnd(1)-j+1,k);
+                }
+            });
+        }
+#endif
+
+        //___________________________________________________________________________
+        // Apply z-physbc to data
+#if (AMREX_SPACEDIM >= 3)
+        if ((bc_es_lo[2] == 1 || bc_es_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
+            Real fac = (bc_es_lo[2] == 1) ? -1. : 1.;
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k >= 0 && k < ng) {
+                    data(i,j,k) = data(i,j,k) + fac*data(i,j,-k-1);
+                }
+            });
+        }
+
+        if ((bc_es_hi[2] == 1 || bc_es_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2))) {
+            Real fac = (bc_es_hi[2] == 1) ? -1. : 1.;
+            amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            {
+                if (k <= dom.bigEnd(2) && k > dom.bigEnd(2)-ng) {
+                    data(i,j,k) = data(i,j,k) + fac*data(i,j,2*dom.bigEnd(2)-k+1);
+                }
+            });
+        }
+#endif
+        
+    } // end MFIter
 }
 
 /* MultiFABPhysBCDomainStress
