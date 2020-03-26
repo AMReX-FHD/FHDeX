@@ -104,9 +104,7 @@ void MultiFABPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 void MultiFABPhysBCCharge(MultiFab& charge, const Geometry& geom);
 
 void MultiFABPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
-void MultiFABPhysBCMacStress(MultiFab& stress, const IntVect& dim_fill_ghost, const Geometry& geom, int dim);
 
 void MultiFABPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
-void MultiFABPhysBCDomainStress(MultiFab& stress, const IntVect& dim_fill_ghost, const Geometry& geom, int dim);
 
 #endif

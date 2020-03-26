@@ -199,12 +199,12 @@ extern "C"
     void fab_physbc_domainstress(const int * lo,     const int * hi,
                               const int * dom_lo, const int * dom_hi,
                               amrex::Real * stress, const int * v_lo, const int * v_hi,
-                              const int * v_ncomp, int ngc, const int * dim_fill_ghost, int* dim);
+                              const int * v_ncomp, int ngc, int* dim);
 
     void fab_physbc_macstress(const int * lo,     const int * hi,
                            const int * dom_lo, const int * dom_hi,
                            amrex::Real * stress, const int * v_lo, const int * v_hi,
-                           const int * v_ncopm, int ngc, const int * dim_fill_ghost, int* dim);
+                           const int * v_ncopm, int ngc, int* dim);
 
 
 ///////////////////////////

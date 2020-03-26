@@ -789,13 +789,8 @@ void MultiFABPhysBCCharge(MultiFab& charge, const Geometry& geom) {
 /* MultiFABPhysBCDomainStress
 
 */
-void MultiFABPhysBCDomainStress(MultiFab& stress,
-                                const amrex::Geometry& geom, int dim) {
-    MultiFABPhysBCDomainStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
-}
 
-void MultiFABPhysBCDomainStress(MultiFab& stress, const IntVect& dim_fill_ghost,
-                                const Geometry& geom, int dim) {
+void MultiFABPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim) {
 
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
@@ -807,7 +802,7 @@ void MultiFABPhysBCDomainStress(MultiFab& stress, const IntVect& dim_fill_ghost,
         fab_physbc_domainstress(BL_TO_FORTRAN_BOX(bx),
                              BL_TO_FORTRAN_BOX(dom),
                              BL_TO_FORTRAN_FAB(stress[mfi]), stress.nGrow(),
-                             dim_fill_ghost.getVect(), &dim);
+                             &dim);
     }
     #endif
 }
@@ -815,11 +810,7 @@ void MultiFABPhysBCDomainStress(MultiFab& stress, const IntVect& dim_fill_ghost,
 /* MultiFABPhysBCMacStress
 
 */
-void MultiFABPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
-    MultiFABPhysBCMacStress(stress, IntVect{AMREX_D_DECL(1,1,1)}, geom, dim);
-}
-
-void MultiFABPhysBCMacStress(MultiFab& stress, const IntVect& dim_fill_ghost,
+void MultiFABPhysBCMacStress(MultiFab& stress, 
                              const Geometry& geom, int dim) {
 
     #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
@@ -831,7 +822,7 @@ void MultiFABPhysBCMacStress(MultiFab& stress, const IntVect& dim_fill_ghost,
         fab_physbc_macstress(BL_TO_FORTRAN_BOX(bx),
                           BL_TO_FORTRAN_BOX(dom),
                           BL_TO_FORTRAN_FAB(stress[mfi]), stress.nGrow(),
-                          dim_fill_ghost.getVect(), &dim);
+                          &dim);
     }
     #endif
 }
