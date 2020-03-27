@@ -593,9 +593,6 @@ void MultiFABPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
 
     Box dom(geom.Domain());
 
-    const Real* dx_vec  = geom.CellSize();
-    GpuArray<Real,AMREX_SPACEDIM> dx{AMREX_D_DECL(dx_vec[0], dx_vec[1], dx_vec[2])};
-
     for (MFIter mfi(phi); mfi.isValid(); ++mfi) {
 
         // fill ONE ghost cell
@@ -917,22 +914,111 @@ void MultiFABPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
     } // end MFIter
 }
 
-/* MultiFABPhysBCMacStress
+void MultiFABPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
+    
+#if (AMREX_SPACEDIM >= 2)
+    
+    if (geom.isAllPeriodic()) {
+        return;
+    }
 
-*/
-void MultiFABPhysBCMacStress(MultiFab& stress, 
-                             const Geometry& geom, int dim) {
-
-    #if (AMREX_SPACEDIM==3 || AMREX_SPACEDIM==2)
     Box dom(geom.Domain());
+
+    int ng = stress.nGrow();
 
     for (MFIter mfi(stress); mfi.isValid(); ++mfi) {
 
-        const Box& bx = mfi.validbox();
-        fab_physbc_macstress(BL_TO_FORTRAN_BOX(bx),
-                          BL_TO_FORTRAN_BOX(dom),
-                          BL_TO_FORTRAN_FAB(stress[mfi]), stress.nGrow(),
-                          &dim);
-    }
-    #endif
+        Box bx = mfi.growntilebox(ng);
+
+        const Array4<Real>& data = stress.array(mfi);
+
+        //___________________________________________________________________________
+        // Apply x-physbc to data
+        
+        if (dim != 0) {
+        
+            // dim != 0 means we are either y- or z-stress on x-faces
+            // bc_vel check is to see if we have a wall bc
+            // bx/dom comparison is to see if the grid touches a wall
+            if ((bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
+                Real fac = (bc_vel_lo[0] == 1) ? 1. : -1.;
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i >= 0 && i < ng) {
+                        data(i,j,k) += fac*data(-1-i,j,k);
+                    }
+                });
+            }
+            
+            if ((bc_vel_lo[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0))) {
+                Real fac = (bc_vel_hi[0] == 1) ? 1. : -1.;
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i <= dom.bigEnd(0) && i > dom.bigEnd(0)-ng) {
+                        data(i,j,k) += fac*data(2*dom.bigEnd(0)+1-i,j,k);
+                    }
+                });
+            }
+
+        }
+
+        //___________________________________________________________________________
+        // Apply y-physbc to data
+
+        if (dim != 1) {
+            
+            if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
+                Real fac = (bc_vel_lo[1] == 1) ? 1. : -1.;
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j >= 0 && j < ng) {
+                        data(i,j,k) += fac*data(i,-1-j,k);
+                    }
+                });
+            }
+
+            if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1))) {
+                Real fac = (bc_vel_hi[1] == 1) ? 1. : -1.;
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j <= dom.bigEnd(1) && j > dom.bigEnd(1)-ng) {
+                        data(i,j,k) += fac*data(i,2*dom.bigEnd(1)+1-j,k);
+                    }
+                });
+            }
+            
+        }
+#endif
+        
+        //___________________________________________________________________________
+        // Apply z-physbc to data
+#if (AMREX_SPACEDIM >= 3)
+
+        if (dim != 2) {
+        
+            if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
+
+                Real fac = (bc_vel_lo[2] == 1) ? 1. : -1.;
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k >= 0 && k < ng) {
+                        data(i,j,k) += fac*data(i,j,-1-k);
+                    }
+                });
+            }
+            
+            if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2))) {
+                Real fac = (bc_vel_hi[2] == 1) ? 1. : -1.;                
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k <= dom.bigEnd(2) && k > dom.bigEnd(2)-ng) {
+                        data(i,j,k) += fac*data(i,j,2*dom.bigEnd(2)+1-k);
+                    }
+                });
+            }
+
+        }
+#endif
+        
+    } // end MFIter
 }
