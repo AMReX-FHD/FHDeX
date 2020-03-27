@@ -424,21 +424,21 @@ end subroutine fab_physbc_macstress
 
     ngc_eff(:) = ngc
 
-!    do i=1,3
-!      if(bc_vel_lo(i) .eq. 1) then
-!        sliplo(i) = 1
-!      elseif(bc_vel_lo(i) .eq. 2) then
-!        sliplo(i) = -1
-!      endif
-!    enddo
+    do i=1,3
+      if(bc_vel_lo(i) .eq. 1) then
+        sliplo(i) = 1
+      elseif(bc_vel_lo(i) .eq. 2) then
+        sliplo(i) = -1
+      endif
+    enddo
 
-!    do i=1,3
-!      if(bc_vel_hi(i) .eq. 1) then
-!        sliphi(i) = 1
-!      elseif(bc_vel_hi(i) .eq. 2) then
-!        sliphi(i) = -1
-!      endif
-!    enddo
+    do i=1,3
+      if(bc_vel_hi(i) .eq. 1) then
+        sliphi(i) = 1
+      elseif(bc_vel_hi(i) .eq. 2) then
+        sliphi(i) = -1
+      endif
+    enddo
 
 
     ! A wee note about limits for face-centered indices: face-centred boxes will
@@ -456,7 +456,7 @@ end subroutine fab_physbc_macstress
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
 
-                stress(lo(1), j, k, :) = 0
+                stress(lo(1), j, k, :) = 0.5*(1d0 + sliplo(1))*stress(lo(1), j, k, :)
 
              end do
           end do
@@ -467,7 +467,7 @@ end subroutine fab_physbc_macstress
 
                    ! Normal face-centered indices are symmetric
 
-                  stress(lo(1)+i, j, k, :) = stress(lo(1)+i, j, k, :) - stress(lo(1)-i, j, k, :)
+                  stress(lo(1)+i, j, k, :) = stress(lo(1)+i, j, k, :) + sliplo(1)*stress(lo(1)-i, j, k, :)
 
                 end do
              end do
@@ -482,7 +482,7 @@ end subroutine fab_physbc_macstress
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
 
-                stress(hi(1), j, k, :) = 0
+                stress(hi(1), j, k, :) = 0.5*(1d0 + sliphi(1))*stress(hi(1), j, k, :)
 
              end do
           end do
@@ -491,7 +491,7 @@ end subroutine fab_physbc_macstress
              do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
                 do i = 1, ngc ! always fill the ghost cells at the bc face
 
-                   stress(hi(1)-i, j, k, :) = stress(hi(1)-i, j, k, :) - stress(hi(1)+i, j, k, :)
+                   stress(hi(1)-i, j, k, :) = stress(hi(1)-i, j, k, :) + sliphi(1)*stress(hi(1)+i, j, k, :)
 
                 end do
              end do
@@ -510,7 +510,7 @@ end subroutine fab_physbc_macstress
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                stress(i, lo(2), k, :) = 0
+                stress(i, lo(2), k, :) = 0.5*(1d0 + sliplo(2))*stress(i, lo(2), k, :)
 
                 !print *, "Zeroing ", i, lo(2), k
 
@@ -524,7 +524,7 @@ end subroutine fab_physbc_macstress
                    ! Normal face-centered indices are symmetric
 
                    !print *, "FORTRAN BC!", stress(i, lo(2)+j, k, :), stress(i, lo(2)-j, k, :)
-                   stress(i, lo(2)+j, k, :) = stress(i, lo(2)+j, k, :) - stress(i, lo(2)-j, k, :)
+                   stress(i, lo(2)+j, k, :) = stress(i, lo(2)+j, k, :) + sliplo(2)*stress(i, lo(2)-j, k, :)
 
                 end do
              end do
@@ -539,7 +539,7 @@ end subroutine fab_physbc_macstress
           do k = lo(3)-ngc_eff(3), hi(3)+ngc_eff(3)
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                stress(i, hi(2), k, :) = 0
+                stress(i, hi(2), k, :) = 0.5*(1d0 + sliphi(2))*stress(i, hi(2), k, :)
 
              end do
           end do
@@ -549,7 +549,7 @@ end subroutine fab_physbc_macstress
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    ! Normal face-centered indices are symmetric
-                   stress(i, hi(2)-j, k, :) = stress(i, hi(2)-j, k, :) - stress(i, hi(2)+j, k, :)
+                   stress(i, hi(2)-j, k, :) = stress(i, hi(2)-j, k, :) + sliphi(2)*stress(i, hi(2)+j, k, :)
 
                 end do
              end do
@@ -569,7 +569,7 @@ end subroutine fab_physbc_macstress
           do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                stress(i, j, lo(3), :) = 0
+                stress(i, j, lo(3), :) = 0.5*(1d0 + sliplo(3))*stress(i, j, lo(3), :)
 
              end do
           end do
@@ -579,7 +579,7 @@ end subroutine fab_physbc_macstress
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    ! Normal face-centered indices are symmetric
-                   stress(i, j, lo(3)+k, :) = stress(i, j, lo(3)+k, :) - stress(i, j, lo(3)-k, :)
+                   stress(i, j, lo(3)+k, :) = stress(i, j, lo(3)+k, :) + sliplo(3)*stress(i, j, lo(3)-k, :)
 
                 end do
              end do
@@ -594,7 +594,7 @@ end subroutine fab_physbc_macstress
           do j = lo(2)-ngc_eff(2), hi(2)+ngc_eff(2)
              do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
-                stress(i, j, hi(3), :) = 0
+                stress(i, j, hi(3), :) = 0.5*(1d0 + sliphi(3))*stress(i, j, hi(3), :)
 
              end do
           end do
@@ -604,7 +604,7 @@ end subroutine fab_physbc_macstress
                 do i = lo(1)-ngc_eff(1), hi(1)+ngc_eff(1)
 
                    ! Normal face-centered indices are symmetric
-                   stress(i, j, hi(3)-k, :) = stress(i, j, hi(3)-k, :) - stress(i, j, hi(3)+k, :)
+                   stress(i, j, hi(3)-k, :) = stress(i, j, hi(3)-k, :) + sliphi(3)*stress(i, j, hi(3)+k, :)
 
                 end do
              end do
