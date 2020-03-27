@@ -189,15 +189,6 @@ extern "C"
 ///////////////////////////
 
 ///////////////////////////
-// in multifab_physbc_mod.F90
-
-    void fab_physbc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * pressure, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
-
-
-///////////////////////////
 // in sqrt_mf.F90
     
   void sqrt_mf(const int* lo, const int* hi,
