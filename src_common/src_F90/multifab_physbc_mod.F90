@@ -394,7 +394,7 @@ end subroutine fab_physbc_macstress
       endif
     enddo
 
-    do i=1,2
+    do i=1,3
       if(bc_vel_hi(i) .eq. 1) then
         sliphi(i) = 1
       elseif(bc_vel_hi(i) .eq. 2) then
