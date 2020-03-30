@@ -102,7 +102,6 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
         return;
     }
 
-    // grow the domain box by 1 in the dim direction
     Box dom(geom.Domain());
 
     int ng = vel.nGrow();
@@ -128,7 +127,7 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
                     // set ghost cells to negative of interior value
                     data(i,j,k) = -data(-i,j,k);
                 }           
-                else if (i == dom.smallEnd(0)){
+                else if (i == dom.smallEnd(0)) {
                     // set normal velocity on boundary to zero
                     data(i,j,k) = 0.;
                 }
@@ -315,6 +314,123 @@ void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 #endif
         
     } // end MFIter
+}
+
+// Set the value on walls to zero
+void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
+
+    if (geom.isAllPeriodic()) {
+        return;
+    }
+
+    Box dom(geom.Domain());
+
+    for (MFIter mfi(edge[0]); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.tilebox();
+
+        const Array4<Real>& data = edge[0].array(mfi);
+
+        //___________________________________________________________________________
+        // Apply x-physbc to data
+
+        // lo-x faces
+        // bc_vel check is to see if we have a wall bc
+        // bx/dom comparison is to see if the grid touches a wall
+        if ((bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {
+                if (i == dom.smallEnd(0)) {
+                    // set normal velocity on boundary to zero
+                    data(i,j,k,scomp+n) = 0.;
+                }
+            });
+        }
+
+        // hi-x faces
+        if ((bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {        
+                if (i == dom.bigEnd(0)+1) {
+                    data(i,j,k,scomp+n) = 0.;
+                }
+            });
+        }
+    }
+
+#if (AMREX_SPACEDIM >= 2)
+        
+    for (MFIter mfi(edge[1]); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.tilebox();
+
+        const Array4<Real>& data = edge[1].array(mfi);
+        
+        //___________________________________________________________________________
+        // Apply y-physbc to data
+
+        // lo-y faces
+        if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {        
+                if (j == dom.smallEnd(1)) {
+                    data(i,j,k,scomp+n) = 0.;
+                }
+            });
+        }
+
+        // hi-y faces
+        if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {        
+                if (j == dom.bigEnd(1)+1) {
+                    data(i,j,k,scomp+n) = 0.;
+                }
+            });
+        }
+    }
+    
+#endif
+        
+#if (AMREX_SPACEDIM >= 3)
+
+    for (MFIter mfi(edge[2]); mfi.isValid(); ++mfi) {
+
+        Box bx = mfi.tilebox();
+
+        const Array4<Real>& data = edge[2].array(mfi);
+        
+        //___________________________________________________________________________
+        // Apply z-physbc to data
+
+        // lo-z faces
+        if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {        
+                if (k == dom.smallEnd(2)) {
+                    data(i,j,k,scomp+n) = 0.;
+                }
+            });
+        }
+
+        // hi-z faces
+        if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
+
+            amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+            {        
+                if (k == dom.bigEnd(2)+1) {
+                    data(i,j,k,scomp+n) = 0.;
+                }
+            });
+        }
+    }
+    
+#endif
 }
 
 // Fill all ghost cells for a component of the electric field
