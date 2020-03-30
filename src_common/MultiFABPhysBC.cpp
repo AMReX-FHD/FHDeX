@@ -439,6 +439,9 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
 // We test on bc_es_lo/hi, which are bc's for phi (not E)
 // 1 = Dirichlet phi -> reflect interior values of E
 // 2 = Neumann phi -> reflect and invert interior values of E
+// this is different from the generic PhysBC routines since it computes
+// values extrapolted to the boundary (useful for Perskin kernel interpolation)
+// rather than fill ghost cells with values ON the boundary
 void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     
 #if (AMREX_SPACEDIM >= 2)
