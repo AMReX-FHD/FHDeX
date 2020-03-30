@@ -27,16 +27,19 @@ void BCPhysToMath(int type, Vector<int>& bc_lo, Vector<int>& bc_hi);
 ///////////////////////////
 // in ConvertStag.cpp
 
-void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
-                     MultiFab& cc, int cc_comp);
+void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
+                     MultiFab& cc_in, int cc_in_comp);
 
-void AverageCCToFace(const MultiFab& cc, int cc_comp,
-                     std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
+void AverageCCToFace(const MultiFab& cc_in, int cc_in_comp,
+                     std::array<MultiFab, AMREX_SPACEDIM>& face_in, int face_in_comp,
                      int ncomp);
 
-void ShiftFaceToCC(const MultiFab& face, int face_comp,
-                     MultiFab& cc, int cc_comp,
-                     int ncomp);
+void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
+                   MultiFab& cc_in, int cc_in_comp,
+                   int ncomp);
+
+void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in,
+                     int scomp, int ncomp, int varType, const Geometry& geom);
 
 ///////////////////////////
 // in ComputeDivAndGrad.cpp
@@ -48,7 +51,8 @@ void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi
 void ComputeGrad(const MultiFab & phi, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
                  int start_incomp, int start_outcomp, int ncomp, const Geometry & geom);
 
-void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, const Geometry& geom);
+void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
+                        const Geometry& geom);
 
 ///////////////////////////
 // in Debug.cpp
