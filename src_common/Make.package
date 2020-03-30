@@ -8,6 +8,7 @@ CEXE_headers += common_namespace.H
 CEXE_headers += common_namespace_declarations.H
 CEXE_headers += species.H
 
+CEXE_sources += BCPhysToMath.cpp
 CEXE_sources += ConvertStag.cpp
 CEXE_sources += ComputeAverages.cpp
 CEXE_sources += ComputeBasicStats.cpp

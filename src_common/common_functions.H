@@ -7,6 +7,7 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
+#include <AMReX_BC_TYPES.H>
 
 #include "common_functions_F.H"
 #include "common_namespace.H"
@@ -16,6 +17,12 @@ using namespace amrex;
 
 // copy contents of common_params_module to C++ common namespace
 void InitializeCommonNamespace();
+
+///////////////////////////
+// in BCPhysToMath.cpp
+void BCPhysToMath(int type, Vector<int>& bc_lo, Vector<int>& bc_hi);
+
+///////////////////////////
 
 ///////////////////////////
 // in ConvertStag.cpp
