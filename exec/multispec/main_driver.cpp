@@ -250,14 +250,23 @@ void main_driver(const char* argv)
     //=====================================================================
 
     // initial Temp and Temp_ed
-    //
-    //
-    //
+    Temp.setVal(T_init[0]); // replace with more general initialization routine
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(Temp,Temp_ed[0],0,1,2,geom);
+    }
+    else {
+        AverageCCToEdge(Temp,Temp_ed,0,1,2,geom);
+    }
 
     // initialize eta and kappa
-    //
-    //
-    //
+    eta.setVal(visc_coef); // replace with more general initialization routine
+    kappa.setVal(0.); // replace with more general initialization routine
+    if (AMREX_SPACEDIM == 2) {
+        AverageCCToNode(eta,eta_ed[0],0,1,1,geom);
+    }
+    else {
+        AverageCCToEdge(eta,eta_ed,0,1,1,geom);
+    }
 
     // now that we have eta, we can initialize the inhomogeneous velocity bc's
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
@@ -266,9 +275,12 @@ void main_driver(const char* argv)
     //
 
     // velocity boundary conditions
-    //
-    //
-    //
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MultiFABPhysBCDomainVel(umac[i],geom,i);
+        MultiFABPhysBCMacVel(umac[i],geom,i);
+        umac[i].FillBoundary(geom.periodicity());
+        umac[i].OverrideSync(geom.periodicity());
+    }
 
     if (restart < 0) {
 

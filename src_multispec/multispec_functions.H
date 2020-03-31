@@ -89,10 +89,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 			   MultiFab& molarconc,
 			   MultiFab& molmtot);
 
-// compute rhotot from rho in VALID REGION
-void ComputeRhotot(const MultiFab& rho,
-		   MultiFab& rhotot);
-
 void ComputeGamma(const MultiFab& molarconc,
 		  const MultiFab& Hessian,
 		  MultiFab& Gamma);
@@ -117,6 +113,18 @@ void ComputeRhoWChi(const MultiFab& rho,
 
 void MatvecMul(MultiFab& x,
 	       const MultiFab& A);
+
+/////////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////////
+// in RhoUtil.cpp
+// compute rhotot from rho in VALID REGION
+
+void ComputeRhotot(const MultiFab& rho, MultiFab& rhotot);
+
+void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab conc, int rho_to_c);
+
 
 /////////////////////////////////////////////////////////////////////////////////
 

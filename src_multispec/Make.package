@@ -13,4 +13,5 @@ CEXE_sources   += DiffusiveMassFluxdiv.cpp
 CEXE_sources   += MassFluxUtil.cpp
 CEXE_sources   += MatvecMul.cpp
 CEXE_sources   += multispec_functions.cpp
+CEXE_sources   += RhoUtil.cpp
 CEXE_sources   += StochMassFlux.cpp

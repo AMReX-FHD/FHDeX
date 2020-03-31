@@ -1,6 +1,5 @@
-#include "multispec_functions.H"
-
 #include "common_functions.H"
+#include "multispec_functions.H"
 
 using namespace amrex;
 
@@ -23,20 +22,6 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 				BL_TO_FORTRAN_ANYD(rhotot[mfi]),
 				BL_TO_FORTRAN_ANYD(molarconc[mfi]),
 				BL_TO_FORTRAN_ANYD(molmtot[mfi]));
-    }
-
-}
-
-// compute rhotot from rho in VALID REGION
-void ComputeRhotot(const MultiFab& rho,
-		   MultiFab& rhotot)
-{
-  
-    BL_PROFILE_VAR("ComputeRhotot()",ComputeRhotot);
-
-    rhotot.setVal(0.0);
-    for (int i=0; i<nspecies; i++) {
-        MultiFab::Add(rhotot,rho,i,0,1,0);
     }
 
 }
