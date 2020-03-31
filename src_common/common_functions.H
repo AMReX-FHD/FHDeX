@@ -15,6 +15,15 @@
 using namespace common;
 using namespace amrex;
 
+#ifndef _num_edge_
+#define _num_edge_
+#if (AMREX_SPACEDIM == 2)
+    const int NUM_EDGE = 1;
+#elif (AMREX_SPACEDIM == 3)
+    const int NUM_EDGE = 3;
+#endif
+#endif
+
 // copy contents of common_params_module to C++ common namespace
 void InitializeCommonNamespace();
 
@@ -39,6 +48,9 @@ void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
                    int ncomp);
 
 void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in,
+                     int scomp, int ncomp, int varType, const Geometry& geom);
+
+void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge_in,
                      int scomp, int ncomp, int varType, const Geometry& geom);
 
 ///////////////////////////

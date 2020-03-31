@@ -6,7 +6,7 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
 
     BL_PROFILE_VAR("AverageFaceToCC()",AverageFaceToCC);
 
-    // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
+    // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.tilebox();
@@ -33,7 +33,14 @@ void AverageCCToFace(const MultiFab& cc_in, int cc_comp,
 
     BL_PROFILE_VAR("AverageCCToFace()",AverageCCToFace);
 
-    // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
+    int ng = face_in[0].nGrow();
+    int ng_c = cc_in.nGrow();
+
+    if (ng >= ng_c) {
+        Abort("AverageCCToFace requires ng < ng_c");
+    }
+
+    // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Array4<Real const> & cc = cc_in.array(mfi);
@@ -42,9 +49,9 @@ void AverageCCToFace(const MultiFab& cc_in, int cc_comp,
                      const Array4<Real> & facey = face_in[1].array(mfi);,
                      const Array4<Real> & facez = face_in[2].array(mfi););
 
-        AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
-                     const Box & bx_y = mfi.nodaltilebox(1);,
-                     const Box & bx_z = mfi.nodaltilebox(2););
+        AMREX_D_TERM(const Box & bx_x = mfi.grownnodaltilebox(0,ng);,
+                     const Box & bx_y = mfi.grownnodaltilebox(1,ng);,
+                     const Box & bx_z = mfi.grownnodaltilebox(2,ng););
 
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
@@ -77,7 +84,7 @@ void ShiftFaceToCC(const MultiFab& face_in, int face_comp,
         Abort("ShiftFaceToCC requires a face-centered MultiFab");
     }
 
-    // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
+    // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Box& bx = mfi.tilebox();
@@ -99,6 +106,13 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
 
     BL_PROFILE_VAR("AverageCCToNode()",AverageCCToNode);
 
+    int ng = node_in.nGrow();
+    int ng_c = cc_in.nGrow();
+
+    if (ng >= ng_c) {
+        Abort("AverageCCToNode requires ng < ng_c");
+    }
+    
     // Physical Domain
     Box dom(geom.Domain());
     
@@ -108,9 +122,7 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
     // compute mathematical boundary conditions
     BCPhysToMath(varType,bc_lo,bc_hi);
 
-    int ng = node_in.nGrow();
-
-    // Loop over boxes (make sure mfi takes a cell-centered multifab as an argument)
+    // Loop over boxes
     for (MFIter mfi(node_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         const Array4<Real const> & cc = cc_in.array(mfi);
@@ -225,4 +237,128 @@ void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in, int scomp, int nc
 #endif
         
     } // end MFIter
+}
+
+
+void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge_in, int scomp, int ncomp, int varType,
+                     const Geometry& geom)
+{
+
+    BL_PROFILE_VAR("AverageCCToNode()",AverageCCToNode);
+
+    int ng = edge_in[0].nGrow();
+    int ng_c = cc_in.nGrow();
+
+    if (ng >= ng_c) {
+        Abort("AverageCCToEdge requires ng < ng_c");
+    }
+    
+    // Physical Domain
+    Box dom(geom.Domain());
+    
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+
+    // compute mathematical boundary conditions
+    BCPhysToMath(varType,bc_lo,bc_hi);
+
+#if 0
+    
+    // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
+    for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        const Array4<Real const> & cc = cc_in.array(mfi);
+        
+        const Array4<Real> & edge_xy = edge_in[0].array(mfi);
+        const Array4<Real> & edge_xz = edge_in[1].array(mfi);
+        const Array4<Real> & edge_yz = edge_in[2].array(mfi);
+
+        const Box& bx = mfi.growntilebox(ng);
+        
+        amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            // average to nodes
+            node(i,j,k,scomp+n) = 0.125*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i,j,k-1,scomp+n)
+                                 +cc(i-1,j-1,k,scomp+n)+cc(i-1,j,k-1,scomp+n)+cc(i,j-1,k-1,scomp+n)+cc(i-1,j-1,k-1,scomp+n));
+        });
+
+        // boundary conditions
+        // note: at physical boundaries,
+        // the value in ghost cells represents the value ON the boundary
+        if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) {
+            if (bx.smallEnd(0) <= dom.smallEnd(0)) {
+                int lo = dom.smallEnd(0);
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i <= lo) {
+                        node(i,j,k,scomp+n) = 0.25*(cc(lo-1,j,k,scomp+n) + cc(lo-1,j-1,k,scomp+n) + cc(lo-1,j,k-1,scomp+n) + cc(lo-1,j-1,k-1,scomp+n));
+                    }
+                });
+            }
+        }
+
+        if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) {
+            if (bx.bigEnd(0) >= dom.bigEnd(0)+1) {
+                int hi = dom.bigEnd(0);
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i >= hi+1) {
+                        node(i,j,k,scomp+n) = 0.25*(cc(hi+1,j,k,scomp+n) + cc(hi+1,j-1,k,scomp+n) + cc(hi+1,j,k-1,scomp+n) + cc(hi+1,j-1,k-1,scomp+n));
+                    }
+                });
+            }
+        }
+        
+        if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) {
+            if (bx.smallEnd(1) <= dom.smallEnd(1)) {
+                int lo = dom.smallEnd(1);
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j <= lo) {
+                        node(i,j,k,scomp+n) = 0.25*(cc(i,lo-1,k,scomp+n) + cc(i-1,lo-1,k,scomp+n) + cc(i,lo-1,k-1,scomp+n) + cc(i-1,lo-1,k-1,scomp+n));
+                    }
+                });
+            }
+        }
+
+        if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) {
+            if (bx.bigEnd(1) >= dom.bigEnd(1)+1) {
+                int hi = dom.bigEnd(1);
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j >= hi+1) {
+                        node(i,j,k,scomp+n) = 0.25*(cc(i,hi+1,k,scomp+n) + cc(i-1,hi+1,k,scomp+n) + cc(i,hi+1,k-1,scomp+n) + cc(i-1,hi+1,j-1,scomp+n));
+                    }
+                });
+            }
+        }
+
+        if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
+            if (bx.smallEnd(2) <= dom.smallEnd(2)) {
+                int lo = dom.smallEnd(2);
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k <= lo) {
+                        node(i,j,k,scomp+n) = 0.25*(cc(i,j,lo-1,scomp+n) + cc(i,j-1,lo-1,scomp+n) + cc(i-1,j,lo-1,scomp+n) + cc(i-1,j-1,lo-1,scomp+n));
+                    }
+                });
+            }
+        }
+
+        if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) {
+            if (bx.bigEnd(2) >= dom.bigEnd(2)+1) {
+                int hi = dom.bigEnd(2);
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k >= hi+1) {
+                        node(i,j,k,scomp+n) = 0.25*(cc(i,j,hi+1,scomp+n) + cc(i,j-1,hi+1,scomp+n) + cc(i-1,j,hi+1,scomp+n) + cc(i-1,j-1,hi+1,scomp+n));
+                    }
+                });
+            }
+        }
+                
+    } // end MFIter
+
+#endif
+    
 }
