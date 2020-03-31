@@ -246,8 +246,15 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
 
     BL_PROFILE_VAR("AverageCCToNode()",AverageCCToNode);
 
+    if (AMREX_SPACEDIM != 3) {
+        Abort("AverageCCToEdge requires AMREX_SPACEDIM=3");
+    }
+    
     int ng = edge_in[0].nGrow();
     int ng_c = cc_in.nGrow();
+
+    // for construction of xy/xz/yz nodal tileboxes
+    IntVect ng_vect = edge_in[0].nGrowVect();
 
     if (ng >= ng_c) {
         Abort("AverageCCToEdge requires ng < ng_c");
@@ -261,8 +268,6 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
 
     // compute mathematical boundary conditions
     BCPhysToMath(varType,bc_lo,bc_hi);
-
-#if 0
     
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -273,92 +278,160 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
         const Array4<Real> & edge_xz = edge_in[1].array(mfi);
         const Array4<Real> & edge_yz = edge_in[2].array(mfi);
 
-        const Box& bx = mfi.growntilebox(ng);
-        
-        amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
-        {
-            // average to nodes
-            node(i,j,k,scomp+n) = 0.125*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i,j,k-1,scomp+n)
-                                 +cc(i-1,j-1,k,scomp+n)+cc(i-1,j,k-1,scomp+n)+cc(i,j-1,k-1,scomp+n)+cc(i-1,j-1,k-1,scomp+n));
-        });
+        const Box& bx_xy = mfi.tilebox(nodal_flag_xy,ng_vect);
+        const Box& bx_xz = mfi.tilebox(nodal_flag_xz,ng_vect);
+        const Box& bx_yz = mfi.tilebox(nodal_flag_yz,ng_vect);
 
+
+        amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            edge_xy(i,j,k,scomp+n) = 0.25*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i-1,j-1,k,scomp+n));
+        },
+                           bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            edge_xz(i,j,k,scomp+n) = 0.25*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n)+cc(i,j,k-1,scomp+n)+cc(i-1,j,k-1,scomp+n));
+        },
+                           bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            edge_yz(i,j,k,scomp+n) = 0.25*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n)+cc(i,j,k-1,scomp+n)+cc(i,j-1,k-1,scomp+n));
+        });
+    
         // boundary conditions
         // note: at physical boundaries,
         // the value in ghost cells represents the value ON the boundary
+
+        // lo-x
         if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) {
-            if (bx.smallEnd(0) <= dom.smallEnd(0)) {
+            if (bx_xy.smallEnd(0) <= dom.smallEnd(0)) {
                 int lo = dom.smallEnd(0);
-                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i <= lo) {
-                        node(i,j,k,scomp+n) = 0.25*(cc(lo-1,j,k,scomp+n) + cc(lo-1,j-1,k,scomp+n) + cc(lo-1,j,k-1,scomp+n) + cc(lo-1,j-1,k-1,scomp+n));
+                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(lo-1,j,k,scomp+n)+cc(lo-1,j-1,k,scomp+n));
+                    }
+                });
+            }
+            if (bx_xz.smallEnd(0) <= dom.smallEnd(0)) {
+                int lo = dom.smallEnd(0);
+                amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i <= lo) {
+                        edge_xz(i,j,k,scomp+n) = 0.50*(cc(lo-1,j,k,scomp+n)+cc(lo-1,j,k-1,scomp+n));
                     }
                 });
             }
         }
 
+        // hi-x
         if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) {
-            if (bx.bigEnd(0) >= dom.bigEnd(0)+1) {
+            if (bx_xy.bigEnd(0) >= dom.smallEnd(0)+1) {
                 int hi = dom.bigEnd(0);
-                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i >= hi+1) {
-                        node(i,j,k,scomp+n) = 0.25*(cc(hi+1,j,k,scomp+n) + cc(hi+1,j-1,k,scomp+n) + cc(hi+1,j,k-1,scomp+n) + cc(hi+1,j-1,k-1,scomp+n));
+                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(hi+1,j,k,scomp+n)+cc(hi+1,j-1,k,scomp+n));
+                    }
+                });
+            }
+            if (bx_xz.bigEnd(0) <= dom.smallEnd(0)+1) {
+                int hi = dom.bigEnd(0);
+                amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i >= hi+1) {
+                        edge_xz(i,j,k,scomp+n) = 0.5*(cc(hi+1,j,k,scomp+n)+cc(hi+1,j,k-1,scomp+n));
                     }
                 });
             }
         }
-        
+
+        // lo-y
         if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) {
-            if (bx.smallEnd(1) <= dom.smallEnd(1)) {
+            if (bx_xy.smallEnd(1) <= dom.smallEnd(1)) {
                 int lo = dom.smallEnd(1);
-                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j <= lo) {
-                        node(i,j,k,scomp+n) = 0.25*(cc(i,lo-1,k,scomp+n) + cc(i-1,lo-1,k,scomp+n) + cc(i,lo-1,k-1,scomp+n) + cc(i-1,lo-1,k-1,scomp+n));
+                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(i,lo-1,k,scomp+n)+cc(i-1,lo-1,k,scomp+n));
+                    }
+                });
+            }
+            if (bx_yz.smallEnd(1) <= dom.smallEnd(1)) {
+                int lo = dom.smallEnd(1);
+                amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j <= lo) {
+                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,lo-1,k,scomp+n)+cc(i,lo-1,k-1,scomp+n));
                     }
                 });
             }
         }
 
+        // hi-y
         if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) {
-            if (bx.bigEnd(1) >= dom.bigEnd(1)+1) {
+            if (bx_xy.bigEnd(1) <= dom.bigEnd(1)) {
                 int hi = dom.bigEnd(1);
-                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(bx_xy, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j >= hi+1) {
-                        node(i,j,k,scomp+n) = 0.25*(cc(i,hi+1,k,scomp+n) + cc(i-1,hi+1,k,scomp+n) + cc(i,hi+1,k-1,scomp+n) + cc(i-1,hi+1,j-1,scomp+n));
+                        edge_xy(i,j,k,scomp+n) = 0.5*(cc(i,hi+1,k)+cc(i-1,hi+1,k));
+                    }
+                });
+            }
+            if (bx_yz.bigEnd(1) <= dom.bigEnd(1)) {
+                int hi = dom.bigEnd(1);
+                amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j >= hi+1) {
+                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,hi+1,k)+cc(i,hi+1,k-1));
                     }
                 });
             }
         }
 
+        // lo-z
         if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
-            if (bx.smallEnd(2) <= dom.smallEnd(2)) {
+            if (bx_xz.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
-                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k <= lo) {
-                        node(i,j,k,scomp+n) = 0.25*(cc(i,j,lo-1,scomp+n) + cc(i,j-1,lo-1,scomp+n) + cc(i-1,j,lo-1,scomp+n) + cc(i-1,j-1,lo-1,scomp+n));
+                        edge_xz(i,j,k,scomp+n) = 0.5*(cc(i,j,lo-1)+cc(i-1,j,lo-1));
+                    }
+                });
+            }
+            if (bx_yz.smallEnd(2) <= dom.smallEnd(2)) {
+                int lo = dom.smallEnd(2);
+                amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k <= lo) {
+                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,j,lo-1)+cc(i,j-1,lo-1));
                     }
                 });
             }
         }
 
+        // hi-z
         if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) {
-            if (bx.bigEnd(2) >= dom.bigEnd(2)+1) {
+            if (bx_xz.bigEnd(2) <= dom.bigEnd(2)) {
                 int hi = dom.bigEnd(2);
-                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                amrex::ParallelFor(bx_xz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k >= hi+1) {
-                        node(i,j,k,scomp+n) = 0.25*(cc(i,j,hi+1,scomp+n) + cc(i,j-1,hi+1,scomp+n) + cc(i-1,j,hi+1,scomp+n) + cc(i-1,j-1,hi+1,scomp+n));
+                        edge_xz(i,j,k,scomp+n) = 0.5*(cc(i,j,hi+1)+cc(i-1,j,hi+1));
                     }
                 });
             }
-        }
+            if (bx_yz.bigEnd(2) <= dom.bigEnd(2)) {
+                int hi = dom.bigEnd(2);
+                amrex::ParallelFor(bx_yz, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k >= hi+1) {
+                        edge_yz(i,j,k,scomp+n) = 0.5*(cc(i,j,hi+1)+cc(i,j-1,hi+1));
+                    }
+                });
+            }
+        }                        
                 
     } // end MFIter
-
-#endif
     
 }
