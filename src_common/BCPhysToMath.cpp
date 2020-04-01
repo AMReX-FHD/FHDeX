@@ -6,6 +6,7 @@
 
 void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi) {
 
+    // varType 0: pressure
     // varType 1: mass
     // varType 2: temperature
     // varType 3: electric potential
@@ -15,7 +16,19 @@ void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc
         bc_lo[i] = bc_hi[i] = INT_DIR;
     }
     
-    if (varType == 1) { // MASS
+    if (varType == 0) { // PRESSURE
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            if (bc_vel_lo[i] == 1 || bc_vel_lo[i] == 2) {
+                // wall -> first-order extrapolation
+                bc_lo[i] = FOEXTRAP;
+            }
+            if (bc_vel_hi[i] == 1 || bc_vel_hi[i] == 2) {
+                // wall -> first-order extrapolation
+                bc_hi[i] = FOEXTRAP;
+            }
+        }
+    }
+    else if (varType == 1) { // MASS
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_mass_lo[i] == 1) {
                 // wall -> first-order extrapolation
