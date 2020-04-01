@@ -1,8 +1,12 @@
 #include "common_functions.H"
 
-// Fill 1 ghost cell for pressure based on the velocity boundary conditions.
-// We test on bc_vel_lo/hi.  If they are slip or no-slip conditions
-// we use homogeneous Neumann conditions
+
+// Fills in all ghost cells to the same value, which is the value AT the boundary.
+// FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
+// EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
+
+// works only for pressure right now, but will generalize later for all variable types
+
 void MultiFabPhysBCPres(MultiFab& phi, const Geometry& geom) {
 
     if (geom.isAllPeriodic()) {
@@ -12,10 +16,12 @@ void MultiFabPhysBCPres(MultiFab& phi, const Geometry& geom) {
     // Physical Domain
     Box dom(geom.Domain());
 
+    int ng = phi.nGrow();
+
     for (MFIter mfi(phi, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // one ghost cell
-        Box bx = mfi.growntilebox(1);
+        Box bx = mfi.growntilebox(ng);
 
         const Array4<Real>& data = phi.array(mfi);
 
@@ -26,51 +32,54 @@ void MultiFabPhysBCPres(MultiFab& phi, const Geometry& geom) {
         // bc_vel check is to see if we have a wall bc
         // bx/dom comparison is to see if the grid touches a wall        
         if (((bc_vel_lo[0] == 1) || (bc_vel_lo[0] == 2)) && (bx.smallEnd(0) < dom.smallEnd(0))) {
+            int lo = dom.smallEnd(0);
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (i < dom.smallEnd(0)) {
-                    data(i,j,k) = data(-i,j,k);
+                if (i < lo) {
+                    data(i,j,k) = data(lo,j,k);
                 }
             });
         }
         
         if (((bc_vel_hi[0] == 1) || (bc_vel_hi[0] == 2)) && (bx.bigEnd(0) > dom.bigEnd(0))) {
+            int hi = dom.bigEnd(0);
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (i > dom.bigEnd(0)) {
-                    data(i,j,k) = data(2*dom.bigEnd(0)-i+1,j,k);
+                if (i > hi) {
+                    data(i,j,k) = data(hi,j,k);
                 }
             });
         }
-
 
 #if (AMREX_SPACEDIM >= 2)
         //___________________________________________________________________________
         // Apply y-physbc to data
         if (((bc_vel_lo[1] == 1) || (bc_vel_lo[1] == 2)) && (bx.smallEnd(1) < dom.smallEnd(1))) {
+            int lo = dom.smallEnd(1);
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (j < dom.smallEnd(1)) {
-                    data(i,j,k) = data(i,-j,k);
+                if (j < lo) {
+                    data(i,j,k) = data(i,lo,k);
                 }
             });
         }
 
         if (((bc_vel_hi[1] == 1) || (bc_vel_hi[1] == 2)) && (bx.bigEnd(1) > dom.bigEnd(1))) {
+            int hi = dom.bigEnd(1);
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (j > dom.bigEnd(1)) {
-                    data(i,j,k) = data(i,2*dom.bigEnd(1)-j+1,k);
+                if (j > hi) {
+                    data(i,j,k) = data(i,hi,k);
                 }
             });
-    }
+        }
 #endif
-
 
 #if (AMREX_SPACEDIM >= 3)
         //___________________________________________________________________________
         // Apply z-physbc to data
         if (((bc_vel_lo[2] == 1) || (bc_vel_lo[2] == 2)) && (bx.smallEnd(2) < dom.smallEnd(2))) {
+            int lo = dom.smallEnd(2);
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
                 if (k < dom.smallEnd(2)) {
@@ -80,10 +89,11 @@ void MultiFabPhysBCPres(MultiFab& phi, const Geometry& geom) {
         }
 
         if (((bc_vel_hi[2] == 1) || (bc_vel_hi[2] == 2)) && (bx.bigEnd(2) > dom.bigEnd(2))) {
+            int hi = dom.bigEnd(2);
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (k > dom.bigEnd(2)) {
-                    data(i,j,k) = data(i,j,2*dom.bigEnd(2)-k+1);
+                if (k > hi) {
+                    data(i,j,k) = data(i,j,hi);
                 }
             });
         }
