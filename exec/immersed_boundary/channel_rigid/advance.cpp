@@ -173,7 +173,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFabPhysBCPres(tracer, geom);
+    MultiFabPhysBC(tracer, geom, 1);
 
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -183,7 +183,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFabPhysBCPres(tracerPred, geom);
+    MultiFabPhysBC(tracerPred, geom, 1);
 
     MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -391,10 +391,10 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFabPhysBCPres(Lumac[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFabPhysBCPres(advFluxdiv[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
     }
 
 
@@ -502,13 +502,13 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFabPhysBCPres(Lumac[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFabPhysBCPres(advFluxdiv[d], d, geom);
-
+        // MultiFabPhysBC fixme face-centered data
+        
         advFluxdivPred[d].FillBoundary(geom.periodicity());
-        MultiFabPhysBCPres(advFluxdivPred[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
     }
 
 
@@ -577,11 +577,11 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // // // Remove non-divergence free parts of the residual
         // // p_f.mult(-1., 0);
-        // // MultiFabPhysBCPres(p_f, geom);
+        // // MultiFabPhysBC(p_f, geom, 0);
 
         // // MacProj(ones_fc, p_f, tmp_pf, geom, 1);
         // // tmp_pf.FillBoundary(geom.periodicity());
-        // // MultiFabPhysBCPres(tmp_pf, geom);
+        // // MultiFabPhysBC(tmp_pf, geom, 0);
 
         // // SubtractWeightedGradP(tmp_ibm_f, ones_fc, tmp_pf, geom);
         // // MultiFab::Add(p_ibm_1, tmp_pf, 0, 0, 1, 1);
