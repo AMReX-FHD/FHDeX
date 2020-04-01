@@ -62,8 +62,8 @@ void DiffusiveMassFlux(const MultiFab& rho,
                  Gamma_face[1].define(convert(ba,nodal_flag_y), dmap, nspecies2, 0);,
                  Gamma_face[2].define(convert(ba,nodal_flag_z), dmap, nspecies2, 0););
 
-    AverageCCToFace(rhoWchi, 0, rhoWchi_face, 0, nspecies2);
-    AverageCCToFace(Gamma, 0, Gamma_face, 0, nspecies2);
+    AverageCCToFace(rhoWchi, rhoWchi_face, 0, nspecies2);
+    AverageCCToFace(Gamma, Gamma_face, 0, nspecies2);
     // Note: Add shifting option?
 
     //Computes gradient at cell faces of cell centred scalar

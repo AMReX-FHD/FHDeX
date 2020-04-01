@@ -39,9 +39,9 @@ void BCPhysToMath(int type, Vector<int>& bc_lo, Vector<int>& bc_hi);
 void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
                      MultiFab& cc_in, int cc_in_comp);
 
-void AverageCCToFace(const MultiFab& cc_in, int cc_in_comp,
-                     std::array<MultiFab, AMREX_SPACEDIM>& face_in, int face_in_comp,
-                     int ncomp);
+void AverageCCToFace(const MultiFab& cc_in,
+                     std::array<MultiFab, AMREX_SPACEDIM>& face_in,
+                     int scomp, int ncomp);
 
 void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
                    MultiFab& cc_in, int cc_in_comp,

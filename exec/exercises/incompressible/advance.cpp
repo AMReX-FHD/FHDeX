@@ -233,7 +233,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // PREDICTOR STEP (heun's method: part 1)
   // compute advective term
-  AverageCCToFace(rhotot, 0, rhotot_face, 0, 1);
+  AverageCCToFace(rhotot, rhotot_face, 0, 1);
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 0);
     MultiFab::Multiply(uMom[d], rhotot_face[d], 0, 0, 1, 0);
@@ -320,7 +320,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   //////////////////////////////////////////////////
 
   // Compute predictor advective term
-  AverageCCToFace(rhotot, 0, rhotot_face, 0, 1);
+  AverageCCToFace(rhotot, rhotot_face, 0, 1);
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     umacNew[d].FillBoundary(geom.periodicity());
     MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);

@@ -813,8 +813,8 @@ void StochMomFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac
     }
 
     // NOTE: these only operate on valid cells
-    AverageCCToFace(rhotot, 0, rhotot_fc, 0, 1);
-    AverageCCToFace(Temp,   0, Temp_fc,   0, 1);
+    AverageCCToFace(rhotot, rhotot_fc, 0, 1);
+    AverageCCToFace(Temp,   Temp_fc,   0, 1);
 
     // Convert umac to momenta, rho*umac
     for (int d=0; d<AMREX_SPACEDIM; d++) {

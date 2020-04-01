@@ -26,11 +26,9 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
     }
 }
 
-void AverageCCToFace(const MultiFab& cc_in, int cc_comp,
-                     std::array<MultiFab, AMREX_SPACEDIM>& face_in, int face_comp,
-                     int ncomp)
+void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>& face_in, 
+                     int scomp, int ncomp)
 {
-
     BL_PROFILE_VAR("AverageCCToFace()",AverageCCToFace);
 
     int ng = face_in[0].nGrow();
@@ -55,17 +53,17 @@ void AverageCCToFace(const MultiFab& cc_in, int cc_comp,
 
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            facex(i,j,k,face_comp+n) = 0.5*(cc(i,j,k,cc_comp+n)+cc(i-1,j,k,cc_comp+n));
+            facex(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i-1,j,k,scomp+n));
         },
                            bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            facey(i,j,k,face_comp+n) = 0.5*(cc(i,j,k,cc_comp+n)+cc(i,j-1,k,cc_comp+n));
+            facey(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i,j-1,k,scomp+n));
         }
 #if (AMREX_SPACEDIM == 3)
         ,
                            bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            facez(i,j,k,face_comp+n) = 0.5*(cc(i,j,k,cc_comp+n)+cc(i,j,k-1,cc_comp+n));
+            facez(i,j,k,scomp+n) = 0.5*(cc(i,j,k,scomp+n)+cc(i,j,k-1,scomp+n));
         }
 #endif
         );
