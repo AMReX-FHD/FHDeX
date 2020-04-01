@@ -6,10 +6,11 @@
 
 void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi) {
 
-    // varType 0: pressure
-    // varType 1: mass
-    // varType 2: temperature
-    // varType 3: electric potential
+    // varType -1: density
+    // varType  0: pressure
+    // varType  1: species
+    // varType  2: temperature
+    // varType  3: electric potential
 
     // set to interior/periodic by default; overwrite below
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
@@ -28,7 +29,7 @@ void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc
             }
         }
     }
-    else if (varType == 1) { // MASS
+    else if (varType == -1 || varType == 1) { // density or species
         for (int i=0; i<AMREX_SPACEDIM; ++i) {
             if (bc_mass_lo[i] == 1) {
                 // wall -> first-order extrapolation

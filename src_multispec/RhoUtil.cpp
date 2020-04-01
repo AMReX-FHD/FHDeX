@@ -25,7 +25,7 @@ void ComputeRhotot(const MultiFab& rho,
 
 }
 
-void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab conc, int rho_to_c)
+void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int rho_to_c)
 {
     Abort("ConvertRhoCToC: write me!");
     
@@ -60,31 +60,52 @@ void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab conc, int rh
 }
 
 void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
-    Abort("FillRhoRhototGhost FINISHME");
+
+    BoxArray ba = rho.boxArray();
+    DistributionMapping dmap = rho.DistributionMap();
+    int ng = rho.nGrow();
+
+    MultiFab conc(ba, dmap, nspecies, ng);
+
+    // rho to conc - VALID REGION ONLY
+    ConvertRhoCToC(rho,rhotot,conc,1);
+
+    // fill conc ghost cells
+    conc.FillBoundary(geom.periodicity());
+    MultiFabPhysBC(conc,geom,0,nspecies,1);
+
+    // fill rhotot ghost cells
+    FillRhototGhost(rhotot,conc,geom);
+
+    // conc to rho - INCLUDING GHOST CELLS
+    ConvertRhoCToC(rho,rhotot,conc,0);    
 }
 
 
-void FillRhototGhost(MultiFab& rhotot, const Geometry& geom) {
+void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom) {
 
     Abort("FillRhototGhost FINISHME");
     
-    rhotot.FillBoundary(geom.periodicity());
+    rhotot_in.FillBoundary(geom.periodicity());
                             
     if (geom.isAllPeriodic()) {
         return;
     }
 
     if (algorithm_type == 6) {
-
+        MultiFabPhysBC(rhotot_in,geom,0,1,-1);
         return;
-    }
-
-    
+    }    
 
     // Physical Domain
     Box dom(geom.Domain());
 
-    int ng = rhotot.nGrow();
+    int ng = rhotot_in.nGrow();
+    int ng_c = conc_in.nGrow();
+
+    if (ng_c < 1 || ng < 1) {
+        Abort("FillRhototGhost: rhotot and conc both need a ghost cell");
+    }
     
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
@@ -92,12 +113,13 @@ void FillRhototGhost(MultiFab& rhotot, const Geometry& geom) {
     // compute mathematical boundary conditions
     BCPhysToMath(1,bc_lo,bc_hi);
 
-    for (MFIter mfi(rhotot, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rhotot_in, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // one ghost cell
         Box bx = mfi.growntilebox(ng);
 
-        const Array4<Real>& data = rhotot.array(mfi);
+        const Array4<Real>& rhotot = rhotot_in.array(mfi);
+        const Array4<Real const>& conc = conc_in.array(mfi);
 
         //___________________________________________________________________________
         // Apply x-physbc to data
@@ -108,40 +130,32 @@ void FillRhototGhost(MultiFab& rhotot, const Geometry& geom) {
 
         int lo = dom.smallEnd(0);
         int hi = dom.bigEnd(0);
-        
+   
         if (bx.smallEnd(0) < lo) {
-            if (bc_lo[0] == FOEXTRAP) {
+            if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k) = data(lo,j,k);
-                    }
-                });
-            }
-            else if (bc_lo[0] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (i < lo) {
-                        data(i,j,k) = 0.;
+                        Real rhoinv = 0.;
+                        for (int n=0; n<nspecies; ++n) {
+                            rhoinv += conc(lo-1,j,k,n)/rhobar[n];
+                        }
+                        rhotot(i,j,k) = 1./rhoinv;
                     }
                 });
             }
         }
         
         if (bx.bigEnd(0) > hi) {
-            if (bc_hi[0] == FOEXTRAP) {
+            if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k) = data(hi,j,k);
-                    }
-                });
-            }
-            else if (bc_hi[0] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (i > hi) {
-                        data(i,j,k) = 0.;
+                        Real rhoinv = 0.;
+                        for (int n=0; n<nspecies; ++n) {
+                            rhoinv += conc(hi+1,j,k,n)/rhobar[n];
+                        }
+                        rhotot(i,j,k) = 1./rhoinv;
                     }
                 });
             }
@@ -155,38 +169,30 @@ void FillRhototGhost(MultiFab& rhotot, const Geometry& geom) {
         hi = dom.bigEnd(1);
         
         if (bx.smallEnd(1) < lo) {
-            if (bc_lo[1] == FOEXTRAP) {
+            if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k) = data(i,lo,k);
-                    }
-                });
-            }
-            else if (bc_lo[1] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (j < lo) {
-                        data(i,j,k) = 0.;
+                        Real rhoinv = 0.;
+                        for (int n=0; n<nspecies; ++n) {
+                            rhoinv += conc(i,lo-1,k,n)/rhobar[n];
+                        }
+                        rhotot(i,j,k) = 1./rhoinv;
                     }
                 });
             }
         }
 
         if (bx.bigEnd(1) > hi) {
-            if (bc_hi[1] == FOEXTRAP) {
+            if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k) = data(i,hi,k);
-                    }
-                });
-            }
-            else if (bc_hi[1] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (j > hi) {
-                        data(i,j,k) = 0.;
+                        Real rhoinv = 0.;
+                        for (int n=0; n<nspecies; ++n) {
+                            rhoinv += conc(i,hi+1,k,n)/rhobar[n];
+                        }
+                        rhotot(i,j,k) = 1./rhoinv;
                     }
                 });
             }
@@ -201,38 +207,30 @@ void FillRhototGhost(MultiFab& rhotot, const Geometry& geom) {
         hi = dom.bigEnd(2);
         
         if (bx.smallEnd(2) < lo) {
-            if (bc_lo[2] == FOEXTRAP) {
+            if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k) = data(i,j,lo);
-                    }
-                });
-            }
-            else if (bc_lo[2] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (k < lo) {
-                        data(i,j,k) = 0.;
+                        Real rhoinv = 0.;
+                        for (int n=0; n<nspecies; ++n) {
+                            rhoinv += conc(i,j,lo-1,n)/rhobar[n];
+                        }
+                        rhotot(i,j,k) = 1./rhoinv;
                     }
                 });
             }
         }
 
         if (bx.bigEnd(2) > hi) {
-            if (bc_hi[2] == FOEXTRAP) {
+            if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) {
                 amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
                 {
                     if (k > hi) {
-                        data(i,j,k) = data(i,j,hi);
-                    }
-                });
-            }
-            else if (bc_hi[2] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
-                {
-                    if (k > hi) {
-                        data(i,j,k) = 0.;
+                        Real rhoinv = 0.;
+                        for (int n=0; n<nspecies; ++n) {
+                            rhoinv += conc(i,j,hi+1,n)/rhobar[n];
+                        }
+                        rhotot(i,j,k) = 1./rhoinv;
                     }
                 });
             }
