@@ -82,8 +82,8 @@ void MultiFabPhysBCPres(MultiFab& phi, const Geometry& geom) {
             int lo = dom.smallEnd(2);
             amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                if (k < dom.smallEnd(2)) {
-                    data(i,j,k) = data(i,j,-k);
+                if (k < lo) {
+                    data(i,j,k) = data(i,j,lo);
                 }
             });
         }
