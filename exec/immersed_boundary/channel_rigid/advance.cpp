@@ -173,7 +173,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(tracer, geom, 1);
+    MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -183,7 +183,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(tracerPred, geom, 1);
+    MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
     MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -577,11 +577,11 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // // // Remove non-divergence free parts of the residual
         // // p_f.mult(-1., 0);
-        // // MultiFabPhysBC(p_f, geom, 0);
+        // // MultiFabPhysBC(p_f, geom, 0, 1, 0);
 
         // // MacProj(ones_fc, p_f, tmp_pf, geom, 1);
         // // tmp_pf.FillBoundary(geom.periodicity());
-        // // MultiFabPhysBC(tmp_pf, geom, 0);
+        // // MultiFabPhysBC(tmp_pf, geom, 0, 1, 0);
 
         // // SubtractWeightedGradP(tmp_ibm_f, ones_fc, tmp_pf, geom);
         // // MultiFab::Add(p_ibm_1, tmp_pf, 0, 0, 1, 1);

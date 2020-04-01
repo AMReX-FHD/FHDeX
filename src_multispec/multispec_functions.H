@@ -125,7 +125,9 @@ void ComputeRhotot(const MultiFab& rho, MultiFab& rhotot, int include_ghost=0);
 
 void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab conc, int rho_to_c);
 
+void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom);
 
+void FillRhototGhost(MultiFab& rhotot, const Geometry& geom);
 /////////////////////////////////////////////////////////////////////////////////
 
 #endif

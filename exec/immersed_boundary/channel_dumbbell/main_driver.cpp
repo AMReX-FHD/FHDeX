@@ -369,7 +369,7 @@ void main_driver(const char * argv) {
     // Ensure that ICs satisfy BCs
 
     pres.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(pres, geom, 0);
+    MultiFabPhysBC(pres, geom, 0, 1, 0);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());

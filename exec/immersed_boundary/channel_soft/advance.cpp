@@ -173,7 +173,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(tracer, geom, 1);
+    MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -183,7 +183,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(tracerPred, geom, 1);
+    MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
     MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);

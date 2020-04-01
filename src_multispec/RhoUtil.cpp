@@ -59,6 +59,185 @@ void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab conc, int rh
     }
 }
 
-// void FillRhoRhototGhost
+void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
+    Abort("FillRhoRhototGhost FINISHME");
+}
 
 
+void FillRhototGhost(MultiFab& rhotot, const Geometry& geom) {
+
+    Abort("FillRhototGhost FINISHME");
+    
+    rhotot.FillBoundary(geom.periodicity());
+                            
+    if (geom.isAllPeriodic()) {
+        return;
+    }
+
+    if (algorithm_type == 6) {
+
+        return;
+    }
+
+    
+
+    // Physical Domain
+    Box dom(geom.Domain());
+
+    int ng = rhotot.nGrow();
+    
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+
+    // compute mathematical boundary conditions
+    BCPhysToMath(1,bc_lo,bc_hi);
+
+    for (MFIter mfi(rhotot, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+
+        // one ghost cell
+        Box bx = mfi.growntilebox(ng);
+
+        const Array4<Real>& data = rhotot.array(mfi);
+
+        //___________________________________________________________________________
+        // Apply x-physbc to data
+
+        // lo-x faces
+        // bc_vel check is to see if we have a wall bc
+        // bx/dom comparison is to see if the grid touches a wall
+
+        int lo = dom.smallEnd(0);
+        int hi = dom.bigEnd(0);
+        
+        if (bx.smallEnd(0) < lo) {
+            if (bc_lo[0] == FOEXTRAP) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < lo) {
+                        data(i,j,k) = data(lo,j,k);
+                    }
+                });
+            }
+            else if (bc_lo[0] == EXT_DIR) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i < lo) {
+                        data(i,j,k) = 0.;
+                    }
+                });
+            }
+        }
+        
+        if (bx.bigEnd(0) > hi) {
+            if (bc_hi[0] == FOEXTRAP) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > hi) {
+                        data(i,j,k) = data(hi,j,k);
+                    }
+                });
+            }
+            else if (bc_hi[0] == EXT_DIR) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (i > hi) {
+                        data(i,j,k) = 0.;
+                    }
+                });
+            }
+        }
+
+#if (AMREX_SPACEDIM >= 2)
+        //___________________________________________________________________________
+        // Apply y-physbc to data
+
+        lo = dom.smallEnd(1);
+        hi = dom.bigEnd(1);
+        
+        if (bx.smallEnd(1) < lo) {
+            if (bc_lo[1] == FOEXTRAP) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < lo) {
+                        data(i,j,k) = data(i,lo,k);
+                    }
+                });
+            }
+            else if (bc_lo[1] == EXT_DIR) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j < lo) {
+                        data(i,j,k) = 0.;
+                    }
+                });
+            }
+        }
+
+        if (bx.bigEnd(1) > hi) {
+            if (bc_hi[1] == FOEXTRAP) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > hi) {
+                        data(i,j,k) = data(i,hi,k);
+                    }
+                });
+            }
+            else if (bc_hi[1] == EXT_DIR) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (j > hi) {
+                        data(i,j,k) = 0.;
+                    }
+                });
+            }
+        }
+#endif
+
+#if (AMREX_SPACEDIM >= 3)
+        //___________________________________________________________________________
+        // Apply z-physbc to data
+
+        lo = dom.smallEnd(2);
+        hi = dom.bigEnd(2);
+        
+        if (bx.smallEnd(2) < lo) {
+            if (bc_lo[2] == FOEXTRAP) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < lo) {
+                        data(i,j,k) = data(i,j,lo);
+                    }
+                });
+            }
+            else if (bc_lo[2] == EXT_DIR) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k < lo) {
+                        data(i,j,k) = 0.;
+                    }
+                });
+            }
+        }
+
+        if (bx.bigEnd(2) > hi) {
+            if (bc_hi[2] == FOEXTRAP) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > hi) {
+                        data(i,j,k) = data(i,j,hi);
+                    }
+                });
+            }
+            else if (bc_hi[2] == EXT_DIR) {
+                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                {
+                    if (k > hi) {
+                        data(i,j,k) = 0.;
+                    }
+                });
+            }
+        }
+#endif
+        
+    } // end MFIter
+}

@@ -4,7 +4,7 @@
 // Fills in all ghost cells to the same value, which is the value AT the boundary.
 // FOEXTRAP uses boundary conditions (Neumann) and 1 interior points.
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
-void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int varType) {
+void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int varType) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -40,18 +40,18 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int varType) {
         
         if (bx.smallEnd(0) < lo) {
             if (bc_lo[0] == FOEXTRAP) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k) = data(lo,j,k);
+                        data(i,j,k,scomp+n) = data(lo,j,k,scomp+n);
                     }
                 });
             }
             else if (bc_lo[0] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i < lo) {
-                        data(i,j,k) = 0.;
+                        data(i,j,k,scomp+n) = 0.;
                     }
                 });
             }
@@ -59,18 +59,18 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int varType) {
         
         if (bx.bigEnd(0) > hi) {
             if (bc_hi[0] == FOEXTRAP) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k) = data(hi,j,k);
+                        data(i,j,k,scomp+n) = data(hi,j,k,scomp+n);
                     }
                 });
             }
             else if (bc_hi[0] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (i > hi) {
-                        data(i,j,k) = 0.;
+                        data(i,j,k,scomp+n) = 0.;
                     }
                 });
             }
@@ -85,18 +85,18 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int varType) {
         
         if (bx.smallEnd(1) < lo) {
             if (bc_lo[1] == FOEXTRAP) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k) = data(i,lo,k);
+                        data(i,j,k,scomp+n) = data(i,lo,k,scomp+n);
                     }
                 });
             }
             else if (bc_lo[1] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j < lo) {
-                        data(i,j,k) = 0.;
+                        data(i,j,k,scomp+n) = 0.;
                     }
                 });
             }
@@ -104,18 +104,18 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int varType) {
 
         if (bx.bigEnd(1) > hi) {
             if (bc_hi[1] == FOEXTRAP) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k) = data(i,hi,k);
+                        data(i,j,k,scomp+n) = data(i,hi,k,scomp+n);
                     }
                 });
             }
             else if (bc_hi[1] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (j > hi) {
-                        data(i,j,k) = 0.;
+                        data(i,j,k,scomp+n) = 0.;
                     }
                 });
             }
@@ -131,18 +131,18 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int varType) {
         
         if (bx.smallEnd(2) < lo) {
             if (bc_lo[2] == FOEXTRAP) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k) = data(i,j,lo);
+                        data(i,j,k,scomp+n) = data(i,j,lo,scomp+n);
                     }
                 });
             }
             else if (bc_lo[2] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k < lo) {
-                        data(i,j,k) = 0.;
+                        data(i,j,k,scomp+n) = 0.;
                     }
                 });
             }
@@ -150,18 +150,18 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int varType) {
 
         if (bx.bigEnd(2) > hi) {
             if (bc_hi[2] == FOEXTRAP) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k > hi) {
-                        data(i,j,k) = data(i,j,hi);
+                        data(i,j,k,scomp+n) = data(i,j,hi,scomp+n);
                     }
                 });
             }
             else if (bc_hi[2] == EXT_DIR) {
-                amrex::ParallelFor(bx,[=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+                amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                 {
                     if (k > hi) {
-                        data(i,j,k) = 0.;
+                        data(i,j,k,scomp+n) = 0.;
                     }
                 });
             }

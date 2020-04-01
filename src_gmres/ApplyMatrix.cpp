@@ -49,7 +49,7 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
     }
 
     x_p.FillBoundary(geom.periodicity());
-    MultiFabPhysBC(x_p, geom, 0);
+    MultiFabPhysBC(x_p, geom, 0, 1, 0);
 
     std::array< MultiFab, AMREX_SPACEDIM > gx_p;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
