@@ -1,12 +1,18 @@
-#ifndef _multispec_test_functions_H_
-#define _multispec_test_functions_H_
+
+#include "hydro_functions.H"
 
 #include "common_functions.H"
+
 #include "gmres_functions.H"
 
-///////////////////////////
-// in AdvanceTimestepInertial.cpp
+#include "multispec_functions.H"
 
+
+#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_MultiFabUtil.H>
+
+
+// argv contains the name of the inputs file entered at the command line
 void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                              MultiFab& rho_old, MultiFab& rho_new,
                              MultiFab& rhotot_old, MultiFab& rhotot_new,
@@ -18,20 +24,11 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                              MultiFab& stoch_mass_fluxdiv_mass_fluxdiv,
                              std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
                              const Real& dt, const Real& time, const int& istep,
-                             const Geometry& geom);
+                             const Geometry& geom)
+{
+  
+  BL_PROFILE_VAR("AdvanceTimestepInertial()",AdvanceTimestepInertial);
 
-///////////////////////////
+  Real theta_alpha = 1./dt;
 
-///////////////////////////
-// in WritePlotFile.cpp
-
-void WritePlotFile(const int step,
-                   const Real time,
-                   const Geometry geom,
-                   std::array< MultiFab, AMREX_SPACEDIM >& umac,
-		   const MultiFab& rho,
-                   const MultiFab& pres);
-
-///////////////////////////
-
-#endif
+}

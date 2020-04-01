@@ -443,17 +443,17 @@ void main_driver(const char* argv)
 
     }
 
-    //Time stepping loop
-    for(int step=init_step;step<=max_step;++step) {
+    // Time stepping loop
+    for(int istep=init_step; istep<=max_step; ++istep) {
 
         Real step_strt_time = ParallelDescriptor::second();
 
         if (algorithm_type == 0) {
             // inertial
-            /*
-            advance_timestep_inertial(umac,pi,rho_old,rhotot_old,
-                                      alpha_fc,beta,gamma,beta_ed,geom,dt);
-            */
+            AdvanceTimestepInertial(umac,rho_old,rho_new,rhotot_old,rhotot_new,
+                                    pi,eta,eta_ed,kappa,Temp,Temp_ed,
+                                    diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
+                                    dt,time,istep,geom);
         }
         else if (algorithm_type == 6) {
             // boussinesq
@@ -467,7 +467,7 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 	
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+	if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
 
@@ -487,20 +487,20 @@ void main_driver(const char* argv)
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
     
-        amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
+        amrex::Print() << "Advanced step " << istep << " in " << step_stop_time << " seconds\n";
 
         time = time + dt;
 
         // write plotfile at specific intervals
-        if (plot_int > 0 && step%plot_int == 0) {
-            WritePlotFile(step,time,geom,umac,rho_new,pi);
-            if (step > n_steps_skip && struct_fact_int > 0) {
-                structFact.WritePlotFile(step,time,geom,"plt_SF");
+        if (plot_int > 0 && istep%plot_int == 0) {
+            WritePlotFile(istep,time,geom,umac,rho_new,pi);
+            if (istep > n_steps_skip && struct_fact_int > 0) {
+                structFact.WritePlotFile(istep,time,geom,"plt_SF");
             }
         }
 
         // write checkpoint at specific intervals
-        if (chk_int > 0 && step%chk_int == 0) {
+        if (chk_int > 0 && istep%chk_int == 0) {
             //
             //
             //            
