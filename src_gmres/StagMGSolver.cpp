@@ -191,13 +191,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         MultiFab::Copy(phi_fc_mg[0][d],phi_fc[d],0,0,1,0);
 
         // set values on physical boundaries
-        MultiFABPhysBCDomainVel(phi_fc_mg[0][d], geom_mg[0],d);
+        MultiFabPhysBCDomainVel(phi_fc_mg[0][d], geom_mg[0],d);
 
         // fill periodic ghost cells
         phi_fc_mg[0][d].FillBoundary(geom_mg[0].periodicity());
 
         // fill physical ghost cells
-        MultiFABPhysBCMacVel(phi_fc_mg[0][d], geom_mg[0], d);
+        MultiFabPhysBCMacVel(phi_fc_mg[0][d], geom_mg[0], d);
 
         // set rhs_fc_mg at level 1 by copying in passed-in rhs_fc
         MultiFab::Copy(rhs_fc_mg[0][d], rhs_fc[d], 0, 0, 1, 0);
@@ -299,13 +299,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                         // set values on physical boundaries
-                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
+                        MultiFabPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
 
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                         // fill physical ghost cells
-                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
+                        MultiFabPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
                     }
 
                 } // end loop over colors
@@ -349,13 +349,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 }
 
                 // set values on physical boundaries
-                MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], geom_mg[n],d);
+                MultiFabPhysBCDomainVel(Lphi_fc_mg[n][d], geom_mg[n],d);
 
                 // fill periodic ghost cells
                 Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                 // fill physical ghost cells
-                MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], geom_mg[n],d);
+                MultiFabPhysBCMacVel(Lphi_fc_mg[n][d], geom_mg[n],d);
             }
 
             // restrict/coarsen residual and put it in rhs_fc
@@ -363,7 +363,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
             for (int d=0; d<AMREX_SPACEDIM; d++) {
                 // set residual to zero on physical boundaries
-                MultiFABPhysBCDomainVel(rhs_fc_mg[n+1][d], geom_mg[n+1], d);
+                MultiFabPhysBCDomainVel(rhs_fc_mg[n+1][d], geom_mg[n+1], d);
             }
 
         }  // end loop over nlevs_mg (bottom of V-cycle)
@@ -416,13 +416,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 for (int d=0; d<AMREX_SPACEDIM; d++) {
 
                     // set values on physical boundaires
-                    MultiFABPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
+                    MultiFabPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
 
                     // fill periodic ghost cells
                     phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                     // fill physical ghost cells
-                    MultiFABPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
+                    MultiFabPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
                 }
 
             } // end loop over colors
@@ -449,13 +449,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             }
 
             // set values on physical boundaries
-            MultiFABPhysBCDomainVel(Lphi_fc_mg[n][d], geom_mg[n],d);
+            MultiFabPhysBCDomainVel(Lphi_fc_mg[n][d], geom_mg[n],d);
 
             // fill periodic ghost cells
             Lphi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
             // fill physical ghost cells
-            MultiFABPhysBCMacVel(Lphi_fc_mg[n][d], geom_mg[n],d);
+            MultiFabPhysBCMacVel(Lphi_fc_mg[n][d], geom_mg[n],d);
         }
 
         if (stag_mg_verbosity >= 3) {
@@ -471,13 +471,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
             for (int d=0; d<AMREX_SPACEDIM; ++d) {
 
                 // set values on physical boundaries
-                MultiFABPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
+                MultiFabPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
 
                 // fill periodic ghost cells
                 phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                 // fill physical ghost cells
-                MultiFABPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
+                MultiFabPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
             }
 
             // print out residual
@@ -517,13 +517,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                     for (int d=0; d<AMREX_SPACEDIM; d++) {
 
                         // set values on physical boundaries
-                        MultiFABPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
+                        MultiFabPhysBCDomainVel(phi_fc_mg[n][d], geom_mg[n],d);
 
                         // fill periodic ghost cells
                         phi_fc_mg[n][d].FillBoundary(geom_mg[n].periodicity());
 
                         // fill physical ghost cells
-                        MultiFABPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
+                        MultiFabPhysBCMacVel(phi_fc_mg[n][d], geom_mg[n],d);
                     }
 
                 } // end loop over colors
@@ -642,13 +642,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         MultiFab::Copy(phi_fc[d],phi_fc_mg[0][d],0,0,1,0);
 
         // set values on physical boundaries
-        MultiFABPhysBCDomainVel(phi_fc[d], geom,d);
+        MultiFabPhysBCDomainVel(phi_fc[d], geom,d);
 
         // fill periodic ghost cells
         phi_fc[d].FillBoundary(geom.periodicity());
 
         // fill physical ghost cells
-        MultiFABPhysBCMacVel(phi_fc[d], geom,d);
+        MultiFabPhysBCMacVel(phi_fc[d], geom,d);
     }
 
     // vcycle_counter += AMREX_SPACEDIM*stag_mg_max_vcycles;

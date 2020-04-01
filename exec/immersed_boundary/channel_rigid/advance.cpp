@@ -159,8 +159,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+        MultiFabPhysBCDomainVel(umac[i], i, geom, i);
+        MultiFabPhysBCMacVel(umac[i], i, geom, i);
     }
 
 
@@ -173,7 +173,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracer, geom);
+    MultiFabPhysBCPres(tracer, geom);
 
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -183,7 +183,7 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracerPred, geom);
+    MultiFabPhysBCPres(tracerPred, geom);
 
     MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -377,8 +377,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFabPhysBCMacVel(uMom[d], d, geom, d);
     }
 
     // advective momentum flux terms
@@ -391,10 +391,10 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(Lumac[d], d, geom);
+        MultiFabPhysBCPres(Lumac[d], d, geom);
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(advFluxdiv[d], d, geom);
+        MultiFabPhysBCPres(advFluxdiv[d], d, geom);
     }
 
 
@@ -470,8 +470,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
      for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], d, geom, d);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 1);
 
@@ -480,8 +480,8 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFabPhysBCMacVel(uMom[d], d, geom, d);
      }
 
     // advective momentum flux terms
@@ -502,13 +502,13 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(Lumac[d], d, geom);
+        MultiFabPhysBCPres(Lumac[d], d, geom);
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(advFluxdiv[d], d, geom);
+        MultiFabPhysBCPres(advFluxdiv[d], d, geom);
 
         advFluxdivPred[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(advFluxdivPred[d], d, geom);
+        MultiFabPhysBCPres(advFluxdivPred[d], d, geom);
     }
 
 
@@ -577,11 +577,11 @@ void advance(std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
         // // // Remove non-divergence free parts of the residual
         // // p_f.mult(-1., 0);
-        // // MultiFABPhysBCPres(p_f, geom);
+        // // MultiFabPhysBCPres(p_f, geom);
 
         // // MacProj(ones_fc, p_f, tmp_pf, geom, 1);
         // // tmp_pf.FillBoundary(geom.periodicity());
-        // // MultiFABPhysBCPres(tmp_pf, geom);
+        // // MultiFabPhysBCPres(tmp_pf, geom);
 
         // // SubtractWeightedGradP(tmp_ibm_f, ones_fc, tmp_pf, geom);
         // // MultiFab::Add(p_ibm_1, tmp_pf, 0, 0, 1, 1);

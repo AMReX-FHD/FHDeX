@@ -180,8 +180,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], geom, i);
-        MultiFABPhysBCMacVel(umac[i], geom, i);
+        MultiFabPhysBCDomainVel(umac[i], geom, i);
+        MultiFabPhysBCMacVel(umac[i], geom, i);
     }
 
 
@@ -193,7 +193,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracer, geom);
+    MultiFabPhysBCPres(tracer, geom);
 
     MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -203,7 +203,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracerPred, geom);
+    MultiFabPhysBCPres(tracerPred, geom);
 
     MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
     advFluxdivS.mult(dt, 1);
@@ -233,8 +233,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], geom, i);
-        MultiFABPhysBCMacVel(uMom[i], geom, i);
+        MultiFabPhysBCDomainVel(uMom[i], geom, i);
+        MultiFabPhysBCMacVel(uMom[i], geom, i);
     }
 
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
@@ -380,15 +380,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // let rho = 1
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], geom, d);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], geom, d);
-        MultiFABPhysBCMacVel(uMom[d], geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], geom, d);
+        MultiFabPhysBCMacVel(uMom[d], geom, d);
     }
 
     MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);

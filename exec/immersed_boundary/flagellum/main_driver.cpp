@@ -431,12 +431,12 @@ void main_driver(const char * argv) {
     BL_PROFILE_VAR("main_ensure initilizaction works",ICwork);
 
     pres.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(pres, geom);
+    MultiFabPhysBCPres(pres, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], geom, i);
-        MultiFABPhysBCMacVel(umac[i], geom, i);
+        MultiFabPhysBCDomainVel(umac[i], geom, i);
+        MultiFabPhysBCMacVel(umac[i], geom, i);
     }
 
     BL_PROFILE_VAR_STOP(ICwork);

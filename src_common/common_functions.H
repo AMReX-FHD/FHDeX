@@ -111,14 +111,14 @@ void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geomet
                             const int findredist=0);
 
 ///////////////////////////
-// in MultiFABPhysBC.cpp
+// in MultiFabPhysBC.cpp
 // see comments in C++ files for descriptions
 
-void MultiFABPhysBCPres(MultiFab& data, const Geometry& geom);
+void MultiFabPhysBCPres(MultiFab& data, const Geometry& geom);
 
-void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
+void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 
-void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
+void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
 
 void ZeroEdgevalWalls(MultiFab& edge, const Geometry& geom, int scomp, int ncomp);
 
@@ -128,10 +128,10 @@ void MultiFABPotentialBC(MultiFab& potential, const Geometry& geom);
 
 void MultiFABPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 
-void MultiFABPhysBCCharge(MultiFab& charge, const Geometry& geom);
+void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom);
 
-void MultiFABPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
+void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
 
-void MultiFABPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
+void MultiFabPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
 
 #endif

@@ -3,7 +3,7 @@
 // Fill 1 ghost cell for pressure based on the velocity boundary conditions.
 // We test on bc_vel_lo/hi.  If they are slip or no-slip conditions
 // we use homogeneous Neumann conditions
-void MultiFABPhysBCPres(MultiFab& phi, const Geometry& geom) {
+void MultiFabPhysBCPres(MultiFab& phi, const Geometry& geom) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -96,7 +96,7 @@ void MultiFABPhysBCPres(MultiFab& phi, const Geometry& geom) {
 // Set the value of normal ghost cells to the inverse reflection of the interior
 // We fill all the ghost cells - they are needed for Perskin kernels and
 // to avoid intermediate NaN propagation in BDS
-void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
+void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -222,7 +222,7 @@ void MultiFABPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 // Set the value of tranverse ghost cells to +/- the reflection of the interior
 // (+ for slip walls, - for no-slip)
 // We fill all the ghost cells - they are needed for Perskin kernels
-void MultiFABPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
+void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 
     if (geom.isAllPeriodic()) {
         return;
@@ -809,7 +809,7 @@ void MultiFABPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
 // for Neumann potential (bc_es==2), positive-fold-add
 // charge is cell-centered with 1 component
 // note for wall-wall corners, the folding is also done in ghost cells so we get corner charges back in
-void MultiFABPhysBCCharge(MultiFab& charge, const Geometry& geom) {
+void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
     
 #if (AMREX_SPACEDIM >= 2)
     
@@ -907,7 +907,7 @@ void MultiFABPhysBCCharge(MultiFab& charge, const Geometry& geom) {
 // We test on bc_vel_lo/hi
 // 1 =    slip -> leave value on wall alone, add in force from ghost
 // 2 = no slip -> set value on wall to zero, add in negative force from ghost cells
-void MultiFABPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim) {
+void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim) {
     
 #if (AMREX_SPACEDIM >= 2)
     
@@ -1033,7 +1033,7 @@ void MultiFABPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
     } // end MFIter
 }
 
-void MultiFABPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
+void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
     
 #if (AMREX_SPACEDIM >= 2)
     

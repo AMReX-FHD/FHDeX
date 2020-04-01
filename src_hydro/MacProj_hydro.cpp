@@ -117,8 +117,8 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
       umac[d].FillBoundary(geom.periodicity());
 
       // Do apply BCs so that all ghost cells are filled
-      MultiFABPhysBCDomainVel(umac[d], geom, d);
-      MultiFABPhysBCMacVel(umac[d], geom, d);
+      MultiFabPhysBCDomainVel(umac[d], geom, d);
+      MultiFabPhysBCMacVel(umac[d], geom, d);
     }
 }
 

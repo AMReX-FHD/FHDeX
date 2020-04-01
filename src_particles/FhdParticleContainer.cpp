@@ -527,8 +527,8 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        MultiFABPhysBCDomainStress(sourceTemp[i], geomF, i);
-        MultiFABPhysBCMacStress(sourceTemp[i], geomF, i);
+        MultiFabPhysBCDomainStress(sourceTemp[i], geomF, i);
+        MultiFabPhysBCMacStress(sourceTemp[i], geomF, i);
     }
         
     sourceTemp[0].SumBoundary(geomF.periodicity());
@@ -1131,7 +1131,7 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
 
     }
 
-    MultiFABPhysBCCharge(chargeTemp, geomP);
+    MultiFabPhysBCCharge(chargeTemp, geomP);
 
     chargeTemp.SumBoundary(geomP.periodicity());
     //massTemp.SumBoundary(geomP.periodicity());

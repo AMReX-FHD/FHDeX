@@ -70,8 +70,8 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     GMRES(gmres_rhs_u,gmres_rhs_p,umac,pres,alpha_fc,beta,beta_ed,gamma,theta_alpha,geom,norm_pre_rhs);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
-        MultiFABPhysBCDomainVel(umac[i], geom, i);
-        MultiFABPhysBCMacVel(umac[i], geom, i);
+        MultiFabPhysBCDomainVel(umac[i], geom, i);
+        MultiFabPhysBCMacVel(umac[i], geom, i);
         umac[i].FillBoundary(geom.periodicity());
     }
 }

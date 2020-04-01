@@ -276,8 +276,8 @@ void main_driver(const char* argv)
 
     // velocity boundary conditions
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        MultiFABPhysBCDomainVel(umac[i],geom,i);
-        MultiFABPhysBCMacVel(umac[i],geom,i);
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        MultiFabPhysBCMacVel(umac[i],geom,i);
         umac[i].FillBoundary(geom.periodicity());
         umac[i].OverrideSync(geom.periodicity());
     }

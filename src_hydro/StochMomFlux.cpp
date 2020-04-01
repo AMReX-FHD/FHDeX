@@ -793,7 +793,7 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
     // m_force does not have ghost cells
     // set the value on physical boundaries to zero
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFABPhysBCDomainVel(m_force[d], geom, d);
+        MultiFabPhysBCDomainVel(m_force[d], geom, d);
     }
 }
 
@@ -889,8 +889,8 @@ void StochMomFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         m_old[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(m_old[i], geom,i);
-        MultiFABPhysBCMacVel(m_old[i], geom, i);
+        MultiFabPhysBCDomainVel(m_old[i], geom,i);
+        MultiFabPhysBCMacVel(m_old[i], geom, i);
     }
 }
 
