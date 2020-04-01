@@ -825,10 +825,12 @@ void main_driver(const char* argv)
           }
         }
 
-        // AJN - should this be an if/else fluid_tog==2? DRL - No.
-    	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-        if(fluid_tog ==2) {
-            advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
+        if (fluid_tog == 1) {
+            advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+        }
+        else if(fluid_tog ==2) {
+            advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC,
+                           alpha_fc, beta, gamma, beta_ed, geom,dt);
         }
 
         // total particle move (1=single step, 2=midpoint)

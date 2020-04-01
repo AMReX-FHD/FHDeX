@@ -891,12 +891,6 @@ void main_driver(const char* argv)
         }
         else if (fluid_tog == 2) {
             Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
-/*            
-            MultiFab tracer(ba, dmap, 1,1);
-            tracer.setVal(0.);
-            advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC,
-                           alpha_fc, beta, gamma, beta_ed, geom,dt);
-*/
         }
 
         // total particle move (1=single step, 2=midpoint)
