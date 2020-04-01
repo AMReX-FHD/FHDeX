@@ -175,14 +175,11 @@ void main_driver(const char* argv)
     ComputeRhotot(rho_old,rhotot_old);
 
     // fill rho and rhotot ghost cells
-    //
-    //
-    //
+    FillRhoRhototGhost(rho_old,rhotot_old,geom);
 
     // pressure ghost cells
-    //
-    //
-    //
+    pi.FillBoundary(geom.periodicity());
+    MultiFabPhysBC(pi,geom,0,1,0);
 
     //=======================================================
     // Build multifabs for all the variables
@@ -217,12 +214,11 @@ void main_driver(const char* argv)
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
       stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
     }
-
-    // random numbers
-
+    
+    // allocate and build MultiFabs that will contain random numbers
+    // by declaring StochMassFlux and StochMomFlux objects
     int n_rngs_mass;
     int n_rngs_mom;
-    
     if (algorithm_type == 2 || algorithm_type == 5) {
         n_rngs_mass = 2;
         n_rngs_mom = 2;  
@@ -235,8 +231,6 @@ void main_driver(const char* argv)
         n_rngs_mass = 1;
         n_rngs_mom = 1;        
     }
-    
-    // Declare object of StochMassFlux and StochMomFlux class es
     StochMassFlux sMassFlux(ba,dmap,geom,n_rngs_mass);
     StochMomFlux  sMomFlux (ba,dmap,geom,n_rngs_mom);
 
@@ -249,6 +243,12 @@ void main_driver(const char* argv)
     // Initialize values
     //=====================================================================
 
+    /*
+    if (use_charged_fluid) {
+
+    }
+    */
+    
     // initial Temp and Temp_ed
     Temp.setVal(T_init[0]); // replace with more general initialization routine
     if (AMREX_SPACEDIM == 2) {
@@ -257,6 +257,12 @@ void main_driver(const char* argv)
     else {
         AverageCCToEdge(Temp,Temp_ed,0,1,2,geom);
     }
+
+    /*
+    if (barodiffusion_type > 0) {
+
+    }
+    */
 
     // initialize eta and kappa
     eta.setVal(visc_coef); // replace with more general initialization routine
@@ -276,29 +282,41 @@ void main_driver(const char* argv)
 
     // velocity boundary conditions
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
         MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
         MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
         umac[i].FillBoundary(geom.periodicity());
+        // protect against roundoff issues and sync up
+        // faces with the same physical location
         umac[i].OverrideSync(geom.periodicity());
     }
 
     if (restart < 0) {
 
         if ((algorithm_type != 2) && (initial_variance_mom != 0.)) {
-            // Add initial equilibrium fluctuations
+            // Add initial momentum fluctuations
             sMomFlux.addMfluctuations(umac, rhotot_old, Temp, initial_variance_mom);
 
-            // velocity boundary conditions
-            //
-            //
-            //
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                // set normal velocity of physical domain boundaries
+                MultiFabPhysBCDomainVel(umac[i],geom,i);
+                // set transverse velocity behind physical boundaries
+                MultiFabPhysBCMacVel(umac[i],geom,i);
+                // fill periodic and interior ghost cells
+                umac[i].FillBoundary(geom.periodicity());
+            }
         }
-
-        dt = fixed_dt;
     }
 
+    if (fixed_dt <= 0.) {
+        Abort("main_driver.cpp: only fixed_dt > 0 supported");
+    }
+    dt = fixed_dt;
+    
     ///////////////////////////////////////////
-    // structure factor:
+    // Initialize structure factor object for analysis
     ///////////////////////////////////////////
 
     // variables are velocity and concentrations
@@ -334,7 +352,7 @@ void main_driver(const char* argv)
 	dVol *= dx[2];
     }
     
-    Vector< Real > var_scaling(structVars*(structVars+1)/2);
+    Vector<Real> var_scaling(structVars*(structVars+1)/2);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./dVol;
     }
@@ -374,9 +392,11 @@ void main_driver(const char* argv)
       From this perspective it may be useful to keep initial_projection even in overdamped
       because different gmres tolerances may be needed in the first step than in the rest
     */
-    //
-    // Initial Projection
-    //
+    if (algorithm_type != 2) {
+        //
+        // Initial Projection
+        //
+    }
 
     if (restart < 0) {
     
@@ -405,15 +425,21 @@ void main_driver(const char* argv)
             }
         }
 
-        // write initial checkpoint
-        //
-        //
-        //
+        if (chk_int > 0) {
+            // write initial checkpoint
+            //
+            //
+            //
+        }
 
-        // use stats_int to write initial vertical and horizontal averages (hstat and vstat files)
-        //
-        //
-        //
+        /*
+        if (stats_int > 0) {
+            // write initial vertical and horizontal averages (hstat and vstat files)
+            //
+            //
+            //
+        }
+        */
 
     }
 
@@ -465,11 +491,19 @@ void main_driver(const char* argv)
 
         time = time + dt;
 
+        // write plotfile at specific intervals
         if (plot_int > 0 && step%plot_int == 0) {
-    	  WritePlotFile(step,time,geom,umac,rho_new,pi);
-          if (step > n_steps_skip && struct_fact_int > 0) {
-              structFact.WritePlotFile(step,time,geom,"plt_SF");
-          }
+            WritePlotFile(step,time,geom,umac,rho_new,pi);
+            if (step > n_steps_skip && struct_fact_int > 0) {
+                structFact.WritePlotFile(step,time,geom,"plt_SF");
+            }
+        }
+
+        // write checkpoint at specific intervals
+        if (chk_int > 0 && step%chk_int == 0) {
+            //
+            //
+            //            
         }
 
         // set old state to new state
