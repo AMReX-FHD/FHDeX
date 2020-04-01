@@ -121,7 +121,7 @@ void MatvecMul(MultiFab& x,
 // in RhoUtil.cpp
 // compute rhotot from rho in VALID REGION
 
-void ComputeRhotot(const MultiFab& rho, MultiFab& rhotot);
+void ComputeRhotot(const MultiFab& rho, MultiFab& rhotot, int include_ghost=0);
 
 void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab conc, int rho_to_c);
 
