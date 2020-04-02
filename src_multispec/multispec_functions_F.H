@@ -31,10 +31,6 @@ extern "C"
     const int* use_lapack,
     const amrex_real* c_init,
     const amrex_real* c_bc,
-    const amrex_real* alpha1,
-    const amrex_real* beta,
-    const amrex_real* delta,
-    const amrex_real* sigma,
     const int* midpoint_stoch_mass_flux_type,
     const int* avg_type,
     const int* mixture_type);

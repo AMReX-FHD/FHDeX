@@ -19,11 +19,6 @@ namespace multispec {
     extern amrex::Vector<amrex::Real> c_init;
     extern amrex::Vector<amrex::Real> c_bc;
   
-    extern amrex::Real                alpha1;
-    extern amrex::Real                beta;
-    extern amrex::Real                delta;
-    extern amrex::Real                sigma;
-  
     extern int                        midpoint_stoch_mass_flux_type;
     extern int                        avg_type;
     extern int                        mixture_type;

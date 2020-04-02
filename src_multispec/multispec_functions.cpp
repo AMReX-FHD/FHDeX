@@ -37,7 +37,6 @@ void InitializeMultispecNamespace() {
 				    &use_lapack, 
 				    c_init.dataPtr(), 
 				    c_bc.dataPtr(),
-				    &alpha1, &beta, &delta, &sigma, 
 				    &midpoint_stoch_mass_flux_type, 
 				    &avg_type, &mixture_type);
     

@@ -25,8 +25,8 @@ subroutine init_rho_and_umac(lo,hi, &
   use common_namelist_module, only: prob_type, algorithm_type, T_init, &
                                     rho0, rhobar, initial_variance_mass, &
                                     smoothing_width
-  use multispec_namelist_module, only: alpha1, beta, delta, sigma, Dbar, Dtherm, &
-                                       c_init, temp_type, sigma, is_ideal_mixture
+  use multispec_namelist_module, only: Dbar, Dtherm, &
+                                       c_init, temp_type, is_ideal_mixture
 
   implicit none
 
@@ -243,8 +243,8 @@ subroutine init_rho_and_umac(lo,hi, &
   use common_namelist_module, only: prob_type, algorithm_type, T_init, &
                                     rho0, rhobar, initial_variance_mass, &
                                     smoothing_width
-  use multispec_namelist_module, only: alpha1, beta, delta, sigma, Dbar, Dtherm, &
-                                       c_init, temp_type, sigma, is_ideal_mixture
+  use multispec_namelist_module, only: Dbar, Dtherm, &
+                                       c_init, temp_type, is_ideal_mixture
 
   implicit none
 
