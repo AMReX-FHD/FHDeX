@@ -1,10 +1,5 @@
 #include "multispec_functions.H"
 
-#include "common_functions.H"
-
-
-using namespace amrex;
-
 void MatvecMul(MultiFab& x,
 	       const MultiFab& A)
 {

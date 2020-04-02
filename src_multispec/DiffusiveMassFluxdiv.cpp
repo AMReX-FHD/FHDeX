@@ -1,9 +1,5 @@
 #include "multispec_functions.H"
-
 #include "common_functions.H"
-
-
-using namespace amrex;
 
 // FIXME: Fill ghost cells
 

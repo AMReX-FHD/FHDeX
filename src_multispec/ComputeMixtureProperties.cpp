@@ -1,10 +1,5 @@
 #include "multispec_functions.H"
 
-#include "common_functions.H"
-
-
-using namespace amrex;
-
 void ComputeMixtureProperties(const MultiFab& rho,
 			      const MultiFab& rhotot,
 			      MultiFab& D_bar,

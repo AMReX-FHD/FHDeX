@@ -1,10 +1,5 @@
 #include "multispec_functions.H"
 
-#include "common_functions.H"
-
-
-using namespace amrex;
-
 void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
 			MultiFab& diff_mass_fluxdiv,
 			std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,

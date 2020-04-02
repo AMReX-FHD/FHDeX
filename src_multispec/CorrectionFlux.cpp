@@ -1,10 +1,5 @@
 #include "multispec_functions.H"
 
-#include "common_functions.H"
-
-
-using namespace amrex;
-
 void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
 		    std::array< MultiFab, AMREX_SPACEDIM >& flux)
 {
