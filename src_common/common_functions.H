@@ -120,7 +120,8 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 
 void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
 
-void ZeroEdgevalWalls(MultiFab& edge, const Geometry& geom, int scomp, int ncomp);
+void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom,
+                      int scomp, int ncomp);
 
 void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom);
 
