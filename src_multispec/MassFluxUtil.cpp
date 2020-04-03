@@ -8,13 +8,15 @@ void ComputeMolconcMolmtot(const MultiFab& rho,
 
     BL_PROFILE_VAR("ComputeMolconcMolmtot()",ComputeMolconcMolmtot);
 
+    int ng = molarconc.nGrow();
+        
     // Loop over boxes
-    for (MFIter mfi(rho); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rho,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
-        const Box& validBox = mfi.validbox();
+        const Box& bx = mfi.growntilebox(ng);
 
-        compute_molconc_molmtot(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+        compute_molconc_molmtot(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 				BL_TO_FORTRAN_FAB(rho[mfi]),
 				BL_TO_FORTRAN_ANYD(rhotot[mfi]),
 				BL_TO_FORTRAN_ANYD(molarconc[mfi]),
@@ -30,13 +32,15 @@ void ComputeGamma(const MultiFab& molarconc,
   
     BL_PROFILE_VAR("ComputeGamma()",ComputeGamma);
 
+    int ng = Gamma.nGrow();
+    
     // Loop over boxes
-    for (MFIter mfi(molarconc); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(Gamma,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
-        const Box& validBox = mfi.validbox();
+        const Box& bx = mfi.growntilebox(ng);
 
-        compute_Gamma(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+        compute_Gamma(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 		      BL_TO_FORTRAN_FAB(molarconc[mfi]),
 		      BL_TO_FORTRAN_ANYD(Hessian[mfi]),
 		      BL_TO_FORTRAN_ANYD(Gamma[mfi]));
@@ -50,16 +54,17 @@ void ComputeRhoWChi(const MultiFab& rho,
 		    MultiFab& rhoWchi,
 		    const MultiFab& D_bar)
 {
-  
     BL_PROFILE_VAR("ComputeRhoWChi()",ComputeRhoWChi);
 
+    int ng = rhoWchi.nGrow();
+    
     // Loop over boxes
-    for (MFIter mfi(rho); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(rhoWchi,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
-        const Box& validBox = mfi.validbox();
+        const Box& bx = mfi.growntilebox(ng);
 
-        compute_rhoWchi(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+        compute_rhoWchi(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 			BL_TO_FORTRAN_FAB(rho[mfi]),
 			BL_TO_FORTRAN_ANYD(rhotot[mfi]),
 			BL_TO_FORTRAN_ANYD(molarconc[mfi]),
@@ -69,27 +74,29 @@ void ComputeRhoWChi(const MultiFab& rho,
 
 }
 
-// void ComputeZetaByTemp(const MultiFab& molarconc,
-// 		       const MultiFab& D_bar,
-// 		       const MultiFab& Temp,
-// 		       MultiFab& zeta_by_Temp,
-// 		       const MultiFab& D_therm)
-// {
-  
-//     BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
+/*
+void ComputeZetaByTemp(const MultiFab& molarconc,
+ 		       const MultiFab& D_bar,
+ 		       const MultiFab& Temp,
+ 		       MultiFab& zeta_by_Temp,
+ 		       const MultiFab& D_therm)
+{
+    BL_PROFILE_VAR("ComputeZetaByTemp()",ComputeZetaByTemp);
 
-//     // Loop over boxes
-//     for (MFIter mfi(molarconc); mfi.isValid(); ++mfi) {
+    int ng = zeta_by_Temp.nGrow();
 
-//         // Create cell-centered box
-//         const Box& validBox = mfi.validbox();
+    // Loop over boxes
+    for (MFIter mfi(zet_by_temp,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
-//         compute_zeta_by_Temp(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-// 			     BL_TO_FORTRAN_FAB(molarconc[mfi]),
-// 			     BL_TO_FORTRAN_ANYD(D_bar[mfi]),
-// 			     BL_TO_FORTRAN_ANYD(Temp[mfi]),
-// 			     BL_TO_FORTRAN_ANYD(zeta_by_Temp[mfi]),
-// 			     BL_TO_FORTRAN_ANYD(D_therm[mfi]));
-//     }
+        // Create cell-centered box
+        const Box& bx = mfi.growntilebox(ng);
 
-// }
+        compute_zeta_by_Temp(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+                             BL_TO_FORTRAN_FAB(molarconc[mfi]),
+                             BL_TO_FORTRAN_ANYD(D_bar[mfi]),
+                             BL_TO_FORTRAN_ANYD(Temp[mfi]),
+                             BL_TO_FORTRAN_ANYD(zeta_by_Temp[mfi]),
+                             BL_TO_FORTRAN_ANYD(D_therm[mfi]));
+    }
+}
+*/

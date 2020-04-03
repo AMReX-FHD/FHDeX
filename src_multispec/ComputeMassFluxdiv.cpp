@@ -35,7 +35,7 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
       sqrtLonsager_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
   }
   
-  ComputeRhotot(rho,rhotot);
+  ComputeRhotot(rho,rhotot,1);
   
   // compute molmtot, molarconc (primitive variables) for 
   // each-cell from rho(conserved) 
