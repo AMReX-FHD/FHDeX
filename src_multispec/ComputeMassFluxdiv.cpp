@@ -16,40 +16,30 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   BL_PROFILE_VAR("ComputeMassFluxdiv()",ComputeMassFluxdiv);
 
   BoxArray ba = rho.boxArray();
-  DistributionMapping dmapp = rho.DistributionMap();
-  int nspecies = rho.nComp();
+  DistributionMapping dmap = rho.DistributionMap();
+
+  int ng = rho.nGrow();
   int nspecies2 = nspecies*nspecies;
-
-  const Real* dx = geom.CellSize();
   
-  MultiFab rhoWchi(         ba, dmapp, nspecies2, 1);  // rho*W*chi*Gamma
-  MultiFab molarconc(       ba, dmapp, nspecies, 1);   // molar concentration
-  MultiFab molmtot(         ba, dmapp, 1, 1);          // total molar mass
-  MultiFab Hessian(         ba, dmapp, nspecies2, 1);  // Hessian-matrix
-  MultiFab Gamma(           ba, dmapp, nspecies2, 1);  // Gamma-matrix
-  MultiFab D_bar(           ba, dmapp, nspecies2, 1);  // D_bar-matrix
-  MultiFab D_therm(         ba, dmapp, nspecies2, 1);  // DT-matrix
-  MultiFab sqrtLonsager_fc( ba, dmapp, nspecies2, 1);  // cholesky factored Lonsager on faces
-   
-  rhoWchi.setVal(0.);
-  molarconc.setVal(0.);
-  molmtot.setVal(0.);
-  Hessian.setVal(0.);
-  Gamma.setVal(0.);
-  D_bar.setVal(0.);
-  D_therm.setVal(0.);
-  sqrtLonsager_fc.setVal(0.);
+  MultiFab rhoWchi(         ba, dmap, nspecies2, ng);  // rho*W*chi*Gamma
+  MultiFab molarconc(       ba, dmap, nspecies , ng);  // molar concentration
+  MultiFab molmtot(         ba, dmap, 1        , ng);  // total molar mass
+  MultiFab Hessian(         ba, dmap, nspecies2, ng);  // Hessian-matrix
+  MultiFab Gamma(           ba, dmap, nspecies2, ng);  // Gamma-matrix
+  MultiFab D_bar(           ba, dmap, nspecies2, ng);  // D_bar-matrix
+  MultiFab D_therm(         ba, dmap, nspecies2, ng);  // DT-matrix
+  MultiFab zeta_by_Temp(    ba, dmap, nspecies2, ng);  // for Thermo-diffusion
 
-  // phi.FillBoundary(geom.periodicity());
+  std::array< MultiFab, AMREX_SPACEDIM > sqrtLonsager_fc;
+  for (int d=0; d<AMREX_SPACEDIM; ++d) {
+      sqrtLonsager_fc[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
+  }
   
   ComputeRhotot(rho,rhotot);
   
   // compute molmtot, molarconc (primitive variables) for 
   // each-cell from rho(conserved) 
   ComputeMolconcMolmtot(rho,rhotot,molarconc,molmtot);
-
-  molarconc.FillBoundary(geom.periodicity()); // hack
-  molmtot.FillBoundary(geom.periodicity()); // hack
   
   // populate D_bar and Hessian matrix 
   ComputeMixtureProperties(rho,rhotot,D_bar,D_therm,Hessian);

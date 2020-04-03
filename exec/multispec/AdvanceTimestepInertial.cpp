@@ -32,7 +32,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     BoxArray ba = rho_old.boxArray();
     DistributionMapping dmap = rho_old.DistributionMap();
 
-    Vector< amrex::Real > weights;
+    Vector<Real> weights;
     weights = {1.0};
     
     Real theta_alpha = 1./dt;

@@ -2,7 +2,6 @@
 #include "multispec_test_functions.H"
 #include "multispec_test_functions_F.H"
 
-#include "StochMassFlux.H"
 #include "StochMomFlux.H"
 
 //#include "analysis_functions_F.H"
@@ -393,9 +392,8 @@ void main_driver(const char* argv)
       because different gmres tolerances may be needed in the first step than in the rest
     */
     if (algorithm_type != 2) {
-        //
-        // Initial Projection
-        //
+        InitialProjection(umac,rho_old,rhotot_old,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                          stoch_mass_flux,sMassFlux,Temp,eta,eta_ed,dt,time,geom);
     }
 
     if (restart < 0) {

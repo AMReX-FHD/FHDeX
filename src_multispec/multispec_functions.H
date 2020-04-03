@@ -10,6 +10,8 @@
 
 #include "common_functions.H"
 
+#include "StochMassFlux.H"
+
 using namespace multispec;
 using namespace amrex;
 
@@ -87,9 +89,10 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                        MultiFab& diff_mass_fluxdiv,
                        MultiFab& stoch_mass_fluxdiv,
                        std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                       StochMassFlux& sMassFlux,
                        const MultiFab& Temp, const MultiFab& eta,
                        const std::array< MultiFab, NUM_EDGE >& eta_ed,
-                       const Real& dt, const Geometry& geom);
+                       const Real& dt, const Real& time, const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MassFluxUtil.cpp
