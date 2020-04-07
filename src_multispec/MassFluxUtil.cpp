@@ -98,3 +98,36 @@ void ComputeZetaByTemp(const MultiFab& molarconc,
                              BL_TO_FORTRAN_ANYD(D_therm[mfi]));
     }
 }
+
+void ComputeSqrtLonsagerFC(const MultiFab& rho, const MultiFab& rhotot,
+                           std::array< MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
+                           const Geometry& geom)
+{
+    BL_PROFILE_VAR("ComputeSqrtLonsagerFC()",ComputeSqrtLonsagerFC);
+
+    const Real* dx = geom.CellSize();
+
+    // for GPU later
+    // const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    
+    // Loop over boxes
+    for (MFIter mfi(rho); mfi.isValid(); ++mfi) {
+
+        // note: tiling or GPU-ing requires nodal tileboxes and changes to
+        // loop indices in fortran
+        
+        // Create cell-centered box
+        const Box& validBox = mfi.validbox();
+
+        compute_sqrtLonsager_fc(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
+                                BL_TO_FORTRAN_ANYD(rho[mfi]),
+                                BL_TO_FORTRAN_ANYD(rhotot[mfi]),
+                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[0][mfi]),
+                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[1][mfi]),
+#if (AMREX_SPACEDIM == 3)
+                                BL_TO_FORTRAN_ANYD(sqrtLonsager_fc[2][mfi]),
+#endif
+                                dx);
+    }
+
+}

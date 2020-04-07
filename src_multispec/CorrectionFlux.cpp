@@ -9,6 +9,9 @@ void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
       // Loop over boxes
     for (MFIter mfi(rho); mfi.isValid(); ++mfi) {
 
+        // note: tiling or GPU-ing requires nodal tileboxes and changes to
+        // loop indices in fortran
+        
         // Create cell-centered box
         const Box& validBox = mfi.validbox();
 

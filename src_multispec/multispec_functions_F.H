@@ -92,16 +92,15 @@ extern "C"
                               const amrex_real* zeta_by_Temp, const int* ztlo, const int* zthi,
                               const amrex_real* D_therm, const int* dtlo, const int* dthi);
 
-#if 0
-    void compute_sqrtLonsager(const amrex_real* rho,            const int* rhlo, const int* rhhi,
-                              const amrex_real* rhotot,         const int* rtlo, const int* rthi,
-                              const amrex_real* sqrtLonsager_x, const int* Lxlo, const int* Lxhi,
-                              const amrex_real* sqrtLonsager_y, const int* Lylo, const int* Lyhi,
+    void compute_sqrtLonsager_fc(const int* tlo, const int* thi,
+                                 const amrex_real* rho,            const int* rhlo, const int* rhhi,
+                                 const amrex_real* rhotot,         const int* rtlo, const int* rthi,
+                                 const amrex_real* sqrtLonsager_x, const int* Lxlo, const int* Lxhi,
+                                 const amrex_real* sqrtLonsager_y, const int* Lylo, const int* Lyhi,
 #if (AMREX_SPACEDIM == 3)
-                              const amrex_real* sqrtLonsager_z, const int* Lzlo, const int* Lzhi,
+                                 const amrex_real* sqrtLonsager_z, const int* Lzlo, const int* Lzhi,
 #endif
-                              const amrex_real* dx);
-#endif
+                                 const amrex_real* dx);
 
 
 #ifdef __cplusplus

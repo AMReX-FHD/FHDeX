@@ -11,6 +11,8 @@ module compute_mixture_properties_module
   implicit none
 
   private
+
+  public :: compute_D_bar_local
   
   ! The values for mixture_type distinguished at present have a constant H matrix for the thermodynamics and:
   ! 0 - no dependence of transport coefficients on composition

@@ -118,6 +118,11 @@ void ComputeZetaByTemp(const MultiFab& molarconc,
  		       MultiFab& zeta_by_Temp,
  		       const MultiFab& D_therm);
 
+void ComputeSqrtLonsagerFC(const MultiFab& rho,
+                           const MultiFab& rhotot,
+                           std::array< MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
+                           const Geometry& geom);
+
 /////////////////////////////////////////////////////////////////////////////////
 // in MatvecMul.cpp
 
