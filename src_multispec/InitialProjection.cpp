@@ -69,10 +69,81 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         sMassFlux.fillMassStochastic();
     }
         
-    ComputeMassFluxdiv(rho,rhotot,diff_mass_fluxdiv,diff_mass_flux,dt,time,geom);
+    ComputeMassFluxdiv(rho,rhotot,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+
+    // assumble total fluxes to be used in reservoirs
+    //
+    //
+    //
+
+    // compute chemical rates m_i*R_i
+    //
+    //
+    //
+
+    // set the Dirichlet velocity value on reservoir faces
+    //
+    //
+
+    if (restart < 0) {
+
+        // project the velocities
+        // only for non-restarting runs
+        mac_rhs.setVal(0.);
+
+        if (algorithm_type != 6) {
+
+            // set mac_rhs to -S = sum_i div(F_i)/rhobar_i
+            for (int i=0; i<nspecies; ++i) {
+                MultiFab::Saxpy(mac_rhs,-1./rhobar[i],diff_mass_fluxdiv,i,0,1,0);
+                if (variance_coef_mass != 0.) {
+                    MultiFab::Saxpy(mac_rhs,-1./rhobar[i],stoch_mass_fluxdiv,i,0,1,0);
+                }
+                // if nreactions>0, also add sum_i -(m_i*R_i)/rhobar_i
+            }
+        }
+
+        // build rhs = div(v^init) - S^0
+        
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            // to deal with reservoirs
+            // set normal velocity on physical domain boundaries
+            MultiFabPhysBCDomainVel(umac[i],geom,i);
+            // fill periodict and interior ghost cells
+            umac[i].FillBoundary(geom.periodicity());
+        }
+
+        // set divu = div(v^init)
+        ComputeDiv(divu,umac,0,0,1,geom,1);
+
+        // add div(v^init) to mac_rhs
+        // now mac_rhs = div(v^init - S)
+        MultiFab::Add(mac_rhs,divu,0,0,1,0);
+
+        // average rhotot on faces
+        AverageCCToFace(rhotot,rhotot_fc,0,1);
+
+        // compute (1/rhotot on faces)
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            rhototinv_fc[i].setVal(1.);
+            MultiFab::Divide(rhototinv_fc[i],rhotot_fc[i],0,0,1,0);
+        }
+
+        // solve div (1/rhotot) grad phi = div(v^init) - S^0
+        // solve to completion, i.e., use the 'full' solver
+        phi.setVal(0.);
+
+        
+
+        
 
 
+        
 
+        
+
+    }
 
 
 

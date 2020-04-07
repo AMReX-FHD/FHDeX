@@ -1,16 +1,16 @@
 #include "multispec_functions.H"
+#include "StochMassFlux.H"
 
-void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
+void ComputeMassFluxdiv(MultiFab& rho,
+                        MultiFab& rhotot,
+                        const MultiFab& Temp,
 			MultiFab& diff_mass_fluxdiv,
-			std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-			const Real& dt, const Real& stage_time, const Geometry& geom)
-
-// void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
-// 			MultiFab& diff_mass_fluxdiv, MultiFab& stoch_mass_fluxdiv,
-// 			std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-// 		        std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
-// 			const Real& dt, const Real& stage_time, const Geometry& geom)
-  
+                        MultiFab& stoch_mass_fluxdiv,
+			std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                        std::array<MultiFab,AMREX_SPACEDIM>& stoch_mass_flux,
+                        StochMassFlux& sMassFlux,
+			const Real& dt, const Real& stage_time, const Geometry& geom,
+                        Vector<Real>& weights)  
 {
 
   BL_PROFILE_VAR("ComputeMassFluxdiv()",ComputeMassFluxdiv);
@@ -61,18 +61,18 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   // we should move this to occur before the call to compute_mass_fluxdiv and into
   // the advance_timestep routines
   // external_source(rho,diff_mass_fluxdiv,stage_time,geom);
+  if (prob_type == 4 || prob_type == 5) {
+      Abort("ComputMassFluxdiv: external source not implemented yet for this prob_type");
+  }
 
-
-  
   // compute stochastic fluxdiv 
-  if (variance_coef_mass != 0.0) {
+  if (variance_coef_mass != 0.) {
 
-  //   // compute face-centered cholesky-factored Lonsager^(1/2)
-  //   compute_sqrtLonsager_fc(rho,rhotot,sqrtLonsager_fc,geom);
+      // compute face-centered cholesky-factored Lonsager^(1/2)
+      ComputeSqrtLonsagerFC(rho,rhotot,sqrtLonsager_fc,geom);
 
-  //   stochastic_mass_fluxdiv(rho,rhotot,sqrtLonsager_fc,
-  //   			       stoch_mass_fluxdiv,stoch_mass_flux,
-  //   			       dt,geom);
+      sMassFlux.StochMassFluxDiv(rho,rhotot,sqrtLonsager_fc,stoch_mass_fluxdiv,stoch_mass_flux,
+                                 dt,weights);
 
   }
 
