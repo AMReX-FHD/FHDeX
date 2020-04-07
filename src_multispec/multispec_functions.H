@@ -112,11 +112,11 @@ void ComputeRhoWChi(const MultiFab& rho,
 		    MultiFab& rhoWchi,
 		    const MultiFab& D_bar);
 
-// void ComputeZetaByTemp(const MultiFab& molarconc,
-// 		       const MultiFab& D_bar,
-// 		       const MultiFab& Temp,
-// 		       MultiFab& zeta_by_Temp,
-// 		       const MultiFab& D_therm);
+void ComputeZetaByTemp(const MultiFab& molarconc,
+ 		       const MultiFab& D_bar,
+ 		       const MultiFab& Temp,
+ 		       MultiFab& zeta_by_Temp,
+ 		       const MultiFab& D_therm);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MatvecMul.cpp

@@ -8,8 +8,8 @@ extern "C"
 
     // these are interfaces to fortran subroutines
 
-///////////////////////////
-// in multispec_namelist.F90
+    ///////////////////////////
+    // in multispec_namelist.F90
 
     // read in fortran namelist into multispec_params_module
     void read_multispec_namelist (const char* inputs_file, const int length);
@@ -35,72 +35,73 @@ extern "C"
     const int* avg_type,
     const int* mixture_type);
 
-///////////////////////////
-
-///////////////////////////
-// in compute_mixture_properties.F90
+    ///////////////////////////
+    // in compute_mixture_properties.F90
   
-  void  mixture_properties_mass(const int* tlo, const int* thi,
-				const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
-				const amrex_real* rhotot, const int* rtlo, const int* rthi,
-				const amrex_real* D_bar, const int* dblo, const int* dbhi,
-				const amrex_real* D_therm, const int* dtlo, const int* dthi,
-				const amrex_real* Hessian, const int* hslo, const int* hshi);
-///////////////////////////
+    void mixture_properties_mass(const int* tlo, const int* thi,
+                                 const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+                                 const amrex_real* rhotot, const int* rtlo, const int* rthi,
+                                 const amrex_real* D_bar, const int* dblo, const int* dbhi,
+                                 const amrex_real* D_therm, const int* dtlo, const int* dthi,
+                                 const amrex_real* Hessian, const int* hslo, const int* hshi);
+    ///////////////////////////
+    // in matvec_mul.F90
+
+    void matvec_mul(const int* tlo, const int* thi,
+                    const amrex_real* xp, const int* xlo, const int* xhi, const int* nc,
+                    const amrex_real* ap, const int* alo, const int* ahi, const int* nc2);
+
+    ///////////////////////////
+    // in correction_flux.F90
   
-///////////////////////////
-// in matvec_mul.F90
-
-  void matvec_mul(const int* tlo, const int* thi,
-		  const amrex_real* xp, const int* xlo, const int* xhi, const int* nc,
-                  const amrex_real* ap, const int* alo, const int* ahi, const int* nc2);
-
-///////////////////////////
-
-///////////////////////////
-// in correction_flux.F90
-  
-  void correction_flux(const int* lo, const int* hi,
-		       const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
-		       const amrex_real* rhotot, const int* rtlo, const int* rthi,
-		       const amrex_real* flux_x, const int* fxlo, const int* fxhi, 
-		       const amrex_real* flux_y, const int* fylo, const int* fyhi
+    void correction_flux(const int* lo, const int* hi,
+                         const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+                         const amrex_real* rhotot, const int* rtlo, const int* rthi,
+                         const amrex_real* flux_x, const int* fxlo, const int* fxhi, 
+                         const amrex_real* flux_y, const int* fylo, const int* fyhi
 #if (AMREX_SPACEDIM == 3)
-		       ,const amrex_real* flux_z, const int* fzlo, const int* fzhi
+                         ,const amrex_real* flux_z, const int* fzlo, const int* fzhi
 #endif		       
-		       );
+                        );
 
-///////////////////////////
+    ///////////////////////////
+    // in mass_flux_utilities.F90
 
-///////////////////////////
-// in mass_flux_utilities.F90
-
-  void compute_molconc_molmtot(const int* tlo, const int* thi,
-  			       const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
-  			       const amrex_real* rhotot, const int* rtlo, const int* rthi,
-  			       const amrex_real* molarconc, const int* mclo, const int* mchi,
-  			       const amrex_real* molmtot, const int* mtlo, const int* mthi);
+    void compute_molconc_molmtot(const int* tlo, const int* thi,
+                                 const amrex_real* rho, const int* rhlo, const int* rhhi,
+                                 const amrex_real* rhotot, const int* rtlo, const int* rthi,
+                                 const amrex_real* molarconc, const int* mclo, const int* mchi,
+                                 const amrex_real* molmtot, const int* mtlo, const int* mthi);
   
-  void compute_Gamma(const int* tlo, const int* thi,
-		     const amrex_real* molarconc, const int* mclo, const int* mchi, const int* nspecies,
-		     const amrex_real* Hessian, const int* hlo, const int* hhi, 
-		     const amrex_real* Gamma, const int* glo, const int* ghi);
+    void compute_Gamma(const int* tlo, const int* thi,
+                       const amrex_real* molarconc, const int* mlo, const int* mhi,
+                       const amrex_real* Hessian, const int* hlo, const int* hhi, 
+                       const amrex_real* Gamma, const int* glo, const int* ghi);
+    
+    void compute_rhoWchi(const int* tlo, const int* thi,
+                         const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+                         const amrex_real* rhotot, const int* rtlo, const int* rthi,
+                         const amrex_real* molarconc, const int* mclo, const int* mchi,
+                         const amrex_real* rhoWchi, const int* rwclo, const int* rwchi,
+                         const amrex_real* D_bar, const int* dblo, const int* dbhi);
+    
+    void compute_zeta_by_Temp(const int* tlo, const int* thi,
+                              const amrex_real* molarconc, const int* mclo, const int* mchi, const int* nspecies,
+                              const amrex_real* D_bar, const int* dblo, const int* dbhi,
+                              const amrex_real* Temp, const int* tplo, const int* tphi,
+                              const amrex_real* zeta_by_Temp, const int* ztlo, const int* zthi,
+                              const amrex_real* D_therm, const int* dtlo, const int* dthi);
 
-  void compute_rhoWchi(const int* tlo, const int* thi,
-		       const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
-		       const amrex_real* rhotot, const int* rtlo, const int* rthi,
-		       const amrex_real* molarconc, const int* mclo, const int* mchi,
-		       const amrex_real* rhoWchi, const int* rwclo, const int* rwchi,
-		       const amrex_real* D_bar, const int* dblo, const int* dbhi);
-
-  void compute_zeta_by_Temp(const int* tlo, const int* thi,
-			    const amrex_real* molarconc, const int* mclo, const int* mchi, const int* nspecies,
-			    const amrex_real* D_bar, const int* dblo, const int* dbhi,
-			    const amrex_real* Temp, const int* tplo, const int* tphi,
-			    const amrex_real* zeta_by_Temp, const int* ztlo, const int* zthi,
-			    const amrex_real* D_therm, const int* dtlo, const int* dthi);
-
-///////////////////////////
+#if 0
+    void compute_sqrtLonsager(const amrex_real* rho,            const int* rhlo, const int* rhhi,
+                              const amrex_real* rhotot,         const int* rtlo, const int* rthi,
+                              const amrex_real* sqrtLonsager_x, const int* Lxlo, const int* Lxhi,
+                              const amrex_real* sqrtLonsager_y, const int* Lylo, const int* Lyhi,
+#if (AMREX_SPACEDIM == 3)
+                              const amrex_real* sqrtLonsager_z, const int* Lzlo, const int* Lzhi,
+#endif
+                              const amrex_real* dx);
+#endif
 
 
 #ifdef __cplusplus

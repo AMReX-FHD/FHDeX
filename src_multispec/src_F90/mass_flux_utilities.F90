@@ -11,52 +11,18 @@ module mass_flux_utilities_module
 
 contains
 
-#if (AMREX_SPACEDIM == 2)
-
-  subroutine compute_molconc_molmtot( tlo, thi, &
-                                      rho, rlo, rhi, nspecies, &
-                                      rhotot, rtlo, rthi, &
-                                      molarconc, mclo, mchi, &
-                                      molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
+  subroutine compute_molconc_molmtot(tlo, thi, &
+                                     rho, rhlo, rhhi, &
+                                     rhotot, rtlo, rthi, &
+                                     molarconc, mclo, mchi, &
+                                     molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
  
-    integer         , intent(in   ) :: tlo(2),thi(2),nspecies
-    integer         , intent(in   ) :: rlo(2),rhi(2), rtlo(2),rthi(2), mclo(2),mchi(2), mtlo(2),mthi(2)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),nspecies) ! density- last dim for #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2)) ! total density in each cell 
-    double precision, intent(inout) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration
-    double precision, intent(inout) :: molmtot(mtlo(1):mthi(1),mtlo(2):mthi(2)) ! total molar mass 
-        
-    ! local variables
-    integer          :: i,j
-    
-    ! for specific box, now start loops over alloted cells    
-    do j=tlo(2), thi(2)
-       do i=tlo(1), thi(1)
-         
-         call compute_molconc_molmtot_local(nspecies,molmass,rho(i,j,:),rhotot(i,j), &
-                                            molarconc(i,j,:),molmtot(i,j))
-
-       end do
-    end do
- 
-  end subroutine compute_molconc_molmtot
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-
-  subroutine compute_molconc_molmtot( tlo, thi, &
-                                      rho, rlo, rhi, nspecies, &
-                                      rhotot, rtlo, rthi, &
-                                      molarconc, mclo, mchi, &
-                                      molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
- 
-    integer         , intent(in   ) :: tlo(3),thi(3),nspecies
-    integer         , intent(in   ) :: rlo(3),rhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), mtlo(3),mthi(3)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3),nspecies) ! density- last dim fqor #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3)) ! total density in each cell 
+    integer         , intent(in   ) :: tlo(3),thi(3)
+    integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), mtlo(3),mthi(3)
+    double precision, intent(in   ) ::       rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies) ! density
+    double precision, intent(in   ) ::    rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))          ! total density in each cell 
     double precision, intent(inout) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration
-    double precision, intent(inout) :: molmtot(mtlo(1):mthi(1),mtlo(2):mthi(2),mtlo(3):mthi(3)) ! total molar mass 
+    double precision, intent(inout) ::   molmtot(mtlo(1):mthi(1),mtlo(2):mthi(2),mtlo(3):mthi(3))          ! total molar mass 
     
     ! local variables
     integer          :: i,j,k
@@ -74,9 +40,7 @@ contains
     end do
  
   end subroutine compute_molconc_molmtot
-
-#endif
-
+  
   subroutine compute_molconc_molmtot_local(nspecies_in,molmass_in,rho,rhotot,molarconc,molmtot)
 
     integer,          intent(in)   :: nspecies_in
@@ -104,49 +68,18 @@ contains
        molarconc(n) = molmtot*W(n)/molmass_in(n)
     end do
     
-  end subroutine compute_molconc_molmtot_local 
+  end subroutine compute_molconc_molmtot_local
 
-#if (AMREX_SPACEDIM == 2)
-  
   subroutine compute_Gamma(tlo,thi, &
-                           molarconc, mclo, mchi, nspecies, &
+                           molarconc, mlo, mhi, &
                            Hessian, hlo, hhi, & 
                            Gamma, glo, ghi) bind(C,name="compute_Gamma")
 
-    integer, intent(in   )          :: tlo(2),thi(2),nspecies
-    integer, intent(in   )          :: mclo(2),mchi(2), hlo(2),hhi(2), glo(2),ghi(2) 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: Hessian(hlo(1):hhi(1),hlo(2):hhi(2),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(inout) :: Gamma(glo(1):ghi(1),glo(2):ghi(2),nspecies*nspecies) ! last dimension for nspecies^2
-
-    ! local varialbes
-    integer          :: i,j
-
-    ! for specific box, now start loops over alloted cells 
-    do j=tlo(2),thi(2)
-       do i=tlo(1),thi(1)
-       
-          call compute_Gamma_local(molarconc(i,j,:),Hessian(i,j,:),Gamma(i,j,:),nspecies)
-
-       end do
-    end do
-   
-  end subroutine compute_Gamma
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-
-  subroutine compute_Gamma(tlo,thi, &
-                           molarconc, mclo, mchi, nspecies, &
-                           Hessian, hlo, hhi, & 
-                           Gamma, glo, ghi) bind(C,name="compute_Gamma")
-
-    integer, intent(in   )          :: tlo(3),thi(3),nspecies
-    integer, intent(in   )          :: mclo(3),mchi(3), hlo(3),hhi(3), glo(3),ghi(3) 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: Hessian(hlo(1):hhi(1),hlo(2):hhi(2),hlo(3):hhi(3),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(inout) :: Gamma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nspecies*nspecies) ! last dimension for nspecies^2
+    integer, intent(in   )          :: tlo(3),thi(3)
+    integer, intent(in   )          :: mlo(3),mhi(3), hlo(3),hhi(3), glo(3),ghi(3) 
+    double precision, intent(in   ) :: molarconc(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),nspecies) ! molar concentration 
+    double precision, intent(in   ) ::   Hessian(hlo(1):hhi(1),hlo(2):hhi(2),hlo(3):hhi(3),nspecies*nspecies)
+    double precision, intent(inout) ::     Gamma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nspecies*nspecies)
 
     ! local varialbes
     integer          :: i,j,k
@@ -162,8 +95,6 @@ contains
     end do
    
   end subroutine compute_Gamma
-
-#endif
 
   subroutine compute_Gamma_local(molarconc,Hessian,Gamma,nspecies)
    
@@ -345,27 +276,6 @@ contains
        call compute_chi_sub()
       
     end if
-
-    ! hack
-    !print*,'rhoWchi'
-    !do row=1, nspecies
-    !   print *,rhoWchi(row,1:nspecies)
-    !end do
-    !print*,'sum rhoWchi_col'
-    !select case (nspecies)
-    !   case (2)
-    !      print*,sum(rhoWchi(1:2,1)),sum(rhoWchi(1:2,2))
-    !   case (3)
-    !      print*,sum(rhoWchi(1:3,1)),sum(rhoWchi(1:3,2)),sum(rhoWchi(1:3,3))
-    !   case (4)
-    !      print*,sum(rhoWchi(1:4,1)),sum(rhoWchi(1:4,2)),sum(rhoWchi(1:4,3)),sum(rhoWchi(1:4,4))
-    !end select
-    !print*,'W*chi from rhoWchi/rhotot'
-    !do row=1, nspecies
-    !   print *,rhoWchi(row,1:nspecies)/rhotot
-    !end do
-    !stop
-    ! hack
     
   contains
   
@@ -496,137 +406,11 @@ contains
     end if
 
     ! compute chi either selecting inverse/pseudoinverse or iterative methods 
-    ! if (use_lapack) then
-
-    !    ! compute Lambda_ij matrix and massfraction W_i = rho_i/rho; molarconc is 
-    !    ! expressed in terms of molmtot,mi,rhotot etc. 
-    !    do row=1, nspecies_in
-    !       do column=1, row-1
-    !          Lambda(row, column) = -molarconc(row)*molarconc(column)/D_bar(row,column)
-    !          Lambda(column, row) = Lambda(row, column) 
-    !       end do
-    !       W(row) = rho(row)/rhotot
-    !    end do
-
-    !    ! compute Lambda_ii
-    !    do row=1, nspecies_in
-    !       Sum_knoti = 0.d0
-    !       do column=1, nspecies_in
-    !          if(column.ne.row) then
-    !             Sum_knoti = Sum_knoti - Lambda(row,column)
-    !          end if
-    !          Lambda(row,row) = Sum_knoti
-    !       end do
-    !    end do
-
-    !    call compute_chi_lapack(nspecies_in,Lambda(:,:),chi(:,:),W(:))
-
-    ! else
+    if (use_lapack .eq. 1) then
+       call amrex_error('compute_chi: use_lapack not supported')
+    end if
 
     call Dbar2chi_iterative(nspecies_in,chi_iterations,D_bar(:,:),molarconc(:),molmass_in(:),chi(:,:))
-
-    ! end if
-
-  ! contains
-
-    ! subroutine compute_chi_lapack(nspecies_in,Lambda,chi,W)
-   
-    !   integer,          intent(in   ) :: nspecies_in
-    !   double precision, intent(in   ) :: Lambda(nspecies_in,nspecies_in)
-    !   double precision, intent(in   ) :: chi(nspecies_in,nspecies_in)
-    !   double precision, intent(in   ) :: W(nspecies_in)
- 
-    !   ! local variables
-    !   integer           :: row,column,info
-    !   double precision  :: alpha    
-
-    !   ! vectors and matrices to be used by LAPACK
-    !   double precision, dimension(nspecies_in,nspecies_in) :: Sdag,chilocal
-    !   double precision, dimension(nspecies_in,nspecies_in) :: U, UT, V, VT
-    !   double precision, dimension(nspecies_in)             :: S, work
-    !   integer,          dimension(nspecies_in)             :: ipiv
-
-    !   ! free up the memory  
-    !   Sdag     = 0.d0
-    !   U        = 0.d0
-    !   UT       = 0.d0
-    !   V        = 0.d0
-    !   VT       = 0.d0
-    !   S        = 0.d0
-    !   work     = 0.d0
-    !   alpha    = 0.d0
-    !   chilocal = 0.d0
- 
-    !   ! calculate trace(Lambda)
-    !   alpha = 0.d0
-    !   do row=1, nspecies_in
-    !      alpha = alpha + Lambda(row,row)
-    !   end do
- 
-    !   ! calculate Lambda + alpha*W*WT (Equation 6) 
-    !   do row=1, nspecies_in
-    !      do column=1, nspecies_in
-    !         chilocal(row,column) = alpha*W(row)*W(column) + Lambda(row,column)
-    !      end do
-    !   end do
-
-    !   !===============================================================          
-    !   ! select LAPACK inversion type, 1=inverse, 2=pseudo inverse 
-    !   !===============================================================          
-    !   select case(inverse_type) 
-           
-    !   case(1)
-    !   !==========================================================
-    !   ! Using Inverse 
-    !   !==========================================================
- 
-    !   ! compute chilocal inverse
-    !   call dgetrf(nspecies_in, nspecies_in, chilocal, nspecies_in, ipiv, info)
-    !   call dgetri(nspecies_in, chilocal, nspecies_in, ipiv, work, nspecies_in, info)
-    !   !stop "LAPACK95 dget? disabled"
-
-    !   ! populate chi with B^(-1)
-    !   chi = chilocal   
- 
-    !   case(2) 
-    !   !==========================================================
-    !   ! Using pseudoinverse 
-    !   !==========================================================
-
-    !   ! SVD decomposition of chilocal = U * S * VTranspose; note that chilocal 
-    !   ! is changed. also V=(VT)T, UT = (U)T are needed for pseudoinverse of chilocal.
-    !   !stop "LAPACK95 la_gesvd disabled"
-    !   call la_gesvd(chilocal, S, U, VT)
-    !   V = transpose(VT)
-    !   UT = transpose(U)
-   
-    !   ! populate diagonal matrix Sdag = 1/S with diagonal=0 below a chosen tolerance
-    !   do row=1, nspecies_in
-    !      do column=1,nspecies_in
-    !         Sdag(row,column) = 0.0d0
-    !      end do
-       
-    !      if(S(row).gt.fraction_tolerance*sum(S)) then 
-    !         Sdag(row,row) = 1.0d0/S(row)
-    !      else
-    !         Sdag(row,row) = 0.0d0
-    !      end if 
-    !   end do
-
-    !   ! compute chi = V*Sdag*UT, the pseudoinverse of chilocal 
-    !   chi = matmul(V, matmul(Sdag, UT))
-
-    !   end select
-    !   !===============================================================          
- 
-    !   ! compute chi as equation (6) 
-    !   do row=1, nspecies_in
-    !      do column=1, nspecies_in
-    !         chi(row,column) = chi(row,column) - 1.0d0/alpha
-    !      end do
-    !   end do
-          
-    ! end subroutine compute_chi_lapack
 
   end subroutine compute_chi
 
@@ -641,11 +425,11 @@ contains
 
     integer,          intent(in   ) :: tlo(2),thi(2),nspecies
     integer,          intent(in   ) :: mclo(2),mchi(2), dblo(2),dbhi(2), tplo(2),tphi(2), ztlo(2),zthi(2), dtlo(2),dthi(2)
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies) ! MS diff-coefs 
-    double precision, intent(in   ) :: Temp(tplo(1):tphi(1),tplo(2):tphi(2)) ! Temperature 
+    double precision, intent(in   ) ::    molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration 
+    double precision, intent(in   ) ::        D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies) ! MS diff-coefs 
+    double precision, intent(in   ) ::         Temp(tplo(1):tphi(1),tplo(2):tphi(2))          ! Temperature 
     double precision, intent(inout) :: zeta_by_Temp(ztlo(1):zthi(1),ztlo(2):zthi(2),nspecies) ! zeta/T
-    double precision, intent(in   ) :: D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),nspecies) ! thermo diff-coefs 
+    double precision, intent(in   ) ::      D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),nspecies) ! thermo diff-coefs 
 
     ! local variables
     integer          :: i,j
@@ -676,11 +460,11 @@ contains
 
     integer,          intent(in   ) :: tlo(3),thi(3),nspecies
     integer,          intent(in   ) :: mclo(3),mchi(3), dblo(3),dbhi(3), tplo(3),tphi(3), ztlo(3),zthi(3), dtlo(3),dthi(3)
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies) ! MS diff-coefs 
-    double precision, intent(in   ) :: Temp(tplo(1):tphi(1),tplo(2):tphi(2),tplo(3):tphi(3)) ! Temperature 
+    double precision, intent(in   ) ::    molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration 
+    double precision, intent(in   ) ::        D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies) ! MS diff-coefs 
+    double precision, intent(in   ) ::         Temp(tplo(1):tphi(1),tplo(2):tphi(2),tplo(3):tphi(3))          ! Temperature 
     double precision, intent(inout) :: zeta_by_Temp(ztlo(1):zthi(1),ztlo(2):zthi(2),ztlo(3):zthi(3),nspecies) ! zeta/T
-    double precision, intent(in   ) :: D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),dtlo(3):dthi(3),nspecies) ! thermo diff-coefs 
+    double precision, intent(in   ) ::      D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),dtlo(3):dthi(3),nspecies) ! thermo diff-coefs 
     
     ! local variables
     integer          :: i,j,k

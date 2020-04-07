@@ -62,8 +62,10 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   // the advance_timestep routines
   // external_source(rho,diff_mass_fluxdiv,stage_time,geom);
 
+
+  
   // compute stochastic fluxdiv 
-  // if (variance_coef_mass != 0.0) {
+  if (variance_coef_mass != 0.0) {
 
   //   // compute face-centered cholesky-factored Lonsager^(1/2)
   //   compute_sqrtLonsager_fc(rho,rhotot,sqrtLonsager_fc,geom);
@@ -72,6 +74,6 @@ void ComputeMassFluxdiv(MultiFab& rho, MultiFab& rhotot,
   //   			       stoch_mass_fluxdiv,stoch_mass_flux,
   //   			       dt,geom);
 
-  // }
+  }
 
 }
