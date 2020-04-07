@@ -20,69 +20,24 @@ module compute_mixture_properties_module
   ! 3 - density dependent viscosity (used for bubble regression tests)
   
 contains
-
-#if (AMREX_SPACEDIM == 2)
   
   subroutine mixture_properties_mass(tlo, thi, &
-                                     rho, rlo, rhi, nspecies, &
+                                     rho, rhlo, rhhi, &
                                      rhotot, rtlo, rthi, &
                                      D_bar, dblo, dbhi, &
                                      D_therm, dtlo, dthi, &
                                      Hessian, hslo, hshi) bind(C,name="mixture_properties_mass")
 
-    integer         , intent(in   ) :: tlo(2),thi(2), nspecies
-    integer         , intent(in   ) :: rlo(2),rhi(2), rtlo(2),rthi(2)
-    integer         , intent(in   ) :: dblo(2),dbhi(2), dtlo(2),dthi(2), hslo(2),hshi(2)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),nspecies)     ! density; last dimension for species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rhi(1),rtlo(2):rthi(2))    ! total density in each cell 
-    double precision, intent(inout) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies*nspecies)     ! last dimension for nspecies^2
-    double precision, intent(inout) :: D_therm(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies)     ! last dimension for nspecies
-    double precision, intent(inout) :: Hessian(hslo(1):hshi(1),hslo(2):hshi(2),nspecies*nspecies)     ! last dimension for nspecies^2
-
-    ! local varialbes
-    integer          :: i,j
-
-    ! if () then
-    !    call amrex_error('mixture_properties_mass, D_bar, D_therm, and Hessian need same # of ghost cells') 
-    ! end if
-
-    ! for specific box, now start loops over alloted cells 
-    do j=tlo(2),thi(2)
-       do i=tlo(1),thi(1)
-       
-          call mixture_properties_mass_local(rho(i,j,:),rhotot(i,j),D_bar(i,j,:),D_therm(i,j,:),&
-                                             Hessian(i,j,:))
-       end do
-    end do
-   
-  end subroutine mixture_properties_mass
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-  
-  subroutine mixture_properties_mass(tlo, thi, &
-                                     rho, rlo, rhi, nspecies, &
-                                     rhotot, rtlo, rthi, &
-                                     D_bar, dblo, dbhi, &
-                                     D_therm, dtlo, dthi, &
-                                     Hessian, hslo, hshi) bind(C,name="mixture_properties_mass")
-
-    integer         , intent(in   ) :: tlo(3),thi(3), nspecies
-    integer         , intent(in   ) :: rlo(3),rhi(3), rtlo(3),rthi(3)
-    integer         , intent(in   ) :: dblo(3),dbhi(3), dtlo(3),dthi(3), hslo(3),hshi(3)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3),nspecies)     ! density; last dimension for species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rhi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))    ! total density in each cell 
-    double precision, intent(inout) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies*nspecies)     ! last dimension for nspecies^2
-    double precision, intent(inout) :: D_therm(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies)     ! last dimension for nspecies
-    double precision, intent(inout) :: Hessian(hslo(1):hshi(1),hslo(2):hshi(2),hslo(3):hshi(3),nspecies*nspecies)     ! last dimension for nspecies^2
+    integer         , intent(in   ) :: tlo(3),thi(3)
+    integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), dblo(3),dbhi(3), dtlo(3),dthi(3), hslo(3),hshi(3)
+    double precision, intent(in   ) ::     rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies)     ! density
+    double precision, intent(in   ) ::  rhotot(rtlo(1):rhhi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))              ! total density
+    double precision, intent(inout) ::   D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies*nspecies)
+    double precision, intent(inout) :: D_therm(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies)
+    double precision, intent(inout) :: Hessian(hslo(1):hshi(1),hslo(2):hshi(2),hslo(3):hshi(3),nspecies*nspecies)
     
     ! local varialbes
-    integer          :: i,j,k
-
-    ! if () then
-    !    call bl_error('mixture_properties_mass, D_bar, D_therm, and Hessian need same # of ghost cells')
-    ! end if
+    integer :: i,j,k
 
     ! for specific box, now start loops over alloted cells 
     do k=tlo(3),thi(3)
@@ -97,8 +52,6 @@ contains
     end do
    
   end subroutine mixture_properties_mass
-
-#endif
 
   ! The default case should be to simply set D_bar, D_therm and H to constants, read from the input file
   subroutine mixture_properties_mass_local(rho,rhotot,D_bar,D_therm,Hessian)

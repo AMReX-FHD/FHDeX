@@ -39,7 +39,7 @@ extern "C"
     // in compute_mixture_properties.F90
   
     void mixture_properties_mass(const int* tlo, const int* thi,
-                                 const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+                                 const amrex_real* rho, const int* rhlo, const int* rhhi,
                                  const amrex_real* rhotot, const int* rtlo, const int* rthi,
                                  const amrex_real* D_bar, const int* dblo, const int* dbhi,
                                  const amrex_real* D_therm, const int* dtlo, const int* dthi,
@@ -55,7 +55,7 @@ extern "C"
     // in correction_flux.F90
   
     void correction_flux(const int* lo, const int* hi,
-                         const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+                         const amrex_real* rho, const int* rhlo, const int* rhhi,
                          const amrex_real* rhotot, const int* rtlo, const int* rthi,
                          const amrex_real* flux_x, const int* fxlo, const int* fxhi, 
                          const amrex_real* flux_y, const int* fylo, const int* fyhi
@@ -79,14 +79,14 @@ extern "C"
                        const amrex_real* Gamma, const int* glo, const int* ghi);
     
     void compute_rhoWchi(const int* tlo, const int* thi,
-                         const amrex_real* rho, const int* rlo, const int* rhi, const int* nspecies,
+                         const amrex_real* rho, const int* rhlo, const int* rhhi,
                          const amrex_real* rhotot, const int* rtlo, const int* rthi,
                          const amrex_real* molarconc, const int* mclo, const int* mchi,
-                         const amrex_real* rhoWchi, const int* rwclo, const int* rwchi,
+                         const amrex_real* rhoWchi, const int* rclo, const int* rchi,
                          const amrex_real* D_bar, const int* dblo, const int* dbhi);
     
     void compute_zeta_by_Temp(const int* tlo, const int* thi,
-                              const amrex_real* molarconc, const int* mclo, const int* mchi, const int* nspecies,
+                              const amrex_real* molarconc, const int* mclo, const int* mchi,
                               const amrex_real* D_bar, const int* dblo, const int* dbhi,
                               const amrex_real* Temp, const int* tplo, const int* tphi,
                               const amrex_real* zeta_by_Temp, const int* ztlo, const int* zthi,

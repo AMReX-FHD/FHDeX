@@ -133,59 +133,24 @@ contains
  
   end subroutine compute_Gamma_local
 
-#if (AMREX_SPACEDIM == 2)
- 
-  subroutine compute_rhoWchi( tlo, thi, &
-                              rho, rlo, rhi, nspecies, &
-                              rhotot, rtlo, rthi, &
-                              molarconc, mclo, mchi, &
-                              rhoWchi, rwclo, rwchi, &
-                              D_bar, dblo, dbhi) bind(C,name="compute_rhoWchi")
- 
-    integer         , intent(in   ) :: tlo(2),thi(2),nspecies
-    integer         , intent(in   ) :: rlo(2),rhi(2), rtlo(2),rthi(2), mclo(2),mchi(2), rwclo(2),rwchi(2), dblo(2),dbhi(2)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),nspecies) ! density- last dim for #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2)) ! total density in each cell 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration
-    double precision, intent(inout) :: rhoWchi(rwclo(1):rwchi(1),rwclo(2):rwchi(2),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies*nspecies) ! MS diff-coefs
-
-    ! local variables
-    integer          :: i,j
-
-    ! for specific box, now start loops over alloted cells 
-    do j=tlo(2),thi(2)
-       do i=tlo(1),thi(1)
-    
-          call compute_rhoWchi_local(rho(i,j,:),rhotot(i,j),molarconc(i,j,:),&
-                                 rhoWchi(i,j,:),D_bar(i,j,:),nspecies)
-
-       end do
-    end do
-
-  end subroutine compute_rhoWchi
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
 
   subroutine compute_rhoWchi( tlo, thi, &
-                              rho, rlo, rhi, nspecies, &
+                              rho, rhlo, rhhi, &
                               rhotot, rtlo, rthi, &
                               molarconc, mclo, mchi, &
-                              rhoWchi, rwclo, rwchi, &
+                              rhoWchi, rclo, rchi, &
                               D_bar, dblo, dbhi) bind(C,name="compute_rhoWchi")
  
-    integer         , intent(in   ) :: tlo(3),thi(3),nspecies
-    integer         , intent(in   ) :: rlo(3),rhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), rwclo(3),rwchi(3), dblo(3),dbhi(3)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3),nspecies) ! density- last dim for #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3)) ! total density in each cell 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration
-    double precision, intent(inout) :: rhoWchi(rwclo(1):rwchi(1),rwclo(2):rwchi(2),rwclo(3):rwchi(3),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies*nspecies) ! MS diff-coefs
+    integer         , intent(in   ) :: tlo(3),thi(3)
+    integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), rclo(3),rchi(3), dblo(3),dbhi(3)
+    double precision, intent(in   ) ::       rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies)          ! densities
+    double precision, intent(in   ) ::    rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))                   ! total density
+    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies)          ! molar concentration
+    double precision, intent(inout) ::   rhoWchi(rclo(1):rchi(1),rclo(2):rchi(2),rclo(3):rchi(3),nspecies*nspecies)
+    double precision, intent(in   ) ::     D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies*nspecies) ! MS diff-coefs
     
     ! local variables
-    integer          :: i,j,k
+    integer :: i,j,k
 
     ! for specific box, now start loops over alloted cells 
     do k=tlo(3),thi(3)
@@ -201,7 +166,6 @@ contains
    
   end subroutine compute_rhoWchi
 
-#endif
 
   subroutine compute_rhoWchi_local(rho,rhotot,molarconc,rhoWchi,D_bar,nspecies)
 
@@ -414,51 +378,14 @@ contains
 
   end subroutine compute_chi
 
-#if (AMREX_SPACEDIM == 2)
-
   subroutine compute_zeta_by_Temp(tlo,thi, &
-                                  molarconc,mclo,mchi,nspecies, & 
+                                  molarconc,mclo,mchi, & 
                                   D_bar,dblo,dbhi, & 
                                   Temp,tplo,tphi, & 
                                   zeta_by_Temp,ztlo,zthi, &
                                   D_therm,dtlo,dthi) bind(C,name="compute_zeta_by_Temp")
 
-    integer,          intent(in   ) :: tlo(2),thi(2),nspecies
-    integer,          intent(in   ) :: mclo(2),mchi(2), dblo(2),dbhi(2), tplo(2),tphi(2), ztlo(2),zthi(2), dtlo(2),dthi(2)
-    double precision, intent(in   ) ::    molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration 
-    double precision, intent(in   ) ::        D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies) ! MS diff-coefs 
-    double precision, intent(in   ) ::         Temp(tplo(1):tphi(1),tplo(2):tphi(2))          ! Temperature 
-    double precision, intent(inout) :: zeta_by_Temp(ztlo(1):zthi(1),ztlo(2):zthi(2),nspecies) ! zeta/T
-    double precision, intent(in   ) ::      D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),nspecies) ! thermo diff-coefs 
-
-    ! local variables
-    integer          :: i,j
-
-    ! for specific box, now start loops over alloted cells 
-    do j=tlo(2),thi(2)
-       do i=tlo(1),thi(1)
-    
-          call compute_zeta_by_Temp_local(molarconc(i,j,:),&
-                                          D_bar(i,j,:),Temp(i,j),zeta_by_Temp(i,j,:),&
-                                          D_therm(i,j,:),nspecies)
-
-       end do
-    end do
-
-  end subroutine compute_zeta_by_Temp
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-
-  subroutine compute_zeta_by_Temp(tlo,thi, &
-                                  molarconc,mclo,mchi,nspecies, & 
-                                  D_bar,dblo,dbhi, & 
-                                  Temp,tplo,tphi, & 
-                                  zeta_by_Temp,ztlo,zthi, &
-                                  D_therm,dtlo,dthi) bind(C,name="compute_zeta_by_Temp")
-
-    integer,          intent(in   ) :: tlo(3),thi(3),nspecies
+    integer,          intent(in   ) :: tlo(3),thi(3)
     integer,          intent(in   ) :: mclo(3),mchi(3), dblo(3),dbhi(3), tplo(3),tphi(3), ztlo(3),zthi(3), dtlo(3),dthi(3)
     double precision, intent(in   ) ::    molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration 
     double precision, intent(in   ) ::        D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies) ! MS diff-coefs 
@@ -483,8 +410,6 @@ contains
     end do
    
   end subroutine compute_zeta_by_Temp
-
-#endif
 
   subroutine compute_zeta_by_Temp_local(molarconc,D_bar,Temp,zeta_by_Temp,D_therm,nspecies)
     

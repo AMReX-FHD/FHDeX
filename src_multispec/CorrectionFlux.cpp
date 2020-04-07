@@ -13,7 +13,7 @@ void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
         const Box& validBox = mfi.validbox();
 
         correction_flux(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-			BL_TO_FORTRAN_FAB(rho[mfi]),
+			BL_TO_FORTRAN_ANYD(rho[mfi]),
 			BL_TO_FORTRAN_ANYD(rhotot[mfi]),
 			BL_TO_FORTRAN_ANYD(flux[0][mfi]),
 			BL_TO_FORTRAN_ANYD(flux[1][mfi])

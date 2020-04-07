@@ -18,7 +18,7 @@ void ComputeMixtureProperties(const MultiFab& rho,
         const Box& bx = mfi.growntilebox(ng);
 
         mixture_properties_mass(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-				BL_TO_FORTRAN_FAB(rho[mfi]),
+				BL_TO_FORTRAN_ANYD(rho[mfi]),
 				BL_TO_FORTRAN_ANYD(rhotot[mfi]),
 				BL_TO_FORTRAN_ANYD(D_bar[mfi]),
 				BL_TO_FORTRAN_ANYD(D_therm[mfi]),

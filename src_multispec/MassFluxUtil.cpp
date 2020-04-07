@@ -65,7 +65,7 @@ void ComputeRhoWChi(const MultiFab& rho,
         const Box& bx = mfi.growntilebox(ng);
 
         compute_rhoWchi(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-			BL_TO_FORTRAN_FAB(rho[mfi]),
+			BL_TO_FORTRAN_ANYD(rho[mfi]),
 			BL_TO_FORTRAN_ANYD(rhotot[mfi]),
 			BL_TO_FORTRAN_ANYD(molarconc[mfi]),
 			BL_TO_FORTRAN_ANYD(rhoWchi[mfi]),
@@ -91,7 +91,7 @@ void ComputeZetaByTemp(const MultiFab& molarconc,
         const Box& bx = mfi.growntilebox(ng);
 
         compute_zeta_by_Temp(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                             BL_TO_FORTRAN_FAB(molarconc[mfi]),
+                             BL_TO_FORTRAN_ANYD(molarconc[mfi]),
                              BL_TO_FORTRAN_ANYD(D_bar[mfi]),
                              BL_TO_FORTRAN_ANYD(Temp[mfi]),
                              BL_TO_FORTRAN_ANYD(zeta_by_Temp[mfi]),
