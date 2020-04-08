@@ -1,4 +1,5 @@
 #include "multispec_functions.H"
+#include "gmres_functions.H"
 
 /*
 
@@ -64,6 +65,11 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         diff_mass_flux[d] .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
+    
+    // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
+    //
+    //
+    //
     
     if (variance_coef_mass != 0.) {
         sMassFlux.fillMassStochastic();
@@ -134,26 +140,19 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // solve to completion, i.e., use the 'full' solver
         phi.setVal(0.);
 
+        MacProj(rhototinv_fc,mac_rhs,phi,geom,true);
         
+        // v^0 = v^init - (1/rho^0) grad phi
+        SubtractWeightedGradP(umac,rhototinv_fc,phi,geom);
 
-        
-
-
-        
-
-        
-
+        // fill ghost cells
+        for (int i=0; i<AMREX_SPACEDIM; ++i) {
+            // set normal velocity of physical domain boundaries
+            MultiFabPhysBCDomainVel(umac[i],geom,i);
+            // set transverse velocity behind physical boundaries
+            MultiFabPhysBCMacVel(umac[i],geom,i);
+            // fill periodic and interior ghost cells
+            umac[i].FillBoundary(geom.periodicity());
+        }
     }
-
-
-
-
-    // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
-    //
-    //
-    //
-
-
-
-
 }
