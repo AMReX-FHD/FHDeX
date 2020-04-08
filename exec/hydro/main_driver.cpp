@@ -318,7 +318,7 @@ void main_driver(const char* argv)
         // Project umac onto divergence free field
         MultiFab macrhs(ba,dmap,1,1);
         macrhs.setVal(0.0);
-        MacProj(umac,rho,geom,true);
+        MacProj_hydro(umac,rho,geom,true);
 
         step_start = 1;
         time = 0.;

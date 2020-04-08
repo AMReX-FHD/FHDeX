@@ -391,7 +391,7 @@ void main_driver(const char * argv) {
     MultiFab macphi(ba,dmap, 1, 1);
     MultiFab macrhs(ba,dmap, 1, 1);
     macrhs.setVal(0.);
-    MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
+    MacProj_hydro(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
     for (int d=0; d<AMREX_SPACEDIM; ++d)

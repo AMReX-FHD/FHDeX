@@ -34,20 +34,17 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac,
 
 
 /////////////////////////////////////////////////////////////////////////////////
-// in MacProj.cpp
+// in MacProj_hydro.cpp
 
-void MacProj(std::array<MultiFab, AMREX_SPACEDIM> & umac,
-             const MultiFab & rho,
-             const Geometry & geom,
-             const bool & full_solve=true);
+void MacProj_hydro(std::array<MultiFab, AMREX_SPACEDIM> & umac,
+                   const MultiFab & rho,
+                   const Geometry & geom,
+                   const bool & full_solve=true);
 
 void ComputeMACSolverRHS(MultiFab & solverrhs,
 			 const MultiFab & macrhs,
 			 const std::array<MultiFab, AMREX_SPACEDIM> & umac,
 			 const Geometry & geom);
-
-void AvgFaceBcoeffsInv(std::array<MultiFab, AMREX_SPACEDIM> & facebcoef,
-		       const MultiFab & rhocc);
 
 void SetMacSolverBCs(MLABecLaplacian & mlabec);
 
