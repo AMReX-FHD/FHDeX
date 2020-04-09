@@ -175,7 +175,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     tracer.FillBoundary(geom.periodicity());
     MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv(umac, tracer, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // compute predictor
@@ -185,7 +185,7 @@ void advance(AmrCoreAdv & amr_core_adv,
     tracerPred.FillBoundary(geom.periodicity());
     MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // advance in time

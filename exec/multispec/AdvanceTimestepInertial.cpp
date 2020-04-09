@@ -92,6 +92,23 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     */
 
     // average rho_old and rhotot_old to faces
+    AverageCCToFace(rho_old,rho_fc,0,nspecies);
+    AverageCCToFace(rhotot_old,rhotot_fc_old,0,1);
+
+    // add D^n and St^n to rho_update
+    MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
+    if (variance_coef_mass != 0.) {
+        MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+    }
+
+    // add A^n to rho_update
+    if (advection_type >= 1) {
+        Abort("AdvanceTimestepInterial: bds not supported");
+    }
+    else {
+        MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
+    }
+   
     
     
     
