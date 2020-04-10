@@ -1,6 +1,7 @@
 #include "rng_functions.H"
-#include "gmres_functions.H"
 #include "common_functions.H"
+#include "hydro_functions.H"
+
 #include "StochMomFlux.H"
 
 #include <AMReX_MultiFabUtil.H>
@@ -817,18 +818,12 @@ void StochMomFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac
     AverageCCToFace(Temp,   Temp_fc,   0, 1, 2, geom);
 
     // Convert umac to momenta, rho*umac
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        MultiFab::Copy(     m_old[d], umac[d],      0, 0, 1, 0);
-        MultiFab::Multiply( m_old[d], rhotot_fc[d], 0, 0, 1, 0);
-    }
+    ConvertMToUmac(rhotot_fc,umac,m_old,0);
 
     addMfluctuations_stag(m_old, rhotot_fc, Temp_fc, variance);
 
     // Convert momenta to umac, (1/rho)*momentum
-    for (int d=0; d<AMREX_SPACEDIM; d++) {
-        MultiFab::Copy(   umac[d], m_old[d],     0, 0, 1, 0);
-        MultiFab::Divide( umac[d], rhotot_fc[d], 0, 0, 1, 0);
-    }
+    ConvertMToUmac(rhotot_fc,umac,m_old,1);
 }
 
 // used to add noise to an initial momentum field

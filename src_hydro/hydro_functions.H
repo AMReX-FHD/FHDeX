@@ -14,6 +14,13 @@
 using namespace amrex;
 
 /////////////////////////////////////////////////////////////////////////////////
+// in ConvertMToUmac.cpp
+void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,
+                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                    std::array< MultiFab, AMREX_SPACEDIM >& m,
+                    int m_to_umac);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in MkAdvMFluxdiv.cpp
 
 void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac,

@@ -32,6 +32,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     BoxArray ba = rho_old.boxArray();
     DistributionMapping dmap = rho_old.DistributionMap();
 
+    const Real* dx = geom.CellSize();
+    
     Vector<Real> weights;
     weights = {1.0};
     
@@ -121,6 +123,49 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // average rho_new and rhotot_new to faces
     AverageCCToFace(rho_new,rho_fc,0,nspecies,1,geom);
     AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,-1,geom);
+    
+    /*
+    if (use_charged_fluid) {
+        // compute total charge
+        // compute permittivity
+    }
+    */
+
+    //////////////////////////////////////////////
+    // Step 3 - Calculate Corrector Diffusive and Stochastic Fluxes
+    // Step 4 - Predictor Crank-Nicolson Step
+    //////////////////////////////////////////////
+
+    // compute mold
+    ConvertMToUmac(rhotot_fc_old,umac,mold,0);
+
+    // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Copy(gmres_rhs_v[d],mold[d],0,0,1,0);
+        gmres_rhs_v[d].mult(1/dt,0);
+    }
+        
+    // compute grad pi^n
+    ComputeGrad(pi,gradpi,0,0,1,geom);
+
+    /*
+    if (barodiffusion_type == 2) {
+       // barodiffusion uses lagged grad(pi)
+    }
+    else if (barodiffusion_type == 3) {
+       // compute p0 from rho0*g
+    }
+    */
+
+    // subtract grad pi^n from gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Subtract(gmres_rhs_v[d],gradpi[d],0,0,1,0);
+    }
+
+    // compute adv_mom_fluxdiv = A^n for momentum
+    MkAdvMFluxdiv(umac,mold,adv_mom_fluxdiv,dx,0);
+
+        // 
     
     
 }
