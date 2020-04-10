@@ -128,7 +128,8 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
-        
+
+#if (AMREX_SPACEDIM == 3)
         if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
             if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
                 int lo = dom.smallEnd(2);
@@ -152,6 +153,8 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
                 });
             }
         }
+#endif
+        
     }
 }
 
