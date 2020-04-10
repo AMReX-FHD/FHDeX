@@ -77,12 +77,82 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
 #endif
         );
 
-
-
-
+        // boundary conditions
+        // note: at physical boundaries,
+        // the value in the ghost cells represent the value ON the boundary
+        // so we simply copy the ghost cell value into the value on the domain (and ghost faces too)
+        if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) {
+            if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
+                int lo = dom.smallEnd(0);
+                amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i <= lo) {
+                        facex(i,j,k,scomp+n) = cc(lo,j,k,scomp+n);
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) {
+            if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
+                int hi = dom.bigEnd(0)+1;
+                amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i >= hi) {
+                        facex(i,j,k,scomp+n) = cc(hi-1,j,k,scomp+n);
+                    }
+                });
+            }
+        }
         
+        if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) {
+            if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
+                int lo = dom.smallEnd(1);
+                amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j <= lo) {
+                        facey(i,j,k,scomp+n) = cc(i,lo,k,scomp+n);
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) {
+            if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
+                int hi = dom.bigEnd(1)+1;
+                amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j >= hi) {
+                        facey(i,j,k,scomp+n) = cc(i,hi-1,k,scomp+n);
+                    }
+                });
+            }
+        }
+        
+        if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
+            if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
+                int lo = dom.smallEnd(2);
+                amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k <= lo) {
+                        facez(i,j,k,scomp+n) = cc(i,j,lo,scomp+n);
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) {
+            if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
+                int hi = dom.bigEnd(2)+1;
+                amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k >= hi) {
+                        facez(i,j,k,scomp+n) = cc(i,j,hi-1,scomp+n);
+                    }
+                });
+            }
+        }
     }
-
 }
 
 
