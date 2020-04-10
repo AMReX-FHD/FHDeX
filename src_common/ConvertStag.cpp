@@ -27,7 +27,7 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
 }
 
 void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>& face_in, 
-                     int scomp, int ncomp)
+                     int scomp, int ncomp, int varType, const Geometry& geom)
 {
     BL_PROFILE_VAR("AverageCCToFace()",AverageCCToFace);
 
@@ -37,6 +37,15 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
     if (ng >= ng_c) {
         Abort("AverageCCToFace requires ng < ng_c");
     }
+    
+    // Physical Domain
+    Box dom(geom.Domain());
+    
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+
+    // compute mathematical boundary conditions
+    BCPhysToMath(varType,bc_lo,bc_hi);
 
     // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
     for (MFIter mfi(cc_in,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
@@ -67,6 +76,11 @@ void AverageCCToFace(const MultiFab& cc_in, std::array<MultiFab, AMREX_SPACEDIM>
         }
 #endif
         );
+
+
+
+
+        
     }
 
 }
@@ -242,7 +256,7 @@ void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge
                      const Geometry& geom)
 {
 
-    BL_PROFILE_VAR("AverageCCToNode()",AverageCCToNode);
+    BL_PROFILE_VAR("AverageCCToEdge()",AverageCCToEdge);
 
     if (AMREX_SPACEDIM != 3) {
         Abort("AverageCCToEdge requires AMREX_SPACEDIM=3");

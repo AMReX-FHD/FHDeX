@@ -41,7 +41,7 @@ void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
 
 void AverageCCToFace(const MultiFab& cc_in,
                      std::array<MultiFab, AMREX_SPACEDIM>& face_in,
-                     int scomp, int ncomp);
+                     int scomp, int ncomp, int varType, const Geometry& geom);
 
 void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
                    MultiFab& cc_in, int cc_in_comp,

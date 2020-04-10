@@ -53,13 +53,13 @@ void DiffusiveMassFlux(const MultiFab& rho,
     }
 
     // compute face-centered rhoWchi from cell-centered values 
-    AverageCCToFace(rhoWchi, rhoWchi_face, 0, nspecies2);
+    AverageCCToFace(rhoWchi, rhoWchi_face, 0, nspecies2, 1, geom);
 
     // calculate face-centrered grad(molarconc) 
     ComputeGrad(molarconc, diff_mass_flux, 0, 0, nspecies, geom);
 
     // compute face-centered Gama from cell-centered values 
-    AverageCCToFace(Gamma, Gamma_face, 0, nspecies2);
+    AverageCCToFace(Gamma, Gamma_face, 0, nspecies2, 1, geom);
 
     // compute Gama*grad(molarconc): Gama is nspecies^2 matrix; grad(x) is
     // nspecies component vector 

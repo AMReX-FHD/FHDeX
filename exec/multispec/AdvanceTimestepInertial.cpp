@@ -92,8 +92,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     */
 
     // average rho_old and rhotot_old to faces
-    AverageCCToFace(rho_old,rho_fc,0,nspecies);
-    AverageCCToFace(rhotot_old,rhotot_fc_old,0,1);
+    AverageCCToFace(rho_old,rho_fc,0,nspecies,1,geom);
+    AverageCCToFace(rhotot_old,rhotot_fc_old,0,1,-1,geom);
 
     // add D^n and St^n to rho_update
     MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
@@ -109,7 +109,18 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
     }
    
-    
+    // set rho_new = rho_old + dt * (A^n + D^n + St^n)
+    MultiFab::LinComb(rho_new,1.,rho_old,0,dt,rho_update,0,0,nspecies,0);
+
+    // compute rhotot from rho in VALID REGION
+    ComputeRhotot(rho_new,rhotot_new);
+
+    // fill rho and rhotot ghost cells
+    FillRhoRhototGhost(rho_new,rhotot_new,geom);
+
+    // average rho_new and rhotot_new to faces
+    AverageCCToFace(rho_new,rho_fc,0,nspecies,1,geom);
+    AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,-1,geom);
     
     
 }

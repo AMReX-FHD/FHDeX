@@ -50,7 +50,7 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     acoef.setVal(0.);
 
     // 1) average face-centered B coefficients to rho
-    AverageCCToFace(rho, face_bcoef, 0, 1);
+    AverageCCToFace(rho, face_bcoef, 0, 1, -1, geom);
 
     // 2) invert B coefficients to 1/rho
     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
