@@ -46,6 +46,18 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
 		   const int & increment);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in MkDiffusiveMFluxdiv.cpp
+
+void MkDiffusiveMFluxdiv(std::array<MultiFab, AMREX_SPACEDIM> & m_update,
+                         const std::array<MultiFab, AMREX_SPACEDIM> & umac,
+                         const MultiFab& eta,
+                         const std::array<MultiFab, NUM_EDGE> & eta_ed,
+                         const MultiFab& kappa,
+                         const Geometry& geom,
+                         const Real* dx,
+                         const int& increment);
+
+/////////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////////

@@ -165,7 +165,14 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // compute adv_mom_fluxdiv = A^n for momentum
     MkAdvMFluxdiv(umac,mold,adv_mom_fluxdiv,dx,0);
 
-        // 
+    // add A^n for momentum into gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(gmres_rhs_v[d],adv_mom_fluxdiv[d],0,0,1,0);
+    }
+
+    // compute diff_mom_fluxdiv = A_0^n v^n
+    MkDiffusiveMFluxdiv(diff_mom_fluxdiv,umac,eta,eta_ed,kappa,geom,dx,0);
+    
     
     
 }
