@@ -39,6 +39,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     weights = {1.0};
     
     Real theta_alpha = 1./dt;
+    Real norm_pre_rhs;
 
     MultiFab rho_update (ba,dmap,nspecies,0);
     MultiFab gmres_rhs_p(ba,dmap,       1,0);
@@ -272,8 +273,136 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // set physical boundary values to zero
+    ZeroEdgevalPhysical(gmres_rhs_v, geom, 0, 1);
     
+    // set rho_update to F^{*,n+1} = div(rho*chi grad c)^{*,n+1} + div(Psi^n)
+    // it is used in Step 5 below
+    MultiFab::Copy(rho_update,diff_mass_fluxdiv,0,0,nspecies,0);
+    MultiFab::Add(rho_update,stoch_mass_fluxdiv,0,0,nspecies,0);
+
+    // compute div vbar^n and add to gmres_rhs_p
+    // now gmres_rhs_p = div vbar^n - S^{*,n+1}
+    // the sign convention is correct since we solve -div(delta v) = gmres_rhs_p
+    ComputeDiv(gmres_rhs_p,umac,0,0,1,geom,1);
+
+    // multiply eta and kappa by 1/2 to put in proper form for gmres solve
+    eta.mult  (0.5,0,1,1);
+    kappa.mult(0.5,0,1,1);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].mult(0.5,0,1,0);
+    }
+
+    // set the initial guess to zero
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        dumac[d].setVal(0.);
+    }
+    dpi.setVal(0.);
     
+    Real gmres_abs_tol_in = gmres_abs_tol; // save this
+
+    // This relies entirely on relative tolerance and can fail if the rhs is roundoff error only:
+    // gmres_abs_tol = 0.d0 ! It is better to set gmres_abs_tol in namelist to a sensible value
+    
+    // call gmres to compute delta v and delta pi
+    GMRES(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
+          kappa, theta_alpha, geom, norm_pre_rhs);
+    
+    // for the corrector gmres solve we want the stopping criteria based on the
+    // norm of the preconditioned rhs from the predictor gmres solve.  otherwise
+    // for cases where du in the corrector should be small the gmres stalls
+    gmres_abs_tol = std::max(gmres_abs_tol_in, norm_pre_rhs*gmres_rel_tol);
+
+    // restore eta and kappa
+    eta.mult  (2.,0,1,1);
+    kappa.mult(2.,0,1,1);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].mult(2.,0,1,0);
+    }
+
+    // compute v^{*,n+1} = v^n + dumac
+    // compute pi^{*,n+1}= pi^n + dpi
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(umac[d],dumac[d],0,0,1,0);
+    }
+    MultiFab::Add(pi,dpi,0,0,1,0);
+
+    // pressure ghost cells
+    pi.FillBoundary(geom.periodicity());
+    MultiFabPhysBC(pi,geom,0,1,0);    
+    
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
+        MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
+        umac[i].FillBoundary(geom.periodicity());
+    }
+
+    // convert v^{*,n+1} to rho^{*,n+1}v^{*,n+1} in valid and ghost region
+    // now mnew has properly filled ghost cells
+    ConvertMToUmac(rhotot_fc_new,umac,mtemp,0);
+    
+
+    //////////////////////////////////////////////
+    // Step 5 - Trapezoidal Scalar Corrector
+    //////////////////////////////////////////////
+    
+    // rho_update already contains D^{*,n+1} + St^{*,n+1} for rho from above
+    // add A^{*,n+1} for rho to rho_update
+    if (advection_type >= 1) {
+        Abort("AdvanceTimestepInterial: bds not supported");
+    }
+    else {
+        MkAdvSFluxdiv(umac,rho_fc,rho_update,geom,0,nspecies,true);
+
+        // snew = s^{n+1} 
+        //      = (1/2)*(s^n + s^{*,n+1} + dt*(A^{*,n+1} + D^{*,n+1} + St^{*,n+1}))
+        MultiFab::Add(rho_new,rho_old,0,0,nspecies,0);
+        MultiFab::Saxpy(rho_new,dt,rho_update,0,0,nspecies,0);
+        rho_new.mult(0.5,0,nspecies,0);        
+    }
+    
+    // need to project rho onto eos here and use this rho to compute S
+    // if you do this in main_driver, the fluxes don't match the state
+    // they were derived from and the Poisson solver has tolerance
+    // convergence issues
+    if (project_eos_int > 0 && istep%project_eos_int == 0) {
+        Abort("AdvanceTimestepInertial: need to wrote project_onto_eos");
+    }
+
+    // compute rhotot from rho in VALID REGION
+    ComputeRhotot(rho_new,rhotot_new);
+
+    // fill rho and rhotot ghost cells
+    FillRhoRhototGhost(rho_new,rhotot_new,geom);
+
+    // average rho_new and rhotot_new to faces
+    AverageCCToFace(rho_new,rho_fc,0,nspecies,1,geom);
+    AverageCCToFace(rhotot_new,rhotot_fc_new,0,1,-1,geom);
+    
+    /*
+    if (use_charged_fluid) {
+        // compute total charge
+        // compute permittivity
+    }
+    */
+
+    // compute (eta,kappa)^{n+1}
+    //
+    //
+
+    //////////////////////////////////////////////
+    // Step 6 - Calculate Diffusive and Stochastic Fluxes
+    // Step 7 - Corrector Crank-Nicolson Step
+    //////////////////////////////////////////////
+
+    // build up rhs_v for gmres solve: first set gmres_rhs_v to mold/dt
+    
+   
+
+    
+                                                                    
     Abort("HERE");
 
     

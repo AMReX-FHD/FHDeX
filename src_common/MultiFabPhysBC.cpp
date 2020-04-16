@@ -6,6 +6,8 @@
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
 void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int varType) {
 
+    // varType definitions are in BCPhysToMath.cpp
+    
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -533,7 +535,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         // lo-x faces
         // bc_vel check is to see if we have a wall bc
         // bx/dom comparison is to see if the grid touches a wall
-        if ((bc_vel_lo[0] == 1 || bc_vel_lo[0] == 2) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
+        if ((bc_vel_lo[0] != -1) && (bx.smallEnd(0) <= dom.smallEnd(0))) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {
@@ -545,7 +547,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         }
 
         // hi-x faces
-        if ((bc_vel_hi[0] == 1 || bc_vel_hi[0] == 2) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
+        if ((bc_vel_hi[0] != -1) && (bx.bigEnd(0) >= dom.bigEnd(0)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {        
@@ -568,7 +570,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         // Apply y-physbc to data
 
         // lo-y faces
-        if ((bc_vel_lo[1] == 1 || bc_vel_lo[1] == 2) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
+        if ((bc_vel_lo[1] != -1) && (bx.smallEnd(1) <= dom.smallEnd(1))) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {        
@@ -579,7 +581,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         }
 
         // hi-y faces
-        if ((bc_vel_hi[1] == 1 || bc_vel_hi[1] == 2) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
+        if ((bc_vel_hi[1] != -1) && (bx.bigEnd(1) >= dom.bigEnd(1)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {        
@@ -604,7 +606,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         // Apply z-physbc to data
 
         // lo-z faces
-        if ((bc_vel_lo[2] == 1 || bc_vel_lo[2] == 2) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
+        if ((bc_vel_lo[2] != -1) && (bx.smallEnd(2) <= dom.smallEnd(2))) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {        
@@ -615,7 +617,7 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
         }
 
         // hi-z faces
-        if ((bc_vel_hi[2] == 1 || bc_vel_hi[2] == 2) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
+        if ((bc_vel_hi[2] != -1) && (bx.bigEnd(2) >= dom.bigEnd(2)+1)) {
 
             amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
             {        
