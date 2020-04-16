@@ -148,7 +148,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
         
     // compute grad pi^n
-    ComputeGrad(pi,gradpi,0,0,1,geom);
+    ComputeGrad(pi,gradpi,0,0,1,0,geom);
 
     /*
     if (barodiffusion_type == 2) {
@@ -404,7 +404,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
     
     // compute grad pi^{*,n+1}
-    ComputeGrad(pi,gradpi,0,0,1,geom);
+    ComputeGrad(pi,gradpi,0,0,1,0,geom);
 
     
                                                                     

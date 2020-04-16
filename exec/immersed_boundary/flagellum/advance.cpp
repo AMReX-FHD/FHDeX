@@ -286,7 +286,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     pres.setVal(0.); // Initial guess for pressure
     SetPressureBC(pres, geom); // Apply pressure boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
     // Construct RHS of Navier Stokes Equation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {

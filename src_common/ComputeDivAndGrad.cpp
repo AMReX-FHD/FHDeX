@@ -43,20 +43,30 @@ void ComputeDiv(MultiFab& div,
 }
 
 // Computes gradient at cell faces of cell centred scalar
-void ComputeGrad(const MultiFab & phi, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
-                 int start_incomp, int start_outcomp, int ncomp, const Geometry & geom)
+void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi,
+                 int start_incomp, int start_outcomp, int ncomp, int varType, const Geometry & geom)
 {
     BL_PROFILE_VAR("ComputeGrad()",ComputeGrad);
+    
+    // Physical Domain
+    Box dom(geom.Domain());
+    
+    Vector<int> bc_lo(AMREX_SPACEDIM);
+    Vector<int> bc_hi(AMREX_SPACEDIM);
+
+    // compute mathematical boundary conditions
+    BCPhysToMath(varType,bc_lo,bc_hi);
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
-    for ( MFIter mfi(phi,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
+    // Loop over boxes (note that mfi takes a cell-centered multifab as an argument)
+    for ( MFIter mfi(phi_in,TilingIfNotGPU()); mfi.isValid(); ++mfi ) {
 
-        const Array4<Real const> & phi_fab = phi.array(mfi);
+        const Array4<Real const> & phi = phi_in.array(mfi);
 
-        AMREX_D_TERM(const Array4<Real> & gphix_fab = gphi[0].array(mfi);,
-                     const Array4<Real> & gphiy_fab = gphi[1].array(mfi);,
-                     const Array4<Real> & gphiz_fab = gphi[2].array(mfi););
+        AMREX_D_TERM(const Array4<Real> & gphix = gphi[0].array(mfi);,
+                     const Array4<Real> & gphiy = gphi[1].array(mfi);,
+                     const Array4<Real> & gphiz = gphi[2].array(mfi););
 
         AMREX_D_TERM(const Box & bx_x = mfi.nodaltilebox(0);,
                      const Box & bx_y = mfi.nodaltilebox(1);,
@@ -64,20 +74,98 @@ void ComputeGrad(const MultiFab & phi, std::array<MultiFab, AMREX_SPACEDIM> & gp
 
         amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            gphix_fab(i,j,k,start_outcomp+n) = (phi_fab(i,j,k,start_incomp+n)-phi_fab(i-1,j,k,start_incomp+n)) / dx[0];
+            gphix(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / dx[0];
         },
                            bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            gphiy_fab(i,j,k,start_outcomp+n) = (phi_fab(i,j,k,start_incomp+n)-phi_fab(i,j-1,k,start_incomp+n)) / dx[1];
+            gphiy(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / dx[1];
         }
 #if (AMREX_SPACEDIM == 3)
         ,
                            bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            gphiz_fab(i,j,k,start_outcomp+n) = (phi_fab(i,j,k,start_incomp+n)-phi_fab(i,j,k-1,start_incomp+n)) / dx[2];
+            gphiz(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / dx[2];
         }
 #endif
         );
+
+        // boundary conditions
+        // note: at physical boundaries,
+        // alter stencil at boundary since ghost value represents value at boundary
+        if (bc_lo[0] == FOEXTRAP || bc_lo[0] == EXT_DIR) {
+            if (bx_x.smallEnd(0) <= dom.smallEnd(0)) {
+                int lo = dom.smallEnd(0);
+                amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i == lo) {
+                        gphix(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (2.*dx[0]);
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[0] == FOEXTRAP || bc_hi[0] == EXT_DIR) {
+            if (bx_x.bigEnd(0) >= dom.bigEnd(0)+1) {
+                int hi = dom.bigEnd(0)+1;
+                amrex::ParallelFor(bx_x, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (i == hi) {
+                        gphix(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i-1,j,k,start_incomp+n)) / (2.*dx[0]);
+                    }
+                });
+            }
+        }
+        
+        if (bc_lo[1] == FOEXTRAP || bc_lo[1] == EXT_DIR) {
+            if (bx_y.smallEnd(1) <= dom.smallEnd(1)) {
+                int lo = dom.smallEnd(1);
+                amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j == lo) {
+                        gphiy(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (2.*dx[1]);
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[1] == FOEXTRAP || bc_hi[1] == EXT_DIR) {
+            if (bx_y.bigEnd(1) >= dom.bigEnd(1)+1) {
+                int hi = dom.bigEnd(1)+1;
+                amrex::ParallelFor(bx_y, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (j == hi) {
+                        gphiy(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j-1,k,start_incomp+n)) / (2.*dx[1]);
+                    }
+                });
+            }
+        }
+
+#if (AMREX_SPACEDIM == 3)
+        if (bc_lo[2] == FOEXTRAP || bc_lo[2] == EXT_DIR) {
+            if (bx_z.smallEnd(2) <= dom.smallEnd(2)) {
+                int lo = dom.smallEnd(2);
+                amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k == lo) {
+                        gphiz(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (2.*dx[2]);
+                    }
+                });
+            }
+        }
+            
+        if (bc_hi[2] == FOEXTRAP || bc_hi[2] == EXT_DIR) {
+            if (bx_z.bigEnd(2) >= dom.bigEnd(2)+1) {
+                int hi = dom.bigEnd(2)+1;
+                amrex::ParallelFor(bx_z, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                {
+                    if (k == hi) {
+                        gphiz(i,j,k,start_outcomp+n) = (phi(i,j,k,start_incomp+n)-phi(i,j,k-1,start_incomp+n)) / (2.*dx[2]);
+                    }
+                });
+            }
+        }
+#endif
+        
     }
 }
 

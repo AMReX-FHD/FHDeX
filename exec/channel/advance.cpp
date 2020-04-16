@@ -229,7 +229,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     pres.setVal(0.);  // initial guess
     SetPressureBC(pres, geom);
 
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         pg[i].FillBoundary(geom.periodicity());

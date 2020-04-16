@@ -468,7 +468,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     pres.setVal(0.);
     SetPressureBC(pres, geom);
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
 
     //___________________________________________________________________________
