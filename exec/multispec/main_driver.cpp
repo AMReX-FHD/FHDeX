@@ -264,8 +264,11 @@ void main_driver(const char* argv)
     */
 
     // initialize eta and kappa
-    eta.setVal(visc_coef); // replace with more general initialization routine
-    kappa.setVal(0.); // replace with more general initialization routine
+    eta.setVal(visc_coef);
+    kappa.setVal(0.);
+    // replace with more general initialization routine
+    //
+    //
     if (AMREX_SPACEDIM == 2) {
         AverageCCToNode(eta,eta_ed[0],0,1,1,geom);
     }

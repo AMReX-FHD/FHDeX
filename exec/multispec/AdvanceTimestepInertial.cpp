@@ -1,11 +1,10 @@
 
 #include "hydro_functions.H"
-
 #include "common_functions.H"
-
 #include "gmres_functions.H"
-
 #include "multispec_functions.H"
+
+#include "StochMomFlux.H"
 
 
 #include <AMReX_ParallelDescriptor.H>
@@ -186,16 +185,97 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         sMomFlux.fillMomStochastic();
 
        // compute and save stoch_mom_fluxdiv = div(Sigma^n) (save for later)
-//       call stochastic_m_fluxdiv(mla,the_bc_tower%bc_tower_array,stoch_mom_fluxdiv,.false., &
-//                                 eta,eta_ed,Temp,Temp_ed,dx,dt,weights)
+        sMomFlux.StochMomFluxDiv(stoch_mom_fluxdiv,0,eta,eta_ed,Temp,Temp_ed,weights,dt);
 
-           // add div(Sigma^n) to gmres_rhs_v
-//          do i=1,dm
-//                    call multifab_plus_plus_c(gmres_rhs_v(n,i),1,stoch_mom_fluxdiv(n,i),1,1,0)
-//          end do
+        // add div(Sigma^n) to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Add(gmres_rhs_v[d],stoch_mom_fluxdiv[d],0,0,1,0);
+        }
+    }
 
-           }
+    // add rho^n*g to gmres_rhs_v
+    bool any_grav = false;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        if (grav[d] != 0.) any_grav = true;
+    }
+    if (any_grav) {
+        //
+        //
+        //
+    }
+
+    // compute (eta,kappa)^{*,n+1}
+    //
+    //
+
+    // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
+    //
+    //
+
+    // compute diffusive, stochastic, potential mass fluxes
+    // with barodiffusion and thermodiffusion
+    // this computes "-F = rho W chi [Gamma grad x... ]"
+    ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
     
+    // assemble total fluxes to be used in reservoirs
+    //
+    //
+
+
+    // set the Dirichlet velocity value on reservoir faces
+    //
+    //
+
+    /*
+    if (use_charged_fluid == 1) {
+
+    }
+    */
+          
+    // compute gmres_rhs_p
+    // put "-S = div(F_i/rho_i)" into gmres_rhs_p (we will later add divu)
+    gmres_rhs_p.setVal(0.);
+    for (int i=0; i<nspecies; ++i) {
+        MultiFab::Saxpy(gmres_rhs_p,-1/rhobar[i],diff_mass_fluxdiv,i,0,1,0);
+        if (variance_coef_mass != 0.) {
+            MultiFab::Saxpy(gmres_rhs_p,-1/rhobar[i],stoch_mass_fluxdiv,i,0,1,0);
+        }
+    }
+
+    // modify umac to respect the boundary conditions we want after the next gmres solve
+    // thus when we add A_0^n vbar^n to gmres_rhs_v and add div vbar^n to gmres_rhs_p we
+    // are automatically putting the system in delta form WITH homogeneous boundary conditions
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
+        MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
+        umac[i].FillBoundary(geom.periodicity());
+    }
+
+    // compute mtemp = rho^{*,n+1} * vbar^n
+    ConvertMToUmac(rhotot_fc_new,umac,mtemp,0);
+
+    // subtract rho^{*,n+1} * vbar^n / dt from gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],-1./dt,mtemp[d],0,0,1,0);
+    }
+
+    // compute mtemp = A_0^n vbar^n
+    MkDiffusiveMFluxdiv(mtemp,umac,eta,eta_ed,kappa,geom,dx,0);
+
+    // add (1/2) A_0^n vbar^n to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,mtemp[d],0,0,1,0);
+    }
+
+    // set physical boundary values to zero
+    
+    
+    Abort("HERE");
+
     
     
 }

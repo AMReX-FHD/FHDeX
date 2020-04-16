@@ -123,6 +123,9 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
 void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom,
                       int scomp, int ncomp);
 
+void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom,
+                         int scomp, int ncomp);
+
 void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom);
 
 void MultiFABPotentialBC(MultiFab& potential, const Geometry& geom);

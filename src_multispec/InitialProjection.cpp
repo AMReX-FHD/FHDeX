@@ -116,7 +116,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
             // to deal with reservoirs
             // set normal velocity on physical domain boundaries
             MultiFabPhysBCDomainVel(umac[i],geom,i);
-            // fill periodict and interior ghost cells
+            // fill periodic and interior ghost cells
             umac[i].FillBoundary(geom.periodicity());
         }
 
