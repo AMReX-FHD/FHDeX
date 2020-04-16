@@ -4,6 +4,9 @@
 #include "common_functions.H"
 #include "gmres_functions.H"
 
+#include "StochMassFlux.H"
+#include "StochMomFlux.H"
+
 ///////////////////////////
 // in AdvanceTimestepInertial.cpp
 
@@ -17,6 +20,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                              MultiFab& diff_mass_fluxdiv,
                              MultiFab& stoch_mass_fluxdiv,
                              std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                             StochMassFlux& sMassFlux,
+                             StochMomFlux& sMomFlux,
                              const Real& dt, const Real& time, const int& istep,
                              const Geometry& geom);
 

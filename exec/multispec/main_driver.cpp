@@ -451,6 +451,7 @@ void main_driver(const char* argv)
             AdvanceTimestepInertial(umac,rho_old,rho_new,rhotot_old,rhotot_new,
                                     pi,eta,eta_ed,kappa,Temp,Temp_ed,
                                     diff_mass_fluxdiv,stoch_mass_fluxdiv,stoch_mass_flux,
+                                    sMassFlux,sMomFlux,
                                     dt,time,istep,geom);
         }
         else if (algorithm_type == 6) {

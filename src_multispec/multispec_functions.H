@@ -11,6 +11,7 @@
 #include "common_functions.H"
 
 #include "StochMassFlux.H"
+#include "StochMomFlux.H"
 
 using namespace multispec;
 using namespace amrex;

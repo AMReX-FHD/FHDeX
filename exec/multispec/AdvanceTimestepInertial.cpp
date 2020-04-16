@@ -23,6 +23,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                              MultiFab& diff_mass_fluxdiv,
                              MultiFab& stoch_mass_fluxdiv,
                              std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                             StochMassFlux& sMassFlux,
+                             StochMomFlux& sMomFlux,
                              const Real& dt, const Real& time, const int& istep,
                              const Geometry& geom)
 {
@@ -172,6 +174,27 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // compute diff_mom_fluxdiv = A_0^n v^n
     MkDiffusiveMFluxdiv(diff_mom_fluxdiv,umac,eta,eta_ed,kappa,geom,dx,0);
+    
+    // add (1/2) A_0^n v^n to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv[d],0,0,1,0);
+    }
+
+    if (variance_coef_mom != 0.) {
+
+        // fill the stochastic multifabs with a new set of random numbers
+        sMomFlux.fillMStochastic();
+
+       // compute and save stoch_mom_fluxdiv = div(Sigma^n) (save for later)
+//       call stochastic_m_fluxdiv(mla,the_bc_tower%bc_tower_array,stoch_mom_fluxdiv,.false., &
+//                                 eta,eta_ed,Temp,Temp_ed,dx,dt,weights)
+
+           // add div(Sigma^n) to gmres_rhs_v
+//          do i=1,dm
+//                    call multifab_plus_plus_c(gmres_rhs_v(n,i),1,stoch_mom_fluxdiv(n,i),1,1,0)
+//          end do
+
+           }
     
     
     
