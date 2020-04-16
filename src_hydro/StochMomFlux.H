@@ -33,13 +33,13 @@ public:
     StochMomFlux(BoxArray,DistributionMapping,Geometry,int);
 
     // fill mflux_cc and mflux_ed with random numbers
-    void fillMStochastic();
+    void fillMomStochastic();
 
     // create weighted sum of stage RNGs and store in mflux_cc_weighted and mflux_ed_weighted
-    void weightMflux(Vector<amrex::Real>);
+    void weightMomflux(Vector<amrex::Real>);
 
     // scale random numbers that lie on physical boundaries appropriately
-    void MfluxBC();
+    void MomFluxBC();
 
     // Multiply mflux_weighted by sqrt(eta*temperature)
     void multbyVarSqrtEtaTemp(const amrex::MultiFab&, const std::array< MultiFab, NUM_EDGE >&,
@@ -55,13 +55,13 @@ public:
                          const amrex::Vector< amrex::Real >&, const amrex::Real&);
 
     // used to add noise to an initial momentum field
-    void addMfluctuations(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+    void addMomFluctuations(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
                           const amrex::MultiFab&, const amrex::MultiFab&,
                           const amrex::Real&);
     
     // used to add noise to an initial momentum field
-    // called by addMfluctuations
-    void addMfluctuations_stag(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
+    // called by addMomFluctuations
+    void addMomFluctuations_stag(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
                                const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
                                const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
                                const amrex::Real&);

@@ -334,7 +334,7 @@ void main_driver(const char* argv)
     }
     
     // Add initial equilibrium fluctuations
-    sMflux.addMfluctuations(umac, rhotot, temp_cc, initial_variance_mom);
+    sMflux.addMomFluctuations(umac, rhotot, temp_cc, initial_variance_mom);
     
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap,1,1);
@@ -364,7 +364,7 @@ void main_driver(const char* argv)
 	if(variance_coef_mom != 0.0) {
     
 	  // Fill stochastic terms
-	  sMflux.fillMStochastic();
+	  sMflux.fillMomStochastic();
 
 	  // compute stochastic force terms
 	  sMflux.StochMomFluxDiv(mfluxdiv_predict,0,eta_cc,eta_ed,temp_cc,temp_ed,

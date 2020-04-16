@@ -183,7 +183,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if (variance_coef_mom != 0.) {
 
         // fill the stochastic multifabs with a new set of random numbers
-        sMomFlux.fillMStochastic();
+        sMomFlux.fillMomStochastic();
 
        // compute and save stoch_mom_fluxdiv = div(Sigma^n) (save for later)
 //       call stochastic_m_fluxdiv(mla,the_bc_tower%bc_tower_array,stoch_mom_fluxdiv,.false., &

@@ -61,9 +61,9 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 }
 
 // fill mflux_cc and mflux_ed with random numbers
-void StochMomFlux::fillMStochastic() {
+void StochMomFlux::fillMomStochastic() {
     
-    BL_PROFILE_VAR("StochMomFlux::fillMStochastic()",StochMomFlux);
+    BL_PROFILE_VAR("StochMomFlux::fillMomStochastic()",StochMomFlux);
 
     for (int i=0; i<n_rngs; ++i) {
 
@@ -97,7 +97,7 @@ void StochMomFlux::fillMStochastic() {
 
 
 // create weighted sum of stage RNGs and store in mflux_cc_weighted and mflux_ed_weighted
-void StochMomFlux::weightMflux(Vector< amrex::Real > weights) {
+void StochMomFlux::weightMomflux(Vector< amrex::Real > weights) {
 
     mflux_cc_weighted.setVal(0.0);
     for (int d=0; d<NUM_EDGE; ++d) {
@@ -113,7 +113,7 @@ void StochMomFlux::weightMflux(Vector< amrex::Real > weights) {
 }
 
 // scale random numbers that lie on physical boundaries appropriately
-void StochMomFlux::MfluxBC() {
+void StochMomFlux::MomFluxBC() {
     
 #if (AMREX_SPACEDIM == 2)
 
@@ -144,7 +144,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_lo[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // hi-x domain boundary
@@ -174,7 +174,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_hi[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // lo-y domain boundary
@@ -204,7 +204,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_lo[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // hi-y domain boundary
@@ -234,7 +234,7 @@ void StochMomFlux::MfluxBC() {
         }
     }
     else if (bc_vel_hi[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
 #elif (AMREX_SPACEDIM == 3)
@@ -292,7 +292,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_lo[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // hi-x domain boundary, y-facing fluxes
@@ -348,7 +348,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_hi[0] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // lo-y domain boundary, x-facing fluxes
@@ -404,7 +404,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_lo[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // hi-y domain boundary, x-facing fluxes
@@ -460,7 +460,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_hi[1] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // lo-z domain boundary, x-facing fluxes
@@ -516,7 +516,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_lo[2] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
     // hi-z domain boundary, x-facing fluxes
@@ -572,7 +572,7 @@ void StochMomFlux::MfluxBC() {
         ////////////////////////////////////////////////
     }
     else if (bc_vel_hi[2] != -1) {
-        Abort("MfluxBC unsupported bc type");
+        Abort("MomFluxBC unsupported bc type");
     }
 
 #endif
@@ -666,14 +666,14 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
     BL_PROFILE_VAR("StochMomFlux::StochMomFluxDiv()",StochMomFluxDiv);
 
     // Take linear combination of mflux multifabs at each stage
-    StochMomFlux::weightMflux(weights);
+    StochMomFlux::weightMomflux(weights);
 
     // Multiply weighted mflux (cc & edge) by sqrt(eta*temperature)
     StochMomFlux::multbyVarSqrtEtaTemp(eta_cc,eta_ed,temp_cc,temp_ed,dt);
 
     // multiply noise stored in mflux_ed_weighted
     // on walls by 0 (for slip) or sqrt(2) (for no-slip)
-    StochMomFlux::MfluxBC();
+    StochMomFlux::MomFluxBC();
 
     // sync up random numbers at boundaries and ghost cells
     for (int d=0; d<NUM_EDGE; ++d) {
@@ -799,7 +799,7 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
 }
 
 // used to add noise to an initial momentum field
-void StochMomFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+void StochMomFlux::addMomFluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                                     const MultiFab& rhotot, const MultiFab& Temp,
                                     const amrex::Real& variance) {
 
@@ -820,15 +820,15 @@ void StochMomFlux::addMfluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac
     // Convert umac to momenta, rho*umac
     ConvertMToUmac(rhotot_fc,umac,m_old,0);
 
-    addMfluctuations_stag(m_old, rhotot_fc, Temp_fc, variance);
+    addMomFluctuations_stag(m_old, rhotot_fc, Temp_fc, variance);
 
     // Convert momenta to umac, (1/rho)*momentum
     ConvertMToUmac(rhotot_fc,umac,m_old,1);
 }
 
 // used to add noise to an initial momentum field
-// called by addMfluctuations
-void StochMomFlux::addMfluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
+// called by addMomFluctuations
+void StochMomFlux::addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
                                          const std::array< MultiFab, AMREX_SPACEDIM >& rhotot_fc,
                                          const std::array< MultiFab, AMREX_SPACEDIM >& Temp_fc,
                                          const amrex::Real& variance) {

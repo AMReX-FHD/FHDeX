@@ -267,7 +267,7 @@ void main_driver(const char* argv)
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+        sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
     }
 
     int step = 0;
@@ -286,7 +286,7 @@ void main_driver(const char* argv)
 	if(variance_coef_mom != 0.0) {
 
 	  // compute the random numbers needed for the stochastic momentum forcing
-	  sMflux.fillMStochastic();
+	  sMflux.fillMomStochastic();
 
 	  // compute stochastic momentum force
 	  sMflux.StochMomFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
