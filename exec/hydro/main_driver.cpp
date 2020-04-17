@@ -312,7 +312,7 @@ void main_driver(const char* argv)
     
         // Add initial equilibrium fluctuations
         if(initial_variance_mom != 0.0) {
-            sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
+            addMomFluctuations(umac, rho, temp_cc, initial_variance_mom,geom);
         }
 
         // Project umac onto divergence free field

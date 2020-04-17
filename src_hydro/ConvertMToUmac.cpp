@@ -1,4 +1,3 @@
-
 #include "hydro_functions.H"
 
 void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,

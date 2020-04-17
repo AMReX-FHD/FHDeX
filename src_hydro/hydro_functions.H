@@ -14,7 +14,25 @@
 using namespace amrex;
 
 /////////////////////////////////////////////////////////////////////////////////
+// in AddMFluctuations.cpp
+
+// used to add noise to an initial momentum field
+void addMomFluctuations(std::array< MultiFab, AMREX_SPACEDIM >&,
+                        const MultiFab&, const MultiFab&,
+                        const Real&,
+                        const Geometry& geom);
+    
+// used to add noise to an initial momentum field
+// called by addMomFluctuations
+void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >&,
+                             const std::array< MultiFab, AMREX_SPACEDIM >&,
+                             const std::array< MultiFab, AMREX_SPACEDIM >&,
+                             const Real&,
+                             const Geometry& geom);
+
+/////////////////////////////////////////////////////////////////////////////////
 // in ConvertMToUmac.cpp
+
 void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,
                     std::array< MultiFab, AMREX_SPACEDIM >& umac,
                     std::array< MultiFab, AMREX_SPACEDIM >& m,
@@ -44,18 +62,6 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
 		   const int & scomp,
 		   const int & ncomp,
 		   const int & increment);
-
-/////////////////////////////////////////////////////////////////////////////////
-// in MkDiffusiveMFluxdiv.cpp
-
-void MkDiffusiveMFluxdiv(std::array<MultiFab, AMREX_SPACEDIM> & m_update,
-                         const std::array<MultiFab, AMREX_SPACEDIM> & umac,
-                         const MultiFab& eta,
-                         const std::array<MultiFab, NUM_EDGE> & eta_ed,
-                         const MultiFab& kappa,
-                         const Geometry& geom,
-                         const Real* dx,
-                         const int& increment);
 
 /////////////////////////////////////////////////////////////////////////////////
 

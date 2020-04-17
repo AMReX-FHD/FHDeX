@@ -54,18 +54,6 @@ public:
                          const std::array< amrex::MultiFab, NUM_EDGE >&,
                          const amrex::Vector< amrex::Real >&, const amrex::Real&);
 
-    // used to add noise to an initial momentum field
-    void addMomFluctuations(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
-                          const amrex::MultiFab&, const amrex::MultiFab&,
-                          const amrex::Real&);
-    
-    // used to add noise to an initial momentum field
-    // called by addMomFluctuations
-    void addMomFluctuations_stag(std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
-                               const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
-                               const std::array< amrex::MultiFab, AMREX_SPACEDIM >&,
-                               const amrex::Real&);
-
     // utility to write out random number MultiFabs to plotfiles
     void writeMFs(std::array< MultiFab, AMREX_SPACEDIM >&);
 

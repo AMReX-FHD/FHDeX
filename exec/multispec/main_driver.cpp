@@ -299,7 +299,7 @@ void main_driver(const char* argv)
 
         if ((algorithm_type != 2) && (initial_variance_mom != 0.)) {
             // Add initial momentum fluctuations
-            sMomFlux.addMomFluctuations(umac, rhotot_old, Temp, initial_variance_mom);
+            addMomFluctuations(umac, rhotot_old, Temp, initial_variance_mom, geom);
 
             for (int i=0; i<AMREX_SPACEDIM; ++i) {
                 // set normal velocity of physical domain boundaries
