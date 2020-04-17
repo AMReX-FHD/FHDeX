@@ -2,16 +2,13 @@
 
 #include "AMReX_PlotFileUtil.H"
 
-#include "AMReX_MultiFab.H"
-
 #include "common_functions.H"
-
-
 
 void WritePlotFile(int step,
                    const amrex::Real time,
                    const amrex::Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+		   const MultiFab& rhotot,
 		   const MultiFab& rho,
 		   const MultiFab& pres)
 {
@@ -23,13 +20,13 @@ void WritePlotFile(int step,
     BoxArray ba = pres.boxArray();
     DistributionMapping dmap = pres.DistributionMap();
 
-    int nspecies = rho.nComp();
-
-    // plot all the velocity variables (averaged)
-    // plot all the velocity variables (shifted)
-    // plot pressure
-    // plot divergence
-    int nPlot = 2*AMREX_SPACEDIM + nspecies + 2;
+    // rhotot        1
+    // rho           nspecies
+    // c             nspecies
+    // averaged vel  AMREX_SPACEDIM
+    // shifted  vel  AMREX_SPACEDIM
+    // pres          1
+    int nPlot = 2*AMREX_SPACEDIM + 2*nspecies + 2;
 
     MultiFab plotfile(ba, dmap, nPlot, 0);
 
@@ -38,6 +35,20 @@ void WritePlotFile(int step,
     // keep a counter for plotfile variables
     int cnt = 0;
 
+    varNames[cnt++] = "rho";
+
+    for (int i=0; i<nspecies; ++i) {
+        std::string x = "rho";
+        x += (49+i);
+        varNames[cnt++] = x;
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        std::string x = "c";
+        x += (49+i);
+        varNames[cnt++] = x;
+    }
+    
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         std::string x = "averaged_vel";
         x += (120+i);
@@ -50,17 +61,20 @@ void WritePlotFile(int step,
         varNames[cnt++] = x;
     }
 
-    for (int i=0; i<nspecies; ++i) {
-        std::string x = "rho";
-        x += (49+i);
-        varNames[cnt++] = x;
-    }
-
     varNames[cnt++] = "pres";
-    varNames[cnt++] = "divergence";
 
     // reset plotfile variable counter
     cnt = 0;
+
+    // copy rhotot into plotfile
+    MultiFab::Copy(plotfile, rhotot, 0, cnt, 1, 0);
+    cnt++;
+    
+    // copy species concentration density into plotfile
+    for (int i=0; i<nspecies; ++i) {
+        MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
+        cnt++;
+    }
 
     // average staggered velocities to cell-centers and copy into plotfile
     AverageFaceToCC(umac,plotfile,cnt);
@@ -72,18 +86,9 @@ void WritePlotFile(int step,
         cnt++;
     }
 
-    // copy species concentration density into plotfile
-    for (int i=0; i<nspecies; ++i) {
-        MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
-        cnt++;
-    }
-
     // copy pressure into plotfile
     MultiFab::Copy(plotfile, pres, 0, cnt, 1, 0);
     cnt++;
-
-    // compute divergence and store result in plotfile
-    ComputeDiv(plotfile, umac, 0, cnt, 1, geom, 0);
 
     // write a plotfile
     WriteSingleLevelPlotfile(plotfilename,plotfile,varNames,geom,time,step);

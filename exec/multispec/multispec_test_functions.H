@@ -34,6 +34,7 @@ void WritePlotFile(const int step,
                    const Real time,
                    const Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                   const MultiFab& rhotot,
 		   const MultiFab& rho,
                    const MultiFab& pres);
 
