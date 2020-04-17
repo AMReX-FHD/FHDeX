@@ -343,7 +343,6 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // now mnew has properly filled ghost cells
     ConvertMToUmac(rhotot_fc_new,umac,mtemp,0);
     
-
     //////////////////////////////////////////////
     // Step 5 - Trapezoidal Scalar Corrector
     //////////////////////////////////////////////
@@ -469,13 +468,122 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         sMassFlux.fillMassStochastic();
     }
     
+    // compute diffusive, stochastic, potential mass fluxes
+    // with barodiffusion and thermodiffusion
+    // this computes "-F = rho W chi [Gamma grad x... ]"
+    ComputeMassFluxdiv(rho_new,rhotot_new,Temp,diff_mass_fluxdiv,stoch_mass_fluxdiv,
+                       diff_mass_flux,stoch_mass_flux,sMassFlux,dt,time,geom,weights);
+    
+    // assemble total fluxes to be used in reservoirs
+    //
+    //
 
 
-        
-    
-                                                                    
-    Abort("HERE");
+    // set the Dirichlet velocity value on reservoir faces
+    //
+    //
 
+    /*
+    if (use_charged_fluid == 1) {
+        // compute new Lorentz force
+        // add (1/2) old and (1/2) new to gmres_rhs_v
+    }
+    */
+
+    // compute gmres_rhs_p
+    // put "-S = div(F_i/rho_i)" into gmres_rhs_p (we will later add divu)
+    gmres_rhs_p.setVal(0.);
+    for (int i=0; i<nspecies; ++i) {
+        MultiFab::Saxpy(gmres_rhs_p,-1/rhobar[i],diff_mass_fluxdiv,i,0,1,0);
+        if (variance_coef_mass != 0.) {
+            MultiFab::Saxpy(gmres_rhs_p,-1/rhobar[i],stoch_mass_fluxdiv,i,0,1,0);
+        }
+    }
+
+    // modify umac to respect the boundary conditions we want after the next gmres solve
+    // thus when we add A_0^n vbar^n to gmres_rhs_v and add div vbar^n to gmres_rhs_p we
+    // are automatically putting the system in delta form WITH homogeneous boundary conditions
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
+        MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
+        umac[i].FillBoundary(geom.periodicity());
+    }
+
+    // compute mtemp = rho^{n+1} * vbar^{*,n+1}
+    ConvertMToUmac(rhotot_fc_new,umac,mtemp,0);
+
+    // subtract rho^{n+1} * vbar^{*,n+1} / dt from gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],-1./dt,mtemp[d],0,0,1,0);
+    }
+
+
+    // set diff_mom_fluxdiv = A_0^{n+1} vbar^{n+1,*}
+    MkDiffusiveMFluxdiv(diff_mom_fluxdiv,umac,eta,eta_ed,kappa,geom,dx,0);
     
+    // add (1/2) A_0^{n+1} vbar^{n+1,*} to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv[d],0,0,1,0);
+    }
     
+    // set physical boundary values to zero
+    ZeroEdgevalPhysical(gmres_rhs_v, geom, 0, 1);
+
+    // compute div(vbar^{n+1,*}) and add to gmres_rhs_p
+    // now gmres_rhs_p = div(vbar^{n+1,*}) - S^{n+1}
+    // the sign convention is correct since we solve -div(delta v) = gmres_rhs_p
+    ComputeDiv(gmres_rhs_p,umac,0,0,1,geom,1);
+
+    // multiply eta and kappa by 1/2 to put in proper form for gmres solve
+    eta.mult  (0.5,0,1,1);
+    kappa.mult(0.5,0,1,1);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].mult(0.5,0,1,0);
+    }
+
+    // set the initial guess to zero
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        dumac[d].setVal(0.);
+    }
+    dpi.setVal(0.);
+    
+    // call gmres to compute delta v and delta pi
+    GMRES(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
+          kappa, theta_alpha, geom, norm_pre_rhs);
+    
+    gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance
+
+    // restore eta and kappa
+    eta.mult  (2.,0,1,1);
+    kappa.mult(2.,0,1,1);
+    for (int d=0; d<NUM_EDGE; ++d) {
+        eta_ed[d].mult(2.,0,1,0);
+    }
+
+    // compute v^{n+1} = v^{n+1,*} + dumac
+    // compute pi^{n+1}= pi^{n+1,*} + dpi
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Add(umac[d],dumac[d],0,0,1,0);
+    }
+    MultiFab::Add(pi,dpi,0,0,1,0);
+
+    // pressure ghost cells
+    pi.FillBoundary(geom.periodicity());
+    MultiFabPhysBC(pi,geom,0,1,0);    
+    
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        // set normal velocity of physical domain boundaries
+        MultiFabPhysBCDomainVel(umac[i],geom,i);
+        // set transverse velocity behind physical boundaries
+        MultiFabPhysBCMacVel(umac[i],geom,i);
+        // fill periodic and interior ghost cells
+        umac[i].FillBoundary(geom.periodicity());
+    }
+    
+    //////////////////////////////////////////////
+    // End Time-Advancement
+    //////////////////////////////////////////////
 }
