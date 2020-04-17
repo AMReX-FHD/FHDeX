@@ -792,10 +792,10 @@ contains
     bc_vel_hi_in = bc_vel_hi
     bc_es_lo_in = bc_es_lo
     bc_es_hi_in = bc_es_hi
-    bc_mass_lo_in = bc_es_lo
-    bc_mass_hi_in = bc_es_hi
-    bc_therm_lo_in = bc_es_lo
-    bc_therm_hi_in = bc_es_hi
+    bc_mass_lo_in = bc_mass_lo
+    bc_mass_hi_in = bc_mass_hi
+    bc_therm_lo_in = bc_therm_lo
+    bc_therm_hi_in = bc_therm_hi
 
     p_lo_in = p_lo
     p_hi_in = p_hi
