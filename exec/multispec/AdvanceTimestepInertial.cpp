@@ -185,7 +185,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // fill the stochastic multifabs with a new set of random numbers
         sMomFlux.fillMomStochastic();
 
-       // compute and save stoch_mom_fluxdiv = div(Sigma^n) (save for later)
+        // compute and save stoch_mom_fluxdiv = div(Sigma^n) (save for later)
         sMomFlux.StochMomFluxDiv(stoch_mom_fluxdiv,0,eta,eta_ed,Temp,Temp_ed,weights,dt);
 
         // add div(Sigma^n) to gmres_rhs_v
@@ -406,6 +406,72 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // compute grad pi^{*,n+1}
     ComputeGrad(pi,gradpi,0,0,1,0,geom);
 
+    /*
+    if (barodiffusion_type == 2) {
+       // barodiffusion uses lagged grad(pi)
+    }
+    else if (barodiffusion_type == 3) {
+       // compute p0 from rho0*g
+    }
+    */
+    
+    // subtract grad pi^{*,n+1} from gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Subtract(gmres_rhs_v[d],gradpi[d],0,0,1,0);
+    }
+
+
+    // adv_mom_fluxdiv already contains A^n for momentum
+    // add A^{*,n+1} = -rho^{*,n+1} v^{*,n+1} v^{*,n+1} for momentum to adv_mom_fluxdiv
+    MkAdvMFluxdiv(umac,mtemp,adv_mom_fluxdiv,dx,1);
+
+    // add (1/2) adv_mom_fluxdiv to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,adv_mom_fluxdiv[d],0,0,1,0);
+    }
+
+    // add (1/2) A_0^n v^n to gmres_rhs_v
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        MultiFab::Saxpy(gmres_rhs_v[d],0.5,diff_mom_fluxdiv[d],0,0,1,0);
+    }
+
+    if (variance_coef_mom != 0.) {
+
+        // compute div(Sigma^n') by incrementing existing stochastic flux and 
+        // dividing by 2 before adding to gmres_rhs_v
+        sMomFlux.StochMomFluxDiv(stoch_mom_fluxdiv,1,eta,eta_ed,Temp,Temp_ed,weights,dt);
+
+        // divide by 2 and add the resulting div(Sigma^n') to gmres_rhs_v
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab::Saxpy(gmres_rhs_v[d],0.5,stoch_mom_fluxdiv[d],0,0,1,0);
+        }        
+    }
+
+    // add gravity term
+    if (any_grav) {
+        //
+        //
+        //
+    }
+
+    // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
+    //
+    //
+    //
+
+    // fill the stochastic multifabs with a new set of random numbers
+    if (variance_coef_mass != 0.) {
+        // keep this random number engine state for checkpointing
+        //
+        //
+        //
+        
+        sMassFlux.fillMassStochastic();
+    }
+    
+
+
+        
     
                                                                     
     Abort("HERE");
