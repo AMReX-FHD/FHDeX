@@ -79,7 +79,7 @@ void WritePlotFile(int step,
     // copy densities and convert to concentrations
     for (int i=0; i<nspecies; ++i) {
         MultiFab::Copy(plotfile, rho, i, cnt, 1, 0);
-        MultiFab::Divide(plotfile, rhotot, 0, i, 1, 0);
+        MultiFab::Divide(plotfile, rhotot, 0, cnt, 1, 0);
         cnt++;
     }
 
