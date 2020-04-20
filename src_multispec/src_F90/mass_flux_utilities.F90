@@ -468,19 +468,19 @@ contains
     integer         , intent(in   ) :: lo(3), hi(3)
     integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), sxlo(3),sxhi(3), sylo(3),syhi(3)
     double precision, intent(in   ) ::            rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies)
-    double precision, intent(in   ) ::         rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2))
+    double precision, intent(in   ) ::         rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))
     double precision, intent(inout) :: sqrtLonsager_x(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3),nspecies*nspecies)
-    double precision, intent(inout) :: sqrtLonsager_y(sylo(1):sxhi(1),sylo(2):syhi(2),sylo(3):syhi(3),nspecies*nspecies)
+    double precision, intent(inout) :: sqrtLonsager_y(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3),nspecies*nspecies)
 #if (AMREX_SPACEDIM == 3)
     integer         , intent(in   ) :: szlo(3), szhi(3)
-    double precision, intent(inout) :: sqrtLonsager_z(szlo(1):sxhi(1),szlo(2):szhi(2),szlo(3):szhi(3),nspecies*nspecies)
+    double precision, intent(inout) :: sqrtLonsager_z(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3),nspecies*nspecies)
 #endif
     double precision, intent(in   ) :: dx(:)
 
     ! local variables
     integer         :: i,j,k
     double precision :: rhoav(nspecies)
-
+    
     ! x-faces
     do k=lo(3),hi(3)
     do j=lo(2),hi(2)
