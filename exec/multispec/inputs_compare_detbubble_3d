@@ -52,12 +52,21 @@
   !  2 = no-slip
   bc_vel_lo(1:3) = -1 -1 -1
   bc_vel_hi(1:3) = -1 -1 -1
+
+!  bc_vel_lo(1:3) = 2 2 2
+!  bc_vel_hi(1:3) = 2 2 2
+
+!  bc_vel_lo(1:3) = 1 1 1
+!  bc_vel_hi(1:3) = 1 1 1
   
   ! -1 = periodic
   !  1 = wall
   !  2 = reservoir (Dirichlet values must be suppled by other means)
   bc_mass_lo(1:3) = -1 -1 -1
   bc_mass_hi(1:3) = -1 -1 -1
+
+!  bc_mass_lo(1:3) = 1 1 1
+!  bc_mass_hi(1:3) = 1 1 1
 
 
   ! Thermodynamic and transport properties:
