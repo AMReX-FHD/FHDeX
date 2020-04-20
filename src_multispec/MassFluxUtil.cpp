@@ -109,8 +109,6 @@ void ComputeSqrtLonsagerFC(const MultiFab& rho, const MultiFab& rhotot,
 
     // for GPU later
     // const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
-
-    Print() << "HERE\n";
     
     // Loop over boxes
     for (MFIter mfi(rho); mfi.isValid(); ++mfi) {
