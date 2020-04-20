@@ -42,7 +42,7 @@ void StochMassFlux::weightMassFlux(Vector< amrex::Real > weights) {
 
     // add weighted contribution of fluxes
     for (int i=0; i<n_rngs; ++i) {
-        for (int d=0; d<NUM_EDGE; ++d) {
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
             MultiFab::Saxpy(stoch_W_fc_weighted[d], weights[i], stoch_W_fc[i][d], 0, 0, nspecies, 0);
         }
     }
