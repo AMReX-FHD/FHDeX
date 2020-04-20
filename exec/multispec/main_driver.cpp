@@ -211,7 +211,7 @@ void main_driver(const char* argv)
     MultiFab stoch_mass_fluxdiv(ba,dmap,nspecies,0);
     std::array< MultiFab, AMREX_SPACEDIM > stoch_mass_flux;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-      stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+      stoch_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
     }
     
     // allocate and build MultiFabs that will contain random numbers
