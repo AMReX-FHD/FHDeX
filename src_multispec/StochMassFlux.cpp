@@ -287,7 +287,10 @@ void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
     }
 
     // sync the fluxes at the boundaries
-    Abort("StochMassFlux - FIXME sync");
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        stoch_mass_flux[d].OverrideSync(geom.periodicity());
+        stoch_mass_flux[d].FillBoundary(geom.periodicity());
+    }
 
     // If there are walls with zero-flux boundary conditions
     if (is_nonisothermal == 1) {
