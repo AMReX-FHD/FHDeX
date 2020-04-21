@@ -475,7 +475,7 @@ contains
     integer         , intent(in   ) :: szlo(3), szhi(3)
     double precision, intent(inout) :: sqrtLonsager_z(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3),nspecies*nspecies)
 #endif
-    double precision, intent(in   ) :: dx(:)
+    double precision, intent(in   ) :: dx(3)
 
     ! local variables
     integer         :: i,j,k
@@ -525,7 +525,7 @@ contains
     integer :: comp
 
     ! cell volume
-#if (AMREX_SPACEDI == 2)
+#if (AMREX_SPACEDIM == 2)
     dv = product(dx(1:2))*cell_depth
 #elif (AMREX_SPACEDIM == 3)
     dv = product(dx(1:3))
