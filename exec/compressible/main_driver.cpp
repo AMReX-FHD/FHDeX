@@ -6,7 +6,7 @@
 
 #include "rng_functions.H"
 
-#include "StructFact.H"
+//#include "StructFact.H"
 
 using namespace amrex;
 
@@ -256,6 +256,7 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Structure factor:
     ///////////////////////////////////////////
+/*
     
     ////////////////////////////////
     // create equilibrium covariance matrix
@@ -444,6 +445,7 @@ void main_driver(const char* argv)
       new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
     
     }
+*/
 
     ///////////////////////////////////////////
 

@@ -110,10 +110,10 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+#include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
+#INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
+#VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
 
 #ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
 #    LIBRARIES += -L$(FFTW_DIR) -lfftw3
