@@ -18,6 +18,7 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_Box.H>
 #include <iostream>
 #include <fstream>
 
@@ -80,7 +81,8 @@ BL_PROFILE_VAR_START(particle_move);
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         {
             const auto new_size = m_vector_size[grid_id](iv);
-            auto& pvec = m_cell_vectors[grid_id](iv);
+            long imap = tile_box.index(iv);
+            auto& pvec = m_cell_vectors[grid_id][imap];
             pvec.resize(new_size);
         }
     }
@@ -373,7 +375,7 @@ DsmcParticleContainer::UpdateCellVectors()
     {
         const Box& box = mfi.validbox();
         const int grid_id = mfi.index();
-        m_cell_vectors[grid_id].resize(box);
+        m_cell_vectors[grid_id].resize(box.numPts());
         m_vector_size[grid_id].resize(box);
         m_vector_ptrs[grid_id].resize(box);
     }
@@ -386,6 +388,8 @@ DsmcParticleContainer::UpdateCellVectors()
     {
         auto& particles = pti.GetArrayOfStructs();
         const int np    = pti.numParticles();
+        const Box& tile_box  = pti.tilebox();
+        
         for(int pindex = 0; pindex < np; ++pindex) {
             ParticleType& p = particles[pindex];
             const IntVect& iv = this->Index(p, lev);
@@ -394,7 +398,10 @@ DsmcParticleContainer::UpdateCellVectors()
             p.idata(DSMC_intData::j) = iv[1];
             p.idata(DSMC_intData::k) = iv[2];
             // note - use 1-based indexing for convenience with Fortran
-            m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
+            //m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
+
+            long imap = tile_box.index(iv);
+            m_cell_vectors[pti.index()][imap].push_back(pindex + 1);
         }
     }
     
@@ -418,8 +425,9 @@ DsmcParticleContainer::UpdateFortranStructures()
         const int grid_id = mfi.index();
         for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
         {
-            m_vector_size[grid_id](iv) = m_cell_vectors[grid_id](iv).size();
-            m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id](iv).data();
+            long imap = tile_box.index(iv);
+            m_vector_size[grid_id](iv) = m_cell_vectors[grid_id][imap].size();
+            m_vector_ptrs[grid_id](iv) = m_cell_vectors[grid_id][imap].data();
         }
     }
 }
@@ -438,6 +446,7 @@ DsmcParticleContainer::ReBin()
     {
         const int grid_id = pti.index();
         const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
@@ -451,29 +460,31 @@ DsmcParticleContainer::ReBin()
             p.idata(DSMC_intData::i) = iv[0];
             p.idata(DSMC_intData::j) = iv[1];
             p.idata(DSMC_intData::k) = iv[2];
+            
+            long imap = tile_box.index(iv);
             // note - use 1-based indexing for convenience with Fortran
-            m_cell_vectors[pti.index()](iv).push_back(pindex + 1);
+            m_cell_vectors[pti.index()][imap].push_back(pindex + 1);
         }
     }
 
     UpdateFortranStructures();
 }
 
-void
-DsmcParticleContainer::correctCellVectors(int old_index, int new_index, 
-						int grid, const ParticleType& p)
-{
-    if (not p.idata(DSMC_intData::sorted)) return;
-    IntVect iv(p.idata(DSMC_intData::i), p.idata(DSMC_intData::j), p.idata(DSMC_intData::k));
-    //IntVect iv(AMREX_D_DECL(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k)));
-    auto& cell_vector = m_cell_vectors[grid](iv);
-    for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
-        if (cell_vector[i] == old_index + 1) {
-            cell_vector[i] = new_index + 1;
-            return;
-        }
-    }
-}
+//void
+//DsmcParticleContainer::correctCellVectors(int old_index, int new_index, 
+//						int grid, const ParticleType& p)
+//{
+//    if (not p.idata(DSMC_intData::sorted)) return;
+//    IntVect iv(p.idata(DSMC_intData::i), p.idata(DSMC_intData::j), p.idata(DSMC_intData::k));
+//    //IntVect iv(AMREX_D_DECL(p.idata(IntData::i), p.idata(IntData::j), p.idata(IntData::k)));
+//    auto& cell_vector = m_cell_vectors[grid](iv);
+//    for (int i = 0; i < static_cast<int>(cell_vector.size()); ++i) {
+//        if (cell_vector[i] == old_index + 1) {
+//            cell_vector[i] = new_index + 1;
+//            return;
+//        }
+//    }
+//}
 
 int
 DsmcParticleContainer::numWrongCell()

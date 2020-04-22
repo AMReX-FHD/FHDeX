@@ -175,7 +175,8 @@ protected:
         void UpdateCellVectors();
 
         // used to store vectors of particle indices on a cell-by-cell basis
-        std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+//        std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+        std::map<int, std::vector<std::vector<int> > > m_cell_vectors;
 
         // primitive data for passing the above into Fortran
         std::map<int, amrex::BaseFab<int> > m_vector_size;
@@ -189,7 +190,7 @@ protected:
 
 private:
 
-    void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
+//    void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
 
     int n_list;
 
