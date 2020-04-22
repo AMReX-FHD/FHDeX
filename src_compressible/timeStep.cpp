@@ -21,6 +21,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
+    const GpuArray<Real,AMREX_SPACEDIM> grav_gpu{AMREX_D_DECL(grav[0], grav[1], grav[2])};
+
     /////////////////////////////////////////////////////
     // Initialize white noise fields
 
@@ -139,14 +141,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
         amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cup_fab(i,j,k,n+1) += dt * cu_fab(i,j,k,0)*grav[n];
+            cup_fab(i,j,k,n+1) += dt * cu_fab(i,j,k,0)*grav_gpu[n];
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup_fab(i,j,k,4) += dt * (  grav[0]*cu_fab(i,j,k,1)
-                                      + grav[1]*cu_fab(i,j,k,2)
-                                      + grav[2]*cu_fab(i,j,k,3));
+            cup_fab(i,j,k,4) += dt * (  grav_gpu[0]*cu_fab(i,j,k,1)
+                                      + grav_gpu[1]*cu_fab(i,j,k,2)
+                                      + grav_gpu[2]*cu_fab(i,j,k,3));
         });
     }
 
@@ -225,14 +227,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
         amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cup2_fab(i,j,k,n+1) += 0.25* dt * cup_fab(i,j,k,0)*grav[n];
+            cup2_fab(i,j,k,n+1) += 0.25* dt * cup_fab(i,j,k,0)*grav_gpu[n];
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cup2_fab(i,j,k,4) += 0.25 * dt * (  grav[0]*cup_fab(i,j,k,1)
-                                              + grav[1]*cup_fab(i,j,k,2)
-                                              + grav[2]*cup_fab(i,j,k,3));
+            cup2_fab(i,j,k,4) += 0.25 * dt * (  grav_gpu[0]*cup_fab(i,j,k,1)
+                                              + grav_gpu[1]*cup_fab(i,j,k,2)
+                                              + grav_gpu[2]*cup_fab(i,j,k,3));
         });
     }
         
@@ -311,14 +313,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
 
         amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
-            cu_fab(i,j,k,n+1) += 2./3.* dt * cup2_fab(i,j,k,0)*grav[n];
+            cu_fab(i,j,k,n+1) += 2./3.* dt * cup2_fab(i,j,k,0)*grav_gpu[n];
         });
 
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            cu_fab(i,j,k,4) += 2./3. * dt * (  grav[0]*cup2_fab(i,j,k,1)
-                                             + grav[1]*cup2_fab(i,j,k,2)
-                                             + grav[2]*cup2_fab(i,j,k,3) );
+            cu_fab(i,j,k,4) += 2./3. * dt * (  grav_gpu[0]*cup2_fab(i,j,k,1)
+                                             + grav_gpu[1]*cup2_fab(i,j,k,2)
+                                             + grav_gpu[2]*cup2_fab(i,j,k,3) );
         });
         
     }
