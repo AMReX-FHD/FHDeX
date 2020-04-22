@@ -28,7 +28,7 @@ Cell[BoxData[
 
 Cell[BoxData[{
  RowBox[{
-  RowBox[{"noOfSurfaces", " ", "=", " ", "50"}], ";"}], "\[IndentingNewLine]", 
+  RowBox[{"noOfParamPlanes", " ", "=", " ", "50"}], ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"radius", " ", "=", " ", 
    RowBox[{"2.5", "*", 
@@ -47,10 +47,10 @@ Cell[BoxData[{
   RowBox[{
    RowBox[{"delt", "=", 
     RowBox[{"2", " ", 
-     RowBox[{"\[Pi]", "/", "noOfSurfaces"}]}]}], ";"}], 
+     RowBox[{"\[Pi]", "/", "noOfParamPlanes"}]}]}], ";"}], 
   "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"surfaceList", " ", "=", " ", 
+  RowBox[{"paramPlaneList", " ", "=", " ", 
    RowBox[{"{", "}"}]}], ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
@@ -62,7 +62,7 @@ Cell[BoxData[{
    RowBox[{"For", "[", 
     RowBox[{
      RowBox[{"ii", "=", "0"}], ",", 
-     RowBox[{"ii", "<", "noOfSurfaces"}], ",", 
+     RowBox[{"ii", "<", "noOfParamPlanes"}], ",", 
      RowBox[{"ii", "++"}], ",", "\[IndentingNewLine]", 
      RowBox[{
       RowBox[{"x0", "=", 
@@ -206,7 +206,7 @@ Cell[BoxData[{
       "\[IndentingNewLine]", 
       RowBox[{"p", "=", "0"}], ";", "\[IndentingNewLine]", 
       "\[IndentingNewLine]", 
-      RowBox[{"surface", "=", 
+      RowBox[{"paramPlane", "=", 
        RowBox[{"{", 
         RowBox[{
         "x0", ",", "y0", ",", "z0", ",", "ux", ",", "uy", ",", "uz", ",", 
@@ -219,7 +219,7 @@ Cell[BoxData[{
         RowBox[{"xt", ",", "yt", ",", "zt"}], "}"}]}], ";", 
       "\[IndentingNewLine]", "\[IndentingNewLine]", 
       RowBox[{"AppendTo", "[", 
-       RowBox[{"surfaceList", ",", "surface"}], "]"}], ";", 
+       RowBox[{"paramPlaneList", ",", "paramPlane"}], "]"}], ";", 
       "\[IndentingNewLine]", 
       RowBox[{"AppendTo", "[", 
        RowBox[{"originList", ",", "origin"}], "]"}], ";"}]}], 
@@ -286,18 +286,18 @@ Cell[BoxData[{
          RowBox[{"ll", "*", 
           RowBox[{"{", 
            RowBox[{
-            RowBox[{"surfaceList", "[", 
+            RowBox[{"paramPlaneList", "[", 
              RowBox[{"[", 
               RowBox[{"i", ",", "12"}], "]"}], "]"}], ",", 
-            RowBox[{"surfaceList", "[", 
+            RowBox[{"paramPlaneList", "[", 
              RowBox[{"[", 
               RowBox[{"i", ",", "13"}], "]"}], "]"}], ",", 
-            RowBox[{"surfaceList", "[", 
+            RowBox[{"paramPlaneList", "[", 
              RowBox[{"[", 
               RowBox[{"i", ",", "14"}], "]"}], "]"}]}], "}"}]}]}]}], "}"}], 
       "]"}], ",", 
      RowBox[{"{", 
-      RowBox[{"i", ",", "1", ",", "noOfSurfaces"}], "}"}]}], "]"}]}], 
+      RowBox[{"i", ",", "1", ",", "noOfParamPlanes"}], "}"}]}], "]"}]}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"rnList", "=", 
@@ -336,18 +336,18 @@ Cell[BoxData[{
          RowBox[{"ll", "*", 
           RowBox[{"{", 
            RowBox[{
-            RowBox[{"surfaceList", "[", 
+            RowBox[{"paramPlaneList", "[", 
              RowBox[{"[", 
               RowBox[{"i", ",", "15"}], "]"}], "]"}], ",", 
-            RowBox[{"surfaceList", "[", 
+            RowBox[{"paramPlaneList", "[", 
              RowBox[{"[", 
               RowBox[{"i", ",", "16"}], "]"}], "]"}], ",", 
-            RowBox[{"surfaceList", "[", 
+            RowBox[{"paramPlaneList", "[", 
              RowBox[{"[", 
               RowBox[{"i", ",", "17"}], "]"}], "]"}]}], "}"}]}]}]}], "}"}], 
       "]"}], ",", 
      RowBox[{"{", 
-      RowBox[{"i", ",", "1", ",", "noOfSurfaces"}], "}"}]}], "]"}]}], 
+      RowBox[{"i", ",", "1", ",", "noOfParamPlanes"}], "}"}]}], "]"}]}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"lnList", "=", 
@@ -362,53 +362,53 @@ Cell[BoxData[{
        RowBox[{"{", 
         RowBox[{
          RowBox[{
-          RowBox[{"surfaceList", "[", 
+          RowBox[{"paramPlaneList", "[", 
            RowBox[{"[", 
             RowBox[{"i", ",", "1"}], "]"}], "]"}], "+", 
           RowBox[{
-           RowBox[{"surfaceList", "[", 
+           RowBox[{"paramPlaneList", "[", 
             RowBox[{"[", 
              RowBox[{"i", ",", "4"}], "]"}], "]"}], "uu"}], "+", 
           RowBox[{
-           RowBox[{"surfaceList", "[", 
+           RowBox[{"paramPlaneList", "[", 
             RowBox[{"[", 
              RowBox[{"i", ",", "7"}], "]"}], "]"}], "vv"}]}], ",", 
          RowBox[{
-          RowBox[{"surfaceList", "[", 
+          RowBox[{"paramPlaneList", "[", 
            RowBox[{"[", 
             RowBox[{"i", ",", "2"}], "]"}], "]"}], "+", 
           RowBox[{
-           RowBox[{"surfaceList", "[", 
+           RowBox[{"paramPlaneList", "[", 
             RowBox[{"[", 
              RowBox[{"i", ",", "5"}], "]"}], "]"}], "uu"}], "+", 
           RowBox[{
-           RowBox[{"surfaceList", "[", 
+           RowBox[{"paramPlaneList", "[", 
             RowBox[{"[", 
              RowBox[{"i", ",", "8"}], "]"}], "]"}], "vv"}]}], ",", 
          RowBox[{
-          RowBox[{"surfaceList", "[", 
+          RowBox[{"paramPlaneList", "[", 
            RowBox[{"[", 
             RowBox[{"i", ",", "3"}], "]"}], "]"}], "+", 
           RowBox[{
-           RowBox[{"surfaceList", "[", 
+           RowBox[{"paramPlaneList", "[", 
             RowBox[{"[", 
              RowBox[{"i", ",", "6"}], "]"}], "]"}], "uu"}], "+", 
           RowBox[{
-           RowBox[{"surfaceList", "[", 
+           RowBox[{"paramPlaneList", "[", 
             RowBox[{"[", 
              RowBox[{"i", ",", "9"}], "]"}], "]"}], "vv"}]}]}], "}"}], ",", 
        RowBox[{"{", 
         RowBox[{"uu", ",", "0", ",", 
-         RowBox[{"surfaceList", "[", 
+         RowBox[{"paramPlaneList", "[", 
           RowBox[{"[", 
            RowBox[{"i", ",", "10"}], "]"}], "]"}]}], "}"}], ",", 
        RowBox[{"{", 
         RowBox[{"vv", ",", "0", ",", 
-         RowBox[{"surfaceList", "[", 
+         RowBox[{"paramPlaneList", "[", 
           RowBox[{"[", 
            RowBox[{"i", ",", "11"}], "]"}], "]"}]}], "}"}]}], "]"}], ",", 
      RowBox[{"{", 
-      RowBox[{"i", ",", "1", ",", "noOfSurfaces"}], "}"}]}], "]"}]}], 
+      RowBox[{"i", ",", "1", ",", "noOfParamPlanes"}], "}"}]}], "]"}]}], 
   ";"}], "\[IndentingNewLine]", 
  RowBox[{"Show", "[", 
   RowBox[{"sList", ",", 
@@ -27577,12 +27577,12 @@ Cell[BoxData[
      RowBox[{"Join", "[", 
       RowBox[{
        RowBox[{"{", 
-        RowBox[{"noOfSurfaces", ",", "effectiveVol"}], "}"}], ",", 
-       RowBox[{"N", "@", "surfaceList"}]}], "]"}]}], ";"}], 
+        RowBox[{"noOfParamPlanes", ",", "effectiveVol"}], "}"}], ",", 
+       RowBox[{"N", "@", "paramPlaneList"}]}], "]"}]}], ";"}], 
    "\[IndentingNewLine]", 
    RowBox[{
     RowBox[{"Export", "[", 
-     RowBox[{"\"\<surfaces.dat\>\"", ",", "exportList"}], "]"}], ";"}], 
+     RowBox[{"\"\<paramplanes.dat\>\"", ",", "exportList"}], "]"}], ";"}], 
    "\[IndentingNewLine]", "\[IndentingNewLine]"}]}]], "Input",
  CellChangeTimes->{{3.767370794190346*^9, 3.767370824173657*^9}, {
   3.767370946981164*^9, 3.767370981108996*^9}, {3.7673764989998827`*^9, 

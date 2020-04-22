@@ -10,7 +10,7 @@
 #include "INS_functions.H"
 
 #include "species.H"
-#include "surfaces.H"
+#include "paramPlane.H"
 
 #include "analysis_functions_F.H"
 #include "StochMomFlux.H"
@@ -509,18 +509,18 @@ void main_driver(const char* argv)
     Real time = 0.;
     int statsCount = 1;
 
-    //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
+    //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
 
 
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 6;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 #if (BL_SPACEDIM == 2)
-    int surfaceCount = 5;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 5;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 
 
@@ -607,8 +607,8 @@ void main_driver(const char* argv)
     //WritePlotFile(step,time,geom,geomC,rhotot,umac,div,particleMembers,particleDensity,particleVelocity, particleTemperature, particlePressure, particleSpatialCross1, particleMembraneFlux, particles);
 
     //Do an initial move to initialize various things
-//KKout    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
-    particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+//KKout    particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, paramPlaneList, paramPlaneCount, 2 /*1: interpolate only. 2: spread only. 3: both*/ );
+    particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, paramPlaneList, paramPlaneCount);
    
     Print() << "HERE: " << "\n" ;
 
@@ -664,8 +664,8 @@ void main_driver(const char* argv)
         }
 
         //Calls main ion moving loop.
-//KTout       particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
-        particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, surfaceList, surfaceCount);
+//KTout       particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*1: interpolate only. 2: spread only. 3: both. 4: neither*/ );
+        particles.MoveParticlesDry(dt, dx, umac, RealFaceCoords, source, sourceTemp, paramPlaneList, paramPlaneCount);
 
         //These functions reorganise particles between cells and processes
         particles.Redistribute();

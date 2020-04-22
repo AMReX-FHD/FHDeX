@@ -13,7 +13,7 @@
 #include <IBMarkerContainerBase.H>
 #include <species.H>
 #include "rng_functions.H"
-#include "surfaces.H"
+#include "paramPlane.H"
 #include "particle_functions_F.H"
 
 using namespace amrex;
@@ -182,7 +182,7 @@ public:
                const MultiFab& cellCenters,
                std::array<MultiFab, AMREX_SPACEDIM>& source,
                std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-               const surface* surfaceList, const int surfaceCount, int sw);
+               const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
     
     void PrintParticles();
     void SetPosition(int rank, int id, Real x, Real y, Real z);
@@ -198,11 +198,11 @@ public:
                    const MultiFab& cellCenters,
                    std::array<MultiFab, AMREX_SPACEDIM>& source,
                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                   const surface* surfaceList, const int surfaceCount, int sw);
+                   const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
     void computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
-    void MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount,Real time, int* flux);
+    void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
     void MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                   const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -210,7 +210,7 @@ public:
                   std::array<MultiFab, AMREX_SPACEDIM>& source,
                   std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                   const MultiFab& mobility,
-                  const surface* surfaceList, const int surfaceCount, int sw);
+                  const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
 
     void SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -220,7 +220,7 @@ public:
                     const MultiFab& cellCenters,
                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                    const surface* surfaceList, const int surfaceCount, int sw);
+                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
     
     //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 

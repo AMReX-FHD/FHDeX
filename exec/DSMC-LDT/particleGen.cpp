@@ -342,7 +342,7 @@ void FhdParticleContainer::InitParticlesDSMCtest(species* particleInfo, int num_
 }
 
 void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cellVols, 
-                                           surface* surfaces, int ns, Real tL, Real tR) {
+                                           paramPlane* paramplanes, int ns, Real tL, Real tR) {
     //compute the cell temperatures as variance of velocity. Re-scale to given values
 
     const int lev = 0;
@@ -379,7 +379,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                     ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                     ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                     BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                    surfaces, &ns, &pL, &pR, &vLx, &vRx, &vLy, &vRy,
+                    paramplanes, &ns, &pL, &pR, &vLx, &vRx, &vLy, &vRy,
                     &vLz, &vRz);
 
 
@@ -443,7 +443,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                 ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                 ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                 BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                surfaces, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
+                paramplanes, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
                 &meanLz, &meanRz, &varL, &varR);
 
     }
@@ -483,7 +483,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                 }
             }
 
-            ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
+            ApplyThermostat(particleInfo, cellVols,paramplanes, ns, tL, tR);
             return;
         }
         else {//only 1 particle, set velocity by energy E=1/2mv^2=3/2kT
@@ -519,7 +519,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                         BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                        surfaces, &ns, &mean0, &meanRx, &mean0, &meanRy,
+                        paramplanes, &ns, &mean0, &meanRx, &mean0, &meanRy,
                         &mean0, &meanRz, &lC, &rC);
             }
             return;
@@ -548,7 +548,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                 }
             }
             //abort();
-            ApplyThermostat(particleInfo, cellVols,surfaces, ns, tL, tR);
+            ApplyThermostat(particleInfo, cellVols,paramplanes, ns, tL, tR);
             return;
         }
         else {//only 1 particle in right, set velocity by energy E=1/2mv^2=3/2kT
@@ -586,7 +586,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                         BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                        surfaces, &ns, &meanLx, &mean0, &meanLy, &mean0, 
+                        paramplanes, &ns, &meanLx, &mean0, &meanLy, &mean0, 
                         &meanLz, &mean0, &lC, &rC);
             }
             return;
@@ -623,7 +623,7 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
                         ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                         ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                         BL_TO_FORTRAN_3D(cellVols[pti]), &Neff, &Np,
-                        surfaces, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
+                        paramplanes, &ns, &meanLx, &meanRx, &meanLy, &meanRy, 
                         &meanLz, &meanRz, &lC, &rC);
 
         }

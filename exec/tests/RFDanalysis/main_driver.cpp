@@ -11,7 +11,7 @@
 
 
 #include "species.H"
-#include "surfaces.H"
+#include "paramPlane.H"
 
 //#include "analysis_functions_F.H"
 //#include "StructFact_F.H"
@@ -623,19 +623,19 @@ void main_driver(const char* argv)
     Real time = 0.;
     int statsCount = 1;
 
-    //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
+    //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
 
 
     // AJN - we don't understand why you need this for ions
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 6;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 #if (BL_SPACEDIM == 2)
-    int surfaceCount = 5;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 5;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 
 	// IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
@@ -776,7 +776,7 @@ void main_driver(const char* argv)
             // Apply RFD force to fluid
             particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             particles.ResetMarkers(0);
-            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -809,8 +809,8 @@ void main_driver(const char* argv)
 
 
         // compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
-                             surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
+                             paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         if((variance_coef_mom != 0.0) && fluid_tog != 0) {
           // compute the random numbers needed for the stochastic momentum forcing
@@ -838,8 +838,8 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
-                               surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
+                               paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
             particles.Redistribute();
             particles.ReBin();
             Print() << "Finish move.\n";

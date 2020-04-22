@@ -95,17 +95,17 @@
 
 #endif
   
-  subroutine find_intersect(part, delt, surfaces, ns, intsurf, inttime, intside, phi, plo)
+  subroutine find_intersect(part, delt, paramplanes, ns, intsurf, inttime, intside, phi, plo)
     
     use iso_c_binding, only: c_int
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module
+    use paramplane_module
     use precheck_module
     
     implicit none
 
     type(particle_t), intent(inout) :: part
-    type(surface_t), intent(in), target :: surfaces(ns)
+    type(paramplane_t), intent(in), target :: paramplanes(ns)
     real(amrex_real), intent(in) :: delt, phi(3), plo(3)
     real(amrex_real), intent(inout) :: inttime
     integer(c_int), intent(inout) :: intsurf, intside
@@ -113,13 +113,13 @@
 
     integer :: s, flag
     real(amrex_real) denominv, uval, vval, tval, dotprod
-    type(surface_t), pointer :: surf
+    type(paramplane_t), pointer :: surf
 
     inttime = delt
     intsurf = -1
 
     flag = 0    
-    call precheck(part, surfaces, ns, delt, flag, phi, plo)
+    call precheck(part, paramplanes, ns, delt, flag, phi, plo)
 
     
 #if (BL_SPACEDIM == 3)
@@ -128,7 +128,7 @@
 
       do s = 1, ns
 
-        surf => surfaces(s)
+        surf => paramplanes(s)
 
 
         denominv = 1d0/(part%vel(3)*surf%uy*surf%vx - part%vel(2)*surf%uz*surf%vx - part%vel(3)*surf%ux*surf%vy + part%vel(1)*surf%uz*surf%vy + part%vel(2)*surf%ux*surf%vz - part%vel(1)*surf%uy*surf%vz)
@@ -165,7 +165,7 @@
 
     do s = 1, ns
 
-      surf => surfaces(s)
+      surf => paramplanes(s)
 
       denominv = 1d0/(part%vel(2)*surf%ux - part%vel(1)*surf%uy)
 
@@ -200,7 +200,7 @@
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module
+    use paramplane_module
     use rng_functions_module
     use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog
     
@@ -209,7 +209,7 @@
     integer(c_int),   intent(in) :: intside
     integer(c_int),   intent(inout) :: push
     double precision, intent(in) :: domsize(3)
-    type(surface_t),  intent(inout) :: surf
+    type(paramplane_t),  intent(inout) :: surf
     type(particle_t), intent(inout) :: part
 
     real(amrex_real) dotprod, srt, time, inttime
@@ -421,14 +421,14 @@
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module
+    use paramplane_module
     use rng_functions_module
      use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0, max_step, domega
     
     implicit none
 
     type(particle_t) :: toppart
-    type(surface_t), intent(inout) :: surf
+    type(paramplane_t), intent(inout) :: surf
     integer(c_int) :: count, push, iside
     real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, prefact, srt, pi, rad, domsize(3), interval, resomega
     real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel
@@ -455,14 +455,14 @@
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module
+    use paramplane_module
     use rng_functions_module
      use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0
     
     implicit none
 
     type(particle_t) :: toppart
-    type(surface_t), intent(inout) :: surf
+    type(paramplane_t), intent(inout) :: surf
     integer(c_int) :: count, push, iside
     real(amrex_real) :: magnormvel, dt, lstrength, omega, t, time, inttime, c, a, bJ1, prefact, srt, pi, rad, domsize(3)
     real(amrex_real), dimension(3):: rnorm, lnorm, j, normvel, surfvel
@@ -525,7 +525,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  use iso_c_binding, only: c_int
  use amrex_fort_module, only: amrex_real, amrex_particle_real
  use cell_sorted_particle_module, only: particle_t
- use surfaces_module
+ use paramplane_module
  use rng_functions_module
  use common_namelist_module, only: prob_hi, fixed_dt, particle_neff
  
@@ -533,7 +533,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  implicit none
 
  type(particle_t), intent(inout) :: part
- type(surface_t) :: surf 
+ type(paramplane_t) :: surf 
  integer(c_int)  i, count, step, ii
  real(amrex_real) surfvel, p, f_x, a, point, lambda, time, bessj0, dbessj0, k, rho, prefact, omega, bJ0, bJ1, c, alpha, pi, graphi, grac, xvec, yvec, interval, radius, t, inttime, tau
   real(amrex_real), dimension(3)::oldvel

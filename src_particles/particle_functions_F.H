@@ -58,7 +58,7 @@ extern "C"
                         const amrex_real* phi,
                         const amrex_real* dx,
                         const amrex_real* dt,
-                        const void* surfaces,
+                        const void* paramplanes,
 			      const int* ns,
 			      amrex_real* time,
                         int* flux);
@@ -102,7 +102,7 @@ extern "C"
                        const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
                        const amrex_real* mobility, const int* mlo, const int* mhi,
-                       const void* surfaces,
+                       const void* paramplanes,
                        const int* ns, amrex_real * kinetic, int* sw);
 
     void spread_ions_fhd(void* particles,
@@ -142,7 +142,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                         const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
-                        const void* surfaces,
+                        const void* paramplanes,
                         const int* ns, amrex_real* potential, int* sw);
 
     void do_rfd(void* particles,
@@ -181,7 +181,7 @@ extern "C"
 #if (AMREX_SPACEDIM == 3)
                         const amrex_real* sourcez, const int* sourcezlo, const int* sourcezhi,
 #endif
-                        const void* surfaces,
+                        const void* paramplanes,
                         const int* ns, int* sw);
 
    void collect_charge(void* particles,

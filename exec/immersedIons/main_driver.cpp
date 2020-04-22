@@ -5,10 +5,10 @@
 #include "gmres_namespace_declarations.H"
 
 #include "species.H"
-#include "surfaces.H"
+#include "paramPlane.H"
 
-#include "StructFact_F.H"
-#include "StructFact.H"
+//#include "StructFact_F.H"
+//#include "StructFact.H"
 
 #include "StochMomFlux.H"
 
@@ -636,18 +636,18 @@ void main_driver(const char* argv)
         sourceTemp[d].setVal(0.0);
     }
 
-    //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
+    //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
 
     // AJN - we don't understand why you need this for ions
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 6;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 #if (BL_SPACEDIM == 2)
-    int surfaceCount = 5;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 5;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 
     // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
@@ -735,6 +735,7 @@ void main_driver(const char* argv)
     // structure factor for charge-charge
     ///////////////////////////////////////////
 
+    /*
     // names of variables in struct_cc_charge
     Vector< std::string > var_names_charge(1);
     var_names_charge[0] = "charge";
@@ -800,6 +801,7 @@ void main_driver(const char* argv)
 
     StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
                               s_pairA_vel,s_pairB_vel);
+    */
 
 //    WritePlotFile(0, time, geom, geomC, geomP,
 //                  particleInstant, particleMeans, particleVars, particles,
@@ -836,7 +838,7 @@ void main_driver(const char* argv)
             //particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             //particles.ResetMarkers(0);
             particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
-                            source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -867,8 +869,8 @@ void main_driver(const char* argv)
         esSolve(potential, charge, efieldCC, external, geomP);
 
         // compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
-                             surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
+                             paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         //particles.BuildCorrectionTable(dxp,1);
 
@@ -898,8 +900,8 @@ void main_driver(const char* argv)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
-                               surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
+                               paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
 
             // reset statistics after step n_steps_skip
@@ -992,6 +994,7 @@ void main_driver(const char* argv)
         
 	//_______________________________________________________________________
 	// Update structure factor
+        /*
         if (struct_fact_int > 0 && istep > abs(n_steps_skip) && (istep-abs(n_steps_skip)-1)%struct_fact_int == 0) {
 
             // charge
@@ -1010,6 +1013,7 @@ void main_driver(const char* argv)
                 structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
             }
         }
+        */
 
         // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
         // because the time-averaging for the fields resets at n_steps_skip

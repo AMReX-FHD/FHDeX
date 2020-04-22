@@ -5,7 +5,7 @@ module particle_functions_module
   use cell_sorted_particle_module, only : particle_t, remove_particle_from_cell
   use species_type_module, only: species_t
   use rng_functions_module
-  use surfaces_module
+  use paramplane_module
   use common_namelist_module, only: k_B, T_init, permittivity, eepsilon, images, pkernel_es, &
                                     prob_lo, prob_hi, bc_es_lo, bc_es_hi, rmin, p_int_tog, &
                                     fixed_dt, graphene_tog, mass, particle_n0, particle_neff, &
@@ -682,12 +682,12 @@ contains
 
   subroutine move_particles_dsmc(particles, np, lo, hi, &
                                  cell_part_ids, cell_part_cnt, clo, chi, plo, phi, dx, dt, &
-                                 surfaces, ns, time, flux) &
+                                 paramplanes, ns, time, flux) &
                                  bind(c,name="move_particles_dsmc")
 
     type(particle_t), intent(inout), target :: particles(np)
     type(particle_t) :: toppart
-    type(surface_t), intent(in), target :: surfaces(ns)
+    type(paramplane_t), intent(in), target :: paramplanes(ns)
     integer(c_int), intent(in) :: np, ns
     integer(c_int), intent(in) :: lo(3), hi(3)
     integer(c_int), intent(in) :: clo(3), chi(3)
@@ -701,7 +701,7 @@ contains
     integer :: cell(3)
     integer(c_int), pointer :: cell_parts(:)
     type(particle_t), pointer :: part
-    type(surface_t), pointer :: surf
+    type(paramplane_t), pointer :: surf
     real(amrex_real) inv_dx(3), runtime, inttime, adjalt, adj, inv_dt, domsize(3), posalt(3), prex, postx, radius, radius1, interval, omega, bessj0, dbessj0, bJ1, prefact, pi, t
 
 
@@ -717,7 +717,7 @@ contains
 
     do p = 1, ns
 
-       surf => surfaces(p)  
+       surf => paramplanes(p)  
 
        surf%fxleft = 0
        surf%fyleft = 0
@@ -756,7 +756,7 @@ contains
 
                 do while (runtime .gt. 0)
 
-                   call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+                   call find_intersect(part,runtime, paramplanes, ns, intsurf, inttime, intside, phi, plo)
 
                    !print *, runtime, inttime
 
@@ -801,7 +801,7 @@ contains
                    ! endif
                    if(intsurf .gt. 0) then
 
-                      surf => surfaces(intsurf)
+                      surf => paramplanes(intsurf)
 
 
                       call apply_bc(surf, part, intside, domsize, push, time, inttime)                      
@@ -857,7 +857,7 @@ contains
 
     do p = 1, ns
 
-       surf => surfaces(p)  
+       surf => paramplanes(p)  
 
        surf%fxleft = surf%fxleft*inv_dt
        surf%fyleft = surf%fyleft*inv_dt
@@ -874,7 +874,7 @@ contains
 
     if(graphene_tog .eq. 1) then
 
-       surf=>surfaces(6)
+       surf=>paramplanes(6)
 
        pi=3.1415926535897932
        numcoll=floor(pi*(prob_hi(1)**2)*fixed_dt*(particle_n0(1)/particle_neff)*sqrt((k_b*t_init(1))/(2*pi*mass(1))))
@@ -893,7 +893,7 @@ contains
        bJ1 = bessel_jn(1,2.4048)
        prefact = 9144**2/(prob_hi(1)*prob_hi(1)*3.14159*bJ1**2)
        omega=12.5*(10**6)*2*3.1415926535897932
-       surf=>surfaces(6)
+       surf=>paramplanes(6)
        do ii=1, 1
           radius=interval*ii
           radius=radius*2.4048/prob_hi(1)
@@ -2200,7 +2200,7 @@ contains
                            sourcez, sourcezlo, sourcezhi, &
 #endif
                            mobility, mlo, mhi, &
-                           surfaces, ns, kinetic, sw) &
+                           paramplanes, ns, kinetic, sw) &
                            bind(c,name="move_ions_fhd")
 
     integer,          intent(in   ) :: np, ns
@@ -2212,7 +2212,7 @@ contains
     integer,          intent(in   ) :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
 #endif
     type(particle_t), intent(inout), target :: particles(np)
-    type(surface_t),  intent(in),    target :: surfaces(ns)
+    type(paramplane_t),  intent(in),    target :: paramplanes(ns)
     double precision, intent(in   ) :: dx(3), dxf(3), dxe(3), dt, plo(3), phi(3), plof(3)
     double precision, intent(inout) :: kinetic
     double precision, intent(inout) :: rejected, moves, maxspeed, maxdist, diffinst
@@ -2249,7 +2249,7 @@ contains
     integer :: ni(3), fi(3)
     integer(c_int), pointer :: cell_parts(:)
     type(particle_t), pointer :: part
-    type(surface_t), pointer :: surf
+    type(paramplane_t), pointer :: surf
     real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std
     real(amrex_real) normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt
     real(amrex_real) domsize(3), posalt(3), propvec(3), norm(3), dry_terms(3)
@@ -2343,7 +2343,7 @@ contains
 
                       !check 
 
-                      call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+                      call find_intersect(part,runtime, paramplanes, ns, intsurf, inttime, intside, phi, plo)
                       !intsurf = 0
                       !inttime = runtime
 
@@ -2364,7 +2364,7 @@ contains
 
                       if(intsurf .gt. 0) then
 
-                         surf => surfaces(intsurf)
+                         surf => paramplanes(intsurf)
 
                          if(surf%periodicity .eq. 0) then
 
@@ -2451,7 +2451,7 @@ contains
 
                 do while (runtime .gt. 0)
 
-                   call find_intersect(part,runtime, surfaces, ns, intsurf, inttime, intside, phi, plo)
+                   call find_intersect(part,runtime, paramplanes, ns, intsurf, inttime, intside, phi, plo)
 
                    posalt(1) = inttime*part%vel(1)*adjalt
                    posalt(2) = inttime*part%vel(2)*adjalt
@@ -2471,7 +2471,7 @@ contains
 
                    if(intsurf .gt. 0) then
 
-                      surf => surfaces(intsurf)
+                      surf => paramplanes(intsurf)
 
                       !print *, "Intersecting ", intsurf, part%pos
 
@@ -2592,7 +2592,7 @@ contains
 #if (BL_SPACEDIM == 3)
                              sourcez, sourcezlo, sourcezhi, &
 #endif
-                             surfaces, ns, potential, sw) &
+                             paramplanes, ns, potential, sw) &
                              bind(c,name="spread_ions_fhd")
 
     integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw
@@ -2602,7 +2602,7 @@ contains
     integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3), chargelo(3), chargehi(3)
 #endif
     type(particle_t), intent(inout), target :: particles(np)
-    type(surface_t),  intent(in),    target :: surfaces(ns)
+    type(paramplane_t),  intent(in),    target :: paramplanes(ns)
 
     integer,          intent(in   )         :: cellcenterslo(3), cellcentershi(3)
 
@@ -2645,7 +2645,7 @@ contains
     integer :: ni(3), fi(3)
     integer(c_int), pointer :: cell_parts(:)
     type(particle_t), pointer :: part, part2
-    type(surface_t), pointer :: surf
+    type(paramplane_t), pointer :: surf
     real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, adj, adjalt, domsize(3), posalt(3), propvec(3), norm(3), &
          diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv, sep, rejected
 
@@ -2849,7 +2849,7 @@ contains
 #if (BL_SPACEDIM == 3)
                     sourcez, sourcezlo, sourcezhi, &
 #endif
-                    surfaces, ns, sw) &
+                    paramplanes, ns, sw) &
                     bind(c,name="do_rfd")
 
     integer,          intent(in   )         :: np, ns, lo(3), hi(3), clo(3), chi(3), velxlo(3), velxhi(3), velylo(3), velyhi(3), efylo(3), efyhi(3), efxlo(3), efxhi(3), sw
@@ -2859,7 +2859,7 @@ contains
     integer,          intent(in   )         :: velzlo(3), velzhi(3), efzlo(3), efzhi(3), sourcezlo(3), sourcezhi(3), coordszlo(3), coordszhi(3)
 #endif
     type(particle_t), intent(inout), target :: particles(np)
-    type(surface_t),  intent(in),    target :: surfaces(ns)
+    type(paramplane_t),  intent(in),    target :: paramplanes(ns)
 
     integer,          intent(in   )         :: cellcenterslo(3), cellcentershi(3)
 
@@ -2898,7 +2898,7 @@ contains
     integer :: ni(3), fi(3)
     integer(c_int), pointer :: cell_parts(:)
     type(particle_t), pointer :: part
-    type(surface_t), pointer :: surf
+    type(paramplane_t), pointer :: surf
     real(amrex_real) dxinv(3), dxfinv(3), dxeinv(3), onemdxf(3), ixf(3), localvel(3), deltap(3), std, normalrand(3), tempvel(3), intold, inttime, runerr, runtime, domsize(3), posalt(3), propvec(3), norm(3), &
          diffest, diffav, distav, diffinst, veltest, posold(3), delta, volinv
 
@@ -3003,7 +3003,7 @@ contains
     integer :: ni(3), fi(3)
     integer(c_int), pointer :: cell_parts(:)
     type(particle_t), pointer :: part
-    type(surface_t), pointer :: surf
+    type(paramplane_t), pointer :: surf
     real(amrex_real) dxinv(3), dxesinv(3), onemdxf(3), ixf(3), diffav, distav, domsize(3), qm, diffinst, volinv
 
     double precision, allocatable :: weights(:,:,:,:)

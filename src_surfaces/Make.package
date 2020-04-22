@@ -1,2 +1,0 @@
-CEXE_headers   += surfaces.H
-CEXE_sources   += surfaces.cpp

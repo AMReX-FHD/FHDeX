@@ -1,5 +1,5 @@
-#ifndef _surfaces_H_
-#define _surfaces_H_
+#ifndef _paramPlane_H_
+#define _paramPlane_H_
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
@@ -117,9 +117,9 @@ typedef struct {
     double stiffness;
     double temperature;
 
-} surface;
+} paramPlane;
 
-void BuildSurfaces(surface* surfaceList, const int surfaces, const Real* domainLo, const Real* domainHi);
+void BuildParamplanes(paramPlane* paramPlaneList, const int paramplanes, const Real* domainLo, const Real* domainHi);
 
 double getTheta(double nx, double ny, double nz);
 double getPhi(double nx, double ny, double nz);
