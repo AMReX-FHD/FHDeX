@@ -1,13 +1,13 @@
-module surfaces_module
+module paramplane_module
   use amrex_fort_module, only: amrex_real, amrex_particle_real
   use iso_c_binding ,    only: c_int
 
   implicit none
   private
   
-  public surface_t
+  public paramplane_t
   
-  type, bind(C) :: surface_t
+  type, bind(C) :: paramplane_t
 #if (BL_SPACEDIM == 3)
      real(amrex_particle_real) :: x0
      real(amrex_particle_real) :: y0
@@ -116,6 +116,6 @@ module surfaces_module
      real(amrex_particle_real) :: stiffness
      real(amrex_particle_real) :: temperature
 
-  end type surface_t
+  end type paramplane_t
 
-end module surfaces_module
+end module paramplane_module

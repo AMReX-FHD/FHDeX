@@ -54,7 +54,7 @@ extern "C"
                     int** c_vectors, int* sizes, const int* clo, const int* chi,
                     amrex_real* cellVols, const int* cvlo, const int* cvhi,
                     const amrex_real* neff, const int* np,
-                    const surface* surfaceList, const int* surfaceCount,
+                    const paramPlane* paramPlaneList, const int* paramPlaneCount,
                     const Real* meanLx, const Real* meanRx,
                     const Real* meanLy, const Real* meanRy,
                     const Real* meanLz, const Real* meanRz,
@@ -65,7 +65,7 @@ extern "C"
                     int** c_vectors, int* sizes, const int* clo, const int* chi,
                     amrex_real* cellVols, const int* cvlo, const int* cvhi,
                     const amrex_real* neff, const int* np,
-                    const surface* surfaceList, const int* surfaceCount,
+                    const paramPlane* paramPlaneList, const int* paramPlaneCount,
                     int* pL, int* pR, Real* vLx, Real* vRx, Real* vLy, Real* vRy,
                     Real* vLz, Real* vRz);
        void getTemp(
@@ -74,7 +74,7 @@ extern "C"
                     int** c_vectors, int* sizes, const int* clo, const int* chi,
                     amrex_real* cellVols, const int* cvlo, const int* cvhi,
                     const amrex_real* neff, const int* np,
-                    const surface* surfaceList, const int* surfaceCount,
+                    const paramPlane* paramPlaneList, const int* paramPlaneCount,
                     const Real* meanLx, const Real* meanRx,
                     const Real* meanLy, const Real* meanRy,
                     const Real* meanLz, const Real* meanRz,

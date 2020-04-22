@@ -32,7 +32,7 @@ DsmcParticleContainer::DsmcParticleContainer(const Geometry & geom,
     : NeighborParticleContainer<DSMC_realData::count, DSMC_intData::count> (geom, dmap, ba, ncells)
 {}
 
-void DsmcParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount, Real time, int* flux)
+void DsmcParticleContainer::MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, Real time, int* flux)
 {
 
   // Print() << "HERE MoveParticlesDSMC" << std::endline
@@ -72,7 +72,7 @@ BL_PROFILE_VAR_START(particle_move);
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                        ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
-                       surfaceList, &surfaceCount, &time, flux);
+                       paramPlaneList, &paramPlaneCount, &time, flux);
 
         lFlux += flux[0]; rFlux += flux[1];
 
@@ -104,7 +104,7 @@ BL_PROFILE_VAR_START(particle_move);
         //      outfile.open("out.csv", std::ios_base::app);
   for (i=0;i<1;i++)
 	  {
-	    outfile << surfaceList[5].dbesslist[i] << ", ";
+	    outfile << paramPlaneList[5].dbesslist[i] << ", ";
 	  }
 	outfile<<"\n";
 	  outfile.close();

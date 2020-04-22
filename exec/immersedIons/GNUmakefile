@@ -42,13 +42,13 @@ include $(FHDeX)/src_hydro/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_hydro/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/src_F90
 
-include $(FHDeX)/src_analysis/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
-INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
+#include $(FHDeX)/src_analysis/Make.package
+#VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
+#INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
 
-include $(FHDeX)/src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_analysis/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/src_F90
+#include $(FHDeX)/src_analysis/src_F90/Make.package
+#VPATH_LOCATIONS   += $(FHDeX)/src_analysis/src_F90
+#INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/src_F90
 
 #include $(AMREX_HOME)/Src/test/FParallelMG_RNG.mak
 #VPATH_LOCATIONS   += $(AMREX_HOME)/Src/test/
@@ -78,13 +78,13 @@ include $(FHDeX)/src_particles/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/src_F90
 
-include $(FHDeX)/src_surfaces/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_surfaces
-INCLUDE_LOCATIONS += $(FHDeX)/src_surfaces
+include $(FHDeX)/src_geometry/Make.package
+VPATH_LOCATIONS   += $(FHDeX)/src_geometry
+INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
-include $(FHDeX)/src_surfaces/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_surfaces/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_surfaces/src_F90
+include $(FHDeX)/src_geometry/src_F90/Make.package
+VPATH_LOCATIONS   += $(FHDeX)/src_geometry/src_F90
+INCLUDE_LOCATIONS += $(FHDeX)/src_geometry/src_F90
 
 include $(FHDeX)/src_electrostatic/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic

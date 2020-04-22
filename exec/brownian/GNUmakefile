@@ -71,20 +71,20 @@ include ../../src_particles/src_F90/Make.package
 VPATH_LOCATIONS   += ../../src_particles/src_F90
 INCLUDE_LOCATIONS += ../../src_particles/src_F90
 
-include ../../src_surfaces/Make.package
-VPATH_LOCATIONS   += ../../src_surfaces
-INCLUDE_LOCATIONS += ../../src_surfaces
+include ../../src_geometry/Make.package
+VPATH_LOCATIONS   += ../../src_geometry
+INCLUDE_LOCATIONS += ../../src_geometry
 
 include ../../src_electrostatic/Make.package
 VPATH_LOCATIONS   += ../../src_electrostatic
 INCLUDE_LOCATIONS += ../../src_electrostatic
 
 include ./Make_precheck.package
-include ./Make_surface.package
+include ./Make_paramPlane.package
 
-include ../../src_surfaces/src_F90/Make.package
-VPATH_LOCATIONS   += ../../src_surfaces/src_F90
-INCLUDE_LOCATIONS += ../../src_surfaces/src_F90
+include ../../src_geometry/src_F90/Make.package
+VPATH_LOCATIONS   += ../../src_geometry/src_F90
+INCLUDE_LOCATIONS += ../../src_geometry/src_F90
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package

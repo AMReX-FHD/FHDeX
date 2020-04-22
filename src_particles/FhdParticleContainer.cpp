@@ -135,7 +135,7 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
                                            const MultiFab& cellCenters,
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const surface* surfaceList, const int surfaceCount, int sw)
+                                           const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
     UpdateCellVectors();
 
@@ -201,7 +201,7 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
-                         , surfaceList, &surfaceCount, &sw
+                         , paramPlaneList, &paramPlaneCount, &sw
                          );
 
 
@@ -262,7 +262,7 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
     }
 }
 
-void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount, Real time, int* flux)
+void FhdParticleContainer::MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, Real time, int* flux)
 {
 
   // Print() << "HERE MoveParticlesDSMC" << std::endline
@@ -302,7 +302,7 @@ BL_PROFILE_VAR_START(particle_move);
                        ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
                        ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
                        ZFILL(plo),ZFILL(phi),ZFILL(dx), &dt,
-                       surfaceList, &surfaceCount, &time, flux);
+                       paramPlaneList, &paramPlaneCount, &time, flux);
 
         lFlux += flux[0]; rFlux += flux[1];
 
@@ -334,7 +334,7 @@ BL_PROFILE_VAR_START(particle_move);
         //      outfile.open("out.csv", std::ios_base::app);
   for (i=0;i<1;i++)
 	  {
-	    outfile << surfaceList[5].dbesslist[i] << ", ";
+	    outfile << paramPlaneList[5].dbesslist[i] << ", ";
 	  }
 	outfile<<"\n";
 	  outfile.close();
@@ -350,7 +350,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
                                            std::array<MultiFab, AMREX_SPACEDIM>& source,
                                            std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                            const MultiFab& mobility,
-                                           const surface* surfaceList, const int surfaceCount, int sw)
+                                           const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
     
     UpdateCellVectors();
@@ -415,7 +415,7 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
                       BL_TO_FORTRAN_3D(sourceTemp[2][pti]),
 #endif
                       BL_TO_FORTRAN_3D(mobility[pti]),
-                      surfaceList, &surfaceCount, &kinetic, &sw
+                      paramPlaneList, &paramPlaneCount, &kinetic, &sw
             );
 
         // gather statistics
@@ -464,7 +464,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
                                       const MultiFab& cellCenters,
                                       std::array<MultiFab, AMREX_SPACEDIM>& source,
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                      const surface* surfaceList, const int surfaceCount, int sw)
+                                      const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
     
 
@@ -522,7 +522,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #if (AMREX_SPACEDIM == 3)
                          , BL_TO_FORTRAN_3D(sourceTemp[2][pti])
 #endif
-                         , surfaceList, &surfaceCount, &potential, &sw
+                         , paramPlaneList, &paramPlaneCount, &potential, &sw
                          );
     }
 

@@ -12,7 +12,7 @@
 #include "rng_functions.H"
 
 #include "species.H"
-#include "surfaces.H"
+#include "paramPlane.H"
 
 #include "particle_functions.H"
 
@@ -133,123 +133,123 @@ void main_driver(const char* argv)
 
     //Construct the boundaries 
 
-    ifstream surfaceFile("surfaces.dat");
-    int surfaceCount;
+    ifstream paramPlaneFile("paramplanes.dat");
+    int paramPlaneCount;
     double effectiveVol;
 
-    surfaceFile >> surfaceCount;
-    surfaceFile >> effectiveVol;
+    paramPlaneFile >> paramPlaneCount;
+    paramPlaneFile >> effectiveVol;
 
-    //Print() << "sc: " << surfaceCount << ", ev: " << effectiveVol << "\n";
+    //Print() << "sc: " << paramPlaneCount << ", ev: " << effectiveVol << "\n";
 
 #if (BL_SPACEDIM == 3)
-    surfaceCount = surfaceCount + 6;
-    //surfaceCount = 6;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    paramPlaneCount = paramPlaneCount + 6;
+    //paramPlaneCount = 6;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 
 #endif
 #if (BL_SPACEDIM == 2)
-    surfaceCount = surfaceCount + 4;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    paramPlaneCount = paramPlaneCount + 4;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 
    //Add interior boundaries
 
     double phi, theta;
 #if (BL_SPACEDIM == 3)
-    for(int i=6; i<surfaceCount; i++)
+    for(int i=6; i<paramPlaneCount; i++)
     {
 #endif
 #if (BL_SPACEDIM == 2)
-    for(int i=4; i<surfaceCount; i++)
+    for(int i=4; i<paramPlaneCount; i++)
     {
 #endif
 
-        surfaceFile >> surfaceList[i].x0;
-        surfaceFile >> surfaceList[i].y0;
+        paramPlaneFile >> paramPlaneList[i].x0;
+        paramPlaneFile >> paramPlaneList[i].y0;
 #if (BL_SPACEDIM == 3)
-        surfaceFile >> surfaceList[i].z0;
+        paramPlaneFile >> paramPlaneList[i].z0;
 #endif
 
-        surfaceFile >> surfaceList[i].ux;
-        surfaceFile >> surfaceList[i].uy;
+        paramPlaneFile >> paramPlaneList[i].ux;
+        paramPlaneFile >> paramPlaneList[i].uy;
 #if (BL_SPACEDIM == 3)
-        surfaceFile >> surfaceList[i].uz;
+        paramPlaneFile >> paramPlaneList[i].uz;
 #endif
-        surfaceFile >> surfaceList[i].vx;
-        surfaceFile >> surfaceList[i].vy;
+        paramPlaneFile >> paramPlaneList[i].vx;
+        paramPlaneFile >> paramPlaneList[i].vy;
 #if (BL_SPACEDIM == 3)
-        surfaceFile >> surfaceList[i].vz;
+        paramPlaneFile >> paramPlaneList[i].vz;
 #endif
-        surfaceFile >> surfaceList[i].uTop;
+        paramPlaneFile >> paramPlaneList[i].uTop;
 #if (BL_SPACEDIM == 3)
-        surfaceFile >> surfaceList[i].vTop;
+        paramPlaneFile >> paramPlaneList[i].vTop;
 #endif
-        //Print() << surfaceList[i].x0 << ", " << surfaceList[i].y0 << ", " << surfaceList[i].z0 << "\n";
+        //Print() << paramPlaneList[i].x0 << ", " << paramPlaneList[i].y0 << ", " << paramPlaneList[i].z0 << "\n";
 
-        surfaceFile >> surfaceList[i].rnx;
-        surfaceFile >> surfaceList[i].rny;
+        paramPlaneFile >> paramPlaneList[i].rnx;
+        paramPlaneFile >> paramPlaneList[i].rny;
 #if (BL_SPACEDIM == 3)
-        surfaceFile >> surfaceList[i].rnz;
+        paramPlaneFile >> paramPlaneList[i].rnz;
 #endif
-        surfaceFile >> surfaceList[i].lnx;
-        surfaceFile >> surfaceList[i].lny;
+        paramPlaneFile >> paramPlaneList[i].lnx;
+        paramPlaneFile >> paramPlaneList[i].lny;
 #if (BL_SPACEDIM == 3)
-        surfaceFile >> surfaceList[i].lnz;
+        paramPlaneFile >> paramPlaneList[i].lnz;
 #endif
-        surfaceFile >> surfaceList[i].porosityRight;
-        surfaceFile >> surfaceList[i].specularityRight;
-        surfaceFile >> surfaceList[i].temperatureRight;
-        surfaceFile >> surfaceList[i].momentumConsRight;
+        paramPlaneFile >> paramPlaneList[i].porosityRight;
+        paramPlaneFile >> paramPlaneList[i].specularityRight;
+        paramPlaneFile >> paramPlaneList[i].temperatureRight;
+        paramPlaneFile >> paramPlaneList[i].momentumConsRight;
 
-        surfaceFile >> surfaceList[i].porosityLeft;
-        surfaceFile >> surfaceList[i].specularityLeft;
-        surfaceFile >> surfaceList[i].temperatureLeft;
-        surfaceFile >> surfaceList[i].momentumConsLeft;
+        paramPlaneFile >> paramPlaneList[i].porosityLeft;
+        paramPlaneFile >> paramPlaneList[i].specularityLeft;
+        paramPlaneFile >> paramPlaneList[i].temperatureLeft;
+        paramPlaneFile >> paramPlaneList[i].momentumConsLeft;
 
-        surfaceFile >> surfaceList[i].periodicity;
+        paramPlaneFile >> paramPlaneList[i].periodicity;
 
 #if (BL_SPACEDIM == 3)
-        theta = getTheta(surfaceList[i].lnx, surfaceList[i].lny, surfaceList[i].lnz);
-        phi   = getPhi(surfaceList[i].lnx, surfaceList[i].lny, surfaceList[i].lnz);
+        theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
+        phi   = getPhi(paramPlaneList[i].lnx, paramPlaneList[i].lny, paramPlaneList[i].lnz);
 
-        surfaceList[i].cosThetaLeft = cos(theta);
-        surfaceList[i].sinThetaLeft = sin(theta);
-        surfaceList[i].cosPhiLeft = cos(phi);
-        surfaceList[i].sinPhiLeft = sin(phi);
+        paramPlaneList[i].cosThetaLeft = cos(theta);
+        paramPlaneList[i].sinThetaLeft = sin(theta);
+        paramPlaneList[i].cosPhiLeft = cos(phi);
+        paramPlaneList[i].sinPhiLeft = sin(phi);
 
-        theta = getTheta(surfaceList[i].rnx, surfaceList[i].rny, surfaceList[i].rnz);
-        phi   = getPhi(surfaceList[i].rnx, surfaceList[i].rny, surfaceList[i].rnz);
+        theta = getTheta(paramPlaneList[i].rnx, paramPlaneList[i].rny, paramPlaneList[i].rnz);
+        phi   = getPhi(paramPlaneList[i].rnx, paramPlaneList[i].rny, paramPlaneList[i].rnz);
 
-        surfaceList[i].cosThetaRight = cos(theta);
-        surfaceList[i].sinThetaRight = sin(theta);
-        surfaceList[i].cosPhiRight = cos(phi);
-        surfaceList[i].sinPhiRight = sin(phi);
+        paramPlaneList[i].cosThetaRight = cos(theta);
+        paramPlaneList[i].sinThetaRight = sin(theta);
+        paramPlaneList[i].cosPhiRight = cos(phi);
+        paramPlaneList[i].sinPhiRight = sin(phi);
 
 #endif
 #if (BL_SPACEDIM == 2)
-        theta = getTheta(surfaceList[i].lnx, surfaceList[i].lny, 0);
+        theta = getTheta(paramPlaneList[i].lnx, paramPlaneList[i].lny, 0);
 
-        surfaceList[i].cosThetaLeft = cos(theta);
-        surfaceList[i].sinThetaLeft = sin(theta);
+        paramPlaneList[i].cosThetaLeft = cos(theta);
+        paramPlaneList[i].sinThetaLeft = sin(theta);
 
-        theta = getTheta(surfaceList[i].rnx, surfaceList[i].rny, 0);
+        theta = getTheta(paramPlaneList[i].rnx, paramPlaneList[i].rny, 0);
 
-        surfaceList[i].cosThetaRight = cos(theta);
-        surfaceList[i].sinThetaRight = sin(theta);
+        paramPlaneList[i].cosThetaRight = cos(theta);
+        paramPlaneList[i].sinThetaRight = sin(theta);
 #endif
-        surfaceList[i].fxLeftAv = 0;
-        surfaceList[i].fyLeftAv = 0;
-        surfaceList[i].fzLeftAv = 0;
+        paramPlaneList[i].fxLeftAv = 0;
+        paramPlaneList[i].fyLeftAv = 0;
+        paramPlaneList[i].fzLeftAv = 0;
 
-        surfaceList[i].fxRightAv = 0;
-        surfaceList[i].fyRightAv = 0;
-        surfaceList[i].fzRightAv = 0;
+        paramPlaneList[i].fxRightAv = 0;
+        paramPlaneList[i].fyRightAv = 0;
+        paramPlaneList[i].fzRightAv = 0;
     }
 
-    surfaceFile.close();
+    paramPlaneFile.close();
 
 
 
@@ -392,7 +392,7 @@ void main_driver(const char* argv)
     //create particles
     particles.InitParticlesDSMCtest(dsmcParticle, num_boxes, pL, pR, tL, tR);
     if (thermostat_tog == 1) {
-        particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+        particles.ApplyThermostat(dsmcParticle, cellVols, paramPlaneList, paramPlaneCount, tL, tR);
     }
 
     
@@ -429,7 +429,7 @@ void main_driver(const char* argv)
         //ballistic movement
         if(move_tog == 1)
         {
-            particles.MoveParticlesDSMC(dt,surfaceList, surfaceCount, time, flux);
+            particles.MoveParticlesDSMC(dt,paramPlaneList, paramPlaneCount, time, flux);
             outfile << flux[0] << ' ' << flux[1] << '\n';
             particles.Redistribute();
 
@@ -454,7 +454,7 @@ void main_driver(const char* argv)
             }
 
             //call thermostat. Function determines if re-scaling is necessary.
-            particles.ApplyThermostat(dsmcParticle, cellVols, surfaceList, surfaceCount, tL, tR);
+            particles.ApplyThermostat(dsmcParticle, cellVols, paramPlaneList, paramPlaneCount, tL, tR);
         }
 
         //Start collecting statistics after step n_steps_skip

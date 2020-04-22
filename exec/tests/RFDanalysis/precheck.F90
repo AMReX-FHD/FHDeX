@@ -8,14 +8,14 @@ module precheck_module
 
 contains        
 
-  subroutine precheck(part, surfaces, ns, delt, flag, phi, plo)
+  subroutine precheck(part, paramplanes, ns, delt, flag, phi, plo)
 
     use iso_c_binding, only: c_int
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module, only: surface_t
+    use paramplane_module, only: paramplane_t
 
     type(particle_t), intent(inout) :: part
-    type(surface_t), intent(in), target :: surfaces(ns)
+    type(paramplane_t), intent(in), target :: paramplanes(ns)
     real(amrex_real), intent(in) :: delt, phi(3), plo(3)
     integer(c_int), intent(inout) :: flag
     integer(c_int), intent(in) :: ns
@@ -29,11 +29,11 @@ contains
 #if (BL_SPACEDIM == 3)
     proj = part%pos + part%vel*delt
 
-!    this case is for a surface bisecting the domain
+!    this case is for a paramPlane bisecting the domain
 !    box1lo = plo
-!    box1hi = (/ surfaces(7)%x0 , phi(2) , phi(3) /)
+!    box1hi = (/ paramplanes(7)%x0 , phi(2) , phi(3) /)
 
-!    box2lo = (/ surfaces(7)%x0 , plo(2) , plo(3) /)
+!    box2lo = (/ paramplanes(7)%x0 , plo(2) , plo(3) /)
 !    box2hi = phi
 
     box1lo = plo
@@ -50,9 +50,9 @@ contains
     box1lo(1) = plo(1)
     box1lo(2) = plo(2)
 
-    box1hi = (/ surfaces(5)%x0 , phi(2) /)
+    box1hi = (/ paramplanes(5)%x0 , phi(2) /)
 
-    box2lo = (/ surfaces(5)%x0 , plo(2) /)
+    box2lo = (/ paramplanes(5)%x0 , plo(2) /)
 
     box2hi(1) = phi(1)
     box2hi(2) = phi(2)

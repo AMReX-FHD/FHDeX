@@ -9,12 +9,12 @@ module thermostat_module
 contains        
 
   subroutine thermostat(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-    cellvols, cvlo, cvhi, neff, np, surfaces, ns, meanLx, meanRx, meanLy, meanRy, &
+    cellvols, cvlo, cvhi, neff, np, paramplanes, ns, meanLx, meanRx, meanLy, meanRy, &
     meanLz, meanRz, lC, rC)bind(c,name="thermostat")
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module, only: surface_t
+    use paramplane_module, only: paramplane_t
 
     integer,          intent(in      ) :: clo(3), chi(3), cvlo(3), cvhi(3), lo(3), hi(3), np
     double precision, intent(in      ) :: neff
@@ -29,7 +29,7 @@ contains
     type(particle_t), pointer :: part
     integer(c_int), pointer :: cell_parts(:)
 
-    type(surface_t), intent(in), target :: surfaces(ns)
+    type(paramplane_t), intent(in), target :: paramplanes(ns)
     integer(c_int), intent(in) :: ns
     double precision, intent(in) :: lC, rC, meanLx, meanRx, meanLy, meanRy, meanLz, meanRz
 
@@ -75,12 +75,12 @@ contains
   end subroutine thermostat
 
   subroutine getVelocity(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-    cellvols, cvlo, cvhi, neff, np, surfaces, ns, pL, pR, vLx, vRx, vLy, vRy, &
+    cellvols, cvlo, cvhi, neff, np, paramplanes, ns, pL, pR, vLx, vRx, vLy, vRy, &
     vLz, vRz)bind(c,name="getVelocity")
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module, only: surface_t
+    use paramplane_module, only: paramplane_t
 
     integer,          intent(in      ) :: clo(3), chi(3), cvlo(3), cvhi(3), lo(3), hi(3), np
     double precision, intent(in      ) :: neff
@@ -95,7 +95,7 @@ contains
     type(particle_t), pointer :: part
     integer(c_int), pointer :: cell_parts(:)
 
-    type(surface_t), intent(in), target :: surfaces(ns)
+    type(paramplane_t), intent(in), target :: paramplanes(ns)
     integer(c_int), intent(in) :: ns
     integer(c_int), intent(inout) :: pL, pR
     double precision, intent(inout) :: vLx, vRx, vLy, vRy, vLz, vRz
@@ -150,12 +150,12 @@ contains
   end subroutine getVelocity
 
   subroutine getTemp(particles, lo, hi, cell_part_ids, cell_part_cnt, clo, chi, &
-    cellvols, cvlo, cvhi, neff, np, surfaces, ns, meanLx, meanRx, meanLy, meanRy, &
+    cellvols, cvlo, cvhi, neff, np, paramplanes, ns, meanLx, meanRx, meanLy, meanRy, &
     meanLz, meanRz, varL, varR)bind(c,name="getTemp")
 
     use iso_c_binding, only: c_ptr, c_int, c_f_pointer
     use cell_sorted_particle_module, only: particle_t
-    use surfaces_module, only: surface_t
+    use paramplane_module, only: paramplane_t
 
     integer,          intent(in      ) :: clo(3), chi(3), cvlo(3), cvhi(3), lo(3), hi(3), np
     double precision, intent(in      ) :: neff
@@ -170,7 +170,7 @@ contains
     type(particle_t), pointer :: part
     integer(c_int), pointer :: cell_parts(:)
 
-    type(surface_t), intent(in), target :: surfaces(ns)
+    type(paramplane_t), intent(in), target :: paramplanes(ns)
     integer(c_int), intent(in) :: ns
     double precision, intent(in) :: meanLx, meanRx, meanLy, meanRy, meanLz, meanRz
     double precision, intent(inout) :: varL, varR
