@@ -1554,10 +1554,10 @@ FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
            
         }
     }
+    clearNeighbors();
     Redistribute();
     UpdateCellVectors();
     ReBin();
-    clearNeighbors();
     fillNeighbors();
 }
 
