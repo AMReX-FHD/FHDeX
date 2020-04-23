@@ -105,6 +105,13 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
     Vector<int> bc_lo(AMREX_SPACEDIM);
     Vector<int> bc_hi(AMREX_SPACEDIM);
 
+    const int nspecies_gpu = nspecies;
+
+    GpuArray<Real,MAX_SPECIES> rhobar_gpu;
+    for (int i=0; i<nspecies; ++i) {
+        rhobar_gpu[i] = rhobar[i];
+    }
+   
     // compute mathematical boundary conditions
     BCPhysToMath(1,bc_lo,bc_hi);
 
@@ -132,8 +139,8 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                 {
                     if (i < lo) {
                         Real rhoinv = 0.;
-                        for (int n=0; n<nspecies; ++n) {
-                            rhoinv += conc(lo-1,j,k,n)/rhobar[n];
+                        for (int n=0; n<nspecies_gpu; ++n) {
+                            rhoinv += conc(lo-1,j,k,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
                     }
@@ -147,8 +154,8 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                 {
                     if (i > hi) {
                         Real rhoinv = 0.;
-                        for (int n=0; n<nspecies; ++n) {
-                            rhoinv += conc(hi+1,j,k,n)/rhobar[n];
+                        for (int n=0; n<nspecies_gpu; ++n) {
+                            rhoinv += conc(hi+1,j,k,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
                     }
@@ -169,8 +176,8 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                 {
                     if (j < lo) {
                         Real rhoinv = 0.;
-                        for (int n=0; n<nspecies; ++n) {
-                            rhoinv += conc(i,lo-1,k,n)/rhobar[n];
+                        for (int n=0; n<nspecies_gpu; ++n) {
+                            rhoinv += conc(i,lo-1,k,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
                     }
@@ -184,8 +191,8 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                 {
                     if (j > hi) {
                         Real rhoinv = 0.;
-                        for (int n=0; n<nspecies; ++n) {
-                            rhoinv += conc(i,hi+1,k,n)/rhobar[n];
+                        for (int n=0; n<nspecies_gpu; ++n) {
+                            rhoinv += conc(i,hi+1,k,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
                     }
@@ -207,8 +214,8 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                 {
                     if (k < lo) {
                         Real rhoinv = 0.;
-                        for (int n=0; n<nspecies; ++n) {
-                            rhoinv += conc(i,j,lo-1,n)/rhobar[n];
+                        for (int n=0; n<nspecies_gpu; ++n) {
+                            rhoinv += conc(i,j,lo-1,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
                     }
@@ -222,8 +229,8 @@ void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometr
                 {
                     if (k > hi) {
                         Real rhoinv = 0.;
-                        for (int n=0; n<nspecies; ++n) {
-                            rhoinv += conc(i,j,hi+1,n)/rhobar[n];
+                        for (int n=0; n<nspecies_gpu; ++n) {
+                            rhoinv += conc(i,j,hi+1,n)/rhobar_gpu[n];
                         }
                         rhotot(i,j,k) = 1./rhoinv;
                     }
