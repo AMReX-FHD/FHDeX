@@ -307,7 +307,7 @@ public:
     Real threepmPoints[50]; 
     Real threepmRange = 5; 
 
-protected:
+  //protected:
 
     void UpdateFortranStructures();
 
@@ -326,17 +326,17 @@ protected:
     amrex::BoxArray::RefID m_BARef;
     amrex::DistributionMapping::RefID m_DMRef;
 
-private:
+  //private:
 
     //void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
 
     int n_list;
 
-    struct {
+    struct CHECK_PAIR {
         bool operator()(const ParticleType & p1, const ParticleType & p2) const {
             return true;
         }
-    } CheckPair;
+    };
 };
 
 

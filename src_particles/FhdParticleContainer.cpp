@@ -223,7 +223,7 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
     double rcount = 0;
     const int lev = 0;
 
-    buildNeighborList(CheckPair);
+    buildNeighborList(CHECK_PAIR{});
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -583,10 +583,10 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     totalDist = totalBins*binSize;
 
     // this is the bin "hit count"
-    Real radDist   [totalBins] = {0};
-    Real radDist_pp[totalBins] = {0};
-    Real radDist_pm[totalBins] = {0};
-    Real radDist_mm[totalBins] = {0};
+    RealVector radDist   (totalBins, 0.);
+    RealVector radDist_pp(totalBins, 0.);
+    RealVector radDist_pm(totalBins, 0.);
+    RealVector radDist_mm(totalBins, 0.);
     
 #ifdef _OPENMP
 #pragma omp parallel
@@ -667,10 +667,10 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     }
         
     // collect the hit count
-    ParallelDescriptor::ReduceRealSum(radDist   ,totalBins);
-    ParallelDescriptor::ReduceRealSum(radDist_pp,totalBins);
-    ParallelDescriptor::ReduceRealSum(radDist_pm,totalBins);
-    ParallelDescriptor::ReduceRealSum(radDist_mm,totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist   .dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist_pp.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist_pm.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(radDist_mm.dataPtr(),totalBins);
             
     // normalize by 1 / (number density * bin volume * total particle count)
     for(int i=0;i<totalBins;i++) {
@@ -760,18 +760,18 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
     totalDist = totalBins*binSize;
 
     // this is the bin "hit count"
-    Real XDist   [totalBins] = {0};
-    Real XDist_pp[totalBins] = {0};
-    Real XDist_pm[totalBins] = {0};
-    Real XDist_mm[totalBins] = {0};
-    Real YDist   [totalBins] = {0};
-    Real YDist_pp[totalBins] = {0};
-    Real YDist_pm[totalBins] = {0};
-    Real YDist_mm[totalBins] = {0};
-    Real ZDist   [totalBins] = {0};
-    Real ZDist_pp[totalBins] = {0};
-    Real ZDist_pm[totalBins] = {0};
-    Real ZDist_mm[totalBins] = {0};
+    RealVector XDist   (totalBins, 0.);
+    RealVector XDist_pp(totalBins, 0.);
+    RealVector XDist_pm(totalBins, 0.);
+    RealVector XDist_mm(totalBins, 0.);
+    RealVector YDist   (totalBins, 0.);
+    RealVector YDist_pp(totalBins, 0.);
+    RealVector YDist_pm(totalBins, 0.);
+    RealVector YDist_mm(totalBins, 0.);
+    RealVector ZDist   (totalBins, 0.);
+    RealVector ZDist_pp(totalBins, 0.);
+    RealVector ZDist_pm(totalBins, 0.);
+    RealVector ZDist_mm(totalBins, 0.);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -902,18 +902,18 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
     }
  
     // collect the hit count
-    ParallelDescriptor::ReduceRealSum(XDist   ,totalBins);
-    ParallelDescriptor::ReduceRealSum(XDist_pp,totalBins);
-    ParallelDescriptor::ReduceRealSum(XDist_pm,totalBins);
-    ParallelDescriptor::ReduceRealSum(XDist_mm,totalBins);
-    ParallelDescriptor::ReduceRealSum(YDist   ,totalBins);
-    ParallelDescriptor::ReduceRealSum(YDist_pp,totalBins);
-    ParallelDescriptor::ReduceRealSum(YDist_pm,totalBins);
-    ParallelDescriptor::ReduceRealSum(YDist_mm,totalBins);
-    ParallelDescriptor::ReduceRealSum(ZDist   ,totalBins);
-    ParallelDescriptor::ReduceRealSum(ZDist_pp,totalBins);
-    ParallelDescriptor::ReduceRealSum(ZDist_pm,totalBins);
-    ParallelDescriptor::ReduceRealSum(ZDist_mm,totalBins);
+    ParallelDescriptor::ReduceRealSum(XDist   .dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(XDist_pp.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(XDist_pm.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(XDist_mm.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(YDist   .dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(YDist_pp.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(YDist_pm.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(YDist_mm.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(ZDist   .dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(ZDist_pp.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(ZDist_pm.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(ZDist_mm.dataPtr(),totalBins);
 
     // normalize by 1 / (number density * bin volume * total particle count)
     for(int i=0;i<totalBins;i++) {
