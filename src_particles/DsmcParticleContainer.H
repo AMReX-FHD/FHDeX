@@ -194,11 +194,11 @@ private:
 
     int n_list;
 
-    struct {
+    struct CHECK_PAIR {
         bool operator()(const ParticleType & p1, const ParticleType & p2) const {
             return true;
         }
-    } CheckPair;
+    };
 };
 
 
