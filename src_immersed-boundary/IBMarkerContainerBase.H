@@ -73,7 +73,7 @@ public:
 
     // Get number of particles
     int NumberOfMarkers(IBMarIterBase<StructReal::count, StructInt::count> & pti){
-        return pti.GetArrayOfStructs().size();
+        return pti.GetArrayOfStructs().numParticles();
     };
 
 
