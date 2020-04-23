@@ -4,8 +4,9 @@
 
 #include "StochMomFlux.H"
 
-//#include "analysis_functions_F.H"
+#ifndef AMREX_USE_CUDA
 #include "StructFact.H"
+#endif
 
 #include "common_functions.H"
 #include "gmres_functions.H"
@@ -316,7 +317,8 @@ void main_driver(const char* argv)
         Abort("main_driver.cpp: only fixed_dt > 0 supported");
     }
     dt = fixed_dt;
-    
+
+#ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
     // Initialize structure factor object for analysis
     ///////////////////////////////////////////
@@ -376,7 +378,8 @@ void main_driver(const char* argv)
     
     StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
-
+    
+#endif
     /*
       this routine is only called for all inertial simulations (both restart and non-restart)
       it does the following:
@@ -400,7 +403,8 @@ void main_driver(const char* argv)
     }
 
     if (restart < 0) {
-    
+
+#ifndef AMREX_USE_CUDA        
         // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
         if (n_steps_skip == 0 && struct_fact_int > 0) {
 
@@ -417,12 +421,15 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
+#endif
         
         // write initial plotfile and structure factor
         if (plot_int > 0) {
             WritePlotFile(0,0.,geom,umac,rhotot_old,rho_old,pi);
             if (n_steps_skip == 0 && struct_fact_int > 0) {
+#ifndef AMREX_USE_CUDA                
                 structFact.WritePlotFile(0,0.,geom,"plt_SF");
+#endif
             }
         }
 
@@ -468,7 +475,7 @@ void main_driver(const char* argv)
         }
 
 	//////////////////////////////////////////////////
-	
+#ifndef AMREX_USE_CUDA
 	if (istep > n_steps_skip && struct_fact_int > 0 && (istep-n_steps_skip)%struct_fact_int == 0) {
 
             // add this snapshot to the average in the structure factor
@@ -484,6 +491,7 @@ void main_driver(const char* argv)
             }
             structFact.FortStructure(structFactMF,geom);
         }
+#endif
 	
 
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
@@ -497,7 +505,9 @@ void main_driver(const char* argv)
         if (plot_int > 0 && istep%plot_int == 0) {
             WritePlotFile(istep,time,geom,umac,rhotot_new,rho_new,pi);
             if (istep > n_steps_skip && struct_fact_int > 0) {
+#ifndef AMREX_USE_CUDA
                 structFact.WritePlotFile(istep,time,geom,"plt_SF");
+#endif
             }
         }
 

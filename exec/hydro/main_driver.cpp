@@ -5,7 +5,10 @@
 #include "hydro_functions.H"
 
 #include "StochMomFlux.H"
-//#include "StructFact.H"
+
+#ifndef AMREX_USE_CUDA
+#include "StructFact.H"
+#endif
 
 #include "rng_functions_F.H"
 
@@ -248,9 +251,6 @@ void main_driver(const char* argv)
     s_pairB[2] = 2;
 #endif
 
-    // StructFact structFact(ba,dmap,var_names);
-    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
-
     ///////////////////////////////////////////
     
     // FIXME need to fill physical boundary condition ghost cells for tracer
@@ -357,17 +357,6 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 
-	///////////////////////////////////////////
-	// Update structure factor
-	///////////////////////////////////////////
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  for(int d=0; d<AMREX_SPACEDIM; d++) {
-	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	  }
-//	  structFact.FortStructure(struct_in_cc,geom);
-        }
-	///////////////////////////////////////////
-
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
 
@@ -385,25 +374,6 @@ void main_driver(const char* argv)
             WriteCheckPoint(step,time,umac,tracer);
         }
         
-    }
-
-    ///////////////////////////////////////////
-    if (struct_fact_int > 0) {
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-
-      // let rho = 1
-      // Real SFscale = dVol/(k_B*temp_const);
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-
-//      structFact.Finalize(SFscale);
-//      structFact.WritePlotFile(step,time,geom,"plt_SF");
     }
 
     // Call the timer again and compute the maximum difference between the start time
