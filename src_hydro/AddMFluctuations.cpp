@@ -8,6 +8,8 @@ void addMomFluctuations(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                         const amrex::Real& variance,
                         const Geometry& geom) {
 
+    BL_PROFILE_VAR("addMomFluctuations()",addMomFluctuations);
+    
     std::array< MultiFab, AMREX_SPACEDIM > m_old;
     std::array< MultiFab, AMREX_SPACEDIM > rhotot_fc;
     std::array< MultiFab, AMREX_SPACEDIM > Temp_fc;
@@ -38,6 +40,8 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
                              const std::array< MultiFab, AMREX_SPACEDIM >& Temp_fc,
                              const amrex::Real& variance,
                              const Geometry& geom) {
+    
+    BL_PROFILE_VAR("addMomFluctuations_stag()",addMomFluctuations_stag);
 
     const Real* dx = geom.CellSize();
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];

@@ -22,7 +22,7 @@ MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
                const bool& full_solve)
 {
     // timer for profiling
-    BL_PROFILE_VAR("MacProj()",MacProj);
+    BL_PROFILE_VAR("MacProj_hydro()",MacProj_hydro);
 
     BoxArray grids = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();

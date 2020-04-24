@@ -38,6 +38,8 @@ void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domai
 
 Real MaskedSum(const MultiFab & inFab,int comp, const Periodicity& period)
 {
+    BL_PROFILE_VAR("MaskedSum()",MaskedSum);
+    
     MultiFab tmpmf(inFab.boxArray(), inFab.DistributionMap(), 1, 0,
                    MFInfo(), inFab.Factory());
 

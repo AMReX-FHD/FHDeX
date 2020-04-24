@@ -5,6 +5,8 @@
 
 void SetPressureBC(MultiFab & p0, const Geometry & geom) {
 
+    BL_PROFILE_VAR("SetPressureBC()",SetPressureBC);    
+    
     Box dom(geom.Domain());
 
     for (MFIter mfi(p0); mfi.isValid(); ++mfi) {

@@ -6,6 +6,8 @@
 // EXT_DIR copies the supplied Dirichlet condition into the ghost cells.
 void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, int varType) {
 
+    BL_PROFILE_VAR("MultiFabPhysBC()",MultiFabPhysBC);
+    
     // varType definitions are in BCPhysToMath.cpp
     
     if (geom.isAllPeriodic()) {
@@ -179,6 +181,8 @@ void MultiFabPhysBC(MultiFab& phi, const Geometry& geom, int scomp, int ncomp, i
 // to avoid intermediate NaN propagation in BDS
 void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 
+    BL_PROFILE_VAR("MultiFabPhysBCDomainVel()",MultiFabPhysBCDomainVel);
+    
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -305,6 +309,8 @@ void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim) {
 // We fill all the ghost cells - they are needed for Perskin kernels
 void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 
+    BL_PROFILE_VAR("MultiFabPhysBCMacVel()",MultiFabPhysBCMacVel);
+    
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -400,6 +406,8 @@ void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim) {
 // Set the value on walls to zero
 void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
+    BL_PROFILE_VAR("ZeroEdgevalWalls()",ZeroEdgevalWalls);
+    
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -517,6 +525,8 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
 // Set the value on all physical boundaries (non periodic) to zero
 void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom, int scomp, int ncomp) {
 
+    BL_PROFILE_VAR("ZeroEdgevalPhysical()",ZeroEdgevalPhysical);
+    
     if (geom.isAllPeriodic()) {
         return;
     }
@@ -642,6 +652,8 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
 // rather than fill ghost cells with values ON the boundary
 void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     
+    BL_PROFILE_VAR("MultiFABElectricBC()",MultiFABElectricBC);
+    
 #if (AMREX_SPACEDIM >= 2)
     
     if (geom.isAllPeriodic()) {
@@ -744,6 +756,9 @@ void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom) {
 // the boundary for inhomogeneous Neumann and inhomogeneous Dirichlet; for this we
 // use MultiFABPotentialBC_solver
 void MultiFABPotentialBC(MultiFab& phi, const Geometry& geom) {
+    
+    BL_PROFILE_VAR("MultiFABPotentialBC()",MultiFABPotentialBC);
+    
 #if (AMREX_SPACEDIM >= 2)
     
     if (geom.isAllPeriodic()) {
@@ -914,6 +929,9 @@ void MultiFABPotentialBC(MultiFab& phi, const Geometry& geom) {
 // This routine is not to be confused with MultiFABPotentialBC, which fill ghost
 // values extrapolated TO the ghost cell-center
 void MultiFABPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
+
+    BL_PROFILE_VAR("MultiFABPotentialBC_solver()",MultiFABPotentialBC_solver);
+
 #if (AMREX_SPACEDIM >= 2)
     
     if (geom.isAllPeriodic()) {
@@ -1027,6 +1045,8 @@ void MultiFABPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
 // note for wall-wall corners, the folding is also done in ghost cells so we get corner charges back in
 void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
     
+    BL_PROFILE_VAR("MultiFabPhysBCCharge()",MultiFabPhysBCCharge);
+    
 #if (AMREX_SPACEDIM >= 2)
     
     if (geom.isAllPeriodic()) {
@@ -1124,6 +1144,8 @@ void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom) {
 // 1 =    slip -> leave value on wall alone, add in force from ghost
 // 2 = no slip -> set value on wall to zero, add in negative force from ghost cells
 void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim) {
+    
+    BL_PROFILE_VAR("ultiFabPhysBCDomainStress()",ultiFabPhysBCDomainStress);
     
 #if (AMREX_SPACEDIM >= 2)
     
@@ -1250,6 +1272,8 @@ void MultiFabPhysBCDomainStress(MultiFab& stress, const Geometry& geom, int dim)
 }
 
 void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim) {
+    
+    BL_PROFILE_VAR("ultiFabPhysBCMacStress()",ultiFabPhysBCMacStress);
     
 #if (AMREX_SPACEDIM >= 2)
     

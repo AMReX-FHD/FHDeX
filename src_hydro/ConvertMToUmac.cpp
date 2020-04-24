@@ -5,6 +5,8 @@ void ConvertMToUmac(const std::array< MultiFab, AMREX_SPACEDIM >& s_fc,
                     std::array< MultiFab, AMREX_SPACEDIM >& m,
                     int m_to_umac) {
 
+    BL_PROFILE_VAR("ConvertMToUmac()",ConvertMToUmac);
+    
     if (m_to_umac == 1) {
         // compute umac = m / rho - NO GHOST CELLS
         for (int d=0; d<AMREX_SPACEDIM; d++) {

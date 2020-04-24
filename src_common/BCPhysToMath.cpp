@@ -5,6 +5,8 @@
 // to fill ghost cells in PhysBC routines
 
 void BCPhysToMath(int varType, amrex::Vector<int>& bc_lo, amrex::Vector<int>& bc_hi) {
+    
+    BL_PROFILE_VAR("BCPhysToMath()",BCPhysToMath);
 
     // varType -1: density
     // varType  0: pressure
