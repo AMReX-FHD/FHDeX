@@ -650,9 +650,9 @@ void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geome
 // this is different from the generic PhysBC routines since it computes
 // values extrapolted to the boundary (useful for Perskin kernel interpolation)
 // rather than fill ghost cells with values ON the boundary
-void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom) {
+void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom) {
     
-    BL_PROFILE_VAR("MultiFABElectricBC()",MultiFABElectricBC);
+    BL_PROFILE_VAR("MultiFabElectricBC()",MultiFabElectricBC);
     
 #if (AMREX_SPACEDIM >= 2)
     
@@ -754,10 +754,10 @@ void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom) {
 // This is NOT the same as filling the ghost cell with the value on the boundary
 // The Poisson solver needs a separate routine to fill ghost cells with the value ON
 // the boundary for inhomogeneous Neumann and inhomogeneous Dirichlet; for this we
-// use MultiFABPotentialBC_solver
-void MultiFABPotentialBC(MultiFab& phi, const Geometry& geom) {
+// use MultiFabPotentialBC_solver
+void MultiFabPotentialBC(MultiFab& phi, const Geometry& geom) {
     
-    BL_PROFILE_VAR("MultiFABPotentialBC()",MultiFABPotentialBC);
+    BL_PROFILE_VAR("MultiFabPotentialBC()",MultiFabPotentialBC);
     
 #if (AMREX_SPACEDIM >= 2)
     
@@ -926,11 +926,11 @@ void MultiFABPotentialBC(MultiFab& phi, const Geometry& geom) {
 // This routine fills the ghost cell with the value on the boundary, whether it is Dirichlet or Neumann
 // It works for inhomogeneous Neumann and inhomogeneous Dirichlet
 // This is what the Poisson solver expects
-// This routine is not to be confused with MultiFABPotentialBC, which fill ghost
+// This routine is not to be confused with MultiFabPotentialBC, which fill ghost
 // values extrapolated TO the ghost cell-center
-void MultiFABPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
+void MultiFabPotentialBC_solver(MultiFab& phi, const Geometry& geom) {
 
-    BL_PROFILE_VAR("MultiFABPotentialBC_solver()",MultiFABPotentialBC_solver);
+    BL_PROFILE_VAR("MultiFabPotentialBC_solver()",MultiFabPotentialBC_solver);
 
 #if (AMREX_SPACEDIM >= 2)
     

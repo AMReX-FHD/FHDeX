@@ -59,7 +59,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
 
         // fill in ghost cells with Dirichlet/Neumann values
         // the ghost cells will hold the value ON the boundary
-        MultiFABPotentialBC_solver(potential,geom);
+        MultiFabPotentialBC_solver(potential,geom);
 
         // tell MLPoisson about these potentially inhomogeneous BC values
         linop.setLevelBC(0, &potential);
@@ -78,7 +78,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         potential.FillBoundary(geom.periodicity());
         // set ghost cell values so electric field is calculated properly
         // the ghost cells will hold the values extrapolated to the ghost CC
-        MultiFABPotentialBC(potential, geom); 
+        MultiFabPotentialBC(potential, geom); 
 
         //Find e field, gradient from cell centers to faces
         ComputeCentredGrad(potential, efieldCC, geom);
@@ -88,7 +88,7 @@ void esSolve(MultiFab& potential, MultiFab& charge,
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         MultiFab::Add(efieldCC[d], external[d], 0, 0, 1, efieldCC[d].nGrow());
         efieldCC[d].FillBoundary(geom.periodicity());
-        MultiFABElectricBC(efieldCC[d], geom);
+        MultiFabElectricBC(efieldCC[d], geom);
     }
 
 }

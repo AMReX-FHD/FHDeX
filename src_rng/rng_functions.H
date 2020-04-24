@@ -10,10 +10,10 @@
 using namespace amrex;
 
 ///////////////////////////
-// in MultiFABFillRandom.cpp
+// in MultiFabFillRandom.cpp
 
-void MultiFABFillRandom(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
+void MultiFabFillRandom(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
 
-void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
+void MultiFabFillRandomHack(MultiFab& mf, const int& comp, const Real& variance, const Geometry& geom);
 
 #endif

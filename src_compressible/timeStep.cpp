@@ -64,13 +64,13 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     // fill random numbers (can skip density component 0)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
     	for(int i=1;i<nvars;i++) {
-    	    MultiFABFillRandom(stochFlux_A[d], i, 1.0, geom);
-	    MultiFABFillRandom(stochFlux_B[d], i, 1.0, geom);
+    	    MultiFabFillRandom(stochFlux_A[d], i, 1.0, geom);
+	    MultiFabFillRandom(stochFlux_B[d], i, 1.0, geom);
         }
     }
 
-    MultiFABFillRandom(rancorn_A, 0, 1.0, geom);
-    MultiFABFillRandom(rancorn_B, 0, 1.0, geom);
+    MultiFabFillRandom(rancorn_A, 0, 1.0, geom);
+    MultiFabFillRandom(rancorn_B, 0, 1.0, geom);
 
     /////////////////////////////////////////////////////
 

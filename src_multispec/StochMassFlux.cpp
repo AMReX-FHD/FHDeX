@@ -56,7 +56,7 @@ void StochMassFlux::fillMassStochastic() {
     for (int i=0; i<n_rngs; ++i) {
         for (int n=0; n<AMREX_SPACEDIM; ++n) {
             for (int comp=0; comp<nspecies; comp++) {
-                MultiFABFillRandom(stoch_W_fc[i][n],comp,1.0,geom);
+                MultiFabFillRandom(stoch_W_fc[i][n],comp,1.0,geom);
             }
         }
     }

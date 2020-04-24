@@ -67,14 +67,14 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
         SqrtMF(variance_mfab[d]);
 
         // Fill momentum with random numbers, scaled by sqrt(var*k_B/dV)
-        MultiFABFillRandom(mac_temp[d],0,variance_mom,geom);
+        MultiFabFillRandom(mac_temp[d],0,variance_mom,geom);
 
         // Scale random momenta further by factor of sqrt(rho*temp)
         MultiFab::Multiply(mac_temp[d],variance_mfab[d],0,0,1,0);
 
         MultiFab::Saxpy(m_old[d], 1.0, mac_temp[d],0,0,1,0);
 
-        // For safety, although called by MultiFABFillRandom()
+        // For safety, although called by MultiFabFillRandom()
         m_old[d].OverrideSync(geom.periodicity());
         m_old[d].FillBoundary(geom.periodicity());
     }

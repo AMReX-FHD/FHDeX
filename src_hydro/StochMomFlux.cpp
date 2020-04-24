@@ -71,23 +71,23 @@ void StochMomFlux::fillMomStochastic() {
 
         case 0: // Non-symmetric
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                MultiFABFillRandom(mflux_cc[i],n,1.0,geom);
+                MultiFabFillRandom(mflux_cc[i],n,1.0,geom);
             }
 
             for (int d=0; d<NUM_EDGE; ++d) {
                 for (int n=0; n<ncomp_ed; ++n) {
-                    MultiFABFillRandom(mflux_ed[i][d],n,1.0,geom);
+                    MultiFabFillRandom(mflux_ed[i][d],n,1.0,geom);
                 }
             }
             break;
 
         default: // Symmetric
             for (int n=0; n<AMREX_SPACEDIM; ++n) {
-                MultiFABFillRandom(mflux_cc[i],n,2.0,geom);
+                MultiFabFillRandom(mflux_cc[i],n,2.0,geom);
             }
 
             for (int d=0; d<NUM_EDGE; ++d) {
-                MultiFABFillRandom(mflux_ed[i][d],0,1.0,geom);
+                MultiFabFillRandom(mflux_ed[i][d],0,1.0,geom);
                 MultiFab::Copy(mflux_ed[i][d], mflux_ed[i][d], 0, 1, ncomp_ed-1, 0);
             }
             break;

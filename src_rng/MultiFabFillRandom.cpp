@@ -2,10 +2,10 @@
 
 #include "rng_functions.H"
 
-void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance,
+void MultiFabFillRandom(MultiFab& mf, const int& comp, const amrex::Real& variance,
                         const Geometry& geom)
 {
-    BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
+    BL_PROFILE_VAR("MultiFabFillRandom()",MultiFabFillRandom);
 
 #ifdef AMREX_USE_CUDA
     // generate on GPU
@@ -40,10 +40,10 @@ void MultiFABFillRandom(MultiFab& mf, const int& comp, const amrex::Real& varian
 //----------------------------------------
 }
 
-void MultiFABFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance,
+void MultiFabFillRandomHack(MultiFab& mf, const int& comp, const amrex::Real& variance,
                             const Geometry& geom)
 {
-    BL_PROFILE_VAR("MultiFABFillRandom()",MultiFABFillRandom);
+    BL_PROFILE_VAR("MultiFabFillRandomHack()",MultiFabFillRandomHack);
 
     double myTopNumber, myBottomNumber;
 

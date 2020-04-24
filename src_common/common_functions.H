@@ -126,11 +126,11 @@ void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry
 void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom,
                          int scomp, int ncomp);
 
-void MultiFABElectricBC(MultiFab& efieldCC, const Geometry& geom);
+void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom);
 
-void MultiFABPotentialBC(MultiFab& potential, const Geometry& geom);
+void MultiFabPotentialBC(MultiFab& potential, const Geometry& geom);
 
-void MultiFABPotentialBC_solver(MultiFab& potential, const Geometry& geom);
+void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 
 void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom);
 
