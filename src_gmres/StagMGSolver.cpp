@@ -661,6 +661,8 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 // compute the number of multigrid levels assuming minwidth is the length of the
 // smallest dimension of the smallest grid at the coarsest multigrid level
 int ComputeNlevsMG(const BoxArray& ba) {
+    
+    BL_PROFILE_VAR("ComputeNlevsMG()",ComputeNlevsMG);
 
     int nlevs_mg = -1;
 
@@ -851,11 +853,11 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
                      const std::array< MultiFab, NUM_EDGE >& phi_f)
 {
+    BL_PROFILE_VAR("EdgeRestriction()",EdgeRestriction);
+
     if (AMREX_SPACEDIM != 3) {
         Abort("Edge restriction can only be called for 3D!");
     }
-
-    BL_PROFILE_VAR("EdgeRestriction()",EdgeRestriction);
 
     // loop over boxes (note we are not passing in a cell-centered MultiFab)
     for ( MFIter mfi(phi_c[0],TilingIfNotGPU()); mfi.isValid(); ++mfi ) {

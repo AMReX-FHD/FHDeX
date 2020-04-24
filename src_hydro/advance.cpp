@@ -216,14 +216,14 @@ void advanceLowMach(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,geom,0,1,0);
+  MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
   MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,geom,0,1,0);
+  MkAdvSFluxdiv_cc(umac,tracerPred,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // advance in time

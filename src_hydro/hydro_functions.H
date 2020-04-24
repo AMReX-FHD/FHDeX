@@ -47,21 +47,21 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac,
 		   const Real * dx,
 		   const int & increment=0);
 
-void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
-		   const MultiFab & s_in,
-		   MultiFab & s_update_in,
-		   const Geometry & geom,
-		   const int & scomp,
-		   const int & ncomp,
-		   const int & increment);
+void MkAdvSFluxdiv_cc(const std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
+                      const MultiFab & s_in,
+                      MultiFab & s_update_in,
+                      const Geometry & geom,
+                      const int & scomp,
+                      const int & ncomp,
+                      const int & increment);
 
 void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM> & umac_in,
-		   const std::array<MultiFab, AMREX_SPACEDIM> & s_fc_in,
-		   MultiFab & s_update_in,
-		   const Geometry & geom,
-		   const int & scomp,
-		   const int & ncomp,
-		   const int & increment);
+                   const std::array<MultiFab, AMREX_SPACEDIM> & s_fc_in,
+                   MultiFab & s_update_in,
+                   const Geometry & geom,
+                   const int & scomp,
+                   const int & ncomp,
+                   const int & increment);
 
 /////////////////////////////////////////////////////////////////////////////////
 

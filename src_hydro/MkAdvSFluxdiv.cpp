@@ -4,7 +4,9 @@
 
 using namespace amrex;
 
-void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
+// takes cell-centered s_in
+// fixme: not boundary-condition aware
+void MkAdvSFluxdiv_cc(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
 		   const MultiFab& s_in,
 		   MultiFab& s_update_in,
 		   const Geometry& geom,
@@ -13,7 +15,7 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
 		   const int& increment)
 {
 
-     BL_PROFILE_VAR("MkAdvSFluxdiv()",MkAdvSFluxdiv);
+     BL_PROFILE_VAR("MkAdvSFluxdiv_cc()",MkAdvSFluxdiv_cc);
 
      Real dx = geom.CellSize(0);
      Real dxinv = 1./dx;
@@ -60,7 +62,7 @@ void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
      }
 }
 
-
+// takes face-centered s_fc_in
 void MkAdvSFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
 		   const std::array<MultiFab, AMREX_SPACEDIM>& s_fc_in,
 		   MultiFab& s_update_in,

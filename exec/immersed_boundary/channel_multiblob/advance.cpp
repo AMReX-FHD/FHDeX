@@ -197,7 +197,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     tracer.FillBoundary(geom.periodicity());
     MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracer, advFluxdivS, geom, 0, 1, 0);
+    MkAdvSFluxdiv_cc(umac, tracer, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // compute predictor
@@ -207,7 +207,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     tracerPred.FillBoundary(geom.periodicity());
     MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
+    MkAdvSFluxdiv_cc(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // advance in time

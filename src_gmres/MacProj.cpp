@@ -13,7 +13,6 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
              const Geometry& geom,
              bool full_solve)
 {
-
     BL_PROFILE_VAR("MacProj()",MacProj);
 
     int lev=0;
@@ -69,6 +68,8 @@ void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
                            MultiFab& phi,
                            const Geometry& geom)
 {
+    BL_PROFILE_VAR("SubtractWeightedGradP()",SubtractWeightedGradP);
+    
     BoxArray ba = phi.boxArray();
     DistributionMapping dmap = phi.DistributionMap();
 
@@ -91,6 +92,8 @@ void CCApplyOp(MultiFab& phi,
                const std::array<MultiFab, AMREX_SPACEDIM>& beta_fc,
                const Geometry& geom)
 {
+    BL_PROFILE_VAR("CCApplyOp()",CCApplyOp);
+    
     int lev=0;
 
     BoxArray ba = phi.boxArray();

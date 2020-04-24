@@ -152,7 +152,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,geom,0,1,0);
+  MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
@@ -160,7 +160,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
   // FIXME need to fill physical boundary condition ghost cells for tracer
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,geom,0,1,0);
+  MkAdvSFluxdiv_cc(umac,tracerPred,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // advance in time

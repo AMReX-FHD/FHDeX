@@ -12,7 +12,7 @@
 StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
                            int n_rngs_in) {
 
-    BL_PROFILE_VAR("StochMomFlux::StochMomFlux()",StochMomFlux);
+    BL_PROFILE_VAR("StochMomFlux()",StochMomFlux);
 
     if (filtering_width != 0) {
         Abort("StochMomFlux: filtering_width != 0 not fully implemented yet");
@@ -63,7 +63,7 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 // fill mflux_cc and mflux_ed with random numbers
 void StochMomFlux::fillMomStochastic() {
     
-    BL_PROFILE_VAR("StochMomFlux::fillMomStochastic()",StochMomFlux);
+    BL_PROFILE_VAR("fillMomStochastic()",StochMomFlux);
 
     for (int i=0; i<n_rngs; ++i) {
 
@@ -98,6 +98,8 @@ void StochMomFlux::fillMomStochastic() {
 
 // create weighted sum of stage RNGs and store in mflux_cc_weighted and mflux_ed_weighted
 void StochMomFlux::weightMomflux(Vector< amrex::Real > weights) {
+    
+    BL_PROFILE_VAR("weightMomFlux()",weightMomFlux);
 
     mflux_cc_weighted.setVal(0.0);
     for (int d=0; d<NUM_EDGE; ++d) {
@@ -114,6 +116,8 @@ void StochMomFlux::weightMomflux(Vector< amrex::Real > weights) {
 
 // scale random numbers that lie on physical boundaries appropriately
 void StochMomFlux::MomFluxBC() {
+    
+    BL_PROFILE_VAR("MomFluxBC()",MomFluxBC);
     
 #if (AMREX_SPACEDIM == 2)
 
@@ -586,6 +590,8 @@ void StochMomFlux::multbyVarSqrtEtaTemp(const MultiFab& eta_cc,
                                         const std::array< MultiFab, NUM_EDGE >& temp_ed,
                                         const amrex::Real& dt) {
 
+    BL_PROFILE_VAR("multbyVarSqrtEtaTemp()",multbyVarSqrtEtaTemp);
+    
     const Real* dx = geom.CellSize();
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
 
@@ -663,7 +669,7 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
                                    const Vector< amrex::Real >& weights,
                                    const amrex::Real& dt) {
 
-    BL_PROFILE_VAR("StochMomFlux::StochMomFluxDiv()",StochMomFluxDiv);
+    BL_PROFILE_VAR("StochMomFluxDiv()",StochMomFluxDiv);
 
     // Take linear combination of mflux multifabs at each stage
     StochMomFlux::weightMomflux(weights);
@@ -800,6 +806,8 @@ void StochMomFlux::StochMomFluxDiv(std::array< MultiFab, AMREX_SPACEDIM >& m_for
 
 // utility to write out random number MultiFabs to plotfiles
 void StochMomFlux::writeMFs(std::array< MultiFab, AMREX_SPACEDIM >& mfluxdiv) {
+    
+    BL_PROFILE_VAR("writeMFs()",writeMFs);
     
     std::string plotfilename;
     std::string dimStr = "xyz";

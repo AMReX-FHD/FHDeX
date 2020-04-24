@@ -180,14 +180,14 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,geom,0,1,0);
+  MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
   MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,geom,0,1,0);
+  MkAdvSFluxdiv_cc(umac,tracerPred,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // advance in time
@@ -213,7 +213,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // 		     stoch_mass_fluxdiv,diff_mass_flux,
   // 		     stoch_mass_flux,dt,0.0,geom);
   
-  MkAdvSFluxdiv(umac,rho,adv_mass_fluxdiv,geom,0,nspecies,0);
+  MkAdvSFluxdiv_cc(umac,rho,adv_mass_fluxdiv,geom,0,nspecies,0);
 
   MultiFab::Copy(rhoPred, rho, 0, 0, nspecies, 1);
 
@@ -282,7 +282,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // 		     stoch_mass_fluxdiv,diff_mass_flux,
   // 		     stoch_mass_flux,dt,0.0,geom);
 
-  MkAdvSFluxdiv(umacNew,rhoPred,adv_mass_fluxdiv,geom,0,nspecies,0);
+  MkAdvSFluxdiv_cc(umacNew,rhoPred,adv_mass_fluxdiv,geom,0,nspecies,0);
 
   diff_mass_fluxdiv.mult(-dt);
   MultiFab::Add(rho,diff_mass_fluxdiv,0,0,nspecies,0);
