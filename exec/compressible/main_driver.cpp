@@ -6,7 +6,9 @@
 
 #include "rng_functions.H"
 
-//#include "StructFact.H"
+#ifndef AMREX_USE_CUDA
+#include "StructFact.H"
+#endif
 
 using namespace amrex;
 
@@ -252,11 +254,6 @@ void main_driver(const char* argv)
     Real time = 0;
 
     int step, statsCount;
-
-    ///////////////////////////////////////////
-    // Structure factor:
-    ///////////////////////////////////////////
-/*
     
     ////////////////////////////////
     // create equilibrium covariance matrix
@@ -379,6 +376,12 @@ void main_driver(const char* argv)
 
     ////////////////////////////////
 
+
+#ifndef AMREX_USE_CUDA
+    ///////////////////////////////////////////
+    // Structure factor:
+    ///////////////////////////////////////////
+    
     // set variable names
     cnt = 0;
     Vector< std::string > var_names;
@@ -445,7 +448,7 @@ void main_driver(const char* argv)
       new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
     
     }
-*/
+#endif
 
     ///////////////////////////////////////////
 
@@ -514,7 +517,10 @@ void main_driver(const char* argv)
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
 
-        if (restart > 0 && step==1) ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
+        if (restart > 0 && step==1) {
+            ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                           primMeans, primVars, spatialCross, eta, kappa);
+        }
 
         // timer
         Real ts1 = ParallelDescriptor::second();
@@ -532,7 +538,8 @@ void main_driver(const char* argv)
         
         // compute mean and variances
 	if (step > n_steps_skip) {
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross,
+                          delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
             statsCount++;
 	}
 
@@ -549,9 +556,10 @@ void main_driver(const char* argv)
         {
            WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
         }
- 
+
+#ifndef AMREX_USE_CUDA
 	// collect a snapshot for structure factor
-	/*if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
             structFact.FortStructure(struct_in_cc,geom);
             if(project_dir >= 0) {
@@ -566,7 +574,8 @@ void main_driver(const char* argv)
             if(project_dir >= 0) {
                 structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
             }
-        }*/
+        }
+#endif
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
