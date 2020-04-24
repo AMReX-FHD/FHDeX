@@ -905,8 +905,6 @@ void main_driver(const char* argv)
             particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
                                paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-            Print() << "HERE MOVE 1" << std::endl;
-            
             // reset statistics after step n_steps_skip
             // if n_steps_skip is negative, we use it as an interval
             if ((n_steps_skip > 0 && istep == n_steps_skip) ||
@@ -918,15 +916,8 @@ void main_driver(const char* argv)
                 particles.MeanSqrCalc(0, 0);
             }
 
-            Print() << "HERE MOVE 2" << std::endl;
-
             particles.Redistribute();
-
-            Print() << "HERE MOVE 2a" << std::endl;
             particles.ReBin();
-            Print() << "Finish move.\n";
-
-            Print() << "HERE MOVE 3" << std::endl;
         }
 
         /*
