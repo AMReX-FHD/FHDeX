@@ -11,7 +11,7 @@
 StochMassFlux::StochMassFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry geom_in,
                              int n_rngs_in) {
 
-    BL_PROFILE_VAR("StochMassFlux::StochMassFlux()",StochMassFlux);
+    BL_PROFILE_VAR("StochMassFlux()",StochMassFlux);
 
     n_rngs = n_rngs_in;
     geom = geom_in;
@@ -36,6 +36,8 @@ StochMassFlux::StochMassFlux(BoxArray ba_in, DistributionMapping dmap_in, Geomet
 // create weighted sum of stage RNGs and store in stoch_W_fc_weighted
 void StochMassFlux::weightMassFlux(Vector< amrex::Real > weights) {
 
+    BL_PROFILE_VAR("weightMassFlux()",weightMassFlux);
+    
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         stoch_W_fc_weighted[d].setVal(0.);
     }
@@ -51,7 +53,7 @@ void StochMassFlux::weightMassFlux(Vector< amrex::Real > weights) {
 // fill stoch_W_fc with random numbers
 void StochMassFlux::fillMassStochastic() {
 
-    BL_PROFILE_VAR("StochMassFlux::fillMassStochastic()",StochMassFlux);
+    BL_PROFILE_VAR("fillMassStochastic()",fillMassStochastic);
 
     for (int i=0; i<n_rngs; ++i) {
         for (int n=0; n<AMREX_SPACEDIM; ++n) {
@@ -65,6 +67,8 @@ void StochMassFlux::fillMassStochastic() {
 // scale random numbers that lie on physical boundaries appropriately
 void StochMassFlux::StochMassFluxBC() {
 
+    BL_PROFILE_VAR("StochMassFluxBC()",StochMassFluxBC);
+    
     // lo-x domain boundary
     if (bc_mass_lo[0] == 1 || bc_mass_lo[0] == 2) {
 
@@ -260,7 +264,7 @@ void StochMassFlux::StochMassFluxDiv(const MultiFab& rho,
                                      const Vector< amrex::Real >& weights,
                                      int increment) {
 
-    BL_PROFILE_VAR("StochMassFlux::StochMassFluxDiv()",StochMassFluxDiv);
+    BL_PROFILE_VAR("StochMassFluxDiv()",StochMassFluxDiv);
 
     // take linear combination of mflux multifabs at each stage
     // store result in stoch_W_fc_weighted

@@ -30,6 +30,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
                        const std::array< MultiFab, NUM_EDGE >& eta_ed,
                        const Real& dt, const Real& time, const Geometry& geom)
 {
+    BL_PROFILE_VAR("InitialProjection()",InitialProjection);
 
     if (algorithm_type == 2) {
         Abort("InitialProjection.cpp: should not call initial_projection for overdamped scheme");

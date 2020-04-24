@@ -10,6 +10,7 @@ void MkDiffusiveMFluxdiv(std::array<MultiFab, AMREX_SPACEDIM> & m_update,
                          const Real* dx,
                          const int& increment)
 {
+    BL_PROFILE_VAR("MkDiffusiveMFluxdiv()",MkDiffusiveMFluxdiv);
 
     BoxArray ba = eta.boxArray();
     DistributionMapping dmap = eta.DistributionMap();

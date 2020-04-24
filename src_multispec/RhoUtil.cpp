@@ -26,6 +26,8 @@ void ComputeRhotot(const MultiFab& rho,
 
 void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int rho_to_c)
 {
+    BL_PROFILE_VAR("ConvertRhoCToC()",ConvertRhoCToC);
+    
     if (rho_to_c == 1) {
         // rho to conc - NO GHOST CELLS
         MultiFab::Copy(conc,rho,0,0,nspecies,0);
@@ -58,6 +60,8 @@ void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int r
 
 void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
 
+    BL_PROFILE_VAR("FillRhoRhototGhost()",FillRhoRhototGhost);
+    
     BoxArray ba = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
     int ng = rho.nGrow();
@@ -81,6 +85,8 @@ void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom) {
 
 void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom) {
 
+    BL_PROFILE_VAR("FillRhototGhost()",FillRhototGhost);
+    
     rhotot_in.FillBoundary(geom.periodicity());
                             
     if (geom.isAllPeriodic()) {

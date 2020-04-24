@@ -31,14 +31,13 @@ bool FhdParticleContainer::sort_neighbor_list {false};
 
 
 FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
-                                         const DistributionMapping & dmap,
-                                         const BoxArray & ba,
-                                         int n_nbhd)
-    : IBMarkerContainerBase<FHD_realData, FHD_intData>(
-            geom, dmap, ba, n_nbhd
-        )
-      , n_list(0)
+                                           const DistributionMapping & dmap,
+                                           const BoxArray & ba,
+                                           int n_nbhd)
+    : IBMarkerContainerBase<FHD_realData, FHD_intData>(geom, dmap, ba, n_nbhd), n_list(0)
 {
+    BL_PROFILE_VAR("FhdParticleContainer()",FhdParticleContainer);
+    
     InitInternals(n_nbhd);
     nghost = n_nbhd;
  
@@ -131,13 +130,16 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
 
 
 
-void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                           const MultiFab& cellCenters,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                 const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                 const MultiFab& cellCenters,
+                                 std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                 std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                 const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
+    BL_PROFILE_VAR("DoRFD()",DoRFD);
+    
     UpdateCellVectors();
 
     const int lev = 0;
@@ -218,7 +220,7 @@ void FhdParticleContainer::DoRFD(const Real dt, const Real* dxFluid, const Real*
 
 void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
 
-    BL_PROFILE("FhdParticleContainer::computeForcesNL");
+    BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
 
     double rcount = 0;
     const int lev = 0;
@@ -263,13 +265,15 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
     }
 }
 
-void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF, const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
-                                           const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& source,
-                                           std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                                           const MultiFab& mobility,
-                                           const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                    const MultiFab& mobility,
+                                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
+    BL_PROFILE_VAR("MoveIons()",MoveIons);
     
     UpdateCellVectors();
 
@@ -385,8 +389,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
                                       std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                                       const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
-    
-
+    BL_PROFILE_VAR("SpreadIons()",SpreadIons);
 
     const int lev = 0;
     const Real* dx = Geom(lev).CellSize();
@@ -734,6 +737,8 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
 void FhdParticleContainer::CartesianDistribution(long totalParticles, const int step, const species* particleInfo)
 {        
+    BL_PROFILE_VAR("CartesianDistribution()",CartesianDistribution);
+    
     const int lev = 0;
     int bin;
     double domx, domy, domz, totalDist, temp;
@@ -1063,10 +1068,9 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
 
 
 
-void FhdParticleContainer::InitCollisionCells(
-                              MultiFab& collisionPairs,
-                              MultiFab& collisionFactor, 
-                              MultiFab& cellVols, const species particleInfo, const Real delt)
+void FhdParticleContainer::InitCollisionCells(MultiFab& collisionPairs,
+                                              MultiFab& collisionFactor, 
+                                              MultiFab& cellVols, const species particleInfo, const Real delt)
 {
     BL_PROFILE_VAR("InitCollisionCells()",InitCollisionCells);
 
@@ -1161,12 +1165,13 @@ void FhdParticleContainer::InitializeFields(MultiFab& particleInstant,
     }
 }
 
-void FhdParticleContainer::EvaluateStats(
-                              MultiFab& particleInstant,
-                              MultiFab& particleMeans,
-                              MultiFab& particleVars,
-                              MultiFab& cellVols, species particleInfo, const Real delt, int steps)
+void FhdParticleContainer::EvaluateStats(MultiFab& particleInstant,
+                                         MultiFab& particleMeans,
+                                         MultiFab& particleVars,
+                                         MultiFab& cellVols, species particleInfo, const Real delt, int steps)
 {
+    BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
+    
     const int lev = 0;
     const double Neff = particleInfo.Neff;
     const double n0 = particleInfo.n0;
@@ -1290,13 +1295,15 @@ void FhdParticleContainer::EvaluateStats(
 
 void FhdParticleContainer::WriteParticlesAscii(std::string asciiName)
 {
+    BL_PROFILE_VAR("WriteParticlesAscii()",WriteParticlesAscii);
+    
     WriteAsciiFile(asciiName);
 }
 
 void
 FhdParticleContainer::UpdateCellVectors()
 {
-    BL_PROFILE("CellSortedParticleContainer::UpdateCellVectors");
+    BL_PROFILE_VAR("UpdateCellVectors()",UpdateCellVectors);
     
     const int lev = 0;
 
@@ -1365,7 +1372,7 @@ FhdParticleContainer::UpdateCellVectors()
 void
 FhdParticleContainer::UpdateFortranStructures()
 {
-    BL_PROFILE("CellSortedParticleContainer::UpdateFortranStructures");
+    BL_PROFILE_VAR("UpdateFortranStructures()",UpdateFortranStructures);
     
     const int lev = 0;
 
@@ -1388,7 +1395,7 @@ FhdParticleContainer::UpdateFortranStructures()
 void
 FhdParticleContainer::ReBin()
 {
-    BL_PROFILE("CellSortedParticleContainer::ReBin()");
+    BL_PROFILE_VAR("ReBin()",ReBin);
     
     const int lev = 0;
 
@@ -1426,6 +1433,8 @@ FhdParticleContainer::ReBin()
 void
 FhdParticleContainer::PrintParticles()
 {
+    BL_PROFILE_VAR("PrintParticles()",PrintParticles);
+    
     int lev =0;
 
     for(FhdParIter pti(* this, lev); pti.isValid(); ++pti)
@@ -1454,6 +1463,8 @@ FhdParticleContainer::PrintParticles()
 void
 FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
 {
+    BL_PROFILE_VAR("SetPosition()",SetPosition);
+    
     int lev =0;
 
     if(ParallelDescriptor::MyProc() == rank)
@@ -1492,6 +1503,8 @@ FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
 void
 FhdParticleContainer::SetVel(int rank, int id, Real x, Real y, Real z)
 {
+    BL_PROFILE_VAR("SetVel()",SetVel);
+    
     int lev =0;
 
     if(ParallelDescriptor::MyProc() == rank)
@@ -1516,6 +1529,7 @@ FhdParticleContainer::SetVel(int rank, int id, Real x, Real y, Real z)
 void
 FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 
+    BL_PROFILE_VAR("MeanSqrCalc()",MeanSqrCalc);
 
     Real diffTotal = 0;
     Real tt = 0.; // set to zero to protect against grids with no particles
@@ -1593,6 +1607,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
 void
 FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) {
 
+    BL_PROFILE_VAR("BuildCorrectionTable()",BuildCorrectionTable);
 
     int lev = 0;
 
@@ -1750,6 +1765,8 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
 int
 FhdParticleContainer::numWrongCell()
 {
+    BL_PROFILE_VAR("numWrongCell()",numWrongCell);
+    
     const int lev = 0;
     int num_wrong = 0;
     
@@ -1775,5 +1792,7 @@ FhdParticleContainer::numWrongCell()
 
 void FhdParticleContainer::PostRestart()
 {
+    BL_PROFILE_VAR("PostRestart()",PostRestart);
+    
     UpdateCellVectors();
 }

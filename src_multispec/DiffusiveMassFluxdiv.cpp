@@ -33,7 +33,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
 		       const Geometry& geom)
 {
 
-    BL_PROFILE_VAR("DiffusiveMassFlux()",DiffusiveMassFluxdiv);
+    BL_PROFILE_VAR("DiffusiveMassFlux()",DiffusiveMassFlux);
 
     int i;
     BoxArray ba = rho.boxArray();

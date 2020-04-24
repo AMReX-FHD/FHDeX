@@ -31,10 +31,14 @@ DsmcParticleContainer::DsmcParticleContainer(const Geometry & geom,
                               const BoxArray            & ba,
                               int ncells)
     : NeighborParticleContainer<DSMC_realData::count, DSMC_intData::count> (geom, dmap, ba, ncells)
-{}
-
-void DsmcParticleContainer::MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount, Real time, int* flux)
 {
+    BL_PROFILE_VAR("DsmcParticleContainer()",DsmcParticleContainer);
+}
+
+void DsmcParticleContainer::MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList,
+                                              const int paramPlaneCount, Real time, int* flux)
+{
+    BL_PROFILE_VAR("MoveParticlesDSMC()",MoveParticlesDSMC);
 
   // Print() << "HERE MoveParticlesDSMC" << std::endline
   
@@ -44,10 +48,6 @@ void DsmcParticleContainer::MoveParticlesDSMC(const Real dt, const paramPlane* p
     const Real* dx = Geom(lev).CellSize();
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
-
-BL_PROFILE_VAR_NS("particle_move", particle_move);
-
-BL_PROFILE_VAR_START(particle_move);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -112,16 +112,12 @@ BL_PROFILE_VAR_START(particle_move);
 	  outfile.close();
       }
 	    
-
-BL_PROFILE_VAR_STOP(particle_move);
-
 }
 
 
-void DsmcParticleContainer::InitCollisionCells(
-                              MultiFab& collisionPairs,
-                              MultiFab& collisionFactor, 
-                              MultiFab& cellVols, const species particleInfo, const Real delt)
+void DsmcParticleContainer::InitCollisionCells(MultiFab& collisionPairs,
+                                               MultiFab& collisionFactor, 
+                                               MultiFab& cellVols, const species particleInfo, const Real delt)
 {
     BL_PROFILE_VAR("InitCollisionCells()",InitCollisionCells);
 
@@ -153,8 +149,8 @@ void DsmcParticleContainer::InitCollisionCells(
 }
 
 void DsmcParticleContainer::CollideParticles(MultiFab& collisionPairs,
-                                            MultiFab& collisionFactor, 
-                                            MultiFab& cellVols, const species particleInfo, const Real delt)
+                                             MultiFab& collisionFactor, 
+                                             MultiFab& cellVols, const species particleInfo, const Real delt)
 {
     BL_PROFILE_VAR("CollideParticles()",CollideParticles);
     
@@ -185,7 +181,7 @@ void DsmcParticleContainer::CollideParticles(MultiFab& collisionPairs,
 }
 
 void DsmcParticleContainer::InitializeFields(MultiFab& particleInstant,
-                                            MultiFab& cellVols, const species particleInfo)
+                                             MultiFab& cellVols, const species particleInfo)
 {
     BL_PROFILE_VAR("InitializeFields()",InitializeFields);  
 
@@ -222,6 +218,8 @@ void DsmcParticleContainer::EvaluateStats(MultiFab& particleInstant,
                                           MultiFab& cellVols, species particleInfo,
                                           const Real delt, int steps)
 {
+    BL_PROFILE_VAR("EvaluateStats()",EvaluateStats);
+    
     const int lev = 0;
     const double Neff = particleInfo.Neff;
     const double n0 = particleInfo.n0;
@@ -337,13 +335,15 @@ void DsmcParticleContainer::EvaluateStats(MultiFab& particleInstant,
 
 void DsmcParticleContainer::WriteParticlesAscii(std::string asciiName)
 {
+    BL_PROFILE_VAR("WriteParticlesAscii()",WriteParticlesAscii);
+    
     WriteAsciiFile(asciiName);
 }
 
 void
 DsmcParticleContainer::UpdateCellVectors()
 {
-    BL_PROFILE("CellSortedParticleContainer::UpdateCellVectors");
+    BL_PROFILE_VAR("UpdateCellVectors()",UpdateCellVectors);
     
     const int lev = 0;
 
@@ -412,7 +412,7 @@ DsmcParticleContainer::UpdateCellVectors()
 void
 DsmcParticleContainer::UpdateFortranStructures()
 {
-    BL_PROFILE("CellSortedParticleContainer::UpdateFortranStructures");
+    BL_PROFILE_VAR("UpdateFortranStructures()",UpdateFortranStructures);
     
     const int lev = 0;
 
@@ -435,7 +435,7 @@ DsmcParticleContainer::UpdateFortranStructures()
 void
 DsmcParticleContainer::ReBin()
 {
-    BL_PROFILE("CellSortedParticleContainer::ReBin()");
+    BL_PROFILE_VAR("ReBin()",ReBin);
     
     const int lev = 0;
 
@@ -489,6 +489,8 @@ DsmcParticleContainer::ReBin()
 int
 DsmcParticleContainer::numWrongCell()
 {
+    BL_PROFILE_VAR("numWrongCell()",numWrongCell);
+    
     const int lev = 0;
     int num_wrong = 0;
     
