@@ -262,7 +262,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         // Iterate over local particle data
         AoS & particles = particle_data.GetArrayOfStructs();
@@ -1028,7 +1028,7 @@ void IBParticleContainer::InterpolateParticleForces(int lev,
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         // Iterate over local particle data
         AoS & particles = particle_data.GetArrayOfStructs();
@@ -1181,7 +1181,7 @@ void IBParticleContainer::MoveIBParticles(int lev, Real dt,
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
@@ -1236,9 +1236,8 @@ void IBParticleContainer::PrintParticleData(int lev) {
         // Neighbours are stored as raw data (see below)
         int ng = neighbors[lev][index].size();
 
-        //long np = NumberOfParticles(pti);
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         local_count += np;
 
@@ -1308,7 +1307,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
 
 
     auto & particle_data = GetParticles(lev).at(index);
-    long np = particle_data.size();
+    long np = GetParticles(lev).at(index).numParticles();
 
     // Iterate over local particle data
     const AoS & particles = particle_data.GetArrayOfStructs();

@@ -114,7 +114,7 @@ public:
         ::NeighborParticleContainer;
 
     // Get number of particles
-    int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size();};
+    int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().numParticles();};
 
     IBParticleContainer(AmrCore * amr_core, int n_nbhd);
     IBParticleContainer(const Geometry & geom, const DistributionMapping & dmap,

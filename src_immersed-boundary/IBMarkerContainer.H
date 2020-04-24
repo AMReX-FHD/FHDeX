@@ -126,7 +126,7 @@ public:
 
 
     // Get number of particles
-    int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().size();};
+    int NumberOfMarkers(IBMarIter & pti){ return pti.GetArrayOfStructs().numParticles();};
 
 
 
