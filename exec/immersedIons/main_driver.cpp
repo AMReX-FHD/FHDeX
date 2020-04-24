@@ -918,6 +918,7 @@ void main_driver(const char* argv)
 
             particles.Redistribute();
             particles.ReBin();
+            Print() << "Finish move.\n";
         }
 
         /*
