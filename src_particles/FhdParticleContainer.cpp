@@ -7,7 +7,7 @@
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
 #include <common_functions.H>
-
+#include <particle_functions_K.H>
 #include <FhdParticleContainer.H>
 #include <ib_functions_F.H>
 
@@ -244,9 +244,8 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
         if(sr_tog==1) 
         {
-                amrex_compute_forces_nl(particles.data(), &Np, 
-                                        neighbors[lev][index].dataPtr(), &Nn,
-                                        neighbor_list[lev][index].dataPtr(), &size, &rcount);
+            compute_forces_nl(particles, Np, Nn, 
+                              m_neighbor_list[lev][index], rcount);
         }
         if(es_tog==3)
         {
