@@ -89,6 +89,7 @@ void main_driver(const char* argv)
     else if (pkernel_es == 6) {
         ngp = 4;
     }
+
         
     // staggered velocities
     // umac needs extra ghost cells for Peskin kernels
