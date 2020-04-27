@@ -5,6 +5,7 @@
 #include <FhdParticleContainer.H>
 #include <common_namespace.H>
 
+AMREX_GPU_HOST_DEVICE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
                       amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
@@ -32,29 +33,35 @@ void compute_forces_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
     auto nbor_data = neighbor_list.data();
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
     
-    // need to access rmin, p_int_tog,
-    auto int_tog = common::p_int_tog.data();
-        
+    // clearly we don't want to do this every time...
+    Gpu::DeviceVector<int> int_tog(common::p_int_tog.size());
+    for (std::size_t i = 0; i < common::p_int_tog.size(); ++i)
+    {
+        int_tog[i] = common::p_int_tog[i];
+    }
+    auto p_tog = int_tog.data();
+    auto rmin = common::rmin;
+    
     AMREX_FOR_1D( Np, i, 
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
         for (const auto& p2 : nbor_data.getNeighbors(i))
         {       
-            if ( (int_tog[p1.idata(FHD_intData::species)] != 0) and 
-                 (int_tog[p2.idata(FHD_intData::species)] != 0) )
+            if ( (p_tog[p1.idata(FHD_intData::species)] != 0) and 
+                 (p_tog[p2.idata(FHD_intData::species)] != 0) )
             {
                 const Real dx = p1.pos(0) - p2.pos(0);
                 const Real dy = p1.pos(1) - p2.pos(1);
                 const Real dz = p1.pos(2) - p2.pos(2);
 
                 Real r2 = dx*dx + dy*dy + dz*dz;
-                r2 = amrex::max(r2, common::rmin*common::rmin);
+                r2 = amrex::max(r2, rmin*rmin);
                 const Real r = sqrt(r2);
                 
                 if (r < (1.122*p1.rdata(FHD_realData::sigma)/2.0))
                 {
-                    rcount += 1;  // needs porting...
+                    //                    rcount += 1;  // needs porting...
                     repulsive_force(p1, p2, dx, dy, dz, r2);
                 }
             }
