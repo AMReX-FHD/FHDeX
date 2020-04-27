@@ -5,6 +5,20 @@
 #include <FhdParticleContainer.H>
 #include <common_namespace.H>
 
+/**
+   Check if particle is near a boundary. Assumes boundary is parallel to either xy, zx, yz, plane
+   
+   Inputs : Particle part
+            int dir: either +-1,+-2,+-3
+
+   Returns: 
+            int near_wall: 0=part's p3m_radius/2 does not overlap with wall, 1=yes  
+ */
+int near_wall_check (FhdParticleContainer::ParticleType& part, int dir)
+{
+    return 0;
+}
+
 AMREX_GPU_HOST_DEVICE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
@@ -23,6 +37,8 @@ void repulsive_force (      FhdParticleContainer::ParticleType& part1,
     part1.rdata(FHD_realData::forcey) -= dy*ff;
     part1.rdata(FHD_realData::forcez) -= dz*ff;
 }
+
+
 
 void compute_forces_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         amrex::NeighborList<FhdParticleContainer::ParticleType>& neighbor_list,
@@ -61,7 +77,7 @@ void compute_forces_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 
                 if (r < (1.122*p1.rdata(FHD_realData::sigma)/2.0))
                 {
-                    //                    rcount += 1;  // needs porting...
+                    rcount += 1;  // needs porting...
                     repulsive_force(p1, p2, dx, dy, dz, r2);
                 }
             }
