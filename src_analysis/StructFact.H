@@ -1,4 +1,4 @@
-#ifndef _StructFact_H
+#ifndef _StructFact_H_
 #define _StructFact_H_
 
 #include <AMReX.H>
