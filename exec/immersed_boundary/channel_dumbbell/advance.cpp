@@ -282,8 +282,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
             // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
+            const ParticleType * next_marker = NULL;
+            const ParticleType * prev_marker = NULL;
 
             int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
                                                 prev_marker, next_marker);
@@ -301,7 +301,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::pred_forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBMReal::pred_forcex + d) = - f_0 * r[d];
+                    // next_marker->rdata(IBMReal::pred_forcex + d) = - f_0 * r[d];
                 }
 
             } else if (status == 2) { // has prev, has no next
@@ -317,7 +317,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::pred_forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBMReal::pred_forcex + d) =   f_0 * r[d];
+                    // prev_marker->rdata(IBMReal::pred_forcex + d) =   f_0 * r[d];
                 }
             }
         }
@@ -447,8 +447,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
             // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
+            const ParticleType * next_marker = NULL;
+            const ParticleType * prev_marker = NULL;
 
             int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
                                                 prev_marker, next_marker);
@@ -464,7 +464,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBMReal::forcex + d) = - f_0 * r[d];
+                    // next_marker->rdata(IBMReal::forcex + d) = - f_0 * r[d];
                 }
 
             } else if (status == 2) { // has prev, has no next
@@ -478,7 +478,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBMReal::forcex + d) =   f_0 * r[d];
+                    // prev_marker->rdata(IBMReal::forcex + d) =   f_0 * r[d];
                 }
             }
         }

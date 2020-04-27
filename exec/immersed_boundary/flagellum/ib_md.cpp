@@ -135,8 +135,8 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
 
 
             // Get previous and next markers connected to current marker (if they exist)
-            ParticleType * next_marker = NULL;
-            ParticleType * prev_marker = NULL;
+            const ParticleType * next_marker = NULL;
+            const ParticleType * prev_marker = NULL;
 
             int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
                                                 prev_marker, next_marker);

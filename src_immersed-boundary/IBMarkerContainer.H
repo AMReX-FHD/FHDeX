@@ -199,7 +199,7 @@ public:
     };
 
     int ConnectedMarkers(int lev, const TileIndex & tile, MarkerListIndex & part,
-                         ParticleType *& prev_marker, ParticleType *& next_marker);
+                         const ParticleType *& prev_marker, const ParticleType *& next_marker);
 
     void LocalIBMarkerInfo(Vector<IBM_info> & marker_info, int lev, PairIndex index,
                            bool unique = false) const;
