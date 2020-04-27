@@ -20,7 +20,7 @@ int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir)
     using namespace amrex;
     using common::prob_hi;
 
-    const Real abs_dir = std::abs(dir);
+    const int abs_dir = std::abs(dir);
     const Real p3m_rad = part.rdata(FHD_realData::p3m_radius);
     const int index = abs_dir - 1;
 
@@ -49,6 +49,85 @@ int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir)
     }
     
     return near_wall;
+}
+
+/*
+  calculate location of an image charge reflected across some plane--assumes boundary
+  is parallel to either xy,xz,yz plane
+  inputs: particle p             : just need the particles position 
+          int dir                : either +-1,+-2,+-3
+          real(3) im_charge_pos  : output, 0=part's p3m_radius does not overlap with wall, 1=yes   
+
+          abs(dir) > 0 means reflect part pos across plane of x(dir) = prob_hi(dir)
+                   < 0 means reflect part pos across plane of x(dir) = prob_lo(dir)
+*/
+amrex::RealVect calc_im_charge_loc (const FhdParticleContainer::ParticleType& part, int dir)
+{
+    using namespace amrex;
+    using common::prob_lo;
+    using common::prob_hi;
+    
+    const int abs_dir = std::abs(dir);
+    
+    RealVect im_charge_pos;
+
+    if (abs_dir == 1)
+    {
+        if (dir > 0)
+        {
+            // place image charge to the right
+            im_charge_pos[1] = part.pos(1);
+            im_charge_pos[2] = part.pos(2);
+            im_charge_pos[0] = part.pos(0) + 2.0*(prob_hi[0]-part.pos(0));
+        }
+        else
+        {
+            // place image charge to the left
+            im_charge_pos[1] = part.pos(1);
+            im_charge_pos[2] = part.pos(2);
+            im_charge_pos[0] = part.pos(0) - 2.0*(part.pos(0)-prob_lo[0]);
+        }
+    }
+    else if (abs_dir == 2)
+    {
+        if (dir > 0)
+        {
+            // place image charge above
+            im_charge_pos[0] = part.pos(0);
+            im_charge_pos[2] = part.pos(2);
+            im_charge_pos[1] = part.pos(1) + 2.0*(prob_hi[1]-part.pos(1));
+        }
+       else
+       {
+           // place image charge below
+           im_charge_pos[0] = part.pos(0);
+           im_charge_pos[2] = part.pos(2);
+           im_charge_pos[1] = part.pos(1) - 2.0*(part.pos(1)-prob_lo[1]);
+       }
+    }
+    else if (abs_dir == 3)
+    {
+        if (dir > 0)
+        {
+            // place image charge behind
+            im_charge_pos[0] = part.pos(0);
+            im_charge_pos[1] = part.pos(1);
+            im_charge_pos[2] = part.pos(2) + 2.0*(prob_hi[2]-part.pos(2));
+        }
+        else
+        {
+            // place image charge in front
+            im_charge_pos[0] = part.pos(0);
+            im_charge_pos[1] = part.pos(1);
+            im_charge_pos[2] = part.pos(2) - 2.0*(part.pos(2)-prob_lo[2]);
+        }
+    }
+    else
+    {
+        amrex::Abort("Incorrect function call!!!! \n");
+    }
+    
+    return im_charge_pos;
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
