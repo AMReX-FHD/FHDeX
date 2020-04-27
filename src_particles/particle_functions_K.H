@@ -14,12 +14,44 @@
    Returns: 
             int near_wall: 0=part's p3m_radius/2 does not overlap with wall, 1=yes  
  */
-int near_wall_check (FhdParticleContainer::ParticleType& part, int dir)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int near_wall_check (const FhdParticleContainer::ParticleType& part, int dir)
 {
-    return 0;
+    using namespace amrex;
+    using common::prob_hi;
+
+    const Real abs_dir = std::abs(dir);
+    const Real p3m_rad = part.rdata(FHD_realData::p3m_radius);
+    const int index = abs_dir - 1;
+
+    int near_wall;
+    
+    if ((abs_dir == 1) or (abs_dir == 2) or (abs_dir == 3))
+    {
+        if (dir > 0)
+        {
+            if ((part.pos(index) + 0.5*p3m_rad) > prob_hi[index])
+            {
+                near_wall = 1;
+            }
+        }
+        else
+        {
+            if ((part.pos(index) - 0.5*p3m_rad) < prob_lo[index])
+            {
+                near_wall = 1;
+            }
+        }
+    }
+    else
+    {
+        amrex::Abort("Incorrect function call!!!! \n");
+    }
+    
+    return near_wall;
 }
 
-AMREX_GPU_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
                       amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
