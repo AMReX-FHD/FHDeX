@@ -12,6 +12,8 @@
 #include <AMReX_Utility.H>
 #include "species.H"
 
+using namespace amrex;
+
 //#include <AMReX_ParticleInit.H>
 
 void ComputeDryMobility(amrex::MultiFab & dryMobility, 
