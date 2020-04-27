@@ -270,7 +270,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //     // Get marker data (local to current thread)
     //     TileIndex index(pti.index(), pti.LocalTileIndex());
     //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-    //     long np = markers.size();
+    //     long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
     //     // m_index.second is used to keep track of the neighbor list
     //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
@@ -424,7 +424,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
         IBMultiBlobContainer::AoS & markers =
             ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
 
@@ -448,7 +448,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
         IBMultiBlobContainer::AoS & markers =
             ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
 
@@ -475,7 +475,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //     // Get marker data (local to current thread)
     //     TileIndex index(pti.index(), pti.LocalTileIndex());
     //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-    //     long np = markers.size();
+    //     long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
     //     // m_index.second is used to keep track of the neighbor list
     //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {

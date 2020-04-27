@@ -246,8 +246,8 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
       
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
-        int Np = particles.size();
-        int Nn = neighbors[lev][index].size();
+        int Np = pti.numParticles();
+        int Nn = pti.numNeighborParticles();
         int size = neighbor_list[lev][index].size();
 
         const Box& tile_box  = pti.tilebox();
@@ -1561,7 +1561,7 @@ FhdParticleContainer::PrintParticles()
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for(int i=0; i<np; ++i)
         {
@@ -1593,7 +1593,7 @@ FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
             PairIndex index(pti.index(), pti.LocalTileIndex());
 
             AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-            long np = particles.size();
+            long np = this->GetParticles(lev).at(index).numParticles();
 
             if(id <= np)
             {
@@ -1612,10 +1612,10 @@ FhdParticleContainer::SetPosition(int rank, int id, Real x, Real y, Real z)
            
         }
     }
+    clearNeighbors();
     Redistribute();
     UpdateCellVectors();
     ReBin();
-    clearNeighbors();
     fillNeighbors();
 }
 
@@ -1633,7 +1633,7 @@ FhdParticleContainer::SetVel(int rank, int id, Real x, Real y, Real z)
             PairIndex index(pti.index(), pti.LocalTileIndex());
 
             AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-            long np = particles.size();
+            long np = this->GetParticles(lev).at(index).numParticles();
  
             ParticleType & part = particles[id-1];
 
@@ -1660,7 +1660,7 @@ FhdParticleContainer::MeanSqrCalc(int lev, int reset) {
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
         nTotal += np;
 
         for (int i=0; i<np; ++i) {
@@ -1748,7 +1748,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         if(setMeasureFinal == 0)
         {

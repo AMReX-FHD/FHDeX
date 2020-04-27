@@ -67,7 +67,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MoveMarkers(int lev, Real dt)
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i = 0; i < np; ++ i) {
             ParticleType & part = particles[i];
@@ -96,7 +96,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
@@ -128,7 +128,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
@@ -156,7 +156,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
@@ -182,7 +182,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::MovePredictor(int lev, Real d
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i = 0; i < np; ++ i) {
             ParticleType & part = particles[i];
@@ -213,7 +213,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDown(
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         int id;
 
@@ -275,7 +275,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PullDownInt(
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         int id;
         if (element >= 0) {
@@ -338,7 +338,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PushUpAdd(
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         int id;
         if(element >= 0) {
@@ -371,7 +371,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetMarkers(int lev) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
@@ -394,7 +394,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::ResetPredictor(int lev) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
@@ -547,7 +547,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadMarkers(
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         Vector<RealVect> marker_positions(np), marker_forces(np);
 
@@ -634,7 +634,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadPredictor(
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         Vector<RealVect> marker_positions(np), marker_forces(np);
 
@@ -787,7 +787,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkers(
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         Vector<RealVect> marker_positions(np), marker_forces(np);
 
@@ -867,7 +867,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolatePredictor(
 
         //_______________________________________________________________________
         // Fill vector of marker positions and forces (for current level)
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         Vector<RealVect> marker_positions(np), marker_forces(np);
 
@@ -946,7 +946,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::PrintMarkerData(int lev) cons
         int ng = this->neighbors[lev].at(index).size();
 
         auto & particle_data = this->GetParticles(lev).at(index);
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         local_count += np;
 
