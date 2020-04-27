@@ -22,7 +22,7 @@ void constrain_ibm_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
-        long np = markers.size();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
         for (int i = 0; i < np; ++i) {
 
@@ -47,7 +47,7 @@ void anchor_first_marker(IBMarkerContainer & ib_mc, int ib_lev, int component) {
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
 
-        long np = markers.size();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
         for (int i = 0; i < np; ++i) {
 
@@ -119,7 +119,7 @@ void update_ibm_marker(const RealVect & driv_u, Real driv_amp, Real time,
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
         for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 

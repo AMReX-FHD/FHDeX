@@ -274,7 +274,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
         for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
@@ -439,7 +439,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
         for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
