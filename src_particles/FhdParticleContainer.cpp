@@ -233,17 +233,17 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
     BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
 
-    double rcount = 0;
+    Real rcount = 0;
     const int lev = 0;
-
+   
     buildNeighborList(CHECK_PAIR{});
-
+    
 #ifdef _OPENMP
 #pragma omp parallel
 #endif
 
-   for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti) {
-      
+   for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
+   {     
         PairIndex index(pti.index(), pti.LocalTileIndex());
         AoS& particles = pti.GetArrayOfStructs();
         int Np = pti.numParticles();
@@ -252,11 +252,10 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
 
         const Box& tile_box  = pti.tilebox();
 
-
-        if(sr_tog==1) 
+        if(sr_tog==1)
         {
-            compute_forces_nl(particles, Np, Nn, 
-                              m_neighbor_list[lev][index], rcount);
+            compute_forces_nl(particles, Np, Nn,
+                              m_neighbor_list[lev][index], rcount);            
         }
         if(es_tog==3)
         {

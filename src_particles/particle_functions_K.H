@@ -149,14 +149,15 @@ void repulsive_force (      FhdParticleContainer::ParticleType& part1,
     part1.rdata(FHD_realData::forcez) -= dz*ff;
 }
 
-
-
 void compute_forces_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         amrex::NeighborList<FhdParticleContainer::ParticleType>& neighbor_list,
                         amrex::Real& rcount)
 {
     using namespace amrex;
 
+    Gpu::DeviceScalar<Real> rcount_d(rcount);
+    Real* prcount_d = rcount_d.dataPtr();
+    
     auto nbor_data = neighbor_list.data();
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
     
@@ -188,12 +189,14 @@ void compute_forces_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
                 
                 if (r < (1.122*p1.rdata(FHD_realData::sigma)/2.0))
                 {
-                    rcount += 1;  // needs porting...
+                    Gpu::Atomic::Add(prcount_d, 1.0);
                     repulsive_force(p1, p2, dx, dy, dz, r2);
                 }
             }
         }
     });
+
+    rcount = std::min(rcount, rcount_d.dataValue());
 }
 
 #endif
