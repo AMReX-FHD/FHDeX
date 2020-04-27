@@ -131,6 +131,83 @@ amrex::RealVect calc_im_charge_loc (const FhdParticleContainer::ParticleType& pa
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy, amrex::Real dz)
+{
+    using namespace amrex;
+    using common::pkernel_es;
+    
+    // this is force per dx**2
+    constexpr Real vals6[] =
+        {0., 0.0130335, 0.0259347, 0.0384891, 0.0507132, 0.0624416, 0.0735093,
+         0.0837511, 0.0931669, 0.101922, 0.109521, 0.116293, 0.121745,
+         0.126535, 0.130335, 0.132978, 0.134134, 0.135621, 0.13529, 0.134629,
+         0.133308, 0.130995, 0.129343, 0.126205, 0.122075, 0.118276, 0.115137,
+         0.110677, 0.106547, 0.102748, 0.0979574, 0.0936624, 0.0898631,
+         0.0860637, 0.0816036, 0.0782998, 0.0745005, 0.0707011, 0.0680581,
+         0.0645891, 0.0616157, 0.0586423, 0.0561644, 0.0535214, 0.0513739,
+         0.0487309, 0.0469138, 0.0450967, 0.0431145, 0.0414626, 0.0399759,
+         0.038324, 0.0366721, 0.0355157, 0.034029, 0.0328727, 0.0317164,
+         0.0307252, 0.0295689, 0.0285778, 0.0275866, 0.0267607, 0.0259347,
+         0.0251088, 0.0242829, 0.0236221, 0.0229613, 0.0221354, 0.0214746,
+         0.0209791};
+
+    // these are in fractions of cell size dx
+    constexpr Real points6[] =
+        {0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1., 1.1, 1.2, 1.3,
+         1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2., 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7,
+         2.8, 2.9, 3., 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4., 4.1,
+         4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5., 5.1, 5.2, 5.3, 5.4, 5.5,
+         5.6, 5.7, 5.8, 5.9, 6., 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9};
+
+    // this is force per dx**2
+    constexpr Real vals4[] =
+        {0., 0.0191993, 0.0384104, 0.0561438, 0.0745141, 0.0914394, 0.106869,
+         0.121719, 0.134211, 0.145262, 0.154958, 0.162921, 0.168841, 0.173264,
+         0.176417, 0.17854, 0.177695, 0.175969, 0.174664, 0.17083, 0.165755,
+         0.162663, 0.156037, 0.148626, 0.144648, 0.1381, 0.131473, 0.12615,
+         0.120057, 0.112581, 0.106808, 0.100863, 0.0947845, 0.0905315, 0.0856055,
+         0.0818209, 0.0768459, 0.0728331, 0.0694836, 0.0650267, 0.0627171, 0.0591556,
+         0.0561682, 0.0539003, 0.0511791, 0.0492405, 0.0470903, 0.0453286, 0.043644, 0.0417381};
+
+    // these are in fractions of cell size dx
+    constexpr Real points4[] =
+        {0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3,
+         1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7,
+         2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1,
+         4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9};
+
+    int r_cell;
+    Real r_norm, r_cell_frac, m, mag;
+    
+    // Divison/multiplication by 0.1 below is bc the spacing in the table above is 0.1
+    r_norm = r/dx;                   // separation dist in units of dx=dy=dz
+    r_cell = std::floor(r_norm/0.1); // scaling by 10 allows r_cell to index the points/val arrays
+    r_cell_frac = r_norm/0.1-r_cell;
+    r_cell_frac = r_cell_frac*0.1;   // for use in point-slope formula below
+
+    if (pkernel_es == 6)
+    {
+        // do linear interpolation of force between vals(i+1) and val(i) 
+        m = (vals6[r_cell+1]-vals6[r_cell])/(points6[r_cell+1]-points6[r_cell]);
+        
+        mag  = m*r_cell_frac + vals6[r_cell];
+    }
+    else if (pkernel_es == 4)
+    {
+        // do linear interpolation of force between vals(i+1) and val(i) 
+        m = (vals4[r_cell+1]-vals4[r_cell])/(points4[r_cell+1]-points4[r_cell]);
+        
+        mag  = m*r_cell_frac + vals4[r_cell];
+    }
+    else
+    {
+        amrex::Abort("P3M implemented only for pkernel 4 and 6! \n");
+    }
+    
+    return mag;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void repulsive_force (      FhdParticleContainer::ParticleType& part1,
                       const FhdParticleContainer::ParticleType& part2,
                       amrex::Real dx, amrex::Real dy, amrex::Real dz, amrex::Real dr2)
