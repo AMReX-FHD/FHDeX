@@ -12,12 +12,10 @@
 #include <AMReX_Utility.H>
 #include "species.H"
 
-
 //#include <AMReX_ParticleInit.H>
 
-using namespace amrex;
-
-
-void ComputeDryMobility(MultiFab & dryMobility, species* particleInfo, const Geometry & geom);
+void ComputeDryMobility(amrex::MultiFab & dryMobility, 
+                        species* particleInfo, 
+                        const amrex::Geometry & geom);
 
 #endif
