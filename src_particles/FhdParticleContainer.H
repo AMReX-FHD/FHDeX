@@ -271,6 +271,8 @@ public:
 
     int totalBins;
 
+    Real *nearestN;
+
     Real *meanRadialDistribution   ;
     Real *meanRadialDistribution_pp;
     Real *meanRadialDistribution_pm;

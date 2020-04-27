@@ -77,6 +77,16 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
         radialStatsCount = 0;
         cartesianStatsCount = 0;
     }
+
+
+    // storage for mean nearest neighbour counts
+    if (radialdist_int > 0) {
+        nearestN    = new Real[nspecies*nspecies + 1]();
+        for(int i=0;i<nspecies*nspecies + 1;i++)
+        {
+            nearestN[i] = 0;
+        }
+    }
     
     // storage for mean radial distribution
     if (radialdist_int > 0) {
@@ -108,6 +118,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     remove("diffusionEst");
     remove("conductivityEst");
     remove("currentEst");
+    remove("nearestNeighbour");
 
     Real dr = threepmRange/threepmBins;
 
@@ -571,6 +582,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     Real posx[totalParticles];
     Real posy[totalParticles];
     Real posz[totalParticles];
+    int  species[totalParticles];
     
     Real charge[totalParticles];
 
@@ -581,6 +593,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     PullDown(0, posy, -2, totalParticles);
     PullDown(0, posz, -3, totalParticles);
     PullDown(0, charge, 27, totalParticles);
+    PullDownInt(0, species, 4, totalParticles);
     
     // outer radial extent
     totalDist = totalBins*binSize;
@@ -590,6 +603,19 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     RealVector radDist_pp(totalBins, 0.);
     RealVector radDist_pm(totalBins, 0.);
     RealVector radDist_mm(totalBins, 0.);
+
+    double nearest[totalParticles*(nspecies+1)];
+    double nn[nspecies*nspecies+1];
+
+    for(int k = 0; k < (nspecies+1)*totalParticles; k++)
+    {
+        nearest[k] = 0;
+    }
+
+    for(int k = 0; k < nspecies*nspecies+1; k++)
+    {
+        nn[k] = 0;
+    }
     
 #ifdef _OPENMP
 #pragma omp parallel
@@ -601,11 +627,11 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
 
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
-        const int np = particles.numParticles();
+        const int np = particles.numParticles();   
 
         // loop over particles
         for (int i = 0; i < np; ++i) {
-            
+
             ParticleType & part = particles[i];
 
             int iilo = (part.pos(0)-searchDist <= prob_lo[0]) ? -1 : 0;
@@ -618,6 +644,9 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             int kkhi = (part.pos(2)+searchDist >= prob_hi[2]) ?  1 : 0;
                 
             double rad, dx, dy, dz;
+
+            int id = part.id() - 1;
+        
             // loop over other particles
             for(int j = 0; j < totalParticles; j++) {
                 
@@ -631,7 +660,20 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
                     dy = part.pos(1)-posy[j] - jj*domy;
                     dz = part.pos(2)-posz[j] - kk*domz;
 
+                    int jSpec = species[j]-1;
                     rad = sqrt(dx*dx + dy*dy + dz*dz);
+
+                    if((nearest[id*(nspecies+1) + jSpec] == 0 || nearest[id*(nspecies+1) + jSpec] > rad) && rad != 0)
+                    { 
+                        nearest[id*(nspecies +1)+ jSpec] = rad;
+//                        
+                    }
+
+                    if((nearest[id*(nspecies+1) + nspecies] == 0 || nearest[id*(nspecies+1) + nspecies] > rad) && rad != 0)
+                    { 
+                        nearest[id*(nspecies +1) + nspecies] = rad;
+//                        Print() << "Particle " << i << " species " << jSpec << ", " << nearest[i*nspecies + jSpec] << "\n";
+                    }
 
                     // if particles are close enough, increment the bin
                     if(rad < totalDist && rad > 0.) {
@@ -674,6 +716,56 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
     ParallelDescriptor::ReduceRealSum(radDist_pp.dataPtr(),totalBins);
     ParallelDescriptor::ReduceRealSum(radDist_pm.dataPtr(),totalBins);
     ParallelDescriptor::ReduceRealSum(radDist_mm.dataPtr(),totalBins);
+    ParallelDescriptor::ReduceRealSum(nearest,(nspecies+1)*totalParticles);
+
+    int specCount[nspecies];
+
+    for(int i=0;i<nspecies;i++)
+    {
+        specCount[i] = 0;
+    }
+
+    for(int i=0;i<totalParticles;i++)
+    {
+        int iSpec = species[i]-1;
+
+        specCount[iSpec]++;
+
+        for(int j=0;j<nspecies;j++)
+        {
+            nn[(iSpec)*nspecies + j] = nn[(iSpec)*nspecies + j] + nearest[i*(nspecies+1)+j];
+
+            //std::cout << (iSpec)*nspecies + j  << ", " << nearest[i*(nspecies+1)+j] << "\n";
+
+        }
+
+        nn[nspecies*nspecies] = nn[nspecies*nspecies] + nearest[i*(nspecies+1)+nspecies];
+    }
+
+    for(int i=0;i<nspecies;i++)
+    {
+        for(int j=0;j<nspecies;j++)
+        {           
+
+            if(i==j)
+            {
+                nn[i*nspecies+j] = nn[i*nspecies+j]/(specCount[i]-1);
+
+            }else
+            {
+                nn[i*nspecies+j] = nn[i*nspecies+j]/specCount[i];
+
+            }
+
+            //Print() << nn[i*nspecies+j] << "\n";
+
+        }
+    }
+
+    nn[nspecies*nspecies] = nn[nspecies*nspecies]/(totalParticles - 1);
+
+    //Print() << nn[nspecies*nspecies+1] << "\n";
+        
             
     // normalize by 1 / (number density * bin volume * total particle count)
     for(int i=0;i<totalBins;i++) {
@@ -696,6 +788,13 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         meanRadialDistribution_mm[i] = (meanRadialDistribution_mm[i]*stepsminusone + radDist_mm[i])*stepsinv;
     }
 
+    for(int i=0;i<(nspecies*nspecies + 1);i++) {
+
+    //Print() << i << ", " << nn[i]<< "\n";
+        nearestN[i] = (nearestN[i]*stepsminusone + nn[i])*stepsinv;
+
+    }
+
     // output mean radial distribution g(r) based on plot_int
     if (plot_int > 0 && step%plot_int == 0) {
             
@@ -716,6 +815,22 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
         }
     }
 
+
+    if (plot_int > 0 && step%plot_int == 0) {
+            
+        if(ParallelDescriptor::MyProc() == 0) {
+
+            std::string filename = "nearestNeighbour";
+            std::ofstream ofs(filename, std::ofstream::app);
+
+            for(int i=0;i<nspecies*nspecies+1;i++) {
+                ofs << nearestN[i] << " ";
+            }
+            ofs << std::endl;
+            ofs.close();
+        }
+    }
+
     // reset the radial distribution at n_steps_skip (if n_steps_skip > 0)
     // OR
     // reset the radial distribution every |n_steps_skip| (if n_steps_skip < 0)
@@ -731,6 +846,10 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
             meanRadialDistribution_pp[i] = 0;
             meanRadialDistribution_pm[i] = 0;
             meanRadialDistribution_mm[i] = 0;
+        }
+
+        for(int i=0;i<nspecies*nspecies;i++) {
+            nearestN[i] = 0;
         }
     }    
 }
@@ -1643,8 +1762,6 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             z0 = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
     
             SetPosition(0, 1, x0, y0, z0);
-
-
 
             get_angles(&costheta, &sintheta, &cosphi, &sinphi);
 
