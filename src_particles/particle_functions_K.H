@@ -33,20 +33,21 @@ void compute_forces_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
     
     // need to access rmin, p_int_tog,
-
+    auto int_tog = common::p_int_tog.data();
+        
     AMREX_FOR_1D( Np, i, 
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
         for (const auto& p2 : nbor_data.getNeighbors(i))
         {       
-            if ( (common::p_int_tog[p1.rdata(FHD_intData::species)] != 0) and 
-                 (common::p_int_tog[p2.rdata(FHD_intData::species)] != 0) )
+            if ( (int_tog[p1.idata(FHD_intData::species)] != 0) and 
+                 (int_tog[p2.idata(FHD_intData::species)] != 0) )
             {
                 const Real dx = p1.pos(0) - p2.pos(0);
                 const Real dy = p1.pos(1) - p2.pos(1);
                 const Real dz = p1.pos(2) - p2.pos(2);
-                
+
                 Real r2 = dx*dx + dy*dy + dz*dz;
                 r2 = amrex::max(r2, common::rmin*common::rmin);
                 const Real r = sqrt(r2);
