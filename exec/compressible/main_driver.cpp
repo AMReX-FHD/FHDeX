@@ -381,39 +381,44 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Structure factor:
     ///////////////////////////////////////////
-    
-    // set variable names
-    cnt = 0;
+
+    // variables are rho, velocity, and temperature
+    int structVars = AMREX_SPACEDIM+2;
+
     Vector< std::string > var_names;
-    var_names.resize(nvar_sf);
+    var_names.resize(structVars);
+
+    cnt = 0;
     std::string x;
+
+    // rho
     var_names[cnt++] = "rho";
+
+    // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "J";
+      x = "vel";
       x += (120+d);
       var_names[cnt++] = x;
     }
-    var_names[cnt++] = "rhoE";
-    for (int d=0; d<nspecies; d++) {
-      x = "rho";
-      x += (49+d);
-      var_names[cnt++] = x;
+
+    // Temp
+    var_names[cnt++] = "Temp";
+
+    MultiFab structFactMF;
+    structFactMF.define(ba, dmap, structVars, 0);
+
+    // scale SF results by inverse cell volume    
+    Vector<Real> var_scaling(structVars*(structVars+1)/2);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
-    MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, nvar_sf, 0);
-
-    amrex::Vector< int > s_pairA(nvar_sf);
-    amrex::Vector< int > s_pairB(nvar_sf);
-
-    // Select which variable pairs to include in structure factor:
-    for (int d=0; d<nvar_sf; d++) {
-      s_pairA[d] = d;
-      s_pairB[d] = d;
-    }
-
-    // structure factor class for full dataset
-    StructFact structFact(ba,dmap,var_names,eqmvars);
+#if 1
+    // option to compute all pairs
+    StructFact structFact(ba,dmap,var_names,var_scaling);
+#else
+    Abort("StructFact option to compute only speicified pairs not written yet");
+#endif
     
     // structure factor class for vertically-averaged dataset
     StructFact structFactVA;
@@ -445,7 +450,7 @@ void main_driver(const char* argv)
       }
 
       structFactVA.~StructFact(); // destruct
-      new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
+      new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,var_scaling); // reconstruct
     
     }
 #endif
@@ -560,8 +565,8 @@ void main_driver(const char* argv)
 #ifndef AMREX_USE_CUDA
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-            structFact.FortStructure(struct_in_cc,geom);
+            MultiFab::Copy(structFactMF, prim, 0, 0, structVars, 0);
+            structFact.FortStructure(structFactMF,geom);
             if(project_dir >= 0) {
                 ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
                 structFactVA.FortStructure(cuVertAvg,geom_flat);
