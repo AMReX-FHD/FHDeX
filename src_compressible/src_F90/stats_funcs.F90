@@ -130,7 +130,7 @@ contains
 
           cv = 0
           do l=1,nspecies
-            cv = cv + hcv(l)*cumeans(i,j,k,5+l)
+            cv = cv + hcv(l)*cumeans(i,j,k,5+l)/cumeans(i,j,k,1)
           enddo
 
           cvinv = 1.0/cv
