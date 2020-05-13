@@ -1,6 +1,7 @@
 #include "common_functions.H"
 
 #include "gmres_functions.H"
+#include "StagMGSolver.H"
 
 
 void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
@@ -75,7 +76,8 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
         ////////////////////
 
         // x_u^star = A^{-1} b_u
-        StagMGSolver(alpha_fc,beta,beta_ed,gamma,x_u,b_u,theta_alpha,geom);
+        StagMGSolver StagSolver(ba,dmap,geom);
+        StagSolver.solve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,theta_alpha);
 
         ////////////////////
         // STEP 2: Construct RHS for pressure Poisson problem
