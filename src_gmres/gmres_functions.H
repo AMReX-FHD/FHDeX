@@ -7,6 +7,7 @@
 
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
+#include "StagMGSolver.H"
 
 using namespace gmres;
 using namespace amrex;
@@ -45,7 +46,8 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
                  const MultiFab & gamma,
                  const Real & theta_alpha,
-                 const Geometry & geom);
+                 const Geometry & geom,
+                 StagMGSolver& StagSolver);
 
 // In GMRES.cpp
 void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u,

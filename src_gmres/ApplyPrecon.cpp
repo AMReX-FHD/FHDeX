@@ -10,7 +10,8 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
                  const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                  const MultiFab & gamma,
                  const Real & theta_alpha,
-                 const Geometry & geom)
+                 const Geometry & geom,
+                 StagMGSolver& StagSolver)
 {
 
     BL_PROFILE_VAR("ApplyPrecon()",ApplyPrecon);
@@ -76,7 +77,6 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
         ////////////////////
 
         // x_u^star = A^{-1} b_u
-        StagMGSolver StagSolver(ba,dmap,geom);
         StagSolver.solve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,theta_alpha);
 
         ////////////////////
