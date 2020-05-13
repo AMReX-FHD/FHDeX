@@ -11,6 +11,8 @@ StagMGSolver::StagMGSolver(const BoxArray& ba_in,
                            const DistributionMapping& dmap_in,
                            const Geometry& geom_in) {
 
+    BL_PROFILE_VAR("StagMGSolver::StagMGSolver()",StagMGSolver);
+    
     // get the problem domain and boxarray at level 0
     pd_base = geom_in.Domain();
     ba_base = ba_in;
@@ -116,8 +118,7 @@ void StagMGSolver::solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                          const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
                          const Real & theta_alpha)
 {
-
-    BL_PROFILE_VAR("StagMGSolver()",StagMGSolver);
+    BL_PROFILE_VAR("StagMGSolver::solve()",StagMGSolver_solve);
 
     if (stag_mg_verbosity >= 1) {
         Print() << "Begin call to stag_mg_solver\n";
