@@ -22,36 +22,24 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
     Real         mean_val_pres;
     Vector<Real> mean_val_umac(AMREX_SPACEDIM);
 
-
     MultiFab phi     (ba,dmap,1,1);
     MultiFab mac_rhs (ba,dmap,1,0);
     MultiFab zero_fab(ba,dmap,1,0);
-    MultiFab x_p_tmp (ba,dmap,1,1);
 
-    // set zero_fab_fc to 0
+    // set zero_fab to 0
     zero_fab.setVal(0.);
 
-    // build alphainv_fc, one_fab_fc, zero_fab_fc, and b_u_tmp
+    // build alphainv_fc
     std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
-    std::array< MultiFab, AMREX_SPACEDIM > one_fab_fc;
-    std::array< MultiFab, AMREX_SPACEDIM > zero_fab_fc;
-    std::array< MultiFab, AMREX_SPACEDIM > b_u_tmp;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        zero_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        b_u_tmp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
     }
 
     // set alphainv_fc to 1/alpha_fc
-    // set one_fab_fc to 1
-    // set zero_fab_fc to 0
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         alphainv_fc[d].setVal(1.);
         alphainv_fc[d].divide(alpha_fc[d],0,1,0);
-        one_fab_fc[d].setVal(1.);
-        zero_fab_fc[d].setVal(0.);
     }
 
     // set the initial guess for Phi in the Poisson solve to 0
