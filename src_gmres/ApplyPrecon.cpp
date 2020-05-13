@@ -24,10 +24,6 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
 
     MultiFab phi     (ba,dmap,1,1);
     MultiFab mac_rhs (ba,dmap,1,0);
-    MultiFab zero_fab(ba,dmap,1,0);
-
-    // set zero_fab to 0
-    zero_fab.setVal(0.);
 
     // build alphainv_fc
     std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
@@ -103,7 +99,7 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
             }
             else {
                 // first set x_p = -L_alpha Phi
-                CCApplyOp(phi,x_p,zero_fab,alphainv_fc,geom);
+                CCApplyNegLap(phi,x_p,alphainv_fc,geom);
             }
 
             if ( abs(visc_type) == 1 || abs(visc_type) == 2) {

@@ -1016,7 +1016,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                 x_p.mult(-1., 0, 1, 0);
             } else {
                 // first set x_p = -L_alpha Phi .... x_p = L_alpha Lp^{-1}(DA^{-1}g + h)
-                CCApplyOp(phi, x_p, zero_fab, alphainv_fc, geom);
+                CCApplyNegLap(phi, x_p, alphainv_fc, geom);
             }
 
             if ( abs(visc_type) == 1 || abs(visc_type) == 2) {

@@ -95,11 +95,10 @@ void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM> & x_u,
                            MultiFab & phi,
                            const Geometry & geom);
 
-void CCApplyOp(MultiFab & phi,
-               MultiFab & Lphi,
-               const MultiFab & alpha,
-               const std::array<MultiFab, AMREX_SPACEDIM> & beta_fc,
-               const Geometry & geom);
+void CCApplyNegLap(MultiFab & phi,
+                   MultiFab & Lphi,
+                   const std::array<MultiFab, AMREX_SPACEDIM> & beta_fc,
+                   const Geometry & geom);
 
 // In NormInnerProduct.cpp
 void SumStag(const Geometry& geom,

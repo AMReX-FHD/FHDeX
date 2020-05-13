@@ -86,11 +86,10 @@ void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
     }
 }
 
-void CCApplyOp(MultiFab& phi,
-               MultiFab& Lphi,
-               const MultiFab& alpha,
-               const std::array<MultiFab, AMREX_SPACEDIM>& beta_fc,
-               const Geometry& geom)
+void CCApplyNegLap(MultiFab& phi,
+                   MultiFab& Lphi,
+                   const std::array<MultiFab, AMREX_SPACEDIM>& beta_fc,
+                   const Geometry& geom)
 {
     BL_PROFILE_VAR("CCApplyOp()",CCApplyOp);
     
@@ -125,7 +124,6 @@ void CCApplyOp(MultiFab& phi,
     mlabec.setLevelBC(lev, &phi);
 
     // coefficients for solver
-    mlabec.setACoeffs(lev,alpha);
     mlabec.setBCoeffs(lev,amrex::GetArrOfConstPtrs(beta_fc));
 
     MLMG mlmg(mlabec);
