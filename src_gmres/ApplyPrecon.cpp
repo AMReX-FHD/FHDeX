@@ -4,9 +4,12 @@
 #include "StagMGSolver.H"
 
 
-void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
-                 std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
+void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
+                 const MultiFab & b_p,
+                 std::array<MultiFab, AMREX_SPACEDIM> & x_u,
+                 MultiFab & x_p,
                  const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                 const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
                  const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
                  const MultiFab & gamma,
                  const Real & theta_alpha,
@@ -24,19 +27,6 @@ void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFa
 
     MultiFab phi     (ba,dmap,1,1);
     MultiFab mac_rhs (ba,dmap,1,0);
-
-    // build alphainv_fc
-    std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-    }
-
-    // set alphainv_fc to 1/alpha_fc
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        alphainv_fc[d].setVal(1.);
-        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
-    }
 
     // set the initial guess for Phi in the Poisson solve to 0
     // set x_u = 0 as initial guess

@@ -50,7 +50,19 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
     BoxArray ba = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
 
+    // build alphainv_fc
+    std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
 
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+    }
+
+    // set alphainv_fc to 1/alpha_fc
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].setVal(1.);
+        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+    }
+    
     // # of ghost cells must match x_u so higher-order stencils can work
     std::array< MultiFab, AMREX_SPACEDIM > r_u;
     std::array< MultiFab, AMREX_SPACEDIM > w_u;
@@ -103,7 +115,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
     // First application of preconditioner
-    ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+    ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
+                beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
     // preconditioned norm_b: norm_pre_b
@@ -199,7 +212,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         //_______________________________________________________________________
         // solve for r = M^{-1} tmp
         // We should not be counting these toward the number of mg cycles performed
-        ApplyPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+        ApplyPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, alphainv_fc,
+                    beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
         // resid = sqrt(dot_product(r, r))
@@ -328,7 +342,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
             //___________________________________________________________________
             // w = M^{-1} A*V(i)
-            ApplyPrecon(tmp_u, tmp_p, w_u, w_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+            ApplyPrecon(tmp_u, tmp_p, w_u, w_p, alpha_fc, alphainv_fc,
+                        beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
             //___________________________________________________________________
