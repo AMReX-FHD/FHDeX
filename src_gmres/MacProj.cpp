@@ -37,7 +37,6 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
         if (geom.isPeriodic(i)) {
             lo_mlmg_bc[i] = hi_mlmg_bc[i] = LinOpBCType::Periodic;
         } else {
-            // Abort("ApplyPrecon only works for periodic");
             lo_mlmg_bc[i] = hi_mlmg_bc[i] = LinOpBCType::Neumann;
         }
     }
@@ -117,7 +116,7 @@ void CCApplyNegLap(MultiFab& phi,
             lo_mlmg_bc[i] = hi_mlmg_bc[i] = LinOpBCType::Periodic;
         }
         else {
-            Abort("ApplyPrecon only works for periodic");
+            Abort("CCApplyNegLap only works for periodic");
         }
     }
     mlabec.setDomainBC(lo_mlmg_bc,hi_mlmg_bc);
