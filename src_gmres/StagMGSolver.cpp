@@ -1,9 +1,5 @@
 #include "gmres_functions.H"
-
 #include "common_functions.H"
-#include "StagMGSolver.H"
-
-#include <AMReX_VisMF.H>
 
 using namespace amrex;
 

@@ -87,7 +87,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
     // (when GMRES becomes a class, build this in the constructor)
     StagMGSolver StagSolver(ba,dmap,geom);
-
+    Precon Pcon(ba,dmap);
+    
     /****************************************************************************
      *                                                                          *
      * Preflight work: apply scaling and compute perconditioned norms_b         *
@@ -115,8 +116,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
     // First application of preconditioner
-    ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
-                beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+    Pcon.Apply(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
+               beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
     // preconditioned norm_b: norm_pre_b
@@ -212,8 +213,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         //_______________________________________________________________________
         // solve for r = M^{-1} tmp
         // We should not be counting these toward the number of mg cycles performed
-        ApplyPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, alphainv_fc,
-                    beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+        Pcon.Apply(tmp_u, tmp_p, r_u, r_p, alpha_fc, alphainv_fc,
+                   beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
         // resid = sqrt(dot_product(r, r))
@@ -342,8 +343,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
             //___________________________________________________________________
             // w = M^{-1} A*V(i)
-            ApplyPrecon(tmp_u, tmp_p, w_u, w_p, alpha_fc, alphainv_fc,
-                        beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
+            Pcon.Apply(tmp_u, tmp_p, w_u, w_p, alpha_fc, alphainv_fc,
+                       beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
             //___________________________________________________________________

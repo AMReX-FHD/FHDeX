@@ -1,32 +1,35 @@
-#include "common_functions.H"
-
 #include "gmres_functions.H"
-#include "StagMGSolver.H"
 
+Precon::Precon(const BoxArray& ba_in,
+               const DistributionMapping& dmap_in) {
 
-void ApplyPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
-                 const MultiFab & b_p,
-                 std::array<MultiFab, AMREX_SPACEDIM> & x_u,
-                 MultiFab & x_p,
-                 const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                 const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
-                 const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
-                 const MultiFab & gamma,
-                 const Real & theta_alpha,
-                 const Geometry & geom,
-                 StagMGSolver& StagSolver)
+    BL_PROFILE_VAR("Precon::Precon()",Precon);
+
+    phi.define    (ba_in,dmap_in,1,1);
+    mac_rhs.define(ba_in,dmap_in,1,0);
+
+}    
+
+void Precon::Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
+                   const MultiFab & b_p,
+                   std::array<MultiFab, AMREX_SPACEDIM> & x_u,
+                   MultiFab & x_p,
+                   const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                   const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
+                   const MultiFab & beta, const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                   const MultiFab & gamma,
+                   const Real & theta_alpha,
+                   const Geometry & geom,
+                   StagMGSolver& StagSolver)
 {
 
-    BL_PROFILE_VAR("ApplyPrecon()",ApplyPrecon);
+    BL_PROFILE_VAR("Precon::Apply()",Precon_Apply);
 
     BoxArray ba = b_p.boxArray();
     DistributionMapping dmap = b_p.DistributionMap();
 
     Real         mean_val_pres;
     Vector<Real> mean_val_umac(AMREX_SPACEDIM);
-
-    MultiFab phi     (ba,dmap,1,1);
-    MultiFab mac_rhs (ba,dmap,1,0);
 
     // set the initial guess for Phi in the Poisson solve to 0
     // set x_u = 0 as initial guess
