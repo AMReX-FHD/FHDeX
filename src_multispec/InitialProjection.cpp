@@ -60,11 +60,13 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     std::array< MultiFab, AMREX_SPACEDIM > rhototinv_fc;
     std::array< MultiFab, AMREX_SPACEDIM > diff_mass_flux;
     std::array< MultiFab, AMREX_SPACEDIM > total_mass_flux;
+    std::array< MultiFab, AMREX_SPACEDIM > gradp;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         rhotot_fc[d]      .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         rhototinv_fc[d]   .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
         diff_mass_flux[d] .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
         total_mass_flux[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies, 0);
+        gradp[d]          .define(convert(ba,nodal_flag_dir[d]), dmap,        1, 0);
     }
     
     // set inhomogeneous velocity bc's to values supplied in inhomogeneous_bc_val
@@ -144,7 +146,7 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MacProj(rhototinv_fc,mac_rhs,phi,geom,true);
         
         // v^0 = v^init - (1/rho^0) grad phi
-        SubtractWeightedGradP(umac,rhototinv_fc,phi,geom);
+        SubtractWeightedGradP(umac,rhototinv_fc,phi,gradp,geom);
 
         // fill ghost cells
         for (int i=0; i<AMREX_SPACEDIM; ++i) {

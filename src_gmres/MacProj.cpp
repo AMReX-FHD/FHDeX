@@ -65,17 +65,13 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
 void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM>& x_u,
                            const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
                            MultiFab& phi,
+                           std::array<MultiFab, AMREX_SPACEDIM>& gradp,
                            const Geometry& geom)
 {
     BL_PROFILE_VAR("SubtractWeightedGradP()",SubtractWeightedGradP);
     
     BoxArray ba = phi.boxArray();
     DistributionMapping dmap = phi.DistributionMap();
-
-    std::array< MultiFab, AMREX_SPACEDIM > gradp;
-    AMREX_D_TERM(gradp[0].define(convert(ba,nodal_flag_x), dmap, 1, 0);,
-                 gradp[1].define(convert(ba,nodal_flag_y), dmap, 1, 0);,
-                 gradp[2].define(convert(ba,nodal_flag_z), dmap, 1, 0););
 
     ComputeGrad(phi,gradp,0,0,1,0,geom);
 

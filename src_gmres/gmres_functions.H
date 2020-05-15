@@ -81,6 +81,7 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
 void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM> & x_u,
                            const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
                            MultiFab & phi,
+                           std::array<MultiFab, AMREX_SPACEDIM> & gradp,
                            const Geometry & geom);
 
 void CCApplyNegLap(MultiFab & phi,

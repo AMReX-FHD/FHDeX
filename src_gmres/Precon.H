@@ -11,6 +11,8 @@ class Precon {
     MultiFab phi;
     MultiFab mac_rhs;
 
+    std::array< MultiFab, AMREX_SPACEDIM > gradp;
+
 public:
 
     Precon(const BoxArray& ba_in,

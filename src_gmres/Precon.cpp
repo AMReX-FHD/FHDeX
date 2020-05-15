@@ -8,6 +8,10 @@ Precon::Precon(const BoxArray& ba_in,
     phi.define    (ba_in,dmap_in,1,1);
     mac_rhs.define(ba_in,dmap_in,1,0);
 
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+        gradp[d].define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1, 0);
+    }
+
 }    
 
 void Precon::Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
@@ -75,7 +79,7 @@ void Precon::Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
         MacProj(alphainv_fc,mac_rhs,phi,geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi
-        SubtractWeightedGradP(x_u,alphainv_fc,phi,geom);
+        SubtractWeightedGradP(x_u,alphainv_fc,phi,gradp,geom);
 
         ////////////////////
         // STEP 4: Compute x_p by applying the Schur complement approximation
