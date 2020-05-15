@@ -1,5 +1,5 @@
-#ifndef _StochMassFlux_H_
-#define _StochMassFlux_H_
+#ifndef _StagMGSolver_H_
+#define _StagMGSolver_H_
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
