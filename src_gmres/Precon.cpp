@@ -1,9 +1,11 @@
 #include "gmres_functions.H"
 
-Precon::Precon(const BoxArray& ba_in,
-               const DistributionMapping& dmap_in) {
+Precon::Precon() {}
 
-    BL_PROFILE_VAR("Precon::Precon()",Precon);
+void Precon::Define(const BoxArray& ba_in,
+                    const DistributionMapping& dmap_in) {
+
+    BL_PROFILE_VAR("Precon::Define()",Precon);
 
     phi.define    (ba_in,dmap_in,1,1);
     mac_rhs.define(ba_in,dmap_in,1,0);
@@ -58,7 +60,7 @@ void Precon::Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
         ////////////////////
 
         // x_u^star = A^{-1} b_u
-        StagSolver.solve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,theta_alpha);
+        StagSolver.Solve(alpha_fc,beta,beta_ed,gamma,x_u,b_u,theta_alpha);
 
         ////////////////////
         // STEP 2: Construct RHS for pressure Poisson problem

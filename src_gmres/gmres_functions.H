@@ -7,6 +7,7 @@
 
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
+#include "GMRES.H"
 #include "StagMGSolver.H"
 #include "Precon.H"
 
@@ -36,19 +37,6 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                  const MultiFab & gamma,
                  const Real & theta_alpha,
                  const Geometry & geom);
-
-// In GMRES.cpp
-void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
-           const MultiFab & b_p,
-           std::array<MultiFab, AMREX_SPACEDIM> & x_u,
-           MultiFab & x_p,
-           std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-           MultiFab & beta,
-           std::array<MultiFab, NUM_EDGE> & beta_ed,
-           MultiFab & gamma,
-           Real theta_alpha,
-           const Geometry & geom,
-           Real & norm_pre_rhs);
 
 void UpdateSol(std::array<MultiFab, AMREX_SPACEDIM> & x_u,
                MultiFab & x_p,

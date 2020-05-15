@@ -304,8 +304,9 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // gmres_abs_tol = 0.d0 ! It is better to set gmres_abs_tol in namelist to a sensible value
     
     // call gmres to compute delta v and delta pi
-    GMRES(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
-          kappa, theta_alpha, geom, norm_pre_rhs);
+    GMRES gmres(ba,dmap,geom);
+    gmres.Solve(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
+                kappa, theta_alpha, geom, norm_pre_rhs);
     
     // for the corrector gmres solve we want the stopping criteria based on the
     // norm of the preconditioned rhs from the predictor gmres solve.  otherwise
@@ -551,8 +552,8 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     dpi.setVal(0.);
     
     // call gmres to compute delta v and delta pi
-    GMRES(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
-          kappa, theta_alpha, geom, norm_pre_rhs);
+    gmres.Solve(gmres_rhs_v, gmres_rhs_p, dumac, dpi, rhotot_fc_new, eta, eta_ed,
+                kappa, theta_alpha, geom, norm_pre_rhs);
     
     gmres_abs_tol = gmres_abs_tol_in; // Restore the desired tolerance
 

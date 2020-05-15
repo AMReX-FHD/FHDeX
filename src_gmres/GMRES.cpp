@@ -1,21 +1,42 @@
-#include <AMReX_VisMF.H>
+#include "GMRES.H"
 
-#include "common_functions.H"
+GMRES::GMRES (const BoxArray& ba_in,
+              const DistributionMapping& dmap_in,
+              const Geometry& geom_in) {
 
-#include "gmres_functions.H"
+    BL_PROFILE_VAR("GMRES::GMRES()", GMRES);
+    
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        r_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 1);
+        w_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
+        tmp_u[d]      .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
+        scr_u[d]      .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
+        V_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, gmres_max_inner+1, 0);
+        alphainv_fc[d].define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1, 0);
+    }
+
+    r_p.define  (ba_in, dmap_in,                  1, 1);
+    w_p.define  (ba_in, dmap_in,                  1, 0);
+    tmp_p.define(ba_in, dmap_in,                  1, 0);
+    scr_p.define(ba_in, dmap_in,                  1, 0);
+    V_p.define  (ba_in, dmap_in,gmres_max_inner + 1, 0); // Krylov vectors
+
+    StagSolver.Define(ba_in,dmap_in,geom_in);
+    Pcon.Define(ba_in,dmap_in);
+}
 
 
-void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
-           std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
-           std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-           MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
-           MultiFab & gamma,
-           Real theta_alpha,
-           const Geometry & geom,
-           Real & norm_pre_rhs)
+void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+                   std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                   MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
+                   MultiFab & gamma,
+                   Real theta_alpha,
+                   const Geometry & geom,
+                   Real & norm_pre_rhs)
 {
 
-    BL_PROFILE_VAR("GMRES()", GMRES);
+    BL_PROFILE_VAR("GMRES::Solve()", GMRES_Solve);
 
     if (gmres_verbose >= 1) {
         Print() << "Begin call to GMRES" << std::endl;
@@ -46,55 +67,20 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
-
-    BoxArray ba = b_p.boxArray();
-    DistributionMapping dmap = b_p.DistributionMap();
-
-    // build alphainv_fc
-    std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-    }
-
-    // set alphainv_fc to 1/alpha_fc
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        alphainv_fc[d].setVal(1.);
-        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
-    }
     
-    // # of ghost cells must match x_u so higher-order stencils can work
-    std::array< MultiFab, AMREX_SPACEDIM > r_u;
-    std::array< MultiFab, AMREX_SPACEDIM > w_u;
-    std::array< MultiFab, AMREX_SPACEDIM > tmp_u;
-    std::array< MultiFab, AMREX_SPACEDIM > scr_u;
-    std::array< MultiFab, AMREX_SPACEDIM > V_u;
+    //////////////////////////////////////
 
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        r_u[d]  .define(convert(ba, nodal_flag_dir[d]), dmap, 1,                 x_u[d].nGrow());
-        w_u[d]  .define(convert(ba, nodal_flag_dir[d]), dmap, 1,                 0);
-        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1,                 0);
-        scr_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1,                 0);
-        V_u[d]  .define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner+1, 0);
-    }
-
-    // # of ghost cells must match x_p so higher-order stencils can work
-    MultiFab r_p  (ba, dmap,                  1, x_p.nGrow());
-    MultiFab w_p  (ba, dmap,                  1, 0);
-    MultiFab tmp_p(ba, dmap,                  1, 0);
-    MultiFab scr_p(ba, dmap,                  1, 0);
-    MultiFab V_p  (ba, dmap,gmres_max_inner + 1, 0); // Krylov vectors
-
-    // (when GMRES becomes a class, build this in the constructor)
-    StagMGSolver StagSolver(ba,dmap,geom);
-    Precon Pcon(ba,dmap);
-    
     /****************************************************************************
      *                                                                          *
      * Preflight work: apply scaling and compute perconditioned norms_b         *
      *                                                                          *
      ***************************************************************************/
 
+    // set alphainv_fc to 1/alpha_fc
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].setVal(1.);
+        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+    }
 
     // apply scaling factor
     if (scale_factor != 1.) {

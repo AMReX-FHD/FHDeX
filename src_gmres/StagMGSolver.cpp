@@ -3,11 +3,13 @@
 
 using namespace amrex;
 
-StagMGSolver::StagMGSolver(const BoxArray& ba_in,
-                           const DistributionMapping& dmap_in,
-                           const Geometry& geom_in) {
+StagMGSolver::StagMGSolver() {}
 
-    BL_PROFILE_VAR("StagMGSolver::StagMGSolver()",StagMGSolver);
+void StagMGSolver::Define(const BoxArray& ba_in,
+                          const DistributionMapping& dmap_in,
+                          const Geometry& geom_in) {
+
+    BL_PROFILE_VAR("StagMGSolver::Define()",StagMGSolver_Define);
     
     // get the problem domain and boxarray at level 0
     pd_base = geom_in.Domain();
@@ -106,7 +108,7 @@ StagMGSolver::StagMGSolver(const BoxArray& ba_in,
 // alpha_fc, phi_fc, and rhs_fc are face-centered
 // beta_ed is nodal (2d) or edge-centered (3d)
 // phi_fc must come in initialized to some value, preferably a reasonable guess
-void StagMGSolver::solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                          const MultiFab & beta_cc,
                          const std::array<MultiFab, NUM_EDGE> & beta_ed,
                          const MultiFab & gamma_cc,
@@ -114,7 +116,7 @@ void StagMGSolver::solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                          const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
                          const Real & theta_alpha)
 {
-    BL_PROFILE_VAR("StagMGSolver::solve()",StagMGSolver_solve);
+    BL_PROFILE_VAR("StagMGSolver::Solve()",StagMGSolver_Solve);
 
     if (stag_mg_verbosity >= 1) {
         Print() << "Begin call to stag_mg_solver\n";

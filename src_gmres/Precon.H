@@ -15,8 +15,10 @@ class Precon {
 
 public:
 
-    Precon(const BoxArray& ba_in,
-           const DistributionMapping& dmap_in);
+    Precon();
+
+    void Define(const BoxArray& ba_in,
+                const DistributionMapping& dmap_in);
 
     void Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                const MultiFab & b_p,

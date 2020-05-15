@@ -40,9 +40,11 @@ class StagMGSolver {
     
 public:
 
-    StagMGSolver(const BoxArray& ba_in,
-                 const DistributionMapping& dmap_in,
-                 const Geometry& geom_in);
+    StagMGSolver();
+    
+    void Define(const BoxArray& ba_in,
+                const DistributionMapping& dmap_in,
+                const Geometry& geom_in);
 
     // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Jacobi relaxation
     // if abs(visc_type) = 1, L = div beta grad
@@ -54,7 +56,7 @@ public:
     // alpha_fc, phi_fc, and rhs_fc are face-centered
     // beta_ed is nodal (2d) or edge-centered (3d)
     // phi_fc must come in initialized to some value, preferably a reasonable guess
-    void solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+    void Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                const MultiFab & beta_cc,
                const std::array<MultiFab, NUM_EDGE> & beta_ed,
                const MultiFab & gamma_cc,
