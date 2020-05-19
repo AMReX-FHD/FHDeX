@@ -56,7 +56,7 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
             mlmg.setBottomSolver(amrex::MLMG::BottomSolver::smoother);
         }
         else {
-            Abort("MacProj.cpp: only stag_mg_bottom_solver=0");
+            Abort("MacProj.cpp: only mg_bottom_solver=0");
         }
         mlmg.setFixedIter(mg_max_vcycles);
         mlmg.setPreSmooth(mg_nsmooths_down);
