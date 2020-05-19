@@ -133,7 +133,7 @@
   cg_verbose = 0            ! BiCGStab (mg_bottom_solver=1) verbosity
   mg_max_vcycles = 1        ! maximum number of V-cycles
   mg_minwidth = 2           ! length of box at coarsest multigrid level
-  mg_bottom_solver = 4      ! bottom solver type
+  mg_bottom_solver = 0      ! bottom solver type
   ! 0 = smooths only, controlled by mg_nsmooths_bottom
   ! 1 = BiCGStab
   ! 4 = Fancy bottom solve that coarsens down additionally
