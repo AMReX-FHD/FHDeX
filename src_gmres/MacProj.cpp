@@ -52,7 +52,7 @@ void MacProj(const std::array<MultiFab, AMREX_SPACEDIM>& alphainv_fc,
 
     // for the preconditioner, we do 1 v-cycle and the bottom solver is smooths
     if (!full_solve) {
-        if (stag_mg_bottom_solver == 0) {
+        if (mg_bottom_solver == 0) {
             mlmg.setBottomSolver(amrex::MLMG::BottomSolver::smoother);
         }
         else {
