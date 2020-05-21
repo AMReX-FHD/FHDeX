@@ -22,7 +22,7 @@ GMRES::GMRES (const BoxArray& ba_in,
     V_p.define  (ba_in, dmap_in,gmres_max_inner + 1, 0); // Krylov vectors
 
     StagSolver.Define(ba_in,dmap_in,geom_in);
-    Pcon.Define(ba_in,dmap_in);
+    Pcon.Define(ba_in,dmap_in,geom_in);
 }
 
 

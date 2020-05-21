@@ -3,7 +3,8 @@
 Precon::Precon() {}
 
 void Precon::Define(const BoxArray& ba_in,
-                    const DistributionMapping& dmap_in) {
+                    const DistributionMapping& dmap_in,
+                    const Geometry& geom_in) {
 
     BL_PROFILE_VAR("Precon::Define()",Precon);
 
@@ -13,6 +14,9 @@ void Precon::Define(const BoxArray& ba_in,
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         gradp[d].define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1, 0);
     }
+
+    macproj.Define(ba_in,dmap_in,geom_in);
+
 
 }    
 
@@ -78,7 +82,7 @@ void Precon::Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
 
         // use multigrid to solve for Phi
         // x_u^star is only passed in to get a norm for absolute residual criteria
-        MacProj(alphainv_fc,mac_rhs,phi,geom);
+        macproj.Solve(alphainv_fc,mac_rhs,phi,geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi
         SubtractWeightedGradP(x_u,alphainv_fc,phi,gradp,geom);

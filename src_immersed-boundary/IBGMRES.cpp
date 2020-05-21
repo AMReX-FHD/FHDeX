@@ -757,7 +757,9 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         // use multigrid to solve for Phi ......................... phi = Lp^{-1}mac_rhs
         // x_u^star is only passed in to get a norm for absolute residual criteria
-        MacProj(alphainv_fc, mac_rhs, phi, geom);
+        MacProj macproj;
+        macproj.Define(ba,dmap,geom);
+        macproj.solve(alphainv_fc, mac_rhs, phi, geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
         SubtractWeightedGradP(x_u, alphainv_fc, phi, gradp, geom);
@@ -980,7 +982,8 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         JLS_P_rhs.FillBoundary(geom.periodicity());
 
         // use multigrid to solve for Phi ............. JLS_P = Lp^{-1} DA^{-1}S JLS
-        MacProj(alphainv_fc, JLS_P_rhs, JLS_P, geom);
+        
+        macproj.Solve(alphainv_fc, JLS_P_rhs, JLS_P, geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
         SubtractWeightedGradP(JLS_V, alphainv_fc, JLS_P, gradp, geom);

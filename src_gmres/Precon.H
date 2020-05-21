@@ -4,6 +4,8 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 
+#include "MacProj.H"
+
 using namespace amrex;
 
 class Precon {
@@ -12,13 +14,16 @@ class Precon {
     MultiFab mac_rhs;
 
     std::array< MultiFab, AMREX_SPACEDIM > gradp;
+    
+    MacProj macproj;
 
 public:
 
     Precon();
 
     void Define(const BoxArray& ba_in,
-                const DistributionMapping& dmap_in);
+                const DistributionMapping& dmap_in,
+                const Geometry& geom_in);
 
     void Apply(const std::array<MultiFab, AMREX_SPACEDIM> & b_u,
                const MultiFab & b_p,

@@ -8,6 +8,7 @@
 #include "gmres_functions_F.H"
 #include "gmres_namespace.H"
 #include "GMRES.H"
+#include "MacProj.H"
 #include "StagMGSolver.H"
 #include "Precon.H"
 
@@ -59,13 +60,7 @@ void SolveUTriangular(int k,
                       Vector<Real> & s,
                       Vector<Real> & y);
 
-// In MacProj.cpp
-void MacProj(const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
-             MultiFab & mac_rhs,
-             MultiFab & phi,
-             const Geometry & geom,
-             bool full_solve=false);
-
+// In Utility.cpp
 void SubtractWeightedGradP(std::array<MultiFab, AMREX_SPACEDIM> & x_u,
                            const std::array<MultiFab, AMREX_SPACEDIM> & alphainv_fc,
                            MultiFab & phi,

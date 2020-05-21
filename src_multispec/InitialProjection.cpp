@@ -143,7 +143,9 @@ void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // solve to completion, i.e., use the 'full' solver
         phi.setVal(0.);
 
-        MacProj(rhototinv_fc,mac_rhs,phi,geom,true);
+        MacProj macproj;
+        macproj.Define(ba,dmap,geom);
+        macproj.Solve(rhototinv_fc,mac_rhs,phi,geom,true);
         
         // v^0 = v^init - (1/rho^0) grad phi
         SubtractWeightedGradP(umac,rhototinv_fc,phi,gradp,geom);
