@@ -219,36 +219,60 @@ void main_driver(const char* argv)
     // Declare object of StochMomFlux class
     StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
+#ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
-    // structure factor:
+    // Initialize structure factor object for analysis
     ///////////////////////////////////////////
-
+    
+    // variables are velocities
+    int structVars = AMREX_SPACEDIM;
+    
     Vector< std::string > var_names;
-    var_names.resize(AMREX_SPACEDIM);
+    var_names.resize(structVars);
+    
     int cnt = 0;
     std::string x;
-    for (int d=0; d<var_names.size(); d++) {
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
       x = "vel";
       x += (120+d);
       var_names[cnt++] = x;
     }
 
-    MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
+    MultiFab structFactMF(ba, dmap, structVars, 0);
 
-    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
-    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
+    // need to use dVol for scaling
+    Real dVol = dx[0]*dx[1];
+    if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+    } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+    }
+    
+    Vector<Real> var_scaling(structVars*(structVars+1)/2);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./dVol;
+    }
+
+#if 1
+    // option to compute all pairs
+    StructFact structFact(ba,dmap,var_names,var_scaling);
+#else
+    // option to compute only specified pairs
+    int nPairs = 2;
+    amrex::Vector< int > s_pairA(nPairs);
+    amrex::Vector< int > s_pairB(nPairs);
 
     // Select which variable pairs to include in structure factor:
     s_pairA[0] = 0;
     s_pairB[0] = 0;
-    //
     s_pairA[1] = 1;
     s_pairB[1] = 1;
-    //
-#if (AMREX_SPACEDIM == 3)
-    s_pairA[2] = 2;
-    s_pairB[2] = 2;
+    
+    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
+#endif
+    
 #endif
 
     ///////////////////////////////////////////
@@ -323,10 +347,29 @@ void main_driver(const char* argv)
         step_start = 1;
         time = 0.;
 
+#ifndef AMREX_USE_CUDA        
+        // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
+        if (n_steps_skip == 0 && struct_fact_int > 0) {
+
+            // add this snapshot to the average in the structure factor
+
+            // copy velocities into structFactMF
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+            }
+            structFact.FortStructure(structFactMF,geom);
+        }
+#endif
+
         // write out initial state
         // write out umac, tracer, pres, and divergence to a plotfile
         if (plot_int > 0) {
             WritePlotFile(step_start,time,geom,umac,tracer,pres);
+#ifndef AMREX_USE_CUDA
+            if (n_steps_skip == 0 && struct_fact_int > 0) {
+                structFact.WritePlotFile(0,0.,geom,"plt_SF");
+            }
+#endif
         }
 
     }
@@ -357,6 +400,19 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 
+#ifndef AMREX_USE_CUDA
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+
+            // add this snapshot to the average in the structure factor
+
+            // copy velocities into structFactMF
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+            }
+            structFact.FortStructure(structFactMF,geom);
+        }
+#endif
+        
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
 
@@ -367,6 +423,11 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, tracer, pres, and divergence to a plotfile
             WritePlotFile(step,time,geom,umac,tracer,pres);
+#ifndef AMREX_USE_CUDA
+            if (step > n_steps_skip && struct_fact_int > 0) {
+                structFact.WritePlotFile(step,time,geom,"plt_SF");
+            }
+#endif
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
