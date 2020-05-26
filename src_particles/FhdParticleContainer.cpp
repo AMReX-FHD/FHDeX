@@ -816,9 +816,9 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                 for(int kk = kklo; kk <= kkhi; kk++)
                 {
                     // get distance between particles
-                    dx = abs(part.pos(0)-posx[j] - ii*domx);
-                    dy = abs(part.pos(1)-posy[j] - jj*domy);
-                    dz = abs(part.pos(2)-posz[j] - kk*domz);
+                    dx = std::abs(part.pos(0)-posx[j] - ii*domx);
+                    dy = std::abs(part.pos(1)-posy[j] - jj*domy);
+                    dz = std::abs(part.pos(2)-posz[j] - kk*domz);
 
                     dist = sqrt(dx*dx + dy*dy + dz*dz);
 

@@ -415,8 +415,8 @@ void FhdParticleContainer::ApplyThermostat(species* particleInfo, MultiFab& cell
     //debug line
     //printf("%f %f %f %f %f %f\n", meanLx, meanRx, meanLy, meanRy, meanLz, meanRz);
 
-    Real netV = abs(meanLx) + abs(meanRx) + abs(meanLy) + abs(meanRy) + 
-                abs(meanLz) + abs(meanRz);
+    Real netV = std::abs(meanLx) + std::abs(meanRx) + std::abs(meanLy) + std::abs(meanRy) + 
+                std::abs(meanLz) + std::abs(meanRz);
 
 
     //if netV is 0, no thermostatting is necc
