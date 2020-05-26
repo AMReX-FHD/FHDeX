@@ -703,7 +703,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     // 6 = upper triangular + viscosity-based BFBt Schur complement (from Georg Stadler)
 
     // projection preconditioner
-    if (abs(precon_type) == 1) {
+    if (std::abs(precon_type) == 1) {
 
         //_______________________________________________________________________
         // Temporary arrays
@@ -1024,15 +1024,15 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                 CCApplyNegLap(phi, x_p, alphainv_fc, geom);
             }
 
-            if ( abs(visc_type) == 1 || abs(visc_type) == 2) {
+            if ( std::abs(visc_type) == 1 || std::abs(visc_type) == 2) {
                 // multiply x_p by beta; x_p = -beta L_alpha Phi
                 MultiFab::Multiply(x_p, beta, 0, 0, 1, 0);
 
-                if (abs(visc_type) == 2) {
+                if (std::abs(visc_type) == 2) {
                     // multiply by c=2; x_p = -2*beta L_alpha Phi
                     x_p.mult(2., 0, 1, 0);
                 }
-            } else if (abs(visc_type) == 3) {
+            } else if (std::abs(visc_type) == 3) {
 
                 // multiply x_p by gamma, use mac_rhs a temparary to save x_p
                 MultiFab::Copy(mac_rhs, x_p, 0, 0, 1, 0);

@@ -997,7 +997,9 @@ void main_driver(const char* argv)
 	//_______________________________________________________________________
 	// Update structure factor
 #ifndef AMREX_USE_CUDA
-        if (struct_fact_int > 0 && istep > abs(n_steps_skip) && (istep-abs(n_steps_skip)-1)%struct_fact_int == 0) {
+        if (struct_fact_int > 0 &&
+            istep > std::abs(n_steps_skip) &&
+            (istep-std::abs(n_steps_skip)-1)%struct_fact_int == 0) {
 
             // charge
             MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
