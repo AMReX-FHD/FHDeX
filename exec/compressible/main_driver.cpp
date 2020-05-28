@@ -182,7 +182,7 @@ void main_driver(const char* argv)
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     
-    MultiFab cuVertAvg;  // flattened multifab defined below
+    MultiFab primVertAvg;  // flattened multifab defined below
 
     MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
@@ -382,54 +382,65 @@ void main_driver(const char* argv)
     // Structure factor:
     ///////////////////////////////////////////
 
-    // variables are rho, velocity, and temperature
-    int structVars = AMREX_SPACEDIM+2;
+    // "primitive" variable structure factor will contain
+    // rho
+    // vel
+    // T
+    // Yk
+    int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
 
-    Vector< std::string > var_names;
-    var_names.resize(structVars);
+    Vector< std::string > prim_var_names;
+    prim_var_names.resize(structVarsPrim);
 
     cnt = 0;
     std::string x;
 
     // rho
-    var_names[cnt++] = "rho";
+    prim_var_names[cnt++] = "rho";
 
     // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
       x = "vel";
       x += (120+d);
-      var_names[cnt++] = x;
+      prim_var_names[cnt++] = x;
     }
 
     // Temp
-    var_names[cnt++] = "Temp";
+    prim_var_names[cnt++] = "Temp";
 
-    MultiFab structFactMF;
-    structFactMF.define(ba, dmap, structVars, 0);
+    // Yk
+    for (int d=0; d<nspecies; d++) {
+      x = "Y";
+      x += (49+d);
+      prim_var_names[cnt++] = x;
+    }
+
+    MultiFab structFactPrimMF;
+    structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
 
     // scale SF results by inverse cell volume    
-    Vector<Real> var_scaling(structVars*(structVars+1)/2);
+    Vector<Real> var_scaling(structVarsPrim*(structVarsPrim+1)/2);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
 #if 1
     // option to compute all pairs
-    StructFact structFact(ba,dmap,var_names,var_scaling);
+    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
 #else
     Abort("StructFact option to compute only speicified pairs not written yet");
 #endif
     
     // structure factor class for vertically-averaged dataset
-    StructFact structFactVA;
+    StructFact structFactPrimVerticalAverage;
     
     Geometry geom_flat;
 
     if(project_dir >= 0){
-      cu.setVal(0.0);
-      ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-      BoxArray ba_flat = cuVertAvg.boxArray();
-      const DistributionMapping& dmap_flat = cuVertAvg.DistributionMap();
+      prim.setVal(0.0);
+      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+      BoxArray ba_flat = primVertAvg.boxArray();
+      const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
       {
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
@@ -449,8 +460,8 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactVA.~StructFact(); // destruct
-      new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,var_scaling); // reconstruct
+      structFactPrimVerticalAverage.~StructFact(); // destruct
+      new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
     }
 #endif
@@ -565,19 +576,19 @@ void main_driver(const char* argv)
 #ifndef AMREX_USE_CUDA
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(structFactMF, prim, 0, 0, structVars, 0);
-            structFact.FortStructure(structFactMF,geom);
+            MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim, 0);
+            structFactPrim.FortStructure(structFactPrimMF,geom);
             if(project_dir >= 0) {
-                ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-                structFactVA.FortStructure(cuVertAvg,geom_flat);
+                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
             }
         }
 
         // write out structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
-            structFact.WritePlotFile(step,time,geom,"plt_SF");
+            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
             if(project_dir >= 0) {
-                structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
+                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
             }
         }
 #endif
