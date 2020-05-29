@@ -418,8 +418,9 @@ void main_driver(const char* argv)
     MultiFab structFactPrimMF;
     structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
 
-    // scale SF results by inverse cell volume    
-    Vector<Real> var_scaling(structVarsPrim*(structVarsPrim+1)/2);
+    // scale SF results by inverse cell volume
+    Vector<Real> var_scaling;
+    var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
     for (int d=0; d<var_scaling.size(); ++d) {
         var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
@@ -428,8 +429,64 @@ void main_driver(const char* argv)
     // option to compute all pairs
     StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
 #else
-    Abort("StructFact option to compute only speicified pairs not written yet");
+    Abort("StructFactPrim option to compute only speicified pairs not written yet");
 #endif
+    
+    //////////////////////////////////////////////
+
+    // "conserved" variable structure factor will contain
+    // rho
+    // j
+    // rho*E
+    // rho*Yk
+    // Temperature (not in the conserved array; will have to copy it in)
+    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
+
+    Vector< std::string > cons_var_names;
+    cons_var_names.resize(structVarsCons);
+
+    cnt = 0;
+
+    // rho
+    cons_var_names[cnt++] = "rho";
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "j";
+      x += (120+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // rho*E
+    cons_var_names[cnt++] = "rhoE";
+
+    // rho*Yk
+    for (int d=0; d<nspecies; d++) {
+      x = "rhoY";
+      x += (49+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // Temp
+    cons_var_names[cnt++] = "Temp";
+
+    MultiFab structFactConsMF;
+    structFactConsMF.define(ba, dmap, structVarsCons, 0);
+
+    // scale SF results by inverse cell volume
+    var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    }
+
+#if 1
+    // option to compute all pairs
+    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
+#else
+    Abort("StructFactCons option to compute only speicified pairs not written yet");
+#endif    
+
+    //////////////////////////////////////////////
     
     // structure factor class for vertically-averaged dataset
     StructFact structFactPrimVerticalAverage;
@@ -577,7 +634,10 @@ void main_driver(const char* argv)
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim, 0);
+            MultiFab::Copy(structFactConsMF, cu,   0, 0, structVarsCons, 0);
+            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1, 0); // temperature too
             structFactPrim.FortStructure(structFactPrimMF,geom);
+            structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
                 ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
                 structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
@@ -587,6 +647,7 @@ void main_driver(const char* argv)
         // write out structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
             structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
                 structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
             }
