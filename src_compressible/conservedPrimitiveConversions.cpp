@@ -2,6 +2,8 @@
 
 void conservedToPrimitive(MultiFab& prim, const MultiFab& cons)
 {
+    BL_PROFILE_VAR("conservedToPrimitive()",conservedToPrimitive);
+
     // Loop over boxes
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi) {
         

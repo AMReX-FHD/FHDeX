@@ -2,6 +2,8 @@
 
 void setBC(MultiFab& prim, MultiFab& cons)
 {
+    BL_PROFILE_VAR("setBC()",setBC);
+    
     // Loop over boxes
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi) {
 
