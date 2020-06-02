@@ -134,8 +134,11 @@ void GetMolfrac ( Real const * const Yk,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetTemperature ( Real const energy,
-                      Real const * const massfrac,
+void GetTemperature ( int i,
+                      int j,
+                      int k
+                      Real const energy,
+                      const Array4<Real>& massfrac,
                       Real& temp,
                       int const nspecies,
                       Real const * const AMREX_RESTRICT hcv)
@@ -144,7 +147,7 @@ void GetTemperature ( Real const energy,
     Real e0 = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        cvmix += massfrac[n]/hcv[n];
+        cvmix += massfrac(i,j,k,n)/hcv[n];
     }
 
     temp = (energy-e0)/cvmix;
