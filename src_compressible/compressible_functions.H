@@ -47,7 +47,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& visccorn, MultiFab& rancorn,
              const Geometry geom, const Real* dx, const Real dt);
 
-void conservedToPrimitive(MultiFab& prim, const MultiFab& cons);
+void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
 
 void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
@@ -114,5 +114,62 @@ void ReadCheckPoint(int& step,
                      MultiFab& spatialCross,
                      MultiFab& eta,
                      MultiFab& kappa);
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMolfrac ( Real const * const Yk,
+                  Real       * const Xk,
+                  int const nspecies,
+                  Real const * const AMREX_RESTRICT molmass)
+{
+    Real molmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Yk[n]/molmass[n];
+    }
+    molmix = 1./molmix;
+    for (int n=0; n<nspecies; ++n) {
+        Xk[n] = Yk[n]*molmix/molmass[n];
+    }
+
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetTemperature ( Real const energy,
+                      Real const * const massfrac,
+                      Real& temp,
+                      int const nspecies,
+                      Real const * const AMREX_RESTRICT hcv)
+{
+    Real cvmix = 0.;
+    Real e0 = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        cvmix += massfrac[n]/hcv[n];
+    }
+
+    temp = (energy-e0)/cvmix;
+    
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetPressureGas ( Real& pressure,
+                      Real const * const fracvec,
+                      Real const density,
+                      Real const temp,
+                      int const nspecies,
+                      Real const Runiv,
+                      Real const * const AMREX_RESTRICT molmass)
+{
+    Real molmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix = molmix + fracvec[n]/molmass[n];
+    }
+    molmix = 1./molmix;
+
+    pressure = density*(Runiv/molmix)*temp;
+    
+};
+
 
 #endif
