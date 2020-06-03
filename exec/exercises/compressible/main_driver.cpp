@@ -438,7 +438,7 @@ void main_driver(const char* argv)
     prim.setVal(rho0,0,1,ngc);      // density
     prim.setVal(0.,1,3,ngc);        // x/y/z velocity
     prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in cons_to_prim
+                                    // pressure computed later in conservedToPrimitive
     for(int i=0;i<nspecies;i++) {
         prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
     }
