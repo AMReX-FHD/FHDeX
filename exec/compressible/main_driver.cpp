@@ -34,6 +34,15 @@ void main_driver(const char* argv)
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     get_hc_gas();
+    // now update C++ values
+    for (int i=0; i<nspecies; ++i) {
+        if (hcv[i] < 0.) {
+            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
+        }
+        if (hcp[i] < 0.) {
+            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
+        }
+    }
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -533,7 +542,7 @@ void main_driver(const char* argv)
     prim.setVal(rho0,0,1,ngc);      // density
     prim.setVal(0.,1,3,ngc);        // x/y/z velocity
     prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in cons_to_prim
+                                    // pressure computed later in conservedToPrimitive
     for(int i=0;i<nspecies;i++) {
         prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
     }
