@@ -41,6 +41,7 @@ contains
     
     ! fourth order interpolation
     wgt2 = 1.0/12.0
+    wgt2 = 0.d0
     wgt1 = 0.5 + wgt2 
     
     ! ! second order interpolation
@@ -1733,12 +1734,12 @@ contains
                prim(i-1,j,k,4)-prim(i-1,j,k-1,4) + prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3)
 
           visccorn(i,j,k) =  (muxp/12d0+zetaxp/4d0)*( & ! Divergence stress
-               (prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,k-1,2)-prim(i-1,j,k-1,2))/dx(1) + &
-               (prim(i,j-1,k,2)-prim(i-1,j-1,k,2))/dx(1) + (prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1) + &
-               (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,k-1,3)-prim(i,j-1,k-1,3))/dx(2) + &
-               (prim(i-1,j,k,3)-prim(i-1,j-1,k,3))/dx(2) + (prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2) + &
-               (prim(i-1,j-1,k,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,4)-prim(i,j-1,k-1,4))/dx(3) + &
-               (prim(i-1,j,k,4)-prim(i-1,j,k-1,4))/dx(3) + (prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3))
+               (prim(i,  j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,  k-1,2)-prim(i-1,j  ,k-1,2))/dx(1) + &
+               (prim(i,  j-1,k  ,2)-prim(i-1,j-1,k,  2))/dx(1) + (prim(i,j,  k,  2)-prim(i-1,j  ,k,  2))/dx(1) + &
+               (prim(i-1,j  ,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,  k-1,3)-prim(i  ,j-1,k-1,3))/dx(2) + &
+               (prim(i-1,j  ,k  ,3)-prim(i-1,j-1,k  ,3))/dx(2) + (prim(i,j,  k,  3)-prim(i  ,j-1,k,  3))/dx(2) + &
+               (prim(i-1,j-1,k  ,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,  4)-prim(i  ,j-1,k-1,4))/dx(3) + &
+               (prim(i-1,j  ,k  ,4)-prim(i-1,j  ,k-1,4))/dx(3) + (prim(i,j,  k,  4)-prim(i  ,j  ,k-1,4))/dx(3))
 
        end do
        end do

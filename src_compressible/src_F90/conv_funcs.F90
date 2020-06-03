@@ -203,6 +203,8 @@ contains
 
     ! FIXME: this energy not scaled by density
     intenergy = pressure*3d0/2d0
+    write(6,*) "called get_energy_gas, which is wrong"
+    stop
 
   end subroutine get_energy_gas
 
