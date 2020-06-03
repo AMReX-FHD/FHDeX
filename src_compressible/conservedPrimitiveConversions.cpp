@@ -17,7 +17,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         hcv_vect_host[n] = hcv[n];
     }
     amrex::Gpu::DeviceVector<amrex::Real> hcv_vect(nspecies); // create vector on GPU and copy values over
-    amrex::Gpu::copy(amrex::Gpu::HostToDevice,
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice,
                      hcv_vect_host.begin(),hcv_vect_host.end(),
                      hcv_vect.begin());
     Real const * const AMREX_RESTRICT hcv_gpu = hcv_vect.dataPtr(); // pointer to data
@@ -28,7 +28,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         molmass_vect_host[n] = molmass[n];
     }
     amrex::Gpu::DeviceVector<amrex::Real> molmass_vect(nspecies); // create vector on GPU and copy values over
-    amrex::Gpu::copy(amrex::Gpu::HostToDevice,
+    amrex::Gpu::copy(amrex::Gpu::hostToDevice,
                      molmass_vect_host.begin(),molmass_vect_host.end(),
                      molmass_vect.begin());
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
@@ -39,29 +39,31 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         const Box& bx = mfi.tilebox();
 
 #if 0        
+
         cons_to_prim(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
                        cons_in[mfi].dataPtr(),  
                        prim_in[mfi].dataPtr());
-#endif        
+
+#else
 
         const Array4<const Real>& cons = cons_in.array(mfi);
         const Array4<      Real>& prim = prim_in.array(mfi);
 
         // this is allocated on the DEVICE (no page faults)
         FArrayBox Yk_fab(bx,nspecies);
-        const Array4<Real>& Yk = Yk_fab.array(mfi);
+        const Array4<Real>& Yk = Yk_fab.array();
         // make sure Yk_fab doesn't go out of scope once the CPU finishes and GPU isn't done
         auto Yk_eli = Yk_fab.elixir();
 
         // this is allocated on the DEVICE (no page faults)
         FArrayBox Yk_fixed_fab(bx,nspecies);
-        const Array4<Real>& Yk_fixed = Yk_fixed_fab.array(mfi);
+        const Array4<Real>& Yk_fixed = Yk_fixed_fab.array();
         // make sure Yk_fixed_fab doesn't go out of scope once the CPU finishes and GPU isn't done
         auto Yk_fixed_eli = Yk_fixed_fab.elixir();
         
         // this is allocated on the DEVICE (no page faults)
         FArrayBox Xk_fab(bx,nspecies);
-        const Array4<Real>& Xk = Xk_fab.array(mfi);
+        const Array4<Real>& Xk = Xk_fab.array();
         // make sure Xk_fab doesn't go out of scope once the CPU finishes and GPU isn't done
         auto Xk_eli = Xk_fab.elixir();
         
@@ -104,5 +106,8 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             GetPressureGas(i,j,k,prim(i,j,k,5),Yk,prim(i,j,k,0),prim(i,j,k,4),nspecies_gpu,Runiv_gpu,molmass_gpu);
             
         });
+
+#endif        
+
     } // end MFIter
 }
