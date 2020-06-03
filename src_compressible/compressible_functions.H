@@ -116,29 +116,28 @@ void ReadCheckPoint(int& step,
                      MultiFab& kappa);
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetMolfrac ( Real const * const Yk,
-                  Real       * const Xk,
+void GetMolfrac ( int i, int j, int k,
+                  const Array4<Real>& Yk,
+                  const Array4<Real>& Xk,
                   int const nspecies,
                   Real const * const AMREX_RESTRICT molmass)
 {
     Real molmix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        molmix += Yk[n]/molmass[n];
+        molmix += Yk(i,j,k,n)/molmass[n];
     }
     molmix = 1./molmix;
     for (int n=0; n<nspecies; ++n) {
-        Xk[n] = Yk[n]*molmix/molmass[n];
+        Xk(i,j,k,n) = Yk(i,j,k,n)*molmix/molmass[n];
     }
 
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetTemperature ( int i,
-                      int j,
-                      int k
+void GetTemperature ( int i, int j, int k,
                       Real const energy,
-                      const Array4<Real>& massfrac,
+                      const Array4<Real>& Yk,
                       Real& temp,
                       int const nspecies,
                       Real const * const AMREX_RESTRICT hcv)
@@ -147,7 +146,7 @@ void GetTemperature ( int i,
     Real e0 = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        cvmix += massfrac(i,j,k,n)/hcv[n];
+        cvmix += Yk(i,j,k,n)/hcv[n];
     }
 
     temp = (energy-e0)/cvmix;
@@ -155,8 +154,9 @@ void GetTemperature ( int i,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetPressureGas ( Real& pressure,
-                      Real const * const fracvec,
+void GetPressureGas ( int i, int j, int k,
+                      Real& pressure,
+                      const Array4<Real>& Yk,
                       Real const density,
                       Real const temp,
                       int const nspecies,
@@ -166,7 +166,7 @@ void GetPressureGas ( Real& pressure,
     Real molmix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        molmix = molmix + fracvec[n]/molmass[n];
+        molmix = molmix + Yk(i,j,k,n)/molmass[n];
     }
     molmix = 1./molmix;
 
