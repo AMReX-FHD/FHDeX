@@ -12,39 +12,32 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
     Real Runiv_gpu = Runiv;
 
     // from namelist
-    amrex::Vector<amrex::Real> hcv_vect_host(nspecies); // create a vector on the host and copy the values in
+    Vector<Real> hcv_vect_host(nspecies); // create a vector on the host and copy the values in
     for (int n=0; n<nspecies; ++n) {
         hcv_vect_host[n] = hcv[n];
     }
-    amrex::Gpu::DeviceVector<amrex::Real> hcv_vect(nspecies); // create vector on GPU and copy values over
-    amrex::Gpu::copy(amrex::Gpu::hostToDevice,
-                     hcv_vect_host.begin(),hcv_vect_host.end(),
-                     hcv_vect.begin());
+    Gpu::DeviceVector<Real> hcv_vect(nspecies); // create vector on GPU and copy values over
+    Gpu::copy(Gpu::hostToDevice,
+              hcv_vect_host.begin(),hcv_vect_host.end(),
+              hcv_vect.begin());
+    
     Real const * const AMREX_RESTRICT hcv_gpu = hcv_vect.dataPtr(); // pointer to data
 
     // from namelist
-    amrex::Vector<amrex::Real> molmass_vect_host(nspecies); // create a vector on the host and copy the values in
+    Vector<Real> molmass_vect_host(nspecies); // create a vector on the host and copy the values in
     for (int n=0; n<nspecies; ++n) {
         molmass_vect_host[n] = molmass[n];
     }
-    amrex::Gpu::DeviceVector<amrex::Real> molmass_vect(nspecies); // create vector on GPU and copy values over
-    amrex::Gpu::copy(amrex::Gpu::hostToDevice,
-                     molmass_vect_host.begin(),molmass_vect_host.end(),
-                     molmass_vect.begin());
+    Gpu::DeviceVector<Real> molmass_vect(nspecies); // create vector on GPU and copy values over
+    Gpu::copy(Gpu::hostToDevice,
+              molmass_vect_host.begin(),molmass_vect_host.end(),
+              molmass_vect.begin());
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
     
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
         
         const Box& bx = mfi.tilebox();
-
-#if 0        
-
-        cons_to_prim(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-                       cons_in[mfi].dataPtr(),  
-                       prim_in[mfi].dataPtr());
-
-#else
 
         const Array4<const Real>& cons = cons_in.array(mfi);
         const Array4<      Real>& prim = prim_in.array(mfi);
@@ -71,7 +64,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         {
             // option if MAX_SPECIES is a compile-time constant
             // Real Yk[MAX_SPECIES];
-            
+
             prim(i,j,k,0) = cons(i,j,k,0);
             prim(i,j,k,1) = cons(i,j,k,1)/cons(i,j,k,0);
             prim(i,j,k,2) = cons(i,j,k,2)/cons(i,j,k,0);
@@ -88,14 +81,14 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             }
             
             for (int n=0; n<nspecies_gpu; ++n) {
-                Yk_fixed(i,j,k,n) = Yk_fixed(i,j,k,n) / sumYk;
+                Yk_fixed(i,j,k,n) /= sumYk;
             }
 
             // update temperature in-place using internal energy
-            GetTemperature(i,j,k,intenergy,Yk_fixed,prim(i,j,k,4),nspecies_gpu,hcv_gpu);
+            GetTemperature(i,j,k, intenergy, Yk_fixed, prim(i,j,k,4), nspecies_gpu, hcv_gpu);
 
             // compute mole fractions from mass fractions
-            GetMolfrac(i,j,k,Yk,Xk,nspecies_gpu,molmass_gpu);
+            GetMolfrac(i,j,k, Yk, Xk, nspecies_gpu, molmass_gpu);
 
             // mass fractions
             for (int n=0; n<nspecies_gpu; ++n) {
@@ -103,11 +96,8 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
                 prim(i,j,k,6+nspecies_gpu+n) = Xk(i,j,k,n);
             }
 
-            GetPressureGas(i,j,k,prim(i,j,k,5),Yk,prim(i,j,k,0),prim(i,j,k,4),nspecies_gpu,Runiv_gpu,molmass_gpu);
-            
+            GetPressureGas(i,j,k, prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4), nspecies_gpu, Runiv_gpu, molmass_gpu);
         });
-
-#endif        
-
+        
     } // end MFIter
 }

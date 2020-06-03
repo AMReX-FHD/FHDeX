@@ -146,11 +146,10 @@ void GetTemperature ( int i, int j, int k,
     Real e0 = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        cvmix += Yk(i,j,k,n)/hcv[n];
+        cvmix += Yk(i,j,k,n)*hcv[n];
     }
 
     temp = (energy-e0)/cvmix;
-    
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -166,12 +165,11 @@ void GetPressureGas ( int i, int j, int k,
     Real molmix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        molmix = molmix + Yk(i,j,k,n)/molmass[n];
+        molmix += Yk(i,j,k,n)/molmass[n];
     }
     molmix = 1./molmix;
 
     pressure = density*(Runiv/molmix)*temp;
-    
 };
 
 

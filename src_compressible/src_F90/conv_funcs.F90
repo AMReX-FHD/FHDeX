@@ -7,63 +7,11 @@ module conv_module
 
   private
 
-  public :: cons_to_prim, get_temperature, get_density, get_energy, get_molfrac, &
+  public :: get_temperature, get_density, get_energy, get_molfrac, &
        get_massfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, &
        get_temperature_gas, get_energy_gas
 
 contains
-
-  subroutine cons_to_prim(lo,hi, cons, prim) bind(C,name="cons_to_prim")
-
-    integer         , intent(in   ) :: lo(3),hi(3)
-
-    real(amrex_real), intent(inout) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
-    real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
-
-    integer :: i,j,k,ns
-
-    real(amrex_real) :: vsqr, sumYk, Yk(nspecies), Yk_fixed(nspecies), Xk(nspecies), intenergy
-
-    do k = lo(3),hi(3)
-    do j = lo(2),hi(2)
-    do i = lo(1),hi(1)
-
-       prim(i,j,k,1) = cons(i,j,k,1)
-       prim(i,j,k,2) = cons(i,j,k,2)/cons(i,j,k,1)
-       prim(i,j,k,3) = cons(i,j,k,3)/cons(i,j,k,1)
-       prim(i,j,k,4) = cons(i,j,k,4)/cons(i,j,k,1)
-
-       vsqr = prim(i,j,k,2)**2 + prim(i,j,k,3)**2 + prim(i,j,k,4)**2
-       intenergy = cons(i,j,k,5)/cons(i,j,k,1) - 0.5*vsqr
-
-       sumYk = 0.d0
-       do ns = 1, nspecies
-          Yk(ns) = cons(i,j,k,5+ns)/cons(i,j,k,1)
-          Yk_fixed(ns) = max(0.d0,min(1.d0,Yk(ns)))
-          sumYk = sumYk + Yk_fixed(ns)
-       enddo
-
-       Yk_fixed(:) = Yk_fixed(:)/sumYk
-
-       ! update temperature in-place using internal energy
-       call get_temperature(intenergy, Yk_fixed, prim(i,j,k,5))
-
-       ! compute mole fractions from mass fractions
-       call get_molfrac(Yk, Xk)
-
-       ! mass fractions
-       do ns = 1, nspecies
-          prim(i,j,k,6+ns) = Yk(ns)
-          prim(i,j,k,6+nspecies+ns) = Xk(ns)
-       enddo
-
-       call get_pressure_gas(prim(i,j,k,6), Yk, prim(i,j,k,1), prim(i,j,k,5))
-
-    enddo
-    enddo
-    enddo
-
-  end subroutine cons_to_prim
 
   subroutine get_temperature(energy, massfrac, temp)     
 
