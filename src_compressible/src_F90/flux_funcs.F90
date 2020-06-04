@@ -240,8 +240,8 @@ contains
     integer :: i,j,k,l,n
     
     ! ! fourth order interpolation
-    wgt2 = 1.0/12.0
-    wgt1 = 0.5 + wgt2
+    wgt2 = 1.0d0/12.0d0
+    wgt1 = 0.5d0 + wgt2
     
     ! ! second order interpolation
     ! wgt2 = 0
