@@ -97,6 +97,10 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             }
 
             GetPressureGas(i,j,k, prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4), nspecies_gpu, Runiv_gpu, molmass_gpu);
+    //        if( j==2 && k==2){
+    //             std::cout << " i " << i << std::endl;
+    //             std::cout << std::setprecision(17) << " prims " << prim(i,j,k,0) << " " <<prim(i,j,k,1) << " " << intenergy << " " << prim(i,j,k,4) << " " << prim(i,j,k,5) << std::endl;
+    //        }
         });
         
     } // end MFIter
