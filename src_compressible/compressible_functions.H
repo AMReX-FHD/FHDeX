@@ -47,7 +47,7 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& visccorn, MultiFab& rancorn,
              const Geometry geom, const Real* dx, const Real dt);
 
-void conservedToPrimitive(MultiFab& prim, const MultiFab& cons);
+void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
 
 void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
@@ -114,5 +114,63 @@ void ReadCheckPoint(int& step,
                      MultiFab& spatialCross,
                      MultiFab& eta,
                      MultiFab& kappa);
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMolfrac ( int i, int j, int k,
+                  const Array4<Real>& Yk,
+                  const Array4<Real>& Xk,
+                  int const nspecies,
+                  Real const * const AMREX_RESTRICT molmass)
+{
+    Real molmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Yk(i,j,k,n)/molmass[n];
+    }
+    molmix = 1./molmix;
+    for (int n=0; n<nspecies; ++n) {
+        Xk(i,j,k,n) = Yk(i,j,k,n)*molmix/molmass[n];
+    }
+
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetTemperature ( int i, int j, int k,
+                      Real const energy,
+                      const Array4<Real>& Yk,
+                      Real& temp,
+                      int const nspecies,
+                      Real const * const AMREX_RESTRICT hcv)
+{
+    Real cvmix = 0.;
+    Real e0 = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        cvmix += Yk(i,j,k,n)*hcv[n];
+    }
+
+    temp = (energy-e0)/cvmix;
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetPressureGas ( int i, int j, int k,
+                      Real& pressure,
+                      const Array4<Real>& Yk,
+                      Real const density,
+                      Real const temp,
+                      int const nspecies,
+                      Real const Runiv,
+                      Real const * const AMREX_RESTRICT molmass)
+{
+    Real molmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Yk(i,j,k,n)/molmass[n];
+    }
+    molmix = 1./molmix;
+
+    pressure = density*(Runiv/molmix)*temp;
+};
+
 
 #endif

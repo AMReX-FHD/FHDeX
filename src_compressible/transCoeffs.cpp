@@ -4,6 +4,8 @@ void calculateTransportCoeffs(const MultiFab& prim,
 			      MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
 			      MultiFab& chi, MultiFab& D)
 {
+    BL_PROFILE_VAR("calculateTransportCoeffs()",calculateTransportCoeffs);
+    
     // Loop over boxes
     for ( MFIter mfi(prim); mfi.isValid(); ++mfi) {
         

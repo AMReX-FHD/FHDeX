@@ -1,8 +1,6 @@
 #include "compressible_functions.H"
 #include "common_functions.H"
 
-
-
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
                    const MultiFab& chi, const MultiFab& D,
@@ -17,6 +15,8 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		   const amrex::Vector< amrex::Real >& stoch_weights,
 		   const amrex::Real* dx, const amrex::Real dt)
 {
+    BL_PROFILE_VAR("calculateFlux()",calculateFlux);
+    
     AMREX_D_TERM(flux[0].setVal(0);,
                  flux[1].setVal(0);,
                  flux[2].setVal(0););
