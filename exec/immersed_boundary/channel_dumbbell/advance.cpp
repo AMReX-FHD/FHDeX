@@ -282,8 +282,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
             // Get previous and next markers connected to current marker (if they exist)
-            const ParticleType * next_marker = NULL;
-            const ParticleType * prev_marker = NULL;
+            ParticleType * next_marker = NULL;
+            ParticleType * prev_marker = NULL;
 
             int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
                                                 prev_marker, next_marker);
@@ -372,9 +372,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 1);
 
     // call GMRES to compute predictor
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    GMRES gmres(ba, dmap, geom);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,
+                beta_ed_wtd, gamma_wtd, theta_alpha, geom, norm_pre_rhs);
 
     // Compute predictor advective term
     // let rho = 1
@@ -447,8 +447,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
 
             // Get previous and next markers connected to current marker (if they exist)
-            const ParticleType * next_marker = NULL;
-            const ParticleType * prev_marker = NULL;
+            ParticleType * next_marker = NULL;
+            ParticleType * prev_marker = NULL;
 
             int status = ib_mc.ConnectedMarkers(ib_lev, index, m_index,
                                                 prev_marker, next_marker);
@@ -520,9 +520,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     SetPressureBC(pres, geom);
 
     // call GMRES here
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,
+                beta_ed_wtd, gamma_wtd, theta_alpha, geom, norm_pre_rhs);
 
     for (int i=0; i<AMREX_SPACEDIM; i++)
         MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);

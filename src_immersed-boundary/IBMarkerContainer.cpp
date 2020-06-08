@@ -368,7 +368,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 int IBMarkerContainer::ConnectedMarkers(
             int lev, const TileIndex & tile, MarkerListIndex & part_index,
-            const ParticleType *& prev_marker, const ParticleType *& next_marker
+            ParticleType *& prev_marker,     ParticleType *& next_marker
         ) {
 
     BL_PROFILE_VAR("IBMarkerContainer::ConnectedMarkers", FindNeighbors);
@@ -428,8 +428,8 @@ int IBMarkerContainer::ConnectedMarkers(
     // }
 
     int nn = part_index.second;
-    for (const auto & p2 : nbor_data.getNeighbors(part_index.first)) {
-        const ParticleType * npart = & p2; // Get pointer to neighbor particle
+    for (auto & p2 : nbor_data.getNeighbors(part_index.first)) {
+        ParticleType * npart = & p2; // Get pointer to neighbor particle
 
         // Check if the neighbor candidate is the previous/minus neighbor
         if (        (npart->id() == part.idata(IBMInt::id_0))
