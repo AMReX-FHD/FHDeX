@@ -404,7 +404,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // crank-nicolson terms
-    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
+                alpha_fc_0, dx, theta_alpha);
 
 
     //___________________________________________________________________________
@@ -422,15 +423,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move markers according to velocity
     ib_mc.MoveMarkers(0, dt);
+
+    ib_mc.clearNeighbors();
     ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
-    // Update forces between markers (these repeated clear/fill/build neighbor
-    // calls might be redundant)
-    ib_mc.clearNeighbors();
+    // Update forces between markers
     ib_mc.fillNeighbors(); // Does ghost cells
-
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
 
