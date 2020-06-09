@@ -31,9 +31,9 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
 		   const Vector< Real >& stoch_weights,
 	           const Real* dx, const Real dt);
 
-void calculateTransportCoeffs(const MultiFab& prim, 
-			      MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
-			      MultiFab& chi, MultiFab& D);
+void calculateTransportCoeffs(const MultiFab& prim_in,
+			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+			      MultiFab& chi_in, MultiFab& Dij_in);
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,
@@ -172,5 +172,38 @@ void GetPressureGas ( int i, int j, int k,
     pressure = density*(Runiv/molmix)*temp;
 };
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void IdealMixtureTransport ( int i, int j, int k,
+                             Real const density,
+                             Real const temperature,
+                             Real const pressure,
+                             const Array4<Real>& Yk,
+                             const Array4<Real>& Xk,
+                             Real& eta,
+                             Real& kappa,
+                             Real& zeta,
+                             const Array4<Real>& diff_ij,
+                             const Array4<Real>& chitil,
+                             const Array4<Real>& xxtr,
+                             int const nspecies,
+                             Real const * const AMREX_RESTRICT molmass)
+{
 
+    // mole fracions correction - EGLIB
+    for (int ii=0; ii<nspecies; ++ii) {
+        Real sumXk = 0.;
+        for (int jj=0; jj<nspecies; ++jj) {
+            sumXk += Xk(i,j,k,jj);
+        }
+        // GM: Why this factor of 1E-15???
+        xxtr(i,j,k,ii) = Xk(i,j,k,ii) + 1.e-15*(sumXk/nspecies - Xk(i,j,k,ii));
+    }
+    
+    // molecular weight of mixture - EGLIB
+    Real MWmix = 0.;
+    for (int ii=0; ii<nspecies; ++ii) {
+        MWmix += xxtr(i,j,k,ii)*molmass[ii];
+    }
+};
+                      
 #endif
