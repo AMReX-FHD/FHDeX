@@ -24,6 +24,8 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
     Real const * const AMREX_RESTRICT hcv_gpu = hcv_vect.dataPtr(); // pointer to data
 
     // from namelist
+
+    /* OLD WAY
     Vector<Real> molmass_vect_host(nspecies); // create a vector on the host and copy the values in
     for (int n=0; n<nspecies; ++n) {
         molmass_vect_host[n] = molmass[n];
@@ -33,6 +35,24 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
               molmass_vect_host.begin(),molmass_vect_host.end(),
               molmass_vect.begin());
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
+    */
+    GpuArray<Real,MAX_SPECIES> molmass_gpu;
+    for (int n=0; n<nspecies; ++n) {
+        molmass_gpu[n] = molmass[n];
+    }
+
+
+
+
+
+
+
+
+
+
+
+    
+    
     
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
@@ -97,10 +117,6 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             }
 
             GetPressureGas(i,j,k, prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4), nspecies_gpu, Runiv_gpu, molmass_gpu);
-    //        if( j==2 && k==2){
-    //             std::cout << " i " << i << std::endl;
-    //             std::cout << std::setprecision(17) << " prims " << prim(i,j,k,0) << " " <<prim(i,j,k,1) << " " << intenergy << " " << prim(i,j,k,4) << " " << prim(i,j,k,5) << std::endl;
-    //        }
         });
         
     } // end MFIter

@@ -120,8 +120,12 @@ void GetMolfrac ( int i, int j, int k,
                   const Array4<Real>& Yk,
                   const Array4<Real>& Xk,
                   int const nspecies,
-                  Real const * const AMREX_RESTRICT molmass)
+                  const GpuArray<Real,MAX_SPECIES>& molmass) // WZ
 {
+
+    // WZ
+    // molmass[0] = 666;
+    
     Real molmix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
@@ -160,7 +164,7 @@ void GetPressureGas ( int i, int j, int k,
                       Real const temp,
                       int const nspecies,
                       Real const Runiv,
-                      Real const * const AMREX_RESTRICT molmass)
+                      const GpuArray<Real,MAX_SPECIES>& molmass)
 {
     Real molmix = 0.;
 
