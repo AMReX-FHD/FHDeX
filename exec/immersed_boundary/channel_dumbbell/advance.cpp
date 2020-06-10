@@ -424,8 +424,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Move markers according to velocity
     ib_mc.MoveMarkers(0, dt);
 
-    ib_mc.clearNeighbors();
-    ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
+    ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
+    ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
