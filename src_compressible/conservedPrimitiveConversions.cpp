@@ -12,20 +12,11 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
     Real Runiv_gpu = Runiv;
 
     // from namelist
-    Vector<Real> hcv_vect_host(nspecies); // create a vector on the host and copy the values in
-    for (int n=0; n<nspecies; ++n) {
-        hcv_vect_host[n] = hcv[n];
-    }
-    Gpu::DeviceVector<Real> hcv_vect(nspecies); // create vector on GPU and copy values over
-    Gpu::copy(Gpu::hostToDevice,
-              hcv_vect_host.begin(),hcv_vect_host.end(),
-              hcv_vect.begin());
-    
-    Real const * const AMREX_RESTRICT hcv_gpu = hcv_vect.dataPtr(); // pointer to data
+    /* 
+    // method 1 - used when the size of the array is determined at runtime
+    // note when passing this into a function, you need to use the type,
+    // "Real const * const AMREX_RESTRICT"
 
-    // from namelist
-
-    /* OLD WAY
     Vector<Real> molmass_vect_host(nspecies); // create a vector on the host and copy the values in
     for (int n=0; n<nspecies; ++n) {
         molmass_vect_host[n] = molmass[n];
@@ -37,12 +28,20 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
     */
 
-    // WZ
+    // method 2 - used when the size of the array is a parameter
+    // note this is shared by all threads
+    // if you want each thread to have its own temporary array, declare the GpuArray inside the ParallelFor
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
         molmass_gpu[n] = molmass[n];
     }
-
+    
+    // from namelist
+    GpuArray<Real,MAX_SPECIES> hcv_gpu;
+    for (int n=0; n<nspecies; ++n) {
+        hcv_gpu[n] = hcv[n];
+    }
+    
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
         
@@ -62,17 +61,22 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         const Array4<Real>& Yk_fixed = Yk_fixed_fab.array();
         // make sure Yk_fixed_fab doesn't go out of scope once the CPU finishes and GPU isn't done
         auto Yk_fixed_eli = Yk_fixed_fab.elixir();
-        
+
+        /*
+        // option if the number of components is not a parameter
+        // note when passing this into a function, you need to use the type,
+        // const Array4<Real>&
         // this is allocated on the DEVICE (no page faults)
         FArrayBox Xk_fab(bx,nspecies);
         const Array4<Real>& Xk = Xk_fab.array();
         // make sure Xk_fab doesn't go out of scope once the CPU finishes and GPU isn't done
         auto Xk_eli = Xk_fab.elixir();
+        */
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            // option if MAX_SPECIES is a compile-time constant
-            // Real Yk[MAX_SPECIES];
+            // option if number of components is a parameter
+            GpuArray<Real,MAX_SPECIES> Xk;
 
             prim(i,j,k,0) = cons(i,j,k,0);
             prim(i,j,k,1) = cons(i,j,k,1)/cons(i,j,k,0);
@@ -97,13 +101,12 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             GetTemperature(i,j,k, intenergy, Yk_fixed, prim(i,j,k,4), nspecies_gpu, hcv_gpu);
 
             // compute mole fractions from mass fractions
-            // WZ
             GetMolfrac(i,j,k, Yk, Xk, nspecies_gpu, molmass_gpu);
 
             // mass fractions
             for (int n=0; n<nspecies_gpu; ++n) {
                 prim(i,j,k,6+n) = Yk(i,j,k,n);
-                prim(i,j,k,6+nspecies_gpu+n) = Xk(i,j,k,n);
+                prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
             }
 
             GetPressureGas(i,j,k, prim(i,j,k,5), Yk, prim(i,j,k,0), prim(i,j,k,4), nspecies_gpu, Runiv_gpu, molmass_gpu);

@@ -118,14 +118,10 @@ void ReadCheckPoint(int& step,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMolfrac ( int i, int j, int k,
                   const Array4<Real>& Yk,
-                  const Array4<Real>& Xk,
+                  GpuArray<Real,MAX_SPECIES>& Xk,
                   int const nspecies,
-                  const GpuArray<Real,MAX_SPECIES>& molmass) // WZ
+                  const GpuArray<Real,MAX_SPECIES>& molmass)
 {
-
-    // WZ
-    // molmass[0] = 666;
-    
     Real molmix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
@@ -133,7 +129,7 @@ void GetMolfrac ( int i, int j, int k,
     }
     molmix = 1./molmix;
     for (int n=0; n<nspecies; ++n) {
-        Xk(i,j,k,n) = Yk(i,j,k,n)*molmix/molmass[n];
+        Xk[n] = Yk(i,j,k,n)*molmix/molmass[n];
     }
 
 };
@@ -144,7 +140,7 @@ void GetTemperature ( int i, int j, int k,
                       const Array4<Real>& Yk,
                       Real& temp,
                       int const nspecies,
-                      Real const * const AMREX_RESTRICT hcv)
+                      const GpuArray<Real,MAX_SPECIES>& hcv)
 {
     Real cvmix = 0.;
     Real e0 = 0.;
