@@ -36,24 +36,13 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
               molmass_vect.begin());
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
     */
+
+    // WZ
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
         molmass_gpu[n] = molmass[n];
     }
 
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
         
@@ -108,6 +97,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
             GetTemperature(i,j,k, intenergy, Yk_fixed, prim(i,j,k,4), nspecies_gpu, hcv_gpu);
 
             // compute mole fractions from mass fractions
+            // WZ
             GetMolfrac(i,j,k, Yk, Xk, nspecies_gpu, molmass_gpu);
 
             // mass fractions
