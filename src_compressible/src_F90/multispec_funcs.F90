@@ -269,7 +269,8 @@ contains
     real(amrex_real), intent(inout) :: etaMix
 
     integer :: ii, jj, kk
-    real(amrex_real) :: nk(nspecies), QoR(nspecies,nspecies), d(nspecies,nspecies), rhs(nspecies), bSonine(nspecies), diag(nspecies), sum1
+    real(amrex_real) :: nk(nspecies), QoR(nspecies,nspecies), bSonine(nspecies), diag(nspecies)
+    real(amrex_real) :: sum1
     integer :: ip(nspecies)
 
 
@@ -342,18 +343,21 @@ contains
 
     implicit none 
 
-    real(amrex_real) :: mw
     real(amrex_real), intent(in   ) :: T, rho, mk(nspecies)
     real(amrex_real), intent(inout) :: lammix
     real(amrex_real), intent(in   ) :: Ykp(nspecies)
+    real(amrex_real), intent(in   ) :: omega11(nspecies,nspecies)
+    real(amrex_real), intent(in   ) :: Dbin(nspecies,nspecies)
+    
+    real(amrex_real) :: mw
     real(amrex_real) :: nk(nspecies), beta(nspecies)
     integer :: i, j, k
     real(amrex_real) :: sum00, sum01, sum11, mu
-    real(amrex_real), intent(in   ) :: omega11(nspecies,nspecies)
-    real(amrex_real) :: QQ(2*nspecies,2*nspecies)
-    real(amrex_real) ::  aSonine(2*nspecies), D_T(nspecies)
-    real(amrex_real), intent(in   ) :: Dbin(nspecies,nspecies) 
     real(amrex_real) :: sum1, lamdaprime, ntotal
+    
+    real(amrex_real) :: QQ(2*nspecies,2*nspecies)
+    real(amrex_real) :: aSonine(2*nspecies), D_T(nspecies)
+
     real(amrex_real) :: diag1(nspecies),diag2(nspecies),diag3(nspecies),diag4(nspecies)
     real(amrex_real) :: ratm,sqratm,scr
     integer :: ip(2*nspecies)
@@ -477,13 +481,14 @@ contains
 
     implicit none 
 
-    integer :: i, j, k, jj
     real(amrex_real), intent(in   ) :: Ykp(nspecies), Xkp(nspecies)
     real(amrex_real), intent(in   ) :: Dbin(nspecies,nspecies) 
-    real(amrex_real) :: term1, term2
     real(amrex_real), intent(inout) :: D_tilde(nspecies,nspecies) 
+
+    integer :: i, j, k, jj
+    real(amrex_real) :: term1, term2, Deltamat
     real(amrex_real) :: Di(nspecies), Diff_ij(nspecies,nspecies)
-    real(amrex_real) :: Deltamat(nspecies,nspecies), Zmat(nspecies,nspecies)
+    real(amrex_real) :: Zmat(nspecies,nspecies)
     real(amrex_real) :: Pmat(nspecies,nspecies), Jmat(nspecies,nspecies)
     real(amrex_real) :: Minv(nspecies), Mmat(nspecies)
     real(amrex_real) :: PJ(nspecies,nspecies), matrix1(nspecies,nspecies), matrix2(nspecies,nspecies)
@@ -535,11 +540,11 @@ contains
                    term1 = term1 + Xkp(i)*Xkp(k)/Dbin(i,k)
                 endif
              enddo
-             Deltamat(i,i) = term1
+             Deltamat = term1
           else
-             Deltamat(i,j) = -Xkp(i)*Xkp(j)/Dbin(i,j) 
+             Deltamat = -Xkp(i)*Xkp(j)/Dbin(i,j) 
           endif
-          Zmat(i,j) = -Deltamat(i,j)
+          Zmat(i,j) = -Deltamat
        enddo
     enddo
 
@@ -625,9 +630,11 @@ contains
     real(amrex_real), intent(in   ) :: alphabar(nspecies,nspecies)
     real(amrex_real), intent(in   ) :: sqrtT
     real(amrex_real), intent(inout) :: kT(nspecies)
+    real(amrex_real), intent(in   ) :: a_ij1(nspecies,nspecies), a_ij2(nspecies,nspecies), sigma11(nspecies,nspecies)
+    
     integer :: i, j, k
     real(amrex_real) :: pi
-    real(amrex_real), intent(in   ) :: a_ij1(nspecies,nspecies), a_ij2(nspecies,nspecies), sigma11(nspecies,nspecies)
+
     real(amrex_real) :: Aij(nspecies,nspecies)
     real(amrex_real) :: AA(nspecies)
     real(amrex_real) :: fact1, sumTemp, sum1
