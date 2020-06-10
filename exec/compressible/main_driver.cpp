@@ -644,9 +644,9 @@ void main_driver(const char* argv)
 #ifndef AMREX_USE_CUDA
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim, 0);
-            MultiFab::Copy(structFactConsMF, cu,   0, 0, structVarsCons, 0);
-            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1, 0); // temperature too
+            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
+            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
+            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
