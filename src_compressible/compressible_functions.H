@@ -118,7 +118,7 @@ void ReadCheckPoint(int& step,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetMolfrac ( int i, int j, int k,
-                  const Array4<Real>& Yk,
+                  const GpuArray<Real,MAX_SPECIES>& Yk,
                   GpuArray<Real,MAX_SPECIES>& Xk,
                   int const nspecies,
                   const GpuArray<Real,MAX_SPECIES>& molmass)
@@ -126,11 +126,11 @@ void GetMolfrac ( int i, int j, int k,
     Real molmix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        molmix += Yk(i,j,k,n)/molmass[n];
+        molmix += Yk[n]/molmass[n];
     }
     molmix = 1./molmix;
     for (int n=0; n<nspecies; ++n) {
-        Xk[n] = Yk(i,j,k,n)*molmix/molmass[n];
+        Xk[n] = Yk[n]*molmix/molmass[n];
     }
 
 };
@@ -138,7 +138,7 @@ void GetMolfrac ( int i, int j, int k,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetTemperature ( int i, int j, int k,
                       Real const energy,
-                      const Array4<Real>& Yk,
+                      const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real& temp,
                       int const nspecies,
                       const GpuArray<Real,MAX_SPECIES>& hcv)
@@ -147,7 +147,7 @@ void GetTemperature ( int i, int j, int k,
     Real e0 = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        cvmix += Yk(i,j,k,n)*hcv[n];
+        cvmix += Yk[n]*hcv[n];
     }
 
     temp = (energy-e0)/cvmix;
@@ -156,7 +156,7 @@ void GetTemperature ( int i, int j, int k,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void GetPressureGas ( int i, int j, int k,
                       Real& pressure,
-                      const Array4<Real>& Yk,
+                      const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real const density,
                       Real const temp,
                       int const nspecies,
@@ -166,7 +166,7 @@ void GetPressureGas ( int i, int j, int k,
     Real molmix = 0.;
 
     for (int n=0; n<nspecies; ++n) {
-        molmix += Yk(i,j,k,n)/molmass[n];
+        molmix += Yk[n]/molmass[n];
     }
     molmix = 1./molmix;
 
@@ -178,32 +178,32 @@ void IdealMixtureTransport ( int i, int j, int k,
                              Real const density,
                              Real const temperature,
                              Real const pressure,
-                             const Array4<Real>& Yk,
-                             const Array4<Real>& Xk,
+                             const GpuArray<Real,MAX_SPECIES>& Yk,
+                             const GpuArray<Real,MAX_SPECIES>& Xk,
                              Real& eta,
                              Real& kappa,
                              Real& zeta,
                              const Array4<Real>& diff_ij,
                              const Array4<Real>& chitil,
-                             const Array4<Real>& xxtr,
+                             GpuArray<Real,MAX_SPECIES>& xxtr,
                              int const nspecies,
-                             Real const * const AMREX_RESTRICT molmass)
+                             const GpuArray<Real,MAX_SPECIES>& molmass)
 {
 
     // mole fracions correction - EGLIB
     for (int ii=0; ii<nspecies; ++ii) {
         Real sumXk = 0.;
         for (int jj=0; jj<nspecies; ++jj) {
-            sumXk += Xk(i,j,k,jj);
+            sumXk += Xk[jj];
         }
         // GM: Why this factor of 1E-15???
-        xxtr(i,j,k,ii) = Xk(i,j,k,ii) + 1.e-15*(sumXk/nspecies - Xk(i,j,k,ii));
+        xxtr[ii] = Xk[ii] + 1.e-15*(sumXk/nspecies - Xk[ii]);
     }
     
     // molecular weight of mixture - EGLIB
     Real MWmix = 0.;
     for (int ii=0; ii<nspecies; ++ii) {
-        MWmix += xxtr(i,j,k,ii)*molmass[ii];
+        MWmix += xxtr[ii]*molmass[ii];
     }
 };
                       

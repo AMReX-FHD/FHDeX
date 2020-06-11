@@ -10,37 +10,30 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 {
     BL_PROFILE_VAR("calculateTransportCoeffs()",calculateTransportCoeffs);
 
-    /*
     // nspecies from namelist
     int nspecies_gpu = nspecies;
+
+    // see comments in conservedPrimitiveConversions.cpp regarding alternate ways of declaring
+    // thread shared and thread private arrays on GPUs
+    // if the size is not known at compile time, alternate approaches are required
+    // here we know the size at compile time
     
     // molmass from namelist
-    Vector<Real> molmass_vect_host(nspecies); // create a vector on the host and copy the values in
+    GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
-        molmass_vect_host[n] = molmass[n];
+        molmass_gpu[n] = molmass[n];
     }
-    Gpu::DeviceVector<Real> molmass_vect(nspecies); // create vector on GPU and copy values over
-    Gpu::copy(Gpu::hostToDevice,
-              molmass_vect_host.begin(),molmass_vect_host.end(),
-              molmass_vect.begin());
-    Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
 
     // compute molecular_mass by dividing molmass by Avogadro's
-    Vector<Real> molecular_mass_vect_host(nspecies); // create a vector on the host and compute values
+    GpuArray<Real,MAX_SPECIES> molecular_mass_gpu;
     for (int n=0; n<nspecies; ++n) {
-        molecular_mass_vect_host[n] = molmass[n]*(k_B/Runiv);;
+        molecular_mass_gpu[n] = molmass[n]*(k_B/Runiv);;
     }
-    Gpu::DeviceVector<Real> molecular_mass_vect(nspecies); // create vector on GPU and copy values over
-    Gpu::copy(Gpu::hostToDevice,
-              molecular_mass_vect_host.begin(),molecular_mass_vect_host.end(),
-              molecular_mass_vect.begin());
-    Real const * const AMREX_RESTRICT molecular_mass_gpu = molecular_mass_vect.dataPtr();  // pointer to data
-    */
     
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
-        /*
+#if 0
         // grow the box by ngc
         const Box& bx = amrex::grow(mfi.tilebox(), ngc);
 
@@ -52,34 +45,21 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         const Array4<Real>& chi   =   chi_in.array(mfi);
         const Array4<Real>& Dij   =   Dij_in.array(mfi);
 
-        // this is allocated on the DEVICE (no page faults)
-        FArrayBox Yk_fixed_fab(bx,nspecies);
-        const Array4<Real>& Yk_fixed = Yk_fixed_fab.array();
-        // make sure Yk_fixed_fab doesn't go out of scope once the CPU finishes and GPU isn't done
-        auto Yk_fixed_eli = Yk_fixed_fab.elixir();
-
-        // this is allocated on the DEVICE (no page faults)
-        FArrayBox Xk_fixed_fab(bx,nspecies);
-        const Array4<Real>& Xk_fixed = Xk_fixed_fab.array();
-        // make sure Xk_fixed_fab doesn't go out of scope once the CPU finishes and GPU isn't done
-        auto Xk_fixed_eli = Xk_fixed_fab.elixir();
-
-        // this is allocated on the DEVICE (no page faults)
-        FArrayBox xxtr_fab(bx,nspecies);
-        const Array4<Real>& xxtr = xxtr_fab.array();
-        // make sure xxtr_fab doesn't go out of scope once the CPU finishes and GPU isn't done
-        auto xxtr_eli = xxtr_fab.elixir();
-
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+        
+            GpuArray<Real,MAX_SPECIES> Yk_fixed;
+            GpuArray<Real,MAX_SPECIES> Xk_fixed;
+            GpuArray<Real,MAX_SPECIES> xxtr;
+            
             Real sumYk = 0.;
             for (int n=0; n<nspecies_gpu; ++n) {
-                Yk_fixed(i,j,k,n) = std::max(0.,std::min(1.,prim(i,j,k,6+n)));
-                sumYk += Yk_fixed(i,j,k,n);
+                Yk_fixed[n] = std::max(0.,std::min(1.,prim(i,j,k,6+n)));
+                sumYk += Yk_fixed[n];
             }
 
             for (int n=0; n<nspecies_gpu; ++n) {
-                Yk_fixed(i,j,k,n) /= sumYk;
+                Yk_fixed[n] /= sumYk;
             }
 
             // compute mole fractions from mass fractions
@@ -98,8 +78,8 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             }
 
         });
-        */        
 
+#else
         const Box& bx = mfi.validbox();
 
         makecoef(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
@@ -109,6 +89,7 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 		 kappa_in[mfi].dataPtr(),
 		 chi_in  [mfi].dataPtr(),
 		 Dij_in  [mfi].dataPtr());
+#endif
     }
 
     

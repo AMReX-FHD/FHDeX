@@ -13,10 +13,10 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
 
     // from namelist
     /* 
-    // method 1 - used when the size of the array is determined at runtime
+    // method 1 to create a thread shared array
+    // must use if the size of the array is not known at compile time
     // note when passing this into a function, you need to use the type,
     // "Real const * const AMREX_RESTRICT"
-
     Vector<Real> molmass_vect_host(nspecies); // create a vector on the host and copy the values in
     for (int n=0; n<nspecies; ++n) {
         molmass_vect_host[n] = molmass[n];
@@ -28,9 +28,8 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
     Real const * const AMREX_RESTRICT molmass_gpu = molmass_vect.dataPtr();  // pointer to data
     */
 
-    // method 2 - used when the size of the array is a parameter
-    // note this is shared by all threads
-    // if you want each thread to have its own temporary array, declare the GpuArray inside the ParallelFor
+    // method 2 to create a thread shared array
+    // can use when the size of the array is known at compile-time
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
         molmass_gpu[n] = molmass[n];
@@ -50,20 +49,9 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         const Array4<const Real>& cons = cons_in.array(mfi);
         const Array4<      Real>& prim = prim_in.array(mfi);
 
-        // this is allocated on the DEVICE (no page faults)
-        FArrayBox Yk_fab(bx,nspecies);
-        const Array4<Real>& Yk = Yk_fab.array();
-        // make sure Yk_fab doesn't go out of scope once the CPU finishes and GPU isn't done
-        auto Yk_eli = Yk_fab.elixir();
-
-        // this is allocated on the DEVICE (no page faults)
-        FArrayBox Yk_fixed_fab(bx,nspecies);
-        const Array4<Real>& Yk_fixed = Yk_fixed_fab.array();
-        // make sure Yk_fixed_fab doesn't go out of scope once the CPU finishes and GPU isn't done
-        auto Yk_fixed_eli = Yk_fixed_fab.elixir();
-
         /*
-        // option if the number of components is not a parameter
+        // method 1 to create a thread private array
+        // must use if the size of the array is not known at compile time
         // note when passing this into a function, you need to use the type,
         // const Array4<Real>&
         // this is allocated on the DEVICE (no page faults)
@@ -75,8 +63,12 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
         
         amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            // option if number of components is a parameter
+            // method 2 to create a thread private array
+            // can use when the size of the array is known at compile-time
             GpuArray<Real,MAX_SPECIES> Xk;
+            GpuArray<Real,MAX_SPECIES> Yk;
+            GpuArray<Real,MAX_SPECIES> Yk_fixed;
+            
 
             prim(i,j,k,0) = cons(i,j,k,0);
             prim(i,j,k,1) = cons(i,j,k,1)/cons(i,j,k,0);
@@ -88,13 +80,13 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
 
             Real sumYk = 0.;
             for (int n=0; n<nspecies_gpu; ++n) {
-                Yk(i,j,k,n) = cons(i,j,k,5+n)/cons(i,j,k,0);
-                Yk_fixed(i,j,k,n) = std::max(0.,std::min(1.,Yk(i,j,k,n)));
-                sumYk += Yk_fixed(i,j,k,n);
+                Yk[n] = cons(i,j,k,5+n)/cons(i,j,k,0);
+                Yk_fixed[n] = std::max(0.,std::min(1.,Yk[n]));
+                sumYk += Yk_fixed[n];
             }
             
             for (int n=0; n<nspecies_gpu; ++n) {
-                Yk_fixed(i,j,k,n) /= sumYk;
+                Yk_fixed[n] /= sumYk;
             }
 
             // update temperature in-place using internal energy
@@ -105,7 +97,7 @@ void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in)
 
             // mass fractions
             for (int n=0; n<nspecies_gpu; ++n) {
-                prim(i,j,k,6+n) = Yk(i,j,k,n);
+                prim(i,j,k,6+n) = Yk[n];
                 prim(i,j,k,6+nspecies_gpu+n) = Xk[n];
             }
 
