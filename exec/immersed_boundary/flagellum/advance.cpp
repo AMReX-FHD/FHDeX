@@ -230,7 +230,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if(immbdy::contains_fourier)
         anchor_first_marker(ib_mc, ib_lev, IBMReal::pred_velx);
     ib_mc.MovePredictor(0, 0.5*dt);
-    ib_mc.Redistribute(); // just in case (maybe can be removed)
+
+    ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
+    ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
@@ -311,9 +313,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Call GMRES to compute u^(n+1/2). Lu^(n+1/2) is computed implicitly. Note
     // that we are using the un-weighted coefficients.
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_old, beta_ed_old, gamma_old, theta_alpha,
-          geom, norm_pre_rhs);
+    GMRES gmres(ba, dmap, geom);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_old,
+                beta_ed_old, gamma_old, theta_alpha, geom, norm_pre_rhs);
 
     // Apply boundary conditions to the solution
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -357,7 +359,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     if(immbdy::contains_fourier)
         anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
-    ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
+
+    ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
+    ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
 
 
     // //___________________________________________________________________________
@@ -444,9 +448,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Call GMRES to compute u^(n+1). Lu^(n+1)/2 is computed implicitly. Note
     // that we are using the weighted coefficients (to deal witht he 1/2 part)
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,
+                beta_ed_wtd, gamma_wtd, theta_alpha, geom, norm_pre_rhs);
 
     // Apply boundary conditions to the solution
     for (int d=0; d<AMREX_SPACEDIM; d++) {

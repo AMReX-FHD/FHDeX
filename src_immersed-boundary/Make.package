@@ -16,5 +16,5 @@ CEXE_sources += IBCore.cpp
 CEXE_sources += IBMarkerContainer.cpp
 CEXE_sources += IBParticleContainer.cpp
 CEXE_sources += IBMultiBlobContainer.cpp
-CEXE_sources += IBGMRES.cpp
+# CEXE_sources += IBGMRES.cpp
 CEXE_sources += ib_functions.cpp
