@@ -1,7 +1,6 @@
 #ifndef _compressible_functions_H_
 #define _compressible_functions_H_
 
-#define MAX_SPECIES 10
 #define LOHI 2
 
 #include <AMReX.H>
@@ -10,6 +9,8 @@
 
 #include "compressible_functions_F.H"
 #include "compressible_namespace.H"
+
+#include "common_functions.H"
 
 using namespace compressible;
 using namespace amrex;

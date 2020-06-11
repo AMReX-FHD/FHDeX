@@ -2,10 +2,10 @@ module compressible_namelist_module
 
   use iso_c_binding, only: c_char
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
-
+  use common_namelist_module, only: MAX_SPECIES
+  
   implicit none
 
-  integer, parameter :: MAX_SPECIES = 10
   integer, parameter :: LOHI = 2
 
   double precision,   save :: bc_Yk(AMREX_SPACEDIM,LOHI,MAX_SPECIES)
