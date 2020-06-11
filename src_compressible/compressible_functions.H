@@ -173,6 +173,57 @@ void GetPressureGas ( int i, int j, int k,
     pressure = density*(Runiv/molmix)*temp;
 };
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Decomp ( int const neq,
+              GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+              GpuArray<int,MAX_SPECIES> ip,
+              int const nspecies )
+{
+    Real amult, apm, apn;
+    int nm1, ip1;
+    int i, j, k, l, n;
+    Real eps  = 1.e-30;
+    Real eps2 = 1.e-60;
+      
+    nm1=neq-1;
+    for (n=0; n<neq; ++n) {
+        ip[n]=n+1;
+    }
+    for (i=0; i<nm1; ++i) {
+        ip1=i+2;
+        k=i+1;
+        apm = std::abs(a[ip[i]*nspecies-1+i]);
+        for (j=ip1-1; j<neq; ++j) {
+            apn=std::abs(a[(ip[j]-1)*nspecies+i]);
+            if (apm >= apn) continue;
+            apm=apn;
+            k=j+1;
+        }
+        j=ip[k-1];
+        ip[k-1]=ip[i];
+        ip[i]=j;
+        if (apm < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+        }
+        for (l=ip1-1; l<neq; ++l) {
+            n=ip[l];
+            amult=a[(n-1)*nspecies+i]/a[(j-1)*nspecies+i];
+            a[(n-1)*nspecies+i]=amult;
+            if (std::abs(amult) < eps2) continue;
+            for (k=ip1-1; k<neq; ++k) {
+                a[(n-1)*nspecies+k]=a[(n-1)*nspecies+k]-amult*a[(j-1)*nspecies+k];
+            }
+        }
+    }
+    if(std::abs(a[(ip[neq-1]-1)*nspecies+neq-1]) < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+    }
+            
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
                const GpuArray<Real,MAX_SPECIES>& Ykp,
@@ -232,7 +283,7 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
 
     // print*, "Hack (visc_lin): scaled QoR = ", QoR
         
-    // call decomp(nspecies,nspecies,QoR,ip)
+    Decomp(nspecies,QoR,ip,nspecies);
     // call solve(nspecies,nspecies,QoR,bSonine,ip)
 
     // print*, "Hack (visc_lin): factored QoR = ", QoR
@@ -327,17 +378,17 @@ void IdealMixtureTransport ( int i, int j, int k,
                 
             sigma11bar = sqrt( k_B/(2.0*pi*mu) )*pi*pow(diamat,2.);
           
-            alphabar[i*MAX_SPECIES+j] = 8.0/(3.0*k_B)*mu*mu*(-.5*sigma11bar);
+            alphabar[i*nspecies+j] = 8.0/(3.0*k_B)*mu*mu*(-.5*sigma11bar);
 
-            Dbin[i*MAX_SPECIES+j] = 3.0/16.0*
+            Dbin[i*nspecies+j] = 3.0/16.0*
                 sqrt(2.0*pi*pow(k_B,3.)
                      *(molecular_mass[i]+molecular_mass[j])/molecular_mass[i]/molecular_mass[j])/(pi*pow(diamat,2.))
                 *temperature*sqrtT/pressure;
-            omega11[i*MAX_SPECIES+j] = sqrt(pi*k_B/(2.0*mu))*pow(diamat,2.)*sqrtT;
-            sigma11[i*MAX_SPECIES+j] = sigma11bar*sqrtT;
-            a_ij1[i*MAX_SPECIES+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]/
+            omega11[i*nspecies+j] = sqrt(pi*k_B/(2.0*mu))*pow(diamat,2.)*sqrtT;
+            sigma11[i*nspecies+j] = sigma11bar*sqrtT;
+            a_ij1[i*nspecies+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]/
                                       (molecular_mass[i]+molecular_mass[j])*Fij*sigma11bar) /sqrtT;
-            a_ij2[i*MAX_SPECIES+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]*molecular_mass[i]*molecular_mass[j]/
+            a_ij2[i*nspecies+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]*molecular_mass[i]*molecular_mass[j]/
                                       (pow(molecular_mass[i]+molecular_mass[j],3.))*Fijstar*sigma11bar) /sqrtT;
 
         }
