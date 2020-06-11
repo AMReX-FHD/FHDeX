@@ -224,6 +224,48 @@ void Decomp ( int const neq,
             
 }
 
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Solve ( int const neq,
+              GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+              GpuArray<Real,MAX_SPECIES>& b,
+              GpuArray<int,MAX_SPECIES> ip,
+              int const nspecies )
+{
+    Real scr;
+    int j,k,l,n,nm1,lm1,jp1;
+
+    nm1 = neq-1;
+    for (l=1; l<neq; ++l) {
+        n=ip[l];
+        lm1=l;
+        for (k=0; k<lm1; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+        }
+    }
+    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[ip[neq-1]-1,neq-1];
+    for (l=0; l<nm1; ++l) {
+        j=neq-(l+1);
+        jp1=j+1;
+        n=ip[j-1];
+        for (k=jp1-1; k<neq; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+        }
+        b[n-1]=b[n-1]/a[(n-1)*nspecies+j-1];
+    }
+    for (n=0; n<neq; ++n) {
+        while (ip[n] != n+1) {
+            j=ip[n];
+            scr=b[j-1];
+            ip[n]=ip[j-1];
+            b[j-1]=b[ip[j-1]-1];
+            b[ip[j-1]-1]=scr;
+            ip[j-1]=j;
+        }
+    }
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
                const GpuArray<Real,MAX_SPECIES>& Ykp,
@@ -284,7 +326,7 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
     // print*, "Hack (visc_lin): scaled QoR = ", QoR
         
     Decomp(nspecies,QoR,ip,nspecies);
-    // call solve(nspecies,nspecies,QoR,bSonine,ip)
+    Solve(nspecies,QoR,bSonine,ip,nspecies);
 
     // print*, "Hack (visc_lin): factored QoR = ", QoR
     // stop
