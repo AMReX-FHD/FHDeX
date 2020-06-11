@@ -174,6 +174,83 @@ void GetPressureGas ( int i, int j, int k,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
+               const GpuArray<Real,MAX_SPECIES>& Ykp,
+               const Real T,
+               const Real rho,
+               const GpuArray<Real,MAX_SPECIES>& mk,
+               Real& etaMix,
+               const int nspecies,
+               Real const k_B )
+{
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> QoR;
+    GpuArray<Real,MAX_SPECIES> nk, bSonine, diag;
+    GpuArray<int,MAX_SPECIES> ip;
+    
+    Real sum1;
+    
+    // find number density
+    for (int ii=0; ii<nspecies; ++ii) {
+        nk[ii] = rho*Ykp[ii]/mk[ii];
+    }
+
+    // print*, "Hack (visc_lin): T = ", T
+    // stop
+
+    for (int ii=0; ii<nspecies; ++ii) {
+        diag[ii] = 0.;
+        for (int kk=0; kk<nspecies; ++kk) {
+            diag[ii] = diag[ii] + nk[kk]*mk[kk]/pow(mk[ii]+mk[kk],2.) *
+               (5.*mk[ii]*omega11[ii*MAX_SPECIES+kk] +
+                3.*mk[kk]*omega11[ii*MAX_SPECIES+kk]);
+        }
+    }
+
+    // print*, "Hack (visc_lin): ", mk, nk, Ykp
+    // stop
+
+    for (int ii=0; ii<nspecies; ++ii) {
+        for (int jj=0; jj<nspecies; ++jj) {
+            sum1 = -nk[jj]*mk[jj]/pow(mk[ii]+mk[jj],2.) *
+                2.*mk[jj]*omega11[ii*MAX_SPECIES+jj];
+
+            if (ii==jj) {
+                sum1 = sum1 + diag[ii];
+            }
+
+            QoR[ii*MAX_SPECIES+jj] = -(16./15.)*(mk[ii]/mk[jj])*sum1;
+            // HCB 7.4-62,63
+        }
+        bSonine[ii] = -1.;
+    }
+
+    // print*, "Hack (visc_lin): original QoR = ", QoR
+
+    // QoR = 1.0d24*QoR
+    // bSonine = 1.0d24*bSonine
+
+    // print*, "Hack (visc_lin): scaled QoR = ", QoR
+        
+    // call decomp(nspecies,nspecies,QoR,ip)
+    // call solve(nspecies,nspecies,QoR,bSonine,ip)
+
+    // print*, "Hack (visc_lin): factored QoR = ", QoR
+    // stop
+
+    sum1 = 0.;
+    for (int ii=0; ii<nspecies; ++ii) {
+        sum1 = sum1 + nk[ii]*bSonine[ii];
+        // HCB 7.4-56
+    }
+
+    etaMix = 0.5*k_B*T*sum1;
+    
+    // print*, "Hack (visc_lin): etaMix = ", etaMix, T
+    // stop
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void IdealMixtureTransport ( int i, int j, int k,
                              Real const density,
                              Real const temperature,
@@ -266,6 +343,7 @@ void IdealMixtureTransport ( int i, int j, int k,
         }
     }
 
+    ViscLin(omega11,yytr,temperature,density,molecular_mass,eta,nspecies,k_B);
     
               
 };
