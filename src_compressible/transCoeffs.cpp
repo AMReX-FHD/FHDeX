@@ -13,6 +13,12 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
     // nspecies from namelist
     int nspecies_gpu = nspecies;
 
+    // k_B from namelist
+    Real k_B_gpu = k_B;
+
+    // Runiv from namelist
+    Real Runiv_gpu = Runiv;
+
     // see comments in conservedPrimitiveConversions.cpp regarding alternate ways of declaring
     // thread shared and thread private arrays on GPUs
     // if the size is not known at compile time, alternate approaches are required
@@ -23,17 +29,17 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
     for (int n=0; n<nspecies; ++n) {
         molmass_gpu[n] = molmass[n];
     }
-
-    // compute molecular_mass by dividing molmass by Avogadro's
-    GpuArray<Real,MAX_SPECIES> molecular_mass_gpu;
+    
+    // diameter from namelist
+    GpuArray<Real,MAX_SPECIES> diameter_gpu;
     for (int n=0; n<nspecies; ++n) {
-        molecular_mass_gpu[n] = molmass[n]*(k_B/Runiv);;
+        diameter_gpu[n] = diameter[n];
     }
     
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
-#if 0
+#if 1
         // grow the box by ngc
         const Box& bx = amrex::grow(mfi.tilebox(), ngc);
 
@@ -50,7 +56,6 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
         
             GpuArray<Real,MAX_SPECIES> Yk_fixed;
             GpuArray<Real,MAX_SPECIES> Xk_fixed;
-            GpuArray<Real,MAX_SPECIES> xxtr;
             
             Real sumYk = 0.;
             for (int n=0; n<nspecies_gpu; ++n) {
@@ -67,7 +72,8 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 
             IdealMixtureTransport(i,j,k, prim(i,j,k,0), prim(i,j,k,4), prim(i,j,k,5),
                                   Yk_fixed, Xk_fixed, eta(i,j,k), kappa(i,j,k), zeta(i,j,k),
-                                  Dij, chi, xxtr, nspecies_gpu, molmass_gpu);
+                                  Dij, chi, nspecies_gpu, molmass_gpu, diameter_gpu,
+                                  k_B_gpu, Runiv_gpu);
 
             // want this multiplied by rho for all times
             for (int kk=0; kk<nspecies_gpu; ++kk) {

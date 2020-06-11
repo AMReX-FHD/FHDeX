@@ -185,11 +185,32 @@ void IdealMixtureTransport ( int i, int j, int k,
                              Real& zeta,
                              const Array4<Real>& diff_ij,
                              const Array4<Real>& chitil,
-                             GpuArray<Real,MAX_SPECIES>& xxtr,
                              int const nspecies,
-                             const GpuArray<Real,MAX_SPECIES>& molmass)
+                             const GpuArray<Real,MAX_SPECIES>& molmass,
+                             const GpuArray<Real,MAX_SPECIES>& diameter,
+                             Real const k_B,
+                             Real const Runiv)
 {
 
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dbin;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> omega11;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sigma11;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> a_ij1;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> a_ij2;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> alphabar;
+    
+    GpuArray<Real,MAX_SPECIES> xxtr;
+    GpuArray<Real,MAX_SPECIES> yytr;
+    GpuArray<Real,MAX_SPECIES> molecular_mass;
+
+    Real sigma11bar, diamat, mu, Fijstar, Fij, MWmix, sqrtT;
+    Real pi = 3.1415926535897932;
+
+    // compute molecular_mass by dividing molmass by Avogadro's
+    for (int n=0; n<nspecies; ++n) {
+        molecular_mass[n] = molmass[n]*(k_B/Runiv);;
+    }
+            
     // mole fracions correction - EGLIB
     for (int ii=0; ii<nspecies; ++ii) {
         Real sumXk = 0.;
@@ -201,10 +222,52 @@ void IdealMixtureTransport ( int i, int j, int k,
     }
     
     // molecular weight of mixture - EGLIB
-    Real MWmix = 0.;
+    MWmix = 0.;
     for (int ii=0; ii<nspecies; ++ii) {
         MWmix += xxtr[ii]*molmass[ii];
     }
+
+    // mass fractions correction - EGLIB
+    for (int ii=0; ii<nspecies; ++ii) {
+        yytr[ii] = molmass[ii]/MWmix*xxtr[ii];
+    }
+
+    Fijstar = -27./5.;
+
+    // find binary diffusion coefficients  
+    // HCB 8.2-9   
+    sqrtT = sqrt(temperature);
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+
+            // These matrices are computed in init_chemistry in FluctHydro code
+
+            diamat = 0.5*(diameter[i] + diameter[j]);
+            mu = molecular_mass[i]*molecular_mass[j]/(molecular_mass[i] + molecular_mass[j]);
+            Fij = (6.0*molecular_mass[i]*molecular_mass[i] + 13.0/5.0*molecular_mass[j]*molecular_mass[j] +
+                   16.0/5.0*molecular_mass[i]*molecular_mass[j])/(pow(molecular_mass[i]+molecular_mass[j],2.));
+                
+            sigma11bar = sqrt( k_B/(2.0*pi*mu) )*pi*pow(diamat,2.);
+          
+            alphabar[i*MAX_SPECIES+j] = 8.0/(3.0*k_B)*mu*mu*(-.5*sigma11bar);
+
+            Dbin[i*MAX_SPECIES+j] = 3.0/16.0*
+                sqrt(2.0*pi*pow(k_B,3.)
+                     *(molecular_mass[i]+molecular_mass[j])/molecular_mass[i]/molecular_mass[j])/(pi*pow(diamat,2.))
+                *temperature*sqrtT/pressure;
+            omega11[i*MAX_SPECIES+j] = sqrt(pi*k_B/(2.0*mu))*pow(diamat,2.)*sqrtT;
+            sigma11[i*MAX_SPECIES+j] = sigma11bar*sqrtT;
+            a_ij1[i*MAX_SPECIES+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]/
+                                      (molecular_mass[i]+molecular_mass[j])*Fij*sigma11bar) /sqrtT;
+            a_ij2[i*MAX_SPECIES+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]*molecular_mass[i]*molecular_mass[j]/
+                                      (pow(molecular_mass[i]+molecular_mass[j],3.))*Fijstar*sigma11bar) /sqrtT;
+
+        }
+    }
+
+    
+              
 };
                       
 #endif
