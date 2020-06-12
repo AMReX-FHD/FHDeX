@@ -695,7 +695,6 @@ void ThermalDiff ( int iloc, int jloc, int kloc,
 
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Aij, alphaij;
     GpuArray<Real,MAX_SPECIES> AA;
-    GpuArray<int,MAX_SPECIES> ip;
 
     int i,j,k;
     Real sumTemp;
@@ -814,7 +813,7 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void IdealMixtureTransport ( int i, int j, int k,
+void IdealMixtureTransport ( int iloc, int jloc, int kloc,
                              Real const density,
                              Real const temperature,
                              Real const pressure,
@@ -915,15 +914,12 @@ void IdealMixtureTransport ( int i, int j, int k,
     LambdaLin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa,nspecies,k_B);
     // kappa = 0.d0
 
-    D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies,i,j,k);
+    D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies,iloc,jloc,kloc);
     // diff_ij = 0.0d0
 
-    ThermalDiff(i,j,k,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,chitil,nspecies);
+    ThermalDiff(iloc,jloc,kloc,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,
+                chitil,nspecies);
     // chitil = 0.0d0
-
-    
-    
-              
 };
                       
 #endif
