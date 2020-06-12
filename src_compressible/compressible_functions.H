@@ -224,6 +224,56 @@ void Decomp ( int const neq,
             
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Decomp2 ( int const neq,
+              GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES>& a,
+              GpuArray<int,2*MAX_SPECIES> ip,
+              int const nspecies )
+{
+    Real amult, apm, apn;
+    int nm1, ip1;
+    int i, j, k, l, n;
+    Real eps  = 1.e-30;
+    Real eps2 = 1.e-60;
+      
+    nm1=neq-1;
+    for (n=0; n<neq; ++n) {
+        ip[n]=n+1;
+    }
+    for (i=0; i<nm1; ++i) {
+        ip1=i+2;
+        k=i+1;
+        apm = std::abs(a[ip[i]*nspecies-1+i]);
+        for (j=ip1-1; j<neq; ++j) {
+            apn=std::abs(a[(ip[j]-1)*nspecies+i]);
+            if (apm >= apn) continue;
+            apm=apn;
+            k=j+1;
+        }
+        j=ip[k-1];
+        ip[k-1]=ip[i];
+        ip[i]=j;
+        if (apm < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+        }
+        for (l=ip1-1; l<neq; ++l) {
+            n=ip[l];
+            amult=a[(n-1)*nspecies+i]/a[(j-1)*nspecies+i];
+            a[(n-1)*nspecies+i]=amult;
+            if (std::abs(amult) < eps2) continue;
+            for (k=ip1-1; k<neq; ++k) {
+                a[(n-1)*nspecies+k]=a[(n-1)*nspecies+k]-amult*a[(j-1)*nspecies+k];
+            }
+        }
+    }
+    if(std::abs(a[(ip[neq-1]-1)*nspecies+neq-1]) < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+    }
+            
+}
+
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -231,6 +281,47 @@ void Solve ( int const neq,
               GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
               GpuArray<Real,MAX_SPECIES>& b,
               GpuArray<int,MAX_SPECIES> ip,
+              int const nspecies )
+{
+    Real scr;
+    int j,k,l,n,nm1,lm1,jp1;
+
+    nm1 = neq-1;
+    for (l=1; l<neq; ++l) {
+        n=ip[l];
+        lm1=l;
+        for (k=0; k<lm1; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+        }
+    }
+    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[ip[neq-1]-1,neq-1];
+    for (l=0; l<nm1; ++l) {
+        j=neq-(l+1);
+        jp1=j+1;
+        n=ip[j-1];
+        for (k=jp1-1; k<neq; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+        }
+        b[n-1]=b[n-1]/a[(n-1)*nspecies+j-1];
+    }
+    for (n=0; n<neq; ++n) {
+        while (ip[n] != n+1) {
+            j=ip[n];
+            scr=b[j-1];
+            ip[n]=ip[j-1];
+            b[j-1]=b[ip[j-1]-1];
+            b[ip[j-1]-1]=scr;
+            ip[j-1]=j;
+        }
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Solve2 ( int const neq,
+              GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES>& a,
+              GpuArray<Real,2*MAX_SPECIES>& b,
+              GpuArray<int,2*MAX_SPECIES> ip,
               int const nspecies )
 {
     Real scr;
@@ -455,6 +546,140 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
     
 }
 
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
+                 const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
+                 const GpuArray<Real,MAX_SPECIES>& Ykp,
+                 const Real T,
+                 const Real rho,
+                 const GpuArray<Real,MAX_SPECIES>& mk,
+                 Real& lammix,
+                 const int nspecies,
+                 Real const k_B )
+{
+
+    GpuArray<Real,MAX_SPECIES> nk, beta, diag1, diag2, diag3, diag4, D_T;
+    GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES> QQ;
+    GpuArray<Real,2*MAX_SPECIES> aSonine;
+    GpuArray<int ,2*MAX_SPECIES> ip;
+
+    int i,j,k;
+    Real sum00, sum01, sum11, sum1, lamdaprime, ntotal, ratm, sqratm, scr;
+
+        
+    // find number density
+    for (i=0; i<nspecies; ++i) {
+        nk[i] = rho*Ykp[i]/mk[i];
+        diag1[i] = 0.;
+        diag2[i] = 0.;
+        diag3[i] = 0.;
+        diag4[i] = 0.;
+    }
+
+    for (i=0; i<nspecies; ++i) {
+        for (k=0; k<nspecies; ++k) {
+            
+            diag1[i] =diag1[i]+ nk[k]*mk[k]/(mk[i]+mk[k]) *
+                nk[i]*mk[i]*omega11[i*nspecies+k];
+            if (k != i) {
+                diag2[i] = diag2[i]+nk[k]*mk[k]/(mk[i]+mk[k])*omega11[i*nspecies+k];
+            }
+            diag3[i] = diag3[i] + nk[i]*nk[k]*pow(mk[k],2.)/pow(mk[i]+mk[k],2.) 
+                *  .5*omega11[i*nspecies+k];
+
+            diag4[i] = diag4[i]+ nk[i]*nk[k]*mk[k]/pow(mk[i]+mk[k],3.) *
+                ((5./4.*(6.*pow(mk[i],2.)+5.*pow(mk[k],2.))*omega11[i*nspecies+k]
+                  - 3.*pow(mk[k],2.)*omega11[i*nspecies+k] )
+                 +  4.*mk[i]*mk[k]*omega11[i*nspecies+k] );
+       }
+    }
+
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+
+            sum00 = -nk[j]*mk[j]*diag2[i] - nk[j]*mk[j]/(mk[i]+mk[j])*nk[i]*mk[i]
+                *omega11[i*nspecies+j];
+            sum01 = - nk[i]*nk[j]*pow(mk[j],2.)/pow(mk[i]+mk[j],2.) *
+                .5*omega11[i*nspecies+j];
+
+            sum11 =  nk[i]*nk[j]*mk[j]/pow(mk[i]+mk[j],3.) *
+                ( -(5./4.*(6.*pow(mk[j],2.)+5.*pow(mk[j],2.))*omega11[i*nspecies+j]
+                    - 3.*pow(mk[j],2)*omega11[i*nspecies+j] )
+                  +  4.*mk[j]*mk[j]*omega11[i*nspecies+j] );
+
+            if (i == j) {
+                sum00 = sum00+diag1[i];
+                sum01 = sum01+diag3[i];
+                sum11 = sum11+diag4[i];
+            }
+
+            ratm = mk[i]/mk[j];
+            sqratm = sqrt(ratm);
+            scr = ratm*sqratm;
+            QQ[i*nspecies+j] =  8.*sqratm/mk[i] * sum00;         // HCB 7.4-50 
+            QQ[i*nspecies+j+nspecies] = -8.*scr * sum01;    // HCB 7.4-51
+            QQ[(i+nspecies)*nspecies+j] = -8.*sqratm*sum01;
+            QQ[(i+nspecies)*nspecies+j+nspecies] = 8.*ratm*sqratm* sum11;  // HCB 7.4-53
+       }
+    }
+
+    // Build vector rhs ; see HCB 7.4-54
+    for (i=0; i<nspecies; ++i) {
+        aSonine[i] = 0.;
+        beta[i]= sqrt(2.*k_B*T/mk[i]);
+        aSonine[i+nspecies] = -(15./4.)*nk[i]*beta[i];
+    }
+
+    // print*, "Hack (lambda_lin) predecomp: ", QQ
+
+    // NOTE: the minus sign below; see HCB p 488
+    Decomp2(2*nspecies,QQ,ip,nspecies);
+    Solve2(2*nspecies,QQ,aSonine,ip,nspecies);
+
+    // print*, "Hack (lambda_lin) postdecomp: ", QQ
+    // stop
+    
+    for (i=0; i<nspecies; ++i) {          
+       // HCB 7.4-9
+        D_T[i] = 0.5*nk[i]*beta[i]*mk[i]*aSonine[i];
+    }
+
+    sum1=0;        
+    // HCB 7.4-33
+    for (i=0; i<nspecies; ++i) {
+        sum1 = sum1 + nk[i]*beta[i]* aSonine[nspecies+i];
+    }
+    lamdaprime = -5./4. * k_B * sum1;
+
+
+    sum1 = 0;
+    // HCB 7.4-65
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+          sum1 = sum1 + nk[i]*nk[j]/Dbin[i*nspecies+j] *
+              pow((D_T[i]/(nk[i]*mk[i]) - D_T[j]/(nk[j]*mk[j])),2.);
+       }
+    }
+
+    ntotal = 0;
+    for (i=0; i<nspecies; ++i) {
+        ntotal += nk[i];
+    }
+
+    lammix = lamdaprime - 0.5*k_B/ntotal * sum1;  // HCB 7.4-65
+
+    // print*, "Hack (lambda_lin): ", D_T, nk, beta, mk, aSonine
+    // print*, "Hack (lambda_lin): ", sum1, nk, Dbin, D_T, mk
+    // print*, "Hack (lambda_lin): ", lammix, lamdaprime, ntotal, sum1
+    // print*, "Hack (lambda_lin) inputs: ", Dbin,omega11,Ykp,T,rho,mk,lammix
+    // stop
+        
+
+    
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ThermalDiff ( int iloc, int jloc, int kloc,
                    const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sigma11,
@@ -465,7 +690,8 @@ void ThermalDiff ( int iloc, int jloc, int kloc,
                    const Real sqrtT,
                    const GpuArray<Real,MAX_SPECIES>& mk,
                    Array4<Real>& kT,
-                   const int nspecies) {
+                   const int nspecies)
+{
 
     GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Aij, alphaij;
     GpuArray<Real,MAX_SPECIES> AA;
@@ -686,7 +912,7 @@ void IdealMixtureTransport ( int i, int j, int k,
     // // GCM: Why hard-coded in? from original LLNS
     zeta = 0.;
     
-//    call lambda_lin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa)
+    LambdaLin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa,nspecies,k_B);
     // kappa = 0.d0
 
     D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies,i,j,k);
