@@ -177,7 +177,7 @@ void GetPressureGas ( int i, int j, int k,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Decomp ( int const neq,
               GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
-              GpuArray<int,MAX_SPECIES> ip,
+              GpuArray<int,MAX_SPECIES>& ip,
               int const nspecies )
 {
     Real amult, apm, apn;
@@ -221,14 +221,13 @@ void Decomp ( int const neq,
             std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
             Abort("singular matrix in decomp");
     }
-            
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Decomp2 ( int const neq,
-              GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES>& a,
-              GpuArray<int,2*MAX_SPECIES> ip,
-              int const nspecies )
+               GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES>& a,
+               GpuArray<int,2*MAX_SPECIES>& ip,
+               int const nspecies )
 {
     Real amult, apm, apn;
     int nm1, ip1;
@@ -280,7 +279,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Solve ( int const neq,
               GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
               GpuArray<Real,MAX_SPECIES>& b,
-              GpuArray<int,MAX_SPECIES> ip,
+              GpuArray<int,MAX_SPECIES>& ip,
               int const nspecies )
 {
     Real scr;
@@ -321,7 +320,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void Solve2 ( int const neq,
               GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES>& a,
               GpuArray<Real,2*MAX_SPECIES>& b,
-              GpuArray<int,2*MAX_SPECIES> ip,
+              GpuArray<int,2*MAX_SPECIES>& ip,
               int const nspecies )
 {
     Real scr;
