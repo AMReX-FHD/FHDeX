@@ -266,6 +266,138 @@ void Solve ( int const neq,
     }
 }
 
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
+             const GpuArray<Real,MAX_SPECIES>& Ykp,
+             const GpuArray<Real,MAX_SPECIES>& Xkp,
+             Array4<Real>& D_tilde,
+             const int nspecies,
+             const int iloc,
+             const int jloc,
+             const int kloc)
+{
+    int i,j,k,ll;
+    Real term1, term2, Deltamat, scr;
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Diff_ij, Zmat, Pmat, Jmat, PJ, matrix1, matrix2;
+    GpuArray<Real,MAX_SPECIES> Di, Minv, Mmat;
+
+    int jmax = 3;
+
+    // Find Di matrix 
+    for (i=0; i<nspecies; ++i) {
+        term2 = 0.;
+        for (j=0; j<nspecies; ++j) {
+            if (j != i) {
+                term2 = term2 + Xkp[j]/Dbin[i*nspecies+j];
+            }
+        }
+        Di[i] = (1.-Ykp[i])/term2;
+    }
+
+    // Compute Mmat and Minv
+    for (i=0; i<nspecies; ++i) {
+        Mmat[i] = Xkp[i]/Di[i];
+        Minv[i] = Di[i]/Xkp[i];
+    }
+
+    // Compute P matrix
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Pmat[i*nspecies+j] = - Ykp[j];
+            if (i == j) {
+                Pmat[i*nspecies+j] =  Pmat[i*nspecies+j] + 1.;
+            }
+       }
+    }
+
+    // Compute Deltamat
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            if (i == j) {
+                term1 = 0.;
+                for (k=0; k<nspecies; ++k) {
+                    if (k != i) {
+                        term1 = term1 + Xkp[i]*Xkp[k]/Dbin[i*nspecies+k];
+                    }
+                }
+                Deltamat = term1;
+            } else {
+                Deltamat = -Xkp[i]*Xkp[j]/Dbin[i*nspecies+j];
+            }
+            Zmat[i*nspecies+j] = -Deltamat;
+        }
+    }
+
+    // Compute Zmat
+    for (i=0; i<nspecies; ++i) {
+        Zmat[i*nspecies+i] = Zmat[i*nspecies+i] + Mmat[i];
+    }
+
+    // Compute Jmat
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Jmat[i*nspecies+j] = Minv[i]*Zmat[i*nspecies+j];
+        }
+    }
+
+    // Compute PJ
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            PJ[i*nspecies+j] = 0.;
+            for (k=0; k<nspecies; ++k) {
+                PJ[i*nspecies+j] = PJ[i*nspecies+j] + Pmat[i*nspecies+k]*Jmat[k*nspecies+j];
+            }
+        }
+    }
+
+    // Compute P M^-1 Pt; store it in matrix2
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            scr = 0.;
+            for (k=0; k<nspecies; ++k) {
+                scr = scr + Pmat[i*nspecies+k]*Minv[k]*Pmat[j*nspecies+k];
+                // notice the change in indices for Pmat to represent Pmat^t
+            }
+            matrix2[i*nspecies+j] = scr;
+            Diff_ij[i*nspecies+j] = scr;
+        }
+    }
+
+    if (jmax > 0) {
+
+        for (ll=0; ll<jmax; ++ll) {
+
+            // matrix1=0
+            for (i=0; i<nspecies; ++i) {
+                for (j=0; j<nspecies; ++j) {
+                    scr = 0.;
+                    for (k=0; k<nspecies; ++k) {
+                        scr = scr + PJ[i*nspecies+k]*Diff_ij[k*nspecies+j];
+                    }
+                    matrix1[i*nspecies+j] = scr+matrix2[i*nspecies+j];
+                }
+            }
+        
+            for (i=0; i<nspecies; ++i) {
+                for (j=0; j<nspecies; ++j) {
+                    Diff_ij[i*nspecies+j]=matrix1[i*nspecies+j];
+                }
+            }
+        }
+        
+    }
+
+    // Compute D_tilde
+    for (i=0; i<nspecies; ++i) {
+       for (j=0; j<nspecies; ++j) {
+           D_tilde(iloc,jloc,kloc,i*nspecies+j) = Diff_ij[i*nspecies+j]*Ykp[i];
+       }
+    }
+    
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
                const GpuArray<Real,MAX_SPECIES>& Ykp,
@@ -353,8 +485,8 @@ void IdealMixtureTransport ( int i, int j, int k,
                              Real& eta,
                              Real& kappa,
                              Real& zeta,
-                             const Array4<Real>& diff_ij,
-                             const Array4<Real>& chitil,
+                             Array4<Real>& diff_ij,
+                             Array4<Real>& chitil,
                              int const nspecies,
                              const GpuArray<Real,MAX_SPECIES>& molmass,
                              const GpuArray<Real,MAX_SPECIES>& diameter,
@@ -437,6 +569,21 @@ void IdealMixtureTransport ( int i, int j, int k,
     }
 
     ViscLin(omega11,yytr,temperature,density,molecular_mass,eta,nspecies,k_B);
+    // eta = 0.0d0
+   
+    // // GCM: Why hard-coded in? from original LLNS
+    zeta = 0.;
+    
+//    call lambda_lin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa)
+    // kappa = 0.d0
+
+    D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies,i,j,k);
+    // diff_ij = 0.0d0
+
+//    call thermalDiff(sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,chitil)
+    // chitil = 0.0d0
+
+    
     
               
 };
