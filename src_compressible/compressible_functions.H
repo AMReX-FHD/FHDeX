@@ -268,6 +268,63 @@ void Solve ( int const neq,
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Decompnp ( int const neq,
+                int const ndim,
+                GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a)
+{
+    Real eps = 1.e-30;
+    Real eps2 = 1.e-60;
+
+    Real amult;
+    
+    int i,k,l,nm1,ip1;
+      
+    nm1=neq-1;
+    for (i=0; i<nm1; ++i) {
+        ip1 = i+2;
+        for (l=ip1-1; l<neq; ++l) {
+            amult=a[l*ndim+i]/a[i*ndim+i];
+            a[l*ndim+i]=amult;
+            if (std::abs(amult) < eps2) continue;
+            for (k=ip1-1; k<neq; ++k) {
+                a[l*ndim+k]=a[l*ndim+k]-amult*a[i*ndim+k];
+            }
+        }
+    }
+    if (std::abs(a[(neq-1)*ndim+neq-1])<eps) {
+        std::printf("%e",a[(neq-1)*ndim+neq-1]);
+        Abort("singular matrix in decomp");
+    }            
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Solvenp ( int const neq,
+               int const ndim,
+               GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+               GpuArray<Real,MAX_SPECIES>& b)
+{
+    int j,k,l,nm1,lm1,jp1;
+    
+    nm1 = neq-1;
+    for (l=1; l<neq; ++l) {
+        lm1=l;
+        for (k=0; k<lm1; ++k) {
+            b[l]=b[l]-a[l*ndim+k]*b[k];
+        }
+    }
+    b[neq-1]=b[neq-1]/a[(neq-1)*ndim+neq-1];
+    for (l=0; l<nm1; ++l) {
+        j=neq-(l+1);
+        jp1=j+1;
+        for (k=jp1-1; k<neq; ++k) {
+            b[j-1]=b[j-1]-a[(j-1)*ndim+k]*b[k];
+        }
+        b[j-1]=b[j-1]/a[(j-1)*ndim+j-1];
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
              const GpuArray<Real,MAX_SPECIES>& Ykp,
              const GpuArray<Real,MAX_SPECIES>& Xkp,
@@ -434,8 +491,8 @@ void ThermalDiff ( int iloc, int jloc, int kloc,
         Aij[i*nspecies+i] = Aij[i*nspecies+i] + sumTemp;
     }
 
-//    call decompnp(nspecies,nspecies,Aij)
-//    call solvenp(nspecies,nspecies,Aij,AA)
+    Decompnp(nspecies,nspecies,Aij);
+    Solvenp(nspecies,nspecies,Aij,AA);
 
     for (i=0; i<nspecies; ++i) {
         for (j=0; j<nspecies; ++j) {
@@ -635,7 +692,7 @@ void IdealMixtureTransport ( int i, int j, int k,
     D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies,i,j,k);
     // diff_ij = 0.0d0
 
-//    call thermalDiff(sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,chitil)
+    ThermalDiff(i,j,k,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,chitil,nspecies);
     // chitil = 0.0d0
 
     
