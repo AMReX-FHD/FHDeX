@@ -193,7 +193,7 @@ void Decomp ( int const neq,
     for (i=0; i<nm1; ++i) {
         ip1=i+2;
         k=i+1;
-        apm = std::abs(a[ip[i]*nspecies-1+i]);
+        apm = std::abs(a[(ip[i]-1)*nspecies+i]);
         for (j=ip1-1; j<neq; ++j) {
             apn=std::abs(a[(ip[j]-1)*nspecies+i]);
             if (apm >= apn) continue;
@@ -793,7 +793,7 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
     // bSonine = 1.0d24*bSonine
 
     // print*, "Hack (visc_lin): scaled QoR = ", QoR
-        
+
     Decomp(nspecies,QoR,ip,nspecies);
     Solve(nspecies,QoR,bSonine,ip,nspecies);
 
