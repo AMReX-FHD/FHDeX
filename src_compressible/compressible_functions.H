@@ -242,9 +242,9 @@ void Decomp2 ( int const neq,
     for (i=0; i<nm1; ++i) {
         ip1=i+2;
         k=i+1;
-        apm = std::abs(a[ip[i]*nspecies-1+i]);
+        apm = std::abs(a[(ip[i]-1)*2*nspecies+i]);
         for (j=ip1-1; j<neq; ++j) {
-            apn=std::abs(a[(ip[j]-1)*nspecies+i]);
+            apn=std::abs(a[(ip[j]-1)*2*nspecies+i]);
             if (apm >= apn) continue;
             apm=apn;
             k=j+1;
@@ -253,21 +253,21 @@ void Decomp2 ( int const neq,
         ip[k-1]=ip[i];
         ip[i]=j;
         if (apm < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
             Abort("singular matrix in decomp");
         }
         for (l=ip1-1; l<neq; ++l) {
             n=ip[l];
-            amult=a[(n-1)*nspecies+i]/a[(j-1)*nspecies+i];
-            a[(n-1)*nspecies+i]=amult;
+            amult=a[(n-1)*2*nspecies+i]/a[(j-1)*2*nspecies+i];
+            a[(n-1)*2*nspecies+i]=amult;
             if (std::abs(amult) < eps2) continue;
             for (k=ip1-1; k<neq; ++k) {
-                a[(n-1)*nspecies+k]=a[(n-1)*nspecies+k]-amult*a[(j-1)*nspecies+k];
+                a[(n-1)*2*nspecies+k]=a[(n-1)*2*nspecies+k]-amult*a[(j-1)*2*nspecies+k];
             }
         }
     }
-    if(std::abs(a[(ip[neq-1]-1)*nspecies+neq-1]) < eps) {
-            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+    if(std::abs(a[(ip[neq-1]-1)*2*nspecies+neq-1]) < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
             Abort("singular matrix in decomp");
     }
             
@@ -331,18 +331,18 @@ void Solve2 ( int const neq,
         n=ip[l];
         lm1=l;
         for (k=0; k<lm1; ++k) {
-            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+            b[n-1]=b[n-1]-a[(n-1)*2*nspecies+k]*b[ip[k]-1];
         }
     }
-    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[ip[neq-1]-1,neq-1];
+    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[(ip[neq-1]-1)*2*nspecies+neq-1];
     for (l=0; l<nm1; ++l) {
         j=neq-(l+1);
         jp1=j+1;
         n=ip[j-1];
         for (k=jp1-1; k<neq; ++k) {
-            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+            b[n-1]=b[n-1]-a[(n-1)*2*nspecies+k]*b[ip[k]-1];
         }
-        b[n-1]=b[n-1]/a[(n-1)*nspecies+j-1];
+        b[n-1]=b[n-1]/a[(n-1)*2*nspecies+j-1];
     }
     for (n=0; n<neq; ++n) {
         while (ip[n] != n+1) {
@@ -617,10 +617,10 @@ void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
             ratm = mk[i]/mk[j];
             sqratm = sqrt(ratm);
             scr = ratm*sqratm;
-            QQ[i*nspecies+j] =  8.*sqratm/mk[i] * sum00;         // HCB 7.4-50 
-            QQ[i*nspecies+j+nspecies] = -8.*scr * sum01;    // HCB 7.4-51
-            QQ[(i+nspecies)*nspecies+j] = -8.*sqratm*sum01;
-            QQ[(i+nspecies)*nspecies+j+nspecies] = 8.*ratm*sqratm* sum11;  // HCB 7.4-53
+            QQ[i*2*nspecies+j] =  8.*sqratm/mk[i] * sum00;         // HCB 7.4-50
+            QQ[i*2*nspecies+j+nspecies] = -8.*scr * sum01;    // HCB 7.4-51
+            QQ[(i+nspecies)*2*nspecies+j] = -8.*sqratm*sum01;
+            QQ[(i+nspecies)*2*nspecies+j+nspecies] = 8.*ratm*sqratm* sum11;  // HCB 7.4-53
        }
     }
 
