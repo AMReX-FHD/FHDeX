@@ -399,6 +399,61 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ThermalDiff ( int iloc, int jloc, int kloc,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sigma11,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij1,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij2,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& alphabar,
+                   const GpuArray<Real,MAX_SPECIES>& Xkp,
+                   const Real sqrtT,
+                   const GpuArray<Real,MAX_SPECIES>& mk,
+                   Array4<Real>& kT,
+                   const int nspecies) {
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Aij, alphaij;
+    GpuArray<Real,MAX_SPECIES> AA;
+    GpuArray<int,MAX_SPECIES> ip;
+
+    int i,j,k;
+    Real sumTemp;
+
+    // Based on Valk 1963 (Waldmann)
+
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Aij[i*nspecies+j] = Xkp[j]*a_ij2[i*nspecies+j];
+        }
+        AA[i] = 15./4.;
+    }
+    
+    for (i=0; i<nspecies; ++i) {
+        sumTemp = 0.;
+        for (k=0; k<nspecies; ++k) {
+            sumTemp = sumTemp + Xkp[k]*a_ij1[i*nspecies+k];
+        }
+        Aij[i*nspecies+i] = Aij[i*nspecies+i] + sumTemp;
+    }
+
+//    call decompnp(nspecies,nspecies,Aij)
+//    call solvenp(nspecies,nspecies,Aij,AA)
+
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            alphaij[i*nspecies+j] = alphabar[i*nspecies+j]*(AA[i]/mk[i] - AA[j]/mk[j])/sqrtT;
+        }
+    }
+
+    for (k=0; k<nspecies; ++k) {
+        sumTemp = 0.;
+        for (j=0; j<nspecies; ++j) {
+            sumTemp = sumTemp + Xkp[j]*alphaij[k*nspecies+j];
+        }
+        kT(iloc,jloc,kloc,k) = sumTemp;
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
                const GpuArray<Real,MAX_SPECIES>& Ykp,
                const Real T,
