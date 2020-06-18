@@ -2,10 +2,11 @@ module common_namelist_module
 
   use iso_c_binding, only: c_char
   use amrex_string_module, only: amrex_string_c_to_f, amrex_string_f_to_c
-
+  use amrex_error_module
+  
   implicit none
 
-  integer, parameter :: MAX_SPECIES = 10
+  integer, parameter :: MAX_SPECIES = 4
   integer, parameter :: LOHI = 2
 
   double precision,   save :: prob_lo(AMREX_SPACEDIM)
@@ -513,6 +514,10 @@ contains
     open(unit=100, file=amrex_string_c_to_f(inputs_file), status='old', action='read')
     read(unit=100, nml=common)
     close(unit=100)
+
+    if (nspecies > MAX_SPECIES) then
+       call amrex_abort("nspecies > MAX_SPECIES; change in common_functions.H and common_namelist.F90")
+    end if
     
 
   end subroutine read_common_namelist

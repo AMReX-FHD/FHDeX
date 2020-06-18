@@ -9,6 +9,8 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    Real* delHolder4, Real* delHolder5, Real* delHolder6,
                    const int steps, const amrex::Real* dx)
 {
+    BL_PROFILE_VAR("evaluateStats()",evaluateStats);
+    
     double totalMass;
 
     double del1;
@@ -78,8 +80,18 @@ void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
     }
 }
 
-void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab& primMean, const MultiFab& primVar, const MultiFab& spatialCross, MultiFab& consMeanAv, MultiFab& consVarAv, MultiFab& primMeanAv, MultiFab& primVarAv, MultiFab& spatialCrossAv)
+void yzAverage(const MultiFab& consMean,
+               const MultiFab& consVar,
+               const MultiFab& primMean,
+               const MultiFab& primVar,
+               const MultiFab& spatialCross,
+               MultiFab& consMeanAv,
+               MultiFab& consVarAv,
+               MultiFab& primMeanAv,
+               MultiFab& primVarAv,
+               MultiFab& spatialCrossAv)
 {
+    BL_PROFILE_VAR("yzAverage()",yzAverage);
 
     // Loop over boxes
 
@@ -113,4 +125,3 @@ void yzAverage(const MultiFab& consMean, const MultiFab& consVar, const MultiFab
     }
 
 }
-

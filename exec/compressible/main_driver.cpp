@@ -15,6 +15,8 @@ using namespace amrex;
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
+    BL_PROFILE_VAR("main_driver()",main_driver);
+    
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -32,6 +34,15 @@ void main_driver(const char* argv)
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     get_hc_gas();
+    // now update C++ values
+    for (int i=0; i<nspecies; ++i) {
+        if (hcv[i] < 0.) {
+            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
+        }
+        if (hcp[i] < 0.) {
+            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
+        }
+    }
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -531,7 +542,7 @@ void main_driver(const char* argv)
     prim.setVal(rho0,0,1,ngc);      // density
     prim.setVal(0.,1,3,ngc);        // x/y/z velocity
     prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in cons_to_prim
+                                    // pressure computed later in conservedToPrimitive
     for(int i=0;i<nspecies;i++) {
         prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
     }
@@ -633,9 +644,9 @@ void main_driver(const char* argv)
 #ifndef AMREX_USE_CUDA
 	// collect a snapshot for structure factor
 	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(structFactPrimMF, prim, 0, 0, structVarsPrim, 0);
-            MultiFab::Copy(structFactConsMF, cu,   0, 0, structVarsCons, 0);
-            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1, 0); // temperature too
+            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
+            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
+            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
             structFactPrim.FortStructure(structFactPrimMF,geom);
             structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
@@ -658,13 +669,30 @@ void main_driver(const char* argv)
         Real aux2 = ParallelDescriptor::second() - aux1;
         ParallelDescriptor::ReduceRealMax(aux2);
         amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
-
-        if(step%500 == 0)
-        {
-                amrex::Print() << "Advanced step " << step << "\n";
-        }
         
         time = time + dt;
+
+        // MultiFab memory usage
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
+        amrex::Long max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+
+        min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
+        max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+        
     }
 
     // timer
