@@ -300,7 +300,7 @@ public:
     int  threepmBins = 50;
     int  threepmCurrentBin = 1;
     int  threepmCurrentSample = 1;
-    int  threepmSamples = 40;
+    int  threepmSamples = 1000;
     Real threepmVals[50];
     Real threepmMax[50];
     Real threepmMin[50];
