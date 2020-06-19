@@ -3,9 +3,7 @@
 
 #include "common_functions.H"
 
-
 #include "gmres_functions.H"
-
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
@@ -215,9 +213,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   pres.setVal(0.);  // initial guess
 
   // call GMRES to compute predictor
-  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-	alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
-	theta_alpha,geom,norm_pre_rhs);
+  GMRES gmres(ba,dmap,geom);
+  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+              alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
+              theta_alpha,geom,norm_pre_rhs);
 
   // Compute predictor advective term
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -261,9 +260,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   pres.setVal(0.);  // initial guess
 
   // call GMRES here
-  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-	alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
-	theta_alpha,geom,norm_pre_rhs);
+  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+              alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
+              theta_alpha,geom,norm_pre_rhs);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);

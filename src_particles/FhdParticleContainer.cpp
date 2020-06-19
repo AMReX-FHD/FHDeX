@@ -935,9 +935,9 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                 for(int kk = kklo; kk <= kkhi; kk++)
                 {
                     // get distance between particles
-                    dx = abs(part.pos(0)-posx[j] - ii*domx);
-                    dy = abs(part.pos(1)-posy[j] - jj*domy);
-                    dz = abs(part.pos(2)-posz[j] - kk*domz);
+                    dx = std::abs(part.pos(0)-posx[j] - ii*domx);
+                    dy = std::abs(part.pos(1)-posy[j] - jj*domy);
+                    dz = std::abs(part.pos(2)-posz[j] - kk*domz);
 
                     dist = sqrt(dx*dx + dy*dy + dz*dz);
 
@@ -1757,9 +1757,9 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             ParticleType & part0 = particles[0];
             ParticleType & part1 = particles[1];
 
-            x0 = prob_lo[0] + get_uniform_func()*(prob_hi[0]-prob_lo[0]);
-            y0 = prob_lo[1] + get_uniform_func()*(prob_hi[1]-prob_lo[1]);
-            z0 = prob_lo[2] + get_uniform_func()*(prob_hi[2]-prob_lo[2]);
+            x0 = prob_lo[0] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[0]-prob_lo[0])*0.5;
+            y0 = prob_lo[1] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[1]-prob_lo[1])*0.5;
+            z0 = prob_lo[2] + 0.25*(prob_hi[0]-prob_lo[0]) + get_uniform_func()*(prob_hi[2]-prob_lo[2])*0.5;
     
             SetPosition(0, 1, x0, y0, z0);
 
@@ -1779,7 +1779,7 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
             ParticleType & part0 = particles[0];
             ParticleType & part1 = particles[1];
 
-            Real ee = (permittivity*4*3.142);
+            Real ee = (permittivity*4*3.14159265359);
 
             Real re = threepmCurrentBin*(threepmRange/threepmBins)/(1);
 
@@ -1789,7 +1789,22 @@ FhdParticleContainer::BuildCorrectionTable(const Real* dx, int setMeasureFinal) 
 
             Real forceMag = sqrt(pow(part0.rdata(FHD_realData::forcex),2) + pow(part0.rdata(FHD_realData::forcey),2) + pow(part0.rdata(FHD_realData::forcez),2))*forceNorm;
 
+           // Print() << "ForceMag: " << forceNorm << std::endl;
+
+           // Print() << "currentPre: " << threepmVals[threepmCurrentBin] << std::endl;
+
+           // Print() << "Bin: " << threepmCurrentBin << std::endl;
+
+            if(threepmCurrentSample == 1)
+            {
+                threepmVals[threepmCurrentBin] = 0;
+            }
+    
             threepmVals[threepmCurrentBin] = (threepmVals[threepmCurrentBin]*(threepmCurrentSample - 1) + forceMag)/threepmCurrentSample;
+
+          //  Print() << "currentPost: " << threepmVals[threepmCurrentBin] << std::endl;
+
+         //   Print() << "Sample: " << threepmCurrentSample << std::endl;
 
             if(forceMag < threepmMin[threepmCurrentBin])
             {

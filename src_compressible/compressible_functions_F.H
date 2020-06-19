@@ -107,10 +107,6 @@ extern "C"
                   amrex::Real* chi,
                   amrex::Real* Dij);
 
-    void cons_to_prim(const int* lo, const int* hi,
-                      const amrex::Real* cons,
-                      amrex::Real* prim);
-
     void set_bc(const int* lo, const int* hi,
                 amrex::Real* cons,
                 amrex::Real* prim);

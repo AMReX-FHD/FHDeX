@@ -18,7 +18,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& visccorn, MultiFab& rancorn,
              const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt)
 {
-
+    BL_PROFILE_VAR("RK3step()",RK3step);
+    
     const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
     
     const GpuArray<Real,AMREX_SPACEDIM> grav_gpu{AMREX_D_DECL(grav[0], grav[1], grav[2])};

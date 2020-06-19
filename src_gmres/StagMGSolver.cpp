@@ -1,92 +1,54 @@
 #include "gmres_functions.H"
-
 #include "common_functions.H"
-
-#include <AMReX_VisMF.H>
 
 using namespace amrex;
 
-// solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
-// if abs(visc_type) = 1, L = div beta grad
-// if abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-// if abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
-// if visc_type > 1 we assume constant coefficients
-// if visc_type < 1 we assume variable coefficients
-// beta_cc, and gamma_cc are cell-centered
-// alpha_fc, phi_fc, and rhs_fc are face-centered
-// beta_ed is nodal (2d) or edge-centered (3d)
-// phi_fc must come in initialized to some value, preferably a reasonable guess
-void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-                  const MultiFab & beta_cc,
-                  const std::array<MultiFab, NUM_EDGE> & beta_ed,
-                  const MultiFab & gamma_cc,
-                  std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
-                  const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
-                  const Real & theta_alpha,
-                  const Geometry & geom)
-{
+StagMGSolver::StagMGSolver() {}
 
-    BL_PROFILE_VAR("StagMGSolver()",StagMGSolver);
+void StagMGSolver::Define(const BoxArray& ba_in,
+                          const DistributionMapping& dmap_in,
+                          const Geometry& geom_in) {
 
-    if (stag_mg_verbosity >= 1) {
-        Print() << "Begin call to stag_mg_solver\n";
-    }
-
-    Vector<int> is_periodic(AMREX_SPACEDIM);
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        is_periodic[i] = geom.isPeriodic(i);
-    }
-
+    BL_PROFILE_VAR("StagMGSolver::Define()",StagMGSolver_Define);
+    
     // get the problem domain and boxarray at level 0
-    Box pd_base = geom.Domain();
-
-    BoxArray ba_base = beta_cc.boxArray();
-
-    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-
+    pd_base = geom_in.Domain();
+    ba_base = ba_in;
+    
+    dmap = dmap_in;    
+    
     // compute the number of multigrid levels assuming stag_mg_minwidth is the length of the
     // smallest dimension of the smallest grid at the coarsest multigrid level
-    int nlevs_mg = ComputeNlevsMG(ba_base);
+    nlevs_mg = ComputeNlevsMG(ba_base);
     if (stag_mg_verbosity >= 3) {
         Print() << "Total number of multigrid levels: " << nlevs_mg << std::endl;
     }
 
-    Vector<Geometry> geom_mg(nlevs_mg);
-    int n;
+    alpha_fc_mg.resize(nlevs_mg);
+    rhs_fc_mg.resize(nlevs_mg);
+    phi_fc_mg.resize(nlevs_mg);
+    Lphi_fc_mg.resize(nlevs_mg);
+    resid_fc_mg.resize(nlevs_mg);
+    beta_ed_mg.resize(nlevs_mg);
 
-    //////////////////////////////////
-    // allocate multifabs used in multigrid coarsening
+    beta_cc_mg.resize(nlevs_mg);
+    gamma_cc_mg.resize(nlevs_mg);
 
-    // cell-centered
-    Vector<MultiFab>  beta_cc_mg(nlevs_mg);
-    Vector<MultiFab> gamma_cc_mg(nlevs_mg);
+    dx_mg.resize(nlevs_mg);
 
-    // face-centered
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > > alpha_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >   rhs_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >   phi_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > >  Lphi_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, AMREX_SPACEDIM > > resid_fc_mg(nlevs_mg);
-    Vector<std::array< MultiFab, NUM_EDGE       > >  beta_ed_mg(nlevs_mg); // nodal in 2D, edge in 3D
+    geom_mg.resize(nlevs_mg);
 
-    //////////////////////////////////
-
-    // initial and current residuals
-    Vector<Real> resid0(AMREX_SPACEDIM);
-    Vector<Real> resid0_l2(AMREX_SPACEDIM);
-    Vector<Real> resid(AMREX_SPACEDIM);
-    Vector<Real> resid_l2(AMREX_SPACEDIM);
-    Real resid_temp;
-
-    int color_start, color_end;
-
-    DistributionMapping dmap = beta_cc.DistributionMap();
-
-    const Real* dx = geom.CellSize();
-    Vector<std::array< Real, AMREX_SPACEDIM > > dx_mg(nlevs_mg);
-
-    for (n=0; n<nlevs_mg; ++n) {
+    const Real* dx = geom_in.CellSize();
+    
+    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
+    
+    Vector<int> is_periodic(AMREX_SPACEDIM);
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        is_periodic[i] = geom_in.isPeriodic(i);
+    }
+    
+    for (int n=0; n<nlevs_mg; ++n) {
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             // compute dx at this level of multigrid
             dx_mg[n][d] = dx[d] * pow(2,n);
@@ -132,6 +94,42 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
                 beta_ed_mg[n][d].define(convert(ba, nodal_flag_edge[d]), dmap, 1, 0);
         }
     } // end loop over multigrid levels
+    
+}
+
+
+// solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
+// if std::abs(visc_type) = 1, L = div beta grad
+// if std::abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+// if std::abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+// if visc_type > 1 we assume constant coefficients
+// if visc_type < 1 we assume variable coefficients
+// beta_cc, and gamma_cc are cell-centered
+// alpha_fc, phi_fc, and rhs_fc are face-centered
+// beta_ed is nodal (2d) or edge-centered (3d)
+// phi_fc must come in initialized to some value, preferably a reasonable guess
+void StagMGSolver::Solve(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                         const MultiFab & beta_cc,
+                         const std::array<MultiFab, NUM_EDGE> & beta_ed,
+                         const MultiFab & gamma_cc,
+                         std::array<MultiFab, AMREX_SPACEDIM> & phi_fc,
+                         const std::array<MultiFab, AMREX_SPACEDIM> & rhs_fc,
+                         const Real & theta_alpha)
+{
+    BL_PROFILE_VAR("StagMGSolver::Solve()",StagMGSolver_Solve);
+
+    if (stag_mg_verbosity >= 1) {
+        Print() << "Begin call to stag_mg_solver\n";
+    }
+
+    // initial and current residuals
+    Vector<Real> resid0(AMREX_SPACEDIM);
+    Vector<Real> resid0_l2(AMREX_SPACEDIM);
+    Vector<Real> resid(AMREX_SPACEDIM);
+    Vector<Real> resid_l2(AMREX_SPACEDIM);
+    Real resid_temp;
+
+    int n, color_start, color_end;
 
     // copy level 1 coefficients into mg array of coefficients
     MultiFab::Copy(beta_cc_mg[0],  beta_cc,  0, 0, 1, 1);
@@ -642,13 +640,13 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
         MultiFab::Copy(phi_fc[d],phi_fc_mg[0][d],0,0,1,0);
 
         // set values on physical boundaries
-        MultiFabPhysBCDomainVel(phi_fc[d], geom,d);
+        MultiFabPhysBCDomainVel(phi_fc[d], geom_mg[0],d);
 
         // fill periodic ghost cells
-        phi_fc[d].FillBoundary(geom.periodicity());
+        phi_fc[d].FillBoundary(geom_mg[0].periodicity());
 
         // fill physical ghost cells
-        MultiFabPhysBCMacVel(phi_fc[d], geom,d);
+        MultiFabPhysBCMacVel(phi_fc[d], geom_mg[0],d);
     }
 
     // vcycle_counter += AMREX_SPACEDIM*stag_mg_max_vcycles;
@@ -660,7 +658,7 @@ void StagMGSolver(const std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
 
 // compute the number of multigrid levels assuming minwidth is the length of the
 // smallest dimension of the smallest grid at the coarsest multigrid level
-int ComputeNlevsMG(const BoxArray& ba) {
+int StagMGSolver::ComputeNlevsMG(const BoxArray& ba) {
     
     BL_PROFILE_VAR("ComputeNlevsMG()",ComputeNlevsMG);
 
@@ -690,7 +688,7 @@ int ComputeNlevsMG(const BoxArray& ba) {
     return nlevs_mg;
 }
 
-void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_c)
+void StagMGSolver::CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_c)
 {
     BL_PROFILE_VAR("CCRestriction()",CCRestriction);
 
@@ -722,7 +720,7 @@ void CCRestriction(MultiFab& phi_c, const MultiFab& phi_f, const Geometry& geom_
     phi_c.FillBoundary(geom_c.periodicity());
 }
 
-void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
+void StagMGSolver::StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
                      const std::array< MultiFab, AMREX_SPACEDIM >& phi_f,
                      int simple_stencil)
 {
@@ -828,7 +826,7 @@ void StagRestriction(std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
     }
 }
 
-void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
+void StagMGSolver::NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
 {
     BL_PROFILE_VAR("NodalRestriction()",NodalRestriction);
 
@@ -850,7 +848,7 @@ void NodalRestriction(MultiFab& phi_c, const MultiFab& phi_f)
     }
 }
 
-void EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
+void StagMGSolver::EdgeRestriction(std::array< MultiFab, NUM_EDGE >& phi_c,
                      const std::array< MultiFab, NUM_EDGE >& phi_f)
 {
     BL_PROFILE_VAR("EdgeRestriction()",EdgeRestriction);
@@ -1132,8 +1130,8 @@ void stag_prolongation (const Box & tbx,
 #endif
 }
 
-void StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
-                      std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
+void StagMGSolver::StagProlongation(const std::array< MultiFab, AMREX_SPACEDIM >& phi_c,
+                                    std::array< MultiFab, AMREX_SPACEDIM >& phi_f)
 {
 
     BL_PROFILE_VAR("StagProlongation()",StagProlongation);
@@ -1909,15 +1907,15 @@ void stag_mg_update_visc_m3 (Box const& tbx,
 
 }
 
-void StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& Lphi_fc,
-                   const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
-                   const MultiFab& beta_cc,
-                   const std::array< MultiFab, NUM_EDGE >& beta_ed,
-                   const MultiFab& gamma_cc,
-                   const Real* dx,
-                   const int& color)
+void StagMGSolver::StagMGUpdate (std::array< MultiFab, AMREX_SPACEDIM >& phi_fc,
+                                 const std::array< MultiFab, AMREX_SPACEDIM >& rhs_fc,
+                                 const std::array< MultiFab, AMREX_SPACEDIM >& Lphi_fc,
+                                 const std::array< MultiFab, AMREX_SPACEDIM >& alpha_fc,
+                                 const MultiFab& beta_cc,
+                                 const std::array< MultiFab, NUM_EDGE >& beta_ed,
+                                 const MultiFab& gamma_cc,
+                                 const Real* dx,
+                                 const int& color)
 {
     BL_PROFILE_VAR("StagMGUpdate()",StagMGUpdate);
 

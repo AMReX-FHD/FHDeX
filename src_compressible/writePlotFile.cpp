@@ -17,7 +17,8 @@ void WritePlotFile(int step,
 		   const amrex::MultiFab& eta,
 		   const amrex::MultiFab& kappa)
 {
-
+    BL_PROFILE_VAR("writePlotFile()",writePlotFile);
+    
     int cnt, numvars, i = 0;
 
     // instantaneous values

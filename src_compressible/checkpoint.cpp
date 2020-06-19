@@ -29,7 +29,9 @@ void WriteCheckPoint(int step,
                      const amrex::MultiFab& prim,
                      const amrex::MultiFab& primMeans,
                      const amrex::MultiFab& primVars,
-                     const amrex::MultiFab& spatialCross, const amrex::MultiFab& eta, const amrex::MultiFab& kappa)
+                     const amrex::MultiFab& spatialCross,
+                     const amrex::MultiFab& eta,
+                     const amrex::MultiFab& kappa)
 {
     // timer for profiling
     BL_PROFILE_VAR("WriteCheckPoint()",WriteCheckPoint);

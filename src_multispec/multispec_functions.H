@@ -1,8 +1,6 @@
 #ifndef _multispec_functions_Ho
 #define _multispec_functions_H_
 
-#define MAX_SPECIES 10
-
 #include <AMReX_MultiFab.H>
 
 #include "multispec_functions_F.H"

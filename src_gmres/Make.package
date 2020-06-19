@@ -1,10 +1,19 @@
 CEXE_sources   += ApplyMatrix.cpp
-CEXE_sources   += ApplyPrecon.cpp
-CEXE_sources   += GMRES.cpp
-CEXE_sources   += MacProj.cpp
 CEXE_sources   += NormInnerProduct.cpp
-CEXE_sources   += StagMGSolver.cpp
 CEXE_sources   += StagApplyOp.cpp
+CEXE_sources   += Utility.cpp
+
+CEXE_sources   += GMRES.cpp
+CEXE_headers   += GMRES.H
+
+CEXE_sources   += MacProj.cpp
+CEXE_headers   += MacProj.H
+
+CEXE_sources   += Precon.cpp
+CEXE_headers   += Precon.H
+
+CEXE_sources   += StagMGSolver.cpp
+CEXE_headers   += StagMGSolver.H
 
 CEXE_sources   += gmres_functions.cpp
 CEXE_headers   += gmres_functions.H

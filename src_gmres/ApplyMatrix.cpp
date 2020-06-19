@@ -51,11 +51,6 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
     x_p.FillBoundary(geom.periodicity());
     MultiFabPhysBC(x_p, geom, 0, 1, 0);
 
-    std::array< MultiFab, AMREX_SPACEDIM > gx_p;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        gx_p[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
-
     // compute b_u = A x_u
     if (gmres_spatial_order == 2) {
         StagApplyOp(geom, beta, gamma, beta_ed, x_u, b_u, alpha_fc, dx, theta_alpha);
@@ -66,14 +61,10 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
 
     // compute G x_p and add to b_u
     if (gmres_spatial_order == 2) {
-        ComputeGrad(x_p, gx_p, 0, 0, 1, 0, geom);
+        ComputeGrad(x_p, b_u, 0, 0, 1, 0, geom, 1);
     }
     else if (gmres_spatial_order == 4) {
         Abort("ApplyMatrix.cpp: gmres_spatial_order=4 not supported yet");
-    }
-
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        MultiFab::Add(b_u[i], gx_p[i], 0, 0, 1, 0);
     }
 
     // set b_p = -D x_u

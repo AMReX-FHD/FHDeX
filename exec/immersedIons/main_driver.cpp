@@ -833,7 +833,7 @@ void main_driver(const char* argv)
             sourceTemp[d].setVal(0.0);      // reset source terms
         }
 
-        //particles.BuildCorrectionTable(dxp,0);
+        particles.BuildCorrectionTable(dxp,0);
 
         if (rfd_tog==1) {
             // Apply RFD force to fluid
@@ -874,7 +874,7 @@ void main_driver(const char* argv)
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
                              paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        //particles.BuildCorrectionTable(dxp,1);
+        particles.BuildCorrectionTable(dxp,1);
 
         if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
             // compute the random numbers needed for the stochastic momentum forcing
@@ -997,7 +997,9 @@ void main_driver(const char* argv)
 	//_______________________________________________________________________
 	// Update structure factor
 #ifndef AMREX_USE_CUDA
-        if (struct_fact_int > 0 && istep > abs(n_steps_skip) && (istep-abs(n_steps_skip)-1)%struct_fact_int == 0) {
+        if (struct_fact_int > 0 &&
+            istep > std::abs(n_steps_skip) &&
+            (istep-std::abs(n_steps_skip)-1)%struct_fact_int == 0) {
 
             // charge
             MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
@@ -1053,6 +1055,27 @@ void main_driver(const char* argv)
         amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
         
         time = time + dt;
+        // MultiFab memory usage
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
+        amrex::Long max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+
+        min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
+        max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";       
+        
     }
     ///////////////////////////////////////////
 

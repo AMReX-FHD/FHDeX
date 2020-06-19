@@ -40,8 +40,8 @@ contains
     integer :: i,j,k,l,n
     
     ! fourth order interpolation
-    wgt2 = 1.0/12.0
-    wgt1 = 0.5 + wgt2 
+    wgt2 = 1.0d0/12.0d0
+    wgt1 = 0.5d0 + wgt2 
     
     ! ! second order interpolation
     ! wgt2 = 0
@@ -54,6 +54,10 @@ contains
     ! Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
     ! x flux
+    ! do i= lo(1)-2,lo(1)+5
+    !     write(6,*)"i ",i
+    !     write(6,*)prim(i,2,2,1),prim(i,2,2,2),prim(i,2,2,5),prim(i,2,2,6)
+    ! enddo
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)+1
@@ -92,6 +96,14 @@ contains
           xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
 
           xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
+
+       !   if(j.eq.2.and.k.eq.2)then
+       !       write(6,*)"i = ",i
+       !       write(6,*)"prims", rho, primitive(2),temp,pt
+       !       write(6,*) conserved(1)*primitive(2),conserved(1)*(primitive(2)**2)+primitive(6), &
+       !         conserved(1)*primitive(2)*primitive(3),conserved(1)*primitive(2)*primitive(4),&
+       !         primitive(2)*conserved(5) + primitive(6)*primitive(2)
+       !   endif
 
           if(algorithm_type.eq.2) then ! Add advection of concentration
              do n=1,nspecies
@@ -228,8 +240,8 @@ contains
     integer :: i,j,k,l,n
     
     ! ! fourth order interpolation
-    wgt2 = 1.0/12.0
-    wgt1 = 0.5 + wgt2
+    wgt2 = 1.0d0/12.0d0
+    wgt1 = 0.5d0 + wgt2
     
     ! ! second order interpolation
     ! wgt2 = 0
@@ -1733,12 +1745,12 @@ contains
                prim(i-1,j,k,4)-prim(i-1,j,k-1,4) + prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3)
 
           visccorn(i,j,k) =  (muxp/12d0+zetaxp/4d0)*( & ! Divergence stress
-               (prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,k-1,2)-prim(i-1,j,k-1,2))/dx(1) + &
-               (prim(i,j-1,k,2)-prim(i-1,j-1,k,2))/dx(1) + (prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1) + &
-               (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,k-1,3)-prim(i,j-1,k-1,3))/dx(2) + &
-               (prim(i-1,j,k,3)-prim(i-1,j-1,k,3))/dx(2) + (prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2) + &
-               (prim(i-1,j-1,k,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,4)-prim(i,j-1,k-1,4))/dx(3) + &
-               (prim(i-1,j,k,4)-prim(i-1,j,k-1,4))/dx(3) + (prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3))
+               (prim(i,  j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,  k-1,2)-prim(i-1,j  ,k-1,2))/dx(1) + &
+               (prim(i,  j-1,k  ,2)-prim(i-1,j-1,k,  2))/dx(1) + (prim(i,j,  k,  2)-prim(i-1,j  ,k,  2))/dx(1) + &
+               (prim(i-1,j  ,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,  k-1,3)-prim(i  ,j-1,k-1,3))/dx(2) + &
+               (prim(i-1,j  ,k  ,3)-prim(i-1,j-1,k  ,3))/dx(2) + (prim(i,j,  k,  3)-prim(i  ,j-1,k,  3))/dx(2) + &
+               (prim(i-1,j-1,k  ,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,  4)-prim(i  ,j-1,k-1,4))/dx(3) + &
+               (prim(i-1,j  ,k  ,4)-prim(i-1,j  ,k-1,4))/dx(3) + (prim(i,j,  k,  4)-prim(i  ,j  ,k-1,4))/dx(3))
 
        end do
        end do

@@ -382,10 +382,10 @@ void main_driver(const char * argv) {
     // Add random momentum fluctuations
 
     // Declare object of StochMomFlux class
-    StochMomFlux sMflux (ba, dmap, geom, n_rngs);
+    //StochMomFlux sMflux (ba, dmap, geom, n_rngs);
 
     // Add initial equilibrium fluctuations
-    sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
+    addMomFluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
 
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap, 1, 1);

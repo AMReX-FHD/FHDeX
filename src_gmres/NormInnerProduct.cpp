@@ -126,45 +126,41 @@ void StagInnerProd(const Geometry& geom,
                    const int& comp1,
                    const std::array<MultiFab, AMREX_SPACEDIM>& m2,
                    const int& comp2,
+                   std::array<MultiFab, AMREX_SPACEDIM>& mscr,
                    amrex::Vector<amrex::Real>& prod_val)
 {
   BL_PROFILE_VAR("StagInnerProd()",StagInnerProd);
 
-  std::array<MultiFab, AMREX_SPACEDIM> prod_temp;
-
-  DistributionMapping dmap = m1[0].DistributionMap();
   for (int d=0; d<AMREX_SPACEDIM; d++) {
-    prod_temp[d].define(m1[d].boxArray(), dmap, 1, 0);
-    MultiFab::Copy(prod_temp[d],m1[d],comp1,0,1,0);
-    MultiFab::Multiply(prod_temp[d],m2[d],comp2,0,1,0);
+    MultiFab::Copy(mscr[d],m1[d],comp1,0,1,0);
+    MultiFab::Multiply(mscr[d],m2[d],comp2,0,1,0);
   }
 
   std::fill(prod_val.begin(), prod_val.end(), 0.);
-  SumStag(geom,prod_temp,0,prod_val,false);
+  SumStag(geom,mscr,0,prod_val,false);
 }
 
 void CCInnerProd(const amrex::MultiFab& m1,
 		 const int& comp1,
 		 const amrex::MultiFab& m2,
 		 const int& comp2,
+                 amrex::MultiFab& mscr,
 		 amrex::Real& prod_val)
 {
 
   BL_PROFILE_VAR("CCInnerProd()",CCInnerProd);
 
-  amrex::MultiFab prod_temp;
-  prod_temp.define(m1.boxArray(), m1.DistributionMap(), 1, 0);
-
-  MultiFab::Copy(prod_temp,m1,comp1,0,1,0);
-  MultiFab::Multiply(prod_temp,m2,comp2,0,1,0);
+  MultiFab::Copy(mscr,m1,comp1,0,1,0);
+  MultiFab::Multiply(mscr,m2,comp2,0,1,0);
 
   prod_val = 0.;
-  SumCC(prod_temp,0,prod_val,false);
+  SumCC(mscr,0,prod_val,false);
 }
 
 void StagL2Norm(const Geometry& geom,
                 const std::array<MultiFab, AMREX_SPACEDIM>& m1,
 		const int& comp,
+                std::array<MultiFab, AMREX_SPACEDIM>& mscr,
 		Real& norm_l2)
 {
 
@@ -172,18 +168,19 @@ void StagL2Norm(const Geometry& geom,
 
     Vector<Real> inner_prod(AMREX_SPACEDIM);
 
-    StagInnerProd(geom, m1, comp, m1, comp, inner_prod);
+    StagInnerProd(geom, m1, comp, m1, comp, mscr, inner_prod);
     norm_l2 = sqrt(std::accumulate(inner_prod.begin(), inner_prod.end(), 0.));
 }
 
 void CCL2Norm(const amrex::MultiFab& m1,
 	      const int& comp,
+              amrex::MultiFab& mscr,
 	      amrex::Real& norm_l2)
 {
 
   BL_PROFILE_VAR("CCL2Norm()",CCL2Norm);
 
   norm_l2 = 0.;
-  CCInnerProd(m1,comp,m1,comp,norm_l2);
+  CCInnerProd(m1,comp,m1,comp,mscr,norm_l2);
   norm_l2 = sqrt(norm_l2);
 }

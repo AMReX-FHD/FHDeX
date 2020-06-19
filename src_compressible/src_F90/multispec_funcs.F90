@@ -152,53 +152,26 @@ contains
     real(amrex_real), intent(in   ) :: density,temperature,pressure
     real(amrex_real), intent(in   ) :: Yk(nspecies),Xk(nspecies)
     real(amrex_real), intent(inout) :: eta,kappa,zeta
-
     real(amrex_real), intent(inout) :: diff_ij(nspecies,nspecies)
-    real(amrex_real) :: old_diff_ij(nspecies,nspecies)
-    real(amrex_real) :: gam_matrix(nspecies)
     real(amrex_real), intent(inout) :: chitil(nspecies)
-    real(amrex_real) :: ptc
-    real(amrex_real) :: tdv(nspecies)
+
+    ! Local variables
     real(amrex_real) :: Dbin(nspecies,nspecies)
     real(amrex_real) :: omega11(nspecies,nspecies)
     real(amrex_real) :: sigma11(nspecies,nspecies)
     real(amrex_real) :: a_ij1(nspecies,nspecies)
     real(amrex_real) :: a_ij2(nspecies,nspecies)
-
-
-    !     Local variables                                                   
-    real(amrex_real) muxp,muyp 
-    real(amrex_real) lamxp,lamyp 
-    real(amrex_real) kxp,kyp 
-    real(amrex_real) phiflx 
-    real(amrex_real) et0,et1,etx,zeta0,zeta1,zetax
-    real(amrex_real) etax,etay,etaz,xzeta,yzeta,zzeta
-    real(amrex_real) kap0,kap1,kapx,xkap,ykap,zkap 
-    real(amrex_real) cu0, cu1,cuy,cuz, conc,temp 
-    real(amrex_real) diamx,mx,omc,ctemp,Ix,Kx,K0,K1,Kb
-    real(amrex_real) s0, s1
-    real(amrex_real) Kfactorx(4)
-    real(amrex_real) prom,ratm,difm,summ,omcsq,comc,csq 
-
-
-    real(amrex_real) :: Mwmix, wbar, sqrtT
-    integer :: ii, jj, ns ,i ,j
-    real(amrex_real) :: xx(nspecies)
-    real(amrex_real) :: dd(nspecies,nspecies)
-    real(amrex_real) :: Cv(nspecies)
+    real(amrex_real) :: alphabar(nspecies,nspecies)
 
     real(amrex_real) :: xxtr(nspecies), yytr(nspecies), molecular_mass(nspecies)
-    real(amrex_real) :: cpk  (nspecies)
+    
+    real(amrex_real) :: Mwmix, sqrtT
 
-    real(amrex_real) :: rwrk
+    integer :: ii, i, j
 
+    real(amrex_real) :: sigma11bar,diamat
 
-    real(amrex_real) :: Dbinbar(nspecies,nspecies),omega11bar(nspecies,nspecies),sigma11bar(nspecies,nspecies),diamat(nspecies,nspecies)
-    real(amrex_real) :: amat1bar(nspecies,nspecies),amat2bar(nspecies,nspecies),alphabar(nspecies,nspecies)
     real(amrex_real) :: mu, Fijstar, Fij
-
-    integer :: iwrk
-    integer :: old
 
     real(amrex_real), PARAMETER :: pi= 3.1415926535897932d0
 
@@ -220,7 +193,6 @@ contains
     do ii = 1, nspecies
        MWmix = MWmix + xxtr(ii)*molmass(ii)
     enddo
-    wbar = MWmix
 
     ! mass fractions correction - EGLIB
     do ii = 1, nspecies
@@ -241,48 +213,33 @@ contains
 
           ! These matrices are computed in init_chemistry in FluctHydro code
 
-          diamat(i,j) = 0.5d0*(diameter(i) + diameter(j))
+          diamat = 0.5d0*(diameter(i) + diameter(j))
           mu = molecular_mass(i)*molecular_mass(j)/(molecular_mass(i) + molecular_mass(j))
           Fij = (6.0d0*molecular_mass(i)*molecular_mass(i) + 13.0d0/5.0d0*molecular_mass(j)*molecular_mass(j) +   &
                16.0d0/5.0d0*molecular_mass(i)*molecular_mass(j))/((molecular_mass(i)+molecular_mass(j))**2.0d0)
 
           !!
 
-          omega11bar(i,j) = sqrt(pi*k_b/(2.0d0*mu))*diamat(i,j)**2.0d0
+          sigma11bar = sqrt( k_b/(2.0d0*pi*mu) )*pi*(diamat**2.0d0)
           
           !!
 
-          Dbinbar(i,j) = 3.0d0/16.0d0*sqrt(2.0d0*pi*k_b**3.d00    &   
-               *(molecular_mass(i)+molecular_mass(j))/molecular_mass(i)/molecular_mass(j))/(pi*diamat(i,j)**2.0d0)
-
-          !!
-
-          sigma11bar(i,j) = sqrt( k_b/(2.0d0*pi*mu) )*pi*(diamat(i,j)**2.0d0)
-          
-          !!
-
-          alphabar(i,j) = 8.0d0/(3.0d0*k_b)*mu*mu*   &
-               (-.5d0*sigma11bar(i,j))
-
-          !!
-
-          amat1bar(i,j) = 5.0d0/(k_b)*molecular_mass(i)*molecular_mass(j)/    &
-               (molecular_mass(i)+molecular_mass(j))*Fij*sigma11bar(i,j)
-          amat2bar(i,j) = 5.0d0/(k_b)*molecular_mass(i)*molecular_mass(j)*molecular_mass(i)*molecular_mass(j)/    &
-               ((molecular_mass(i)+molecular_mass(j))**3.0d0)*Fijstar*sigma11bar(i,j)
+          alphabar(i,j) = 8.0d0/(3.0d0*k_b)*mu*mu*(-.5d0*sigma11bar)
 
           !!!!
 
-          Dbin(i,j) = Dbinbar(i,j)*temperature*sqrtT/pressure
-          omega11(i,j) = omega11bar(i,j)*sqrtT
-          sigma11(i,j) = sigma11bar(i,j)*sqrtT
-          a_ij1(i,j) = amat1bar(i,j)/sqrtT
-          a_ij2(i,j) = amat2bar(i,j)/sqrtT
+          Dbin(i,j) = 3.0d0/16.0d0*sqrt(2.0d0*pi*k_b**3.d00    &   
+               *(molecular_mass(i)+molecular_mass(j))/molecular_mass(i)/molecular_mass(j))/(pi*diamat**2.0d0) &
+               *temperature*sqrtT/pressure
+          omega11(i,j) = sqrt(pi*k_b/(2.0d0*mu))*diamat**2.0d0*sqrtT
+          sigma11(i,j) = sigma11bar*sqrtT
+          a_ij1(i,j) = (5.0d0/(k_b)*molecular_mass(i)*molecular_mass(j)/    &
+               (molecular_mass(i)+molecular_mass(j))*Fij*sigma11bar) /sqrtT
+          a_ij2(i,j) = (5.0d0/(k_b)*molecular_mass(i)*molecular_mass(j)*molecular_mass(i)*molecular_mass(j)/    &
+               ((molecular_mass(i)+molecular_mass(j))**3.0d0)*Fijstar*sigma11bar) /sqrtT
 
        enddo
     enddo
-
-    ! print*, "Hack (imt): ", omega11bar
 
     call visc_lin(omega11,yytr,temperature,density,molecular_mass,eta)
     ! eta = 0.0d0
@@ -299,19 +256,6 @@ contains
     call thermalDiff(sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,chitil)
     ! chitil = 0.0d0
 
-    ! ! GCM: What is this?
-    ! chitil = chitil*fake_soret_factor
-    
-    ! print*, "Hack, (imt): eta, kappa = ", eta, kappa
-    ! print*, "Hack, (imt): Dij = ", diff_ij
-    ! print*, "Hack, (imt): chi = ", chitil
-    ! stop
-    
-    ! if ( isnan(sum(diff_ij)) ) then
-    !    print*, "Hack 1, (imt) ", diff_ij
-    !    stop
-    ! end if
-
   end subroutine ideal_mixture_transport
 
   !-------------------------------------------------------------------------------------
@@ -325,7 +269,8 @@ contains
     real(amrex_real), intent(inout) :: etaMix
 
     integer :: ii, jj, kk
-    real(amrex_real) :: nk(nspecies), QoR(nspecies,nspecies), d(nspecies,nspecies), rhs(nspecies), bSonine(nspecies), diag(nspecies), sum1
+    real(amrex_real) :: nk(nspecies), QoR(nspecies,nspecies), bSonine(nspecies), diag(nspecies)
+    real(amrex_real) :: sum1
     integer :: ip(nspecies)
 
 
@@ -398,18 +343,21 @@ contains
 
     implicit none 
 
-    real(amrex_real) :: mw
     real(amrex_real), intent(in   ) :: T, rho, mk(nspecies)
     real(amrex_real), intent(inout) :: lammix
     real(amrex_real), intent(in   ) :: Ykp(nspecies)
+    real(amrex_real), intent(in   ) :: omega11(nspecies,nspecies)
+    real(amrex_real), intent(in   ) :: Dbin(nspecies,nspecies)
+    
+    real(amrex_real) :: mw
     real(amrex_real) :: nk(nspecies), beta(nspecies)
     integer :: i, j, k
     real(amrex_real) :: sum00, sum01, sum11, mu
-    real(amrex_real), intent(in   ) :: omega11(nspecies,nspecies)
-    real(amrex_real) :: QQ(2*nspecies,2*nspecies)
-    real(amrex_real) ::  aSonine(2*nspecies), D_T(nspecies)
-    real(amrex_real), intent(in   ) :: Dbin(nspecies,nspecies) 
     real(amrex_real) :: sum1, lamdaprime, ntotal
+    
+    real(amrex_real) :: QQ(2*nspecies,2*nspecies)
+    real(amrex_real) :: aSonine(2*nspecies), D_T(nspecies)
+
     real(amrex_real) :: diag1(nspecies),diag2(nspecies),diag3(nspecies),diag4(nspecies)
     real(amrex_real) :: ratm,sqratm,scr
     integer :: ip(2*nspecies)
@@ -533,13 +481,14 @@ contains
 
     implicit none 
 
-    integer :: i, j, k, jj
     real(amrex_real), intent(in   ) :: Ykp(nspecies), Xkp(nspecies)
     real(amrex_real), intent(in   ) :: Dbin(nspecies,nspecies) 
-    real(amrex_real) :: term1, term2
     real(amrex_real), intent(inout) :: D_tilde(nspecies,nspecies) 
+
+    integer :: i, j, k, jj
+    real(amrex_real) :: term1, term2, Deltamat
     real(amrex_real) :: Di(nspecies), Diff_ij(nspecies,nspecies)
-    real(amrex_real) :: Deltamat(nspecies,nspecies), Zmat(nspecies,nspecies)
+    real(amrex_real) :: Zmat(nspecies,nspecies)
     real(amrex_real) :: Pmat(nspecies,nspecies), Jmat(nspecies,nspecies)
     real(amrex_real) :: Minv(nspecies), Mmat(nspecies)
     real(amrex_real) :: PJ(nspecies,nspecies), matrix1(nspecies,nspecies), matrix2(nspecies,nspecies)
@@ -591,11 +540,11 @@ contains
                    term1 = term1 + Xkp(i)*Xkp(k)/Dbin(i,k)
                 endif
              enddo
-             Deltamat(i,i) = term1
+             Deltamat = term1
           else
-             Deltamat(i,j) = -Xkp(i)*Xkp(j)/Dbin(i,j) 
+             Deltamat = -Xkp(i)*Xkp(j)/Dbin(i,j) 
           endif
-          Zmat(i,j) = -Deltamat(i,j)
+          Zmat(i,j) = -Deltamat
        enddo
     enddo
 
@@ -681,9 +630,11 @@ contains
     real(amrex_real), intent(in   ) :: alphabar(nspecies,nspecies)
     real(amrex_real), intent(in   ) :: sqrtT
     real(amrex_real), intent(inout) :: kT(nspecies)
+    real(amrex_real), intent(in   ) :: a_ij1(nspecies,nspecies), a_ij2(nspecies,nspecies), sigma11(nspecies,nspecies)
+    
     integer :: i, j, k
     real(amrex_real) :: pi
-    real(amrex_real), intent(in   ) :: a_ij1(nspecies,nspecies), a_ij2(nspecies,nspecies), sigma11(nspecies,nspecies)
+
     real(amrex_real) :: Aij(nspecies,nspecies)
     real(amrex_real) :: AA(nspecies)
     real(amrex_real) :: fact1, sumTemp, sum1
