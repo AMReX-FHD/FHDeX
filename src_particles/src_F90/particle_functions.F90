@@ -1739,7 +1739,7 @@ contains
 
              !print *, "Touching post: ", ii1,jj1,kk1,sourceu(ii1,jj1,kk1), part%force(1),weights(i,j,k,1)
 
-             !spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
+             spreadcheck(1) = spreadcheck(1) + sourceu(ii1,jj1,kk1)
              !print*, "S: ", sourceu(ii1,jj1,kk1)
              ii2 = indicies(i,j,k,2,1)
              jj2 = indicies(i,j,k,2,2)
@@ -1747,7 +1747,7 @@ contains
 
              sourcev(ii2,jj2,kk2) = sourcev(ii2,jj2,kk2) + part%force(2)*weights(i,j,k,2)*volinv
 
-             !spreadcheck(2) = spreadcheck(2) + sourcev(ii2,jj2,kk2)
+             spreadcheck(2) = spreadcheck(2) + sourcev(ii2,jj2,kk2)
 
              ii3 = indicies(i,j,k,3,1)
              jj3 = indicies(i,j,k,3,2)
@@ -1755,13 +1755,29 @@ contains
 
              sourcew(ii3,jj3,kk3) = sourcew(ii3,jj3,kk3) + part%force(3)*weights(i,j,k,3)*volinv
 
-             !spreadcheck(3) = spreadcheck(3) + sourcew(ii3,jj3,kk3)
+             spreadcheck(3) = spreadcheck(3) + sourcew(ii3,jj3,kk3)
 
           enddo
        enddo
     enddo
 
-    !print *, "Spread ", spreadcheck
+    !print *, "Spread1 ", spreadcheck/volinv
+
+    spreadcheck = 0;
+
+    do k = sourcewlo(3), sourcewhi(3)
+       do j = sourcewlo(2), sourcewhi(2)
+          do i = sourcewlo(1), sourcewhi(1)
+
+            spreadcheck(3) = spreadcheck(3) + sourcew(i,j,k)
+
+          enddo
+       enddo
+     enddo
+    !  part => particles(1)
+    ! part2 => particles(2)
+
+    !print *, "Spread2 ", spreadcheck
 
   end subroutine spread_op
 
@@ -2802,6 +2818,22 @@ contains
        !      endif
        ! print *, "Part force: ", norm2(part%force)
 
+    tempvel(3) = 0;
+
+    do k = sourcezlo(3), sourcezhi(3)
+       do j = sourcezlo(2), sourcezhi(2)
+          do i = sourcezlo(1), sourcezhi(1)
+
+            tempvel(3) = tempvel(3) + sourcez(i,j,k)
+
+          enddo
+       enddo
+     enddo
+    !  part => particles(1)
+    ! part2 => particles(2)
+
+    !print *, "SOURCE1:", tempvel(3)*(prob_hi(1)-prob_lo(1))*(prob_hi(2)-prob_lo(2))*(prob_hi(3)-prob_lo(3))
+
        call spread_op(weights, indicies, &
             sourcex, sourcexlo, sourcexhi, &
             sourcey, sourceylo, sourceyhi, &
@@ -2814,9 +2846,22 @@ contains
 
     end do
 
+    tempvel(3) = 0;
+
+    do k = sourcezlo(3), sourcezhi(3)
+       do j = sourcezlo(2), sourcezhi(2)
+          do i = sourcezlo(1), sourcezhi(1)
+
+            tempvel(3) = tempvel(3) + sourcez(i,j,k)
+
+          enddo
+       enddo
+     enddo
     !  part => particles(1)
     ! part2 => particles(2)
 
+!    print *, "SOURCE2:", tempvel(3)*(prob_hi(1)-prob_lo(1))*(prob_hi(2)-prob_lo(2))*(prob_hi(3)-prob_lo(3))
+    !print *, "SOURCE2:", tempvel(3)
 
     !call set_pos(part, part2,dxe,part%drag_factor)
 

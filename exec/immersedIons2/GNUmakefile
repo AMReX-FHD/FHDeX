@@ -4,7 +4,7 @@ AMREX_HOME ?= ../../../../programs/amrex/
 FHDeX ?= ../../
 FIONS = $(FHDeX)/exec/immersedIons
 
-DEBUG     = FALSE
+DEBUG     = TRUE
 PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE

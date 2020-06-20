@@ -59,10 +59,18 @@ void advanceStokes(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
         SumStag(geom,gmres_rhs_u,0,mean_stress_umac,true);
 
-        Print() << "correcting mean force: " << mean_stress_umac[0];
+        Print() << "correcting mean force: " << mean_stress_umac[0]*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
 
         for (int d=1; d<AMREX_SPACEDIM; ++d) {
-            Print() << ", " << mean_stress_umac[d];
+            Print() << ", " << mean_stress_umac[d]*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
+        }
+
+        Print() << "\n";
+
+        Print() << "test force: " << sourceTerms[0].sum()*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
+
+        for (int d=1; d<AMREX_SPACEDIM; ++d) {
+            Print() << ", " << sourceTerms[d].sum()*(prob_hi[0]-prob_lo[0])*(prob_hi[1]-prob_lo[1])*(prob_hi[2]-prob_lo[2]);
         }
 
         Print() << "\n";
