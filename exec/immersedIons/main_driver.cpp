@@ -833,7 +833,7 @@ void main_driver(const char* argv)
             sourceTemp[d].setVal(0.0);      // reset source terms
         }
 
-        particles.BuildCorrectionTable(dxp,0);
+        //particles.BuildCorrectionTable(dxp,0);
 
         if (rfd_tog==1) {
             // Apply RFD force to fluid
@@ -874,7 +874,7 @@ void main_driver(const char* argv)
         particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
                              paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        particles.BuildCorrectionTable(dxp,1);
+        //particles.BuildCorrectionTable(dxp,1);
 
         if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
             // compute the random numbers needed for the stochastic momentum forcing
