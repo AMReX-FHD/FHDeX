@@ -28,10 +28,12 @@ void SumStag(const Geometry& geom,
   for (MFIter mfi(m1[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
       const Box& bx = mfi.tilebox();
+      const Box& bx_grid = mfi.validbox();
+
       auto const& fab = m1[0].array(mfi);
 
-      int xlo = bx.smallEnd(0);
-      int xhi = bx.bigEnd(0);
+      int xlo = bx_grid.smallEnd(0);
+      int xhi = bx_grid.bigEnd(0);
 
       reduce_op.eval(bx, reduce_datax,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
@@ -51,10 +53,12 @@ void SumStag(const Geometry& geom,
   for (MFIter mfi(m1[1],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
       const Box& bx = mfi.tilebox();
+      const Box& bx_grid = mfi.validbox();
+
       auto const& fab = m1[1].array(mfi);
 
-      int ylo = bx.smallEnd(1);
-      int yhi = bx.bigEnd(1);
+      int ylo = bx_grid.smallEnd(1);
+      int yhi = bx_grid.bigEnd(1);
 
       reduce_op.eval(bx, reduce_datay,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
@@ -76,10 +80,12 @@ void SumStag(const Geometry& geom,
   for (MFIter mfi(m1[2],TilingIfNotGPU()); mfi.isValid(); ++mfi)
   {
       const Box& bx = mfi.tilebox();
+      const Box& bx_grid = mfi.validbox();
+
       auto const& fab = m1[2].array(mfi);
 
-      int zlo = bx.smallEnd(2);
-      int zhi = bx.bigEnd(2);
+      int zlo = bx_grid.smallEnd(2);
+      int zhi = bx_grid.bigEnd(2);
 
       reduce_op.eval(bx, reduce_dataz,
       [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
