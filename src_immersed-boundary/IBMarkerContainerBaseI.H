@@ -87,7 +87,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::RFD(
             const std::array<MultiFab, AMREX_SPACEDIM> & coords
         ) {
 
-    Real delta = 1e-6*dx[0];
+    Real delta = 1e-4*dx[0];
     Real deltaover2 = delta/2.0;
     Real force = k_B*T_init[0]/delta;
 
