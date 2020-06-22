@@ -424,7 +424,7 @@ contains
     real(amrex_real), intent(in   ) :: chi  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
     real(amrex_real), intent(in   ) :: Dij  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
 
-    real(amrex_real) ::etatF, kappattF, dtinv, volinv, sFac, qFac, velu, velv, velw, wgt1, wgt2
+    real(amrex_real) ::etatF, kappattF, dtinv, volinv,  velu, velv, velw, wgt1, wgt2
     real(amrex_real) :: weiner(5+nspecies), fweights(5+nspecies), nweight, muzepp, muzemp, muzepm, muzemm
     real(amrex_real) :: phiflx, muxp, muyp, muzp, kxp, kyp, kzp, meanT
 
@@ -434,18 +434,15 @@ contains
     integer :: i,j,k,l
     integer :: ll, ns
 
-    dtinv = 1d0/dt
+    dtinv = 1.d0/dt
 #if (AMREX_SPACEDIM == 3)
-    volinv = 1d0/(dx(1)*dx(2)*dx(3))
+    volinv = 1.d0/(dx(1)*dx(2)*dx(3))
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-    volinv = 1d0/(dx(1)*dx(2)*cell_depth)
+    volinv = 1.d0/(dx(1)*dx(2)*cell_depth)
 #endif
 
-    sFac = 2d0*4d0*k_b*volinv*dtinv/3d0
-    qFac = 2d0*k_b*volinv*dtinv
-    
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!! JB's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
 !!!!!!!!!!!!!!!!!!! x-flux !!!!!!!!!!!!!!!!!!!
