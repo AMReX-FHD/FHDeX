@@ -55,6 +55,8 @@ void mui_exchange(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, 
 
     uniface.commit(step);
 
+    std::cout << "unif_rand=" << Random() << std::endl;
+
     // mui fetch
     mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
     mui::chrono_sampler_exact2d t;
@@ -202,6 +204,10 @@ void main_driver(const char* argv)
 
     // Initialise rngs
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+
+    // initializes the seed for C++ random number calls
+    InitRandom(seed+ParallelDescriptor::MyProc());
+
     /////////////////////////////////////////
 
     // transport properties
@@ -338,9 +344,9 @@ void main_driver(const char* argv)
     c_v2 = c_v*c_v;
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
+    dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
+    dVol *= dx[2];
     }
     // calc momentum variance
     Real Jeqmvar = rho0*k_B*T0/dVol;
@@ -398,43 +404,43 @@ void main_driver(const char* argv)
 //    for(int jb=0; jb<nb_sf; jb++) {
 //      ig = jg;
 //      for(int ib=jb; ib<nb_sf; ib++) {
-//	// loop within blocks
-//	for(int j=0; j<blocks[jb]; j++) {
-//	  int low_ind;
-//	  if(ib==jb){      // if block lies on diagonal...
-//	    low_ind=j;
-//	  } else {
-//	    low_ind=0;
-//	  }
-//	  for(int i=low_ind; i<blocks[ib]; i++) {
-//	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
-//	    eqmvars[cnt] = beqmvars[bcnt];
+//  // loop within blocks
+//  for(int j=0; j<blocks[jb]; j++) {
+//    int low_ind;
+//    if(ib==jb){      // if block lies on diagonal...
+//      low_ind=j;
+//    } else {
+//      low_ind=0;
+//    }
+//    for(int i=low_ind; i<blocks[ib]; i++) {
+//      cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
+//      eqmvars[cnt] = beqmvars[bcnt];
 
-//	    // fix scale for individual species
-//	    if(ib != 2 && jb != 2) { // not for energy
+//      // fix scale for individual species
+//      if(ib != 2 && jb != 2) { // not for energy
 
-//	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
-//	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
-//	    	eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
-//	      } else if (blocks[ib]==nspecies) {
-//	    	eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
-//	      } else if (blocks[jb]==nspecies) {
-//	    	eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
-//	      }
+//        if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
+//          eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
+//          eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
+//        } else if (blocks[ib]==nspecies) {
+//          eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
+//        } else if (blocks[jb]==nspecies) {
+//          eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
+//        }
 
-//	    } else {
-//	      
-//	      // if rho_k & energy, only scale by Yk
-//	      if(blocks[ib]==nspecies && jb==2) {
-//	    	eqmvars[cnt] *= rhobar[i];
-//	      }
-//	      
-//	    }
+//      } else {
+//        
+//        // if rho_k & energy, only scale by Yk
+//        if(blocks[ib]==nspecies && jb==2) {
+//          eqmvars[cnt] *= rhobar[i];
+//        }
+//        
+//      }
 
-//	  }
-//	}
-//	bcnt++;
-//	ig += blocks[ib];
+//    }
+//  }
+//  bcnt++;
+//  ig += blocks[ib];
 //      }
 //      jg += blocks[jb];
 //    }
@@ -487,15 +493,15 @@ void main_driver(const char* argv)
       {
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    	dom_hi[project_dir] = 0;
+        dom_hi[project_dir] = 0;
         Box domain(dom_lo, dom_hi);
-	
-    	// This defines the physical box
-    	Vector<Real> projected_hi(AMREX_SPACEDIM);
-    	for (int d=0; d<AMREX_SPACEDIM; d++) {
-    	  projected_hi[d] = prob_hi[d];
-    	}
-    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+    
+        // This defines the physical box
+        Vector<Real> projected_hi(AMREX_SPACEDIM);
+        for (int d=0; d<AMREX_SPACEDIM; d++) {
+          projected_hi[d] = prob_hi[d];
+        }
+        projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
         RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
                          {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
 
@@ -568,7 +574,7 @@ void main_driver(const char* argv)
     setBC(prim, cu);
     
     if (plot_int > 0) {
-	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+    WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
                       prim, primMeans, primVars, eta, kappa);
     }
 
@@ -595,16 +601,16 @@ void main_driver(const char* argv)
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-	if (step > n_steps_skip) {
+        if (step > n_steps_skip) {
             evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, statsCount, dx);
             statsCount++;
-	}
+        }
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
@@ -612,8 +618,8 @@ void main_driver(const char* argv)
                           prim, primMeans, primVars, eta, kappa);
         }
  
-	// collect a snapshot for structure factor
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+    // collect a snapshot for structure factor
+        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
             MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
             structFact.FortStructure(struct_in_cc,geom);
             if(project_dir >= 0) {
@@ -643,4 +649,3 @@ void main_driver(const char* argv)
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
 }
-
