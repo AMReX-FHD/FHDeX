@@ -539,7 +539,9 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
     // Compute D_tilde
     for (i=0; i<nspecies; ++i) {
        for (j=0; j<nspecies; ++j) {
-           D_tilde(iloc,jloc,kloc,i*nspecies+j) = Diff_ij[i*nspecies+j]*Ykp[i];
+           // indicies on LHS are switched due to C++/F90 memory layout
+           // this is the only location this needs to happen I believe
+           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
     
