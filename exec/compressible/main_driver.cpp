@@ -201,17 +201,18 @@ void main_driver(const char* argv)
     MultiFab primVarsAv(ba,dmap,nprimvars + 5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
-    
-    Real delHolder1[n_cells[1]*n_cells[2]];
-    Real delHolder2[n_cells[1]*n_cells[2]];
-    Real delHolder3[n_cells[1]*n_cells[2]];
-    Real delHolder4[n_cells[1]*n_cells[2]];
-    Real delHolder5[n_cells[1]*n_cells[2]];
-    Real delHolder6[n_cells[1]*n_cells[2]];
+   
+    //Miscstats
+    // 0        time averaged kinetic energy density
 
+    MultiFab miscStats(ba,dmap,10,ngc);
+    Real miscVals[10]; 
     MultiFab spatialCross(ba,dmap,6,ngc);
-
     MultiFab spatialCrossAv(ba,dmap,6,ngc);
+
+    miscStats.setVal(0.0);
+    spatialCross.setVal(0.0);
+    spatialCrossAv.setVal(0.0);
 
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
@@ -622,8 +623,7 @@ void main_driver(const char* argv)
         
         // compute mean and variances
 	if (step > n_steps_skip) {
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross,
-                          delHolder1, delHolder2, delHolder3, delHolder4, delHolder5, delHolder6, statsCount, dx);
+            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
 	}
 

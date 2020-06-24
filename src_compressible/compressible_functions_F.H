@@ -124,17 +124,12 @@ extern "C"
 
     void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans,
                         const amrex::Real* prim, amrex::Real* primmeans,
-                        const int* steps, amrex::Real* delHolder1, amrex::Real* delHolder2, 
-                        amrex::Real* delHolder3, amrex::Real* delHolder4, amrex::Real* delHolder5, 
-                        amrex::Real* delHolder6, amrex::Real* totalmass);
+                        const int* steps, amrex::Real* miscstats, amrex::Real* miscvals, amrex::Real* totalmass);
     
     void evaluate_corrs(const int* lo, const int* hi,
                         const amrex::Real* cu, const amrex::Real* cumeans, amrex::Real* cuvars,
                         const amrex::Real* prim, const amrex::Real* primmeans, amrex::Real* primvars,
-                        amrex::Real* spatialcross, const int* steps, 
-                        amrex::Real* delHolder1, amrex::Real* delHolder2, 
-                        amrex::Real* delHolder3, amrex::Real* delHolder4, 
-                        amrex::Real* delHolder5, amrex::Real* delHolder6);
+                        amrex::Real* spatialcross, const int* steps, amrex::Real* miscstats, amrex::Real* miscvals);
 
 
     void multifab_yzav(const int* lo, const int* hi, const amrex::Real* fabin, amrex::Real* fabout, const int* comps);

@@ -12,18 +12,19 @@ module stats_module
 
 contains
 
-  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, delholder1, delholder2, delholder3, delholder4, delholder5, delholder6, totalmass) bind(c,name='evaluate_means')
+  subroutine evaluate_means(lo, hi, cu, cumeans, prim, primmeans, steps, miscstats, miscvals, totalmass) bind(c,name='evaluate_means')
  
       implicit none
 
       integer,          intent(in   ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3)), totalmass
+      double precision, intent(inout   ) :: totalmass, miscvals(10)
       double precision, intent(in   ) :: cu       (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(inout) :: cumeans  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(in   ) :: prim     (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
       double precision, intent(inout) :: primmeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
+      double precision, intent(inout) :: miscstats(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 10)
 
-      integer i,j,k,l, cells, ti, jc, kc
+      integer i,j,k,l, cells, ti, jc, kc, counter
       double precision stepsminusone, stepsinv, densitymeaninv, fracvec(nspecies), massvec(nspecies)
 
       stepsminusone = steps - 1
@@ -39,24 +40,27 @@ contains
               cumeans(i,j,k,l) = (cumeans(i,j,k,l)*stepsminusone + cu(i,j,k,l))*stepsinv
             enddo
 
-            do l=1,nprimvars
-              primmeans(i,j,k,l) = (primmeans(i,j,k,l)*stepsminusone + prim(i,j,k,l))*stepsinv
-            enddo
+!              mixedstats(i,j,k,1) = cumeans(i,j,k,l)
+
+!            do l=1,nprimvars
+!              primmeans(i,j,k,l) = (primmeans(i,j,k,l)*stepsminusone + prim(i,j,k,l))*stepsinv
+!            enddo
 
                 !print *, "means: ", cumeans(i,j,k,l), stepsminusone
 
-!            fracvec = cumeans(i,j,k,6:nvars)
-!            massvec = fracvec*cumeans(i,j,k,1)
 
-!            densitymeaninv = 1.0/cumeans(i,j,k,1)
+            fracvec = cumeans(i,j,k,6:nvars)/cumeans(i,j,k,1)
+            massvec = cumeans(i,j,k,6:nvars)
 
-!            primmeans(i,j,k,1) = cumeans(i,j,k,1)
-!            primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv
-!            primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv
-!            primmeans(i,j,k,4) = cumeans(i,j,k,4)*densitymeaninv
+            densitymeaninv = 1.0/cumeans(i,j,k,1)
 
-!            call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
-!            call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
+            primmeans(i,j,k,1) = cumeans(i,j,k,1)
+            primmeans(i,j,k,2) = cumeans(i,j,k,2)*densitymeaninv
+            primmeans(i,j,k,3) = cumeans(i,j,k,3)*densitymeaninv
+            primmeans(i,j,k,4) = cumeans(i,j,k,4)*densitymeaninv
+
+            call get_temperature(cumeans(i,j,k,5), massvec, primmeans(i,j,k,5))
+            call get_pressure_gas(primmeans(i,j,k,6), fracvec, cumeans(i,j,k,1),cumeans(i,j,k,5))
 
             totalmass = totalmass + cu(i,j,k,1)
 
@@ -65,64 +69,114 @@ contains
         enddo
       enddo
 
-       ti = cross_cell
-  !    tj = 0
-  !    tk = 0
+    do i = 1,10
+      miscVals(i) = 0
+    enddo
 
-      do kc=0,n_cells(3)-1
-        do jc=1,n_cells(2)
+    counter = 0
 
-          delholder1( (n_cells(2))*(kc) + jc) = 0
-          delholder2( (n_cells(2))*(kc) + jc) = 0
-          delholder3( (n_cells(2))*(kc) + jc) = 0
-          delholder4( (n_cells(2))*(kc) + jc) = 0
-          delholder5( (n_cells(2))*(kc) + jc) = 0
-          delholder6( (n_cells(2))*(kc) + jc) = 0
-
-        enddo
-      enddo
-
-      if((ti .ge. lo(1)) .and. (ti .le. hi(1))) then
-
-        do k = lo(3), hi(3)
-
-          do j = lo(2), hi(2)
-
-            !print *,  (n_cells(2))*(k) + (j+1)
-
-            delholder1((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
-            delholder2((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,5)-cumeans(ti,j,k,5)
-            delholder3((n_cells(2))*(k) + (j+1)) = cu(ti,j,k,2)-cumeans(ti,j,k,2)
-            delholder4((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,5)-primmeans(ti,j,k,5)
-            delholder5((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,5)-primmeans(ti,j,k,5)
-            delholder6((n_cells(2))*(k) + (j+1)) = prim(ti,j,k,2)-primmeans(ti,j,k,2)
-
-          enddo
-        enddo
-      endif
-
+    if((cross_cell .ge. lo(1)) .and. (cross_cell .le. hi(1))) then
+      
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
           
-    end subroutine evaluate_means
+          miscvals(1) = miscvals(1) + cumeans(cross_cell,j,k,2) !slice average of mean x momentum
+          miscvals(2) = miscvals(2) + cu(cross_cell,j,k,2) !slice average of instant x momentum
+          miscvals(3) = miscvals(3) + primmeans(cross_cell,j,k,2) !slice average of mean x velocity
+          miscvals(4) = miscvals(4) + cumeans(cross_cell,j,k,1) !slice average of mean rho
+          miscvals(5) = miscvals(5) + cu(cross_cell,j,k,1) !slice average of instant rho
+          miscvals(6) = miscvals(6) + prim(cross_cell,j,k,2) !slice average of instant x velocity
 
-  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, delholder1, delholder2, delholder3, delholder4, delholder5, delholder6) bind(c,name='evaluate_corrs')
+          counter = counter + 1
+
+         enddo
+       enddo
+
+       miscvals(1) = miscvals(1)/counter !slice average of mean x momentum
+       miscvals(2) = miscvals(2)/counter !slice average of instant x momentum
+       miscvals(3) = miscvals(3)/counter !slice average of mean x velocity
+       miscvals(4) = miscvals(4)/counter !slice average of mean rho
+       miscvals(5) = miscvals(5)/counter !slice average of instant rho
+       miscvals(6) = miscvals(6)/counter !slice average of instant x velocity
+
+     endif
+          
+  end subroutine evaluate_means
+
+  subroutine evaluate_corrs(lo, hi, cu, cumeans, cuvars, prim, primmeans, primvars, spatialcross, steps, miscstats, miscvals) bind(c,name='evaluate_corrs')
 
       implicit none
 
       integer,          intent(in   ) :: steps, lo(3), hi(3)
-      double precision, intent(inout   ) :: delholder1(n_cells(2)*n_cells(3)), delholder2(n_cells(2)*n_cells(3)), delholder3(n_cells(2)*n_cells(3)), delholder4(n_cells(2)*n_cells(3)), delholder5(n_cells(2)*n_cells(3)), delholder6(n_cells(2)*n_cells(3))
+      double precision, intent(inout   ) :: miscvals(10)
       double precision, intent(in   ) :: cu       (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(in   ) :: cumeans  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(inout) :: cuvars   (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nvars)
       double precision, intent(in   ) :: prim     (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
       double precision, intent(in   ) :: primmeans(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars)
       double precision, intent(inout) :: primvars (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), nprimvars + 5)
-      double precision, intent(inout   ) :: spatialcross(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 6)
+      double precision, intent(inout) :: spatialcross(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 6)
+      double precision, intent(inout) :: miscstats(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 10)
 
-      integer i,j,k,l
-      double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp
+      double precision slices(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 10)
+
+      integer i,j,k,l, counter
+      double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp, delpdelrho, delrhoS, delrhostarS
 
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
+
+      counter = 0
+
+     do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+ 
+        counter = counter +1
+      enddo
+    enddo
+
+
+      do l = 1,10
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+            slices(i,j,k,l) = 0
+
+        enddo
+      enddo
+    enddo
+    enddo
+
+ 
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+            slices(i,1,1,1) = slices(i,1,1,1) + cu(i,j,k,1) !rho instant slices
+            slices(i,1,1,2) = slices(i,1,1,2) + cumeans(i,j,k,1) !rho mean slices
+
+        enddo
+      enddo
+    enddo
+
+    do i = lo(1), hi(1)
+
+        slices(i,1,1,1) = slices(i,1,1,1)/counter
+        slices(i,1,1,2) = slices(i,1,1,2)/counter
+
+    enddo
+
+      do k = lo(3), hi(3)
+        do j = lo(2), hi(2)
+          do i = lo(1), hi(1)
+
+            slices(i,j,k,1) = slices(i,1,1,1) !rho instant slices
+            slices(i,j,k,2) = slices(i,1,1,2) !rho mean slices
+
+        enddo
+      enddo
+    enddo
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -175,14 +229,23 @@ contains
 
           deltemp = (delenergy - delg - qmean*delrho)*cvinv*densitymeaninv
 
+          miscstats(i,j,k,1) = (miscstats(i,j,k,1)*stepsminusone + miscvals(2)*slices(i,j,k,1))*stepsinv  ! <p(x*)rho(x)>, sliced
+
+          delpdelrho = miscstats(i,j,k,1) - miscvals(1)*cumeans(i,j,k,1) !<p(x*)rho(x)> - <p(x*)><rho(x)>, sliced
+
+          delrhoS = slices(i,j,k,1) - slices(i,j,k,2) !rho(x) - <rho(x)>, sliced
+          delrhostarS = miscvals(5) - miscvals(4) !rho(x*) - <rho(x*)>, sliced
+
+          miscstats(i,j,k,2) = (miscstats(i,j,k,2)*stepsminusone + delrhoS*delrhostarS)*stepsinv  ! <(rho(x*)-<rho(x*)>)(rho(x)-<rho(x)>)>, sliced
+
           !print *, (n_cells(2))*(k) + (j+1), k, j
 
-          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
-          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
-          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
-          spatialcross(i,j,k,4) = (spatialcross(i,j,k,4)*stepsminusone + deltemp*delholder4((n_cells(2))*(k) + (j+1)))*stepsinv
-          spatialcross(i,j,k,5) = (spatialcross(i,j,k,5)*stepsminusone + delrho*delholder5((n_cells(2))*(k) + (j+1)))*stepsinv
-          spatialcross(i,j,k,6) = (spatialcross(i,j,k,6)*stepsminusone + delrho*delholder6((n_cells(2))*(k) + (j+1)))*stepsinv
+!          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
+!          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
+!          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
+!          spatialcross(i,j,k,4) = (spatialcross(i,j,k,4)*stepsminusone + deltemp*delholder4((n_cells(2))*(k) + (j+1)))*stepsinv
+          spatialcross(i,j,k,5) = (spatialcross(i,j,k,5)*stepsminusone + delrhoS*(miscvals(6)-miscvals(3)))*stepsinv  !<(u(x*)-<u(x*)>)(rho(x)-<rho(x)>)> !sliced
+          spatialcross(i,j,k,6) = (delpdelrho - miscvals(3)*miscstats(i,j,k,2))/miscvals(4)
 
         enddo
       enddo
