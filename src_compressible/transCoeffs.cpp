@@ -39,7 +39,7 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
-#if 0
+#if 1
         // grow the box by ngc
         const Box& bx = amrex::grow(mfi.tilebox(), ngc);
 
