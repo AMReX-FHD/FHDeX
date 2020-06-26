@@ -86,6 +86,10 @@ contains
           miscvals(4) = miscvals(4) + cumeans(cross_cell,j,k,1) !slice average of mean rho
           miscvals(5) = miscvals(5) + cu(cross_cell,j,k,1) !slice average of instant rho
           miscvals(6) = miscvals(6) + prim(cross_cell,j,k,2) !slice average of instant x velocity
+          miscvals(7) = miscvals(7) + cu(cross_cell,j,k,5) !slice average of instant energy
+          miscvals(8) = miscvals(8) + cumeans(cross_cell,j,k,5) !slice average of mean energy
+          miscvals(9) = miscvals(9) + cu(cross_cell,j,k,2) !slice average of instant x momentum
+          miscvals(10) = miscvals(10) + cumeans(cross_cell,j,k,2) !slice average of mean x momentum
 
           counter = counter + 1
 
@@ -98,6 +102,10 @@ contains
        miscvals(4) = miscvals(4)/counter !slice average of mean rho
        miscvals(5) = miscvals(5)/counter !slice average of instant rho
        miscvals(6) = miscvals(6)/counter !slice average of instant x velocity
+       miscvals(7) = miscvals(7)/counter !slice average of instant energy
+       miscvals(8) = miscvals(8)/counter !slice average of mean energy
+       miscvals(9) = miscvals(9)/counter !slice average of instant x momentum
+       miscvals(10) = miscvals(10)/counter !slice average of mean x momentum
 
      endif
           
@@ -121,11 +129,13 @@ contains
       double precision slices(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3), 10)
 
       integer i,j,k,l, counter
-      double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp, delpdelrho, delrhoS, delrhostarS
+      double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp, delpdelrho, delrhoS, delrhostarS, delES, delpS
 
       stepsminusone = steps - 1
       stepsinv = 1d0/steps
 
+
+      !print *, "STATS!"
       counter = 0
 
      do k = lo(3), hi(3)
@@ -155,6 +165,10 @@ contains
 
             slices(i,1,1,1) = slices(i,1,1,1) + cu(i,j,k,1) !rho instant slices
             slices(i,1,1,2) = slices(i,1,1,2) + cumeans(i,j,k,1) !rho mean slices
+            slices(i,1,1,3) = slices(i,1,1,3) + cu(i,j,k,5) !energy instant slices
+            slices(i,1,1,4) = slices(i,1,1,4) + cumeans(i,j,k,5) !energy mean slices
+            slices(i,1,1,5) = slices(i,1,1,5) + cu(i,j,k,2) !momentum instant slices
+            slices(i,1,1,6) = slices(i,1,1,6) + cumeans(i,j,k,2) !momentum mean slices
 
         enddo
       enddo
@@ -164,6 +178,10 @@ contains
 
         slices(i,1,1,1) = slices(i,1,1,1)/counter
         slices(i,1,1,2) = slices(i,1,1,2)/counter
+        slices(i,1,1,3) = slices(i,1,1,3)/counter
+        slices(i,1,1,4) = slices(i,1,1,4)/counter
+        slices(i,1,1,5) = slices(i,1,1,5)/counter
+        slices(i,1,1,6) = slices(i,1,1,6)/counter
 
     enddo
 
@@ -173,6 +191,10 @@ contains
 
             slices(i,j,k,1) = slices(i,1,1,1) !rho instant slices
             slices(i,j,k,2) = slices(i,1,1,2) !rho mean slices
+            slices(i,j,k,3) = slices(i,1,1,3) !rho instant slices
+            slices(i,j,k,4) = slices(i,1,1,4) !rho mean slices
+            slices(i,j,k,5) = slices(i,1,1,5) !momentum instant slices
+            slices(i,j,k,6) = slices(i,1,1,6) !momentum mean slices
 
         enddo
       enddo
@@ -234,16 +256,17 @@ contains
           delpdelrho = miscstats(i,j,k,1) - miscvals(1)*cumeans(i,j,k,1) !<p(x*)rho(x)> - <p(x*)><rho(x)>, sliced
 
           delrhoS = slices(i,j,k,1) - slices(i,j,k,2) !rho(x) - <rho(x)>, sliced
+          delES = slices(i,j,k,4) - slices(i,j,k,3) !E(x) - <E(x)>, sliced
           delrhostarS = miscvals(5) - miscvals(4) !rho(x*) - <rho(x*)>, sliced
 
           miscstats(i,j,k,2) = (miscstats(i,j,k,2)*stepsminusone + delrhoS*delrhostarS)*stepsinv  ! <(rho(x*)-<rho(x*)>)(rho(x)-<rho(x)>)>, sliced
 
-          !print *, (n_cells(2))*(k) + (j+1), k, j
+          !print *, slices(i,j,k,1)
 
-!          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delrho*delholder1((n_cells(2))*(k) + (j+1)))*stepsinv
-!          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delenergy*delholder2((n_cells(2))*(k) + (j+1)))*stepsinv
-!          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrho*delholder3((n_cells(2))*(k) + (j+1)))*stepsinv
-!          spatialcross(i,j,k,4) = (spatialcross(i,j,k,4)*stepsminusone + deltemp*delholder4((n_cells(2))*(k) + (j+1)))*stepsinv
+          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delES*(miscvals(5)-miscvals(4)))*stepsinv
+          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delES*(miscvals(7)-miscvals(8)))*stepsinv
+          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delrhoS*(miscvals(10)-miscvals(9)))*stepsinv
+          spatialcross(i,j,k,4) = (spatialcross(i,j,k,4)*stepsminusone + delrho*(miscvals(6)-miscvals(3)))*stepsinv
           spatialcross(i,j,k,5) = (spatialcross(i,j,k,5)*stepsminusone + delrhoS*(miscvals(6)-miscvals(3)))*stepsinv  !<(u(x*)-<u(x*)>)(rho(x)-<rho(x)>)> !sliced
           spatialcross(i,j,k,6) = (delpdelrho - miscvals(3)*miscstats(i,j,k,2))/miscvals(4)
 
