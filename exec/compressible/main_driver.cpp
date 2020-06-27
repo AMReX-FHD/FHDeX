@@ -206,7 +206,7 @@ void main_driver(const char* argv)
     // 0        time averaged kinetic energy density
 
     MultiFab miscStats(ba,dmap,10,ngc);
-    Real miscVals[10]; 
+    Real miscVals[20]; 
     MultiFab spatialCross(ba,dmap,6,ngc);
     MultiFab spatialCrossAv(ba,dmap,6,ngc);
 
