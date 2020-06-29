@@ -837,10 +837,10 @@ void main_driver(const char* argv)
 
         if (rfd_tog==1) {
             // Apply RFD force to fluid
-            //particles.RFD(0, dx, sourceTemp, RealFaceCoords);
-            //particles.ResetMarkers(0);
-            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
-                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.RFD(0, dx, sourceTemp, RealFaceCoords);
+            particles.ResetMarkers(0);
+            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+            //                source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero

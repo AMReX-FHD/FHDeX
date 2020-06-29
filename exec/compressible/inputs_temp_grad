@@ -30,9 +30,9 @@
   max_step = 1000000
   plot_int = 500
   struct_fact_int = -1
-  n_steps_skip = 1000
-  chk_int = 1000000
-  restart = -1
+  n_steps_skip = 0
+  chk_int = -1
+  restart = 1500
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
