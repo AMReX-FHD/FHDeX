@@ -604,7 +604,7 @@ void main_driver(const char* argv)
 
         if (restart > 0 && step==1) {
             ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
-                           primMeans, primVars, spatialCross, eta, kappa);
+                           primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
         // timer
@@ -638,7 +638,7 @@ void main_driver(const char* argv)
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, eta, kappa);
+           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
 #ifndef AMREX_USE_CUDA

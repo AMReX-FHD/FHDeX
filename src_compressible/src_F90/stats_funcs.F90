@@ -69,7 +69,7 @@ contains
         enddo
       enddo
 
-    do i = 1,10
+    do i = 1,20
       miscVals(i) = 0
     enddo
 
@@ -347,6 +347,11 @@ contains
 !          spatialcross(i,j,k,1) = (spatialcross(i,j,k,1)*stepsminusone + delES*delrhoSstar)*stepsinv
 !          spatialcross(i,j,k,2) = (spatialcross(i,j,k,2)*stepsminusone + delES*delESstar))*stepsinv
 !          spatialcross(i,j,k,3) = (spatialcross(i,j,k,3)*stepsminusone + delES*delESstar)*stepsinv
+
+          spatialcross(i,j,k,1) = miscvals(14)
+          spatialcross(i,j,k,2) = slices(i,j,k,19)
+          spatialcross(i,j,k,3) = miscstats(i,j,k,3)
+
           spatialcross(i,j,k,4) = miscstats(i,j,k,3) - slices(i,j,k,19)*miscvals(14)
           spatialcross(i,j,k,5) = miscstats(i,j,k,4) - slices(i,j,k,2)*miscvals(14)
           spatialcross(i,j,k,6) = (delpdelrho - miscvals(3)*miscstats(i,j,k,2))/miscvals(4)

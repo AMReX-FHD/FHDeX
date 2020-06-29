@@ -97,6 +97,7 @@ void WriteCheckPoint(int step,
                      const MultiFab& primMeans,
                      const MultiFab& primVars,
                      const MultiFab& spatialCross, 
+                     const MultiFab& miscStats, 
                      const MultiFab& eta, 
                      const MultiFab& kappa);
 
@@ -111,6 +112,7 @@ void ReadCheckPoint(int& step,
                      MultiFab& primMeans,
                      MultiFab& primVars,
                      MultiFab& spatialCross,
+                     MultiFab& miscStats, 
                      MultiFab& eta,
                      MultiFab& kappa);
 
