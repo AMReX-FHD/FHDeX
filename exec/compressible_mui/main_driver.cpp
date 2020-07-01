@@ -20,13 +20,11 @@ using namespace compressible;
 #include <mui.h>
 using namespace mui;
 
-// main routine to update cu through mui
-void mui_exchange(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+void mui_push(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
 
-    // mui push
     for (MFIter mfi(cu,false); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
@@ -38,15 +36,17 @@ void mui_exchange(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, 
         int k = 0;
         if (k<lo.z || k>hi.z) continue;
 
-        for (int n = 0; n < nspecies; ++n) {
+        for (int j = lo.y; j<= hi.y; ++j) {
+            for (int i = lo.x; i<=hi.x; ++i) {
 
-            std::string channel = "CH_density";
-            channel += '0'+(n+1);
+                double x = prob_lo[0]+(i+0.5)*dx[0];
+                double y = prob_lo[1]+(j+0.5)*dx[1];
 
-            for (int j = lo.y; j<= hi.y; ++j) {
-                for (int i = lo.x; i<=hi.x; ++i) {
-                    double x = prob_lo[0]+(i+0.5)*dx[0];
-                    double y = prob_lo[1]+(j+0.5)*dx[1];
+                for (int n = 0; n < nspecies; ++n) {
+
+                    std::string channel = "CH_density";
+                    channel += '0'+(n+1);   // assuming nspecies<10
+
                     uniface.push(channel,{x,y},cu_fab(i,j,k,5+n));
                 }
             }
@@ -55,9 +55,16 @@ void mui_exchange(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, 
 
     uniface.commit(step);
 
-    std::cout << "unif_rand=" << Random() << std::endl;
+    return;
+}
 
-    // mui fetch
+void mui_fetch(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+{
+    //std::cout << "unif_rand=" << Random() << std::endl;
+
+    // assuming the interface is perpendicular to the z-axis 
+    // and includes cells with the smallest value of z (i.e. k=0)
+
     mui::sampler_kmc_fhd2d<int> s({dx[0],dx[1]});
     mui::chrono_sampler_exact2d t;
 
@@ -78,19 +85,29 @@ void mui_exchange(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, 
                 double x = prob_lo[0]+(i+0.5)*dx[0];
                 double y = prob_lo[1]+(j+0.5)*dx[1];
 
-                int sum = 0;
+                std::cout << x << '\t' << y << '\t';
+
                 for (int n = 0; n < nspecies; ++n) {
 
-                    std::string channel = "CH_dn";
-                    channel += '0'+(n+1);
+                    std::string channel;
 
-                    sum += uniface.fetch(channel,{x,y},step,s,t);
+                    channel = "CH_ac";
+                    channel += '0'+(n+1);   // assuming nspecies<10
+
+                    std::cout << uniface.fetch(channel,{x,y},step,s,t) << '\t';
+
+                    channel = "CH_dc";
+                    channel += '0'+(n+1);   // assuming nspecies<10
+
+                    std::cout << uniface.fetch(channel,{x,y},step,s,t) << '\t';
                 }
 
-                std::cout << sum << std::endl;
+                std::cout << std::endl;
             }
         }
     }
+
+    uniface.forget(step);
 
     return;
 }
@@ -585,11 +602,13 @@ void main_driver(const char* argv)
 
         // timer
         Real ts1 = ParallelDescriptor::second();
+
+        mui_push(cu, dx, uniface, step);
     
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-        mui_exchange(cu, dx, uniface, step);
+        mui_fetch(cu, dx, uniface, step);
 
         conservedToPrimitive(prim, cu);
 

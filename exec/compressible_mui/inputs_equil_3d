@@ -2,7 +2,7 @@
 
   ! Problem specification
   prob_lo(1:3) = 0.0 0.0 0.0            ! physical lo coordinate
-  prob_hi(1:3) = 3.2e-5 3.2e-5 3.2e-5   ! physical hi coordinate
+  prob_hi(1:3) = 4.e-5 4.e-5 4.e-5   ! physical hi coordinate
 
   ! Number of ghost cells, conserved, and primitive variables
   ! ---------------------
@@ -20,7 +20,7 @@
 
   ! Controls for number of steps between actions
 
-  max_step = 5
+  max_step = 2
   plot_int = 0
 
   ! Multispecies toggle

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-mpirun -np 4 ./main3d.gnu.DEBUG.MPI.ex inputs_equil_3d : -np 1 ./pseudo_kmc.bin
+mpirun -np 1 ./main3d.gnu.DEBUG.MPI.ex inputs_equil_3d : -np 1 ./pseudo_kmc.bin
