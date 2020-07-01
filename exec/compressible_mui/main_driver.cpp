@@ -20,7 +20,9 @@ using namespace compressible;
 #include <mui.h>
 using namespace mui;
 
-void mui_push(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+// this routine pushes the following information to MUI
+// - species number densities and temperature of FHD cells contacting the interface
+void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
@@ -31,6 +33,7 @@ void mui_push(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, cons
         Dim3 lo = lbound(bx);
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & prim_fab = prim.array(mfi);
 
         // unless bx contains cells at the interface, skip 
         int k = 0;
@@ -42,13 +45,22 @@ void mui_push(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, cons
                 double x = prob_lo[0]+(i+0.5)*dx[0];
                 double y = prob_lo[1]+(j+0.5)*dx[1];
 
+                std::string channel;
+
                 for (int n = 0; n < nspecies; ++n) {
 
-                    std::string channel = "CH_density";
+                    channel = "CH_density";
                     channel += '0'+(n+1);   // assuming nspecies<10
 
-                    uniface.push(channel,{x,y},cu_fab(i,j,k,5+n));
+                    double dens = cu_fab(i,j,k,5+n);    // mass density
+                    dens *= 6.02e23/molmass[n];         // number density
+
+                    uniface.push(channel,{x,y},dens);
                 }
+
+                channel = "CH_temp";
+
+                uniface.push(channel,{x,y},prim_fab(i,j,k,4));
             }
         }
     }
@@ -58,7 +70,9 @@ void mui_push(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, cons
     return;
 }
 
-void mui_fetch(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
+// this routine fetches the following information from MUI:
+// - adsoprtion and desoprtion counts of each species between time points
+void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
     //std::cout << "unif_rand=" << Random() << std::endl;
 
@@ -74,6 +88,7 @@ void mui_fetch(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, con
         Dim3 lo = lbound(bx);
         Dim3 hi = ubound(bx);
         const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & prim_fab = prim.array(mfi);
 
         // unless bx contains cells at the interface, skip 
         int k = 0;
@@ -84,22 +99,25 @@ void mui_fetch(MultiFab& cu, const amrex::Real* dx, mui::uniface2d &uniface, con
 
                 double x = prob_lo[0]+(i+0.5)*dx[0];
                 double y = prob_lo[1]+(j+0.5)*dx[1];
+                double dV = dx[0]*dx[1]*dx[2];
+                double temp = prim_fab(i,j,k,4);
 
                 std::cout << x << '\t' << y << '\t';
 
                 for (int n = 0; n < nspecies; ++n) {
 
                     std::string channel;
+                    int ac,dc;
 
                     channel = "CH_ac";
                     channel += '0'+(n+1);   // assuming nspecies<10
-
-                    std::cout << uniface.fetch(channel,{x,y},step,s,t) << '\t';
+                    ac = uniface.fetch(channel,{x,y},step,s,t);
 
                     channel = "CH_dc";
                     channel += '0'+(n+1);   // assuming nspecies<10
+                    dc = uniface.fetch(channel,{x,y},step,s,t);
 
-                    std::cout << uniface.fetch(channel,{x,y},step,s,t) << '\t';
+                    std::cout << ac << '\t' << dc << '\t';
                 }
 
                 std::cout << std::endl;
@@ -603,12 +621,12 @@ void main_driver(const char* argv)
         // timer
         Real ts1 = ParallelDescriptor::second();
 
-        mui_push(cu, dx, uniface, step);
+        mui_push(cu, prim, dx, uniface, step);
     
         RK3step(cu, cup, cup2, cup3, prim, source, eta, zeta, kappa, chi, D, flux,
                 stochFlux, cornx, corny, cornz, visccorn, rancorn, geom, dx, dt);
 
-        mui_fetch(cu, dx, uniface, step);
+        mui_fetch(cu, prim, dx, uniface, step);
 
         conservedToPrimitive(prim, cu);
 

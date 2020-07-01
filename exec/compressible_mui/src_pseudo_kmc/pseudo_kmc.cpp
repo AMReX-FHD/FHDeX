@@ -38,6 +38,7 @@ int main(int argc, char **argv)
   char rCH2[MAXCHLEN] = "CH_density2";
   char rCH3[MAXCHLEN] = "CH_density3";
   char rCH4[MAXCHLEN] = "CH_density4";
+  char rCH5[MAXCHLEN] = "CH_temp";
 
   char sCH1[MAXCHLEN] = "CH_ac1";
   char sCH2[MAXCHLEN] = "CH_ac2";
@@ -57,7 +58,7 @@ int main(int argc, char **argv)
   {
     // mui fetch
 
-    fprintf(fp,"## step %d - fetch (x y dens1 dens2 dens3 dens4)\n",step);
+    fprintf(fp,"## step %d - fetch (x y dens1 dens2 dens3 dens4 temp)\n",step);
 
     for (int i=0;i<nx;i++)
     {
@@ -70,7 +71,8 @@ int main(int argc, char **argv)
         fprintf(fp,"%e\t",uniface.fetch(rCH1,{x,y},step,u,t));
         fprintf(fp,"%e\t",uniface.fetch(rCH2,{x,y},step,u,t));
         fprintf(fp,"%e\t",uniface.fetch(rCH3,{x,y},step,u,t));
-        fprintf(fp,"%e\n",uniface.fetch(rCH4,{x,y},step,u,t));
+        fprintf(fp,"%e\t",uniface.fetch(rCH4,{x,y},step,u,t));
+        fprintf(fp,"%e\n",uniface.fetch(rCH5,{x,y},step,u,t));
       }
     }
 
