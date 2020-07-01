@@ -74,7 +74,9 @@ void mui_push(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2
 // - adsoprtion and desoprtion counts of each species between time points
 void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface2d &uniface, const int step)
 {
-    //std::cout << "unif_rand=" << Random() << std::endl;
+    std::cout << "unif_rand=" << Random() << std::endl;
+    std::cout << "norm_rand=" << RandomNormal(0.,1.) << std::endl;
+
 
     // assuming the interface is perpendicular to the z-axis 
     // and includes cells with the smallest value of z (i.e. k=0)
@@ -105,7 +107,7 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                 std::cout << x << '\t' << y << '\t';
 
                 for (int n = 0; n < nspecies; ++n) {
-
+                
                     std::string channel;
                     int ac,dc;
 
@@ -118,6 +120,48 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                     dc = uniface.fetch(channel,{x,y},step,s,t);
 
                     std::cout << ac << '\t' << dc << '\t';
+
+                    double mass = molmass[n]/6.02e23;
+                    double kBTm = k_B*temp/mass;
+                    double sqrtkBTm = sqrt(kBTm);
+                    double vx,vy,vz;
+                    double dmomx,dmomy,dmomz,derg;
+
+                    dmomx = dmomy = dmomz = derg = 0.;
+
+                    for (int l=0;l<ac;l++)
+                    {
+                        // colliding velocity
+                        vx = RandomNormal(0.,sqrtkBTm);
+                        vy = RandomNormal(0.,sqrtkBTm);
+                        vz = -sqrt(-2.*kBTm*log(1.-Random()));
+
+                        dmomx -= mass*vx;
+                        dmomy -= mass*vy;
+                        dmomz -= mass*vz;
+                        derg  -= 0.5*mass*(vx*vx+vy*vy+vz*vz);
+                    }
+
+                    for (int l=0;l<dc;l++)
+                    {
+                        // new velocity
+                        vx = RandomNormal(0.,sqrtkBTm);
+                        vy = RandomNormal(0.,sqrtkBTm);
+                        vz = sqrt(-2.*kBTm*log(1.-Random()));
+
+                        dmomx += mass*vx;
+                        dmomy += mass*vy;
+                        dmomz += mass*vz;
+                        derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
+                    }
+
+                    cu_fab(i,j,k,0) += (ac-dc)*mass/dV;
+                    cu_fab(i,j,k,5+n) += (ac-dc)*mass/dV;
+
+                    cu_fab(i,j,k,1) += dmomx/dV;
+                    cu_fab(i,j,k,2) += dmomy/dV;
+                    cu_fab(i,j,k,3) += dmomz/dV;
+                    cu_fab(i,j,k,4) += derg/dV;
                 }
 
                 std::cout << std::endl;
