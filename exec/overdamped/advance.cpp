@@ -1,23 +1,16 @@
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "gmres_namespace.H"
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,

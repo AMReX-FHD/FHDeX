@@ -1,17 +1,12 @@
 #include "main_driver.H"
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "gmres_namespace.H"
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -23,8 +18,6 @@
 #include <immbdy_namespace.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 using namespace immbdy_md;
 
 using namespace ib_colloid;
@@ -188,8 +181,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], geom, i);
-        MultiFABPhysBCMacVel(umac[i], geom, i);
+        MultiFabPhysBCDomainVel(umac[i], geom, i);
+        MultiFabPhysBCMacVel(umac[i], geom, i);
     }
 
 
@@ -202,9 +195,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracer, geom);
+    MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracer, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // compute predictor
@@ -212,9 +205,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracerPred, geom);
+    MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // advance in time
@@ -240,8 +233,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umac_buffer[d].setVal(0.);
         MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
         umac_buffer[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[d], geom, d);
-        MultiFABPhysBCMacVel(umac[d], geom, d);
+        MultiFabPhysBCDomainVel(umac[d], geom, d);
+        MultiFabPhysBCMacVel(umac[d], geom, d);
     }
 
     ib_mbc.ResetPredictor(ib_lev);
@@ -277,7 +270,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //     // Get marker data (local to current thread)
     //     TileIndex index(pti.index(), pti.LocalTileIndex());
     //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-    //     long np = markers.size();
+    //     long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
     //     // m_index.second is used to keep track of the neighbor list
     //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
@@ -315,8 +308,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], geom, d);
-        MultiFABPhysBCMacVel(uMom[d], geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], geom, d);
+        MultiFabPhysBCMacVel(uMom[d], geom, d);
     }
 
     // Compute advective fluxes: advFluxdiv = - D(\rho uu^n) = - D(u^n uMom)
@@ -334,7 +327,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     pres.setVal(0.); // Initial guess for pressure
     SetPressureBC(pres, geom); // Apply pressure boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
     // Construct RHS of Navier Stokes Equation
     for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -369,8 +362,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // Apply boundary conditions to the solution
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], geom, d);
     }
 
 
@@ -391,8 +384,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         umacNew_buffer[d].setVal(0.);
         MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umacNew[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], geom, d);
     }
 
     ib_mbc.ResetMarkers(ib_lev);
@@ -431,7 +424,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
         IBMultiBlobContainer::AoS & markers =
             ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
 
@@ -455,7 +448,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         IBMultiBlobContainer::TileIndex index(pti.index(), pti.LocalTileIndex());
         IBMultiBlobContainer::AoS & markers =
             ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
 
@@ -482,7 +475,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //     // Get marker data (local to current thread)
     //     TileIndex index(pti.index(), pti.LocalTileIndex());
     //     AoS & markers = ib_mbc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-    //     long np = markers.size();
+    //     long np = ib_mbc.GetParticles(ib_lev).at(index).numParticles();
 
     //     // m_index.second is used to keep track of the neighbor list
     //     for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
@@ -520,8 +513,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], geom, d);
-        MultiFABPhysBCMacVel(uMom[d], geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], geom, d);
+        MultiFabPhysBCMacVel(uMom[d], geom, d);
     }
 
     // Compute advective fluxes for the corrector:

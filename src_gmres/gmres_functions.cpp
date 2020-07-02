@@ -1,8 +1,5 @@
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
-#include "gmres_namespace.H"
 
-using namespace gmres;
 
 void InitializeGmresNamespace() {
 

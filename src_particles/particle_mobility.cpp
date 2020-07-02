@@ -8,6 +8,7 @@
 
 void ComputeDryMobility(MultiFab & dryMobility, species* particleInfo, const Geometry & Geom)
 {
+    BL_PROFILE_VAR("ComputeDryMobility()",ComputeDryMobility);
 
     const Real* dx = Geom.CellSize();
     const Real* plo = Geom.ProbLo();

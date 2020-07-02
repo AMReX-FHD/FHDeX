@@ -1,12 +1,8 @@
 #include <AMReX_VisMF.H>
 
 #include "common_functions.H"
-#include "common_functions_F.H"
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
-#include "gmres_namespace.H"
 
 
 #include <ib_functions.H>
@@ -15,8 +11,6 @@
 #include <IBParticleContainer.H>
 
 
-using namespace common;
-using namespace gmres;
 
 
 void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
@@ -654,11 +648,13 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     std::array< MultiFab, AMREX_SPACEDIM > alphainv_fc;
     std::array< MultiFab, AMREX_SPACEDIM > one_fab_fc;
     std::array< MultiFab, AMREX_SPACEDIM > zero_fab_fc;
+    std::array< MultiFab, AMREX_SPACEDIM > gradp;
 
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         alphainv_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
          one_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
         zero_fab_fc[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
+              gradp[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
 
         // set alphainv_fc to 1/alpha_fc
         // set one_fab_fc to 1
@@ -707,7 +703,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     // 6 = upper triangular + viscosity-based BFBt Schur complement (from Georg Stadler)
 
     // projection preconditioner
-    if (abs(precon_type) == 1) {
+    if (std::abs(precon_type) == 1) {
 
         //_______________________________________________________________________
         // Temporary arrays
@@ -761,10 +757,12 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
 
         // use multigrid to solve for Phi ......................... phi = Lp^{-1}mac_rhs
         // x_u^star is only passed in to get a norm for absolute residual criteria
-        MacProj(alphainv_fc, mac_rhs, phi, geom);
+        MacProj macproj;
+        macproj.Define(ba,dmap,geom);
+        macproj.solve(alphainv_fc, mac_rhs, phi, geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
-        SubtractWeightedGradP(x_u, alphainv_fc, phi, geom);
+        SubtractWeightedGradP(x_u, alphainv_fc, phi, gradp, geom);
 
 
         /************************************************************************
@@ -795,7 +793,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
             Gphi[d].setVal(0.);
         }
 
-        SubtractWeightedGradP(Gphi, alphainv_fc, phi, geom);
+        SubtractWeightedGradP(Gphi, alphainv_fc, phi, gradp, geom);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             Gphi[d].FillBoundary(geom.periodicity());
@@ -984,10 +982,11 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
         JLS_P_rhs.FillBoundary(geom.periodicity());
 
         // use multigrid to solve for Phi ............. JLS_P = Lp^{-1} DA^{-1}S JLS
-        MacProj(alphainv_fc, JLS_P_rhs, JLS_P, geom);
+        
+        macproj.Solve(alphainv_fc, JLS_P_rhs, JLS_P, geom);
 
         // x_u = x_u^star - (alpha I)^-1 grad Phi ...... x_u = A^{-1}g - GLp^{-1}mac_rhs
-        SubtractWeightedGradP(JLS_V, alphainv_fc, JLS_P, geom);
+        SubtractWeightedGradP(JLS_V, alphainv_fc, JLS_P, gradp, geom);
 
         for (int d=0; d<AMREX_SPACEDIM; ++d)
             JLS_V[d].FillBoundary(geom.periodicity());
@@ -1022,18 +1021,18 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                 x_p.mult(-1., 0, 1, 0);
             } else {
                 // first set x_p = -L_alpha Phi .... x_p = L_alpha Lp^{-1}(DA^{-1}g + h)
-                CCApplyOp(phi, x_p, zero_fab, alphainv_fc, geom);
+                CCApplyNegLap(phi, x_p, alphainv_fc, geom);
             }
 
-            if ( abs(visc_type) == 1 || abs(visc_type) == 2) {
+            if ( std::abs(visc_type) == 1 || std::abs(visc_type) == 2) {
                 // multiply x_p by beta; x_p = -beta L_alpha Phi
                 MultiFab::Multiply(x_p, beta, 0, 0, 1, 0);
 
-                if (abs(visc_type) == 2) {
+                if (std::abs(visc_type) == 2) {
                     // multiply by c=2; x_p = -2*beta L_alpha Phi
                     x_p.mult(2., 0, 1, 0);
                 }
-            } else if (abs(visc_type) == 3) {
+            } else if (std::abs(visc_type) == 3) {
 
                 // multiply x_p by gamma, use mac_rhs a temparary to save x_p
                 MultiFab::Copy(mac_rhs, x_p, 0, 0, 1, 0);

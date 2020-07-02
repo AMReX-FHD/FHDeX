@@ -1,14 +1,14 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
 # If you set AMREX_HOME as an environment variable, this line will be ignored
-AMREX_HOME ?= ../../../amrex/
-FHDeX ?= ../../
-FIONS = $(FHDeX)/exec/immersedIons
-HYDROLIB_HOME := ../../../LowMachFHD/HydroGrid
+AMREX_HOME ?= ../../../../programs/amrex/
+FHDeX ?= ../../../
+FIONS = $(FHDeX)/exec/tests/RFDanalysis
 
 DEBUG     = FALSE
 PROFILE   = FALSE
 USE_MPI   = TRUE
 USE_OMP   = FALSE
+USE_CUDA  = FALSE
 COMP      = gnu
 DIM       = 3
 DSMC      = FALSE
@@ -23,8 +23,6 @@ INCLUDE_LOCATIONS += .
 
 VPATH_LOCATIONS   += $(FIONS)
 INCLUDE_LOCATIONS += $(FIONS)
-
-
 
 include $(FHDeX)/src_rng/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_rng
@@ -42,17 +40,15 @@ include $(FHDeX)/src_hydro/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_hydro/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_hydro/src_F90
 
-include $(FHDeX)/src_analysis/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
-INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
+ifeq ($(USE_CUDA),FALSE)
+ include $(FHDeX)/src_analysis/Make.package
+ VPATH_LOCATIONS   += $(FHDeX)/src_analysis/
+ INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/
 
-include $(FHDeX)/src_analysis/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_analysis/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/src_F90
-
-#include $(AMREX_HOME)/Src/test/FParallelMG_RNG.mak
-#VPATH_LOCATIONS   += $(AMREX_HOME)/Src/test/
-#INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/test/
+ include $(FHDeX)/src_analysis/src_F90/Make.package
+ VPATH_LOCATIONS   += $(FHDeX)/src_analysis/src_F90
+ INCLUDE_LOCATIONS += $(FHDeX)/src_analysis/src_F90
+endif
 
 include $(FHDeX)/src_gmres/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_gmres/
@@ -78,13 +74,13 @@ include $(FHDeX)/src_particles/src_F90/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_particles/src_F90
 INCLUDE_LOCATIONS += $(FHDeX)/src_particles/src_F90
 
-include $(FHDeX)/src_surfaces/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_surfaces
-INCLUDE_LOCATIONS += $(FHDeX)/src_surfaces
+include $(FHDeX)/src_geometry/Make.package
+VPATH_LOCATIONS   += $(FHDeX)/src_geometry
+INCLUDE_LOCATIONS += $(FHDeX)/src_geometry
 
-include $(FHDeX)/src_surfaces/src_F90/Make.package
-VPATH_LOCATIONS   += $(FHDeX)/src_surfaces/src_F90
-INCLUDE_LOCATIONS += $(FHDeX)/src_surfaces/src_F90
+include $(FHDeX)/src_geometry/src_F90/Make.package
+VPATH_LOCATIONS   += $(FHDeX)/src_geometry/src_F90
+INCLUDE_LOCATIONS += $(FHDeX)/src_geometry/src_F90
 
 include $(FHDeX)/src_electrostatic/Make.package
 VPATH_LOCATIONS   += $(FHDeX)/src_electrostatic
@@ -98,12 +94,8 @@ include $(FHDeX)/src_immersed-boundary/MakeBase.package
 VPATH_LOCATIONS   += $(FHDeX)src_immersed-boundary
 INCLUDE_LOCATIONS += $(FHDeX)src_immersed-boundary
 
-include $(HYDROLIB_HOME)/GPackage_noRNG.mak
-VPATH_LOCATIONS += $(HYDROLIB_HOME)
-
 include $(FIONS)/Make.package
 include $(FIONS)/Make_precheck.package
-include $(FIONS)/Make_debug.package
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
@@ -111,12 +103,27 @@ include $(AMREX_HOME)/Src/AmrCore/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
-include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
 
-INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
-VPATH_LOCATIONS	  += $(AMREX_HOME)/Src/Extern/SWFFT
+ifeq ($(USE_CUDA),FALSE)
+ include $(AMREX_HOME)/Src/Extern/SWFFT/Make.package
+ INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Extern/SWFFT
+ VPATH_LOCATIONS   += $(AMREX_HOME)/Src/Extern/SWFFT
+endif
 
-LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3
+#ifeq ($(NERSC_HOST),) # check if NERSC_HOST is empty => hack to test if on cori
+#    LIBRARIES += -L$(FFTW_DIR) -lfftw3
+#    ifeq ($(USE_OMP), TRUE)
+#	LIBRARIES += -lfftw3_omp
+#    endif
+#    ifeq ($(USE_MPI), TRUE)
+#	LIBRARIES += -lfftw3_mpi
+#    endif
+#else
+#    $(info NERSC_HOST not empty => relying on compiler wrapper for fftw3)
+#endif
+
+LIBRARIES += -L$(FFTW_DIR) -lfftw3_mpi -lfftw3_omp -lfftw3 -lgomp
+#LIBRARIES += -L$(FFTW_DIR) -lfftw3
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
 

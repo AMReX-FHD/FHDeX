@@ -1,7 +1,5 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
@@ -12,7 +10,6 @@
 #include "StructFact.H"
 
 using namespace amrex;
-using namespace common;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -97,7 +94,7 @@ void main_driver(const char* argv)
 
         const Array4<Real>& struct_fab = struct_cc.array(mfi);
 
-        AMREX_HOST_DEVICE_FOR_4D(bx, 2, i, j, k, n,
+        amrex::ParallelFor(bx, 2, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
         {
             if (n == 0) {
                 struct_fab(i,j,k,n) = i+j+k;

@@ -7,7 +7,6 @@
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
 #include <common_functions.H>
-#include <common_namespace.H>
 
 #include <IBParticleContainer.H>
 #include <ib_functions_F.H>
@@ -15,7 +14,6 @@
 
 
 
-using namespace common;
 using namespace amrex;
 
 bool IBParticleContainer::use_neighbor_list  {true};
@@ -264,7 +262,7 @@ void IBParticleContainer::FillMarkerPositions(int lev, int n_marker) {
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         // Iterate over local particle data
         AoS & particles = particle_data.GetArrayOfStructs();
@@ -460,7 +458,7 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
         const Box & bx       = mfi.growntilebox();
         //const Box & tile_box = mfi.tilebox();
         const Box & tile_box = mfi.growntilebox(); // HACK, use tilebox going forward
-
+/*
         spread_markers(BL_TO_FORTRAN_BOX(bx),
                        BL_TO_FORTRAN_BOX(tile_box),
                        BL_TO_FORTRAN_ANYD(f_out[0][mfi]),
@@ -488,9 +486,292 @@ void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
                        f_in.dataPtr(),
                        & n_marker,
                        dx, & ghost);
+*/
+         Real pos[AMREX_SPACEDIM]; 
+         Real v_spread[AMREX_SPACEDIM];
+
+	 for (int i=0; i<n_marker; ++i) {
+		 for (int j=0; j<AMREX_SPACEDIM; ++j)
+			 pos[j] = marker_positions[lev].at(pindex)[j][i];
+                 if (ghost == 0){
+                         if (pos[0] < tile_box.loVect()[0]*dx[0]) continue;
+                         if (pos[0] >= (tile_box.hiVect()[0]+1)*dx[0]) continue;
+
+                         if (pos[1] < tile_box.loVect()[1]*dx[1]) continue;
+                         if (pos[1] >= (tile_box.hiVect()[1]+1)*dx[1]) continue;
+
+                         if (pos[2] < tile_box.loVect()[2]*dx[2]) continue;
+                         if (pos[2] >= (tile_box.hiVect()[2]+1)*dx[2]) continue; 
+                 }
+                 for (int j=0; j<AMREX_SPACEDIM; ++j)
+                         v_spread[j] = f_in[j][i];
+
+                 SpreadKernel(bx, f_out, f_weights, face_coords, pos, v_spread, dx, & ghost, & mfi);
+	 }
+
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real kernel_3p(Real r_in)
+{
+    Real kernel_3p;
+
+    //internal variables
+    Real r;
+    Real r1;
+    Real r2;
+ 
+    //initialize r
+    r = r_in;
+    r1 = std::abs(r_in);
+    r2 = r1*r1;
+
+    if (r1 <= 0.5){
+       kernel_3p = (1+std::sqrt(1-(3*r2)))/3.0;
+    }else if (r1 <= 1.5){
+       kernel_3p = (5.0-(3.0*r1)-std::sqrt(-3*(1-r1)*(1-r1)+1))/6.0;
+    }else{
+       kernel_3p = 0.0;
+    }
+    return kernel_3p;
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real beta(Real r)
+{
+    Real beta;
+    Real K = 59.0/60 - std::sqrt(29.0)/20.0;
+
+    //pre-computed ratios
+    Real a = 9.0/4.0;
+    Real b = 3.0/2.0;
+    Real c = 22.0/3.0;
+    Real d = 7.0/3.0;
+
+    //NOTE: mistake in the paper: b*(K+r**2)*r -> b*(K+r**2)
+    //beta = a - b*(K+r**2)*r + (c-7*K)*r - d*r**3
+    beta = a - b*(K+(r*r)) + (c-7.0*K)*r - d*(r*r*r);
+
+    return beta;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real gamma(Real r)
+{
+    Real gamma;
+    Real K = 59.0/60 - std::sqrt(29.0)/20.0;
+
+    //pre-computed ratios
+    Real a = 11.0/32.0;
+    Real b = 3.0/32.0;
+    Real c = 1.0/72.0;
+    Real d = 1.0/18.0;
+
+    gamma = - a*r*r + b*(2*K+(r*r))*(r*r) + c*std::pow(((3*K-1)*r+(r*r*r)),2) + d*std::pow(((4-3*K)*r-(r*r*r)),2);
+
+    return gamma;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real phi1(Real r)
+{
+    Real phi1;
+    Real K = 59.0/60 - std::sqrt(29.0)/20.0;
+    Real sgn = (3.0/2 - K)/std::abs(3.0/2 - K);
+
+    //pre-computed ratios
+    Real alpha = 28.0;
+    Real inv_alpha = 1.0/(2.0*alpha);
+
+    phi1 = inv_alpha*( -beta(r) + sgn * std::sqrt(beta(r)*beta(r) - 4*alpha*gamma(r)) );
+
+    return phi1;
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_INLINE
+Real kernel_6p(Real r_in)
+{
+    //The 6-point kernel function, based on the paper:
+    //>*A Gaussian-like immersed-boundary kernel with three continuous derivatives and improved translational invariance*
+    //>Yuanxun Bao, Jason Kaye, Charles S. Peskin, *Journal of Computational Physics* **316**, 139 (2016)
+    //>https://dx.doi.org/10.1016/j.jcp.2016.04.024
+    //Note also: https://github.com/stochasticHydroTools/IBMethod/blob/master/IBKernels/Kernels.c because the paper above has mistakes (but the repo's OK)
+
+    Real kernel_6p;
+
+    //internal parameters
+    Real K = 59.0/60 - std::sqrt(29.0)/20.0;
+    Real sgn = (3.0/2 - K)/std::abs(3.0/2 - K);
+
+    //pre-computed ratios
+    Real inv16 = 1.0/16.0;
+    Real inv8 = 1.0/8.0;
+    Real inv12 = 1.0/12.0;
+    Real inv4 = 1.0/4.0;
+    Real inv6 = 1.0/6.0;
+    Real rat58 = 5.0/8.0;
+
+    //internal variables
+    Real r = r_in;
+
+    //compute kernel function
+    if (r <= -3){
+       kernel_6p = 0.0; 
+    }else if (r <= -2){
+       r += 3;
+       kernel_6p = phi1(r);
+    }else if (r <= -1){
+       r += 2;
+       kernel_6p = -3*phi1(r) - inv16 + inv8*(K+(r*r)) + inv12*((3*K-1)*r+(r*r*r));
+    }else if (r <= 0){
+       r += 1;
+       kernel_6p = 2*phi1(r) + inv4 + inv6*((4-3*K)*r-(r*r*r));
+    }else if (r <= 1){
+       kernel_6p = 2*phi1(r) + rat58 - inv4*(K+(r*r));
+    }else if (r <= 2){
+       r -= 1;
+       kernel_6p = -3*phi1(r) + inv4 - inv6*((4-3*K)*r-(r*r*r));
+    }else if (r <= 3){
+       r -= 2;
+       kernel_6p = phi1(r) - inv16 + inv8*(K+(r*r)) - inv12*((3*K-1)*r+(r*r*r));
+    }else{
+       kernel_6p = 0.0;
+    }
+
+    return kernel_6p;
+}
+
+
+void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX_SPACEDIM> & f_out, std::array<MultiFab, AMREX_SPACEDIM> & f_weights, const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords, const Real* pos, const Real* v_spread, const Real* dx, int* nghost, MFIter* mfi) const {
+
+    int i, j, k, ilo, ihi, jlo, jhi, klo, khi, gs;
+    Real (*kernel_ptr) (Real );
+    if(pkernel_fluid == 3) {
+        kernel_ptr = &kernel_3p;
+        gs = 2;
+    }
+    else {
+        kernel_ptr = &kernel_6p;
+        gs = 4;
+    }
+
+    Real invdx[AMREX_SPACEDIM];
+    Real invvol = 1.0;
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+        invdx[i]=1.0/dx[i];
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i)
+        invvol *= invdx[i]; 
+
+    if (nghost == 0){
+        int loc = floor(pos[0] * invdx[0] - gs);
+        ilo = std::max(bx.loVect()[0], loc);
+        loc = floor(pos[0] * invdx[0] + gs);
+        ihi = std::max(bx.hiVect()[0], loc);
+        loc = floor(pos[1] * invdx[1] - gs);
+        jlo = std::max(bx.loVect()[1], loc);
+        loc = floor(pos[1] * invdx[1] + gs);
+        jhi = std::max(bx.hiVect()[1], loc);
+        loc = floor(pos[2] * invdx[2] - gs);
+        klo = std::max(bx.loVect()[2], loc);
+        loc = floor(pos[2] * invdx[2] + gs);
+        khi = std::max(bx.hiVect()[2], loc);
+    }else{
+        ilo = floor(pos[0] * invdx[0] - gs);
+        ihi = floor(pos[0] * invdx[0] + gs);
+        jlo = floor(pos[1] * invdx[1] - gs);
+        jhi = floor(pos[1] * invdx[1] + gs);
+        klo = floor(pos[2] * invdx[2] - gs);
+        khi = floor(pos[2] * invdx[2] + gs); 
+    }
+
+    IntVect scalx_lo(ilo,jlo,klo);
+    IntVect scalx_hi(ihi+1,jhi,khi);
+    const Box bx_x(scalx_lo, scalx_hi);
+    IntVect scaly_lo(ilo,jlo,klo);
+    IntVect scaly_hi(ihi,jhi+1,khi);
+    const Box bx_y(scaly_lo, scaly_hi);
+    IntVect scalz_lo(ilo,jlo,klo);
+    IntVect scalz_hi(ihi,jhi,khi+1);
+    const Box bx_z(scalz_lo, scalz_hi);    
+
+
+    Array4<Real> const& fout_x = f_out[0].array(*mfi);
+    Array4<Real> const& fout_y = f_out[1].array(*mfi);
+    Array4<Real> const& fout_z = f_out[2].array(*mfi);
+    Array4<Real> const& fweights_x = f_weights[0].array(*mfi);
+    Array4<Real> const& fweights_y = f_weights[1].array(*mfi);
+    Array4<Real> const& fweights_z = f_weights[2].array(*mfi);
+    Array4<const Real> const& faceCoordsx_x = face_coords[0][0].array(*mfi);
+    Array4<const Real> const& faceCoordsx_y = face_coords[0][1].array(*mfi);
+    Array4<const Real> const& faceCoordsx_z = face_coords[0][2].array(*mfi);
+    Array4<const Real> const& faceCoordsy_x = face_coords[1][0].array(*mfi);
+    Array4<const Real> const& faceCoordsy_y = face_coords[1][1].array(*mfi);
+    Array4<const Real> const& faceCoordsy_z = face_coords[1][2].array(*mfi);
+    Array4<const Real> const& faceCoordsz_x = face_coords[2][0].array(*mfi);
+    Array4<const Real> const& faceCoordsz_y = face_coords[2][1].array(*mfi);
+    Array4<const Real> const& faceCoordsz_z = face_coords[2][2].array(*mfi);
+
+    const int spaceDim = AMREX_SPACEDIM;
+
+    // x-components
+    amrex::ParallelFor(bx_x,
+      [invdx,invvol,v_spread,fout_x,fweights_x,faceCoordsx_x,faceCoordsx_y,faceCoordsx_z,spaceDim,kernel_ptr]
+      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+         Real pos_grid[3];
+         pos_grid[0]=(pos_grid[0]-faceCoordsx_x(i,j,k))*invdx[0];
+         pos_grid[1]=(pos_grid[1]-faceCoordsx_y(i,j,k))*invdx[1];
+         pos_grid[2]=(pos_grid[2]-faceCoordsx_z(i,j,k))*invdx[2];
+
+         Real weight = 1.0;
+         for (int i=0; i<spaceDim; ++i)
+             weight*=(*kernel_ptr)(pos_grid[i]);
+
+         fout_x(i,j,k) += v_spread[0]*weight*invvol;
+         fweights_x(i,j,k) += weight;
+    });
+
+    // y-components
+    amrex::ParallelFor(bx_y,
+      [invdx,invvol,v_spread,fout_y,fweights_y,faceCoordsy_x,faceCoordsy_y,faceCoordsy_z,spaceDim,kernel_ptr]
+      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+         Real pos_grid[3];
+         pos_grid[0]=(pos_grid[0]-faceCoordsy_x(i,j,k))*invdx[0];
+         pos_grid[1]=(pos_grid[1]-faceCoordsy_y(i,j,k))*invdx[1];
+         pos_grid[2]=(pos_grid[2]-faceCoordsy_z(i,j,k))*invdx[2];
+
+         Real weight = 1.0;
+         for (int i=0; i<spaceDim; ++i)
+             weight*=(*kernel_ptr)(pos_grid[i]);
+
+         fout_y(i,j,k) += v_spread[1]*weight*invvol;
+         fweights_y(i,j,k) += weight;
+    });
+
+    // z-components
+    amrex::ParallelFor(bx_z,
+      [invdx,invvol,v_spread,fout_z,fweights_z,faceCoordsz_x,faceCoordsz_y,faceCoordsz_z,spaceDim,kernel_ptr]
+      AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+    {
+         Real pos_grid[3];
+         pos_grid[0]=(pos_grid[0]-faceCoordsz_x(i,j,k))*invdx[0];
+         pos_grid[1]=(pos_grid[1]-faceCoordsz_y(i,j,k))*invdx[1];
+         pos_grid[2]=(pos_grid[2]-faceCoordsz_z(i,j,k))*invdx[2];
+
+         Real weight = 1.0;
+         for (int i=0; i<spaceDim; ++i)
+             weight*=(*kernel_ptr)(pos_grid[i]);
+
+         fout_z(i,j,k) += v_spread[0]*weight*invvol;
+         fweights_z(i,j,k) += weight;
+    });
+}
 
 
 void IBParticleContainer::SpreadMarkers(int lev, const ParticleIndex & pindex,
@@ -747,7 +1028,7 @@ void IBParticleContainer::InterpolateParticleForces(int lev,
         PairIndex index(pti.index(), pti.LocalTileIndex());
 
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         // Iterate over local particle data
         AoS & particles = particle_data.GetArrayOfStructs();
@@ -900,7 +1181,7 @@ void IBParticleContainer::MoveIBParticles(int lev, Real dt,
 
         PairIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
@@ -955,9 +1236,8 @@ void IBParticleContainer::PrintParticleData(int lev) {
         // Neighbours are stored as raw data (see below)
         int ng = neighbors[lev][index].size();
 
-        //long np = NumberOfParticles(pti);
         auto & particle_data = GetParticles(lev)[index];
-        long np = particle_data.size();
+        long np = GetParticles(lev)[index].numParticles();
 
         local_count += np;
 
@@ -1027,7 +1307,7 @@ void IBParticleContainer::LocalIBParticleInfo(Vector<IBP_info> & info,
 
 
     auto & particle_data = GetParticles(lev).at(index);
-    long np = particle_data.size();
+    long np = GetParticles(lev).at(index).numParticles();
 
     // Iterate over local particle data
     const AoS & particles = particle_data.GetArrayOfStructs();

@@ -1,18 +1,16 @@
 #include "electrostatic.H"
-#include "common_namespace.H"
 #include "common_functions.H"
 #include <AMReX_MLMG.H>
 
 using namespace amrex;
-using namespace common;
 
 void esSolve(MultiFab& potential, MultiFab& charge,
-             std::array< MultiFab, AMREX_SPACEDIM >& efield,
+             std::array< MultiFab, AMREX_SPACEDIM >& efieldCC,
              const std::array< MultiFab, AMREX_SPACEDIM >& external, const Geometry geom)
 {
-    AMREX_D_TERM(efield[0].setVal(0);,
-                 efield[1].setVal(0);,
-                 efield[2].setVal(0););
+    AMREX_D_TERM(efieldCC[0].setVal(0);,
+                 efieldCC[1].setVal(0);,
+                 efieldCC[2].setVal(0););
 
     if(es_tog==1 || es_tog==3)
     {
@@ -27,11 +25,13 @@ void esSolve(MultiFab& potential, MultiFab& charge,
             }
             if(bc_es_lo[i] == 2)
             {
-                lo_linop_bc[i] = LinOpBCType::Neumann;
+                lo_linop_bc[i] = LinOpBCType::inhomogNeumann;
+//                lo_linop_bc[i] = LinOpBCType::Neumann;
             }
             if(bc_es_hi[i] == 2)
             {
-                hi_linop_bc[i] = LinOpBCType::Neumann;
+                hi_linop_bc[i] = LinOpBCType::inhomogNeumann;
+//                hi_linop_bc[i] = LinOpBCType::Neumann;
             }
             if(bc_es_lo[i] == 1)
             {                 
@@ -42,9 +42,6 @@ void esSolve(MultiFab& potential, MultiFab& charge,
                 hi_linop_bc[i] = LinOpBCType::Dirichlet;
             }
         }
-
-          //MOVED TO OCCUR BEFOR SUMBOUNDARY!
-//        MultiFABPhysBCCharge(charge, geom); //Adjust spread charge distribtion near boundaries from 
 
         const BoxArray& ba = charge.boxArray();
         const DistributionMapping& dmap = charge.DistributionMap();
@@ -60,7 +57,12 @@ void esSolve(MultiFab& potential, MultiFab& charge,
                                         hi_linop_bc[1],
                                         hi_linop_bc[2])});
 
-        linop.setLevelBC(0, nullptr);
+        // fill in ghost cells with Dirichlet/Neumann values
+        // the ghost cells will hold the value ON the boundary
+        MultiFabPotentialBC_solver(potential,geom);
+
+        // tell MLPoisson about these potentially inhomogeneous BC values
+        linop.setLevelBC(0, &potential);
 
         //Multi Level Multi Grid
         MLMG mlmg(linop);
@@ -69,23 +71,24 @@ void esSolve(MultiFab& potential, MultiFab& charge,
         mlmg.setMaxIter(poisson_max_iter);
         mlmg.setVerbose(poisson_verbose);
         mlmg.setBottomVerbose(poisson_bottom_verbose);
-
+        
         //Do solve
         mlmg.solve({&potential}, {&charge}, poisson_rel_tol, 0.0);
-
             
         potential.FillBoundary(geom.periodicity());
-        MultiFABPotentialBC(potential, geom); //set ghost cell values so electric field is calculated properly
+        // set ghost cell values so electric field is calculated properly
+        // the ghost cells will hold the values extrapolated to the ghost CC
+        MultiFabPotentialBC(potential, geom); 
 
         //Find e field, gradient from cell centers to faces
-        ComputeCentredGrad(potential, efield, geom);
+        ComputeCentredGrad(potential, efieldCC, geom);
     }
 
     //Add external field on top, then fill boundaries, then setup BCs for peskin interpolation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        MultiFab::Add(efield[d], external[d], 0, 0, 1, efield[d].nGrow());
-        efield[d].FillBoundary(geom.periodicity());
-        //MultiFABElectricBC(efield[d], d, geom);
+        MultiFab::Add(efieldCC[d], external[d], 0, 0, 1, efieldCC[d].nGrow());
+        efieldCC[d].FillBoundary(geom.periodicity());
+        MultiFabElectricBC(efieldCC[d], geom);
     }
 
 }

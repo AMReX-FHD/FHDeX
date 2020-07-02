@@ -1,13 +1,18 @@
 #ifndef _compressible_functions_H_
 #define _compressible_functions_H_
 
-#define MAX_SPECIES 10
 #define LOHI 2
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
 
+#include "compressible_functions_F.H"
+#include "compressible_namespace.H"
+
+#include "common_functions.H"
+
+using namespace compressible;
 using namespace amrex;
 
 // copy contents of compressible_params_module to C++ compressible namespace
@@ -23,13 +28,13 @@ void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    std::array<MultiFab, AMREX_SPACEDIM>& cornz,
                    MultiFab& visccorn,
                    MultiFab& rancorn,
-                   const amrex::Geometry geom,
-		   const amrex::Vector< amrex::Real >& stoch_weights,
-	           const amrex::Real* dx, const amrex::Real dt);
+                   const Geometry geom,
+		   const Vector< Real >& stoch_weights,
+	           const Real* dx, const Real dt);
 
-void calculateTransportCoeffs(const MultiFab& prim, 
-			      MultiFab& eta, MultiFab& zeta, MultiFab& kappa,
-			      MultiFab& chi, MultiFab& D);
+void calculateTransportCoeffs(const MultiFab& prim_in,
+			      MultiFab& eta_in, MultiFab& zeta_in, MultiFab& kappa_in,
+			      MultiFab& chi_in, MultiFab& Dij_in);
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,
@@ -41,9 +46,9 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn,
-             const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
+             const Geometry geom, const Real* dx, const Real dt);
 
-void conservedToPrimitive(MultiFab& prim, const MultiFab& cons);
+void conservedToPrimitive(MultiFab& prim_in, const MultiFab& cons_in);
 
 void primitiveToConserved(const MultiFab& prim, MultiFab& cons);
 
@@ -51,21 +56,871 @@ void setBC(MultiFab& prim, MultiFab& cons);
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
-                   const int steps, const amrex::Real* dx);
+                   MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
+                   const int steps, const Real* dx);
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
-                const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt);
+                const Geometry geom, const Real* dx, const Real dt);
 
 void WritePlotFile(int step,
-                   const amrex::Real time,
-                   const amrex::Geometry geom,
-	           const amrex::MultiFab& cu,
-	           const amrex::MultiFab& cuMeans,
-	           const amrex::MultiFab& cuVars,
-	           const amrex::MultiFab& prim,
-	           const amrex::MultiFab& primMeans,
-	           const amrex::MultiFab& primVars,
-                   const amrex::MultiFab& eta, 
-		   const amrex::MultiFab& kappa);
+                   const Real time,
+                   const Geometry geom,
+	           const MultiFab& cu,
+	           const MultiFab& cuMeans,
+	           const MultiFab& cuVars,
+	           const MultiFab& prim,
+	           const MultiFab& primMeans,
+	           const MultiFab& primVars,
+                   const MultiFab& spatialCross,
+                   const MultiFab& eta, 
+		   const MultiFab& kappa);
 
+void yzAverage(const MultiFab& consMean, 
+               const MultiFab& consVar, 
+               const MultiFab& primMean, 
+               const MultiFab& primVar, 
+               const MultiFab& spatialCross, 
+               MultiFab& consMeanAv, 
+               MultiFab& consVarAv, 
+               MultiFab& primMeanAv, 
+               MultiFab& primVarAv, 
+               MultiFab& spatialCrossAv);
+
+void WriteCheckPoint(int step,
+                     const Real time,
+                     int statsCount,
+                     const Geometry geom,
+                     const MultiFab& cu,
+                     const MultiFab& cuMeans,
+                     const MultiFab& cuVars,
+                     const MultiFab& prim,
+                     const MultiFab& primMeans,
+                     const MultiFab& primVars,
+                     const MultiFab& spatialCross, 
+                     const MultiFab& miscStats, 
+                     const MultiFab& eta, 
+                     const MultiFab& kappa);
+
+void ReadCheckPoint(int& step,
+                     Real& time,
+                     int& statsCount,
+                     Geometry geom,
+                     MultiFab& cu,
+                     MultiFab& cuMeans,
+                     MultiFab& cuVars,
+                     MultiFab& prim,
+                     MultiFab& primMeans,
+                     MultiFab& primVars,
+                     MultiFab& spatialCross,
+                     MultiFab& miscStats, 
+                     MultiFab& eta,
+                     MultiFab& kappa);
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetMolfrac ( int i, int j, int k,
+                  const GpuArray<Real,MAX_SPECIES>& Yk,
+                  GpuArray<Real,MAX_SPECIES>& Xk,
+                  int const nspecies,
+                  const GpuArray<Real,MAX_SPECIES>& molmass)
+{
+    Real molmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Yk[n]/molmass[n];
+    }
+    molmix = 1./molmix;
+    for (int n=0; n<nspecies; ++n) {
+        Xk[n] = Yk[n]*molmix/molmass[n];
+    }
+
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetTemperature ( int i, int j, int k,
+                      Real const energy,
+                      const GpuArray<Real,MAX_SPECIES>& Yk,
+                      Real& temp,
+                      int const nspecies,
+                      const GpuArray<Real,MAX_SPECIES>& hcv)
+{
+    Real cvmix = 0.;
+    Real e0 = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        cvmix += Yk[n]*hcv[n];
+    }
+
+    temp = (energy-e0)/cvmix;
+};
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetPressureGas ( int i, int j, int k,
+                      Real& pressure,
+                      const GpuArray<Real,MAX_SPECIES>& Yk,
+                      Real const density,
+                      Real const temp,
+                      int const nspecies,
+                      Real const Runiv,
+                      const GpuArray<Real,MAX_SPECIES>& molmass)
+{
+    Real molmix = 0.;
+
+    for (int n=0; n<nspecies; ++n) {
+        molmix += Yk[n]/molmass[n];
+    }
+    molmix = 1./molmix;
+
+    pressure = density*(Runiv/molmix)*temp;
+};
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Decomp ( int const neq,
+              GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+              GpuArray<int,MAX_SPECIES>& ip,
+              int const nspecies )
+{
+    Real amult, apm, apn;
+    int nm1, ip1;
+    int i, j, k, l, n;
+    Real eps  = 1.e-30;
+    Real eps2 = 1.e-60;
+      
+    nm1=neq-1;
+    for (n=0; n<neq; ++n) {
+        ip[n]=n+1;
+    }
+    for (i=0; i<nm1; ++i) {
+        ip1=i+2;
+        k=i+1;
+        apm = std::abs(a[(ip[i]-1)*nspecies+i]);
+        for (j=ip1-1; j<neq; ++j) {
+            apn=std::abs(a[(ip[j]-1)*nspecies+i]);
+            if (apm >= apn) continue;
+            apm=apn;
+            k=j+1;
+        }
+        j=ip[k-1];
+        ip[k-1]=ip[i];
+        ip[i]=j;
+        if (apm < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+        }
+        for (l=ip1-1; l<neq; ++l) {
+            n=ip[l];
+            amult=a[(n-1)*nspecies+i]/a[(j-1)*nspecies+i];
+            a[(n-1)*nspecies+i]=amult;
+            if (std::abs(amult) < eps2) continue;
+            for (k=ip1-1; k<neq; ++k) {
+                a[(n-1)*nspecies+k]=a[(n-1)*nspecies+k]-amult*a[(j-1)*nspecies+k];
+            }
+        }
+    }
+    if(std::abs(a[(ip[neq-1]-1)*nspecies+neq-1]) < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Decomp2 ( int const neq,
+               GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES>& a,
+               GpuArray<int,2*MAX_SPECIES>& ip,
+               int const nspecies )
+{
+    Real amult, apm, apn;
+    int nm1, ip1;
+    int i, j, k, l, n;
+    Real eps  = 1.e-30;
+    Real eps2 = 1.e-60;
+      
+    nm1=neq-1;
+    for (n=0; n<neq; ++n) {
+        ip[n]=n+1;
+    }
+    for (i=0; i<nm1; ++i) {
+        ip1=i+2;
+        k=i+1;
+        apm = std::abs(a[(ip[i]-1)*2*nspecies+i]);
+        for (j=ip1-1; j<neq; ++j) {
+            apn=std::abs(a[(ip[j]-1)*2*nspecies+i]);
+            if (apm >= apn) continue;
+            apm=apn;
+            k=j+1;
+        }
+        j=ip[k-1];
+        ip[k-1]=ip[i];
+        ip[i]=j;
+        if (apm < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+        }
+        for (l=ip1-1; l<neq; ++l) {
+            n=ip[l];
+            amult=a[(n-1)*2*nspecies+i]/a[(j-1)*2*nspecies+i];
+            a[(n-1)*2*nspecies+i]=amult;
+            if (std::abs(amult) < eps2) continue;
+            for (k=ip1-1; k<neq; ++k) {
+                a[(n-1)*2*nspecies+k]=a[(n-1)*2*nspecies+k]-amult*a[(j-1)*2*nspecies+k];
+            }
+        }
+    }
+    if(std::abs(a[(ip[neq-1]-1)*2*nspecies+neq-1]) < eps) {
+            std::printf("%e",a[(ip[neq-1]-1)*2*nspecies+neq-1]);
+            Abort("singular matrix in decomp");
+    }
+            
+}
+
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Solve ( int const neq,
+              GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+              GpuArray<Real,MAX_SPECIES>& b,
+              GpuArray<int,MAX_SPECIES>& ip,
+              int const nspecies )
+{
+    Real scr;
+    int j,k,l,n,nm1,lm1,jp1;
+
+    nm1 = neq-1;
+    for (l=1; l<neq; ++l) {
+        n=ip[l];
+        lm1=l;
+        for (k=0; k<lm1; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+        }
+    }
+    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[(ip[neq-1]-1)*nspecies+neq-1];
+    for (l=0; l<nm1; ++l) {
+        j=neq-(l+1);
+        jp1=j+1;
+        n=ip[j-1];
+        for (k=jp1-1; k<neq; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
+        }
+        b[n-1]=b[n-1]/a[(n-1)*nspecies+j-1];
+    }
+    for (n=0; n<neq; ++n) {
+        while (ip[n] != n+1) {
+            j=ip[n];
+            scr=b[j-1];
+            ip[n]=ip[j-1];
+            b[j-1]=b[ip[j-1]-1];
+            b[ip[j-1]-1]=scr;
+            ip[j-1]=j;
+        }
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Solve2 ( int const neq,
+              GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES>& a,
+              GpuArray<Real,2*MAX_SPECIES>& b,
+              GpuArray<int,2*MAX_SPECIES>& ip,
+              int const nspecies )
+{
+    Real scr;
+    int j,k,l,n,nm1,lm1,jp1;
+
+    nm1 = neq-1;
+    for (l=1; l<neq; ++l) {
+        n=ip[l];
+        lm1=l;
+        for (k=0; k<lm1; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*2*nspecies+k]*b[ip[k]-1];
+        }
+    }
+    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[(ip[neq-1]-1)*2*nspecies+neq-1];
+    for (l=0; l<nm1; ++l) {
+        j=neq-(l+1);
+        jp1=j+1;
+        n=ip[j-1];
+        for (k=jp1-1; k<neq; ++k) {
+            b[n-1]=b[n-1]-a[(n-1)*2*nspecies+k]*b[ip[k]-1];
+        }
+        b[n-1]=b[n-1]/a[(n-1)*2*nspecies+j-1];
+    }
+    for (n=0; n<neq; ++n) {
+        while (ip[n] != n+1) {
+            j=ip[n];
+            scr=b[j-1];
+            ip[n]=ip[j-1];
+            b[j-1]=b[ip[j-1]-1];
+            b[ip[j-1]-1]=scr;
+            ip[j-1]=j;
+        }
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Decompnp ( int const neq,
+                int const ndim,
+                GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a)
+{
+    Real eps = 1.e-30;
+    Real eps2 = 1.e-60;
+
+    Real amult;
+    
+    int i,k,l,nm1,ip1;
+      
+    nm1=neq-1;
+    for (i=0; i<nm1; ++i) {
+        ip1 = i+2;
+        for (l=ip1-1; l<neq; ++l) {
+            amult=a[l*ndim+i]/a[i*ndim+i];
+            a[l*ndim+i]=amult;
+            if (std::abs(amult) < eps2) continue;
+            for (k=ip1-1; k<neq; ++k) {
+                a[l*ndim+k]=a[l*ndim+k]-amult*a[i*ndim+k];
+            }
+        }
+    }
+    if (std::abs(a[(neq-1)*ndim+neq-1])<eps) {
+        std::printf("%e",a[(neq-1)*ndim+neq-1]);
+        Abort("singular matrix in decomp");
+    }            
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void Solvenp ( int const neq,
+               int const ndim,
+               GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+               GpuArray<Real,MAX_SPECIES>& b)
+{
+    int j,k,l,nm1,lm1,jp1;
+    
+    nm1 = neq-1;
+    for (l=1; l<neq; ++l) {
+        lm1=l;
+        for (k=0; k<lm1; ++k) {
+            b[l]=b[l]-a[l*ndim+k]*b[k];
+        }
+    }
+    b[neq-1]=b[neq-1]/a[(neq-1)*ndim+neq-1];
+    for (l=0; l<nm1; ++l) {
+        j=neq-(l+1);
+        jp1=j+1;
+        for (k=jp1-1; k<neq; ++k) {
+            b[j-1]=b[j-1]-a[(j-1)*ndim+k]*b[k];
+        }
+        b[j-1]=b[j-1]/a[(j-1)*ndim+j-1];
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
+             const GpuArray<Real,MAX_SPECIES>& Ykp,
+             const GpuArray<Real,MAX_SPECIES>& Xkp,
+             const Array4<Real>& D_tilde,
+             const int nspecies,
+             const int iloc,
+             const int jloc,
+             const int kloc)
+{
+    int i,j,k,ll;
+    Real term1, term2, Deltamat, scr;
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Diff_ij, Zmat, Pmat, Jmat, PJ, matrix1, matrix2;
+    GpuArray<Real,MAX_SPECIES> Di, Minv, Mmat;
+
+    int jmax = 3;
+
+    // Find Di matrix 
+    for (i=0; i<nspecies; ++i) {
+        term2 = 0.;
+        for (j=0; j<nspecies; ++j) {
+            if (j != i) {
+                term2 = term2 + Xkp[j]/Dbin[i*nspecies+j];
+            }
+        }
+        Di[i] = (1.-Ykp[i])/term2;
+    }
+
+    // Compute Mmat and Minv
+    for (i=0; i<nspecies; ++i) {
+        Mmat[i] = Xkp[i]/Di[i];
+        Minv[i] = Di[i]/Xkp[i];
+    }
+
+    // Compute P matrix
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Pmat[i*nspecies+j] = - Ykp[j];
+            if (i == j) {
+                Pmat[i*nspecies+j] =  Pmat[i*nspecies+j] + 1.;
+            }
+       }
+    }
+
+    // Compute Deltamat
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            if (i == j) {
+                term1 = 0.;
+                for (k=0; k<nspecies; ++k) {
+                    if (k != i) {
+                        term1 = term1 + Xkp[i]*Xkp[k]/Dbin[i*nspecies+k];
+                    }
+                }
+                Deltamat = term1;
+            } else {
+                Deltamat = -Xkp[i]*Xkp[j]/Dbin[i*nspecies+j];
+            }
+            Zmat[i*nspecies+j] = -Deltamat;
+        }
+    }
+
+    // Compute Zmat
+    for (i=0; i<nspecies; ++i) {
+        Zmat[i*nspecies+i] = Zmat[i*nspecies+i] + Mmat[i];
+    }
+
+    // Compute Jmat
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Jmat[i*nspecies+j] = Minv[i]*Zmat[i*nspecies+j];
+        }
+    }
+
+    // Compute PJ
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            PJ[i*nspecies+j] = 0.;
+            for (k=0; k<nspecies; ++k) {
+                PJ[i*nspecies+j] = PJ[i*nspecies+j] + Pmat[i*nspecies+k]*Jmat[k*nspecies+j];
+            }
+        }
+    }
+
+    // Compute P M^-1 Pt; store it in matrix2
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            scr = 0.;
+            for (k=0; k<nspecies; ++k) {
+                scr = scr + Pmat[i*nspecies+k]*Minv[k]*Pmat[j*nspecies+k];
+                // notice the change in indices for Pmat to represent Pmat^t
+            }
+            matrix2[i*nspecies+j] = scr;
+            Diff_ij[i*nspecies+j] = scr;
+        }
+    }
+
+    if (jmax > 0) {
+
+        for (ll=0; ll<jmax; ++ll) {
+
+            // matrix1=0
+            for (i=0; i<nspecies; ++i) {
+                for (j=0; j<nspecies; ++j) {
+                    scr = 0.;
+                    for (k=0; k<nspecies; ++k) {
+                        scr = scr + PJ[i*nspecies+k]*Diff_ij[k*nspecies+j];
+                    }
+                    matrix1[i*nspecies+j] = scr+matrix2[i*nspecies+j];
+                }
+            }
+        
+            for (i=0; i<nspecies; ++i) {
+                for (j=0; j<nspecies; ++j) {
+                    Diff_ij[i*nspecies+j]=matrix1[i*nspecies+j];
+                }
+            }
+        }
+        
+    }
+
+    // Compute D_tilde
+    for (i=0; i<nspecies; ++i) {
+       for (j=0; j<nspecies; ++j) {
+           // indicies on LHS are switched due to C++/F90 memory layout
+           // this is the only location this needs to happen I believe
+           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
+       }
+    }
+    
+}
+
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void LambdaLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
+                 const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
+                 const GpuArray<Real,MAX_SPECIES>& Ykp,
+                 const Real T,
+                 const Real rho,
+                 const GpuArray<Real,MAX_SPECIES>& mk,
+                 Real& lammix,
+                 const int nspecies,
+                 Real const k_B )
+{
+
+    GpuArray<Real,MAX_SPECIES> nk, beta, diag1, diag2, diag3, diag4, D_T;
+    GpuArray<Real,4*MAX_SPECIES*MAX_SPECIES> QQ;
+    GpuArray<Real,2*MAX_SPECIES> aSonine;
+    GpuArray<int ,2*MAX_SPECIES> ip;
+
+    int i,j,k;
+    Real sum00, sum01, sum11, sum1, lamdaprime, ntotal, ratm, sqratm, scr;
+
+        
+    // find number density
+    for (i=0; i<nspecies; ++i) {
+        nk[i] = rho*Ykp[i]/mk[i];
+        diag1[i] = 0.;
+        diag2[i] = 0.;
+        diag3[i] = 0.;
+        diag4[i] = 0.;
+    }
+
+    for (i=0; i<nspecies; ++i) {
+        for (k=0; k<nspecies; ++k) {
+            
+            diag1[i] =diag1[i]+ nk[k]*mk[k]/(mk[i]+mk[k]) *
+                nk[i]*mk[i]*omega11[i*nspecies+k];
+            if (k != i) {
+                diag2[i] = diag2[i]+nk[k]*mk[k]/(mk[i]+mk[k])*omega11[i*nspecies+k];
+            }
+            diag3[i] = diag3[i] + nk[i]*nk[k]*pow(mk[k],2.)/pow(mk[i]+mk[k],2.) 
+                *  .5*omega11[i*nspecies+k];
+
+            diag4[i] = diag4[i]+ nk[i]*nk[k]*mk[k]/pow(mk[i]+mk[k],3.) *
+                ((5./4.*(6.*pow(mk[i],2.)+5.*pow(mk[k],2.))*omega11[i*nspecies+k]
+                  - 3.*pow(mk[k],2.)*omega11[i*nspecies+k] )
+                 +  4.*mk[i]*mk[k]*omega11[i*nspecies+k] );
+       }
+    }
+
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+
+            sum00 = -nk[j]*mk[j]*diag2[i] - nk[j]*mk[j]/(mk[i]+mk[j])*nk[i]*mk[i]
+                *omega11[i*nspecies+j];
+            sum01 = - nk[i]*nk[j]*pow(mk[j],2.)/pow(mk[i]+mk[j],2.) *
+                .5*omega11[i*nspecies+j];
+
+            sum11 =  nk[i]*nk[j]*mk[j]/pow(mk[i]+mk[j],3.) *
+                ( -(5./4.*(6.*pow(mk[j],2.)+5.*pow(mk[j],2.))*omega11[i*nspecies+j]
+                    - 3.*pow(mk[j],2)*omega11[i*nspecies+j] )
+                  +  4.*mk[j]*mk[j]*omega11[i*nspecies+j] );
+
+            if (i == j) {
+                sum00 = sum00+diag1[i];
+                sum01 = sum01+diag3[i];
+                sum11 = sum11+diag4[i];
+            }
+
+            ratm = mk[i]/mk[j];
+            sqratm = sqrt(ratm);
+            scr = ratm*sqratm;
+            QQ[i*2*nspecies+j] =  8.*sqratm/mk[i] * sum00;         // HCB 7.4-50
+            QQ[i*2*nspecies+j+nspecies] = -8.*scr * sum01;    // HCB 7.4-51
+            QQ[(i+nspecies)*2*nspecies+j] = -8.*sqratm*sum01;
+            QQ[(i+nspecies)*2*nspecies+j+nspecies] = 8.*ratm*sqratm* sum11;  // HCB 7.4-53
+       }
+    }
+
+    // Build vector rhs ; see HCB 7.4-54
+    for (i=0; i<nspecies; ++i) {
+        aSonine[i] = 0.;
+        beta[i]= sqrt(2.*k_B*T/mk[i]);
+        aSonine[i+nspecies] = -(15./4.)*nk[i]*beta[i];
+    }
+
+    // print*, "Hack (lambda_lin) predecomp: ", QQ
+
+    // NOTE: the minus sign below; see HCB p 488
+    Decomp2(2*nspecies,QQ,ip,nspecies);
+    Solve2(2*nspecies,QQ,aSonine,ip,nspecies);
+
+    // print*, "Hack (lambda_lin) postdecomp: ", QQ
+    // stop
+    
+    for (i=0; i<nspecies; ++i) {          
+       // HCB 7.4-9
+        D_T[i] = 0.5*nk[i]*beta[i]*mk[i]*aSonine[i];
+    }
+
+    sum1=0;        
+    // HCB 7.4-33
+    for (i=0; i<nspecies; ++i) {
+        sum1 = sum1 + nk[i]*beta[i]* aSonine[nspecies+i];
+    }
+    lamdaprime = -5./4. * k_B * sum1;
+
+
+    sum1 = 0;
+    // HCB 7.4-65
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+          sum1 = sum1 + nk[i]*nk[j]/Dbin[i*nspecies+j] *
+              pow((D_T[i]/(nk[i]*mk[i]) - D_T[j]/(nk[j]*mk[j])),2.);
+       }
+    }
+
+    ntotal = 0;
+    for (i=0; i<nspecies; ++i) {
+        ntotal += nk[i];
+    }
+
+    lammix = lamdaprime - 0.5*k_B/ntotal * sum1;  // HCB 7.4-65
+
+    // print*, "Hack (lambda_lin): ", D_T, nk, beta, mk, aSonine
+    // print*, "Hack (lambda_lin): ", sum1, nk, Dbin, D_T, mk
+    // print*, "Hack (lambda_lin): ", lammix, lamdaprime, ntotal, sum1
+    // print*, "Hack (lambda_lin) inputs: ", Dbin,omega11,Ykp,T,rho,mk,lammix
+    // stop
+        
+
+    
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ThermalDiff ( int iloc, int jloc, int kloc,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sigma11,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij1,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a_ij2,
+                   const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& alphabar,
+                   const GpuArray<Real,MAX_SPECIES>& Xkp,
+                   const Real sqrtT,
+                   const GpuArray<Real,MAX_SPECIES>& mk,
+                   const Array4<Real>& kT,
+                   const int nspecies)
+{
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Aij, alphaij;
+    GpuArray<Real,MAX_SPECIES> AA;
+
+    int i,j,k;
+    Real sumTemp;
+
+    // Based on Valk 1963 (Waldmann)
+
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            Aij[i*nspecies+j] = Xkp[j]*a_ij2[i*nspecies+j];
+        }
+        AA[i] = 15./4.;
+    }
+    
+    for (i=0; i<nspecies; ++i) {
+        sumTemp = 0.;
+        for (k=0; k<nspecies; ++k) {
+            sumTemp = sumTemp + Xkp[k]*a_ij1[i*nspecies+k];
+        }
+        Aij[i*nspecies+i] = Aij[i*nspecies+i] + sumTemp;
+    }
+
+    Decompnp(nspecies,nspecies,Aij);
+    Solvenp(nspecies,nspecies,Aij,AA);
+
+    for (i=0; i<nspecies; ++i) {
+        for (j=0; j<nspecies; ++j) {
+            alphaij[i*nspecies+j] = alphabar[i*nspecies+j]*(AA[i]/mk[i] - AA[j]/mk[j])/sqrtT;
+        }
+    }
+
+    for (k=0; k<nspecies; ++k) {
+        sumTemp = 0.;
+        for (j=0; j<nspecies; ++j) {
+            sumTemp = sumTemp + Xkp[j]*alphaij[k*nspecies+j];
+        }
+        kT(iloc,jloc,kloc,k) = sumTemp;
+    }
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
+               const GpuArray<Real,MAX_SPECIES>& Ykp,
+               const Real T,
+               const Real rho,
+               const GpuArray<Real,MAX_SPECIES>& mk,
+               Real& etaMix,
+               const int nspecies,
+               Real const k_B )
+{
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> QoR;
+    GpuArray<Real,MAX_SPECIES> nk, bSonine, diag;
+    GpuArray<int,MAX_SPECIES> ip;
+    
+    Real sum1;
+    
+    // find number density
+    for (int ii=0; ii<nspecies; ++ii) {
+        nk[ii] = rho*Ykp[ii]/mk[ii];
+    }
+
+    // print*, "Hack (visc_lin): T = ", T
+    // stop
+
+    for (int ii=0; ii<nspecies; ++ii) {
+        diag[ii] = 0.;
+        for (int kk=0; kk<nspecies; ++kk) {
+            diag[ii] = diag[ii] + nk[kk]*mk[kk]/pow(mk[ii]+mk[kk],2.) *
+               (5.*mk[ii]*omega11[ii*nspecies+kk] +
+                3.*mk[kk]*omega11[ii*nspecies+kk]);
+        }
+    }
+
+    // print*, "Hack (visc_lin): ", mk, nk, Ykp
+    // stop
+
+    for (int ii=0; ii<nspecies; ++ii) {
+        for (int jj=0; jj<nspecies; ++jj) {
+            sum1 = -nk[jj]*mk[jj]/pow(mk[ii]+mk[jj],2.) *
+                2.*mk[jj]*omega11[ii*nspecies+jj];
+
+            if (ii==jj) {
+                sum1 = sum1 + diag[ii];
+            }
+
+            QoR[ii*nspecies+jj] = -(16./15.)*(mk[ii]/mk[jj])*sum1;
+            // HCB 7.4-62,63
+        }
+        bSonine[ii] = -1.;
+    }
+
+    // print*, "Hack (visc_lin): original QoR = ", QoR
+
+    // QoR = 1.0d24*QoR
+    // bSonine = 1.0d24*bSonine
+
+    // print*, "Hack (visc_lin): scaled QoR = ", QoR
+
+    Decomp(nspecies,QoR,ip,nspecies);
+    Solve(nspecies,QoR,bSonine,ip,nspecies);
+
+    // print*, "Hack (visc_lin): factored QoR = ", QoR
+    // stop
+
+    sum1 = 0.;
+    for (int ii=0; ii<nspecies; ++ii) {
+        sum1 = sum1 + nk[ii]*bSonine[ii];
+        // HCB 7.4-56
+    }
+
+    etaMix = 0.5*k_B*T*sum1;
+    
+    // print*, "Hack (visc_lin): etaMix = ", etaMix, T
+    // stop
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void IdealMixtureTransport ( int iloc, int jloc, int kloc,
+                             Real const density,
+                             Real const temperature,
+                             Real const pressure,
+                             const GpuArray<Real,MAX_SPECIES>& Yk,
+                             const GpuArray<Real,MAX_SPECIES>& Xk,
+                             Real& eta,
+                             Real& kappa,
+                             Real& zeta,
+                             const Array4<Real>& diff_ij,
+                             const Array4<Real>& chitil,
+                             int const nspecies,
+                             const GpuArray<Real,MAX_SPECIES>& molmass,
+                             const GpuArray<Real,MAX_SPECIES>& diameter,
+                             Real const k_B,
+                             Real const Runiv)
+{
+
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> Dbin;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> omega11;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> sigma11;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> a_ij1;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> a_ij2;
+    GpuArray<Real,MAX_SPECIES*MAX_SPECIES> alphabar;
+    
+    GpuArray<Real,MAX_SPECIES> xxtr;
+    GpuArray<Real,MAX_SPECIES> yytr;
+    GpuArray<Real,MAX_SPECIES> molecular_mass;
+
+    Real sigma11bar, diamat, mu, Fijstar, Fij, MWmix, sqrtT;
+    Real pi = 3.1415926535897932;
+
+    // compute molecular_mass by dividing molmass by Avogadro's
+    for (int n=0; n<nspecies; ++n) {
+        molecular_mass[n] = molmass[n]*(k_B/Runiv);;
+    }
+            
+    // mole fracions correction - EGLIB
+    for (int ii=0; ii<nspecies; ++ii) {
+        Real sumXk = 0.;
+        for (int jj=0; jj<nspecies; ++jj) {
+            sumXk += Xk[jj];
+        }
+        // GM: Why this factor of 1E-15???
+        xxtr[ii] = Xk[ii] + 1.e-15*(sumXk/nspecies - Xk[ii]);
+    }
+    
+    // molecular weight of mixture - EGLIB
+    MWmix = 0.;
+    for (int ii=0; ii<nspecies; ++ii) {
+        MWmix += xxtr[ii]*molmass[ii];
+    }
+
+    // mass fractions correction - EGLIB
+    for (int ii=0; ii<nspecies; ++ii) {
+        yytr[ii] = molmass[ii]/MWmix*xxtr[ii];
+    }
+
+    Fijstar = -27./5.;
+
+    // find binary diffusion coefficients  
+    // HCB 8.2-9   
+    sqrtT = sqrt(temperature);
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+
+            // These matrices are computed in init_chemistry in FluctHydro code
+
+            diamat = 0.5*(diameter[i] + diameter[j]);
+            mu = molecular_mass[i]*molecular_mass[j]/(molecular_mass[i] + molecular_mass[j]);
+            Fij = (6.0*molecular_mass[i]*molecular_mass[i] + 13.0/5.0*molecular_mass[j]*molecular_mass[j] +
+                   16.0/5.0*molecular_mass[i]*molecular_mass[j])/(pow(molecular_mass[i]+molecular_mass[j],2.));
+                
+            sigma11bar = sqrt( k_B/(2.0*pi*mu) )*pi*pow(diamat,2.);
+          
+            alphabar[i*nspecies+j] = 8.0/(3.0*k_B)*mu*mu*(-.5*sigma11bar);
+
+            Dbin[i*nspecies+j] = 3.0/16.0*
+                sqrt(2.0*pi*pow(k_B,3.)
+                     *(molecular_mass[i]+molecular_mass[j])/molecular_mass[i]/molecular_mass[j])/(pi*pow(diamat,2.))
+                *temperature*sqrtT/pressure;
+            omega11[i*nspecies+j] = sqrt(pi*k_B/(2.0*mu))*pow(diamat,2.)*sqrtT;
+            sigma11[i*nspecies+j] = sigma11bar*sqrtT;
+            a_ij1[i*nspecies+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]/
+                                      (molecular_mass[i]+molecular_mass[j])*Fij*sigma11bar) /sqrtT;
+            a_ij2[i*nspecies+j] = (5.0/(k_B)*molecular_mass[i]*molecular_mass[j]*molecular_mass[i]*molecular_mass[j]/
+                                      (pow(molecular_mass[i]+molecular_mass[j],3.))*Fijstar*sigma11bar) /sqrtT;
+
+        }
+    }
+
+    ViscLin(omega11,yytr,temperature,density,molecular_mass,eta,nspecies,k_B);
+    // eta = 0.0d0
+   
+    // // GCM: Why hard-coded in? from original LLNS
+    zeta = 0.;
+    
+    LambdaLin(Dbin,omega11,yytr,temperature,density,molecular_mass,kappa,nspecies,k_B);
+    // kappa = 0.d0
+
+    D_GIO(Dbin,yytr,xxtr,diff_ij,nspecies,iloc,jloc,kloc);
+    // diff_ij = 0.0d0
+
+    ThermalDiff(iloc,jloc,kloc,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,
+                chitil,nspecies);
+    // chitil = 0.0d0
+};
+                      
 #endif

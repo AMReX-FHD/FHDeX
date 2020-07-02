@@ -12,8 +12,8 @@
 #include <common_namespace.H>
 #include <IBMarkerContainerBase.H>
 #include <species.H>
-#include "rng_functions_F.H"
-#include "surfaces.H"
+#include "rng_functions.H"
+#include "paramPlane.H"
 #include "particle_functions_F.H"
 
 using namespace amrex;
@@ -170,6 +170,8 @@ public:
 
     void InitParticles(species* particleInfo, const Real* dxp);
 
+    void ReInitParticles(species* particleInfo, const Real* dxp, Real * posX, Real * posY, Real * posZ, Real * charge, Real * sigma, Real * epsilon, int * speciesV, Real * diffdry, Real * diffwet, Real * difftotal);
+
     void PostRestart();
 
     void WriteParticlesAscii(string asciiName);
@@ -180,7 +182,7 @@ public:
                const MultiFab& cellCenters,
                std::array<MultiFab, AMREX_SPACEDIM>& source,
                std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-               const surface* surfaceList, const int surfaceCount, int sw);
+               const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
     
     void PrintParticles();
     void SetPosition(int rank, int id, Real x, Real y, Real z);
@@ -196,11 +198,11 @@ public:
                    const MultiFab& cellCenters,
                    std::array<MultiFab, AMREX_SPACEDIM>& source,
                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                   const surface* surfaceList, const int surfaceCount, int sw);
+                   const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
     void computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
-    void MoveParticlesDSMC(const Real dt, const surface* surfaceList, const int surfaceCount,Real time, int* flux);
+    void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
     void MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                   const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
@@ -208,7 +210,7 @@ public:
                   std::array<MultiFab, AMREX_SPACEDIM>& source,
                   std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                   const MultiFab& mobility,
-                  const surface* surfaceList, const int surfaceCount, int sw);
+                  const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
 
     void SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -218,9 +220,9 @@ public:
                     const MultiFab& cellCenters,
                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
-                    const surface* surfaceList, const int surfaceCount, int sw);
+                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
     
-    void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
+    //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
     void RadialDistribution(long totalParticles, const int step, const species* particleInfo);
     void CartesianDistribution(long totalParticles, const int step, const species* particleInfo);
@@ -269,6 +271,8 @@ public:
 
     int totalBins;
 
+    Real *nearestN;
+
     Real *meanRadialDistribution   ;
     Real *meanRadialDistribution_pp;
     Real *meanRadialDistribution_pm;
@@ -298,21 +302,22 @@ public:
     int  threepmBins = 50;
     int  threepmCurrentBin = 1;
     int  threepmCurrentSample = 1;
-    int  threepmSamples = 40;
+    int  threepmSamples = 1000;
     Real threepmVals[50];
     Real threepmMax[50];
     Real threepmMin[50];
     Real threepmPoints[50]; 
     Real threepmRange = 5; 
 
-protected:
+  //protected:
 
     void UpdateFortranStructures();
 
     void UpdateCellVectors();
 
     // used to store vectors of particle indices on a cell-by-cell basis
-    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+//    std::map<int, amrex::BaseFab<std::vector<int> > > m_cell_vectors;
+    std::map<int, std::vector<std::vector<int> > > m_cell_vectors;
 
     // primitive data for passing the above into Fortran
     std::map<int, amrex::BaseFab<int> > m_vector_size;
@@ -323,17 +328,17 @@ protected:
     amrex::BoxArray::RefID m_BARef;
     amrex::DistributionMapping::RefID m_DMRef;
 
-private:
+  //private:
 
-    void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
+    //void correctCellVectors(int old_index, int new_index, int grid, const ParticleType& p);
 
     int n_list;
 
-    struct {
+    struct CHECK_PAIR {
         bool operator()(const ParticleType & p1, const ParticleType & p2) const {
             return true;
         }
-    } CheckPair;
+    };
 };
 
 

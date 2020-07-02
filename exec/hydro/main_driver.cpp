@@ -3,23 +3,21 @@
 #include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
-#include "StochMFlux.H"
-//#include "StructFact.H"
+#include "StochMomFlux.H"
+
+#ifndef AMREX_USE_CUDA
+#include "StructFact.H"
+#endif
 
 #include "rng_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
@@ -28,8 +26,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -220,43 +216,64 @@ void main_driver(const char* argv)
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
 
-    // Declare object of StochMFlux class
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
+    // Declare object of StochMomFlux class
+    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
+#ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
-    // structure factor:
+    // Initialize structure factor object for analysis
     ///////////////////////////////////////////
-
+    
+    // variables are velocities
+    int structVars = AMREX_SPACEDIM;
+    
     Vector< std::string > var_names;
-    var_names.resize(AMREX_SPACEDIM);
+    var_names.resize(structVars);
+    
     int cnt = 0;
     std::string x;
-    for (int d=0; d<var_names.size(); d++) {
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
       x = "vel";
       x += (120+d);
       var_names[cnt++] = x;
     }
 
-    MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
+    MultiFab structFactMF(ba, dmap, structVars, 0);
 
-    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
-    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
+    // need to use dVol for scaling
+    Real dVol = dx[0]*dx[1];
+    if (AMREX_SPACEDIM == 2) {
+	dVol *= cell_depth;
+    } else if (AMREX_SPACEDIM == 3) {
+	dVol *= dx[2];
+    }
+    
+    Vector<Real> var_scaling(structVars*(structVars+1)/2);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./dVol;
+    }
+
+#if 1
+    // option to compute all pairs
+    StructFact structFact(ba,dmap,var_names,var_scaling);
+#else
+    // option to compute only specified pairs
+    int nPairs = 2;
+    amrex::Vector< int > s_pairA(nPairs);
+    amrex::Vector< int > s_pairB(nPairs);
 
     // Select which variable pairs to include in structure factor:
     s_pairA[0] = 0;
     s_pairB[0] = 0;
-    //
     s_pairA[1] = 1;
     s_pairB[1] = 1;
-    //
-#if (AMREX_SPACEDIM == 3)
-    s_pairA[2] = 2;
-    s_pairB[2] = 2;
+    
+    StructFact structFact(ba,dmap,var_names,var_scaling,s_pairA,s_pairB);
 #endif
-
-    // StructFact structFact(ba,dmap,var_names);
-    // StructFact structFact(ba,dmap,var_names,s_pairA,s_pairB);
+    
+#endif
 
     ///////////////////////////////////////////
     
@@ -319,21 +336,40 @@ void main_driver(const char* argv)
     
         // Add initial equilibrium fluctuations
         if(initial_variance_mom != 0.0) {
-            sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+            addMomFluctuations(umac, rho, temp_cc, initial_variance_mom,geom);
         }
 
         // Project umac onto divergence free field
         MultiFab macrhs(ba,dmap,1,1);
         macrhs.setVal(0.0);
-        MacProj(umac,rho,geom,true);
+        MacProj_hydro(umac,rho,geom,true);
 
         step_start = 1;
         time = 0.;
+
+#ifndef AMREX_USE_CUDA        
+        // We do the analysis first so we include the initial condition in the files if n_steps_skip=0
+        if (n_steps_skip == 0 && struct_fact_int > 0) {
+
+            // add this snapshot to the average in the structure factor
+
+            // copy velocities into structFactMF
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+            }
+            structFact.FortStructure(structFactMF,geom);
+        }
+#endif
 
         // write out initial state
         // write out umac, tracer, pres, and divergence to a plotfile
         if (plot_int > 0) {
             WritePlotFile(step_start,time,geom,umac,tracer,pres);
+#ifndef AMREX_USE_CUDA
+            if (n_steps_skip == 0 && struct_fact_int > 0) {
+                structFact.WritePlotFile(0,0.,geom,"plt_SF");
+            }
+#endif
         }
 
     }
@@ -352,10 +388,10 @@ void main_driver(const char* argv)
 	if(variance_coef_mom != 0.0) {
 
 	  // Fill stochastic terms
-	  sMflux.fillMStochastic();
+	  sMflux.fillMomStochastic();
 
 	  // compute stochastic force terms
-	  sMflux.StochMFluxDiv(mfluxdiv_stoch,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	  sMflux.StochMomFluxDiv(mfluxdiv_stoch,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	}
 
 	// Advance umac
@@ -364,17 +400,19 @@ void main_driver(const char* argv)
 
 	//////////////////////////////////////////////////
 
-	///////////////////////////////////////////
-	// Update structure factor
-	///////////////////////////////////////////
-	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-	  for(int d=0; d<AMREX_SPACEDIM; d++) {
-	    ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-	  }
-//	  structFact.FortStructure(struct_in_cc,geom);
-        }
-	///////////////////////////////////////////
+#ifndef AMREX_USE_CUDA
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
 
+            // add this snapshot to the average in the structure factor
+
+            // copy velocities into structFactMF
+            for(int d=0; d<AMREX_SPACEDIM; d++) {
+                ShiftFaceToCC(umac[d], 0, structFactMF, d, 1);
+            }
+            structFact.FortStructure(structFactMF,geom);
+        }
+#endif
+        
         Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
         ParallelDescriptor::ReduceRealMax(step_stop_time);
 
@@ -385,32 +423,39 @@ void main_driver(const char* argv)
         if (plot_int > 0 && step%plot_int == 0) {
             // write out umac, tracer, pres, and divergence to a plotfile
             WritePlotFile(step,time,geom,umac,tracer,pres);
+#ifndef AMREX_USE_CUDA
+            if (step > n_steps_skip && struct_fact_int > 0) {
+                structFact.WritePlotFile(step,time,geom,"plt_SF");
+            }
+#endif
         }
 
         if (chk_int > 0 && step%chk_int == 0) {
             // write out umac and tracer to a checkpoint file
             WriteCheckPoint(step,time,umac,tracer);
         }
+
+        // MultiFab memory usage
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
+        amrex::Long max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+
+        min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
+        max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
         
-    }
-
-    ///////////////////////////////////////////
-    if (struct_fact_int > 0) {
-      Real dVol = dx[0]*dx[1];
-      int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
-	tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-
-      // let rho = 1
-      // Real SFscale = dVol/(k_B*temp_const);
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-
-//      structFact.Finalize(SFscale);
-//      structFact.WritePlotFile(step,time,geom,"plt_SF");
     }
 
     // Call the timer again and compute the maximum difference between the start time

@@ -8,14 +8,12 @@
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
 #include <common_functions.H>
-#include <common_namespace.H>
 
 #include <IBMultiBlobContainer.H>
 #include <ib_functions_F.H>
 
 
 
-using namespace common;
 using namespace amrex;
 
 
@@ -168,7 +166,7 @@ void BlobContainer::MovePredictor(int lev, Real dt) {
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
@@ -207,7 +205,7 @@ void BlobContainer::MoveMarkers(int lev, Real dt) {
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i=0; i<np; ++i) {
             ParticleType & part = particles[i];
@@ -229,7 +227,7 @@ void BlobContainer::PredictorForces(int lev, Real k) {
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -254,7 +252,7 @@ void BlobContainer::PredictorForces(int lev) {
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -279,7 +277,7 @@ void BlobContainer::MarkerForces(int lev, Real k) {
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -304,7 +302,7 @@ void BlobContainer::MarkerForces(int lev) {
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -472,7 +470,7 @@ void IBMultiBlobContainer::FillMarkerPositions(int lev) {
         TileIndex index(pti.index(), pti.LocalTileIndex());
 
         AoS & particles = GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = GetParticles(lev).at(index).numParticles();
 
         for (int i = 0; i < np; ++i) {
             ParticleType & part = particles[i];
@@ -566,7 +564,7 @@ void IBMultiBlobContainer::ResetDrag(int lev) {
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         auto & particle_data = this->GetParticles(lev).at(index);
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         AoS & particles = particle_data.GetArrayOfStructs();
         for (int i = 0; i < np; ++i) {
@@ -639,7 +637,7 @@ void IBMultiBlobContainer::MoveMarkers(int lev, Real dt) {
 
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -679,7 +677,7 @@ void IBMultiBlobContainer::MovePredictor(int lev, Real dt) {
 
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -719,7 +717,7 @@ void IBMultiBlobContainer::PredictorForces(int lev) {
         // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -752,7 +750,7 @@ void IBMultiBlobContainer::PredictorForces(int lev, Real k) {
         // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -786,7 +784,7 @@ void IBMultiBlobContainer::MarkerForces(int lev, Real k) {
         // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -819,7 +817,7 @@ void IBMultiBlobContainer::MarkerForces(int lev) {
         // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -860,7 +858,7 @@ IBMultiBlobContainer::GetParticleDict(int lev, const TileIndex & index) {
 
 
     auto & particle_data = this->GetParticles(lev).at(index);
-    long np = particle_data.size();
+    long np = this->GetParticles(lev).at(index).numParticles();
 
     AoS & particles = particle_data.GetArrayOfStructs();
     for (int i = 0; i < np; ++i) {
@@ -892,7 +890,7 @@ void IBMultiBlobContainer::AccumulateDrag(int lev) {
         // Get marker data (local to current thread)
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -942,7 +940,7 @@ void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
         std::map<MarkerIndex, ParticleType *> particle_dict = GetParticleDict(lev, index);
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = particles.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         for (int i = 0; i < np; ++ i) {
             ParticleType & part = particles[i];
@@ -964,7 +962,7 @@ void IBMultiBlobContainer::MoveBlob(int lev, Real dt) {
 
         BlobContainer::AoS & marker_data =
             markers.GetParticles(lev).at(index).GetArrayOfStructs();
-        long np = marker_data.size();
+        long np = markers.GetParticles(lev).at(index).numParticles();
 
         // m_index.second is used to keep track of the neighbor list
         // currently we don't use the neighbor list, but we might in future
@@ -1028,7 +1026,7 @@ void IBMultiBlobContainer::PrintMarkerData(int lev) const {
         int ng = this->neighbors[lev].at(index).size();
 
         auto & particle_data = this->GetParticles(lev).at(index);
-        long np = particle_data.size();
+        long np = this->GetParticles(lev).at(index).numParticles();
 
         local_count += np;
 

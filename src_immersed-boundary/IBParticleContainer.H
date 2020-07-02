@@ -114,7 +114,7 @@ public:
         ::NeighborParticleContainer;
 
     // Get number of particles
-    int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().size();};
+    int NumberOfParticles(IBParIter & pti){ return pti.GetArrayOfStructs().numParticles();};
 
     IBParticleContainer(AmrCore * amr_core, int n_nbhd);
     IBParticleContainer(const Geometry & geom, const DistributionMapping & dmap,
@@ -189,6 +189,12 @@ public:
                        const Vector<RealVect> & f_in,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        std::array<MultiFab, AMREX_SPACEDIM> & f_weights) const;
+
+    void SpreadKernel(const Box& bx, std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+                      std::array<MultiFab, AMREX_SPACEDIM> & f_weights,
+                      const Vector<std::array<MultiFab, AMREX_SPACEDIM>> & face_coords,
+                      const Real* pos, const Real* v_spread, 
+                      const Real* dx, int* nghost, MFIter* mfi) const;
 
     void InvInterpolateMarkers(int lev, const ParticleIndex & pindex,
                                const Vector<RealVect> & f_in,
@@ -296,7 +302,6 @@ private:
     void InitInternals(int ngrow);
 
     void ReadStaticParameters();
-
 
     // TODO: this might bto be used anymore:
     AmrCore * m_amr_core;

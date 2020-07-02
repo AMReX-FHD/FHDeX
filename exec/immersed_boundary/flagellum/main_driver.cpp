@@ -2,26 +2,20 @@
 #include <main_driver_F.H>
 
 #include <hydro_functions.H>
-#include <hydro_functions_F.H>
 
 //#include <analysis_functions_F.H>
-#include <StochMFlux.H>
+#include <StochMomFlux.H>
 //#include <StructFact.H>
 
-#include <rng_functions_F.H>
 
 #include <common_functions.H>
-#include <common_functions_F.H>
 
 #include <gmres_functions.H>
-#include <gmres_functions_F.H>
 
 #include <ib_functions.H>
 
-#include <common_namespace.H>
 #include <common_namespace_declarations.H>
 
-#include <gmres_namespace.H>
 #include <gmres_namespace_declarations.H>
 
 #include <immbdy_namespace.H>
@@ -39,8 +33,6 @@
 
 using namespace amrex;
 
-using namespace common;
-using namespace gmres;
 
 using namespace immbdy;
 using namespace immbdy_md;
@@ -439,12 +431,12 @@ void main_driver(const char * argv) {
     BL_PROFILE_VAR("main_ensure initilizaction works",ICwork);
 
     pres.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(pres, geom);
+    MultiFabPhysBC(pres, geom, 0, 1, 0);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], geom, i);
-        MultiFABPhysBCMacVel(umac[i], geom, i);
+        MultiFabPhysBCDomainVel(umac[i], geom, i);
+        MultiFabPhysBCMacVel(umac[i], geom, i);
     }
 
     BL_PROFILE_VAR_STOP(ICwork);
@@ -453,17 +445,17 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Add random momentum fluctuations
 
-    // Declare object of StochMFlux class
-    StochMFlux sMflux (ba, dmap, geom, n_rngs);
+    // Declare object of StochMomFlux class
+    StochMomFlux sMflux (ba, dmap, geom, n_rngs);
 
     // Add initial equilibrium fluctuations
-    sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+    addMomFluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
 
     // Project umac onto divergence free field
     MultiFab macphi(ba,dmap, 1, 1);
     MultiFab macrhs(ba,dmap, 1, 1);
     macrhs.setVal(0.);
-    MacProj(umac, rho, geom, true); // from MacProj_hydro.cpp
+    MacProj_hydro(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     // initial guess for new solution
     for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -502,12 +494,12 @@ void main_driver(const char * argv) {
             //___________________________________________________________________
             // Fill stochastic terms
 
-             sMflux.fillMStochastic();
+             sMflux.fillMomStochastic();
 
              // Compute stochastic force terms (and apply to mfluxdiv_*)
-             sMflux.StochMFluxDiv(mfluxdiv_predict, 0,
+             sMflux.StochMomFluxDiv(mfluxdiv_predict, 0,
                                   eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-             sMflux.StochMFluxDiv(mfluxdiv_correct, 0,
+             sMflux.StochMomFluxDiv(mfluxdiv_correct, 0,
                                   eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
          }
 

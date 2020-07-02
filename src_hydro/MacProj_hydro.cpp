@@ -1,34 +1,26 @@
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
-#include "common_namespace.H"
-
-#include "gmres_namespace.H"
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Vector.H>
 
-#include <AMReX_FluxRegister.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
 
-using namespace common;
-using namespace gmres;
 
 // umac enters with face-centered, time-centered Utilde^* and should leave with Utilde
 // macphi is the solution to the elliptic solve
 
 void
-MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
-	 const MultiFab& rho,
-	 const Geometry& geom,
-	 const bool& full_solve)
+MacProj_hydro (std::array< MultiFab, AMREX_SPACEDIM >& umac,
+               const MultiFab& rho,
+               const Geometry& geom,
+               const bool& full_solve)
 {
     // timer for profiling
-    BL_PROFILE_VAR("MacProj()",MacProj);
+    BL_PROFILE_VAR("MacProj_hydro()",MacProj_hydro);
 
     BoxArray grids = rho.boxArray();
     DistributionMapping dmap = rho.DistributionMap();
@@ -56,7 +48,7 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
     acoef.setVal(0.);
 
     // 1) average face-centered B coefficients to rho
-    AverageCCToFace(rho, 0, face_bcoef, 0, 1);
+    AverageCCToFace(rho, face_bcoef, 0, 1, -1, geom);
 
     // 2) invert B coefficients to 1/rho
     for (int idim=0; idim<AMREX_SPACEDIM; ++idim) {
@@ -123,8 +115,8 @@ MacProj (std::array< MultiFab, AMREX_SPACEDIM >& umac,
       umac[d].FillBoundary(geom.periodicity());
 
       // Do apply BCs so that all ghost cells are filled
-      MultiFABPhysBCDomainVel(umac[d], geom, d);
-      MultiFABPhysBCMacVel(umac[d], geom, d);
+      MultiFabPhysBCDomainVel(umac[d], geom, d);
+      MultiFabPhysBCMacVel(umac[d], geom, d);
     }
 }
 
@@ -141,24 +133,23 @@ void ComputeMACSolverRHS (MultiFab& solverrhs,
 
     for ( MFIter mfi(solverrhs); mfi.isValid(); ++mfi) {
 
-      const Box& bx = mfi.validbox();
+        const Box& bx = mfi.validbox();
 
-      AMREX_D_TERM(Array4<Real const> const& umac_fab = umac[0].array(mfi);,
-                   Array4<Real const> const& vmac_fab = umac[1].array(mfi);,
-                   Array4<Real const> const& wmac_fab = umac[2].array(mfi););
+        AMREX_D_TERM(Array4<Real const> const& umac_fab = umac[0].array(mfi);,
+                     Array4<Real const> const& vmac_fab = umac[1].array(mfi);,
+                     Array4<Real const> const& wmac_fab = umac[2].array(mfi););
 
 
-      Array4<Real>       const& solverrhs_fab = solverrhs.array(mfi);
-      Array4<Real const> const&    macrhs_fab =    macrhs.array(mfi);
+        Array4<Real>       const& solverrhs_fab = solverrhs.array(mfi);
+        Array4<Real const> const&    macrhs_fab =    macrhs.array(mfi);
 
-      AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             solverrhs_fab(i,j,k) = macrhs_fab(i,j,k) -
                 AMREX_D_TERM(   ( umac_fab(i+1,j,k) - umac_fab(i,j,k) ) / dx[0],
                               - ( vmac_fab(i,j+1,k) - vmac_fab(i,j,k) ) / dx[1],
                               - ( wmac_fab(i,j,k+1) - wmac_fab(i,j,k) ) / dx[2] );;
         });
-
     }
 }
 

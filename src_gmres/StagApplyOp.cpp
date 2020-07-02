@@ -1,18 +1,9 @@
-
 #include "common_functions.H"
-#include "common_functions_F.H"
-
-#include "common_namespace.H"
-
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "gmres_namespace.H"
+// compute (alpha - L_beta) phi
 
-using namespace common;
-
-//Takes cell centred and nodal viscosity multifabs, and face centred velocity
-//multifab, and outputs to face-centered velocity multifab.
+// we must retain custom lambda's because the boxes sometimes loop with stride 2
 
 AMREX_GPU_HOST_DEVICE
 inline
@@ -297,8 +288,10 @@ void stag_applyop_visc_m1 (Box const& tbx,
         }
     }
 #endif
+    
+}
 
-}AMREX_GPU_HOST_DEVICE
+AMREX_GPU_HOST_DEVICE
 inline
 void stag_applyop_visc_p2 (Box const& tbx,
 			   AMREX_D_DECL(Box const& xbx,
@@ -784,10 +777,14 @@ void StagApplyOp(const Geometry & geom,
                                      theta_alpha, bt, gt, offset, color, dx_gpu);
             });            
         }
+        else {
+            Abort("StagApplyOp.cpp: visc_type not supported");
+        }
+            
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        MultiFABPhysBCDomainVel(Lphi[i], geom, i);
+        MultiFabPhysBCDomainVel(Lphi[i], geom, i);
     }
     
 }

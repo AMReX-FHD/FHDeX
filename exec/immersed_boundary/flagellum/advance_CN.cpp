@@ -1,12 +1,9 @@
 #include <main_driver.H>
 
 #include <hydro_functions.H>
-#include <hydro_functions_F.H>
 
 #include <gmres_functions.H>
-#include <gmres_functions_F.H>
 
-#include <gmres_namespace.H>
 
 #include <immbdy_namespace.H>
 
@@ -15,7 +12,6 @@
 
 using namespace amrex;
 
-using namespace gmres;
 
 using namespace immbdy;
 using namespace immbdy_md;
@@ -183,8 +179,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         umac[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[d], geom, d);
-        MultiFABPhysBCMacVel(umac[d], geom, d);
+        MultiFabPhysBCDomainVel(umac[d], geom, d);
+        MultiFabPhysBCMacVel(umac[d], geom, d);
     }
 
 
@@ -209,8 +205,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         umac_buffer[d].setVal(0.);
         MultiFab::Copy(umac_buffer[d], umac[d], 0, 0, 1, umac[d].nGrow());
         umac_buffer[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[d], geom, d);
-        MultiFABPhysBCMacVel(umac[d], geom, d);
+        MultiFabPhysBCDomainVel(umac[d], geom, d);
+        MultiFabPhysBCMacVel(umac[d], geom, d);
     }
 
     ib_mc.ResetPredictor(0);
@@ -224,7 +220,9 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     if(immbdy::contains_fourier)
         anchor_first_marker(ib_mc, ib_lev, IBMReal::pred_velx);
     ib_mc.MovePredictor(0, dt);
-    ib_mc.Redistribute(); // just in case (maybe can be removed)
+
+    ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
+    ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
@@ -271,8 +269,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], geom, d);
-        MultiFABPhysBCMacVel(uMom[d], geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], geom, d);
+        MultiFabPhysBCMacVel(uMom[d], geom, d);
     }
 
     // Compute advective fluxes: advFluxdiv = - D(\rho uu^n) = - D(u^n uMom)
@@ -290,7 +288,7 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     pres.setVal(0.); // Initial guess for pressure
     SetPressureBC(pres, geom); // Apply pressure boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
     // Construct RHS of Navier Stokes Equation
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
@@ -316,15 +314,15 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     // Call GMRES to compute u^(n+1/2). Lu^(n+1/2) is computed implicitly. Note
     // that we are using the un-weighted coefficients.
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    GMRES gmres(ba, dmap, geom);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,
+                beta_ed_wtd, gamma_wtd, theta_alpha, geom, norm_pre_rhs);
 
     // Apply boundary conditions to the solution
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], geom, d);
     }
 
 
@@ -347,8 +345,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         umacNew_buffer[d].setVal(0.);
         MultiFab::Copy(umacNew_buffer[d], umacNew[d], 0, 0, 1, umac[d].nGrow());
         umacNew_buffer[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], geom, d);
     }
 
     ib_mc.ResetMarkers(0);
@@ -362,7 +360,9 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
     if(immbdy::contains_fourier)
         anchor_first_marker(ib_mc, ib_lev, IBMReal::velx);
     ib_mc.MoveMarkers(0, dt);
-    ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
+
+    ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
+    ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
@@ -408,8 +408,8 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], geom, d);
-        MultiFABPhysBCMacVel(uMom[d], geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], geom, d);
+        MultiFabPhysBCMacVel(uMom[d], geom, d);
     }
 
     // Compute advective fluxes at the midpoint:
@@ -461,15 +461,14 @@ void advance_CN(std::array<MultiFab, AMREX_SPACEDIM >& umac,
 
     // Call GMRES to compute u^(n+1). Lu^(n+1)/2 is computed implicitly. Note
     // that we are using the weighted coefficients (to deal witht he 1/2 part)
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,
+                beta_ed_wtd, gamma_wtd, theta_alpha, geom, norm_pre_rhs);
 
     // Apply boundary conditions to the solution
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], geom, d);
     }
 
     // Update solution, and we're done!

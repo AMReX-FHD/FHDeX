@@ -6,11 +6,9 @@
 
 #include "common_functions.H"
 
-#include "common_namespace.H"
 
 #include "AmrCoreAdv.H"
 
-using namespace common;
 
 void WritePlotFile(int step,
                    const amrex::Real time,

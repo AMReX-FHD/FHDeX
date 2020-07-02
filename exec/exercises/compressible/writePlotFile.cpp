@@ -1,12 +1,8 @@
 #include "AMReX_PlotFileUtil.H"
  
 #include "common_functions.H"
-#include "common_namespace.H"
 
-#include "compressible_namespace.H"
 
-using namespace common;
-using namespace compressible;
 
 void WritePlotFile(int step,
                    const amrex::Real time,

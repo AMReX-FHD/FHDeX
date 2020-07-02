@@ -7,14 +7,12 @@
 #include <AMReX_VisMF.H>  // amrex::VisMF::Write(MultiFab)
 
 #include <common_functions.H>
-#include <common_namespace.H>
 
 #include <IBMarkerContainer.H>
 #include <ib_functions_F.H>
 
 #include <iostream>
 
-using namespace common;
 using namespace amrex;
 
 
@@ -168,7 +166,7 @@ void IBMarkerContainer::InitList(int lev,
         // Get neighbor marker data (from neighboring threads)
         ParticleVector & nbhd_data = GetNeighbors(lev, pti.index(), pti.LocalTileIndex());
 
-        long np = markers.size();
+        long np = pti.numParticles();
         long nn = nbhd_data.size();
 
         // Sweep over particles, check N^2 candidates for previous list member
@@ -370,7 +368,7 @@ void IBMarkerContainer::InterpolateMarkers(int lev,
 
 int IBMarkerContainer::ConnectedMarkers(
             int lev, const TileIndex & tile, MarkerListIndex & part_index,
-            ParticleType *& prev_marker, ParticleType *& next_marker
+            ParticleType *& prev_marker,     ParticleType *& next_marker
         ) {
 
     BL_PROFILE_VAR("IBMarkerContainer::ConnectedMarkers", FindNeighbors);
@@ -378,33 +376,22 @@ int IBMarkerContainer::ConnectedMarkers(
     // Get marker data
     AoS & particles = GetParticles(lev).at(tile).GetArrayOfStructs();
     ParticleType & part = particles[part_index.first];
-    long np = particles.size();
+    long np = GetParticles(lev).at(tile).numParticles();
 
     // Get neighbor marker data (from neighboring threads)
     ParticleVector & nbhd_data = GetNeighbors(lev, tile.first, tile.second);
 
     // Get neighbor list (for collision checking)
-    const IntVector & nbhd = GetNeighborList(lev, tile.first, tile.second);
+    std::pair<int, int> index = std::make_pair(tile.first, tile.second);
+    auto nbor_data = m_neighbor_list[lev][index].data();
 
     // Point to the right spot in the neighbor list
-    long nbhd_index = part_index.second;
-    long nn         = nbhd[nbhd_index]; // number of neighbors for particle at nbhd_index
-    nbhd_index ++; // pointing at first neighbor
-
     bool prev_set = false;
     bool next_set = false;
 
-    // Loops over neighbor list
-    for (int j=0; j < nn; ++j) {
-        int ni = nbhd[nbhd_index] - 1; // -1 <= neighbor list uses Fortran indexing
-
-        ParticleType * npart;
-        if (ni >= np) {
-            ni = ni - np;
-            npart = & nbhd_data[ni];
-        } else {
-            npart = & particles[ni];
-        }
+    int nn = part_index.second;
+    for (auto & p2 : nbor_data.getNeighbors(part_index.first)) {
+        ParticleType * npart = & p2; // Get pointer to neighbor particle
 
         // Check if the neighbor candidate is the previous/minus neighbor
         if (        (npart->id() == part.idata(IBMInt::id_0))
@@ -422,7 +409,7 @@ int IBMarkerContainer::ConnectedMarkers(
             next_set = true;
         }
 
-        nbhd_index ++;
+        nn ++;
     }
 
     // return new index in neighbor list
@@ -459,7 +446,7 @@ void IBMarkerContainer::LocalIBMarkerInfo(Vector<IBM_info> & info,
 
 
     auto & particle_data = GetParticles(lev).at(index);
-    long np = particle_data.size();
+    long np = particle_data.numParticles();
 
     // Iterate over local particle data
     const AoS & particles = particle_data.GetArrayOfStructs();

@@ -37,6 +37,8 @@ namespace common {
     extern amrex::Real                fixed_dt;
     extern amrex::Real                cfl;
 
+    // Random finite difference size, fraction of cell
+    extern amrex::Real                rfd_delta;
 
     // Controls for number of steps between actions
     extern int                        max_step;
@@ -67,7 +69,7 @@ namespace common {
     extern amrex::Real                variance_coef_mass;
     extern amrex::Real                k_B;
     extern amrex::Real                Runiv;
-    extern amrex::Vector<Real>        T_init;
+    extern amrex::Vector<amrex::Real> T_init;
 
     // Algorithm control / selection
     extern int                        algorithm_type;
@@ -160,6 +162,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> wallspeed_lo;
     extern amrex::Vector<amrex::Real> wallspeed_hi;
 
+    // specify the Dirichlet or Neumann BC value
     extern amrex::Vector<amrex::Real> potential_lo;
     extern amrex::Vector<amrex::Real> potential_hi;
 
@@ -169,8 +172,7 @@ namespace common {
     extern int                        cartdist_int;
     extern int                        n_steps_skip;
     extern amrex::Real                binSize;
-    extern amrex::Real                searchDist;
-    
+    extern amrex::Real                searchDist;    
 
     // projection 
     extern int                        project_dir;

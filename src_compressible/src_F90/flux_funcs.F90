@@ -40,8 +40,8 @@ contains
     integer :: i,j,k,l,n
     
     ! fourth order interpolation
-    wgt2 = 1.0/12.0
-    wgt1 = 0.5 + wgt2 
+    wgt2 = 1.0d0/12.0d0
+    wgt1 = 0.5d0 + wgt2 
     
     ! ! second order interpolation
     ! wgt2 = 0
@@ -54,6 +54,10 @@ contains
     ! Interpolating conserved quantaties for conv term, apparently this has some advantge over interpolating primitives
 
     ! x flux
+    ! do i= lo(1)-2,lo(1)+5
+    !     write(6,*)"i ",i
+    !     write(6,*)prim(i,2,2,1),prim(i,2,2,2),prim(i,2,2,5),prim(i,2,2,6)
+    ! enddo
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)
        do i = lo(1),hi(1)+1
@@ -92,6 +96,14 @@ contains
           xflux(i,j,k,4) = xflux(i,j,k,4) + conserved(1)*primitive(2)*primitive(4)
 
           xflux(i,j,k,5) = xflux(i,j,k,5) + primitive(2)*conserved(5) + primitive(6)*primitive(2)
+
+       !   if(j.eq.2.and.k.eq.2)then
+       !       write(6,*)"i = ",i
+       !       write(6,*)"prims", rho, primitive(2),temp,pt
+       !       write(6,*) conserved(1)*primitive(2),conserved(1)*(primitive(2)**2)+primitive(6), &
+       !         conserved(1)*primitive(2)*primitive(3),conserved(1)*primitive(2)*primitive(4),&
+       !         primitive(2)*conserved(5) + primitive(6)*primitive(2)
+       !   endif
 
           if(algorithm_type.eq.2) then ! Add advection of concentration
              do n=1,nspecies
@@ -228,8 +240,8 @@ contains
     integer :: i,j,k,l,n
     
     ! ! fourth order interpolation
-    wgt2 = 1.0/12.0
-    wgt1 = 0.5 + wgt2
+    wgt2 = 1.0d0/12.0d0
+    wgt1 = 0.5d0 + wgt2
     
     ! ! second order interpolation
     ! wgt2 = 0
@@ -412,7 +424,7 @@ contains
     real(amrex_real), intent(in   ) :: chi  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies)
     real(amrex_real), intent(in   ) :: Dij  (lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nspecies,nspecies)
 
-    real(amrex_real) ::etatF, kappattF, dtinv, volinv, sFac, qFac, velu, velv, velw, wgt1, wgt2
+    real(amrex_real) ::etatF, kappattF, dtinv, volinv,  velu, velv, velw, wgt1, wgt2
     real(amrex_real) :: weiner(5+nspecies), fweights(5+nspecies), nweight, muzepp, muzemp, muzepm, muzemm
     real(amrex_real) :: phiflx, muxp, muyp, muzp, kxp, kyp, kzp, meanT
 
@@ -422,18 +434,15 @@ contains
     integer :: i,j,k,l
     integer :: ll, ns
 
-    dtinv = 1d0/dt
+    dtinv = 1.d0/dt
 #if (AMREX_SPACEDIM == 3)
-    volinv = 1d0/(dx(1)*dx(2)*dx(3))
+    volinv = 1.d0/(dx(1)*dx(2)*dx(3))
 #endif
 
 #if (AMREX_SPACEDIM == 2)
-    volinv = 1d0/(dx(1)*dx(2)*cell_depth)
+    volinv = 1.d0/(dx(1)*dx(2)*cell_depth)
 #endif
 
-    sFac = 2d0*4d0*k_b*volinv*dtinv/3d0
-    qFac = 2d0*k_b*volinv*dtinv
-    
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!! JB's tensor form !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
 !!!!!!!!!!!!!!!!!!! x-flux !!!!!!!!!!!!!!!!!!!
@@ -1152,6 +1161,41 @@ contains
 
     endif
 
+      !wall cell - hard wired for specular adiabatic for now
+      if(lo(1) .eq. membrane_cell) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+
+              xflux(membrane_cell,j,k,2) = 0
+              xflux(membrane_cell,j,k,3) = 0
+              xflux(membrane_cell,j,k,4) = 0
+              xflux(membrane_cell,j,k,5) = 0
+
+!              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
+!              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
+
+          end do
+        end do
+      endif
+
+      !wall cell
+      if(hi(1) .eq. membrane_cell-1) then
+        do k = lo(3),hi(3)
+          do j = lo(2),hi(2)
+
+              xflux(membrane_cell,j,k,2) = 0
+              xflux(membrane_cell,j,k,3) = 0
+              xflux(membrane_cell,j,k,4) = 0
+              xflux(membrane_cell,j,k,5) = 0
+
+!              xflux(membrane_cell,j,k,2) = 1.4142*xflux(membrane_cell,j,k,2)        
+!              xflux(membrane_cell,j,k,5) = 1.4142*xflux(membrane_cell,j,k,5)        
+
+          end do
+        end do
+      endif
+
+
 !!!!!!!!!!!!!! y-flux BCs !!!!!!!!!!!!!!
 
     !if on lower bound
@@ -1698,12 +1742,12 @@ contains
                prim(i-1,j,k,4)-prim(i-1,j,k-1,4) + prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3)
 
           visccorn(i,j,k) =  (muxp/12d0+zetaxp/4d0)*( & ! Divergence stress
-               (prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,k-1,2)-prim(i-1,j,k-1,2))/dx(1) + &
-               (prim(i,j-1,k,2)-prim(i-1,j-1,k,2))/dx(1) + (prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1) + &
-               (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,k-1,3)-prim(i,j-1,k-1,3))/dx(2) + &
-               (prim(i-1,j,k,3)-prim(i-1,j-1,k,3))/dx(2) + (prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2) + &
-               (prim(i-1,j-1,k,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,4)-prim(i,j-1,k-1,4))/dx(3) + &
-               (prim(i-1,j,k,4)-prim(i-1,j,k-1,4))/dx(3) + (prim(i,j,k,4)-prim(i,j,k-1,4))/dx(3))
+               (prim(i,  j-1,k-1,2)-prim(i-1,j-1,k-1,2))/dx(1) + (prim(i,j,  k-1,2)-prim(i-1,j  ,k-1,2))/dx(1) + &
+               (prim(i,  j-1,k  ,2)-prim(i-1,j-1,k,  2))/dx(1) + (prim(i,j,  k,  2)-prim(i-1,j  ,k,  2))/dx(1) + &
+               (prim(i-1,j  ,k-1,3)-prim(i-1,j-1,k-1,3))/dx(2) + (prim(i,j,  k-1,3)-prim(i  ,j-1,k-1,3))/dx(2) + &
+               (prim(i-1,j  ,k  ,3)-prim(i-1,j-1,k  ,3))/dx(2) + (prim(i,j,  k,  3)-prim(i  ,j-1,k,  3))/dx(2) + &
+               (prim(i-1,j-1,k  ,4)-prim(i-1,j-1,k-1,4))/dx(3) + (prim(i,j-1,k,  4)-prim(i  ,j-1,k-1,4))/dx(3) + &
+               (prim(i-1,j  ,k  ,4)-prim(i-1,j  ,k-1,4))/dx(3) + (prim(i,j,  k,  4)-prim(i  ,j  ,k-1,4))/dx(3))
 
        end do
        end do

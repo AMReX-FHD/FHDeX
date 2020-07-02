@@ -5,9 +5,7 @@
 #include "AMReX_PlotFileUtil.H"
 #include "AMReX_PlotFileDataImpl.H"
 
-#include "common_namespace.H"
 #include <sys/stat.h> 
-using namespace common;
 using namespace amrex;
 
 namespace {

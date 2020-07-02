@@ -1,53 +1,29 @@
 #include "INS_functions.H"
-#include <iostream>
 
-#include "common_functions.H"
-#include "gmres_functions.H"
-
-#include "common_functions_F.H"
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_functions_F.H"
-#include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
-
-#include "rng_functions_F.H"
-
 #include "species.H"
-#include "surfaces.H"
+#include "paramPlane.H"
 
-//#include "analysis_functions_F.H"
-//#include "StructFact_F.H"
-#include "StochMFlux.H"
-//#include "StructFact.H"
+#ifndef AMREX_USE_CUDA
+#include "StructFact_F.H"
+#include "StructFact.H"
+#endif
 
-#include "hydro_test_functions_F.H"
+#include "StochMomFlux.H"
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "electrostatic.H"
 
 #include "particle_functions.H"
 
-//#include "electrostatic.H"
-
-#include "debug_functions_F.H"
-#include "AMReX_ArrayLim.H"
-
-//#include <IBMarkerContainer.H>
-
-using namespace gmres;
-using namespace common;
-//using namespace amrex;
-
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
-    // store the current time so we can later compute total run time.
-
+    // timer for total simulation time
     Real strt_time = ParallelDescriptor::second();
 
     std::string inputs_file = argv;
@@ -60,39 +36,258 @@ void main_driver(const char* argv)
     // copy contents of F90 modules to C++ namespaces
     InitializeCommonNamespace();
     InitializeGmresNamespace();
+    
+    int step = 1;
+    Real time = 0.;
+    int statsCount = 1;
 
-    remove("potential.dat");
-    remove("kinetic.dat");
+    /*
+      Terms prepended with a 'C' are related to the particle grid; only used for finding neighbor lists
+      Those with 'P' are for the electostatic grid.
+      Those without are for the fluid grid.
+      The particle grid and es grids are created as a corsening or refinement of the fluid grid.
+    */
 
-    const int n_rngs = 1;
+    // BoxArray for the fluid
+    BoxArray ba;
 
-    int fhdSeed = 0;
-    int particleSeed = 0;
-    int selectorSeed = 0;
-    int thetaSeed = 0;
-    int phiSeed = 0;
-    int generalSeed = 0;
+    // BoxArray for the particles
+    BoxArray bc;
 
-    if(seed > 0)
-    {
-        fhdSeed = ParallelDescriptor::MyProc() + 1 + seed;
-        particleSeed = 2*ParallelDescriptor::MyProc() + 2 + seed;
-        selectorSeed = 3*ParallelDescriptor::MyProc() + 3 + seed;
-        thetaSeed = 4*ParallelDescriptor::MyProc() + 4 + seed;
-        phiSeed = 5*ParallelDescriptor::MyProc() + 5 + seed;
-        generalSeed = 6*ParallelDescriptor::MyProc() + 6 + seed;
+    // BoxArray electrostatic grid
+    BoxArray bp;
+    
+    // Box for the fluid
+    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
+    Box domain(dom_lo, dom_hi);
+    
+    // how boxes are distrubuted among MPI processes
+    DistributionMapping dmap;
+
+    // set number of ghost cells to fit whole peskin kernel
+    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes
+    //       a particle into a ghost region?
+    int ang = 1;
+    if (pkernel_fluid == 3) {
+        ang = 2;
+    }
+    else if (pkernel_fluid == 4) {
+        ang = 3;
+    }
+    else if (pkernel_fluid == 6) {
+        ang = 4;
     }
 
-    //Initialise rngs
-    rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+    int ngp = 1;
+    if (pkernel_es == 3) {
+        ngp = 2;
+    }
+    else if (pkernel_es == 4) {
+        ngp = 3;
+    }
+    else if (pkernel_es == 6) {
+        ngp = 4;
+    }
+        
+    // staggered velocities
+    // umac needs extra ghost cells for Peskin kernels
+    // note if we are restarting, these are defined and initialized to the checkpoint data
+    std::array< MultiFab, AMREX_SPACEDIM > umac;
+    std::array< MultiFab, AMREX_SPACEDIM > umacM;    // mean
+    std::array< MultiFab, AMREX_SPACEDIM > umacV;    // variance
+
+    // pressure for GMRES solve; 1 ghost cell
+    MultiFab pres;
+
+    // MFs for storing particle statistics
+    // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
+    MultiFab particleMeans;
+    MultiFab particleVars;
+
+    // MF for electric potential
+    MultiFab potential;
+    MultiFab potentialM;
+    MultiFab potentialV;
+
+    // MF for charge mean and variance
+    MultiFab chargeM;
+    MultiFab chargeV;
+    
+    if (restart < 0) {
+        
+        // zero is a clock-based seed
+        int fhdSeed      = 0;
+        int particleSeed = 0;
+        int selectorSeed = 0;
+        int thetaSeed    = 0;
+        int phiSeed      = 0;
+        int generalSeed  = 0;
+
+        // "seed" controls all of them and gives distinct seeds to each physical process over each MPI process
+        // this should be fixed so each physical process has its own seed control
+        if (seed > 0) {
+            fhdSeed      = 6*ParallelDescriptor::MyProc() + seed;
+            particleSeed = 6*ParallelDescriptor::MyProc() + seed + 1;
+            selectorSeed = 6*ParallelDescriptor::MyProc() + seed + 2;
+            thetaSeed    = 6*ParallelDescriptor::MyProc() + seed + 3;
+            phiSeed      = 6*ParallelDescriptor::MyProc() + seed + 4;
+            generalSeed  = 6*ParallelDescriptor::MyProc() + seed + 5;
+        }
+
+        //Initialise rngs
+        rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
+
+        // Initialize the boxarray "ba" from the single box "bx"
+        ba.define(domain);
+
+        // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
+        // note we are converting "Vector<int> max_grid_size" to an IntVect
+        ba.maxSize(IntVect(max_grid_size));
+
+        // how boxes are distrubuted among MPI processes
+        dmap.define(ba);
+        
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            umac [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
+            umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+            umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+            umac [d].setVal(0.);
+            umacM[d].setVal(0.);
+            umacV[d].setVal(0.);
+        }
+
+        pres.define(ba,dmap,1,1);
+        pres.setVal(0.);
+
+        bc = ba;
+        bp = ba;
+        
+        // particle grid_refine: <1 = refine, >1 = coarsen.
+        // assume only powers of 2 for now
+        if (particle_grid_refine < 1) {
+            int sizeRatio = (int)(1.0/particle_grid_refine);
+            bc.refine(sizeRatio);
+        }
+        else {
+            int sizeRatio = (int)(particle_grid_refine);
+            bc.coarsen(sizeRatio);
+        }
+        
+        if (es_grid_refine < 1) {
+            int sizeRatio = (int)(1.0/es_grid_refine);
+            bp.refine(sizeRatio);
+        }
+        else {
+            int sizeRatio = (int)(es_grid_refine);
+            bp.coarsen(sizeRatio);
+        }
+        
+        // Variables (C++ index)
+        // ( 0) Members
+        // ( 1) Density
+        // ( 2) velx
+        // ( 3) vely
+        // ( 4) velz
+        // ( 5) Temperature
+        // ( 6) jx
+        // ( 7) jy
+        // ( 8) jz
+        // ( 9) energyDensity
+        // (10) pressure
+        // (11) Cx
+        // (12) Cy
+        // (13) Cz
+        particleMeans.define(bc, dmap, 14, 0);
+        particleMeans.setVal(0.);
+        
+        // Variables (C++ index)
+        // ( 0) Members
+        // ( 1) Density
+        // ( 2) velx
+        // ( 3) vely
+        // ( 4) velz
+        // ( 5) Temperature
+        // ( 6) jx
+        // ( 7) jy
+        // ( 8) jz
+        // ( 9) energyDensity
+        // (10) pressure
+        // (11) GVar
+        // (12) KGCross
+        // (13) KRhoCross
+        // (14) RhoGCross
+        // (15) Cx
+        // (16) Cy
+        // (17) Cz 
+        particleVars.define(bc, dmap, 18, 0);
+        particleVars.setVal(0.);
+
+        //Cell centred es potential
+        potential.define(bp, dmap, 1, ngp);
+        potentialM.define(bp, dmap, 1, 1);
+        potentialV.define(bp, dmap, 1, 1);
+        potential.setVal(0.);
+        potentialM.setVal(0.);
+        potentialV.setVal(0.);
+        
+        chargeM.define(bp, dmap, 1, 1);  // mean
+        chargeV.define(bp, dmap, 1, 1);  // variance
+        chargeM.setVal(0);
+        chargeV.setVal(0);
+    }
+    else {
+        
+        // restart from checkpoint
+        ReadCheckPoint(step,time,statsCount,umac,umacM,umacV,pres,
+                       particleMeans,particleVars,chargeM,chargeV,
+                       potential,potentialM,potentialV);
+
+        // grab DistributionMap from umac
+        dmap = umac[0].DistributionMap();
+        
+        // grab fluid BoxArray from umac and convert to cell-centered
+        ba = umac[0].boxArray();
+        ba.enclosedCells();
+
+        // grab particle BoxArray from particleMeans
+        bc = particleMeans.boxArray();
+
+        // grab electrostatic potential BoxArray from potential
+        bp = potential.boxArray();
+    }
+
+    // Domain boxes for particle and electrostatic grids
+    Box domainC = domain;
+    Box domainP = domain;
+    
+    // particle grid and es grid_refine: <1 = refine, >1 = coarsen.
+    // assume only powers of 2 for now
+    // note particle grid BoxArray was handled above
+    if (particle_grid_refine < 1) {
+        int sizeRatio = (int)(1.0/particle_grid_refine);
+        domainC.refine(sizeRatio);
+    }
+    else {
+        int sizeRatio = (int)(particle_grid_refine);
+        domainC.coarsen(sizeRatio);
+    }
+    if (es_grid_refine < 1) {
+        int sizeRatio = (int)(1.0/es_grid_refine);
+        domainP.refine(sizeRatio);
+    }
+    else {
+        int sizeRatio = (int)(es_grid_refine);
+        domainP.coarsen(sizeRatio);
+    }
 
     // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    Vector<int> is_periodic  (AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     Vector<int> is_periodic_c(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     Vector<int> is_periodic_p(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (bc_vel_lo[i] == -1 && bc_vel_hi[i] == -1) {
-            is_periodic[i] = 1;
+            is_periodic  [i] = 1;
             is_periodic_c[i] = 1;
         }
         if (bc_es_lo[i] == -1 && bc_es_hi[i] == -1) {
@@ -100,80 +295,13 @@ void main_driver(const char* argv)
         }
     }
 
-    //---------------------------------------
-
-        //Terms prepended with a 'C' are related to the particle grid. Those with P are for the electostatic grid. Those without are for the hydro grid.
-        //The particle grid created as a corsening or refinement of the hydro grid.
-
-    //---------------------------------------
-
-    // make BoxArray and Geometry
-
-    // A - fluid, C - particle, P/E - electrostatic
-
-    // AJN what is the particle grid used for?  Is it leftover from DSCM collision model?
-    
-    // AJN - change these to ba_fluid, ba_particle, etc.    
-    BoxArray ba;
-    BoxArray bc;
-    BoxArray bp;
-    Geometry geom;
-    Geometry geomC;
-    Geometry geomP;
-    
-    IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
-    IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-    Box domain(dom_lo, dom_hi);
-    Box domainC = domain;
-    Box domainP = domain;
-
-    // Initialize the boxarray "ba" from the single box "bx"
-    ba.define(domain);
-
-    // Break up boxarray "ba" into chunks no larger than "max_grid_size" along a direction
-    // note we are converting "Vector<int> max_grid_size" to an IntVect
-    ba.maxSize(IntVect(max_grid_size));
-
-    RealBox real_box({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
-                     {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
-
-    bc = ba;
-    bp = ba;
-
-    int sizeRatio;
-
-    if(particle_grid_refine < 1)
-    {
-        sizeRatio = (int)(1.0/particle_grid_refine);
-        bc.refine(sizeRatio);
-        domainC.refine(sizeRatio);
-    }else
-    {
-        sizeRatio = (int)(particle_grid_refine);
-        bc.coarsen(sizeRatio);
-        domainC.coarsen(sizeRatio);
-    }
-
-    if(es_grid_refine < 1)
-    {
-        sizeRatio = (int)(1.0/es_grid_refine);
-        bp.refine(sizeRatio);
-        domainP.refine(sizeRatio);
-    }else
-    {
-        sizeRatio = (int)(es_grid_refine);
-        bp.coarsen(sizeRatio);
-        domainP.coarsen(sizeRatio);
-    }
-
     // This defines a Geometry object
-    geom.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
-    geomC.define(domainC,&real_box,CoordSys::cartesian,is_periodic_c.data());
-    geomP.define(domainP,&real_box,CoordSys::cartesian,is_periodic_p.data());
+    RealBox realDomain({AMREX_D_DECL(prob_lo[0],prob_lo[1],prob_lo[2])},
+                       {AMREX_D_DECL(prob_hi[0],prob_hi[1],prob_hi[2])});
 
-    // how boxes are distrubuted among MPI processes
-    // AJN needs to be fi
-    DistributionMapping dmap(ba);
+    Geometry geom (domain ,&realDomain,CoordSys::cartesian,is_periodic.  data());
+    Geometry geomC(domainC,&realDomain,CoordSys::cartesian,is_periodic_c.data());
+    Geometry geomP(domainP,&realDomain,CoordSys::cartesian,is_periodic_p.data());
 
     const Real* dx = geom.CellSize();
     const Real* dxc = geomC.CellSize();
@@ -188,19 +316,14 @@ void main_driver(const char* argv)
     cellVols.setVal(dxc[0]*dxc[1]*dxc[2]);
 #endif
 
-    // AJN - isn't this the same as real_box?
-    const RealBox& realDomain = geom.ProbDomain();
-
     Real dt = fixed_dt;
     Real dtinv = 1.0/dt;
 
-    const int* lims = domainC.hiVect();
-
     // AJN - get rid of collision stuff?
 #if (AMREX_SPACEDIM == 2)
-    int totalCollisionCells = (lims[0]+1)*(lims[1]+1);
+    int totalCollisionCells = (domainC.hiVect()[0]+1)*(domainC.hiVect()[1]+1);
 #elif (AMREX_SPACEDIM == 3)
-    int totalCollisionCells = (lims[0]+1)*(lims[1]+1)*(lims[2]+1);
+    int totalCollisionCells = (domainC.hiVect()[0]+1)*(domainC.hiVect()[1]+1)*(domainC.hiVect()[2]+1);
 #endif
 
 #if (AMREX_SPACEDIM == 2)
@@ -216,20 +339,17 @@ void main_driver(const char* argv)
 
     double realParticles = 0;
     double simParticles = 0;
-    double dryRad, wetRad;
+    double wetRad;
     double dxAv = (dx[0] + dx[1] + dx[2])/3.0; //This is probably the wrong way to do this.
 
-    if(pkernel_fluid == 3)
-    {
-        wetRad = 0.9405*dxAv;                
+    if (pkernel_fluid == 3) {
+        wetRad = 0.91*dxAv;
     }
-    else if(pkernel_fluid == 4)
-    {
-        wetRad = 1.3273*dxAv;
+    else if (pkernel_fluid == 4) {
+        wetRad = 1.255*dxAv;
     }
-    else if(pkernel_fluid == 6)
-    {
-        wetRad = 1.5705*dxAv;
+    else if (pkernel_fluid == 6) {
+        wetRad = 1.481*dxAv;
     }
 
     for(int i=0;i<nspecies;i++) {
@@ -237,34 +357,67 @@ void main_driver(const char* argv)
         ionParticle[i].m = mass[i];
         ionParticle[i].q = qval[i];
 
-        if(diameter[i] > 0)
-        {
+        if (diameter[i] > 0) { // positive diameter
+
+            // set diameter from inputs
             ionParticle[i].d = diameter[i];
 
-            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
-
+            // compute total diffusion from input diameter
             ionParticle[i].totalDiff = (k_B*T_init[0])/(6*3.14159265359*(diameter[i]/2.0)*visc_coef);
 
-            ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //This is probably wrong. Need to test.
-
-        }else
-        {
-            ionParticle[i].totalDiff = diff[i];            
-
-            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
-
+            // compute wet diffusion from wetRad
             ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
 
-            ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff; //Test this
+            if (all_dry == 1) {
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+                ionParticle[i].wetDiff = 0;
+            }
+            else {            
+                // dry = total - wet
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
+            }
+
+        }
+        else { // zero or negative diameter
+
+            // set total diffusion from inputs
+            ionParticle[i].totalDiff = diff[i];            
+
+            // set diameter from total diffusion (Stokes Einsten)
+            ionParticle[i].d = 2.0*(k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].totalDiff)*visc_coef);
+
+               // std::cout << "Species " << i << " radius: " << ionParticle[i].d << std::endl;
+
+            // compute wet diffusion from wetRad
+            ionParticle[i].wetDiff = (k_B*T_init[0])/(6*3.14159265359*wetRad*visc_coef);
+
+            if (all_dry == 1) {
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff;
+                ionParticle[i].wetDiff = 0;
+            }
+            else {            
+                // dry = total - wet
+                ionParticle[i].dryDiff = ionParticle[i].totalDiff - ionParticle[i].wetDiff;
+            }
         }
 
-        Print() << "Species " << i << " wet diffusion: " << ionParticle[i].wetDiff << ", dry diffusion: " << ionParticle[i].dryDiff << ", total diffusion: " << ionParticle[i].totalDiff << "\n";
-        Print() << "Species " << i << " wet radius: " << wetRad << ", dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << ", total radius: " << ionParticle[i].d/2.0 << "\n";
+        if (all_dry == 1 && fluid_tog != 0) {
+            Abort("Abort: Don't use all_dry=1 and fluid_tog!=0 together");
+        }
 
-        if(ionParticle[i].dryDiff < 0)
-        {
+        Print() << "Species " << i << "\n"
+                << " total diffusion: " << ionParticle[i].totalDiff << "\n"
+                << " wet diffusion: " << ionParticle[i].wetDiff
+                << " percent wet: " << 100.*ionParticle[i].wetDiff/ionParticle[i].totalDiff << "\n"
+                << " dry diffusion: " << ionParticle[i].dryDiff
+                << " percent dry: " << 100.*ionParticle[i].dryDiff/ionParticle[i].totalDiff << "\n"
+                << " total radius: " << ionParticle[i].d/2.0 << "\n"
+                << " wet radius: " << wetRad << "\n"
+                << " dry radius: " << (k_B*T_init[0])/(6*3.14159265359*(ionParticle[i].dryDiff)*visc_coef) << "\n";
+
+        if (ionParticle[i].dryDiff < 0) {
             Print() << "Negative dry diffusion in species " << i << "\n";
-            abort();
+            Abort();
         }
 
         ionParticle[i].Neff = particle_neff; // From DSMC, this will be set to 1 for electolyte calcs
@@ -273,10 +426,9 @@ void main_driver(const char* argv)
         ionParticle[i].sigma = sigma[i];
         ionParticle[i].eepsilon = eepsilon[i];
 
-        // AJN - why round up particles so there are the same number in each box? DRL - Have to divide them into whole numbers of particles somehow. 
-        if(particle_count[i] >= 0) {
-
-
+        // round up particles so there are the same number in each box;
+        // we have to divide them into whole numbers of particles somehow. 
+        if (particle_count[i] >= 0) {
             ionParticle[i].ppb = (double)particle_count[i]/(double)ba.size();
             ionParticle[i].total = particle_count[i];
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
@@ -308,63 +460,8 @@ void main_driver(const char* argv)
     Print() << "Collision cells: " << totalCollisionCells << "\n";
     Print() << "Sim particles per cell: " << simParticles/totalCollisionCells << "\n";
 
-
-    // MFs for storing particle statistics
-
-    // A lot of these relate to gas kinetics, but many are still useful so leave in for now.
-    
-    //Members
-    //Density
-    //velx
-    //vely
-    //velz
-    //Temperature
-    //jx
-    //jy
-    //jz
-    //energyDensity
-    //pressure
-    //Cx
-    //Cy
-    //Cz
+    // see the variable list used above above for particleMeans
     MultiFab particleInstant(bc, dmap, 14, 0);
-
-    //Members
-    //Density
-    //velx
-    //vely
-    //velz
-    //Temperature
-    //jx
-    //jy
-    //jz
-    //energyDensity
-    //pressure
-    //Cx
-    //Cy
-    //Cz    
-    MultiFab particleMeans(bc, dmap, 14, 0);
-
-    //Members
-    //Density
-    //velx
-    //vely
-    //velz
-    //Temperature
-    //jx
-    //jy
-    //jz
-    //energyDensity
-    //pressure
-    //GVar
-    //KGCross
-    //KRhoCross
-    //RhoGCross
-    //Cx
-    //Cy
-    //Cz 
-   
-    MultiFab particleVars(bc, dmap, 18, 0);
     
     //-----------------------------
     //  Hydro setup
@@ -373,34 +470,16 @@ void main_driver(const char* argv)
     // rho, alpha, beta, gamma:
     ///////////////////////////////////////////
 
-    //set number of ghost cells to fit whole peskin kernel
-    int ang = 1;
-    int cng = 2;
-    int png = 1;
-
-    // AJN - for perdictor/corrector do we need one more ghost cell if the predictor pushes a particle into a ghost region?
-    
-    if(pkernel_fluid == 3) {
-        ang = 2;
-    }
-    else if(pkernel_fluid == 4) {
-        ang = 3;
-    }
-    else if(pkernel_fluid == 6) {
-        ang = 4;
-    }
-
-    // AJN this only needs 1? ghost cell    
+    // this only needs 1 ghost cell    
     MultiFab rho(ba, dmap, 1, 1);
     rho.setVal(1.);
 
-    // AJN - the number of ghost cells needed for the GMRES solve for alpha, beta, etc., is a fixed number
+    // the number of ghost cells needed for the GMRES solve for alpha, beta, etc., is a fixed number
     // and not dependent on the Peskin kernels.
     // alpha_fc -> 1 ghost cell
     // beta -> 1
     // beta_ed -> 1
     // gamma -> 1
-    // I'm thinking only the velocities need the extra ghost cells.  Probably not density
     
     // alpha_fc arrays
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
@@ -436,43 +515,41 @@ void main_driver(const char* argv)
     ///////////////////////////////////////////
     // Define & initalize eta & temperature multifabs
     ///////////////////////////////////////////
+    
     // eta & temperature
     const Real eta_const = visc_coef;
     const Real temp_const = T_init[0];      // [units: K]
 
-    // AJN - I think the number of ghost cells needed here is
+    // the number of ghost cells needed here is
     // eta_cc -> 1
     // temp_cc -> 1
     // eta_ed -> 0
     // temp_ed -> 0
     
-    // eta & temperature cell centered
-    MultiFab  eta_cc;
-    MultiFab temp_cc;
-    // eta & temperature nodal
+    // eta and temperature; cell-centered
+    MultiFab  eta_cc(ba, dmap, 1, 1);
+    MultiFab temp_cc(ba, dmap, 1, 1);
+    
+    // eta and temperature; nodal
     std::array< MultiFab, NUM_EDGE >  eta_ed;
     std::array< MultiFab, NUM_EDGE > temp_ed;
-    // eta and temperature; cell-centered
-    eta_cc.define(ba, dmap, 1, 1);
-    temp_cc.define(ba, dmap, 1, 1);
-    // eta and temperature; nodal
 #if (AMREX_SPACEDIM == 2)
-    eta_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
-    temp_ed[0].define(convert(ba,nodal_flag), dmap, 1, 1);
+    eta_ed [0].define(convert(ba,nodal_flag),    dmap, 1, 0);
+    temp_ed[0].define(convert(ba,nodal_flag),    dmap, 1, 0);
 #elif (AMREX_SPACEDIM == 3)
-    eta_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    eta_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    eta_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
-    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 1);
-    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 1);
-    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 1);
+    eta_ed [0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    eta_ed [1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    eta_ed [2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
+    temp_ed[0].define(convert(ba,nodal_flag_xy), dmap, 1, 0);
+    temp_ed[1].define(convert(ba,nodal_flag_xz), dmap, 1, 0);
+    temp_ed[2].define(convert(ba,nodal_flag_yz), dmap, 1, 0);
 #endif
 
     // Initalize eta & temperature multifabs
-    eta_cc.setVal(eta_const);
+    eta_cc .setVal(eta_const);
     temp_cc.setVal(temp_const);
     for (int d=0; d<NUM_EDGE; ++d) {
-        eta_ed[d].setVal(eta_const);
+        eta_ed[d] .setVal(eta_const);
         temp_ed[d].setVal(temp_const);
     }
     ///////////////////////////////////////////
@@ -481,90 +558,32 @@ void main_driver(const char* argv)
     // random fluxes:
     ///////////////////////////////////////////
 
-    // AJN - I think stochMfluxdiv needs 0 ghost cells //DRL setting it to 1 until I've checked.
-
     // mflux divergence, staggered in x,y,z
-
+    // Define mfluxdiv predictor/corrector multifabs
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdiv;
     std::array< MultiFab, AMREX_SPACEDIM >  stochMfluxdivC;
-    // Define mfluxdiv predictor/corrector multifabs
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        stochMfluxdiv[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
-        stochMfluxdiv[d].setVal(0.0);
-        stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 1);
+        stochMfluxdiv [d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        stochMfluxdivC[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, 0);
+        stochMfluxdiv [d].setVal(0.0);
         stochMfluxdivC[d].setVal(0.0);
     }
 
-    Vector< amrex::Real > weights;
+    // Declare object of StochMomFlux class
+    int n_rngs = 1; // we only need 1 stage of random numbers
+    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
+
+    // weights for random number stages
+    Vector< amrex::Real> weights;
     weights = {1.0};
-//weights = {std::sqrt(0.5), std::sqrt(0.5)};
-
-    // Declare object of StochMFlux class
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
 
-    // AJN - pres needs 1 ghost cell
-    // but umac is the thing that needs extra ghost cells for Peskin kernels
-    
-    // pressure for GMRES solve
-    MultiFab pres(ba,dmap,1,1);
-   pres.setVal(0.);  // initial guess
-
-    // staggered velocities
-    std::array< MultiFab, AMREX_SPACEDIM > umac;
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-    }
-
-
-    // staggered mfabs for storing some basic fluid stats
-    std::array< MultiFab, AMREX_SPACEDIM > umacM;
-    std::array< MultiFab, AMREX_SPACEDIM > umacV;
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umacM[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-        umacV[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
-    }
-
-    // tracer - get rid of this.
-    MultiFab tracer(ba, dmap, 1,1);
-    tracer.setVal(0.);
-
-
-    ///////////////////////////////////////////
-    // structure factor:
-    ///////////////////////////////////////////
-
-    Vector< std::string > var_names;
-    int nvar_sf = 1;
-    // int nvar_sf = AMREX_SPACEDIM;
-    var_names.resize(nvar_sf);
-    var_names[0] = "charge";
-
-    MultiFab struct_in_cc;
-    struct_in_cc.define(bp, dmap, nvar_sf, 0);
-
-//    amrex::Vector< int > s_pairA(nvar_sf);
-//    amrex::Vector< int > s_pairB(nvar_sf);
-
-//    // Select which variable pairs to include in structure factor:
-//    for (int d=0; d<nvar_sf; d++) {
-//      s_pairA[d] = d;
-//      s_pairB[d] = d;
-//    }
-
- //   StructFact structFact(bp,dmap,var_names);
-
-
-
-
-
-
-    // AJN - don't need to initialize velocities in overdamped.  first gmres solve should get them as long as they start out with non-NaN values.
-
-    // DRL - This is actually useful for dubugging, to get a known velocity field.
+/*    
+    // Setting the intial velocities can be useful for debugging, to get a known velocity field.
+    // Note that we don't need to initialize velocities for the overdamped case.
+    // They only matter as an initial guess to GMRES.
+    // The first GMRES solve will compute the velocities as long as they start out with non-NaN values.
     int dm = 0;
     for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
@@ -584,30 +603,17 @@ void main_driver(const char* argv)
 
     }
 
-    AMREX_D_TERM(umac[0].setVal(0);,
-                 umac[1].setVal(0);,
-                 umac[2].setVal(0););
-
-            AMREX_D_TERM(umacM[0].setVal(0);,
-                     umacM[1].setVal(0);,
-                     umacM[2].setVal(0););
-
-            AMREX_D_TERM(umacV[0].setVal(0);,
-                     umacV[1].setVal(0);,
-                     umacV[2].setVal(0););
-
-    // fill periodic ghost cells
+    if (initial_variance_mom != 0.0) {
+        // sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
+        Abort("Initial momentum fluctuations not implemented; if you are overdamped they don't make sense anyway.");
+    }
+*/
+        
+    // additional staggered velocity MultiFabs
+    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        umac[d].FillBoundary(geom.periodicity());
+        umacNew[d].define(convert(ba,nodal_flag_dir[d]), dmap, 1, ang);
     }
-
-
-    // AJN - don't need this
-    // Add initial equilibrium fluctuations
-    if(initial_variance_mom != 0.0) {
-        //sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
-    }
-
 
     // staggered real coordinates - fluid grid
     std::array< MultiFab, AMREX_SPACEDIM > RealFaceCoords;
@@ -627,92 +633,62 @@ void main_driver(const char* argv)
                  sourceTemp[1].define(convert(ba,nodal_flag_y), dmap, 1, ang);,
                  sourceTemp[2].define(convert(ba,nodal_flag_z), dmap, 1, ang););
 
-    int step = 0;
-    Real time = 0.;
-    int statsCount = 1;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        source    [d].setVal(0.0);
+        sourceTemp[d].setVal(0.0);
+    }
 
-    //Define parametric surfaces for particle interaction - declare array for surfaces and then define properties in BuildSurfaces
-
+    //Define parametric paramplanes for particle interaction - declare array for paramplanes and then define properties in BuildParamplanes
 
     // AJN - we don't understand why you need this for ions
 #if (BL_SPACEDIM == 3)
-    int surfaceCount = 6;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 6;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 #if (BL_SPACEDIM == 2)
-    int surfaceCount = 5;
-    surface surfaceList[surfaceCount];
-    BuildSurfaces(surfaceList,surfaceCount,realDomain.lo(),realDomain.hi());
+    int paramPlaneCount = 5;
+    paramPlane paramPlaneList[paramPlaneCount];
+    BuildParamplanes(paramPlaneList,paramPlaneCount,realDomain.lo(),realDomain.hi());
 #endif
 
-	// IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
+    // IBMarkerContainerBase default behaviour is to do tiling. Turn off here:
 
+    //----------------------    
+    // Particle tile size
+    //----------------------
     Vector<int> ts(BL_SPACEDIM);
-
-    //AMREX_D_TERM(ts[0] = max_grid_size[0];, ts[1] = max_grid_size[1];, ts[2] = max_grid_size[2];);
-
-    AMREX_D_TERM(
-        if(max_particle_tile_size[0] > 0)
-        {
-            ts[0] = max_particle_tile_size[0];
-        }else
-        {
-            ts[0] = max_grid_size[0];
-        },
-        if(max_particle_tile_size[1] > 0)
-        {
-            ts[1] = max_particle_tile_size[1];
-        }else
-        {
-            ts[1] = max_grid_size[1];
-        },
-        if(max_particle_tile_size[2] > 0)
-        {
-            ts[2] = max_particle_tile_size[2];
-        }else
-        {
-            ts[2] = max_grid_size[2];
+    
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {        
+        if (max_particle_tile_size[d] > 0) {
+            ts[d] = max_particle_tile_size[d];
         }
-    );
+        else {
+            ts[d] = max_grid_size[d];
+        }
+    }
 
-	ParmParse pp ("particles");
+    ParmParse pp ("particles");
     pp.addarr("tile_size", ts);
-
-
-
-	//pp.add("do_tiling", false);
 
     //int num_neighbor_cells = 4; replaced by input var
     //Particles! Build on geom & box array for collision cells/ poisson grid?
     FhdParticleContainer particles(geomC, dmap, bc, crange);
 
+    if (restart < 0 && particle_restart < 0) {
+        // create particles
+        particles.InitParticles(ionParticle, dxp);
+    }
+    else {
+        ReadCheckPointParticles(particles, ionParticle, dxp);
+    }
+
     //Find coordinates of cell faces (fluid grid). May be used for interpolating fields to particle locations
     FindFaceCoords(RealFaceCoords, geom); //May not be necessary to pass Geometry?
-
-    //create particles
-
-    particles.InitParticles(ionParticle, dxp);
-
+    
     //----------------------    
     // Electrostatic setup
     //----------------------
-
-    // AJN - should define 3 types of "ng" parameters.  fluid, repulsive force, peskin
-    int ngp = 1;
-    if(pkernel_es == 3)
-    {
-        ngp = 2;
-
-    }else if(pkernel_es == 4)
-    {
-        ngp = 3;
-
-    }else if(pkernel_es == 6)
-    {
-
-        ngp = 4;
-    }
 
     // cell centered real coordinates - es grid
     MultiFab RealCenteredCoords;
@@ -720,18 +696,12 @@ void main_driver(const char* argv)
 
     FindCenterCoords(RealCenteredCoords, geomP);
 
-    // AJN - what are all the Temp's for?
-    
-    //Cell centred es potential
-    MultiFab potential(bp, dmap, 1, ngp);
-    MultiFab potentialTemp(bp, dmap, 1, ngp);
-    potential.setVal(0);
-    potentialTemp.setVal(0);
-
     //charage density for RHS of Poisson Eq.
     MultiFab charge(bp, dmap, 1, ngp);
-    MultiFab chargeTemp(bp, dmap, 1, ngp);
     charge.setVal(0);
+
+    // temporary used to help collect charge
+    MultiFab chargeTemp(bp, dmap, 1, ngp);
     chargeTemp.setVal(0);
 
     //mass density on ES grid - not necessary
@@ -742,49 +712,135 @@ void main_driver(const char* argv)
 
     //Staggered electric fields
     std::array< MultiFab, AMREX_SPACEDIM > efield;
-    std::array< MultiFab, AMREX_SPACEDIM > external;
-
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efield[d].define(convert(bp,nodal_flag_dir[d]), dmap, 1, ngp);
     }
 
-    //Centred electric fields
+    //Centred electric fields (using an array instead of a multi-component MF)
     std::array< MultiFab, AMREX_SPACEDIM > efieldCC;
-
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         efieldCC[d].define(bp, dmap, 1, ngp);
-        external[d].define(bp, dmap, 1, ngp);
+        efieldCC[d].setVal(0.);
     }
 
-    AMREX_D_TERM(efieldCC[0].setVal(0);,
-                 efieldCC[1].setVal(0);,
-                 efieldCC[2].setVal(0););
+    // external field
+    std::array< MultiFab, AMREX_SPACEDIM > external;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        external[d].define(bp, dmap, 1, ngp);
+    }
     
     MultiFab dryMobility(ba, dmap, nspecies*AMREX_SPACEDIM, ang);
 
     ComputeDryMobility(dryMobility, ionParticle, geom);
- 
-    //Time stepping loop
-    for(step=1;step<=max_step;++step)
-    {
 
+    ///////////////////////////////////////////
+    // structure factor for charge-charge
+    ///////////////////////////////////////////
+
+#ifndef AMREX_USE_CUDA
+    // names of variables in struct_cc_charge
+    Vector< std::string > var_names_charge(1);
+    var_names_charge[0] = "charge";
+
+    // variables we want to FFT
+    MultiFab struct_cc_charge;
+    struct_cc_charge.define(bp, dmap, 1, 0);
+
+    // these are the number of pairs we want to report
+    int nvar_sf_charge = 1;
+    amrex::Vector< int > s_pairA_charge(nvar_sf_charge);
+    amrex::Vector< int > s_pairB_charge(nvar_sf_charge);
+
+    // Select which variable pairs to include in structure factor:
+    s_pairA_charge[0] = 0; // charge-charge
+    s_pairB_charge[0] = 0;
+
+    Vector<Real> scaling_charge(nvar_sf_charge);
+    for (int i=0; i<nvar_sf_charge; ++i) {
+        scaling_charge[i] = 1.;
+    }
+
+    StructFact structFact_charge(bp,dmap,var_names_charge,scaling_charge,
+                                 s_pairA_charge,s_pairB_charge);
+
+    ///////////////////////////////////////////
+    // structure factor for vel-vel
+    ///////////////////////////////////////////
+
+    // names of variables in struct_cc_vel
+    Vector< std::string > var_names_vel(AMREX_SPACEDIM);
+    var_names_vel[0] = "xvel";
+    var_names_vel[1] = "yvel";
+    var_names_vel[2] = "zvel";
+
+    // variables we want to FFT
+    MultiFab struct_cc_vel;
+    struct_cc_vel.define(bp, dmap, AMREX_SPACEDIM, 0);
+
+    // these are the number of pairs we want to report
+    int nvar_sf_vel = 6;
+    amrex::Vector< int > s_pairA_vel(nvar_sf_vel);
+    amrex::Vector< int > s_pairB_vel(nvar_sf_vel);
+
+    // Select which variable pairs to include in structure factor:
+    s_pairA_vel[0] = 0; // xvel-xvel
+    s_pairB_vel[0] = 0;
+    s_pairA_vel[1] = 0; // xvel-yvel
+    s_pairB_vel[1] = 1;
+    s_pairA_vel[2] = 0; // xvel-zvel
+    s_pairB_vel[2] = 2;
+    s_pairA_vel[3] = 1; // yvel-yvel
+    s_pairB_vel[3] = 1;
+    s_pairA_vel[4] = 1; // yvel-zvel
+    s_pairB_vel[4] = 2;
+    s_pairA_vel[5] = 2; // zvel-zvel
+    s_pairB_vel[5] = 2;
+    
+    Vector<Real> scaling_vel(nvar_sf_vel);
+    for (int i=0; i<nvar_sf_vel; ++i) {
+        scaling_vel[i] = 1.;
+    }
+
+    StructFact structFact_vel(ba,dmap,var_names_vel,scaling_vel,
+                              s_pairA_vel,s_pairB_vel);
+#endif
+
+//    WritePlotFile(0, time, geom, geomC, geomP,
+//                  particleInstant, particleMeans, particleVars, particles,
+//                  charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
+
+//    // Writes instantaneous flow field and some other stuff? Check with Guy.
+//    WritePlotFileHydro(0, time, geom, umac, pres, umacM, umacV);
+    remove("bulkFlowEst");
+    //Time stepping loop
+    for (int istep=step; istep<=max_step; ++istep) {
+
+        // timer for time step
+        Real time1 = ParallelDescriptor::second();
+
+//        if(istep == 1)
+//        {
+//            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]/64.0);
+//           
+//        }
+
+    
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
 
-        //Apply external field here.
-        AMREX_D_TERM(external[0].setVal(eamp[0]*cos(efreq[0]*time + ephase[0]));,
-                     external[1].setVal(eamp[1]*cos(efreq[1]*time + ephase[1]));,
-                     external[2].setVal(eamp[2]*cos(efreq[2]*time + ephase[2])););
-
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
-            source[d].setVal(0.0);
-            sourceTemp[d].setVal(0.0);
+            external[d].setVal(eamp[d]*cos(efreq[d]*time + ephase[d]));  // external field
+            source    [d].setVal(0.0);      // reset source terms
+            sourceTemp[d].setVal(0.0);      // reset source terms
         }
 
-        if(rfd_tog==1) {
+        //particles.BuildCorrectionTable(dxp,0);
+
+        if (rfd_tog==1) {
             // Apply RFD force to fluid
             particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             particles.ResetMarkers(0);
-            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList, surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+                            //source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -793,142 +849,237 @@ void main_driver(const char* argv)
 
         // sr_tog is short range forces
         // es_tog is electrostatic solve (0=off, 1=Poisson, 2=Pairwise, 3=P3M)
-        if(sr_tog==1 || es_tog==3)
-        {
+        if (sr_tog==1 || es_tog==3) {
             // each tile clears its neighbors
             particles.clearNeighbors();
+            
             // fill the neighbor buffers for each tile with the proper data
             particles.fillNeighbors();
 
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
             particles.computeForcesNL(charge, RealCenteredCoords, dxp);
-
         }
 
-        if(es_tog==1 || es_tog==3)
-        {
+        if (es_tog==1 || es_tog==3) {
             // spreads charge density from ions onto multifab 'charge'.
             particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
         }
         
-        // do Poisson solve using 'charge' for RHS, and put potential in 'potential'. Then calculate gradient and put in 'efieldCC', then add 'external'.
+        // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
+        // Then calculate gradient and put in 'efieldCC', then add 'external'.
         esSolve(potential, charge, efieldCC, external, geomP);
 
-
         // compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, surfaceList,
-                             surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
+                             paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
-        if((variance_coef_mom != 0.0) && fluid_tog != 0) {
-          // compute the random numbers needed for the stochastic momentum forcing
-          sMflux.fillMStochastic();
+        //particles.BuildCorrectionTable(dxp,1);
 
-          // compute stochastic momentum force
-          sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+        if ((variance_coef_mom != 0.0) && fluid_tog != 0) {
+            // compute the random numbers needed for the stochastic momentum forcing
+            sMflux.fillMomStochastic();
 
-          // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
-          if(fluid_tog ==2) {
-              sMflux.StochMFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
-          }
+            // compute stochastic momentum force
+            sMflux.StochMomFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+
+            // integrator containing inertial terms and predictor/corrector requires 2 RNG stages
+            if (fluid_tog ==2) {
+                sMflux.StochMomFluxDiv(stochMfluxdivC,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+            }
         }
 
-        // AJN - should this be an if/else fluid_tog==2? DRL - No.
-    	advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
-        if(fluid_tog ==2) {
-            advanceLowMach(umac, umacNew, pres, tracer, stochMfluxdiv, stochMfluxdivC, alpha_fc, beta, gamma, beta_ed, geom,dt);
+        // AJN - should this be an if/else fluid_tog==2?
+        if (fluid_tog == 1) {
+            advanceStokes(umac,pres,stochMfluxdiv,source,alpha_fc,beta,gamma,beta_ed,geom,dt);
+        }
+        else if (fluid_tog == 2) {
+            Abort("Don't use fluid_tog=2 (inertial Low Mach solver)");
         }
 
         // total particle move (1=single step, 2=midpoint)
-        if(move_tog != 0)
+        if (move_tog != 0)
         {
             //Calls wet ion interpolation and movement.
             Print() << "Start move.\n";
-            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, surfaceList,
-                               surfaceCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.MoveIons(dt, dx, dxp, geom, umac, efield, RealFaceCoords, source, sourceTemp, dryMobility, paramPlaneList,
+                               paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
+
+            // reset statistics after step n_steps_skip
+            // if n_steps_skip is negative, we use it as an interval
+            if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+                (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
+
+                particles.MeanSqrCalc(0, 1);
+            }
+            else {
+                particles.MeanSqrCalc(0, 0);
+            }
+
+			particles.clearNeighbors();
             particles.Redistribute();
             particles.ReBin();
             Print() << "Finish move.\n";
         }
 
-        //Start collecting statistics after step n_steps_skip
-        if(step == n_steps_skip)
-        {
+        /*
+        // FIXME - AJN
+        // NOTE: this stats resetting should eventually be moved to *after* the statsCount++ line below
+        // this way, e.g., plot 10 will contain the average of steps 1-10
+        // instead of the instantaneous value at step 10
+        // however this has the same effect on currentEst so the diagnostics
+        // in immersedIons/postprocessing will have to be updated to account for this        
+        */
+        // reset statistics after step n_steps_skip
+        // if n_steps_skip is negative, we use it as an interval
+        if ((n_steps_skip > 0 && istep == n_steps_skip) ||
+            (n_steps_skip < 0 && istep%n_steps_skip == 0) ) {
+            
             particleMeans.setVal(0.0);
             particleVars.setVal(0);
-            AMREX_D_TERM(umacM[0].setVal(0);,
-                         umacM[1].setVal(0);,
-                         umacM[2].setVal(0););
-            AMREX_D_TERM(umacV[0].setVal(0);,
-                         umacV[1].setVal(0);,
-                         umacV[2].setVal(0););
 
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                umacM[d].setVal(0.);
+                umacV[d].setVal(0.);
+            }
+                
             Print() << "Resetting stat collection.\n";
 
             statsCount = 1;
         }
-       
+
+        // g(r)
+        if(radialdist_int>0 && istep%radialdist_int == 0) {
+            
+            // timer
+            Real time_PC1 = ParallelDescriptor::second();
+
+            // compute g(r)
+            particles.RadialDistribution(simParticles, istep, ionParticle);
+
+            // timer
+            Real time_PC2 = ParallelDescriptor::second() - time_PC1;
+            ParallelDescriptor::ReduceRealMax(time_PC2);
+            amrex::Print() << "Time spend computing radial distribution = " << time_PC2 << std::endl;
+        }
+
+        // g(x), g(y), g(z)
+        if(cartdist_int>0 && istep%cartdist_int == 0) {
+
+            // timer
+            Real time_PC1 = ParallelDescriptor::second();
+        
+            // compute g(x), g(y), g(z)
+            particles.CartesianDistribution(simParticles, istep, ionParticle);
+            
+            // timer
+            Real time_PC2 = ParallelDescriptor::second() - time_PC1;
+            ParallelDescriptor::ReduceRealMax(time_PC2);
+            amrex::Print() << "Time spend computing Cartesian distribution = " << time_PC2 << std::endl;
+        }
+
+        // compute particle fields, means, anv variances
+        // also write out time-averaged current to currentEst
         particles.EvaluateStats(particleInstant, particleMeans, particleVars, cellVols, ionParticle[0], dt,statsCount);
 
+        // compute the mean and variance of umac
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             ComputeBasicStats(umac[d], umacM[d], umacV[d], 1, 1, statsCount);
         }
+        ComputeBasicStats(potential, potentialM, potentialV, 1, 1, statsCount);
+        ComputeBasicStats(charge   , chargeM   , chargeV   , 1, 1, statsCount);
 
+        //Don't forget to add a remove(filename) so it doesn't append to old data
+        OutputVolumeMean(umac[0], 0, domainVol, "bulkFlowEst", geom);
+        
         statsCount++;
+        
 	//_______________________________________________________________________
 	// Update structure factor
+#ifndef AMREX_USE_CUDA
+        if (struct_fact_int > 0 &&
+            istep > std::abs(n_steps_skip) &&
+            (istep-std::abs(n_steps_skip)-1)%struct_fact_int == 0) {
 
+            // charge
+            MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
+            structFact_charge.FortStructure(struct_cc_charge,geomP);
 
+            // velocity
+            for (int d=0; d<AMREX_SPACEDIM; ++d) {
+                ShiftFaceToCC(umac[d],0,struct_cc_vel,d,1);
+            }
+            structFact_vel.FortStructure(struct_cc_vel,geom);
+            
+            // plot structure factor on plot_int
+            if (istep%plot_int == 0) {
+                structFact_charge.WritePlotFile(istep,time,geomP,"plt_SF_charge");
+                structFact_vel   .WritePlotFile(istep,time,geom ,"plt_SF_vel");
+            }
+        }
+#endif
 
+        // FIXME - AJN: at the moment we are writing out plotfile plot_int-1 also
+        // because the time-averaging for the fields resets at n_steps_skip
+        // see the FIXME - AJN note above
+        bool writePlt = false;
+        if (plot_int > 0) {
+            if (n_steps_skip >= 0) { // for positive n_steps_skip, write out at plot_int
+                writePlt = (istep%plot_int == 0);
+            }
+            else if (n_steps_skip < 0) { // for negative n_steps_skip, write out at plot_int-1
+                writePlt = ((istep+1)%plot_int == 0);
+            }
+        }
+        if (writePlt) {
+            // This write particle data and associated fields and electrostatic fields
+            WritePlotFile(istep, time, geom, geomC, geomP,
+                          particleInstant, particleMeans, particleVars, particles,
+                          charge, chargeM, chargeV, potential, potentialM, potentialV, efieldCC, dryMobility);
 
-       // if(step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-//	      MultiFab::Copy(struct_in_cc, charge, 0, 0, nvar_sf, 0);
-//	      structFact.FortStructure(struct_in_cc,geomP);
-  //      }
-
-        if (plot_int > 0 && step%plot_int == 0)
-        {
-
-            //This write particle data and associated fields and electrostatic fields
-            WritePlotFile(step,time,geom,geomC,geomP,particleInstant, particleMeans, particleVars, particles, charge, potential, efieldCC, dryMobility);
-
-            //Writes instantaneous flow field and some other stuff? Check with Guy.
-            WritePlotFileHydro(step,time,geom,umac,pres, umacM, umacV);
+            // Writes instantaneous flow field and some other stuff? Check with Guy.
+            WritePlotFileHydro(istep, time, geom, umac, pres, umacM, umacV);
         }
 
-        if(step%1 == 0)
-        {    
-                amrex::Print() << "Advanced step " << step << "\n";
+        if (chk_int > 0 && istep%chk_int == 0) {
+            WriteCheckPoint(istep, time, statsCount, umac, umacM, umacV, pres,
+                            particles, particleMeans, particleVars, chargeM, chargeV,
+                            potential, potentialM, potentialV);
         }
+
+        //particles.PrintParticles();
+
+        // timer for time step
+        Real time2 = ParallelDescriptor::second() - time1;
+        ParallelDescriptor::ReduceRealMax(time2);
+        amrex::Print() << "Advanced step " << istep << " in " << time2 << " seconds\n";
         
         time = time + dt;
+        // MultiFab memory usage
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
 
+        amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
+        amrex::Long max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+
+        min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
+        max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";       
+        
     }
     ///////////////////////////////////////////
-    if (struct_fact_int > 0) {
 
-        Real dVol = dx[0]*dx[1];
-        int tot_n_cells = n_cells[0]*n_cells[1];
-      if (AMREX_SPACEDIM == 2) {
-	    dVol *= cell_depth;
-      } else if (AMREX_SPACEDIM == 3) {
-	    dVol *= dx[2];
-	    tot_n_cells = n_cells[2]*tot_n_cells;
-      }
-
-      // let rho = 1
-      //Real SFscale = dVol/(rho0*k_B*T_init[0]);
-      Real SFscale = 1;
-      // SFscale = 1.0;
-      // Print() << "Hack: structure factor scaling = " << SFscale << std::endl;
-      
-    //  structFact.Finalize(SFscale);
-    //  structFact.WritePlotFile(step,time,geomP,"plt_SF");
-
-    }
-
-    // Call the timer again and compute the maximum difference between the start time 
-    // and stop time over all processors
+    // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;

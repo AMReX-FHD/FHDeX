@@ -1,27 +1,17 @@
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
 
-#include "common_namespace.H"
-#include "gmres_namespace.H"
-#include "multispec_namespace.H"
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
-using namespace multispec;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac, 
@@ -190,14 +180,14 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0,0);
+  MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
   MultiFab::Copy(tracerPred, tracer, 0, 0, 1, 0);
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0,0);
+  MkAdvSFluxdiv_cc(umac,tracerPred,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // advance in time
@@ -223,9 +213,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // 		     stoch_mass_fluxdiv,diff_mass_flux,
   // 		     stoch_mass_flux,dt,0.0,geom);
   
-  for(int i=0; i<nspecies; i++) {
-    MkAdvSFluxdiv(umac,rho,adv_mass_fluxdiv,dx,geom,i,0);
-  }
+  MkAdvSFluxdiv_cc(umac,rho,adv_mass_fluxdiv,geom,0,nspecies,0);
 
   MultiFab::Copy(rhoPred, rho, 0, 0, nspecies, 1);
 
@@ -243,7 +231,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // PREDICTOR STEP (heun's method: part 1)
   // compute advective term
-  AverageCCToFace(rhotot, 0, rhotot_face, 0, 1);
+  AverageCCToFace(rhotot, rhotot_face, 0, 1, 1, geom);
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     MultiFab::Copy(uMom[d], umac[d], 0, 0, 1, 0);
     MultiFab::Multiply(uMom[d], rhotot_face[d], 0, 0, 1, 0);
@@ -294,9 +282,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   // 		     stoch_mass_fluxdiv,diff_mass_flux,
   // 		     stoch_mass_flux,dt,0.0,geom);
 
-  for(int i=0; i<nspecies; i++) {
-    MkAdvSFluxdiv(umacNew,rhoPred,adv_mass_fluxdiv,dx,geom,i,0);
-  }
+  MkAdvSFluxdiv_cc(umacNew,rhoPred,adv_mass_fluxdiv,geom,0,nspecies,0);
 
   diff_mass_fluxdiv.mult(-dt);
   MultiFab::Add(rho,diff_mass_fluxdiv,0,0,nspecies,0);
@@ -330,7 +316,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   //////////////////////////////////////////////////
 
   // Compute predictor advective term
-  AverageCCToFace(rhotot, 0, rhotot_face, 0, 1);
+  AverageCCToFace(rhotot, rhotot_face, 0, 1, 1, geom);
   for (int d=0; d<AMREX_SPACEDIM; ++d) {
     umacNew[d].FillBoundary(geom.periodicity());
     MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);

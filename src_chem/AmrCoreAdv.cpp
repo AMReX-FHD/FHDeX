@@ -1047,8 +1047,8 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
   #endif 
 
    // Average cell centered surface gradient to face centers
-   AverageCCToFace(txc_mf, 0, Cxface_array,0,1);
-   AverageCCToFace(tyc_mf, 0, Cyface_array,0,1);
+   AverageCCToFace(txc_mf,Cxface_array,0,1,1,geom);
+   AverageCCToFace(tyc_mf,Cyface_array,0,1,1,geom);
 
    txf_mf.copy(Cxface_array[0], 0, 0,1, 0, 0);
    tyf_mf.copy(Cyface_array[1], 0, 0,1, 0, 0);
@@ -1056,7 +1056,7 @@ void AmrCoreAdv::Advance (int lev, Real time, Real dt_lev, int iteration, int nc
     tyf_mf.FillBoundary(geom[lev].periodicity());
 
   #if (AMREX_SPACEDIM>=3)    
-   AverageCCToFace(tzc_mf, 0, Czface_array,0,1);
+   AverageCCToFace(tzc_mf,Czface_array,0,1,1,geom);
    tzf_mf.copy(Czface_array[2], 0, 0,1, 0, 0);
     tzf_mf.FillBoundary(geom[lev].periodicity());
   #endif

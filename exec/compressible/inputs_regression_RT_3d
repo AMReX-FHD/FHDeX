@@ -20,7 +20,6 @@
   ! Controls for number of steps between actions
   max_step = 3
   plot_int = 3
-  plot_base_name = "RT_3d_plt"
 
   ! random number seed
   ! 0        = unpredictable seed based on clock

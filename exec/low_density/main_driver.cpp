@@ -1,15 +1,11 @@
 
 #include "rng_functions.H"
-#include "rng_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "compressible_functions.H"
-#include "compressible_functions_F.H"
 
 #include "exec_functions.H"
 
@@ -23,7 +19,6 @@
 
 
 using namespace amrex;
-using namespace common;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)

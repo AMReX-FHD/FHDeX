@@ -1,11 +1,7 @@
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
-#include "common_namespace.H"
 
-using namespace common;
 
 void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
 		   const std::array<MultiFab, AMREX_SPACEDIM>& m,
@@ -56,7 +52,7 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                                    fluxx_lo = (my(i-1,j,k)+my(i,j,k))*(umac(i,j-1,k)+umac(i,j,k));
                                    fluxy_hi = (my(i,j,k)+my(i,j+1,k))*(vmac(i,j,k)+vmac(i,j+1,k));
                                    fluxy_lo = (my(i,j-1,k)+my(i,j,k))*(vmac(i,j-1,k)+vmac(i,j,k));
-                                   m_updatey(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                                   m_updatey(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
                                });
         }
         else if (increment == 0) {
@@ -67,7 +63,7 @@ void MkAdvMFluxdiv(const std::array<MultiFab, AMREX_SPACEDIM>& umac_in,
                                    fluxx_lo = (mx(i-1,j,k)+mx(i,j,k))*(umac(i-1,j,k)+umac(i,j,k));
                                    fluxy_hi = (mx(i,j,k)+mx(i,j+1,k))*(vmac(i-1,j+1,k)+vmac(i,j+1,k));
                                    fluxy_lo = (mx(i,j-1,k)+mx(i,j,k))*(vmac(i-1,j,k)+vmac(i,j,k));
-                                   m_updatex(i,j,k) -= ( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
+                                   m_updatex(i,j,k) = -( fluxx_hi-fluxx_lo + fluxy_hi-fluxy_lo ) * fourdxinv;
                                },
                                [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                                    Real fluxx_hi, fluxx_lo, fluxy_hi, fluxy_lo;

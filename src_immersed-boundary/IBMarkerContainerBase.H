@@ -73,7 +73,7 @@ public:
 
     // Get number of particles
     int NumberOfMarkers(IBMarIterBase<StructReal::count, StructInt::count> & pti){
-        return pti.GetArrayOfStructs().size();
+        return pti.GetArrayOfStructs().numParticles();
     };
 
 
@@ -105,6 +105,23 @@ public:
                 const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
                 const Real* dx, int ghost
             );
+
+    static void SpreadKernel(const Box& bx, 
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_out,
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_weights,
+                      const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+                      GpuArray<Real, AMREX_SPACEDIM>const& pos, 
+                      GpuArray<Real, AMREX_SPACEDIM>const& v_spread,
+                      const Real* dx, 
+                      int* nghost);
+
+    static void SpreadKernelGpu(const AoS& aos,
+                      const Box& bx,
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_out,
+                      std::array<      FArrayBox *, AMREX_SPACEDIM> & f_weights,
+                      const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+                      const Real* dx,
+                      int* nghost);
     //---------------------------------------------------------------------------
 
 
@@ -118,6 +135,11 @@ public:
                              std::array<MultiFab, AMREX_SPACEDIM> & f_out,
                        const std::array<MultiFab, AMREX_SPACEDIM> & coords,
                        const Real* dx, int ghost) const;
+
+    void SpreadMarkersGpu(int lev,
+            std::array<MultiFab, AMREX_SPACEDIM> & f_out,
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords,
+            const Real * dx, int ghost) const;
 
     void SpreadPredictor(int lev,
                          std::array<MultiFab, AMREX_SPACEDIM> & f_out) const;
@@ -145,10 +167,31 @@ public:
                 const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
                 const Real * dx, const int ghost
             );
+
+    static void InterpolateKernelGpu(AoS& aos,
+                      const Box& bx,
+                      const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_in,
+                      const std::array<const FArrayBox *, AMREX_SPACEDIM> & f_weights,
+                      const std::array<const FArrayBox *, AMREX_SPACEDIM> & coords,
+                      const Real* dx,
+                      const int* nghost,
+                      int& check);
     //---------------------------------------------------------------------------
 
 
 
+    void InterpolateMarkers(
+            int lev,
+            const Real * dx,
+            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords
+        );
+
+    void InterpolateMarkersGpu(
+            int lev,
+            const Real * dx,
+            const std::array<MultiFab, AMREX_SPACEDIM> & f_in,
+            const std::array<MultiFab, AMREX_SPACEDIM> & coords);
     //___________________________________________________________________________
     // Interpolation operators applied to internal force fields (in amrex::Particles)
     void InterpolateMarkers(int lev,
@@ -193,7 +236,10 @@ public:
      ***************************************************************************/
 
     void PullDown(int lev, Real * list, int element, int totalParticles);
-    void PushUp(int lev, Real * list, int element, int totalParticles);
+
+    void PullDownInt(int lev, int * list, int element, int totalParticles);
+
+    void PushUpAdd(int lev, Real * list, int element, int totalParticles);
 
     int get_nghost() const {return nghost;};
 

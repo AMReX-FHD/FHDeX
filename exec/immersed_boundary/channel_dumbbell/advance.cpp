@@ -1,17 +1,12 @@
 #include "main_driver.H"
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "gmres_namespace.H"
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -21,8 +16,6 @@
 
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 using namespace immbdy_md;
 
 
@@ -187,8 +180,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], geom, i);
-        MultiFABPhysBCMacVel(umac[i], geom, i);
+        MultiFabPhysBCDomainVel(umac[i], geom, i);
+        MultiFabPhysBCMacVel(umac[i], geom, i);
     }
 
 
@@ -200,9 +193,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracer, geom);
+    MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracer, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // compute predictor
@@ -210,9 +203,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracerPred, geom);
+    MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // advance in time
@@ -240,8 +233,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], geom, i);
-        MultiFABPhysBCMacVel(uMom[i], geom, i);
+        MultiFabPhysBCDomainVel(uMom[i], geom, i);
+        MultiFabPhysBCMacVel(uMom[i], geom, i);
     }
 
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
@@ -281,7 +274,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
         for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
@@ -308,7 +301,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::pred_forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBMReal::pred_forcex + d) = - f_0 * r[d];
+                    // next_marker->rdata(IBMReal::pred_forcex + d) = - f_0 * r[d];
                 }
 
             } else if (status == 2) { // has prev, has no next
@@ -324,7 +317,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::pred_forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBMReal::pred_forcex + d) =   f_0 * r[d];
+                    // prev_marker->rdata(IBMReal::pred_forcex + d) =   f_0 * r[d];
                 }
             }
         }
@@ -365,7 +358,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     pres.setVal(0.);  // initial guess
     SetPressureBC(pres, geom);
     for (int d=0; d<AMREX_SPACEDIM; ++d) pg[d].setVal(0);
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         pg[i].FillBoundary(geom.periodicity());
@@ -379,23 +372,23 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Copy(umacNew[i], umac[i], 0, 0, 1, 1);
 
     // call GMRES to compute predictor
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    GMRES gmres(ba, dmap, geom);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,
+                beta_ed_wtd, gamma_wtd, theta_alpha, geom, norm_pre_rhs);
 
     // Compute predictor advective term
     // let rho = 1
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], geom, d);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], geom, d);
-        MultiFABPhysBCMacVel(uMom[d], geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], geom, d);
+        MultiFabPhysBCMacVel(uMom[d], geom, d);
     }
 
     MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
@@ -411,7 +404,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     }
 
     // crank-nicolson terms
-    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac, alpha_fc_0, dx, theta_alpha);
+    StagApplyOp(geom, beta_negwtd, gamma_negwtd, beta_ed_negwtd, umac, Lumac,
+                alpha_fc_0, dx, theta_alpha);
 
 
     //___________________________________________________________________________
@@ -429,15 +423,14 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     //___________________________________________________________________________
     // Move markers according to velocity
     ib_mc.MoveMarkers(0, dt);
-    ib_mc.Redistribute(); // Don't forget to send particles to the right CPU
+
+    ib_mc.clearNeighbors(); // Important: clear neighbors before Redistribute
+    ib_mc.Redistribute();   // Don't forget to send particles to the right CPU
 
 
     //___________________________________________________________________________
-    // Update forces between markers (these repeated clear/fill/build neighbor
-    // calls might be redundant)
-    ib_mc.clearNeighbors();
+    // Update forces between markers
     ib_mc.fillNeighbors(); // Does ghost cells
-
     ib_mc.buildNeighborList(ib_mc.CheckPair);
 
 
@@ -446,7 +439,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         // Get marker data (local to current thread)
         TileIndex index(pti.index(), pti.LocalTileIndex());
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
-        long np = markers.size();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
         for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
 
@@ -471,7 +464,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::forcex + d)         =   f_0 * r[d];
-                    next_marker->rdata(IBMReal::forcex + d) = - f_0 * r[d];
+                    // next_marker->rdata(IBMReal::forcex + d) = - f_0 * r[d];
                 }
 
             } else if (status == 2) { // has prev, has no next
@@ -485,7 +478,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d) {
                     mark.rdata(IBMReal::forcex + d)         = - f_0 * r[d];
-                    prev_marker->rdata(IBMReal::forcex + d) =   f_0 * r[d];
+                    // prev_marker->rdata(IBMReal::forcex + d) =   f_0 * r[d];
                 }
             }
         }
@@ -527,9 +520,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     SetPressureBC(pres, geom);
 
     // call GMRES here
-    GMRES(gmres_rhs_u, gmres_rhs_p, umacNew, pres,
-          alpha_fc, beta_wtd, beta_ed_wtd, gamma_wtd, theta_alpha,
-          geom, norm_pre_rhs);
+    gmres.Solve(gmres_rhs_u, gmres_rhs_p, umacNew, pres, alpha_fc, beta_wtd,
+                beta_ed_wtd, gamma_wtd, theta_alpha, geom, norm_pre_rhs);
 
     for (int i=0; i<AMREX_SPACEDIM; i++)
         MultiFab::Copy(umac[i], umacNew[i], 0, 0, 1, 0);

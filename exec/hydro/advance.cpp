@@ -1,23 +1,14 @@
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
-
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
-
-#include "gmres_namespace.H"
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
@@ -159,7 +150,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
   // Compute tracer:
   tracer.FillBoundary(geom.periodicity());
-  MkAdvSFluxdiv(umac,tracer,advFluxdivS,dx,geom,0,0);
+  MkAdvSFluxdiv_cc(umac,tracer,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // compute predictor
@@ -167,7 +158,7 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
   tracerPred.FillBoundary(geom.periodicity());
   // FIXME need to fill physical boundary condition ghost cells for tracer
-  MkAdvSFluxdiv(umac,tracerPred,advFluxdivS,dx,geom,0,0);
+  MkAdvSFluxdiv_cc(umac,tracerPred,advFluxdivS,geom,0,1,0);
   advFluxdivS.mult(dt, 1);
 
   // advance in time
@@ -222,9 +213,10 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   pres.setVal(0.);  // initial guess
 
   // call GMRES to compute predictor
-  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-	alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
-	theta_alpha,geom,norm_pre_rhs);
+  GMRES gmres(ba,dmap,geom);
+  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+              alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
+              theta_alpha,geom,norm_pre_rhs);
 
   // Compute predictor advective term
   for (int d=0; d<AMREX_SPACEDIM; d++) {
@@ -268,9 +260,9 @@ void advance(  std::array< MultiFab, AMREX_SPACEDIM >& umac,
   pres.setVal(0.);  // initial guess
 
   // call GMRES here
-  GMRES(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
-	alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
-	theta_alpha,geom,norm_pre_rhs);
+  gmres.Solve(gmres_rhs_u,gmres_rhs_p,umacNew,pres,
+              alpha_fc,beta_wtd,beta_ed_wtd,gamma_wtd,
+              theta_alpha,geom,norm_pre_rhs);
 
   for (int d=0; d<AMREX_SPACEDIM; d++) {
     MultiFab::Copy(umac[d], umacNew[d], 0, 0, 1, 0);

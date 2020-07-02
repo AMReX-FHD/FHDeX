@@ -1,11 +1,12 @@
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
 
 
 void SetPressureBC(MultiFab & p0, const Geometry & geom) {
 
+    BL_PROFILE_VAR("SetPressureBC()",SetPressureBC);    
+    
     Box dom(geom.Domain());
 
     for (MFIter mfi(p0); mfi.isValid(); ++mfi) {

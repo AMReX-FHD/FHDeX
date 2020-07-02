@@ -236,7 +236,7 @@ public:
 
     // Get number of particles
     int NumberOfParticles(IBMBIter & pti){
-        return pti.GetArrayOfStructs().size();
+        return pti.GetArrayOfStructs().numParticles();
     };
 
 

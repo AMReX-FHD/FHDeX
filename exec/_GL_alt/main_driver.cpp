@@ -3,20 +3,15 @@
 //#include "hydro_test_functions_F.H"
 
 //#include "hydro_functions.H"
-//#include "hydro_functions_F.H"
-//#include "StochMFlux.H"
+//#include "StochMomFlux.H"
 //#include "StructFact.H"
 
-#include "rng_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 //#include "compressible_functions.H"
-//#include "compressible_functions_F.H"
 
 #include "exec_functions.H"
 #include "GL_functions.H"
@@ -29,7 +24,6 @@
 #include <AMReX_MultiFab.H>
 
 using namespace amrex;
-using namespace common;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)

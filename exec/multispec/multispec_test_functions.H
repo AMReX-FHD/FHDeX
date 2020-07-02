@@ -4,23 +4,26 @@
 #include "common_functions.H"
 #include "gmres_functions.H"
 
+#include "StochMassFlux.H"
+#include "StochMomFlux.H"
+
 ///////////////////////////
-// in advance.cpp
-void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
-	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& umacNew,
-	     amrex::MultiFab& pres, amrex::MultiFab& tracer,
-	     amrex::MultiFab& rho, amrex::MultiFab& rhotot,
-	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_predict,
-	     const std::array< amrex::MultiFab, AMREX_SPACEDIM >& mfluxdiv_correct,
-	     std::array< amrex::MultiFab, AMREX_SPACEDIM >& alpha_fc,
-	     const amrex::MultiFab& beta, const amrex::MultiFab& gamma,
-# if (AMREX_SPACEDIM == 2)
-	     const std::array< amrex::MultiFab, 1 >& beta_ed,
-# endif
-# if (AMREX_SPACEDIM == 3)
-	     const std::array< amrex::MultiFab, 3 >& beta_ed,
-# endif
-	     const amrex::Geometry geom, const amrex::Real& dt);
+// in AdvanceTimestepInertial.cpp
+
+void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                             MultiFab& rho_old, MultiFab& rho_new,
+                             MultiFab& rhotot_old, MultiFab& rhotot_new,
+                             MultiFab& pi, MultiFab& eta, 
+                             std::array< MultiFab, NUM_EDGE >&  eta_ed,
+                             MultiFab& kappa, MultiFab& Temp,
+                             std::array< MultiFab, NUM_EDGE >& Temp_ed,
+                             MultiFab& diff_mass_fluxdiv,
+                             MultiFab& stoch_mass_fluxdiv,
+                             std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                             StochMassFlux& sMassFlux,
+                             StochMomFlux& sMomFlux,
+                             const Real& dt, const Real& time, const int& istep,
+                             const Geometry& geom);
 
 ///////////////////////////
 
@@ -28,11 +31,11 @@ void advance(std::array< amrex::MultiFab, AMREX_SPACEDIM >& umac,
 // in WritePlotFile.cpp
 
 void WritePlotFile(const int step,
-                   const amrex::Real time,
-                   const amrex::Geometry geom,
+                   const Real time,
+                   const Geometry geom,
                    std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                   const MultiFab& rhotot,
 		   const MultiFab& rho,
-		   const MultiFab& tracer,
                    const MultiFab& pres);
 
 ///////////////////////////

@@ -3,24 +3,18 @@
 #include "hydro_test_functions_F.H"
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "analysis_functions_F.H"
-#include "StochMFlux.H"
+#include "StochMomFlux.H"
 #include "StructFact.H"
 
-#include "rng_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
-#include "gmres_namespace.H"
 #include "gmres_namespace_declarations.H"
 
 #include <AMReX_VisMF.H>
@@ -29,8 +23,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -200,8 +192,8 @@ void main_driver(const char* argv)
     Vector< amrex::Real > weights;
     weights = {1.0};
 
-    // Declare object of StochMFlux class
-    StochMFlux sMflux (ba,dmap,geom,n_rngs);
+    // Declare object of StochMomFlux class
+    StochMomFlux sMflux (ba,dmap,geom,n_rngs);
 
     ///////////////////////////////////////////
 
@@ -275,7 +267,7 @@ void main_driver(const char* argv)
 
     // Add initial equilibrium fluctuations
     if(initial_variance_mom != 0.0) {
-        sMflux.addMfluctuations(umac, rho, temp_cc, initial_variance_mom);
+        sMflux.addMomFluctuations(umac, rho, temp_cc, initial_variance_mom);
     }
 
     int step = 0;
@@ -294,10 +286,10 @@ void main_driver(const char* argv)
 	if(variance_coef_mom != 0.0) {
 
 	  // compute the random numbers needed for the stochastic momentum forcing
-	  sMflux.fillMStochastic();
+	  sMflux.fillMomStochastic();
 
 	  // compute stochastic momentum force
-	  sMflux.StochMFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
+	  sMflux.StochMomFluxDiv(stochMfluxdiv,0,eta_cc,eta_ed,temp_cc,temp_ed,weights,dt);
 	}
 
 	// Advance umac

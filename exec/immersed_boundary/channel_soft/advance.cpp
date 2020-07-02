@@ -2,16 +2,12 @@
 #include "main_driver_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 #include "hydro_functions.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "gmres_namespace.H"
 
 #include "ib_functions.H"
 
@@ -20,8 +16,6 @@
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(AmrCoreAdv & amr_core_adv,
@@ -165,8 +159,8 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+        MultiFabPhysBCDomainVel(umac[i], i, geom, i);
+        MultiFabPhysBCMacVel(umac[i], i, geom, i);
     }
 
 
@@ -179,9 +173,9 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracer, geom);
+    MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracer, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // compute predictor
@@ -189,9 +183,9 @@ void advance(AmrCoreAdv & amr_core_adv,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracerPred, geom);
+    MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // advance in time
@@ -448,8 +442,8 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFabPhysBCMacVel(uMom[d], d, geom, d);
     }
 
     // advective momentum flux terms
@@ -462,10 +456,10 @@ void advance(AmrCoreAdv & amr_core_adv,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(Lumac[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(advFluxdiv[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
     }
 
 
@@ -474,7 +468,7 @@ void advance(AmrCoreAdv & amr_core_adv,
 
     pres.setVal(0.);
     SetPressureBC(pres, geom);
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
 
     //___________________________________________________________________________
@@ -596,8 +590,8 @@ void advance(AmrCoreAdv & amr_core_adv,
 
      for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], d, geom, d);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 1);
 
@@ -606,8 +600,8 @@ void advance(AmrCoreAdv & amr_core_adv,
 
         // momentum boundary conditions
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFabPhysBCMacVel(uMom[d], d, geom, d);
      }
 
     // advective momentum flux terms
@@ -628,13 +622,13 @@ void advance(AmrCoreAdv & amr_core_adv,
     // advective term boundary conditions
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         Lumac[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(Lumac[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
 
         advFluxdiv[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(advFluxdiv[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
 
         advFluxdivPred[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCPres(advFluxdivPred[d], d, geom);
+        // MultiFabPhysBC fixme face-centered data
     }
 
 

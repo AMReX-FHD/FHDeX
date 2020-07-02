@@ -1,32 +1,57 @@
 #ifndef _common_functions_H_
 #define _common_functions_H_
 
-#define MAX_SPECIES 10
+#define MAX_SPECIES 4
 #define LOHI 2
-
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ArrayLim.H>
+#include <AMReX_BC_TYPES.H>
 
+#include "common_functions_F.H"
+#include "common_namespace.H"
+
+using namespace common;
 using namespace amrex;
+
+#ifndef _num_edge_
+#define _num_edge_
+#if (AMREX_SPACEDIM == 2)
+    const int NUM_EDGE = 1;
+#elif (AMREX_SPACEDIM == 3)
+    const int NUM_EDGE = 3;
+#endif
+#endif
 
 // copy contents of common_params_module to C++ common namespace
 void InitializeCommonNamespace();
 
 ///////////////////////////
+// in BCPhysToMath.cpp
+void BCPhysToMath(int type, Vector<int>& bc_lo, Vector<int>& bc_hi);
+
+///////////////////////////
+
+///////////////////////////
 // in ConvertStag.cpp
 
-void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face,
-                     MultiFab& cc, int cc_comp);
+void AverageFaceToCC(const std::array<MultiFab, AMREX_SPACEDIM>& face_in,
+                     MultiFab& cc_in, int cc_in_comp);
 
-void AverageCCToFace(const MultiFab& cc, int cc_comp,
-                     std::array<MultiFab, AMREX_SPACEDIM>& face, int face_comp,
-                     int ncomp);
+void AverageCCToFace(const MultiFab& cc_in,
+                     std::array<MultiFab, AMREX_SPACEDIM>& face_in,
+                     int scomp, int ncomp, int varType, const Geometry& geom);
 
-void ShiftFaceToCC(const MultiFab& face, int face_comp,
-                     MultiFab& cc, int cc_comp,
-                     int ncomp);
+void ShiftFaceToCC(const MultiFab& face_in, int face_in_comp,
+                   MultiFab& cc_in, int cc_in_comp,
+                   int ncomp);
+
+void AverageCCToNode(const MultiFab& cc_in, MultiFab& node_in,
+                     int scomp, int ncomp, int varType, const Geometry& geom);
+
+void AverageCCToEdge(const MultiFab& cc_in, std::array<MultiFab, NUM_EDGE>& edge_in,
+                     int scomp, int ncomp, int varType, const Geometry& geom);
 
 ///////////////////////////
 // in ComputeDivAndGrad.cpp
@@ -35,10 +60,12 @@ void ComputeDiv(MultiFab & div, const std::array<MultiFab, AMREX_SPACEDIM> & phi
                 int start_incomp, int start_outcomp, int ncomp, 
                 const Geometry & geom, int increment);
 
-void ComputeGrad(const MultiFab & phi, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
-                 int start_incomp, int start_outcomp, int ncomp, const Geometry & geom);
+void ComputeGrad(const MultiFab & phi_in, std::array<MultiFab, AMREX_SPACEDIM> & gphi, 
+                 int start_incomp, int start_outcomp, int ncomp, int varType, const Geometry & geom,
+                 int increment=0);
 
-void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi, const Geometry& geom);
+void ComputeCentredGrad(const MultiFab& phi, std::array<MultiFab, AMREX_SPACEDIM>& gphi,
+                        const Geometry& geom);
 
 ///////////////////////////
 // in Debug.cpp
@@ -67,6 +94,10 @@ void FindNodalValues(const MultiFab & inFab, MultiFab & outFab, const MultiFab &
 void ComputeBasicStats(const MultiFab & instant, MultiFab & means, MultiFab & vars,
                 const int incomp, const int outcomp, const int steps);
 
+void OutputVolumeMean(const MultiFab & instant, const int comp, const Real domainVol, std::string filename, const Geometry geom);
+
+Real MaskedSum (const MultiFab & inFab,int comp, const Periodicity& period);
+
 Real SumFab(const MultiFab & in, const int ng, const int comp);
 
 void XMeanFab(const MultiFab & in, MultiFab & out, const int ng);
@@ -76,58 +107,36 @@ void MaxSpeed(std::array< MultiFab, AMREX_SPACEDIM >& umac);
 ///////////////////////////
 // in ComputeAverages.cpp
 
-void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
-
-// void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom, const int dir, const int incomp, const int ncomp, const int findredist=0);
+void ComputeVerticalAverage(const MultiFab & mf, MultiFab & mf_avg, const Geometry & geom,
+                            const int dir, const int incomp, const int ncomp,
+                            const int findredist=0);
 
 ///////////////////////////
-// in MultiFABPhysBC.cpp
+// in MultiFabPhysBC.cpp
+// see comments in C++ files for descriptions
 
-/********************************************************************************
- *                                                                              *
- * Functions to fill physical boundary conditions                               *
- *  -> dim_fill_ghost sets for which dimension to fill ghost cells              *
- *                                                                              *
- *******************************************************************************/
+void MultiFabPhysBC(MultiFab& data, const Geometry& geom, int scomp, int ncomp, int varType);
 
-// Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCPres(MultiFab & pressure, const Geometry & geom);
-// These don't assume that the ghost cells are non-nan
-void MultiFABPhysBCPres(MultiFab & pressure, int seq_fill_ghost, const Geometry & geom);
-void MultiFABPhysBCPres(MultiFab & pressure, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFabPhysBCDomainVel(MultiFab& vel, const Geometry& geom, int dim);
 
-// Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCDomainVel(MultiFab & vel, const Geometry & geom, int dim);
-// These don't assume that the ghost cells are non-nan
-void MultiFABPhysBCDomainVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCDomainVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
+void MultiFabPhysBCMacVel(MultiFab& vel, const Geometry& geom, int dim);
 
-// Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCMacVel(MultiFab & vel, const Geometry & geom, int dim);
-// Call this if the ghost cells are already `setVal` to zero.
-void MultiFABPhysBCMacVel(MultiFab & vel, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCMacVel(MultiFab & vel, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
+void ZeroEdgevalWalls(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom,
+                      int scomp, int ncomp);
 
-//Functions to modify the stress & efield near the boundaries due to/for peskin particles
+void ZeroEdgevalPhysical(std::array<MultiFab, AMREX_SPACEDIM>& edge, const Geometry& geom,
+                         int scomp, int ncomp);
 
-void MultiFABElectricBC(MultiFab & efield, const Geometry & geom);
-void MultiFABElectricBC(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
-void MultiFABElectricBC(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFabElectricBC(MultiFab& efieldCC, const Geometry& geom);
 
-void MultiFABPotentialBC(MultiFab & potential, const Geometry & geom);
-void MultiFABPotentialBC(MultiFab & potential, int seq_fill_ghost, const Geometry & geom);
-void MultiFABPotentialBC(MultiFab & potential, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFabPotentialBC(MultiFab& potential, const Geometry& geom);
 
-void MultiFABPhysBCCharge(MultiFab & efield, const Geometry & geom);
-void MultiFABPhysBCCharge(MultiFab & efield, int seq_fill_ghost, const Geometry & geom);
-void MultiFABPhysBCCharge(MultiFab & efield, const IntVect & dim_fill_ghost, const Geometry & geom);
+void MultiFabPotentialBC_solver(MultiFab& potential, const Geometry& geom);
 
-void MultiFABPhysBCMacStress(MultiFab & stress, const Geometry & geom, int dim);
-void MultiFABPhysBCMacStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCMacStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
+void MultiFabPhysBCCharge(MultiFab& charge, const Geometry& geom);
 
-void MultiFABPhysBCDomainStress(MultiFab & stress, const amrex::Geometry & geom, int dim);
-void MultiFABPhysBCDomainStress(MultiFab & stress, int seq_fill_ghost, const Geometry & geom, int dim);
-void MultiFABPhysBCDomainStress(MultiFab & stress, const IntVect & dim_fill_ghost, const Geometry & geom, int dim);
+void MultiFabPhysBCMacStress(MultiFab& stress, const Geometry& geom, int dim);
+
+void MultiFabPhysBCDomainStress(MultiFab& stress, const amrex::Geometry& geom, int dim);
 
 #endif

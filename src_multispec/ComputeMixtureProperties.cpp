@@ -1,15 +1,4 @@
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
-
-#include "common_functions.H"
-#include "common_functions_F.H"
-
-#include "multispec_namespace.H"
-#include "common_namespace.H"
-
-using namespace multispec;
-using namespace common;
-using namespace amrex;
 
 void ComputeMixtureProperties(const MultiFab& rho,
 			      const MultiFab& rhotot,
@@ -20,14 +9,16 @@ void ComputeMixtureProperties(const MultiFab& rho,
 
     BL_PROFILE_VAR("ComputeMixtureProperties()",ComputeMixtureProperties);
 
+    int ng = D_bar.nGrow();
+    
     // Loop over boxes
-    for (MFIter mfi(rho); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(D_bar,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
 
         // Create cell-centered box
-        const Box& validBox = mfi.validbox();
+        const Box& bx = mfi.growntilebox(ng);
 
-        mixture_properties_mass(ARLIM_3D(validBox.loVect()), ARLIM_3D(validBox.hiVect()),
-				BL_TO_FORTRAN_FAB(rho[mfi]),
+        mixture_properties_mass(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
+				BL_TO_FORTRAN_ANYD(rho[mfi]),
 				BL_TO_FORTRAN_ANYD(rhotot[mfi]),
 				BL_TO_FORTRAN_ANYD(D_bar[mfi]),
 				BL_TO_FORTRAN_ANYD(D_therm[mfi]),

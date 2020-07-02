@@ -1,20 +1,13 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
-#include "common_namespace.H"
 #include "common_namespace_declarations.H"
 
 #include "compressible_functions.H"
-#include "compressible_functions_F.H"
-#include "compressible_namespace.H"
 #include "compressible_namespace_declarations.H"
 
-#include "rng_functions_F.H"
 
 #include "StructFact.H"
 
 using namespace amrex;
-using namespace common;
-using namespace compressible;
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
@@ -445,7 +438,7 @@ void main_driver(const char* argv)
     prim.setVal(rho0,0,1,ngc);      // density
     prim.setVal(0.,1,3,ngc);        // x/y/z velocity
     prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in cons_to_prim
+                                    // pressure computed later in conservedToPrimitive
     for(int i=0;i<nspecies;i++) {
         prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
     }

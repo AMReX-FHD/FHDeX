@@ -1,27 +1,42 @@
-#include <AMReX_VisMF.H>
+#include "GMRES.H"
 
-#include "common_functions.H"
-#include "common_functions_F.H"
-#include "common_namespace.H"
+GMRES::GMRES (const BoxArray& ba_in,
+              const DistributionMapping& dmap_in,
+              const Geometry& geom_in) {
 
-#include "gmres_functions.H"
-#include "gmres_functions_F.H"
-#include "gmres_namespace.H"
+    BL_PROFILE_VAR("GMRES::GMRES()", GMRES);
+    
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        r_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 1);
+        w_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
+        tmp_u[d]      .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
+        scr_u[d]      .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1,                 0);
+        V_u[d]        .define(convert(ba_in, nodal_flag_dir[d]), dmap_in, gmres_max_inner+1, 0);
+        alphainv_fc[d].define(convert(ba_in, nodal_flag_dir[d]), dmap_in, 1, 0);
+    }
 
-using namespace common;
-using namespace gmres;
+    r_p.define  (ba_in, dmap_in,                  1, 1);
+    w_p.define  (ba_in, dmap_in,                  1, 0);
+    tmp_p.define(ba_in, dmap_in,                  1, 0);
+    scr_p.define(ba_in, dmap_in,                  1, 0);
+    V_p.define  (ba_in, dmap_in,gmres_max_inner + 1, 0); // Krylov vectors
 
-void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
-           std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
-           std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
-           MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
-           MultiFab & gamma,
-           Real theta_alpha,
-           const Geometry & geom,
-           Real & norm_pre_rhs)
+    StagSolver.Define(ba_in,dmap_in,geom_in);
+    Pcon.Define(ba_in,dmap_in,geom_in);
+}
+
+
+void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
+                   std::array<MultiFab, AMREX_SPACEDIM> & x_u, MultiFab & x_p,
+                   std::array<MultiFab, AMREX_SPACEDIM> & alpha_fc,
+                   MultiFab & beta, std::array<MultiFab, NUM_EDGE> & beta_ed,
+                   MultiFab & gamma,
+                   Real theta_alpha,
+                   const Geometry & geom,
+                   Real & norm_pre_rhs)
 {
 
-    BL_PROFILE_VAR("GMRES()", GMRES);
+    BL_PROFILE_VAR("GMRES::Solve()", GMRES_Solve);
 
     if (gmres_verbose >= 1) {
         Print() << "Begin call to GMRES" << std::endl;
@@ -52,32 +67,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
     Vector<Real> inner_prod_vel(AMREX_SPACEDIM);
     Real inner_prod_pres;
-
-    BoxArray ba = b_p.boxArray();
-    DistributionMapping dmap = b_p.DistributionMap();
-
-
-    // # of ghost cells must match x_u so higher-order stencils can work
-    std::array< MultiFab, AMREX_SPACEDIM > r_u;
-    std::array< MultiFab, AMREX_SPACEDIM > w_u;
-    std::array< MultiFab, AMREX_SPACEDIM > tmp_u;
-    std::array< MultiFab, AMREX_SPACEDIM > V_u;
-
-    for (int d=0; d<AMREX_SPACEDIM; ++d) {
-        r_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, x_u[d].nGrow());
-        w_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        tmp_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-        V_u[d].define(convert(ba, nodal_flag_dir[d]), dmap, gmres_max_inner + 1, 0);
-    }
-
-    // # of ghost cells must match x_p so higher-order stencils can work
-    MultiFab r_p  (ba, dmap,                  1, x_p.nGrow());
-    MultiFab w_p  (ba, dmap,                  1, 0);
-    MultiFab tmp_p(ba, dmap,                  1, 0);
-    MultiFab V_p  (ba, dmap,gmres_max_inner + 1, 0); // Krylov vectors
-
-
-
+    
+    //////////////////////////////////////
 
     /****************************************************************************
      *                                                                          *
@@ -85,6 +76,11 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
      *                                                                          *
      ***************************************************************************/
 
+    // set alphainv_fc to 1/alpha_fc
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        alphainv_fc[d].setVal(1.);
+        alphainv_fc[d].divide(alpha_fc[d],0,1,0);
+    }
 
     // apply scaling factor
     if (scale_factor != 1.) {
@@ -106,20 +102,21 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
 
     // First application of preconditioner
-    ApplyPrecon(b_u, b_p, tmp_u, tmp_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+    Pcon.Apply(b_u, b_p, tmp_u, tmp_p, alpha_fc, alphainv_fc,
+               beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
     // preconditioned norm_b: norm_pre_b
-    StagL2Norm(geom, tmp_u, 0, norm_u);
-    CCL2Norm(tmp_p, 0, norm_p);
+    StagL2Norm(geom, tmp_u, 0, scr_u, norm_u);
+    CCL2Norm(tmp_p, 0, scr_p, norm_p);
     norm_p       = p_norm_weight*norm_p;
     norm_pre_b   = sqrt(norm_u*norm_u + norm_p*norm_p);
     norm_pre_rhs = norm_pre_b;
 
 
     // calculate the l2 norm of rhs
-    StagL2Norm(geom, b_u, 0, norm_u);
-    CCL2Norm(b_p, 0, norm_p);
+    StagL2Norm(geom, b_u, 0, scr_u, norm_u);
+    CCL2Norm(b_p, 0, scr_p, norm_p);
     norm_p = p_norm_weight*norm_p;
     norm_b = sqrt(norm_u*norm_u + norm_p*norm_p);
 
@@ -175,8 +172,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         //_______________________________________________________________________
         // un-preconditioned residuals
-        StagL2Norm(geom, tmp_u, 0, norm_u_noprecon);
-        CCL2Norm(tmp_p, 0, norm_p_noprecon);
+        StagL2Norm(geom, tmp_u, 0, scr_u, norm_u_noprecon);
+        CCL2Norm(tmp_p, 0, scr_p, norm_p_noprecon);
         norm_p_noprecon   = p_norm_weight*norm_p_noprecon;
         norm_resid_Stokes = sqrt(norm_u_noprecon*norm_u_noprecon + norm_p_noprecon*norm_p_noprecon);
 
@@ -202,12 +199,13 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
         //_______________________________________________________________________
         // solve for r = M^{-1} tmp
         // We should not be counting these toward the number of mg cycles performed
-        ApplyPrecon(tmp_u, tmp_p, r_u, r_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+        Pcon.Apply(tmp_u, tmp_p, r_u, r_p, alpha_fc, alphainv_fc,
+                   beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
         // resid = sqrt(dot_product(r, r))
-        StagL2Norm(geom, r_u, 0, norm_u);
-        CCL2Norm(r_p, 0, norm_p);
+        StagL2Norm(geom, r_u, 0, scr_u, norm_u);
+        CCL2Norm(r_p, 0, scr_p, norm_p);
         norm_p     = p_norm_weight*norm_p;
         norm_resid = sqrt(norm_u*norm_u + norm_p*norm_p);
 
@@ -331,7 +329,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
             //___________________________________________________________________
             // w = M^{-1} A*V(i)
-            ApplyPrecon(tmp_u, tmp_p, w_u, w_p, alpha_fc, beta, beta_ed, gamma, theta_alpha, geom);
+            Pcon.Apply(tmp_u, tmp_p, w_u, w_p, alpha_fc, alphainv_fc,
+                       beta, beta_ed, gamma, theta_alpha, geom, StagSolver);
 
 
             //___________________________________________________________________
@@ -339,8 +338,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             for (int k=0; k<=i; ++k) {
                 // H(k,i) = dot_product(w, V(k))
                 //        = dot_product(w_u, V_u(k))+dot_product(w_p, V_p(k))
-                StagInnerProd(geom,w_u, 0, V_u, k, inner_prod_vel);
-                CCInnerProd(w_p, 0, V_p, k, inner_prod_pres);
+                StagInnerProd(geom,w_u, 0, V_u, k, scr_u, inner_prod_vel);
+                CCInnerProd(w_p, 0, V_p, k, scr_p, inner_prod_pres);
                 H[k][i] = std::accumulate(inner_prod_vel.begin(), inner_prod_vel.end(), 0.) 
                           + pow(p_norm_weight, 2.0)*inner_prod_pres;
 
@@ -358,8 +357,8 @@ void GMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             }
 
             // H(i+1,i) = norm(w)
-            StagL2Norm(geom, w_u, 0, norm_u);
-            CCL2Norm(w_p, 0, norm_p);
+            StagL2Norm(geom, w_u, 0, scr_u, norm_u);
+            CCL2Norm(w_p, 0, scr_p, norm_p);
             norm_p    = p_norm_weight*norm_p;
             H[i+1][i] = sqrt(norm_u*norm_u + norm_p*norm_p);
 

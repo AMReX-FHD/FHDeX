@@ -1,8 +1,5 @@
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
-#include "multispec_namespace.H"
 
-using namespace multispec;
 
 void InitializeMultispecNamespace() {
 
@@ -40,7 +37,6 @@ void InitializeMultispecNamespace() {
 				    &use_lapack, 
 				    c_init.dataPtr(), 
 				    c_bc.dataPtr(),
-				    &alpha1, &beta, &delta, &sigma, 
 				    &midpoint_stoch_mass_flux_type, 
 				    &avg_type, &mixture_type);
     

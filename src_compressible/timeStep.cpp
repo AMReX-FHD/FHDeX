@@ -1,15 +1,10 @@
 #include "compressible_functions.H"
-#include "compressible_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 #include "rng_functions.H"
-#include "rng_functions_F.H"
 
-#include "common_namespace.H"
 
-using namespace common;
 
 void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              MultiFab& prim, MultiFab& source,
@@ -21,9 +16,14 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
              std::array<MultiFab, AMREX_SPACEDIM>& corny,
              std::array<MultiFab, AMREX_SPACEDIM>& cornz,
              MultiFab& visccorn, MultiFab& rancorn,
-             const amrex::Geometry geom, const amrex::Real* dx, const amrex::Real dt)
+             const amrex::Geometry geom, const amrex::Real* dxp, const amrex::Real dt)
 {
+    BL_PROFILE_VAR("RK3step()",RK3step);
     
+    const GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+    
+    const GpuArray<Real,AMREX_SPACEDIM> grav_gpu{AMREX_D_DECL(grav[0], grav[1], grav[2])};
+
     /////////////////////////////////////////////////////
     // Initialize white noise fields
 
@@ -65,13 +65,13 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     // fill random numbers (can skip density component 0)
     for(int d=0;d<AMREX_SPACEDIM;d++) {
     	for(int i=1;i<nvars;i++) {
-    	    MultiFABFillRandom(stochFlux_A[d], i, 1.0, geom);
-	    MultiFABFillRandom(stochFlux_B[d], i, 1.0, geom);
+    	    MultiFabFillRandom(stochFlux_A[d], i, 1.0, geom);
+	    MultiFabFillRandom(stochFlux_B[d], i, 1.0, geom);
         }
     }
 
-    MultiFABFillRandom(rancorn_A, 0, 1.0, geom);
-    MultiFABFillRandom(rancorn_B, 0, 1.0, geom);
+    MultiFabFillRandom(rancorn_A, 0, 1.0, geom);
+    MultiFabFillRandom(rancorn_B, 0, 1.0, geom);
 
     /////////////////////////////////////////////////////
 
@@ -106,22 +106,60 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cu, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dx, dt);
+                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
-        rk3_stage1(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),  
-                   source[mfi].dataPtr(),
-                   flux[0][mfi].dataPtr(),
-                   flux[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                   flux[2][mfi].dataPtr(),
-#endif
-      	           ZFILL(dx), &dt);   
+        const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cup_fab = cup.array(mfi);
+        const Array4<Real> & source_fab = source.array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& xflux_fab = flux[0].array(mfi);,
+                     Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
+                     Array4<Real const> const& zflux_fab = flux[2].array(mfi););
+
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
+                ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
+                               + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
+                               + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
+                                                                                       )
+                + dt*source_fab(i,j,k,n);
+        });
+
+//        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+//        {
+//            cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
+//                (  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0] )
+//                + dt*source_fab(i,j,k,n);
+//        });
+
+//  what to do about tests
+
+//              if(cup(i,j,k,1) .lt. 0) then
+//                print *, "Aborting. Negative density at", i,j,k
+//                call exit(0)
+//              endif
+//              if(cup(i,j,k,5) .lt. 0) then
+//                print *, "Aborting. Negative energy at", i,j,k
+//                call exit(0)
+//              endif
+//
+
+        amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            cup_fab(i,j,k,n+1) += dt * cu_fab(i,j,k,0)*grav_gpu[n];
+        });
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            cup_fab(i,j,k,4) += dt * (  grav_gpu[0]*cu_fab(i,j,k,1)
+                                      + grav_gpu[1]*cu_fab(i,j,k,2)
+                                     + grav_gpu[2]*cu_fab(i,j,k,3)
+                                                                        );
+        });
     }
 
     conservedToPrimitive(prim, cup);
@@ -162,23 +200,60 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cup, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dx, dt);
+                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
-        rk3_stage2(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),  
-                   cup2[mfi].dataPtr(), 
-                   source[mfi].dataPtr(),
-                   flux[0][mfi].dataPtr(),
-                   flux[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                   flux[2][mfi].dataPtr(),
-#endif
-      	           ZFILL(dx), &dt);
+        const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cup_fab = cup.array(mfi);
+        const Array4<Real> & cup2_fab = cup2.array(mfi);
+        const Array4<Real> & source_fab = source.array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& xflux_fab = flux[0].array(mfi);,
+                     Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
+                     Array4<Real const> const& zflux_fab = flux[2].array(mfi););
+
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+                                       ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
+                                                      + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
+                                                      + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
+                                                                                                                )
+                                       +dt*source_fab(i,j,k,n)  );
+        });
+
+//        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+//        {
+//            cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+//                                       (  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0])                                                                                                                                                   
+//                                       +dt*source_fab(i,j,k,n)  );
+//        });
+
+//  what to do about tests
+
+//              if(cup(i,j,k,1) .lt. 0) then
+//                print *, "Aborting. Negative density at", i,j,k
+//                call exit(0)
+//              endif
+//              if(cup(i,j,k,5) .lt. 0) then
+//                print *, "Aborting. Negative energy at", i,j,k
+//                call exit(0)
+//              endif
+//
+
+        amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            cup2_fab(i,j,k,n+1) += 0.25* dt * cup_fab(i,j,k,0)*grav_gpu[n];
+        });
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            cup2_fab(i,j,k,4) += 0.25 * dt * (  grav_gpu[0]*cup_fab(i,j,k,1)
+                                              + grav_gpu[1]*cup_fab(i,j,k,2)
+                                              + grav_gpu[2]*cup_fab(i,j,k,3));
+        });
     }
         
     conservedToPrimitive(prim, cup2);
@@ -219,31 +294,73 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
     ///////////////////////////////////////////////////////////
 
     calculateFlux(cup2, prim, eta, zeta, kappa, chi, D, flux, stochFlux, cornx, corny, cornz,
-                  visccorn, rancorn, geom, stoch_weights, dx, dt);
+                  visccorn, rancorn, geom, stoch_weights, dxp, dt);
 
-    for ( MFIter mfi(cu); mfi.isValid(); ++mfi) {
+    for ( MFIter mfi(cu,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
         
-        const Box& bx = mfi.validbox();
+        const Box& bx = mfi.tilebox();
 
-        rk3_stage3(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-                   cu[mfi].dataPtr(),  
-                   cup[mfi].dataPtr(),
-                   cup2[mfi].dataPtr(), 
-                   source[mfi].dataPtr(),
-                   flux[0][mfi].dataPtr(),
-                   flux[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-                   flux[2][mfi].dataPtr(),
-#endif
-      	           ZFILL(dx), &dt);
-    
+        const Array4<Real> & cu_fab = cu.array(mfi);
+        const Array4<Real> & cup2_fab = cup2.array(mfi);
+        const Array4<Real> & source_fab = source.array(mfi);
+        AMREX_D_TERM(Array4<Real const> const& xflux_fab = flux[0].array(mfi);,
+                     Array4<Real const> const& yflux_fab = flux[1].array(mfi);,
+                     Array4<Real const> const& zflux_fab = flux[2].array(mfi););
+
+        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+                                    (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
+                                                     + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
+                                                     + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]) 
+                                                                                                            )
+                                    + dt*source_fab(i,j,k,n) );
+            
+        });
+
+//        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+//        {
+//            cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+//                                    (     (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0])
+//                                                   
+//                                    + dt*source_fab(i,j,k,n) );
+//            
+//        });
+        
+//  what to do about tests
+
+//              if(cup(i,j,k,1) .lt. 0) then
+//                print *, "Aborting. Negative density at", i,j,k
+//                call exit(0)
+//              endif
+//              if(cup(i,j,k,5) .lt. 0) then
+//                print *, "Aborting. Negative energy at", i,j,k
+//                call exit(0)
+//              endif
+//
+
+        amrex::ParallelFor(bx, 3, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+        {
+            cu_fab(i,j,k,n+1) += 2./3.* dt * cup2_fab(i,j,k,0)*grav_gpu[n];
+        });
+
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            cu_fab(i,j,k,4) += 2./3. * dt * (  grav_gpu[0]*cup2_fab(i,j,k,1)
+                                             + grav_gpu[1]*cup2_fab(i,j,k,2)
+                                             + grav_gpu[2]*cup2_fab(i,j,k,3) );
+        });
+        
     }
-        
+
     conservedToPrimitive(prim, cu);
 
     // Set BC: 1) fill boundary 2) physical
     cu.FillBoundary(geom.periodicity());
     prim.FillBoundary(geom.periodicity());
+
+    //doMembrane(cu,prim,flux,geom,dxp,dt);
+
     setBC(prim, cu);
 
 }

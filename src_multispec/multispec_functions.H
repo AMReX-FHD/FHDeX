@@ -1,12 +1,18 @@
 #ifndef _multispec_functions_Ho
 #define _multispec_functions_H_
 
-#define MAX_SPECIES 10
-
-#include <AMReX.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Vector.H>
-#include <AMReX_MLABecLaplacian.H>
+
+#include "multispec_functions_F.H"
+#include "multispec_namespace.H"
+
+#include "common_functions.H"
+
+#include "StochMassFlux.H"
+#include "StochMomFlux.H"
+
+using namespace multispec;
+using namespace amrex;
 
 /////////////////////////////////////////////////////////////////////////////////
 // in multispec_functions.cpp
@@ -14,106 +20,130 @@
 void InitializeMultispecNamespace();
 
 /////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
 // in ComputeMassFluxdiv.cpp
 
-void ComputeMassFluxdiv(amrex::MultiFab& rho,
-			amrex::MultiFab& rhotot,
-			amrex::MultiFab& diff_mass_fluxdiv,
-		        std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-			const amrex::Real& dt,
-			const amrex::Real& stage_time,
-			const amrex::Geometry& geom);
-
-// void ComputeMassFluxdiv(amrex::MultiFab& rho,
-// 			amrex::MultiFab& rhotot,
-// 			amrex::MultiFab& diff_mass_fluxdiv,
-// 			amrex::MultiFab& stoch_mass_fluxdiv,
-// 		        std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-// 		        std::array< amrex::MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
-// 			const amrex::Real& dt,
-// 			const amrex::Real& stage_time,
-// 			const amrex::Geometry& geom);
-
-/////////////////////////////////////////////////////////////////////////////////
+void ComputeMassFluxdiv(MultiFab& rho,
+                        MultiFab& rhotot,
+                        const MultiFab& Temp,
+			MultiFab& diff_mass_fluxdiv,
+                        MultiFab& stoch_mass_fluxdiv,
+			std::array<MultiFab,AMREX_SPACEDIM>& diff_mass_flux,
+                        std::array<MultiFab,AMREX_SPACEDIM>& stoch_mass_flux,
+                        StochMassFlux& sMassFlux,
+			const Real& dt, const Real& stage_time, const Geometry& geom,
+                        Vector<Real>& weights);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in DiffusiveMassFlux.cpp
 
-void DiffusiveMassFluxdiv(const amrex::MultiFab& rho,
-			  const amrex::MultiFab& rhotot,
-			  const amrex::MultiFab& molarconc,
-			  const amrex::MultiFab& rhoWchi,
-			  const amrex::MultiFab& Gamma,
-			  amrex::MultiFab& diff_mass_fluxdiv,
-			  std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-			  const amrex::Geometry& geom);
+void DiffusiveMassFluxdiv(const MultiFab& rho,
+			  const MultiFab& rhotot,
+			  const MultiFab& molarconc,
+			  const MultiFab& rhoWchi,
+			  const MultiFab& Gamma,
+			  MultiFab& diff_mass_fluxdiv,
+			  std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+			  const Geometry& geom);
 
-void DiffusiveMassFlux(const amrex::MultiFab& rho,
-		       const amrex::MultiFab& rhotot,
-		       const amrex::MultiFab& molarconc,
-		       const amrex::MultiFab& rhoWchi,
-		       const amrex::MultiFab& Gamma,
-		       std::array< amrex::MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
-		       const amrex::Geometry& geom);
-
-/////////////////////////////////////////////////////////////////////////////////
+void DiffusiveMassFlux(const MultiFab& rho,
+		       const MultiFab& rhotot,
+		       const MultiFab& molarconc,
+		       const MultiFab& rhoWchi,
+		       const MultiFab& Gamma,
+		       std::array< MultiFab, AMREX_SPACEDIM >& diff_mass_flux,
+		       const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in ComputeMixtureProperties.cpp
-void ComputeMixtureProperties(const amrex::MultiFab& rho,
-			      const amrex::MultiFab& rhotot,
-			      amrex::MultiFab& D_bar,
-			      amrex::MultiFab& D_therm,
-			      amrex::MultiFab& Hessian);
-
-/////////////////////////////////////////////////////////////////////////////////
+void ComputeMixtureProperties(const MultiFab& rho,
+			      const MultiFab& rhotot,
+			      MultiFab& D_bar,
+			      MultiFab& D_therm,
+			      MultiFab& Hessian);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in CorrectionFlux.cpp
 
-void CorrectionFlux(const amrex::MultiFab& rho, const amrex::MultiFab& rhotot,
-		    std::array< amrex::MultiFab, AMREX_SPACEDIM >& flux);
+void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
+		    std::array< MultiFab, AMREX_SPACEDIM >& flux);
 
 /////////////////////////////////////////////////////////////////////////////////
+// in CorrectionFlux.cpp
+
+void CorrectionFlux(const MultiFab& rho, const MultiFab& rhotot,
+		    std::array< MultiFab, AMREX_SPACEDIM >& flux);
+
+/////////////////////////////////////////////////////////////////////////////////
+// in InitialProjection.cpp
+
+void InitialProjection(std::array< MultiFab, AMREX_SPACEDIM >& umac,
+                       MultiFab& rho, MultiFab& rhotot,
+                       MultiFab& diff_mass_fluxdiv,
+                       MultiFab& stoch_mass_fluxdiv,
+                       std::array< MultiFab, AMREX_SPACEDIM >& stoch_mass_flux,
+                       StochMassFlux& sMassFlux,
+                       const MultiFab& Temp, const MultiFab& eta,
+                       const std::array< MultiFab, NUM_EDGE >& eta_ed,
+                       const Real& dt, const Real& time, const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MassFluxUtil.cpp
 
-void ComputeMolconcMolmtot(const amrex::MultiFab& rho,
-			   const amrex::MultiFab& rhotot,
-			   amrex::MultiFab& molarconc,
-			   amrex::MultiFab& molmtot);
-  
-void ComputeRhotot(const amrex::MultiFab& rho,
-		   amrex::MultiFab& rhotot);
+void ComputeMolconcMolmtot(const MultiFab& rho,
+			   const MultiFab& rhotot,
+			   MultiFab& molarconc,
+			   MultiFab& molmtot);
 
-void ComputeGamma(const amrex::MultiFab& molarconc,
-		  const amrex::MultiFab& Hessian,
-		  amrex::MultiFab& Gamma);
+void ComputeGamma(const MultiFab& molarconc,
+		  const MultiFab& Hessian,
+		  MultiFab& Gamma);
 
-void ComputeRhoWChi(const amrex::MultiFab& rho,
-		    const amrex::MultiFab& rhotot,
-		    const amrex::MultiFab& molarconc,
-		    amrex::MultiFab& rhoWchi,
-		    const amrex::MultiFab& D_bar);
+void ComputeRhoWChi(const MultiFab& rho,
+		    const MultiFab& rhotot,
+		    const MultiFab& molarconc,
+		    MultiFab& rhoWchi,
+		    const MultiFab& D_bar);
 
-// void ComputeZetaByTemp(const amrex::MultiFab& molarconc,
-// 		       const amrex::MultiFab& D_bar,
-// 		       const amrex::MultiFab& Temp,
-// 		       amrex::MultiFab& zeta_by_Temp,
-// 		       const amrex::MultiFab& D_therm);
+void ComputeZetaByTemp(const MultiFab& molarconc,
+ 		       const MultiFab& D_bar,
+ 		       const MultiFab& Temp,
+ 		       MultiFab& zeta_by_Temp,
+ 		       const MultiFab& D_therm);
 
-/////////////////////////////////////////////////////////////////////////////////
-
+void ComputeSqrtLonsagerFC(const MultiFab& rho,
+                           const MultiFab& rhotot,
+                           std::array< MultiFab, AMREX_SPACEDIM >& sqrtLonsager_fc,
+                           const Geometry& geom);
 
 /////////////////////////////////////////////////////////////////////////////////
 // in MatvecMul.cpp
 
-void MatvecMul(amrex::MultiFab& x,
-	       const amrex::MultiFab& A);
+void MatvecMul(MultiFab& x,
+	       const MultiFab& A);
 
+
+/////////////////////////////////////////////////////////////////////////////////
+// in MkDiffusiveMFluxdiv.cpp
+
+void MkDiffusiveMFluxdiv(std::array<MultiFab, AMREX_SPACEDIM> & m_update,
+                         const std::array<MultiFab, AMREX_SPACEDIM> & umac,
+                         const MultiFab& eta,
+                         const std::array<MultiFab, NUM_EDGE> & eta_ed,
+                         const MultiFab& kappa,
+                         const Geometry& geom,
+                         const Real* dx,
+                         const int& increment);
+
+/////////////////////////////////////////////////////////////////////////////////
+// in RhoUtil.cpp
+
+void ComputeRhotot(const MultiFab& rho, MultiFab& rhotot, int include_ghost=0);
+
+void ConvertRhoCToC(MultiFab& rho, const MultiFab& rhotot, MultiFab& conc, int rho_to_c);
+
+void FillRhoRhototGhost(MultiFab& rho, MultiFab& rhotot, const Geometry& geom);
+
+void FillRhototGhost(MultiFab& rhotot_in, const MultiFab& conc_in, const Geometry& geom);
 /////////////////////////////////////////////////////////////////////////////////
 
 #endif

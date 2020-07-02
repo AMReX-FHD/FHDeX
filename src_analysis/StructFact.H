@@ -13,12 +13,11 @@
 
 #include <string>
 
-#include <common_namespace.H>
+#include "common_functions.H"
 
 #define ALIGN 16
 
 using namespace amrex;
-using namespace common;
 
 class StructFact {
 

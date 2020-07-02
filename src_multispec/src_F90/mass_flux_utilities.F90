@@ -4,6 +4,7 @@ module mass_flux_utilities_module
   use common_namelist_module
   use multispec_namelist_module
   use matrix_utilities_module
+  use compute_mixture_properties_module
 
   implicit none
 
@@ -11,52 +12,18 @@ module mass_flux_utilities_module
 
 contains
 
-#if (AMREX_SPACEDIM == 2)
-
-  subroutine compute_molconc_molmtot( tlo, thi, &
-                                      rho, rlo, rhi, nspecies, &
-                                      rhotot, rtlo, rthi, &
-                                      molarconc, mclo, mchi, &
-                                      molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
+  subroutine compute_molconc_molmtot(tlo, thi, &
+                                     rho, rhlo, rhhi, &
+                                     rhotot, rtlo, rthi, &
+                                     molarconc, mclo, mchi, &
+                                     molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
  
-    integer         , intent(in   ) :: tlo(2),thi(2),nspecies
-    integer         , intent(in   ) :: rlo(2),rhi(2), rtlo(2),rthi(2), mclo(2),mchi(2), mtlo(2),mthi(2)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),nspecies) ! density- last dim for #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2)) ! total density in each cell 
-    double precision, intent(inout) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration
-    double precision, intent(inout) :: molmtot(mtlo(1):mthi(1),mtlo(2):mthi(2)) ! total molar mass 
-        
-    ! local variables
-    integer          :: i,j
-    
-    ! for specific box, now start loops over alloted cells    
-    do j=tlo(2), thi(2)
-       do i=tlo(1), thi(1)
-         
-         call compute_molconc_molmtot_local(nspecies,molmass,rho(i,j,:),rhotot(i,j), &
-                                            molarconc(i,j,:),molmtot(i,j))
-
-       end do
-    end do
- 
-  end subroutine compute_molconc_molmtot
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-
-  subroutine compute_molconc_molmtot( tlo, thi, &
-                                      rho, rlo, rhi, nspecies, &
-                                      rhotot, rtlo, rthi, &
-                                      molarconc, mclo, mchi, &
-                                      molmtot, mtlo, mthi) bind(C,name="compute_molconc_molmtot")
- 
-    integer         , intent(in   ) :: tlo(3),thi(3),nspecies
-    integer         , intent(in   ) :: rlo(3),rhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), mtlo(3),mthi(3)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3),nspecies) ! density- last dim fqor #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3)) ! total density in each cell 
+    integer         , intent(in   ) :: tlo(3),thi(3)
+    integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), mtlo(3),mthi(3)
+    double precision, intent(in   ) ::       rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies) ! density
+    double precision, intent(in   ) ::    rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))          ! total density in each cell 
     double precision, intent(inout) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration
-    double precision, intent(inout) :: molmtot(mtlo(1):mthi(1),mtlo(2):mthi(2),mtlo(3):mthi(3)) ! total molar mass 
+    double precision, intent(inout) ::   molmtot(mtlo(1):mthi(1),mtlo(2):mthi(2),mtlo(3):mthi(3))          ! total molar mass 
     
     ! local variables
     integer          :: i,j,k
@@ -74,9 +41,7 @@ contains
     end do
  
   end subroutine compute_molconc_molmtot
-
-#endif
-
+  
   subroutine compute_molconc_molmtot_local(nspecies_in,molmass_in,rho,rhotot,molarconc,molmtot)
 
     integer,          intent(in)   :: nspecies_in
@@ -104,49 +69,18 @@ contains
        molarconc(n) = molmtot*W(n)/molmass_in(n)
     end do
     
-  end subroutine compute_molconc_molmtot_local 
+  end subroutine compute_molconc_molmtot_local
 
-#if (AMREX_SPACEDIM == 2)
-  
   subroutine compute_Gamma(tlo,thi, &
-                           molarconc, mclo, mchi, nspecies, &
+                           molarconc, mlo, mhi, &
                            Hessian, hlo, hhi, & 
                            Gamma, glo, ghi) bind(C,name="compute_Gamma")
 
-    integer, intent(in   )          :: tlo(2),thi(2),nspecies
-    integer, intent(in   )          :: mclo(2),mchi(2), hlo(2),hhi(2), glo(2),ghi(2) 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: Hessian(hlo(1):hhi(1),hlo(2):hhi(2),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(inout) :: Gamma(glo(1):ghi(1),glo(2):ghi(2),nspecies*nspecies) ! last dimension for nspecies^2
-
-    ! local varialbes
-    integer          :: i,j
-
-    ! for specific box, now start loops over alloted cells 
-    do j=tlo(2),thi(2)
-       do i=tlo(1),thi(1)
-       
-          call compute_Gamma_local(molarconc(i,j,:),Hessian(i,j,:),Gamma(i,j,:),nspecies)
-
-       end do
-    end do
-   
-  end subroutine compute_Gamma
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-
-  subroutine compute_Gamma(tlo,thi, &
-                           molarconc, mclo, mchi, nspecies, &
-                           Hessian, hlo, hhi, & 
-                           Gamma, glo, ghi) bind(C,name="compute_Gamma")
-
-    integer, intent(in   )          :: tlo(3),thi(3),nspecies
-    integer, intent(in   )          :: mclo(3),mchi(3), hlo(3),hhi(3), glo(3),ghi(3) 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: Hessian(hlo(1):hhi(1),hlo(2):hhi(2),hlo(3):hhi(3),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(inout) :: Gamma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nspecies*nspecies) ! last dimension for nspecies^2
+    integer, intent(in   )          :: tlo(3),thi(3)
+    integer, intent(in   )          :: mlo(3),mhi(3), hlo(3),hhi(3), glo(3),ghi(3) 
+    double precision, intent(in   ) :: molarconc(mlo(1):mhi(1),mlo(2):mhi(2),mlo(3):mhi(3),nspecies) ! molar concentration 
+    double precision, intent(in   ) ::   Hessian(hlo(1):hhi(1),hlo(2):hhi(2),hlo(3):hhi(3),nspecies*nspecies)
+    double precision, intent(inout) ::     Gamma(glo(1):ghi(1),glo(2):ghi(2),glo(3):ghi(3),nspecies*nspecies)
 
     ! local varialbes
     integer          :: i,j,k
@@ -162,8 +96,6 @@ contains
     end do
    
   end subroutine compute_Gamma
-
-#endif
 
   subroutine compute_Gamma_local(molarconc,Hessian,Gamma,nspecies)
    
@@ -202,59 +134,24 @@ contains
  
   end subroutine compute_Gamma_local
 
-#if (AMREX_SPACEDIM == 2)
- 
-  subroutine compute_rhoWchi( tlo, thi, &
-                              rho, rlo, rhi, nspecies, &
-                              rhotot, rtlo, rthi, &
-                              molarconc, mclo, mchi, &
-                              rhoWchi, rwclo, rwchi, &
-                              D_bar, dblo, dbhi) bind(C,name="compute_rhoWchi")
- 
-    integer         , intent(in   ) :: tlo(2),thi(2),nspecies
-    integer         , intent(in   ) :: rlo(2),rhi(2), rtlo(2),rthi(2), mclo(2),mchi(2), rwclo(2),rwchi(2), dblo(2),dbhi(2)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),nspecies) ! density- last dim for #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2)) ! total density in each cell 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration
-    double precision, intent(inout) :: rhoWchi(rwclo(1):rwchi(1),rwclo(2):rwchi(2),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies*nspecies) ! MS diff-coefs
-
-    ! local variables
-    integer          :: i,j
-
-    ! for specific box, now start loops over alloted cells 
-    do j=tlo(2),thi(2)
-       do i=tlo(1),thi(1)
-    
-          call compute_rhoWchi_local(rho(i,j,:),rhotot(i,j),molarconc(i,j,:),&
-                                 rhoWchi(i,j,:),D_bar(i,j,:),nspecies)
-
-       end do
-    end do
-
-  end subroutine compute_rhoWchi
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
 
   subroutine compute_rhoWchi( tlo, thi, &
-                              rho, rlo, rhi, nspecies, &
+                              rho, rhlo, rhhi, &
                               rhotot, rtlo, rthi, &
                               molarconc, mclo, mchi, &
-                              rhoWchi, rwclo, rwchi, &
+                              rhoWchi, rclo, rchi, &
                               D_bar, dblo, dbhi) bind(C,name="compute_rhoWchi")
  
-    integer         , intent(in   ) :: tlo(3),thi(3),nspecies
-    integer         , intent(in   ) :: rlo(3),rhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), rwclo(3),rwchi(3), dblo(3),dbhi(3)
-    double precision, intent(in   ) :: rho(rlo(1):rhi(1),rlo(2):rhi(2),rlo(3):rhi(3),nspecies) ! density- last dim for #species
-    double precision, intent(in   ) :: rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3)) ! total density in each cell 
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration
-    double precision, intent(inout) :: rhoWchi(rwclo(1):rwchi(1),rwclo(2):rwchi(2),rwclo(3):rwchi(3),nspecies*nspecies) ! last dimension for nspecies^2
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies*nspecies) ! MS diff-coefs
+    integer         , intent(in   ) :: tlo(3),thi(3)
+    integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), mclo(3),mchi(3), rclo(3),rchi(3), dblo(3),dbhi(3)
+    double precision, intent(in   ) ::       rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies)          ! densities
+    double precision, intent(in   ) ::    rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))                   ! total density
+    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies)          ! molar concentration
+    double precision, intent(inout) ::   rhoWchi(rclo(1):rchi(1),rclo(2):rchi(2),rclo(3):rchi(3),nspecies*nspecies)
+    double precision, intent(in   ) ::     D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies*nspecies) ! MS diff-coefs
     
     ! local variables
-    integer          :: i,j,k
+    integer :: i,j,k
 
     ! for specific box, now start loops over alloted cells 
     do k=tlo(3),thi(3)
@@ -270,7 +167,6 @@ contains
    
   end subroutine compute_rhoWchi
 
-#endif
 
   subroutine compute_rhoWchi_local(rho,rhotot,molarconc,rhoWchi,D_bar,nspecies)
 
@@ -345,27 +241,6 @@ contains
        call compute_chi_sub()
       
     end if
-
-    ! hack
-    !print*,'rhoWchi'
-    !do row=1, nspecies
-    !   print *,rhoWchi(row,1:nspecies)
-    !end do
-    !print*,'sum rhoWchi_col'
-    !select case (nspecies)
-    !   case (2)
-    !      print*,sum(rhoWchi(1:2,1)),sum(rhoWchi(1:2,2))
-    !   case (3)
-    !      print*,sum(rhoWchi(1:3,1)),sum(rhoWchi(1:3,2)),sum(rhoWchi(1:3,3))
-    !   case (4)
-    !      print*,sum(rhoWchi(1:4,1)),sum(rhoWchi(1:4,2)),sum(rhoWchi(1:4,3)),sum(rhoWchi(1:4,4))
-    !end select
-    !print*,'W*chi from rhoWchi/rhotot'
-    !do row=1, nspecies
-    !   print *,rhoWchi(row,1:nspecies)/rhotot
-    !end do
-    !stop
-    ! hack
     
   contains
   
@@ -496,191 +371,28 @@ contains
     end if
 
     ! compute chi either selecting inverse/pseudoinverse or iterative methods 
-    ! if (use_lapack) then
-
-    !    ! compute Lambda_ij matrix and massfraction W_i = rho_i/rho; molarconc is 
-    !    ! expressed in terms of molmtot,mi,rhotot etc. 
-    !    do row=1, nspecies_in
-    !       do column=1, row-1
-    !          Lambda(row, column) = -molarconc(row)*molarconc(column)/D_bar(row,column)
-    !          Lambda(column, row) = Lambda(row, column) 
-    !       end do
-    !       W(row) = rho(row)/rhotot
-    !    end do
-
-    !    ! compute Lambda_ii
-    !    do row=1, nspecies_in
-    !       Sum_knoti = 0.d0
-    !       do column=1, nspecies_in
-    !          if(column.ne.row) then
-    !             Sum_knoti = Sum_knoti - Lambda(row,column)
-    !          end if
-    !          Lambda(row,row) = Sum_knoti
-    !       end do
-    !    end do
-
-    !    call compute_chi_lapack(nspecies_in,Lambda(:,:),chi(:,:),W(:))
-
-    ! else
+    if (use_lapack .eq. 1) then
+       call amrex_error('compute_chi: use_lapack not supported')
+    end if
 
     call Dbar2chi_iterative(nspecies_in,chi_iterations,D_bar(:,:),molarconc(:),molmass_in(:),chi(:,:))
 
-    ! end if
-
-  ! contains
-
-    ! subroutine compute_chi_lapack(nspecies_in,Lambda,chi,W)
-   
-    !   integer,          intent(in   ) :: nspecies_in
-    !   double precision, intent(in   ) :: Lambda(nspecies_in,nspecies_in)
-    !   double precision, intent(in   ) :: chi(nspecies_in,nspecies_in)
-    !   double precision, intent(in   ) :: W(nspecies_in)
- 
-    !   ! local variables
-    !   integer           :: row,column,info
-    !   double precision  :: alpha    
-
-    !   ! vectors and matrices to be used by LAPACK
-    !   double precision, dimension(nspecies_in,nspecies_in) :: Sdag,chilocal
-    !   double precision, dimension(nspecies_in,nspecies_in) :: U, UT, V, VT
-    !   double precision, dimension(nspecies_in)             :: S, work
-    !   integer,          dimension(nspecies_in)             :: ipiv
-
-    !   ! free up the memory  
-    !   Sdag     = 0.d0
-    !   U        = 0.d0
-    !   UT       = 0.d0
-    !   V        = 0.d0
-    !   VT       = 0.d0
-    !   S        = 0.d0
-    !   work     = 0.d0
-    !   alpha    = 0.d0
-    !   chilocal = 0.d0
- 
-    !   ! calculate trace(Lambda)
-    !   alpha = 0.d0
-    !   do row=1, nspecies_in
-    !      alpha = alpha + Lambda(row,row)
-    !   end do
- 
-    !   ! calculate Lambda + alpha*W*WT (Equation 6) 
-    !   do row=1, nspecies_in
-    !      do column=1, nspecies_in
-    !         chilocal(row,column) = alpha*W(row)*W(column) + Lambda(row,column)
-    !      end do
-    !   end do
-
-    !   !===============================================================          
-    !   ! select LAPACK inversion type, 1=inverse, 2=pseudo inverse 
-    !   !===============================================================          
-    !   select case(inverse_type) 
-           
-    !   case(1)
-    !   !==========================================================
-    !   ! Using Inverse 
-    !   !==========================================================
- 
-    !   ! compute chilocal inverse
-    !   call dgetrf(nspecies_in, nspecies_in, chilocal, nspecies_in, ipiv, info)
-    !   call dgetri(nspecies_in, chilocal, nspecies_in, ipiv, work, nspecies_in, info)
-    !   !stop "LAPACK95 dget? disabled"
-
-    !   ! populate chi with B^(-1)
-    !   chi = chilocal   
- 
-    !   case(2) 
-    !   !==========================================================
-    !   ! Using pseudoinverse 
-    !   !==========================================================
-
-    !   ! SVD decomposition of chilocal = U * S * VTranspose; note that chilocal 
-    !   ! is changed. also V=(VT)T, UT = (U)T are needed for pseudoinverse of chilocal.
-    !   !stop "LAPACK95 la_gesvd disabled"
-    !   call la_gesvd(chilocal, S, U, VT)
-    !   V = transpose(VT)
-    !   UT = transpose(U)
-   
-    !   ! populate diagonal matrix Sdag = 1/S with diagonal=0 below a chosen tolerance
-    !   do row=1, nspecies_in
-    !      do column=1,nspecies_in
-    !         Sdag(row,column) = 0.0d0
-    !      end do
-       
-    !      if(S(row).gt.fraction_tolerance*sum(S)) then 
-    !         Sdag(row,row) = 1.0d0/S(row)
-    !      else
-    !         Sdag(row,row) = 0.0d0
-    !      end if 
-    !   end do
-
-    !   ! compute chi = V*Sdag*UT, the pseudoinverse of chilocal 
-    !   chi = matmul(V, matmul(Sdag, UT))
-
-    !   end select
-    !   !===============================================================          
- 
-    !   ! compute chi as equation (6) 
-    !   do row=1, nspecies_in
-    !      do column=1, nspecies_in
-    !         chi(row,column) = chi(row,column) - 1.0d0/alpha
-    !      end do
-    !   end do
-          
-    ! end subroutine compute_chi_lapack
-
   end subroutine compute_chi
 
-#if (AMREX_SPACEDIM == 2)
-
   subroutine compute_zeta_by_Temp(tlo,thi, &
-                                  molarconc,mclo,mchi,nspecies, & 
+                                  molarconc,mclo,mchi, & 
                                   D_bar,dblo,dbhi, & 
                                   Temp,tplo,tphi, & 
                                   zeta_by_Temp,ztlo,zthi, &
                                   D_therm,dtlo,dthi) bind(C,name="compute_zeta_by_Temp")
 
-    integer,          intent(in   ) :: tlo(2),thi(2),nspecies
-    integer,          intent(in   ) :: mclo(2),mchi(2), dblo(2),dbhi(2), tplo(2),tphi(2), ztlo(2),zthi(2), dtlo(2),dthi(2)
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),nspecies) ! MS diff-coefs 
-    double precision, intent(in   ) :: Temp(tplo(1):tphi(1),tplo(2):tphi(2)) ! Temperature 
-    double precision, intent(inout) :: zeta_by_Temp(ztlo(1):zthi(1),ztlo(2):zthi(2),nspecies) ! zeta/T
-    double precision, intent(in   ) :: D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),nspecies) ! thermo diff-coefs 
-
-    ! local variables
-    integer          :: i,j
-
-    ! for specific box, now start loops over alloted cells 
-    do j=tlo(2),thi(2)
-       do i=tlo(1),thi(1)
-    
-          call compute_zeta_by_Temp_local(molarconc(i,j,:),&
-                                          D_bar(i,j,:),Temp(i,j),zeta_by_Temp(i,j,:),&
-                                          D_therm(i,j,:),nspecies)
-
-       end do
-    end do
-
-  end subroutine compute_zeta_by_Temp
-
-#endif
-
-#if (AMREX_SPACEDIM == 3)
-
-  subroutine compute_zeta_by_Temp(tlo,thi, &
-                                  molarconc,mclo,mchi,nspecies, & 
-                                  D_bar,dblo,dbhi, & 
-                                  Temp,tplo,tphi, & 
-                                  zeta_by_Temp,ztlo,zthi, &
-                                  D_therm,dtlo,dthi) bind(C,name="compute_zeta_by_Temp")
-
-    integer,          intent(in   ) :: tlo(3),thi(3),nspecies
+    integer,          intent(in   ) :: tlo(3),thi(3)
     integer,          intent(in   ) :: mclo(3),mchi(3), dblo(3),dbhi(3), tplo(3),tphi(3), ztlo(3),zthi(3), dtlo(3),dthi(3)
-    double precision, intent(in   ) :: molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration 
-    double precision, intent(in   ) :: D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies) ! MS diff-coefs 
-    double precision, intent(in   ) :: Temp(tplo(1):tphi(1),tplo(2):tphi(2),tplo(3):tphi(3)) ! Temperature 
+    double precision, intent(in   ) ::    molarconc(mclo(1):mchi(1),mclo(2):mchi(2),mclo(3):mchi(3),nspecies) ! molar concentration 
+    double precision, intent(in   ) ::        D_bar(dblo(1):dbhi(1),dblo(2):dbhi(2),dblo(3):dbhi(3),nspecies) ! MS diff-coefs 
+    double precision, intent(in   ) ::         Temp(tplo(1):tphi(1),tplo(2):tphi(2),tplo(3):tphi(3))          ! Temperature 
     double precision, intent(inout) :: zeta_by_Temp(ztlo(1):zthi(1),ztlo(2):zthi(2),ztlo(3):zthi(3),nspecies) ! zeta/T
-    double precision, intent(in   ) :: D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),dtlo(3):dthi(3),nspecies) ! thermo diff-coefs 
+    double precision, intent(in   ) ::      D_therm(dtlo(1):dthi(1),dtlo(2):dthi(2),dtlo(3):dthi(3),nspecies) ! thermo diff-coefs 
     
     ! local variables
     integer          :: i,j,k
@@ -699,8 +411,6 @@ contains
     end do
    
   end subroutine compute_zeta_by_Temp
-
-#endif
 
   subroutine compute_zeta_by_Temp_local(molarconc,D_bar,Temp,zeta_by_Temp,D_therm,nspecies)
     
@@ -744,370 +454,335 @@ contains
 
   end subroutine compute_zeta_by_Temp_local
 
-! #if (AMREX_SPACEDIM == 2)
-  
-!   subroutine compute_sqrtLonsager(rho,rhotot,sqrtLonsager_x,sqrtLonsager_y, &
-!                                      ng_0,ng_1,ng_2,lo,hi,dx)
-  
-!     integer          :: lo(2), hi(2), ng_0, ng_1, ng_2
-!     double precision, intent(in   ) ::            rho(lo(1)-ng_0:,lo(2)-ng_0:,:) ! density; last dimension for species
-!     double precision, intent(in   ) ::         rhotot(lo(1)-ng_1:,lo(2)-ng_1:)   ! total density in each cell 
-!     double precision, intent(in   ) :: sqrtLonsager_x(lo(1)-ng_2:,lo(2)-ng_2:,:) ! last dimension for nspecies^2
-!     double precision, intent(in   ) :: sqrtLonsager_y(lo(1)-ng_2:,lo(2)-ng_2:,:) ! last dimension for nspecies^2
-!     double precision, intent(in   ) :: dx(:)
 
-!     ! local variables
-!     integer         :: i,j
-!     double precision :: rhoav(nspecies)
+  subroutine compute_sqrtLonsager_fc(lo,hi, &
+                                     rho, rhlo, rhhi, &
+                                     rhotot, rtlo, rthi, &
+                                     sqrtLonsager_x, sxlo, sxhi, &
+                                     sqrtLonsager_y, sylo, syhi, &
+#if (AMREX_SPACEDIM == 3)
+                                     sqrtLonsager_z, szlo, szhi, &
+#endif
+                                     dx) bind(C,name="compute_sqrtLonsager_fc")
 
-!     ! x-faces
-!     do j=lo(2),hi(2)
-!     do i=lo(1),hi(1)+1
-!           call compute_nonnegative_rho_av(rho(i-1,j,:), rho(i,j,:), rhoav, dx)
-!           call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_x(i,j,:))
-!     end do
-!     end do
+    integer         , intent(in   ) :: lo(3), hi(3)
+    integer         , intent(in   ) :: rhlo(3),rhhi(3), rtlo(3),rthi(3), sxlo(3),sxhi(3), sylo(3),syhi(3)
+    double precision, intent(in   ) ::            rho(rhlo(1):rhhi(1),rhlo(2):rhhi(2),rhlo(3):rhhi(3),nspecies)
+    double precision, intent(in   ) ::         rhotot(rtlo(1):rthi(1),rtlo(2):rthi(2),rtlo(3):rthi(3))
+    double precision, intent(inout) :: sqrtLonsager_x(sxlo(1):sxhi(1),sxlo(2):sxhi(2),sxlo(3):sxhi(3),nspecies*nspecies)
+    double precision, intent(inout) :: sqrtLonsager_y(sylo(1):syhi(1),sylo(2):syhi(2),sylo(3):syhi(3),nspecies*nspecies)
+#if (AMREX_SPACEDIM == 3)
+    integer         , intent(in   ) :: szlo(3), szhi(3)
+    double precision, intent(inout) :: sqrtLonsager_z(szlo(1):szhi(1),szlo(2):szhi(2),szlo(3):szhi(3),nspecies*nspecies)
+#endif
+    double precision, intent(in   ) :: dx(3)
 
-!     ! y-faces
-!     do j=lo(2),hi(2)+1
-!     do i=lo(1),hi(1)
-!           call compute_nonnegative_rho_av(rho(i,j-1,:), rho(i,j,:), rhoav, dx)
-!           call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_y(i,j,:))
-!     end do
-!     end do
-
-!   end subroutine compute_sqrtLonsager
-
-! #endif
-
-! #if (AMREX_SPACEDIM == 3)
-
-!   subroutine compute_sqrtLonsager(rho,rhotot,sqrtLonsager_x,sqrtLonsager_y,sqrtLonsager_z, &
-!                                      ng_0,ng_1,ng_2,lo,hi,dx)
-
-!     integer          :: lo(3), hi(3), ng_0, ng_1, ng_2
-!     double precision, intent(in   ) ::            rho(lo(1)-ng_0:,lo(2)-ng_0:,lo(3)-ng_0:,:) ! density; last dimension for species
-!     double precision, intent(in   ) ::         rhotot(lo(1)-ng_1:,lo(2)-ng_1:,lo(3)-ng_1:)   ! total density in each cell 
-!     double precision, intent(in   ) :: sqrtLonsager_x(lo(1)-ng_2:,lo(2)-ng_2:,lo(3)-ng_2:,:) ! last dimension for nspecies^2
-!     double precision, intent(in   ) :: sqrtLonsager_y(lo(1)-ng_2:,lo(2)-ng_2:,lo(3)-ng_2:,:) ! last dimension for nspecies^2
-!     double precision, intent(in   ) :: sqrtLonsager_z(lo(1)-ng_2:,lo(2)-ng_2:,lo(3)-ng_2:,:) ! last dimension for nspecies^2
-!     double precision, intent(in   ) :: dx(:)
-
-!     ! local variables
-!     integer         :: i,j,k
-!     double precision :: rhoav(nspecies)
-
-!     ! x-faces
-!     do k=lo(3),hi(3)
-!     do j=lo(2),hi(2)
-!     do i=lo(1),hi(1)+1
-!           call compute_nonnegative_rho_av(rho(i-1,j,k,:), rho(i,j,k,:), rhoav, dx)
-!           call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_x(i,j,k,:))
-!     end do
-!     end do
-!     end do
-
-!     ! y-faces
-!     do k=lo(3),hi(3)
-!     do j=lo(2),hi(2)+1
-!     do i=lo(1),hi(1)
-!           call compute_nonnegative_rho_av(rho(i,j-1,k,:), rho(i,j,k,:), rhoav, dx)
-!           call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_y(i,j,k,:))
-!     end do
-!     end do
-!     end do
-
-!     ! z-faces
-!     do k=lo(3),hi(3)+1
-!     do j=lo(2),hi(2)
-!     do i=lo(1),hi(1)
-!           call compute_nonnegative_rho_av(rho(i,j,k-1,:), rho(i,j,k,:), rhoav, dx)
-!           call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_z(i,j,k,:))
-!     end do
-!     end do
-!     end do
-   
-!   end subroutine compute_sqrtLonsager
-
-! #endif
-
-!   subroutine compute_nonnegative_rho_av(rho1, rho2, rhoav, dx)
-!     double precision, intent(in   ) :: rho1(nspecies), rho2(nspecies) ! Densities in two neighboring cells
-!     double precision, intent(  out) :: rhoav(nspecies)                ! Face-centered average  
-!     double precision, intent(in   ) :: dx(:)
-
-!     double precision :: dv, value1, value2, tmp1, tmp2
-!     integer :: comp
-
-!     ! cell volume
-!     dv = product(dx(1:MAX_SPACEDIM))
-
-!     do comp=1,nspecies
-!       value1 = rho1(comp)/molmass(comp) ! Convert to number density
-!       value2 = rho2(comp)/molmass(comp)
-
-!       select case(avg_type)
-!       case(1) ! Arithmetic with a C0-smoothed Heaviside
-!         if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
-!           rhoav(comp)=0.d0
-!         else
-!           tmp1=min(dv*value1,1.d0)
-!           tmp2=min(dv*value2,1.d0)
-!           rhoav(comp)=molmass(comp)*(value1+value2)/2.d0*tmp1*tmp2
-!         end if
-!       case(2) ! Geometric
-!         rhoav(comp)=molmass(comp)*sqrt(max(value1,0.d0)*max(value2,0.d0))
-!       case(3) ! Harmonic
-!         ! What we want here is the harmonic mean of max(value1,0) and max(value2,0)
-!         ! Where we define the result to be zero if either one is zero
-!         ! But numerically we want to avoid here division by zero
-!         if ( (value1 .le. 10.d0*tiny(1.d0)) .or. (value2 .le. 10.d0*tiny(1.d0)) ) then
-!           rhoav(comp)=0.d0
-!         else
-!           rhoav(comp)=molmass(comp)*2.d0/(1.d0/value1+1.d0/value2)
-!         end if
-!       case(10) ! Arithmetic with (discontinuous) Heaviside
-!         if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
-!           rhoav(comp)=0.d0
-!         else
-!           rhoav(comp)=molmass(comp)*(value1+value2)/2.d0
-!         end if
-!       case(11) ! Arithmetic with C1-smoothed Heaviside
-!         if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
-!           rhoav(comp)=0.d0
-!         else
-!           tmp1=dv*value1
-!           if (tmp1<1.d0) then
-!             tmp1=(3.d0-2.d0*tmp1)*tmp1**2
-!           else
-!             tmp1=1.d0
-!           end if
-!           tmp2=dv*value2
-!           if (tmp2<1.d0) then
-!             tmp2=(3.d0-2.d0*tmp2)*tmp2**2
-!           else
-!             tmp2=1.d0
-!           end if
-!           rhoav(comp)=molmass(comp)*(value1+value2)/2.d0*tmp1*tmp2
-!         endif
-!       case(12) ! Arithmetic with C2-smoothed Heaviside
-!         if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
-!           rhoav(comp)=0.d0
-!         else
-!           tmp1=dv*value1
-!           if (tmp1<1.d0) then
-!             tmp1=(10.d0-15.d0*tmp1+6.d0*tmp1**2)*tmp1**3
-!           else
-!           tmp1=1.d0
-!           end if
-!           tmp2=dv*value2
-!           if (tmp2<1.d0) then
-!             tmp2=(10.d0-15.d0*tmp2+6.d0*tmp2**2)*tmp2**3
-!           else
-!             tmp2=1.d0
-!           end if
-!           rhoav(comp)=molmass(comp)*(value1+value2)/2.d0*tmp1*tmp2
-!         endif
-!       case default
-!         call bl_error("compute_nonnegative_rho_av: invalid avg_type")
-!       end select
-!     end do
-
-!   end subroutine compute_nonnegative_rho_av
-
-!   ! This routine must be called with non-negative densities, i.e., after calling compute_nonnegative_rho_av
-!   subroutine compute_sqrtLonsager_local(rho,rhotot,sqrtLonsager)
-   
-!     double precision, intent(in)   :: rho(nspecies)            
-!     double precision, intent(in)   :: rhotot
-!     double precision, intent(out)  :: sqrtLonsager(nspecies,nspecies) 
-
-!     ! local variables
-!     integer         :: row,column,info
-!     double precision :: W(nspecies)
-!     double precision :: rcond
-
-!     double precision :: molarconc(nspecies)
-!     double precision :: molmtot
-!     double precision :: chi(nspecies,nspecies)
-!     double precision :: D_bar(nspecies,nspecies)
-
-!     integer :: ntrace                   ! number of trace species with w_k < fractional_tolerance
-!     integer :: nspecies_sub             ! dim of subsystem = nspecies-ntrace 
-!     double precision :: molmtot_sub
-!     double precision :: rhotot_sub
-
-!     ! this is a mapping used to eliminate elements in D_bar we don't need (for D_bar_sub)
-!     ! and for expanding sqrtLonsager_sub into sqrtLonsager
-!     ! it will contain the numbers 1, 2, ..., (nspecies-ntrace)
-!     ! with zeros in elements corresponding to trace elements
-!     ! (example) for a 5-species system having trace species 2 and 5:
-!     !  species       1 2 3 4 5
-!     !  dest(species) 1 0 2 3 0
-!     integer :: dest(nspecies)
-  
-!     type(bl_prof_timer), save :: bpt
-
-!     call build(bpt,"compute_sqrtLonsager_local")
-
-!     ! compute the number of trace species
-!     ! build the mapping for expanding/contracting arrays
-!     ntrace = 0
-!     do row=1, nspecies
-!        W(row) = rho(row)/rhotot
-!        if (W(row) .lt. fraction_tolerance) then
-!           ntrace = ntrace + 1
-!           dest(row) = 0
-!        else
-!           dest(row) = row - ntrace
-!        end if
-!     end do
-
-!     if (ntrace .eq. nspecies-1) then
-
-!        ! this is all trace species except for 1 (essentially pure solvent);
-!        ! set sqrtLonsager to zero
-!        sqrtLonsager(:,:) = 0.d0
-
-!     else if (ntrace .eq. 0) then
-
-!        ! there are no trace species
-
-!        ! compute molarconc and molmtot
-!        call compute_molconc_molmtot_local(nspecies,molmass,rho,rhotot,molarconc,molmtot)
-
-!        ! compute D_bar
-!        call compute_D_bar_local(rho,rhotot,D_bar)
-
-!        ! compute chi
-!        call compute_chi(nspecies,molmass,rho,rhotot,molarconc,chi,D_bar)
-
-!        ! compute Onsager matrix L (store in sqrtLonsager)
-!        do column=1, nspecies
-!           do row=1, nspecies
-!              sqrtLonsager(row, column) = molmtot*rhotot*W(row)*chi(row,column)*W(column)/k_B
-!           end do
-!        end do
-
-!        ! compute cell-centered Cholesky factor, sqrtLonsager
-!        if (use_lapack) then
-!           call chol_lapack(sqrtLonsager,nspecies)
-!        else
-!           call choldc(sqrtLonsager,nspecies)   
-!        end if
-
-!     else
-
-!        ! if there are trace species, we consider a subsystem 
-!        ! consisting of non-trace species
-
-!        nspecies_sub = nspecies - ntrace
-!        call compute_sqrtLonsager_sub()
-
-!     end if
-
-!     call destroy(bpt)
-
-!   contains
-  
-!     subroutine compute_sqrtLonsager_sub() ! We make this a subroutine to use stack instead of heap
+    ! local variables
+    integer         :: i,j,k
+    double precision :: rhoav(nspecies)
     
-!        double precision :: molmass_sub(nspecies_sub)
-!        double precision :: rho_sub(nspecies_sub)
-!        double precision :: W_sub(nspecies_sub)
-!        double precision :: molarconc_sub(nspecies_sub)
+    ! x-faces
+    do k=lo(3),hi(3)
+    do j=lo(2),hi(2)
+    do i=lo(1),hi(1)+1
+          call compute_nonnegative_rho_av(rho(i-1,j,k,:), rho(i,j,k,:), rhoav, dx)
+          call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_x(i,j,k,:))
+    end do
+    end do
+    end do
 
-!        double precision :: D_bar_sub(nspecies_sub,nspecies_sub)
-!        double precision :: chi_sub(nspecies_sub,nspecies_sub)
-!        double precision :: sqrtLonsager_sub(nspecies_sub,nspecies_sub)
+    ! y-faces
+    do k=lo(3),hi(3)
+    do j=lo(2),hi(2)+1
+    do i=lo(1),hi(1)
+          call compute_nonnegative_rho_av(rho(i,j-1,k,:), rho(i,j,k,:), rhoav, dx)
+          call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_y(i,j,k,:))
+    end do
+    end do
+    end do
 
-!        ! create a vector of non-trace densities and molmass for the subsystem
-!        do row=1, nspecies
-!           if (dest(row) .ne. 0) then
-!              molmass_sub(dest(row)) = molmass(row)
-!              rho_sub(dest(row)) = rho(row)
-!           end if
-!        end do
+#if (AMREX_SPACEDIM == 3)
+    ! z-faces
+    do k=lo(3),hi(3)+1
+    do j=lo(2),hi(2)
+    do i=lo(1),hi(1)
+          call compute_nonnegative_rho_av(rho(i,j,k-1,:), rho(i,j,k,:), rhoav, dx)
+          call compute_sqrtLonsager_local(rhoav,sum(rhoav),sqrtLonsager_z(i,j,k,:))
+    end do
+    end do
+    end do
+#endif
+   
+  end subroutine compute_sqrtLonsager_fc
 
-!        ! renormalize total density and mass fractions
-!        rhotot_sub = sum(rho_sub)
-!        do row=1, nspecies_sub
-!           W_sub(row) = rho_sub(row)/rhotot_sub
-!        end do
 
-!        ! first, compute the full D_bar
-!        ! then, construct D_bar_sub by mapping the full D_bar into D_bar_sub
-!        ! you could read in only the lower diagonals, 
-!        ! reflect, and set the diagnals to zero if you want
+  subroutine compute_nonnegative_rho_av(rho1, rho2, rhoav, dx)
+    double precision, intent(in   ) :: rho1(nspecies), rho2(nspecies) ! Densities in two neighboring cells
+    double precision, intent(  out) :: rhoav(nspecies)                ! Face-centered average  
+    double precision, intent(in   ) :: dx(:)
 
-!        call compute_D_bar_local(rho,rhotot,D_bar)
+    double precision :: dv, value1, value2, tmp1, tmp2
+    integer :: comp
 
-!        do row=1, nspecies
-!           if (dest(row) .eq. 0) then
-!              cycle
-!           end if
-!           do column=1, nspecies
-!              if (dest(column) .ne. 0) then
-!                 D_bar_sub(dest(row),dest(column)) = D_bar(row,column)
-!              end if
-!           end do
-!        end do
-       
-!        ! compute molarconc_sub and molmtot_sub
-!        call compute_molconc_molmtot_local(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,molmtot_sub)
+    ! cell volume
+#if (AMREX_SPACEDIM == 2)
+    dv = product(dx(1:2))*cell_depth
+#elif (AMREX_SPACEDIM == 3)
+    dv = product(dx(1:3))
+#endif
 
-!        ! compute chi_sub
-!        call compute_chi(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,chi_sub,D_bar_sub)
+    do comp=1,nspecies
+      value1 = rho1(comp)/molmass(comp) ! Convert to number density
+      value2 = rho2(comp)/molmass(comp)
 
-!        ! compute Onsager matrix L_sub (store in sqrtLonsager_sub)
-!        do column=1, nspecies_sub
-!           do row=1, nspecies_sub
-!              sqrtLonsager_sub(row, column) = &
-!                   molmtot_sub*rhotot_sub*W_sub(row)*chi_sub(row,column)*W_sub(column)/k_B
-!           end do
-!        end do
+      select case(avg_type)
+      case(1) ! Arithmetic with a C0-smoothed Heaviside
+        if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
+          rhoav(comp)=0.d0
+        else
+          tmp1=min(dv*value1,1.d0)
+          tmp2=min(dv*value2,1.d0)
+          rhoav(comp)=molmass(comp)*(value1+value2)/2.d0*tmp1*tmp2
+        end if
+      case(2) ! Geometric
+        rhoav(comp)=molmass(comp)*sqrt(max(value1,0.d0)*max(value2,0.d0))
+      case(3) ! Harmonic
+        ! What we want here is the harmonic mean of max(value1,0) and max(value2,0)
+        ! Where we define the result to be zero if either one is zero
+        ! But numerically we want to avoid here division by zero
+        if ( (value1 .le. 10.d0*tiny(1.d0)) .or. (value2 .le. 10.d0*tiny(1.d0)) ) then
+          rhoav(comp)=0.d0
+        else
+          rhoav(comp)=molmass(comp)*2.d0/(1.d0/value1+1.d0/value2)
+        end if
+      case(10) ! Arithmetic with (discontinuous) Heaviside
+        if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
+          rhoav(comp)=0.d0
+        else
+          rhoav(comp)=molmass(comp)*(value1+value2)/2.d0
+        end if
+      case(11) ! Arithmetic with C1-smoothed Heaviside
+        if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
+          rhoav(comp)=0.d0
+        else
+          tmp1=dv*value1
+          if (tmp1<1.d0) then
+            tmp1=(3.d0-2.d0*tmp1)*tmp1**2
+          else
+            tmp1=1.d0
+          end if
+          tmp2=dv*value2
+          if (tmp2<1.d0) then
+            tmp2=(3.d0-2.d0*tmp2)*tmp2**2
+          else
+            tmp2=1.d0
+          end if
+          rhoav(comp)=molmass(comp)*(value1+value2)/2.d0*tmp1*tmp2
+        endif
+      case(12) ! Arithmetic with C2-smoothed Heaviside
+        if ( (value1 .le. 0.d0) .or. (value2 .le. 0.d0) ) then
+          rhoav(comp)=0.d0
+        else
+          tmp1=dv*value1
+          if (tmp1<1.d0) then
+            tmp1=(10.d0-15.d0*tmp1+6.d0*tmp1**2)*tmp1**3
+          else
+          tmp1=1.d0
+          end if
+          tmp2=dv*value2
+          if (tmp2<1.d0) then
+            tmp2=(10.d0-15.d0*tmp2+6.d0*tmp2**2)*tmp2**3
+          else
+            tmp2=1.d0
+          end if
+          rhoav(comp)=molmass(comp)*(value1+value2)/2.d0*tmp1*tmp2
+        endif
+      case default
+        call bl_error("compute_nonnegative_rho_av: invalid avg_type")
+      end select
+    end do
 
-!        ! compute cell-centered Cholesky factor, sqrtLonsager_sub
-!        if (use_lapack) then
-!           call chol_lapack(sqrtLonsager_sub,nspecies_sub)
-!        else
-!           call choldc(sqrtLonsager_sub,nspecies_sub)   
-!        end if
+  end subroutine compute_nonnegative_rho_av
 
-!        ! expand sqrtLonsager_sub into sqrtLonsager
-!        sqrtLonsager(:,:) = 0.d0
-!        do row=1, nspecies
-!           if (dest(row) .eq. 0) then
-!              cycle
-!           end if
-!           do column=1, nspecies
-!              if (dest(column) .ne. 0) then
-!                 sqrtLonsager(row,column) = sqrtLonsager_sub(dest(row),dest(column))
-!              end if
-!           end do
-!        end do
-       
-!     end subroutine compute_sqrtLonsager_sub
+  ! This routine must be called with non-negative densities, i.e., after calling compute_nonnegative_rho_av
+  subroutine compute_sqrtLonsager_local(rho,rhotot,sqrtLonsager)
+   
+    double precision, intent(in)   :: rho(nspecies)            
+    double precision, intent(in)   :: rhotot
+    double precision, intent(out)  :: sqrtLonsager(nspecies,nspecies) 
 
-!     subroutine chol_lapack(sqrtL,nspecies_in)
-!       integer, intent (in)            :: nspecies_in
-!       double precision, intent (inout) :: sqrtL(nspecies_in,nspecies_in)
+    ! local variables
+    integer         :: row,column,info
+    double precision :: W(nspecies)
+    double precision :: rcond
 
-!       integer :: row, column
-       
-!       call dpotrf_f95(sqrtL,'L', rcond, 'I', info)
-!       !stop "LAPACK95 dpotrf_f95 disabled"
+    double precision :: molarconc(nspecies)
+    double precision :: molmtot
+    double precision :: chi(nspecies,nspecies)
+    double precision :: D_bar(nspecies,nspecies)
+
+    integer :: ntrace                   ! number of trace species with w_k < fractional_tolerance
+    integer :: nspecies_sub             ! dim of subsystem = nspecies-ntrace 
+    double precision :: molmtot_sub
+    double precision :: rhotot_sub
+
+    ! this is a mapping used to eliminate elements in D_bar we don't need (for D_bar_sub)
+    ! and for expanding sqrtLonsager_sub into sqrtLonsager
+    ! it will contain the numbers 1, 2, ..., (nspecies-ntrace)
+    ! with zeros in elements corresponding to trace elements
+    ! (example) for a 5-species system having trace species 2 and 5:
+    !  species       1 2 3 4 5
+    !  dest(species) 1 0 2 3 0
+    integer :: dest(nspecies)
+  
+    ! compute the number of trace species
+    ! build the mapping for expanding/contracting arrays
+    ntrace = 0
+    do row=1, nspecies
+       W(row) = rho(row)/rhotot
+       if (W(row) .lt. fraction_tolerance) then
+          ntrace = ntrace + 1
+          dest(row) = 0
+       else
+          dest(row) = row - ntrace
+       end if
+    end do
+
+    if (ntrace .eq. nspecies-1) then
+
+       ! this is all trace species except for 1 (essentially pure solvent);
+       ! set sqrtLonsager to zero
+       sqrtLonsager(:,:) = 0.d0
+
+    else if (ntrace .eq. 0) then
+
+       ! there are no trace species
+
+       ! compute molarconc and molmtot
+       call compute_molconc_molmtot_local(nspecies,molmass,rho,rhotot,molarconc,molmtot)
+
+       ! compute D_bar
+       call compute_D_bar_local(rho,rhotot,D_bar)
+
+       ! compute chi
+       call compute_chi(nspecies,molmass,rho,rhotot,molarconc,chi,D_bar)
+
+       ! compute Onsager matrix L (store in sqrtLonsager)
+       do column=1, nspecies
+          do row=1, nspecies
+             sqrtLonsager(row, column) = molmtot*rhotot*W(row)*chi(row,column)*W(column)/k_B
+          end do
+       end do
+
+       ! compute cell-centered Cholesky factor, sqrtLonsager
+       call choldc(sqrtLonsager,nspecies)   
+
+    else
+
+       ! if there are trace species, we consider a subsystem 
+       ! consisting of non-trace species
+
+       nspecies_sub = nspecies - ntrace
+       call compute_sqrtLonsager_sub()
+
+    end if
+
+  contains
+  
+    subroutine compute_sqrtLonsager_sub() ! We make this a subroutine to use stack instead of heap
     
-!       ! remove all upper-triangular entries and NXN entry that lapack doesn't set to zero 
-!       do row=1, nspecies_in
-!         do column=row+1, nspecies_in
-!           sqrtL(row,column) = 0.d0
-!         end do
-!       end do
-!       sqrtL(nspecies_in,nspecies_in) = 0.d0
-!     end subroutine chol_lapack 
+       double precision :: molmass_sub(nspecies_sub)
+       double precision :: rho_sub(nspecies_sub)
+       double precision :: W_sub(nspecies_sub)
+       double precision :: molarconc_sub(nspecies_sub)
+
+       double precision :: D_bar_sub(nspecies_sub,nspecies_sub)
+       double precision :: chi_sub(nspecies_sub,nspecies_sub)
+       double precision :: sqrtLonsager_sub(nspecies_sub,nspecies_sub)
+
+       ! create a vector of non-trace densities and molmass for the subsystem
+       do row=1, nspecies
+          if (dest(row) .ne. 0) then
+             molmass_sub(dest(row)) = molmass(row)
+             rho_sub(dest(row)) = rho(row)
+          end if
+       end do
+
+       ! renormalize total density and mass fractions
+       rhotot_sub = sum(rho_sub)
+       do row=1, nspecies_sub
+          W_sub(row) = rho_sub(row)/rhotot_sub
+       end do
+
+       ! first, compute the full D_bar
+       ! then, construct D_bar_sub by mapping the full D_bar into D_bar_sub
+       ! you could read in only the lower diagonals, 
+       ! reflect, and set the diagnals to zero if you want
+
+       call compute_D_bar_local(rho,rhotot,D_bar)
+
+       do row=1, nspecies
+          if (dest(row) .eq. 0) then
+             cycle
+          end if
+          do column=1, nspecies
+             if (dest(column) .ne. 0) then
+                D_bar_sub(dest(row),dest(column)) = D_bar(row,column)
+             end if
+          end do
+       end do
        
-!   end subroutine compute_sqrtLonsager_local
+       ! compute molarconc_sub and molmtot_sub
+       call compute_molconc_molmtot_local(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,molmtot_sub)
+
+       ! compute chi_sub
+       call compute_chi(nspecies_sub,molmass_sub,rho_sub,rhotot_sub,molarconc_sub,chi_sub,D_bar_sub)
+
+       ! compute Onsager matrix L_sub (store in sqrtLonsager_sub)
+       do column=1, nspecies_sub
+          do row=1, nspecies_sub
+             sqrtLonsager_sub(row, column) = &
+                  molmtot_sub*rhotot_sub*W_sub(row)*chi_sub(row,column)*W_sub(column)/k_B
+          end do
+       end do
+
+       ! compute cell-centered Cholesky factor, sqrtLonsager_sub
+       call choldc(sqrtLonsager_sub,nspecies_sub)   
+
+       ! expand sqrtLonsager_sub into sqrtLonsager
+       sqrtLonsager(:,:) = 0.d0
+       do row=1, nspecies
+          if (dest(row) .eq. 0) then
+             cycle
+          end if
+          do column=1, nspecies
+             if (dest(column) .ne. 0) then
+                sqrtLonsager(row,column) = sqrtLonsager_sub(dest(row),dest(column))
+             end if
+          end do
+       end do
+       
+    end subroutine compute_sqrtLonsager_sub
+
+    subroutine chol_lapack(sqrtL,nspecies_in)
+      integer, intent (in)            :: nspecies_in
+      double precision, intent (inout) :: sqrtL(nspecies_in,nspecies_in)
+
+      integer :: row, column
+       
+      call dpotrf_f95(sqrtL,'L', rcond, 'I', info)
+      !stop "LAPACK95 dpotrf_f95 disabled"
+    
+      ! remove all upper-triangular entries and NXN entry that lapack doesn't set to zero 
+      do row=1, nspecies_in
+        do column=row+1, nspecies_in
+          sqrtL(row,column) = 0.d0
+        end do
+      end do
+      sqrtL(nspecies_in,nspecies_in) = 0.d0
+    end subroutine chol_lapack 
+       
+  end subroutine compute_sqrtLonsager_local
 
 
 !   subroutine compute_rhoWchi_from_chi(mla,rho,chi,rhoWchi)

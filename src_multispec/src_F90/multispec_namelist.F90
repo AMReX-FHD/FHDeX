@@ -25,12 +25,6 @@ module multispec_namelist_module
   double precision,   save :: c_init(2,MAX_SPECIES)
   double precision,   save :: c_bc(AMREX_SPACEDIM,2,MAX_SPECIES)
   
-  ! manufactured solution parameters populated in init
-  double precision,   save :: alpha1
-  double precision,   save :: beta
-  double precision,   save :: delta
-  double precision,   save :: sigma
-
   integer,            save :: midpoint_stoch_mass_flux_type
   integer,            save :: avg_type
   integer,            save :: mixture_type
@@ -123,7 +117,6 @@ contains
                                              fraction_tolerance_in, correct_flux_in, print_error_norms_in, &
                                              is_nonisothermal_in, is_ideal_mixture_in, &
                                              use_lapack_in, c_init_in, c_bc_in, &
-                                             alpha1_in, beta_in, delta_in, sigma_in, &
                                              midpoint_stoch_mass_flux_type_in, &
                                              avg_type_in, mixture_type_in) &
                                              bind(C, name="initialize_multispec_namespace")
@@ -145,11 +138,6 @@ contains
     double precision,       intent(inout) :: c_init_in(2,MAX_SPECIES)
     double precision,       intent(inout) :: c_bc_in(AMREX_SPACEDIM,2,MAX_SPECIES)
 
-    double precision,       intent(inout) :: alpha1_in
-    double precision,       intent(inout) :: beta_in
-    double precision,       intent(inout) :: delta_in
-    double precision,       intent(inout) :: sigma_in
-
     integer,                intent(inout) :: midpoint_stoch_mass_flux_type_in
     integer,                intent(inout) :: avg_type_in
     integer,                intent(inout) :: mixture_type_in
@@ -170,10 +158,6 @@ contains
     use_lapack_in = use_lapack
     c_init_in = c_init
     c_bc_in = c_bc
-    alpha1_in = alpha1
-    beta_in = beta
-    delta_in = delta
-    sigma_in = sigma
     midpoint_stoch_mass_flux_type_in = midpoint_stoch_mass_flux_type
     avg_type_in = avg_type
     mixture_type_in = mixture_type

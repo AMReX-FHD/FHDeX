@@ -15,11 +15,6 @@ int                        multispec::use_lapack;
 amrex::Vector<amrex::Real> multispec::c_init;
 amrex::Vector<amrex::Real> multispec::c_bc;
   
-amrex::Real                multispec::alpha1;
-amrex::Real                multispec::beta;
-amrex::Real                multispec::delta;
-amrex::Real                multispec::sigma;
-  
 int                        multispec::midpoint_stoch_mass_flux_type;
 int                        multispec::avg_type;
 int                        multispec::mixture_type;

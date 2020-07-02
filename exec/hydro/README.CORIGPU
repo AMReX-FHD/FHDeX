@@ -1,0 +1,14 @@
+Running on CoriGPU
+(verified on 3/24/20 that inputs_regression_vortex_3d produces the same result as my laptop)
+
+>> module purge
+
+>> module load modules esslurm gcc cuda openmpi/3.1.3
+
+>> salloc -N 1 -t 0:30:00 -c 10 -C gpu --gres=gpu:1 -A m1759
+
+# make -j COMP=gnu USE_MPI=TRUE USE_CUDA=TRUE USE_OMP=FALSE DIM=3 TINY_PROFILE=TRUE (last one optional)
+
+>> srun --cpu-bind=cores <executable> <inputs> | tee out.txt
+
+# NOTE: if using TINY_PROFILE, add “nvprof -o profile.%p.nvvp” before <executable> to spit out .nvvp files.

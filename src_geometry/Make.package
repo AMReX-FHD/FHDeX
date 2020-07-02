@@ -1,0 +1,2 @@
+CEXE_headers   += paramPlane.H
+CEXE_sources   += paramPlane.cpp

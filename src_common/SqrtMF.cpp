@@ -1,5 +1,4 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
 
 void SqrtMF(MultiFab& mf) {
     
@@ -13,7 +12,7 @@ void SqrtMF(MultiFab& mf) {
       
       const Array4<Real> & mf_fab = mf.array(mfi);
         
-      AMREX_HOST_DEVICE_FOR_4D(bx, ncomp, i, j, k, n,
+      amrex::ParallelFor(bx, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
       {
           mf_fab(i,j,k,n) = sqrt(mf_fab(i,j,k,n));
       });

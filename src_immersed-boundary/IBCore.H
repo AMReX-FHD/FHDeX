@@ -8,12 +8,9 @@
 #include <IBParticleInfo.H>
 #include <IBParticleContainer.H>
 
-
-#include "common_namespace.H"
-
+#include "common_functions.H"
 
 using namespace amrex;
-using namespace common;
 
 class IBParticleContainer;
 

@@ -1,23 +1,16 @@
 
 #include "hydro_functions.H"
-#include "hydro_functions_F.H"
 
 #include "common_functions.H"
-#include "common_functions_F.H"
 
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
 
-#include "gmres_namespace.H"
 
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
-using namespace common;
-using namespace gmres;
 
 // argv contains the name of the inputs file entered at the command line
 void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
@@ -152,8 +145,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         umac[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umac[i], i, geom, i);
-        MultiFABPhysBCMacVel(umac[i], i, geom, i);
+        MultiFabPhysBCDomainVel(umac[i], i, geom, i);
+        MultiFabPhysBCMacVel(umac[i], i, geom, i);
     }
 
 
@@ -165,9 +158,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     // Compute tracer:
     tracer.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracer, geom);
+    MultiFabPhysBC(tracer, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracer, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracer, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // compute predictor
@@ -175,9 +168,9 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     MultiFab::Add(tracerPred, advFluxdivS, 0, 0, 1, 0);
 
     tracerPred.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(tracerPred, geom);
+    MultiFabPhysBC(tracerPred, geom, 0, 1, 1);
 
-    MkAdvSFluxdiv(umac, tracerPred, advFluxdivS, dx, geom, 0);
+    MkAdvSFluxdiv_cc(umac, tracerPred, advFluxdivS, geom, 0, 1, 0);
     advFluxdivS.mult(dt, 1);
 
     // advance in time
@@ -205,8 +198,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         uMom[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[i], i, geom, i);
-        MultiFABPhysBCMacVel(uMom[i], i, geom, i);
+        MultiFabPhysBCDomainVel(uMom[i], i, geom, i);
+        MultiFabPhysBCMacVel(uMom[i], i, geom, i);
     }
 
     MkAdvMFluxdiv(umac, uMom, advFluxdiv, dx, 0);
@@ -218,8 +211,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         Lumac[d].FillBoundary(geom.periodicity());
 
         // Only apply these BCs to the velocity term:
-        // MultiFABPhysBCDomainVel(Lumac[d], d, geom, d);
-        // MultiFABPhysBCMacVel(Lumac[d], d, geom, d);
+        // MultiFabPhysBCDomainVel(Lumac[d], d, geom, d);
+        // MultiFabPhysBCMacVel(Lumac[d], d, geom, d);
 
         MultiFab::Copy(gmres_rhs_u[d], umac[d], 0, 0, 1, 1);
 
@@ -236,7 +229,7 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     pres.setVal(0.);  // initial guess
     SetPressureBC(pres, geom);
 
-    ComputeGrad(pres, pg, 0, 0, 1, geom);
+    ComputeGrad(pres, pg, 0, 0, 1, 0, geom);
 
     for (int i=0; i<AMREX_SPACEDIM; i++) {
         pg[i].FillBoundary(geom.periodicity());
@@ -245,8 +238,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Subtract(gmres_rhs_u[i], pg[i], 0, 0, 1, 1);
 
         // Only apply these BCs to the velocity term:
-        // MultiFABPhysBCDomainVel(gmres_rhs_u[i], i, geom, i);
-        // MultiFABPhysBCMacVel(gmres_rhs_u[i], i, geom, i);
+        // MultiFabPhysBCDomainVel(gmres_rhs_u[i], i, geom, i);
+        // MultiFabPhysBCMacVel(gmres_rhs_u[i], i, geom, i);
     }
 
     // initial guess for new solution
@@ -262,15 +255,15 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // let rho = 1
     for (int d=0; d<AMREX_SPACEDIM; d++) {
         umacNew[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(umacNew[d], d, geom, d);
-        MultiFABPhysBCMacVel(umacNew[d], d, geom, d);
+        MultiFabPhysBCDomainVel(umacNew[d], d, geom, d);
+        MultiFabPhysBCMacVel(umacNew[d], d, geom, d);
 
         MultiFab::Copy(uMom[d], umacNew[d], 0, 0, 1, 0);
         uMom[d].mult(1.0, 1);
 
         uMom[d].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(uMom[d], d, geom, d);
-        MultiFABPhysBCMacVel(uMom[d], d, geom, d);
+        MultiFabPhysBCDomainVel(uMom[d], d, geom, d);
+        MultiFabPhysBCMacVel(uMom[d], d, geom, d);
     }
 
     MkAdvMFluxdiv(umacNew,uMom,advFluxdivPred,dx,0);
@@ -302,8 +295,8 @@ void advance(std::array< MultiFab, AMREX_SPACEDIM >& umac,
         MultiFab::Subtract(gmres_rhs_u[d], pg[d], 0, 0, 1, 1);
 
         // Only apply these BCs to the velocity term:
-        //MultiFABPhysBCDomainVel(gmres_rhs_u[d], d, geom, d);
-        //MultiFABPhysBCMacVel(gmres_rhs_u[d], d, geom, d);
+        //MultiFabPhysBCDomainVel(gmres_rhs_u[d], d, geom, d);
+        //MultiFabPhysBCMacVel(gmres_rhs_u[d], d, geom, d);
 
         MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 0);
     }

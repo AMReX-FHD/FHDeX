@@ -1,15 +1,5 @@
 #include "multispec_functions.H"
-#include "multispec_functions_F.H"
-
 #include "common_functions.H"
-#include "common_functions_F.H"
-
-#include "multispec_namespace.H"
-#include "common_namespace.H"
-
-using namespace multispec;
-using namespace common;
-using namespace amrex;
 
 // FIXME: Fill ghost cells
 
@@ -43,7 +33,7 @@ void DiffusiveMassFlux(const MultiFab& rho,
 		       const Geometry& geom)
 {
 
-    BL_PROFILE_VAR("DiffusiveMassFlux()",DiffusiveMassFluxdiv);
+    BL_PROFILE_VAR("DiffusiveMassFlux()",DiffusiveMassFlux);
 
     int i;
     BoxArray ba = rho.boxArray();
@@ -54,44 +44,54 @@ void DiffusiveMassFlux(const MultiFab& rho,
     const Real* dx = geom.CellSize();
 
     // build local face-centered multifab with nspecies^2 component, zero ghost cells 
-    // and nodal in direction i
+    std::array< MultiFab, AMREX_SPACEDIM > rhoWchi_face;    // rho*W*chi*Gamma
+    std::array< MultiFab, AMREX_SPACEDIM > Gamma_face;      // Gamma-matrix
 
-    // rho*W*chi*Gamma
-    std::array< MultiFab, AMREX_SPACEDIM > rhoWchi_face;
-    AMREX_D_TERM(rhoWchi_face[0].define(convert(ba,nodal_flag_x), dmap, nspecies2, 0);,
-                 rhoWchi_face[1].define(convert(ba,nodal_flag_y), dmap, nspecies2, 0);,
-                 rhoWchi_face[2].define(convert(ba,nodal_flag_z), dmap, nspecies2, 0););
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        rhoWchi_face[d].define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
+        Gamma_face[d]  .define(convert(ba,nodal_flag_dir[d]), dmap, nspecies2, 0);
+    }
 
-    // Gamma-matrix
-    std::array< MultiFab, AMREX_SPACEDIM > Gamma_face;
-    AMREX_D_TERM(Gamma_face[0].define(convert(ba,nodal_flag_x), dmap, nspecies2, 0);,
-                 Gamma_face[1].define(convert(ba,nodal_flag_y), dmap, nspecies2, 0);,
-                 Gamma_face[2].define(convert(ba,nodal_flag_z), dmap, nspecies2, 0););
+    // compute face-centered rhoWchi from cell-centered values 
+    AverageCCToFace(rhoWchi, rhoWchi_face, 0, nspecies2, 1, geom);
 
-    AverageCCToFace(rhoWchi, 0, rhoWchi_face, 0, nspecies2);
-    AverageCCToFace(Gamma, 0, Gamma_face, 0, nspecies2);
-    // Note: Add shifting option?
+    // calculate face-centrered grad(molarconc) 
+    ComputeGrad(molarconc, diff_mass_flux, 0, 0, nspecies, 1, geom);
 
-    //Computes gradient at cell faces of cell centred scalar
-    ComputeGrad(molarconc, diff_mass_flux, 0, 0, nspecies, geom);
+    // compute face-centered Gama from cell-centered values 
+    AverageCCToFace(Gamma, Gamma_face, 0, nspecies2, 1, geom);
 
-    // MatvecMul needs to add A*x result to x
-    for(i=0;i<AMREX_SPACEDIM;i++) {
-      // Gamma_face[i].setVal(0.0);
-      
+    // compute Gama*grad(molarconc): Gama is nspecies^2 matrix; grad(x) is
+    // nspecies component vector 
+    for(i=0; i<AMREX_SPACEDIM; i++) {
       MatvecMul(diff_mass_flux[i], Gamma_face[i]);
     }
 
+    if (is_nonisothermal) {
+        //
+        //
+        //
+    }
+
+    if (barodiffusion_type > 0) {
+        //
+        //
+        //
+    }
+
+    // compute -rhoWchi * (Gamma*grad(x) + ... ) on faces
     for(i=0;i<AMREX_SPACEDIM;i++) {
-      // rhoWchi_face[i].setVal(0.0);
-      
       MatvecMul(diff_mass_flux[i], rhoWchi_face[i]);
+    }
+
+    // If there are walls with zero-flux boundary conditions
+    if (is_nonisothermal) {
+        ZeroEdgevalWalls(diff_mass_flux, geom, 0, nspecies);
     }
 
     //correct fluxes to ensure mass conservation to roundoff
     if (correct_flux==1 && (nspecies > 1)) {
-      // Print() << "Checking conservation of deterministic fluxes \n";
-      CorrectionFlux(rho,rhotot,diff_mass_flux);
+        CorrectionFlux(rho,rhotot,diff_mass_flux);
     }
 
 }

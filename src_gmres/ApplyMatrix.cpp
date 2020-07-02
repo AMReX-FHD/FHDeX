@@ -1,14 +1,8 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
-#include "common_namespace.H"
 
 #include "gmres_functions.H"
-#include "gmres_functions_F.H"
-#include "gmres_namespace.H"
 
 
-using namespace common;
-using namespace gmres;
 
 // This computes A x = b explicitly
 void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
@@ -50,17 +44,12 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
     // TODO: this should not be done here
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         x_u[i].FillBoundary(geom.periodicity());
-        MultiFABPhysBCDomainVel(x_u[i], geom,i);
-        MultiFABPhysBCMacVel(x_u[i], geom,i);
+        MultiFabPhysBCDomainVel(x_u[i], geom,i);
+        MultiFabPhysBCMacVel(x_u[i], geom,i);
     }
 
     x_p.FillBoundary(geom.periodicity());
-    MultiFABPhysBCPres(x_p, geom);
-
-    std::array< MultiFab, AMREX_SPACEDIM > gx_p;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        gx_p[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 0);
-
+    MultiFabPhysBC(x_p, geom, 0, 1, 0);
 
     // compute b_u = A x_u
     if (gmres_spatial_order == 2) {
@@ -72,14 +61,10 @@ void ApplyMatrix(std::array<MultiFab, AMREX_SPACEDIM> & b_u,
 
     // compute G x_p and add to b_u
     if (gmres_spatial_order == 2) {
-        ComputeGrad(x_p, gx_p, 0, 0, 1, geom);
+        ComputeGrad(x_p, b_u, 0, 0, 1, 0, geom, 1);
     }
     else if (gmres_spatial_order == 4) {
         Abort("ApplyMatrix.cpp: gmres_spatial_order=4 not supported yet");
-    }
-
-    for (int i=0; i<AMREX_SPACEDIM; ++i) {
-        MultiFab::Add(b_u[i], gx_p[i], 0, 0, 1, 0);
     }
 
     // set b_p = -D x_u

@@ -21,7 +21,7 @@ extern "C"
                                      int* membrane_cell, int* cross_cell, amrex::Real* transmission,
                                      amrex::Real* qval, int* pkernel_fluid, int* pkernel_es,
                                      amrex::Real* fixed_dt,
-                                     amrex::Real* cfl, int* max_step, int* plot_int, int* plot_stag,
+                                     amrex::Real* cfl, amrex::Real* rfd_delta, int* max_step, int* plot_int, int* plot_stag,
                                      const char* plot_base_name,
                                      const int plot_base_name_len,
                                      int* chk_int,
@@ -187,50 +187,6 @@ extern "C"
 			    const int* dir, const int* incomp, const int* mcomp, const int* ncomp);
 
 ///////////////////////////
-
-///////////////////////////
-// in multifab_physbc_mod.F90
-
-    void fab_physbc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * pressure, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
-
-    void fab_electricbc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * efield, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
-
-    void fab_potentialbc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * potential, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
-
-   void fab_chargebc(const int * lo,     const int * hi,
-                    const int * dom_lo, const int * dom_hi,
-                    amrex::Real * charge, const int * p_lo, const int * p_hi,
-                    const int * p_ncomp, int ngc, const int * dim_fill_ghost);
-
-    void fab_physbc_domainvel(const int * lo,     const int * hi,
-                              const int * dom_lo, const int * dom_hi,
-                              amrex::Real * vel, const int * v_lo, const int * v_hi,
-                              const int * v_ncomp, int ngc, const int * dim_fill_ghost, int* dim);
-
-    void fab_physbc_macvel(const int * lo,     const int * hi,
-                           const int * dom_lo, const int * dom_hi,
-                           amrex::Real * vel, const int * v_lo, const int * v_hi,
-                           const int * v_ncopm, int ngc, const int * dim_fill_ghost, int* dim);
-
-    void fab_physbc_domainstress(const int * lo,     const int * hi,
-                              const int * dom_lo, const int * dom_hi,
-                              amrex::Real * stress, const int * v_lo, const int * v_hi,
-                              const int * v_ncomp, int ngc, const int * dim_fill_ghost, int* dim);
-
-    void fab_physbc_macstress(const int * lo,     const int * hi,
-                           const int * dom_lo, const int * dom_hi,
-                           amrex::Real * stress, const int * v_lo, const int * v_hi,
-                           const int * v_ncopm, int ngc, const int * dim_fill_ghost, int* dim);
-
 
 ///////////////////////////
 // in sqrt_mf.F90
