@@ -59,8 +59,6 @@ INCLUDE_LOCATIONS += ../../src_common/
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
-include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 
 ifeq ($(USE_CUDA),FALSE)

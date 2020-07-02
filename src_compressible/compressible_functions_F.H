@@ -97,16 +97,6 @@ extern "C"
                       amrex::Real* zeta,
                       amrex::Real* kappa);
 
-    void get_trans_coeff(amrex::Real* temp, amrex::Real* fracvec, amrex::Real* eta, amrex::Real* zeta, amrex::Real* kappa);
-
-    void makecoef(const int* lo, const int* hi,
-                  const amrex::Real* prim,
-                  amrex::Real* eta,
-                  amrex::Real* zeta,
-                  amrex::Real* kappa,
-                  amrex::Real* chi,
-                  amrex::Real* Dij);
-
     void set_bc(const int* lo, const int* hi,
                 amrex::Real* cons,
                 amrex::Real* prim);
@@ -117,7 +107,6 @@ extern "C"
 
     void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 
-    void get_pressure_gas(amrex::Real* pressure, amrex::Real* fracvec, amrex::Real* density, amrex::Real* temp);
     void get_density_gas(amrex::Real* pressure,amrex::Real* density, amrex::Real* temp);
 
     void get_hc_gas();
