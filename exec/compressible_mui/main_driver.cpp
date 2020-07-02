@@ -155,8 +155,8 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
                         derg  += 0.5*mass*(vx*vx+vy*vy+vz*vz);
                     }
 
-                    cu_fab(i,j,k,0) += (ac-dc)*mass/dV;
-                    cu_fab(i,j,k,5+n) += (ac-dc)*mass/dV;
+                    cu_fab(i,j,k,0) += (dc-ac)*mass/dV;
+                    cu_fab(i,j,k,5+n) += (dc-ac)*mass/dV;
 
                     cu_fab(i,j,k,1) += dmomx/dV;
                     cu_fab(i,j,k,2) += dmomy/dV;
