@@ -134,8 +134,8 @@ void main_driver(const char* argv)
     rng_initialize(&fhdSeed,&particleSeed,&selectorSeed,&thetaSeed,&phiSeed,&generalSeed);
 
     // initializes the seed for C++ random number calls
-    InitRandom(seed+ParallelDescriptor::MyProc());    
-    
+    InitRandom(seed+ParallelDescriptor::MyProc());
+
     /////////////////////////////////////////
 
     // transport properties
@@ -188,7 +188,7 @@ void main_driver(const char* argv)
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
     MultiFab cuVars   (ba,dmap,nvars,ngc);
     MultiFab cuMeansAv(ba,dmap,nvars,ngc);
-    MultiFab cuVarsAv(ba,dmap,nvars,ngc);
+    MultiFab cuVarsAv (ba,dmap,nvars,ngc);
 
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
@@ -197,8 +197,8 @@ void main_driver(const char* argv)
 
     MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
-    MultiFab primMeansAv(ba,dmap,nprimvars,ngc);
-    MultiFab primVarsAv(ba,dmap,nprimvars + 5,ngc);
+    MultiFab primMeansAv(ba,dmap,nprimvars  ,ngc);
+    MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
    
@@ -285,9 +285,9 @@ void main_driver(const char* argv)
     c_v2 = c_v*c_v;
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
-	dVol *= cell_depth;
+        dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
-	dVol *= dx[2];
+        dVol *= dx[2];
     }
     // calc momentum variance
     Real Jeqmvar = rho0*k_B*T0/dVol;
@@ -387,7 +387,6 @@ void main_driver(const char* argv)
 //    }
 
     ////////////////////////////////
-
 
 #ifndef AMREX_USE_CUDA
     ///////////////////////////////////////////
@@ -623,22 +622,23 @@ void main_driver(const char* argv)
         
         // compute mean and variances
 	if (step > n_steps_skip) {
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, miscStats, miscVals, statsCount, dx);
+            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
+                          spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
 	}
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross, cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
-            WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
-                          prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
-            //WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
-                          //prim, primMeans, primVars, spatialCross, eta, kappa);
+           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+                     cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
+                         prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
         }
 
         if (chk_int > 0 && step > 0 && step%chk_int == 0)
         {
-           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
+           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
+                           cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
         }
 
 #ifndef AMREX_USE_CUDA
@@ -692,7 +692,6 @@ void main_driver(const char* argv)
 
         amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
                        << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
-        
     }
 
     // timer
@@ -700,4 +699,3 @@ void main_driver(const char* argv)
     ParallelDescriptor::ReduceRealMax(stop_time);
     amrex::Print() << "Run time = " << stop_time << std::endl;
 }
-

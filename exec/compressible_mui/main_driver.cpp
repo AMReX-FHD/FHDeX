@@ -1,20 +1,16 @@
 #include "common_functions.H"
-#include "common_functions_F.H"
-#include "common_namespace.H"
-#include "common_namespace_declarations.H"
-
 #include "compressible_functions.H"
-#include "compressible_functions_F.H"
-#include "compressible_namespace.H"
+
+#include "common_namespace_declarations.H"
 #include "compressible_namespace_declarations.H"
 
-#include "rng_functions_F.H"
+#include "rng_functions.H"
 
+#ifndef AMREX_USE_CUDA
 #include "StructFact.H"
+#endif
 
 using namespace amrex;
-using namespace common;
-using namespace compressible;
 
 // mui
 #include <mui.h>
@@ -177,6 +173,8 @@ void mui_fetch(MultiFab& cu, MultiFab& prim, const amrex::Real* dx, mui::uniface
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char* argv)
 {
+    BL_PROFILE_VAR("main_driver()",main_driver);
+    
     // store the current time so we can later compute total run time.
     Real strt_time = ParallelDescriptor::second();
 
@@ -194,6 +192,15 @@ void main_driver(const char* argv)
     // if gas heat capacities in the namelist are negative, calculate them using using dofs.
     // This will only update the Fortran values.
     get_hc_gas();
+    // now update C++ values
+    for (int i=0; i<nspecies; ++i) {
+        if (hcv[i] < 0.) {
+            hcv[i] = 0.5*dof[i]*Runiv/molmass[i];
+        }
+        if (hcp[i] < 0.) {
+            hcp[i] = 0.5*(2.+dof[i])*Runiv/molmass[i];
+        }
+    }
   
     // check bc_vel_lo/hi to determine the periodicity
     Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
@@ -338,16 +345,33 @@ void main_driver(const char* argv)
     //statistics    
     MultiFab cuMeans  (ba,dmap,nvars,ngc);
     MultiFab cuVars   (ba,dmap,nvars,ngc);
+    MultiFab cuMeansAv(ba,dmap,nvars,ngc);
+    MultiFab cuVarsAv (ba,dmap,nvars,ngc);
+
     cuMeans.setVal(0.0);
     cuVars.setVal(0.0);
     
-    MultiFab cuVertAvg;  // flattened multifab defined below
+    MultiFab primVertAvg;  // flattened multifab defined below
 
     MultiFab primMeans  (ba,dmap,nprimvars  ,ngc);
     MultiFab primVars   (ba,dmap,nprimvars+5,ngc);
+    MultiFab primMeansAv(ba,dmap,nprimvars  ,ngc);
+    MultiFab primVarsAv (ba,dmap,nprimvars+5,ngc);
     primMeans.setVal(0.0);
     primVars.setVal(0.0);
-    
+   
+    //Miscstats
+    // 0        time averaged kinetic energy density
+
+    MultiFab miscStats(ba,dmap,10,ngc);
+    Real miscVals[20]; 
+    MultiFab spatialCross(ba,dmap,6,ngc);
+    MultiFab spatialCrossAv(ba,dmap,6,ngc);
+
+    miscStats.setVal(0.0);
+    spatialCross.setVal(0.0);
+    spatialCrossAv.setVal(0.0);
+
     // external source term - possibly for later
     MultiFab source(ba,dmap,nprimvars,ngc);
     source.setVal(0.0);
@@ -400,10 +424,6 @@ void main_driver(const char* argv)
     Real time = 0;
 
     int step, statsCount;
-
-    ///////////////////////////////////////////
-    // Structure factor:
-    ///////////////////////////////////////////
     
     ////////////////////////////////
     // create equilibrium covariance matrix
@@ -423,9 +443,9 @@ void main_driver(const char* argv)
     c_v2 = c_v*c_v;
     // calc cell volume
     if (AMREX_SPACEDIM == 2) {
-    dVol *= cell_depth;
+        dVol *= cell_depth;
     } else if (AMREX_SPACEDIM == 3) {
-    dVol *= dx[2];
+        dVol *= dx[2];
     }
     // calc momentum variance
     Real Jeqmvar = rho0*k_B*T0/dVol;
@@ -483,104 +503,182 @@ void main_driver(const char* argv)
 //    for(int jb=0; jb<nb_sf; jb++) {
 //      ig = jg;
 //      for(int ib=jb; ib<nb_sf; ib++) {
-//  // loop within blocks
-//  for(int j=0; j<blocks[jb]; j++) {
-//    int low_ind;
-//    if(ib==jb){      // if block lies on diagonal...
-//      low_ind=j;
-//    } else {
-//      low_ind=0;
-//    }
-//    for(int i=low_ind; i<blocks[ib]; i++) {
-//      cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
-//      eqmvars[cnt] = beqmvars[bcnt];
+//	// loop within blocks
+//	for(int j=0; j<blocks[jb]; j++) {
+//	  int low_ind;
+//	  if(ib==jb){      // if block lies on diagonal...
+//	    low_ind=j;
+//	  } else {
+//	    low_ind=0;
+//	  }
+//	  for(int i=low_ind; i<blocks[ib]; i++) {
+//	    cnt = (ig+i)+nvar_sf*(jg+j)-(jg+j)*(jg+j+1)/2;
+//	    eqmvars[cnt] = beqmvars[bcnt];
 
-//      // fix scale for individual species
-//      if(ib != 2 && jb != 2) { // not for energy
+//	    // fix scale for individual species
+//	    if(ib != 2 && jb != 2) { // not for energy
 
-//        if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
-//          eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
-//          eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
-//        } else if (blocks[ib]==nspecies) {
-//          eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
-//        } else if (blocks[jb]==nspecies) {
-//          eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
-//        }
+//	      if(blocks[ib]==nspecies && blocks[jb]==nspecies) {
+//	    	eqmvars[cnt] *= sqrt(rhobar[i]*molmass[i]/molmix);
+//	    	eqmvars[cnt] *= sqrt(rhobar[j]*molmass[j]/molmix);
+//	      } else if (blocks[ib]==nspecies) {
+//	    	eqmvars[cnt] *= rhobar[i]*molmass[i]/molmix;
+//	      } else if (blocks[jb]==nspecies) {
+//	    	eqmvars[cnt] *= rhobar[j]*molmass[j]/molmix;
+//	      }
 
-//      } else {
-//        
-//        // if rho_k & energy, only scale by Yk
-//        if(blocks[ib]==nspecies && jb==2) {
-//          eqmvars[cnt] *= rhobar[i];
-//        }
-//        
-//      }
+//	    } else {
+//	      
+//	      // if rho_k & energy, only scale by Yk
+//	      if(blocks[ib]==nspecies && jb==2) {
+//	    	eqmvars[cnt] *= rhobar[i];
+//	      }
+//	      
+//	    }
 
-//    }
-//  }
-//  bcnt++;
-//  ig += blocks[ib];
+//	  }
+//	}
+//	bcnt++;
+//	ig += blocks[ib];
 //      }
 //      jg += blocks[jb];
 //    }
 
     ////////////////////////////////
 
-    // set variable names
+#ifndef AMREX_USE_CUDA
+    ///////////////////////////////////////////
+    // Structure factor:
+    ///////////////////////////////////////////
+
+    // "primitive" variable structure factor will contain
+    // rho
+    // vel
+    // T
+    // Yk
+    int structVarsPrim = AMREX_SPACEDIM+nspecies+2;
+
+    Vector< std::string > prim_var_names;
+    prim_var_names.resize(structVarsPrim);
+
     cnt = 0;
-    Vector< std::string > var_names;
-    var_names.resize(nvar_sf);
     std::string x;
-    var_names[cnt++] = "rho";
+
+    // rho
+    prim_var_names[cnt++] = "rho";
+
+    // velx, vely, velz
     for (int d=0; d<AMREX_SPACEDIM; d++) {
-      x = "J";
+      x = "vel";
       x += (120+d);
-      var_names[cnt++] = x;
+      prim_var_names[cnt++] = x;
     }
-    var_names[cnt++] = "rhoE";
+
+    // Temp
+    prim_var_names[cnt++] = "Temp";
+
+    // Yk
     for (int d=0; d<nspecies; d++) {
-      x = "rho";
+      x = "Y";
       x += (49+d);
-      var_names[cnt++] = x;
+      prim_var_names[cnt++] = x;
     }
 
-    MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, nvar_sf, 0);
+    MultiFab structFactPrimMF;
+    structFactPrimMF.define(ba, dmap, structVarsPrim, 0);
 
-    amrex::Vector< int > s_pairA(nvar_sf);
-    amrex::Vector< int > s_pairB(nvar_sf);
-
-    // Select which variable pairs to include in structure factor:
-    for (int d=0; d<nvar_sf; d++) {
-      s_pairA[d] = d;
-      s_pairB[d] = d;
+    // scale SF results by inverse cell volume
+    Vector<Real> var_scaling;
+    var_scaling.resize(structVarsPrim*(structVarsPrim+1)/2);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
     }
 
-    // structure factor class for full dataset
-    StructFact structFact(ba,dmap,var_names,eqmvars);
+#if 1
+    // option to compute all pairs
+    StructFact structFactPrim(ba,dmap,prim_var_names,var_scaling);
+#else
+    Abort("StructFactPrim option to compute only speicified pairs not written yet");
+#endif
+    
+    //////////////////////////////////////////////
+
+    // "conserved" variable structure factor will contain
+    // rho
+    // j
+    // rho*E
+    // rho*Yk
+    // Temperature (not in the conserved array; will have to copy it in)
+    int structVarsCons = AMREX_SPACEDIM+nspecies+3;
+
+    Vector< std::string > cons_var_names;
+    cons_var_names.resize(structVarsCons);
+
+    cnt = 0;
+
+    // rho
+    cons_var_names[cnt++] = "rho";
+
+    // velx, vely, velz
+    for (int d=0; d<AMREX_SPACEDIM; d++) {
+      x = "j";
+      x += (120+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // rho*E
+    cons_var_names[cnt++] = "rhoE";
+
+    // rho*Yk
+    for (int d=0; d<nspecies; d++) {
+      x = "rhoY";
+      x += (49+d);
+      cons_var_names[cnt++] = x;
+    }
+
+    // Temp
+    cons_var_names[cnt++] = "Temp";
+
+    MultiFab structFactConsMF;
+    structFactConsMF.define(ba, dmap, structVarsCons, 0);
+
+    // scale SF results by inverse cell volume
+    var_scaling.resize(structVarsCons*(structVarsCons+1)/2);
+    for (int d=0; d<var_scaling.size(); ++d) {
+        var_scaling[d] = 1./(dx[0]*dx[1]*dx[2]);
+    }
+
+#if 1
+    // option to compute all pairs
+    StructFact structFactCons(ba,dmap,cons_var_names,var_scaling);
+#else
+    Abort("StructFactCons option to compute only speicified pairs not written yet");
+#endif    
+
+    //////////////////////////////////////////////
     
     // structure factor class for vertically-averaged dataset
-    StructFact structFactVA;
+    StructFact structFactPrimVerticalAverage;
     
     Geometry geom_flat;
 
     if(project_dir >= 0){
-      cu.setVal(0.0);
-      ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-      BoxArray ba_flat = cuVertAvg.boxArray();
-      const DistributionMapping& dmap_flat = cuVertAvg.DistributionMap();
+      prim.setVal(0.0);
+      ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+      BoxArray ba_flat = primVertAvg.boxArray();
+      const DistributionMapping& dmap_flat = primVertAvg.DistributionMap();
       {
         IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
         IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
-        dom_hi[project_dir] = 0;
+    	dom_hi[project_dir] = 0;
         Box domain(dom_lo, dom_hi);
-    
-        // This defines the physical box
-        Vector<Real> projected_hi(AMREX_SPACEDIM);
-        for (int d=0; d<AMREX_SPACEDIM; d++) {
-          projected_hi[d] = prob_hi[d];
-        }
-        projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
+	
+    	// This defines the physical box
+    	Vector<Real> projected_hi(AMREX_SPACEDIM);
+    	for (int d=0; d<AMREX_SPACEDIM; d++) {
+    	  projected_hi[d] = prob_hi[d];
+    	}
+    	projected_hi[project_dir] = prob_hi[project_dir]/n_cells[project_dir];
         RealBox real_box({AMREX_D_DECL(     prob_lo[0],     prob_lo[1],     prob_lo[2])},
                          {AMREX_D_DECL(projected_hi[0],projected_hi[1],projected_hi[2])});
 
@@ -588,10 +686,11 @@ void main_driver(const char* argv)
         geom_flat.define(domain,&real_box,CoordSys::cartesian,is_periodic.data());
       }
 
-      structFactVA.~StructFact(); // destruct
-      new(&structFactVA) StructFact(ba_flat,dmap_flat,var_names,eqmvars); // reconstruct
+      structFactPrimVerticalAverage.~StructFact(); // destruct
+      new(&structFactPrimVerticalAverage) StructFact(ba_flat,dmap_flat,prim_var_names,var_scaling); // reconstruct
     
     }
+#endif
 
     ///////////////////////////////////////////
 
@@ -601,7 +700,7 @@ void main_driver(const char* argv)
     prim.setVal(rho0,0,1,ngc);      // density
     prim.setVal(0.,1,3,ngc);        // x/y/z velocity
     prim.setVal(T_init[0],4,1,ngc); // temperature
-                                    // pressure computed later in cons_to_prim
+                                    // pressure computed later in conservedToPrimitive
     for(int i=0;i<nspecies;i++) {
         prim.setVal(rhobar[i],6+i,1,ngc);    // mass fractions
     }
@@ -653,14 +752,19 @@ void main_driver(const char* argv)
     setBC(prim, cu);
     
     if (plot_int > 0) {
-    WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
-                      prim, primMeans, primVars, eta, kappa);
+	WritePlotFile(0, 0.0, geom, cu, cuMeans, cuVars,
+                      prim, primMeans, primVars, spatialCross, eta, kappa);
     }
 
     mui::uniface2d uniface( "mpi://FHD-side/FHD-KMC-coupling" );
 
     //Time stepping loop
     for(step=1;step<=max_step;++step) {
+
+        if (restart > 0 && step==1) {
+            ReadCheckPoint(step, time, statsCount, geom, cu, cuMeans, cuVars, prim,
+                           primMeans, primVars, spatialCross, miscStats, eta, kappa);
+        }
 
         // timer
         Real ts1 = ParallelDescriptor::second();
@@ -682,40 +786,55 @@ void main_driver(const char* argv)
         // timer
         Real ts2 = ParallelDescriptor::second() - ts1;
         ParallelDescriptor::ReduceRealMax(ts2);
-        amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
+    	amrex::Print() << "Advanced step " << step << " in " << ts2 << " seconds\n";
 
         // timer
         Real aux1 = ParallelDescriptor::second();
         
         // compute mean and variances
-        if (step > n_steps_skip) {
-            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars, statsCount, dx);
+	if (step > n_steps_skip) {
+            evaluateStats(cu, cuMeans, cuVars, prim, primMeans, primVars,
+                          spatialCross, miscStats, miscVals, statsCount, dx);
             statsCount++;
-        }
+	}
 
         // write a plotfile
         if (plot_int > 0 && step > 0 && step%plot_int == 0) {
-            WritePlotFile(step, time, geom, cu, cuMeans, cuVars,
-                          prim, primMeans, primVars, eta, kappa);
+           yzAverage(cuMeans, cuVars, primMeans, primVars, spatialCross,
+                     cuMeansAv, cuVarsAv, primMeansAv, primVarsAv, spatialCrossAv);
+           WritePlotFile(step, time, geom, cu, cuMeansAv, cuVarsAv,
+                         prim, primMeansAv, primVarsAv, spatialCrossAv, eta, kappa);
         }
- 
-    // collect a snapshot for structure factor
-        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
-            MultiFab::Copy(struct_in_cc, cu, 0, 0, nvar_sf, 0);
-            structFact.FortStructure(struct_in_cc,geom);
+
+        if (chk_int > 0 && step > 0 && step%chk_int == 0)
+        {
+           WriteCheckPoint(step, time, statsCount, geom, cu, cuMeans,
+                           cuVars, prim, primMeans, primVars, spatialCross, miscStats, eta, kappa);
+        }
+
+#ifndef AMREX_USE_CUDA
+	// collect a snapshot for structure factor
+	if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip)%struct_fact_int == 0) {
+            MultiFab::Copy(structFactPrimMF, prim, 0,                0,                structVarsPrim,   0);
+            MultiFab::Copy(structFactConsMF, cu,   0,                0,                structVarsCons-1, 0);
+            MultiFab::Copy(structFactConsMF, prim, AMREX_SPACEDIM+1, structVarsCons-1, 1,                0); // temperature too
+            structFactPrim.FortStructure(structFactPrimMF,geom);
+            structFactCons.FortStructure(structFactConsMF,geom);
             if(project_dir >= 0) {
-                ComputeVerticalAverage(cu, cuVertAvg, geom, project_dir, 0, nvars);
-                structFactVA.FortStructure(cuVertAvg,geom_flat);
+                ComputeVerticalAverage(prim, primVertAvg, geom, project_dir, 0, structVarsPrim);
+                structFactPrimVerticalAverage.FortStructure(primVertAvg,geom_flat);
             }
         }
 
         // write out structure factor
         if (step > n_steps_skip && struct_fact_int > 0 && plot_int > 0 && step%plot_int == 0) {
-            structFact.WritePlotFile(step,time,geom,"plt_SF");
+            structFactPrim.WritePlotFile(step,time,geom,"plt_SF_prim");
+            structFactCons.WritePlotFile(step,time,geom,"plt_SF_cons");
             if(project_dir >= 0) {
-                structFactVA.WritePlotFile(step,time,geom_flat,"plt_SF_VA");
+                structFactPrimVerticalAverage.WritePlotFile(step,time,geom_flat,"plt_SF_prim_VerticalAverage");
             }
         }
+#endif
         
         // timer
         Real aux2 = ParallelDescriptor::second() - aux1;
@@ -723,6 +842,27 @@ void main_driver(const char* argv)
         amrex::Print() << "Aux time (stats, struct fac, plotfiles) " << aux2 << " seconds\n";
         
         time = time + dt;
+
+        // MultiFab memory usage
+        const int IOProc = ParallelDescriptor::IOProcessorNumber();
+
+        amrex::Long min_fab_megabytes  = amrex::TotalBytesAllocatedInFabsHWM()/1048576;
+        amrex::Long max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "High-water FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
+
+        min_fab_megabytes  = amrex::TotalBytesAllocatedInFabs()/1048576;
+        max_fab_megabytes  = min_fab_megabytes;
+
+        ParallelDescriptor::ReduceLongMin(min_fab_megabytes, IOProc);
+        ParallelDescriptor::ReduceLongMax(max_fab_megabytes, IOProc);
+
+        amrex::Print() << "Curent     FAB megabyte spread across MPI nodes: ["
+                       << min_fab_megabytes << " ... " << max_fab_megabytes << "]\n";
     }
 
     // timer
