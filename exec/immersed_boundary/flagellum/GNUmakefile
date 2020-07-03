@@ -78,21 +78,9 @@ include ../../../src_immersed-boundary/Make.package
 VPATH_LOCATIONS   += ../../../src_immersed-boundary
 INCLUDE_LOCATIONS += ../../../src_immersed-boundary
 
-include ../../../src_particles/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_particles/src_F90
-INCLUDE_LOCATIONS += ../../../src_particles/src_F90
-
-include ../../../src_particles/Make.package
+include ../../../src_particles/MakeKernels.package
 VPATH_LOCATIONS   += ../../../src_particles
 INCLUDE_LOCATIONS += ../../../src_particles
-
-include ../../../src_geometry/src_F90/Make.package
-VPATH_LOCATIONS   += ../../../src_geometry/src_F90
-INCLUDE_LOCATIONS += ../../../src_geometry/src_F90
-
-include ../../../src_geometry/Make.package
-VPATH_LOCATIONS   += ../../../src_geometry
-INCLUDE_LOCATIONS += ../../../src_geometry
 
 
 include $(AMREX_HOME)/Src/Base/Make.package
