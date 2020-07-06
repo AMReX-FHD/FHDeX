@@ -35,7 +35,7 @@ contains
     real(amrex_real), intent(in   ) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nprimvars)
 
     real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr
-    real(amrex_real) :: intenergy, specden(nspecies), Yk(nspecies), rho, temp, pt
+    real(amrex_real) :: intenergy, Yk(nspecies), rho, temp, pt
 
     integer :: i,j,k,l,n
     
@@ -235,7 +235,7 @@ contains
     real(amrex_real), intent(in   ) :: cons(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nvars)
     real(amrex_real), intent(in   ) :: prim(lo(1)-ngc(1):hi(1)+ngc(1),lo(2)-ngc(2):hi(2)+ngc(2),lo(3)-ngc(3):hi(3)+ngc(3),nprimvars)
 
-    real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, Yk(nspecies), temp, pt
+    real(amrex_real) :: conserved(nvars), primitive(nprimvars), wgt1, wgt2, vsqr, intenergy, Yk(nspecies)
 
     integer :: i,j,k,l,n
     

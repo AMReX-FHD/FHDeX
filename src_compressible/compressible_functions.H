@@ -136,8 +136,7 @@ void GetMolfrac ( int i, int j, int k,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetTemperature ( int i, int j, int k,
-                      Real const energy,
+void GetTemperature ( Real const energy,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real& temp,
                       int const nspecies,
@@ -154,8 +153,7 @@ void GetTemperature ( int i, int j, int k,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetPressureGas ( int i, int j, int k,
-                      Real& pressure,
+void GetPressureGas ( Real& pressure,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real const density,
                       Real const temp,
@@ -921,6 +919,23 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
     ThermalDiff(iloc,jloc,kloc,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,
                 chitil,nspecies);
     // chitil = 0.0d0
-};
-                      
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnergy ( Real& energy,
+                 const GpuArray<Real,MAX_SPECIES>& massvec,
+                 const Real temp,
+                 const GpuArray<Real,MAX_SPECIES>& hcv,
+                 const int nspecies)
+{
+    Real cvmix = 0.;
+    Real e0 = 0.;
+
+    for (int i=0; i<nspecies; ++i) {
+        cvmix += massvec[i]*hcv[i];
+    }
+
+    energy = e0 + temp*cvmix;    
+}
 #endif
