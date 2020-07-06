@@ -50,26 +50,6 @@ extern "C"
                    amrex::Real* visccorn,
                    const amrex::Real* dx);
 
-    void hyp_flux_prim(const int* lo, const int* hi,
-		       const amrex::Real* cons,
-		       const amrex::Real* prim,
-		       amrex::Real* xflux,
-		       amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-		       amrex::Real* zflux,
-#endif
-		       const amrex::Real* dx);
-
-    void hyp_flux_cons(const int* lo, const int* hi,
-		       const amrex::Real* cons,
-		       const amrex::Real* prim,
-		       amrex::Real* xflux,
-		       amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-		       amrex::Real* zflux,
-#endif
-		       const amrex::Real* dx);
-
     void stoch_flux(const int* lo, const int* hi,
 		    const amrex::Real* cons,
 		    const amrex::Real* prim,
