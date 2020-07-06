@@ -136,7 +136,6 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 Real temp = primitive[4];
-                Real pt = primitive[5];
                 Real rho = primitive[0];
                 conserved[0] = rho;
 
@@ -177,7 +176,6 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 Real temp = primitive[4];
-                Real pt = primitive[5];
                 Real rho = primitive[0];
                 conserved[0] = rho;
 
@@ -218,7 +216,6 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
 
                 Real temp = primitive[4];
-                Real pt = primitive[5];
                 Real rho = primitive[0];
                 conserved[0] = rho;
 
