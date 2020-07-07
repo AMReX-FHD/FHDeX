@@ -308,7 +308,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
 
                     // heat conduction already included in flux(5)
-                    fluxz(i,j,k,5) = fluxz(i,j,k,5) + Q5;
+                    fluxz(i,j,k,4) = fluxz(i,j,k,4) + Q5;
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
                         fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk[ns];
