@@ -97,7 +97,7 @@ contains
 
           cv = 0
           do l=1,nspecies
-            cv = cv + hcv(l)*cumeans(i,j,k,5+l)/cumeans(i,j,k,1)
+            cv = cv + hcv(l)*cumeans(cross_cell,j,k,5+l)/cumeans(cross_cell,j,k,1)
           enddo
 
           miscvals(13) = miscvals(13) + cv !slice average mean cv
@@ -184,40 +184,40 @@ contains
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
 
-            slices(i,1,1,1) = slices(i,1,1,1) + cu(i,j,k,1) !rho instant slices
-            slices(i,1,1,2) = slices(i,1,1,2) + cumeans(i,j,k,1) !rho mean slices
-            slices(i,1,1,3) = slices(i,1,1,3) + cu(i,j,k,5) !energy instant slices
-            slices(i,1,1,4) = slices(i,1,1,4) + cumeans(i,j,k,5) !energy mean slices
+            slices(i,lo(2),lo(3),1) = slices(i,lo(2),lo(3),1) + cu(i,j,k,1) !rho instant slices
+            slices(i,lo(2),lo(3),2) = slices(i,lo(2),lo(3),2) + cumeans(i,j,k,1) !rho mean slices
+            slices(i,lo(2),lo(3),3) = slices(i,lo(2),lo(3),3) + cu(i,j,k,5) !energy instant slices
+            slices(i,lo(2),lo(3),4) = slices(i,lo(2),lo(3),4) + cumeans(i,j,k,5) !energy mean slices
 
-            slices(i,1,1,5) = slices(i,1,1,5) + cu(i,j,k,2) !x momentum instant slices
-            slices(i,1,1,6) = slices(i,1,1,6) + cumeans(i,j,k,2) !x momentum mean slices
+            slices(i,lo(2),lo(3),5) = slices(i,lo(2),lo(3),5) + cu(i,j,k,2) !x momentum instant slices
+            slices(i,lo(2),lo(3),6) = slices(i,lo(2),lo(3),6) + cumeans(i,j,k,2) !x momentum mean slices
 
-            slices(i,1,1,7) = slices(i,1,1,7) + cu(i,j,k,3) !y momentum instant slices
-            slices(i,1,1,8) = slices(i,1,1,8) + cumeans(i,j,k,3) !y momentum mean slices
-
-
-            slices(i,1,1,9) = slices(i,1,1,9) + cu(i,j,k,4) !z momentum instant slices
-            slices(i,1,1,10) = slices(i,1,1,10) + cumeans(i,j,k,4) !z momentum mean slices
-
-            slices(i,1,1,11) = slices(i,1,1,11) + prim(i,j,k,2) !x vel instant slices
-            slices(i,1,1,12) = slices(i,1,1,12) + primmeans(i,j,k,2) !x vel mean slices
-
-            slices(i,1,1,13) = slices(i,1,1,13) + prim(i,j,k,3) !y vel instant slices
-            slices(i,1,1,14) = slices(i,1,1,14) + primmeans(i,j,k,3) !y vel mean slices
+            slices(i,lo(2),lo(3),7) = slices(i,lo(2),lo(3),7) + cu(i,j,k,3) !y momentum instant slices
+            slices(i,lo(2),lo(3),8) = slices(i,lo(2),lo(3),8) + cumeans(i,j,k,3) !y momentum mean slices
 
 
-            slices(i,1,1,15) = slices(i,1,1,15) + prim(i,j,k,4) !z vel instant slices
-            slices(i,1,1,16) = slices(i,1,1,16) + primmeans(i,j,k,4) !z vel mean slices
+            slices(i,lo(2),lo(3),9) = slices(i,lo(2),lo(3),9) + cu(i,j,k,4) !z momentum instant slices
+            slices(i,lo(2),lo(3),10) = slices(i,lo(2),lo(3),10) + cumeans(i,j,k,4) !z momentum mean slices
+
+            slices(i,lo(2),lo(3),11) = slices(i,lo(2),lo(3),11) + prim(i,j,k,2) !x vel instant slices
+            slices(i,lo(2),lo(3),12) = slices(i,lo(2),lo(3),12) + primmeans(i,j,k,2) !x vel mean slices
+
+            slices(i,lo(2),lo(3),13) = slices(i,lo(2),lo(3),13) + prim(i,j,k,3) !y vel instant slices
+            slices(i,lo(2),lo(3),14) = slices(i,lo(2),lo(3),14) + primmeans(i,j,k,3) !y vel mean slices
+
+
+            slices(i,lo(2),lo(3),15) = slices(i,lo(2),lo(3),15) + prim(i,j,k,4) !z vel instant slices
+            slices(i,lo(2),lo(3),16) = slices(i,lo(2),lo(3),16) + primmeans(i,j,k,4) !z vel mean slices
 
             cv = 0
             do l=1,nspecies
               cv = cv + hcv(l)*cumeans(i,j,k,5+l)/cumeans(i,j,k,1)
             enddo
 
-            slices(i,1,1,17) = slices(i,1,1,17) + cv !cv mean slices
+            slices(i,lo(2),lo(3),17) = slices(i,lo(2),lo(3),17) + cv !cv mean slices
 
-            slices(i,1,1,18) = slices(i,1,1,18) + prim(i,j,k,5) !temperature instant slices
-            slices(i,1,1,19) = slices(i,1,1,19) + primmeans(i,j,k,5) !temperature mean slices
+            slices(i,lo(2),lo(3),18) = slices(i,lo(2),lo(3),18) + prim(i,j,k,5) !temperature instant slices
+            slices(i,lo(2),lo(3),19) = slices(i,lo(2),lo(3),19) + primmeans(i,j,k,5) !temperature mean slices
 
         enddo
       enddo
@@ -229,26 +229,26 @@ contains
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
 
-            slices(i,j,k,1) = slices(i,1,1,1) 
-            slices(i,j,k,2) = slices(i,1,1,2) 
-            slices(i,j,k,3) = slices(i,1,1,3)
-            slices(i,j,k,4) = slices(i,1,1,4) 
-            slices(i,j,k,5) = slices(i,1,1,5) 
-            slices(i,j,k,6) = slices(i,1,1,6)
-            slices(i,j,k,7) = slices(i,1,1,7)
-            slices(i,j,k,8) = slices(i,1,1,8) 
-            slices(i,j,k,9) = slices(i,1,1,9) 
-            slices(i,j,k,10) = slices(i,1,1,10)
-            slices(i,j,k,11) = slices(i,1,1,11) 
-            slices(i,j,k,12) = slices(i,1,1,12) 
-            slices(i,j,k,13) = slices(i,1,1,13)
-            slices(i,j,k,14) = slices(i,1,1,14) 
-            slices(i,j,k,15) = slices(i,1,1,15) 
-            slices(i,j,k,16) = slices(i,1,1,16)
-            slices(i,j,k,17) = slices(i,1,1,17)
-            slices(i,j,k,18) = slices(i,1,1,18) 
-            slices(i,j,k,19) = slices(i,1,1,19) 
-            slices(i,j,k,20) = slices(i,1,1,20) 
+            slices(i,j,k,1) = slices(i,lo(2),lo(3),1) 
+            slices(i,j,k,2) = slices(i,lo(2),lo(3),2) 
+            slices(i,j,k,3) = slices(i,lo(2),lo(3),3)
+            slices(i,j,k,4) = slices(i,lo(2),lo(3),4) 
+            slices(i,j,k,5) = slices(i,lo(2),lo(3),5) 
+            slices(i,j,k,6) = slices(i,lo(2),lo(3),6)
+            slices(i,j,k,7) = slices(i,lo(2),lo(3),7)
+            slices(i,j,k,8) = slices(i,lo(2),lo(3),8) 
+            slices(i,j,k,9) = slices(i,lo(2),lo(3),9) 
+            slices(i,j,k,10) = slices(i,lo(2),lo(3),10)
+            slices(i,j,k,11) = slices(i,lo(2),lo(3),11) 
+            slices(i,j,k,12) = slices(i,lo(2),lo(3),12) 
+            slices(i,j,k,13) = slices(i,lo(2),lo(3),13)
+            slices(i,j,k,14) = slices(i,lo(2),lo(3),14) 
+            slices(i,j,k,15) = slices(i,lo(2),lo(3),15) 
+            slices(i,j,k,16) = slices(i,lo(2),lo(3),16)
+            slices(i,j,k,17) = slices(i,lo(2),lo(3),17)
+            slices(i,j,k,18) = slices(i,lo(2),lo(3),18) 
+            slices(i,j,k,19) = slices(i,lo(2),lo(3),19) 
+            slices(i,j,k,20) = slices(i,lo(2),lo(3),20) 
 
         enddo
       enddo
@@ -270,7 +270,7 @@ contains
           !Vars
           qmean = cv*primmeans(i,j,k,5)-0.5*(primmeans(i,j,k,2)**2 + primmeans(i,j,k,3)**2 + primmeans(i,j,k,4)**2)
           qmeanS = slices(i,j,k,17)*slices(i,j,k,19)-0.5*(slices(i,j,k,12)**2 + slices(i,j,k,14)**2 + slices(i,j,k,16)**2)
-          qmeanSstar =  miscvals(13)*slices(i,1,1,19)-0.5*(miscvals(3)**2 + miscvals(15)**2 + miscvals(16)**2)
+          qmeanSstar =  miscvals(13)*slices(i,lo(2),lo(3),19)-0.5*(miscvals(3)**2 + miscvals(15)**2 + miscvals(16)**2)
 
           densitymeaninv = 1.0/cumeans(i,j,k,1)
           densitymeaninvS = 1.0/slices(i,j,k,2)
