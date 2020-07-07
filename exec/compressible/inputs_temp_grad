@@ -28,11 +28,11 @@
   ! Controls for number of steps between actions
 
   max_step = 1000000
-  plot_int = 500
+  plot_int = 100
   struct_fact_int = -1
-  n_steps_skip = 0
+  n_steps_skip = 5
   chk_int = -1
-  restart = 1500
+  restart = -1
 
   ! Multispecies toggle
   ! if algorithm_type = 1, single component
