@@ -2,15 +2,15 @@
 #include "common_functions.H"
 
 void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
-                   const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
-                   const MultiFab& chi, const MultiFab& D,
+                   const MultiFab& eta_in, const MultiFab& zeta_in, const MultiFab& kappa_in,
+                   const MultiFab& chi_in, const MultiFab& D_in,
                    std::array<MultiFab, AMREX_SPACEDIM>& flux_in,
                    std::array<MultiFab, AMREX_SPACEDIM>& stochFlux_in,
-                   std::array<MultiFab, AMREX_SPACEDIM>& cornx,
-                   std::array<MultiFab, AMREX_SPACEDIM>& corny,
-                   std::array<MultiFab, AMREX_SPACEDIM>& cornz,
-                   MultiFab& visccorn,
-                   MultiFab& rancorn,
+                   std::array<MultiFab, AMREX_SPACEDIM>& cornx_in,
+                   std::array<MultiFab, AMREX_SPACEDIM>& corny_in,
+                   std::array<MultiFab, AMREX_SPACEDIM>& cornz_in,
+                   MultiFab& visccorn_in,
+                   MultiFab& rancorn_in,
                    const amrex::Geometry geom,
 		   const amrex::Vector< amrex::Real >& stoch_weights,
 		   const amrex::Real* dx, const amrex::Real dt)
@@ -43,12 +43,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 #if (AMREX_SPACEDIM == 3)
                        stochFlux_in[2][mfi].dataPtr(),
 #endif
-                       rancorn[mfi].dataPtr(),
-                       eta[mfi].dataPtr(),  
-                       zeta[mfi].dataPtr(),  
-                       kappa[mfi].dataPtr(),
-                       chi[mfi].dataPtr(),  
-                       D[mfi].dataPtr(),  
+                       rancorn_in[mfi].dataPtr(),
+                       eta_in[mfi].dataPtr(),  
+                       zeta_in[mfi].dataPtr(),  
+                       kappa_in[mfi].dataPtr(),
+                       chi_in[mfi].dataPtr(),  
+                       D_in[mfi].dataPtr(),  
                        ZFILL(dx), &dt);
 	}
     }
@@ -56,33 +56,97 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
+
+#if 1
+
+        AMREX_D_TERM(const Array4<Real>& fluxx = flux_in[0].array(mfi); ,
+                     const Array4<Real>& fluxy = flux_in[1].array(mfi); ,
+                     const Array4<Real>& fluxz = flux_in[2].array(mfi));
+
+        const Array4<const Real> prim = prim_in.array(mfi);
+        const Array4<const Real> cons = cons_in.array(mfi);
+        
+        const Array4<const Real> eta   = eta_in.array(mfi);
+        const Array4<const Real> zeta  = zeta_in.array(mfi);
+        const Array4<const Real> kappa = kappa_in.array(mfi);
+        const Array4<const Real> chi   = chi_in.array(mfi);
+
+        const Array4<Real> cornux = cornx_in[0].array(mfi);
+        const Array4<Real> cornvx = cornx_in[1].array(mfi);
+        const Array4<Real> cornwx = cornx_in[2].array(mfi);
+        const Array4<Real> cornuy = corny_in[0].array(mfi);
+        const Array4<Real> cornvy = corny_in[1].array(mfi);
+        const Array4<Real> cornwy = corny_in[2].array(mfi);
+        const Array4<Real> cornuz = cornz_in[0].array(mfi);
+        const Array4<Real> cornvz = cornz_in[1].array(mfi);
+        const Array4<Real> cornwz = cornz_in[2].array(mfi);
+        const Array4<Real> visccorn = visccorn_in.array(mfi);
+        
+        const Box& tbx = mfi.nodaltilebox(0);
+        const Box& tby = mfi.nodaltilebox(1);
+        const Box& tbz = mfi.nodaltilebox(2);
+
+        IntVect nd(AMREX_D_DECL(1,1,1));
+        const Box& tbn = mfi.tilebox(nd);
+
+        Real dxinv = 1./dx[0];
+        Real two = 2.;
+        Real twothirds = 2./3.;
+        Real onetwelfth = 1./12.;
+        
+        // from namelist
+        int nspecies_gpu = nspecies;
+        int algorithm_type_gpu = algorithm_type;
+        int visc_type_gpu = visc_type;
+        int n_cells_z = n_cells[2];
+        
+        amrex::ParallelFor(tbx, tby, tbz,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+                GpuArray<Real,MAX_SPECIES+5> weiner;
+                GpuArray<Real,MAX_SPECIES+5> fweights;
+
+                
+                               
+            },
+
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                
+            },
+
+            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            });
+#else
         
         const Box& bx = mfi.tilebox();
         
 	diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
 		  cons_in[mfi].dataPtr(),  
 		  prim_in[mfi].dataPtr(),  
-		  eta[mfi].dataPtr(),  
-		  zeta[mfi].dataPtr(),  
-		  kappa[mfi].dataPtr(),  
-		  chi[mfi].dataPtr(),  
-		  D[mfi].dataPtr(),  
+		  eta_in[mfi].dataPtr(),  
+		  zeta_in[mfi].dataPtr(),  
+		  kappa_in[mfi].dataPtr(),  
+		  chi_in[mfi].dataPtr(),  
+		  D_in[mfi].dataPtr(),  
 		  flux_in[0][mfi].dataPtr(),
 		  flux_in[1][mfi].dataPtr(),
 #if (AMREX_SPACEDIM == 3)
 		  flux_in[2][mfi].dataPtr(),
 #endif
-		  cornx[0][mfi].dataPtr(),
-		  cornx[1][mfi].dataPtr(),
-		  cornx[2][mfi].dataPtr(),
-		  corny[0][mfi].dataPtr(),
-		  corny[1][mfi].dataPtr(),
-		  corny[2][mfi].dataPtr(),
-		  cornz[0][mfi].dataPtr(),
-		  cornz[1][mfi].dataPtr(),
-		  cornz[2][mfi].dataPtr(),
-		  visccorn[mfi].dataPtr(),
+		  cornx_in[0][mfi].dataPtr(),
+		  cornx_in[1][mfi].dataPtr(),
+		  cornx_in[2][mfi].dataPtr(),
+		  corny_in[0][mfi].dataPtr(),
+		  corny_in[1][mfi].dataPtr(),
+		  corny_in[2][mfi].dataPtr(),
+		  cornz_in[0][mfi].dataPtr(),
+		  cornz_in[1][mfi].dataPtr(),
+		  cornz_in[2][mfi].dataPtr(),
+		  visccorn_in[mfi].dataPtr(),
 		  ZFILL(dx));
+
+#endif
     }
 
     Real wgt2 = 1./12.;
