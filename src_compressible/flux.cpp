@@ -104,8 +104,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
         molmass_gpu[n] = molmass[n];
-    }
-    
+    }    
     
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
@@ -121,15 +120,15 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         const Box& tby = mfi.nodaltilebox(1);
         const Box& tbz = mfi.nodaltilebox(2);
 
-        if (advection_type == 1) {
+        if (advection_type == 1) { // interpolate primitive quantities
             
             // Loop over the cells and compute fluxes
             amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
-                GpuArray<Real,MAX_SPECIES> conserved;
-                GpuArray<Real,MAX_SPECIES> primitive;
-                GpuArray<Real,MAX_SPECIES> Yk;
+                GpuArray<Real,MAX_SPECIES+5> conserved;
+                GpuArray<Real,MAX_SPECIES+6> primitive;
+                GpuArray<Real,MAX_SPECIES  > Yk;
                     
                 for (int l=0; l<nprimvars_gpu; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i-1,j,k,l)) - wgt2*(prim(i-2,j,k,l)+prim(i+1,j,k,l));
@@ -166,10 +165,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                GpuArray<Real,MAX_SPECIES> conserved;
-                GpuArray<Real,MAX_SPECIES> primitive;
-                GpuArray<Real,MAX_SPECIES> Yk;
+            
+                GpuArray<Real,MAX_SPECIES+5> conserved;
+                GpuArray<Real,MAX_SPECIES+6> primitive;
+                GpuArray<Real,MAX_SPECIES  > Yk;
                     
                 for (int l=0; l<nprimvars_gpu; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j-1,k,l)) - wgt2*(prim(i,j-2,k,l)+prim(i,j+1,k,l));
@@ -206,10 +205,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                
-                GpuArray<Real,MAX_SPECIES> conserved;
-                GpuArray<Real,MAX_SPECIES> primitive;
-                GpuArray<Real,MAX_SPECIES> Yk;
+            
+                GpuArray<Real,MAX_SPECIES+5> conserved;
+                GpuArray<Real,MAX_SPECIES+6> primitive;
+                GpuArray<Real,MAX_SPECIES  > Yk;
                     
                 for (int l=0; l<nprimvars_gpu; ++l) {
                     primitive[l] = wgt1*(prim(i,j,k,l)+prim(i,j,k-1,l)) - wgt2*(prim(i,j,k-2,l)+prim(i,j,k+1,l));
@@ -246,15 +245,15 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
             });
             
-        } else if (advection_type == 2) {
+        } else if (advection_type == 2) { // interpolate conserved quantitites
 
             // Loop over the cells and compute fluxes
             amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                GpuArray<Real,MAX_SPECIES> conserved;
-                GpuArray<Real,MAX_SPECIES> primitive;
-                GpuArray<Real,MAX_SPECIES> Yk;
+            
+                GpuArray<Real,MAX_SPECIES+5> conserved;
+                GpuArray<Real,MAX_SPECIES+6> primitive;
+                GpuArray<Real,MAX_SPECIES  > Yk;
     
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nvars_gpu; ++l) {
@@ -293,10 +292,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                GpuArray<Real,MAX_SPECIES> conserved;
-                GpuArray<Real,MAX_SPECIES> primitive;
-                GpuArray<Real,MAX_SPECIES> Yk;
+            
+                GpuArray<Real,MAX_SPECIES+5> conserved;
+                GpuArray<Real,MAX_SPECIES+6> primitive;
+                GpuArray<Real,MAX_SPECIES  > Yk;
     
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nvars_gpu; ++l) {
@@ -336,10 +335,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
                 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
-                GpuArray<Real,MAX_SPECIES> conserved;
-                GpuArray<Real,MAX_SPECIES> primitive;
-                GpuArray<Real,MAX_SPECIES> Yk;
+            
+                GpuArray<Real,MAX_SPECIES+5> conserved;
+                GpuArray<Real,MAX_SPECIES+6> primitive;
+                GpuArray<Real,MAX_SPECIES  > Yk;
     
                 // interpolate conserved quantities to faces
                 for (int l=0; l<nvars_gpu; ++l) {
