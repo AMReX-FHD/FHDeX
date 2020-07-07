@@ -1119,6 +1119,9 @@ contains
     twothirds = 2d0/3d0
     onetwelfth = 1d0/12d0
 
+! HACK
+#if 0
+    
     ! x flux
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)
@@ -1332,6 +1335,9 @@ contains
     endif
 #endif
 
+! HACK
+#endif
+    
     if(n_cells(3).gt.1) then
 
        do k = lo(3),hi(3)+1
