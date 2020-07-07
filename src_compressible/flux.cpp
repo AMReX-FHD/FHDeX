@@ -154,7 +154,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 xflux(i,j,k,1) += conserved[0]*(primitive[1]*primitive[1])+primitive[5];
                 xflux(i,j,k,2) += conserved[0]*primitive[1]*primitive[2];
                 xflux(i,j,k,3) += conserved[0]*primitive[1]*primitive[3];
-                
+
                 xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
                 if (algorithm_type_gpu == 2) { // Add advection of concentration
@@ -282,6 +282,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 xflux(i,j,k,1) += conserved[0]*(primitive[1]*primitive[1])+primitive[5];
                 xflux(i,j,k,2) += conserved[0]*primitive[1]*primitive[2];
                 xflux(i,j,k,3) += conserved[0]*primitive[1]*primitive[3];
+
                 xflux(i,j,k,4) += primitive[1]*conserved[4] + primitive[5]*primitive[1];
 
                 if (algorithm_type_gpu == 2) { // Add advection of concentration
@@ -320,12 +321,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 // compute pressure
                 GetPressureGas(primitive[5], Yk, conserved[0], primitive[4], nspecies_gpu, Runiv_gpu, molmass_gpu);
 
-                yflux(i,j,k,1) += conserved[0]*primitive[2];
-                yflux(i,j,k,2) += conserved[0]*primitive[1]*primitive[2];
-                yflux(i,j,k,3) += conserved[0]*primitive[2]*primitive[2]+primitive[5];
-                yflux(i,j,k,4) += conserved[0]*primitive[3]*primitive[2]  ;
+                yflux(i,j,k,0) += conserved[0]*primitive[2];
+                yflux(i,j,k,1) += conserved[0]*primitive[1]*primitive[2];
+                yflux(i,j,k,2) += conserved[0]*primitive[2]*primitive[2]+primitive[5];
+                yflux(i,j,k,3) += conserved[0]*primitive[3]*primitive[2]  ;
            
-                yflux(i,j,k,5) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
+                yflux(i,j,k,4) += primitive[2]*conserved[4] + primitive[5]*primitive[2];
 
                 if (algorithm_type_gpu == 2) { // Add advection of concentration
                     for (int n=0; n<nspecies_gpu; ++n) {
