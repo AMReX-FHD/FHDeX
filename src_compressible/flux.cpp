@@ -70,6 +70,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         const Array4<const Real> zeta  = zeta_in.array(mfi);
         const Array4<const Real> kappa = kappa_in.array(mfi);
         const Array4<const Real> chi   = chi_in.array(mfi);
+        const Array4<const Real> Dij   = D_in.array(mfi);
 
         const Array4<Real> cornux = cornx_in[0].array(mfi);
         const Array4<Real> cornvx = cornx_in[1].array(mfi);
@@ -90,6 +91,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         const Box& tbn = mfi.tilebox(nd);
 
         Real dxinv = 1./dx[0];
+        Real half = 0.5;
         Real two = 2.;
         Real twothirds = 2./3.;
         Real onetwelfth = 1./12.;
@@ -99,15 +101,81 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         int algorithm_type_gpu = algorithm_type;
         int visc_type_gpu = visc_type;
         int n_cells_z = n_cells[2];
+    
+        GpuArray<Real,MAX_SPECIES> hcp_gpu;
+        for (int n=0; n<nspecies; ++n) {
+            hcp_gpu[n] = hcp[n];
+        }    
         
         amrex::ParallelFor(tbx, tby, tbz,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
-                GpuArray<Real,MAX_SPECIES+5> weiner;
-                GpuArray<Real,MAX_SPECIES+5> fweights;
+                GpuArray<Real,MAX_SPECIES> meanXk;
+                GpuArray<Real,MAX_SPECIES> meanYk;
+                GpuArray<Real,MAX_SPECIES> dk;
+                GpuArray<Real,MAX_SPECIES> Fk;
+                GpuArray<Real,MAX_SPECIES> hk;
+                GpuArray<Real,MAX_SPECIES> soret;
 
-                
-                               
+                Real muxp = half*(eta(i,j,k) + eta(i-1,j,k));
+                Real kxp = half*(kappa(i,j,k) + kappa(i-1,j,k));
+
+                Real tauxxp = muxp*(prim(i,j,k,1) - prim(i-1,j,k,1))/dx[0];
+                Real tauyxp = muxp*(prim(i,j,k,2) - prim(i-1,j,k,2))/dx[0];
+                Real tauzxp = muxp*(prim(i,j,k,3) - prim(i-1,j,k,3))/dx[0];
+
+                Real divxp = 0;
+
+                Real phiflx =  tauxxp*(prim(i-1,j,k,1)+prim(i,j,k,1))
+                    +  divxp*(prim(i-1,j,k,1)+prim(i,j,k,1))
+                    +  tauyxp*(prim(i-1,j,k,2)+prim(i,j,k,2))
+                    +  tauzxp*(prim(i-1,j,k,3)+prim(i,j,k,3));
+           
+                fluxx(i,j,k,1) = fluxx(i,j,k,1) - (tauxxp+divxp);
+                fluxx(i,j,k,2) = fluxx(i,j,k,2) - tauyxp;
+                fluxx(i,j,k,3) = fluxx(i,j,k,3) - tauzxp;
+                fluxx(i,j,k,4) = fluxx(i,j,k,4) - (half*phiflx + kxp*(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]);
+
+                Real meanT = 0.5*(prim(i-1,j,k,4)+prim(i,j,k,4));
+                Real meanP = 0.5*(prim(i-1,j,k,5)+prim(i,j,k,5));
+
+                if (algorithm_type_gpu == 2) {
+
+                    // compute dk
+                    for (int ns=0; ns<nspecies; ++ns) {
+                        Real term1 = (prim(i,j,k,6+nspecies+ns)-prim(i-1,j,k,6+nspecies+ns))/dx[0];
+                        meanXk[ns] = 0.5*(prim(i-1,j,k,6+nspecies+ns)+prim(i,j,k,6+nspecies+ns));
+                        meanYk[ns] = 0.5*(prim(i-1,j,k,6+ns)+prim(i,j,k,6+ns));
+                        Real term2 = (meanXk[ns]-meanYk[ns])*(prim(i,j,k,5)-prim(i-1,j,k,5))/dx[0]/meanP;
+                        dk[ns] = term1 + term2;
+                        soret[ns] = 0.5*(chi(i-1,j,k,ns)*prim(i-1,j,k,6+nspecies+ns)+chi(i,j,k,ns)*prim(i,j,k,6+nspecies+ns))
+                            *(prim(i,j,k,4)-prim(i-1,j,k,4))/dx[0]/meanT;
+                    }
+
+                    // compute Fk (based on Eqn. 2.5.24, Giovangigli's book)
+                    for (int kk=0; kk<nspecies; ++kk) {
+                        Fk[kk] = 0.;
+                        for (int ll=0; ll<nspecies; ++ll) {
+                            Fk[kk] = Fk[kk] - half*(Dij(i-1,j,k,kk*nspecies_gpu+ll)+Dij(i,j,k,kk*nspecies_gpu+ll))*( dk[ll] +soret[ll]);
+                        }
+                    }
+
+                    // compute Q (based on Eqn. 2.5.25, Giovangigli's book)
+                    GetEnthalpies(meanT,hk,hcp_gpu,nspecies_gpu);
+
+                    Real Q5 = 0.;
+                    for (int ns=0; ns<nspecies; ++nspecies) {
+                        Q5 = Q5 + (hk[ns] + 0.5 * Runiv*meanT*(chi(i-1,j,k,ns)+chi(i,j,k,ns))/molmass[ns])*Fk[ns];
+                    }
+                    // heat conduction already included in flux(5)       
+
+                    fluxx(i,j,k,4) = fluxx(i,j,k,4) + Q5;
+
+                    for (int ns=0; ns<nspecies; ++nspecies) {
+                        fluxx(i,j,k,5+ns) = fluxx(i,j,k,5+ns) + Fk[ns];
+                    }
+                }
+                 
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
