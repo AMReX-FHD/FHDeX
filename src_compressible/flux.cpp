@@ -156,7 +156,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int kk=0; kk<nspecies_gpu; ++kk) {
                         Fk[kk] = 0.;
                         for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            Fk[kk] = Fk[kk] - half*(Dij(i-1,j,k,kk*nspecies_gpu+ll)+Dij(i,j,k,kk*nspecies_gpu+ll))*( dk[ll] +soret[ll]);
+                            Fk[kk] = Fk[kk] - half*(Dij(i-1,j,k,ll*nspecies_gpu+kk)+Dij(i,j,k,ll*nspecies_gpu+kk))*( dk[ll] +soret[ll]);
                         }
                     }
 
@@ -179,7 +179,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
+                
                 GpuArray<Real,MAX_SPECIES> meanXk;
                 GpuArray<Real,MAX_SPECIES> meanYk;
                 GpuArray<Real,MAX_SPECIES> dk;
@@ -224,7 +224,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int kk=0; kk<nspecies_gpu; ++kk) {
                         Fk[kk] = 0.;
                         for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            Fk[kk] = Fk[kk] - half*(Dij(i,j-1,k,kk*nspecies_gpu+ll)+Dij(i,j,k,kk*nspecies_gpu+ll))*( dk[ll] +soret[ll]);
+                            Fk[kk] = Fk[kk] - half*(Dij(i,j-1,k,ll*nspecies_gpu+kk)+Dij(i,j,k,ll*nspecies_gpu+kk))*( dk[ll] +soret[ll]);
                         }
                     }
 
@@ -244,12 +244,11 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         fluxy(i,j,k,5+ns) = fluxy(i,j,k,5+ns) + Fk[ns];
                     }
 
-                 }
-                 
+                 }  
             },
 
             [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-
+                
                 GpuArray<Real,MAX_SPECIES> meanXk;
                 GpuArray<Real,MAX_SPECIES> meanYk;
                 GpuArray<Real,MAX_SPECIES> dk;
@@ -295,7 +294,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int kk=0; kk<nspecies_gpu; ++kk) {
                         Fk[kk] = 0.;
                         for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            Fk[kk] = Fk[kk] - half*(Dij(i,j,k-1,kk*nspecies_gpu+ll)+Dij(i,j,k,kk+nspecies_gpu+ll))*( dk[ll] +soret[ll]);
+                            Fk[kk] = Fk[kk] - half*(Dij(i,j,k-1,ll*nspecies_gpu+kk)+Dij(i,j,k,ll*nspecies_gpu+kk))*( dk[ll] +soret[ll]);
                         }
                     }
 
@@ -313,7 +312,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
                         fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk[ns];
                     }
-                }                    
+                }
             });
         
         const Box& bx = mfi.tilebox();
