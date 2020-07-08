@@ -25,31 +25,6 @@ extern "C"
 ///////////////////////////
 // in diff_flux.F90
 
-    void diff_flux(const int* lo, const int* hi,
-                   const amrex::Real* cons,
-                   const amrex::Real* prim,
-                   const amrex::Real* eta,
-                   const amrex::Real* zeta,
-                   const amrex::Real* kappa,
-                   const amrex::Real* chi,
-                   const amrex::Real* Dij,
-                   amrex::Real* xflux,
-                   amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-                   amrex::Real* zflux,
-#endif
-                   amrex::Real* cornux,
-                   amrex::Real* cornvx,
-                   amrex::Real* cornwx,
-                   amrex::Real* cornuy,
-                   amrex::Real* cornvy,
-                   amrex::Real* cornwy,
-                   amrex::Real* cornuz,
-                   amrex::Real* cornvz,
-                   amrex::Real* cornwz,
-                   amrex::Real* visccorn,
-                   const amrex::Real* dx);
-
     void stoch_flux(const int* lo, const int* hi,
 		    const amrex::Real* cons,
 		    const amrex::Real* prim,

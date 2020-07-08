@@ -83,6 +83,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 	}
     }
 
+    ////////////////////
+    // diffusive flxues
+    ////////////////////
+    
     // Loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
@@ -374,48 +378,105 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
                                
+            fluxx(i,j,k,1) = fluxx(i,j,k,1) - 0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                                                      visccorn(i,j+1,k)+visccorn(i,j,k)); // Viscous "divergence" stress
+
+            fluxx(i,j,k,1) = fluxx(i,j,k,1) + .25*  
+                (cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                 cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k));
+
+            fluxx(i,j,k,2) = fluxx(i,j,k,2) - .25*  
+                (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k));
+
+            fluxx(i,j,k,3) = fluxx(i,j,k,3) - .25*  
+                (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k));
+
+            Real phiflx =  0.25*(visccorn(i,j+1,k+1)+visccorn(i,j,k+1) +
+                            visccorn(i,j+1,k)+visccorn(i,j,k)
+                            -(cornvy(i,j+1,k+1)+cornvy(i,j,k+1)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                              cornwz(i,j+1,k+1)+cornwz(i,j,k+1)+cornwz(i,j+1,k)+cornwz(i,j,k))) *
+                (prim(i-1,j,k,1)+prim(i,j,k,1));
+
+            phiflx = phiflx + .25*  
+                (cornuy(i,j+1,k+1)+cornuy(i,j,k+1)+cornuy(i,j+1,k)+cornuy(i,j,k)) *
+                (prim(i-1,j,k,2)+prim(i,j,k,2));
+
+            phiflx = phiflx + .25*  
+                (cornuz(i,j+1,k+1)+cornuz(i,j,k+1)+cornuz(i,j+1,k)+cornuz(i,j,k)) *
+                (prim(i-1,j,k,3)+prim(i,j,k,3));
+
+            fluxx(i,j,k,4) = fluxx(i,j,k,4)-0.5*phiflx;
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            fluxy(i,j,k,2) = fluxy(i,j,k,2) -
+                0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k));
+
+            fluxy(i,j,k,2) = fluxy(i,j,k,2) + .25*
+                (cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
+                 cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k));
+
+            fluxy(i,j,k,1) = fluxy(i,j,k,1) - .25*  
+                (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k));
+
+            fluxy(i,j,k,3) = fluxy(i,j,k,3) - .25*  
+                (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k));
+
+            Real phiflx = 0.25*(visccorn(i+1,j,k+1)+visccorn(i,j,k+1)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                           -(cornux(i+1,j,k+1)+cornux(i,j,k+1)+cornux(i+1,j,k)+cornux(i,j,k)  +
+                             cornwz(i+1,j,k+1)+cornwz(i,j,k+1)+cornwz(i+1,j,k)+cornwz(i,j,k))) *
+                (prim(i,j-1,k,2)+prim(i,j,k,2));
+
+            phiflx = phiflx + .25*  
+                (cornvx(i+1,j,k+1)+cornvx(i,j,k+1)+cornvx(i+1,j,k)+cornvx(i,j,k)) *
+                (prim(i,j-1,k,1)+prim(i,j,k,1));
+
+            phiflx = phiflx + .25*  
+                (cornvz(i+1,j,k+1)+cornvz(i,j,k+1)+cornvz(i+1,j,k)+cornvz(i,j,k)) *
+                (prim(i,j-1,k,3)+prim(i,j,k,3));
+
+            fluxy(i,j,k,4) = fluxy(i,j,k,4)-0.5*phiflx;
             
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            fluxz(i,j,k,3) = fluxz(i,j,k,3) -
+                0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k));
+
+            fluxz(i,j,k,3) = fluxz(i,j,k,3) + .25*  
+                (cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                 cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k));
+
+            fluxz(i,j,k,1) = fluxz(i,j,k,1) - .25*  
+                (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k));
+
+            fluxz(i,j,k,2) = fluxz(i,j,k,2) - .25*  
+                (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k));
+
+            Real phiflx = 0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k)
+                           -(cornvy(i+1,j+1,k)+cornvy(i+1,j,k)+cornvy(i,j+1,k)+cornvy(i,j,k)  +
+                             cornux(i+1,j+1,k)+cornux(i+1,j,k)+cornux(i,j+1,k)+cornux(i,j,k))) * 
+                (prim(i,j,k-1,3)+prim(i,j,k,3));
+
+            phiflx = phiflx + .25*  
+                (cornwx(i+1,j+1,k)+cornwx(i+1,j,k)+cornwx(i,j+1,k)+cornwx(i,j,k))*
+                (prim(i,j,k-1,1)+prim(i,j,k,1));
+
+            phiflx = phiflx + .25*  
+                (cornwy(i+1,j+1,k)+cornwy(i+1,j,k)+cornwy(i,j+1,k)+cornwy(i,j,k)) *
+                (prim(i,j,k-1,2)+prim(i,j,k,2));
+
+            fluxz(i,j,k,4) = fluxz(i,j,k,4)-0.5*phiflx;
             
         });
         
     }
-        
-    // loop over boxes
-    for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
-        
-        const Box& bx = mfi.tilebox();
-        
-	diff_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
-		  cons_in[mfi].dataPtr(),  
-		  prim_in[mfi].dataPtr(),  
-		  eta_in[mfi].dataPtr(),  
-		  zeta_in[mfi].dataPtr(),  
-		  kappa_in[mfi].dataPtr(),  
-		  chi_in[mfi].dataPtr(),  
-		  D_in[mfi].dataPtr(),  
-		  flux_in[0][mfi].dataPtr(),
-		  flux_in[1][mfi].dataPtr(),
-#if (AMREX_SPACEDIM == 3)
-		  flux_in[2][mfi].dataPtr(),
-#endif
-		  cornx_in[0][mfi].dataPtr(),
-		  cornx_in[1][mfi].dataPtr(),
-		  cornx_in[2][mfi].dataPtr(),
-		  corny_in[0][mfi].dataPtr(),
-		  corny_in[1][mfi].dataPtr(),
-		  corny_in[2][mfi].dataPtr(),
-		  cornz_in[0][mfi].dataPtr(),
-		  cornz_in[1][mfi].dataPtr(),
-		  cornz_in[2][mfi].dataPtr(),
-		  visccorn_in[mfi].dataPtr(),
-		  ZFILL(dx));
-    }
+
+    ////////////////////
+    // hyperbolic fluxes
+    ////////////////////
 
     Real wgt2 = 1./12.;
     Real wgt1 = 0.5 + wgt2;
