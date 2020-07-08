@@ -324,8 +324,68 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 }
             }
         });
-    }
+
+        amrex::ParallelFor(tbn,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            // Corner viscosity
+            Real muxp = 0.125*(eta(i,j-1,k-1) + eta(i-1,j-1,k-1) + eta(i,j,k-1) + eta(i-1,j,k-1)
+                               + eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k));
+
+            Real zetaxp;
+            if (std::abs(visc_type_gpu) == 3) {
+                zetaxp = 0.125*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+
+                                zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k));
+            } else {
+                zetaxp = 0.;
+            }
+
+            cornux(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i-1,j,k-1,1)+
+                                         prim(i,j-1,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i-1,j,k,1))/dx_gpu[0];
+            cornvx(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i-1,j,k-1,2)+
+                                         prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx_gpu[0];
+            cornwx(i,j,k) = 0.25*muxp*(prim(i,j-1,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i-1,j,k-1,3)+
+                                         prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/dx_gpu[0];
+
+            cornuy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,1)-prim(i-1,j-1,k-1,1) + prim(i,j,k-1,1)-prim(i,j-1,k-1,1) +
+                                          prim(i-1,j,k,1)-prim(i-1,j-1,k,1) + prim(i,j,k,1)-prim(i,j-1,k,1))/dx_gpu[1];
+            cornvy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,2)-prim(i-1,j-1,k-1,2) + prim(i,j,k-1,2)-prim(i,j-1,k-1,2) +
+                                          prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/dx_gpu[1];
+            cornwy(i,j,k) = 0.25*muxp* (prim(i-1,j,k-1,3)-prim(i-1,j-1,k-1,3) + prim(i,j,k-1,3)-prim(i,j-1,k-1,3) +
+                                          prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/dx_gpu[1];
+
+            cornuz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,1)-prim(i-1,j-1,k-1,1) + prim(i,j-1,k,1)-prim(i,j-1,k-1,1) +
+                                         prim(i-1,j,k,1)-prim(i-1,j,k-1,1) + prim(i,j,k,1)-prim(i,j,k-1,1))/dx_gpu[2];
+            cornvz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,2)-prim(i-1,j-1,k-1,2) + prim(i,j-1,k,2)-prim(i,j-1,k-1,2) +
+                                         prim(i-1,j,k,2)-prim(i-1,j,k-1,2) + prim(i,j,k,2)-prim(i,j,k-1,2))/dx_gpu[2];
+            cornwz(i,j,k) = 0.25*muxp*(prim(i-1,j-1,k,3)-prim(i-1,j-1,k-1,3) + prim(i,j-1,k,3)-prim(i,j-1,k-1,3) +
+                                         prim(i-1,j,k,3)-prim(i-1,j,k-1,3) + prim(i,j,k,3)-prim(i,j,k-1,3))/dx_gpu[2];
+
+            visccorn(i,j,k) =  (muxp/12.+zetaxp/4.)*( // Divergence stress
+                (prim(i,  j-1,k-1,1)-prim(i-1,j-1,k-1,1))/dx_gpu[0] + (prim(i,j,  k-1,1)-prim(i-1,j  ,k-1,1))/dx_gpu[0] +
+                (prim(i,  j-1,k  ,1)-prim(i-1,j-1,k,  1))/dx_gpu[0] + (prim(i,j,  k,  1)-prim(i-1,j  ,k,  1))/dx_gpu[0] +
+                (prim(i-1,j  ,k-1,2)-prim(i-1,j-1,k-1,2))/dx_gpu[1] + (prim(i,j,  k-1,2)-prim(i  ,j-1,k-1,2))/dx_gpu[1] +
+                (prim(i-1,j  ,k  ,2)-prim(i-1,j-1,k  ,2))/dx_gpu[1] + (prim(i,j,  k,  2)-prim(i  ,j-1,k,  2))/dx_gpu[1] +
+                (prim(i-1,j-1,k  ,3)-prim(i-1,j-1,k-1,3))/dx_gpu[2] + (prim(i,j-1,k,  3)-prim(i  ,j-1,k-1,3))/dx_gpu[2] +
+                (prim(i-1,j  ,k  ,3)-prim(i-1,j  ,k-1,3))/dx_gpu[2] + (prim(i,j,  k,  3)-prim(i  ,j  ,k-1,3))/dx_gpu[2]);
+                               
+        });
+        
+        amrex::ParallelFor(tbx, tby, tbz,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+                               
+        },
+
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             
+        },
+
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            
+        });
+        
+    }
+        
     // loop over boxes
     for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
         

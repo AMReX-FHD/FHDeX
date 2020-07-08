@@ -1340,6 +1340,8 @@ contains
     
     if(n_cells(3).gt.1) then
 
+#if 0
+       
        do k = lo(3),hi(3)+1
        do j = lo(2),hi(2)+1
        do i = lo(1),hi(1)+1
@@ -1387,6 +1389,8 @@ contains
        end do
        end do
 
+#endif
+       
     elseif(n_cells(3).eq.1) then
        
        do k = lo(3),hi(3)
