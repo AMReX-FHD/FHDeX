@@ -411,6 +411,58 @@ void Solvenp ( int const neq,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+                     int const nspecies,
+                     GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sqda)
+{
+    GpuArray<Real,MAX_SPECIES> p;
+    
+    Real sum1 = 0.;
+    int ising;
+
+    for (int i=0; i<nspecies; ++i) {
+        ising = 0;
+
+        for (int j=0; j<nspecies; ++j) {
+            sum1 = a[i*nspecies+j];
+
+            for (int k=i-1; i>=0; --k) {
+                sum1 = sum1 - a[i*nspecies+k]*a[j*nspecies+k];
+            }
+
+            if (i == j) {
+                if (sum1 <= 0.) {
+                    p[i] = 0.;
+                    ising = 1;
+                } else {
+                    p[i] = sqrt(sum1);
+                }
+            }
+            if (ising == 0) {
+                a[j*nspecies+i] = sum1/p[i];
+            } else {
+                a[j*nspecies+i] = 0.;
+            }
+        }
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            sqda[i*nspecies+j] = 0.;
+        }
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=i-1; j>=0; --j) {
+            sqda[i*nspecies+j] = a[i*nspecies+j];
+        }
+        sqda[i*nspecies+i] = p[i];
+    }
+    
+}
+
+
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,

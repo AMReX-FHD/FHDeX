@@ -19,22 +19,14 @@ contains
     real(amrex_real), intent(inout) :: a(np,np)
     real(amrex_real), intent(inout) :: sqda(np,np)
 
-    real(amrex_real) :: p(np), sqda2(np,np), dij(np,np)
-    real(amrex_real) :: dd(np,np)
-    real(amrex_real) :: yy(np), mwmix 
+    real(amrex_real) :: p(np)
 
-    integer :: i, j, k, ii, jj
+    integer :: i, j, k
     real(amrex_real) :: sum1
-    real(amrex_real) :: small_number
-    real(amrex_real) :: sum
 
-    integer :: idiag,ising
+    integer :: ising
 
-    small_number = 0.d0
     sum1 = 0.d0
-
-    ! NOTE: For idiag=1, please refer to original LLNS code
-    idiag = 0
 
     do i = 1, np
        ising = 0
@@ -47,7 +39,7 @@ contains
           enddo
 
           if(i.eq.j) then
-             if(sum1.le.small_number) then
+             if(sum1.le.0.d0) then
                 p(i) = 0.d0
                 ising = 1
              else

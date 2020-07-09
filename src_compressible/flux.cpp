@@ -51,15 +51,40 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                  flux_in[1].setVal(0);,
                  flux_in[2].setVal(0););
 
-    // Loop over boxes
-    for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
-        
-        const Box& bx = mfi.tilebox();
+    if(stoch_stress_form == 1) {
+            
+        // Loop over boxes
+        for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
 
-        //NOTE: Must do stoch. flux_ines first, 
-	//      because flux_ines at boundaries are weighted according to BCs
-        if(stoch_stress_form == 1)
-        { 
+            AMREX_D_TERM(const Array4<Real>& fluxx = flux_in[0].array(mfi); ,
+                         const Array4<Real>& fluxy = flux_in[1].array(mfi); ,
+                         const Array4<Real>& fluxz = flux_in[2].array(mfi));
+
+            AMREX_D_TERM(const Array4<Real>& ranfluxx = stochFlux_in[0].array(mfi); ,
+                         const Array4<Real>& ranfluxy = stochFlux_in[1].array(mfi); ,
+                         const Array4<Real>& ranfluxz = stochFlux_in[2].array(mfi));
+
+            const Array4<const Real> prim = prim_in.array(mfi);
+            const Array4<const Real> cons = cons_in.array(mfi);
+
+            const Array4<const Real> rancorn = rancorn_in.array(mfi);
+        
+            const Array4<const Real> eta   = eta_in.array(mfi);
+            const Array4<const Real> zeta  = zeta_in.array(mfi);
+            const Array4<const Real> kappa = kappa_in.array(mfi);
+            const Array4<const Real> chi   = chi_in.array(mfi);
+            const Array4<const Real> Dij   = D_in.array(mfi);
+
+            
+
+
+
+
+            
+            const Box& bx = mfi.tilebox();
+
+            //NOTE: Must do stoch. flux_ines first, 
+            //      because flux_ines at boundaries are weighted according to BCs
             stoch_flux(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),
                        cons_in[mfi].dataPtr(),  
                        prim_in[mfi].dataPtr(),    
@@ -80,9 +105,9 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                        chi_in[mfi].dataPtr(),  
                        D_in[mfi].dataPtr(),  
                        ZFILL(dx), &dt);
-	}
+        }
     }
-
+        
     ////////////////////
     // diffusive flxues
     ////////////////////
