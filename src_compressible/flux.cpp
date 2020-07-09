@@ -287,6 +287,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
         },
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+
+            if (n_cells_z > 1) {
             
             GpuArray<Real,MAX_SPECIES> meanXk;
             GpuArray<Real,MAX_SPECIES> meanYk;
@@ -352,8 +354,12 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     fluxz(i,j,k,5+ns) = fluxz(i,j,k,5+ns) + Fk[ns];
                 }
             }
+            
+            } // n_cells_z test
         });
 
+        if (n_cells_z > 1) {
+        
         amrex::ParallelFor(tbn,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
@@ -399,6 +405,61 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 (prim(i-1,j  ,k  ,3)-prim(i-1,j  ,k-1,3))/dx_gpu[2] + (prim(i,j,  k,  3)-prim(i  ,j  ,k-1,3))/dx_gpu[2]);
                                
         });
+
+        } else if (n_cells_z == 1) {
+
+            Abort("diffusive flux n_cells_z == 1 case not converted yet");
+            
+/* OLD FORTRAN CODE TO CONVERT            
+       do k = lo(3),hi(3)
+       do j = lo(2),hi(2)+1
+       do i = lo(1),hi(1)+1
+
+          ! Corner viscosity
+          muxp = 0.25d0*(eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k))
+          if (abs(visc_type) .eq. 3) then
+             zetaxp = 0.25d0*(zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k))
+          else
+             zetaxp = 0.0
+          endif
+
+          cornux(i,j,k) = 0.5d0*muxp*(prim(i,j-1,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1)
+          cornvx(i,j,k) = 0.5d0*muxp*(prim(i,j-1,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i-1,j,k,3))/dx(1)
+          cornwx(i,j,k) = 0.5d0*muxp*(prim(i,j-1,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i-1,j,k,4))/dx(1)
+
+          cornuy(i,j,k) = 0.5d0*muxp* (prim(i-1,j,k,2)-prim(i-1,j-1,k,2) + prim(i,j,k,2)-prim(i,j-1,k,2))/dx(2)
+          cornvy(i,j,k) = 0.5d0*muxp* (prim(i-1,j,k,3)-prim(i-1,j-1,k,3) + prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2)
+          cornwy(i,j,k) = 0.5d0*muxp* (prim(i-1,j,k,4)-prim(i-1,j-1,k,4) + prim(i,j,k,4)-prim(i,j-1,k,4))/dx(2)
+
+          cornuz(i,j,k) = 0.d0
+          cornvz(i,j,k) = 0.d0
+          cornwz(i,j,k) = 0.d0
+
+          visccorn(i,j,k) =  (muxp/6d0+zetaxp/2d0)*( & ! Divergence stress
+               (prim(i,j-1,k,2)-prim(i-1,j-1,k,2))/dx(1) + (prim(i,j,k,2)-prim(i-1,j,k,2))/dx(1) + &
+               (prim(i-1,j,k,3)-prim(i-1,j-1,k,3))/dx(2) + (prim(i,j,k,3)-prim(i,j-1,k,3))/dx(2))
+
+          ! Copy along z direction
+          cornux(i,j,k+1) = cornux(i,j,k)
+          cornvx(i,j,k+1) = cornvx(i,j,k)
+          cornwx(i,j,k+1) = cornwx(i,j,k)
+
+          cornuy(i,j,k+1) = cornuy(i,j,k)
+          cornvy(i,j,k+1) = cornvy(i,j,k)
+          cornwy(i,j,k+1) = cornwy(i,j,k)
+
+          cornuz(i,j,k+1) = cornuz(i,j,k)
+          cornvz(i,j,k+1) = cornvz(i,j,k)
+          cornwz(i,j,k+1) = cornwz(i,j,k)
+
+          visccorn(i,j,k+1) = visccorn(i,j,k)
+
+       end do
+       end do
+       end do
+*/
+
+        } // n_cells_z test
         
         amrex::ParallelFor(tbx, tby, tbz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -467,6 +528,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
 
+            if (n_cells_z > 1) {
+            
             fluxz(i,j,k,3) = fluxz(i,j,k,3) -
                 0.25*(visccorn(i+1,j+1,k)+visccorn(i,j+1,k)+visccorn(i+1,j,k)+visccorn(i,j,k));
 
@@ -494,6 +557,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 (prim(i,j,k-1,2)+prim(i,j,k,2));
 
             fluxz(i,j,k,4) = fluxz(i,j,k,4)-0.5*phiflx;
+
+            }
             
         });
         
