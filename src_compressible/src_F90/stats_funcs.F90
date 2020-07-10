@@ -26,10 +26,10 @@ contains
       integer i,j,k,l, cells, ti, jc, kc
       double precision stepsminusone, stepsinv, densitymeaninv, fracvec(nspecies), massvec(nspecies)
 
-      stepsminusone = steps - 1
-      stepsinv = 1d0/steps
+      stepsminusone = steps - 1.d0
+      stepsinv = 1.d0/steps
 
-      totalmass = 0  
+      totalmass = 0.d0  
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -121,22 +121,22 @@ contains
       integer i,j,k,l
       double precision stepsminusone, stepsinv, cv, cvinv,delg, qmean, delpx, delpy, delpz, delrho, delvelx, delvely, delvelz, delenergy, densitymeaninv, deltemp
 
-      stepsminusone = steps - 1
-      stepsinv = 1d0/steps
+      stepsminusone = steps - 1.d0
+      stepsinv = 1.d0/steps
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
 
-          cv = 0
+          cv = 0.d0
           do l=1,nspecies
             cv = cv + hcv(l)*cumeans(i,j,k,5+l)/cumeans(i,j,k,1)
           enddo
 
-          cvinv = 1.0/cv
+          cvinv = 1.0d0/cv
 
           !Vars
-          qmean = cv*primmeans(i,j,k,5)-0.5*(primmeans(i,j,k,2)**2 + primmeans(i,j,k,3)**2 + primmeans(i,j,k,4)**2)
+          qmean = cv*primmeans(i,j,k,5)-0.5d0*(primmeans(i,j,k,2)**2 + primmeans(i,j,k,3)**2 + primmeans(i,j,k,4)**2)
 
           densitymeaninv = 1.0/cumeans(i,j,k,1)
 
