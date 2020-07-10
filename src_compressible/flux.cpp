@@ -56,7 +56,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
     // stochastic fluxes
     ////////////////////
     
-    if(stoch_stress_form == 1) {
+    if (stoch_stress_form == 1) {
 
         Real volinv = 1./(dx[0]*dx[1]*dx[2]);
         Real dtinv = 1./dt;
@@ -206,17 +206,19 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         weiner[n] = 0.;
                     }
 
-                    for (int ns=0; ns<nspecies_gpu; +ns) {
+                    for (int ns=0; ns<nspecies_gpu; ++ns) {
                         yy[ns] = std::max(0.,std::min(1.,prim(i-1,j,k,6+ns)));
                         yyp[ns] = std::max(0.,std::min(1.,prim(i,j,k,6+ns)));
                     }
 
-                    Real sumy=0.;
+                    Real sumy = 0.;
                     Real sumyp = 0.;
+
                     for (int n=0; n<nspecies_gpu; ++n) {
                         sumy += yy[n];
                         sumyp += yyp[n];
                     }
+
                     for (int n=0; n<nspecies_gpu; ++n) {
                         yy[n] /= sumy;
                         yyp[n] /= sumyp;
@@ -288,6 +290,10 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
             
             });
 
+        }
+
+        // Loop over boxes
+        for ( MFIter mfi(cons_in); mfi.isValid(); ++mfi) {
             
             const Box& bx = mfi.tilebox();
 
