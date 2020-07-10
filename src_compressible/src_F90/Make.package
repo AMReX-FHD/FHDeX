@@ -8,6 +8,3 @@ F90EXE_sources += membrane_funcs.F90
 F90EXE_sources += init_consvar.F90
 
 F90EXE_sources += compressible_namelist.F90
-
-fEXE_sources += matrix.f
-fEXE_sources += matrixnp.f

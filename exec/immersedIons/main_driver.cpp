@@ -863,7 +863,7 @@ void main_driver(const char* argv)
 
         if (es_tog==1 || es_tog==3) {
             // spreads charge density from ions onto multifab 'charge'.
-            particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+            particles.collectFieldsGPU(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
         }
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
@@ -1078,7 +1078,7 @@ void main_driver(const char* argv)
         
     }
     ///////////////////////////////////////////
-
+        //test change
     // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
