@@ -708,15 +708,15 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge,
 {
     if (common::pkernel_es == 3)
     {
-        collect_charge(aos, charge, Kernel3P(), plo, dx);
+        collect_charge_gpu (aos, charge, Kernel3P(), plo, dx);
     }
     else if (common::pkernel_es == 4)
     {
-        collect_charge(aos, charge, Kernel4P(), plo, dx);
+        collect_charge_gpu(aos, charge, Kernel4P(), plo, dx);
     }
     else if (common::pkernel_es == 6)
     {
-        collect_charge(aos, charge, Kernel6P(), plo, dx);
+        collect_charge_gpu(aos, charge, Kernel6P(), plo, dx);
     }
 }
 

@@ -11,6 +11,8 @@
 #include <FhdParticleContainer.H>
 #include <ib_functions_F.H>
 
+#include <particle_functions_K.H>
+
 #include <iostream>
 
 #include <AMReX_Geometry.H>
