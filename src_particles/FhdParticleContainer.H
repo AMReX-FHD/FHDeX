@@ -229,6 +229,8 @@ public:
 
     void collectFields(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomF, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
 
+    void collectFieldsGPU(const Real dt, const Real* dxPotential, const MultiFab& RealCenterCoords, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp, MultiFab& mass, MultiFab& massTemp);
+
     void InitCollisionCells(MultiFab& collisionPairs,
                             MultiFab& collisionFactor, 
                             MultiFab& cellVols, const species particleInfo, const Real delt);

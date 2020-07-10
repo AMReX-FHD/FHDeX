@@ -11,6 +11,8 @@
 #include <FhdParticleContainer.H>
 #include <ib_functions_F.H>
 
+#include <particle_functions_K.H>
+
 #include <iostream>
 
 #include <AMReX_Geometry.H>
@@ -1172,6 +1174,51 @@ void FhdParticleContainer::collectFields(const Real dt, const Real* dxPotential,
                          BL_TO_FORTRAN_3D(RealCenterCoords[pti]),
                          BL_TO_FORTRAN_3D(chargeTemp[pti]));
 
+    }
+
+    MultiFabPhysBCCharge(chargeTemp, geomP);
+
+    chargeTemp.SumBoundary(geomP.periodicity());
+    //massTemp.SumBoundary(geomP.periodicity());
+
+    MultiFab::Add(charge,chargeTemp,0,0,charge.nComp(),charge.nGrow());
+    //MultiFab::Add(mass,massTemp,0,0,mass.nComp(),mass.nGrow());
+
+    charge.FillBoundary(geomP.periodicity());
+}
+
+void FhdParticleContainer::collectFieldsGPU(const Real dt, const Real* dxPotential, 
+                                         const MultiFab& RealCenterCoords, const Geometry geomP, MultiFab& charge, MultiFab& chargeTemp,
+                                         MultiFab& mass, MultiFab& massTemp)
+{
+    BL_PROFILE_VAR("collectFields()",collectFields);
+    
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+    charge.setVal(0.0);
+    chargeTemp.setVal(0.0);
+
+    mass.setVal(0.0);
+    massTemp.setVal(0.0);
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+        collect_charge_gpu(particles, chargeTemp[pti], ZFILL(geomP.ProbLo()), ZFILL(dxPotential));
     }
 
     MultiFabPhysBCCharge(chargeTemp, geomP);

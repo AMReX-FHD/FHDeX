@@ -78,11 +78,14 @@ include ../../../src_immersed-boundary/Make.package
 VPATH_LOCATIONS   += ../../../src_immersed-boundary
 INCLUDE_LOCATIONS += ../../../src_immersed-boundary
 
+include ../../../src_particles/MakeKernels.package
+VPATH_LOCATIONS   += ../../../src_particles
+INCLUDE_LOCATIONS += ../../../src_particles
+
 
 include $(AMREX_HOME)/Src/Base/Make.package
 include $(AMREX_HOME)/Src/Boundary/Make.package
 include $(AMREX_HOME)/Src/AmrCore/Make.package
-include $(AMREX_HOME)/Src/LinearSolvers/C_CellMG/Make.package
 include $(AMREX_HOME)/Src/LinearSolvers/MLMG/Make.package
 include $(AMREX_HOME)/Src/Particle/Make.package
 

@@ -56,9 +56,7 @@ void setBC(MultiFab& prim, MultiFab& cons);
 
 void evaluateStats(const MultiFab& cons, MultiFab& consMean, MultiFab& consVar,
                    const MultiFab& prim, MultiFab& primMean, MultiFab& primVar,
-                   MultiFab& spatialCross,
-                   Real* delHolder1, Real* delHolder2, Real* delHolder3,
-                   Real* delHolder4, Real* delHolder5, Real* delHolder6,
+                   MultiFab& spatialCross, MultiFab& miscStats, Real* miscVals,
                    const int steps, const Real* dx);
 
 void doMembrane(MultiFab& cons, MultiFab& prim, std::array<MultiFab, AMREX_SPACEDIM>& flux,
@@ -99,6 +97,7 @@ void WriteCheckPoint(int step,
                      const MultiFab& primMeans,
                      const MultiFab& primVars,
                      const MultiFab& spatialCross, 
+                     const MultiFab& miscStats, 
                      const MultiFab& eta, 
                      const MultiFab& kappa);
 
@@ -113,6 +112,7 @@ void ReadCheckPoint(int& step,
                      MultiFab& primMeans,
                      MultiFab& primVars,
                      MultiFab& spatialCross,
+                     MultiFab& miscStats, 
                      MultiFab& eta,
                      MultiFab& kappa);
 
@@ -136,8 +136,7 @@ void GetMolfrac ( int i, int j, int k,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetTemperature ( int i, int j, int k,
-                      Real const energy,
+void GetTemperature ( Real const energy,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real& temp,
                       int const nspecies,
@@ -154,8 +153,7 @@ void GetTemperature ( int i, int j, int k,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetPressureGas ( int i, int j, int k,
-                      Real& pressure,
+void GetPressureGas ( Real& pressure,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real const density,
                       Real const temp,
@@ -293,7 +291,7 @@ void Solve ( int const neq,
             b[n-1]=b[n-1]-a[(n-1)*nspecies+k]*b[ip[k]-1];
         }
     }
-    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[ip[neq-1]-1,neq-1];
+    b[ip[neq-1]-1]=b[ip[neq-1]-1]/a[(ip[neq-1]-1)*nspecies+neq-1];
     for (l=0; l<nm1; ++l) {
         j=neq-(l+1);
         jp1=j+1;
@@ -539,7 +537,9 @@ void D_GIO ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& Dbin,
     // Compute D_tilde
     for (i=0; i<nspecies; ++i) {
        for (j=0; j<nspecies; ++j) {
-           D_tilde(iloc,jloc,kloc,i*nspecies+j) = Diff_ij[i*nspecies+j]*Ykp[i];
+           // indicies on LHS are switched due to C++/F90 memory layout
+           // this is the only location this needs to happen I believe
+           D_tilde(iloc,jloc,kloc,j*nspecies+i) = Diff_ij[i*nspecies+j]*Ykp[i];
        }
     }
     
@@ -763,8 +763,8 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
         diag[ii] = 0.;
         for (int kk=0; kk<nspecies; ++kk) {
             diag[ii] = diag[ii] + nk[kk]*mk[kk]/pow(mk[ii]+mk[kk],2.) *
-               (5.*mk[ii]*omega11[ii*MAX_SPECIES+kk] +
-                3.*mk[kk]*omega11[ii*MAX_SPECIES+kk]);
+               (5.*mk[ii]*omega11[ii*nspecies+kk] +
+                3.*mk[kk]*omega11[ii*nspecies+kk]);
         }
     }
 
@@ -774,13 +774,13 @@ void ViscLin ( const GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& omega11,
     for (int ii=0; ii<nspecies; ++ii) {
         for (int jj=0; jj<nspecies; ++jj) {
             sum1 = -nk[jj]*mk[jj]/pow(mk[ii]+mk[jj],2.) *
-                2.*mk[jj]*omega11[ii*MAX_SPECIES+jj];
+                2.*mk[jj]*omega11[ii*nspecies+jj];
 
             if (ii==jj) {
                 sum1 = sum1 + diag[ii];
             }
 
-            QoR[ii*MAX_SPECIES+jj] = -(16./15.)*(mk[ii]/mk[jj])*sum1;
+            QoR[ii*nspecies+jj] = -(16./15.)*(mk[ii]/mk[jj])*sum1;
             // HCB 7.4-62,63
         }
         bSonine[ii] = -1.;
@@ -919,6 +919,35 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
     ThermalDiff(iloc,jloc,kloc,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,
                 chitil,nspecies);
     // chitil = 0.0d0
-};
-                      
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnergy ( Real& energy,
+                 const GpuArray<Real,MAX_SPECIES>& massvec,
+                 const Real temp,
+                 const GpuArray<Real,MAX_SPECIES>& hcv,
+                 const int nspecies)
+{
+    Real cvmix = 0.;
+    Real e0 = 0.;
+
+    for (int i=0; i<nspecies; ++i) {
+        cvmix += massvec[i]*hcv[i];
+    }
+
+    energy = e0 + temp*cvmix;    
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnthalpies (const Real& T,
+                    GpuArray<Real,MAX_SPECIES>& hk,
+                    const GpuArray<Real,MAX_SPECIES>& hcp,
+                    const int nspecies)
+{
+    for (int i=0; i<nspecies; ++i) {
+        hk[i] = hcp[i]*T;
+    }
+}
+
 #endif

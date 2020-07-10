@@ -124,9 +124,17 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
             cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
                 ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
-                               + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]) )
+                               + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
+                                                                                       )
                 + dt*source_fab(i,j,k,n);
         });
+
+//        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+//        {
+//            cup_fab(i,j,k,n) = cu_fab(i,j,k,n) - dt *
+//                (  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0] )
+//                + dt*source_fab(i,j,k,n);
+//        });
 
 //  what to do about tests
 
@@ -149,7 +157,8 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
         {
             cup_fab(i,j,k,4) += dt * (  grav_gpu[0]*cu_fab(i,j,k,1)
                                       + grav_gpu[1]*cu_fab(i,j,k,2)
-                                      + grav_gpu[2]*cu_fab(i,j,k,3));
+                                     + grav_gpu[2]*cu_fab(i,j,k,3)
+                                                                        );
         });
     }
 
@@ -210,9 +219,17 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
             cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
                                        ( AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                                       + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
-                                                      + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]))
+                                                      + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2])
+                                                                                                                )
                                        +dt*source_fab(i,j,k,n)  );
         });
+
+//        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+//        {
+//            cup2_fab(i,j,k,n) = 0.25*( 3.0* cu_fab(i,j,k,n) + cup_fab(i,j,k,n) - dt *
+//                                       (  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0])                                                                                                                                                   
+//                                       +dt*source_fab(i,j,k,n)  );
+//        });
 
 //  what to do about tests
 
@@ -295,10 +312,20 @@ void RK3step(MultiFab& cu, MultiFab& cup, MultiFab& cup2, MultiFab& cup3,
             cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
                                     (   AMREX_D_TERM(  (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0],
                                                      + (yflux_fab(i,j+1,k,n) - yflux_fab(i,j,k,n)) / dx[1],
-                                                     + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]) )
+                                                     + (zflux_fab(i,j,k+1,n) - zflux_fab(i,j,k,n)) / dx[2]) 
+                                                                                                            )
                                     + dt*source_fab(i,j,k,n) );
             
         });
+
+//        amrex::ParallelFor(bx, nvars, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+//        {
+//            cu_fab(i,j,k,n) = (2./3.) *( 0.5* cu_fab(i,j,k,n) + cup2_fab(i,j,k,n) - dt *
+//                                    (     (xflux_fab(i+1,j,k,n) - xflux_fab(i,j,k,n)) / dx[0])
+//                                                   
+//                                    + dt*source_fab(i,j,k,n) );
+//            
+//        });
         
 //  what to do about tests
 

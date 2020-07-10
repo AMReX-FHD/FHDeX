@@ -837,10 +837,10 @@ void main_driver(const char* argv)
 
         if (rfd_tog==1) {
             // Apply RFD force to fluid
-            //particles.RFD(0, dx, sourceTemp, RealFaceCoords);
-            //particles.ResetMarkers(0);
-            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
-                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
+            particles.RFD(0, dx, sourceTemp, RealFaceCoords);
+            particles.ResetMarkers(0);
+            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+            //                source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -863,7 +863,7 @@ void main_driver(const char* argv)
 
         if (es_tog==1 || es_tog==3) {
             // spreads charge density from ions onto multifab 'charge'.
-            particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+            particles.collectFieldsGPU(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
         }
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.

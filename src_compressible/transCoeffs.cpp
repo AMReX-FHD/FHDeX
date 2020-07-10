@@ -39,7 +39,6 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
     // Loop over boxes
     for ( MFIter mfi(prim_in); mfi.isValid(); ++mfi) {
 
-#if 0
         // grow the box by ngc
         const Box& bx = amrex::grow(mfi.tilebox(), ngc);
 
@@ -84,21 +83,7 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             }
 
         });
-
-#else
-        const Box& bx = mfi.validbox();
-
-        makecoef(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-		 prim_in [mfi].dataPtr(),  
-		 eta_in  [mfi].dataPtr(),  
-		 zeta_in [mfi].dataPtr(),  
-		 kappa_in[mfi].dataPtr(),
-		 chi_in  [mfi].dataPtr(),
-		 Dij_in  [mfi].dataPtr());
-#endif
     }
-
-    
 
     /*
     // Loop over boxes

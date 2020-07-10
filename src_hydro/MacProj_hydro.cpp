@@ -2,12 +2,10 @@
 
 #include "common_functions.H"
 
-
 #include <AMReX_BoxArray.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Vector.H>
 
-#include <AMReX_FluxRegister.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MLMG.H>
 

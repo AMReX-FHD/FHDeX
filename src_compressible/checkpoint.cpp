@@ -30,6 +30,7 @@ void WriteCheckPoint(int step,
                      const amrex::MultiFab& primMeans,
                      const amrex::MultiFab& primVars,
                      const amrex::MultiFab& spatialCross,
+                     const amrex::MultiFab& miscStats,
                      const amrex::MultiFab& eta,
                      const amrex::MultiFab& kappa)
 {
@@ -111,6 +112,10 @@ void WriteCheckPoint(int step,
     VisMF::Write(spatialCross,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross"));
 
+    // miscStats
+    VisMF::Write(miscStats,
+                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "miscStats"));
+
     // eta
     VisMF::Write(eta,
                  amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "eta"));
@@ -163,6 +168,7 @@ void ReadCheckPoint(int& step,
                      amrex::MultiFab& primMeans,
                      amrex::MultiFab& primVars,
                      amrex::MultiFab& spatialCross, 
+                     amrex::MultiFab& miscStats, 
                      amrex::MultiFab& eta, 
                      amrex::MultiFab& kappa)
 {
@@ -248,6 +254,10 @@ void ReadCheckPoint(int& step,
     // spatialCross
     VisMF::Read(spatialCross,
                 amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "spatialCross"));
+
+    // miscStats
+    VisMF::Read(miscStats,
+                amrex::MultiFabFileFullPrefix(0, checkpointname, "Level_", "miscStats"));
  
     // eta and kappa
     VisMF::Read(eta,
