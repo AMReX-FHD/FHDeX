@@ -14,8 +14,8 @@ namespace common {
     // Below are items that are read in from the common namelist
 
     // Problem specification
-    extern amrex::Vector<amrex::Real> prob_lo;              // physical lo coordinate
-    extern amrex::Vector<amrex::Real> prob_hi;              // physical hi coordinate
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_lo; // physical lo coordinate
+    extern AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> prob_hi; // physical hi coordinate
     extern amrex::Vector<int>         n_cells;              // number of cells in domain
     extern amrex::Vector<int>         max_grid_size;        // max number of cells in a box
     extern amrex::Vector<int>         max_particle_tile_size;        // max number of cells in a box
@@ -30,8 +30,8 @@ namespace common {
     extern amrex::Real                transmission;
 
     extern amrex::Vector<amrex::Real> qval;
-    extern int                        pkernel_fluid;
-    extern int                        pkernel_es;
+    extern AMREX_GPU_MANAGED int      pkernel_fluid;
+    extern AMREX_GPU_MANAGED int      pkernel_es;
 
     // Time-step control
     extern amrex::Real                fixed_dt;
@@ -55,7 +55,7 @@ namespace common {
 
     // Physical parameters
     extern amrex::Vector<amrex::Real> grav;
-    extern int                        nspecies;
+    extern AMREX_GPU_DEVICE_MANAGED int nspecies;
     extern amrex::Vector<amrex::Real> molmass;
     extern amrex::Vector<amrex::Real> rhobar;
     extern amrex::Real                rho0;
@@ -171,8 +171,8 @@ namespace common {
     extern int                        radialdist_int;
     extern int                        cartdist_int;
     extern int                        n_steps_skip;
-    extern amrex::Real                binSize;
-    extern amrex::Real                searchDist;    
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Real binSize;
+    extern AMREX_GPU_DEVICE_MANAGED amrex::Real searchDist;    
 
     // projection 
     extern int                        project_dir;
@@ -200,7 +200,7 @@ namespace common {
     extern amrex::Vector<amrex::Real> mass;
     extern amrex::Vector<amrex::Real> nfrac;
 
-    extern amrex::Real                permittivity;
+    extern AMREX_GPU_MANAGED amrex::Real permittivity;
     extern amrex::Real                cut_off;
     extern amrex::Real                rmin;
     extern amrex::Vector<amrex::Real> eepsilon;
@@ -230,7 +230,7 @@ namespace common {
     extern int                        thermostat_tog;
     extern int                        zero_net_force;
 
-    extern int                        images;
+    extern AMREX_GPU_MANAGED int      images;
     extern amrex::Vector<amrex::Real> eamp;
     extern amrex::Vector<amrex::Real> efreq;
     extern amrex::Vector<amrex::Real> ephase;

@@ -8,8 +8,8 @@ amrex::IntVect                common::nodal_flag_xy;
 amrex::IntVect                common::nodal_flag_xz;
 amrex::IntVect                common::nodal_flag_yz;
 
-amrex::Vector<amrex::Real> common::prob_lo;
-amrex::Vector<amrex::Real> common::prob_hi;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> common::prob_lo;
+AMREX_GPU_MANAGED amrex::GpuArray<amrex::Real, 3> common::prob_hi;
 amrex::Vector<int>         common::n_cells;
 amrex::Vector<int>         common::max_grid_size;
 amrex::Vector<int>         common::max_particle_tile_size;
@@ -22,8 +22,8 @@ int                        common::membrane_cell;
 int                        common::cross_cell;
 amrex::Real                common::transmission;
 
-int                        common::pkernel_fluid;
-int                        common::pkernel_es;
+AMREX_GPU_MANAGED int      common::pkernel_fluid;
+AMREX_GPU_MANAGED int      common::pkernel_es;
 amrex::Vector<amrex::Real> common::qval;
 
 amrex::Real                common::fixed_dt;
@@ -41,7 +41,7 @@ int                        common::particle_restart;
 int                        common::print_int;
 int                        common::project_eos_int;
 amrex::Vector<amrex::Real> common::grav;
-int                        common::nspecies;
+AMREX_GPU_MANAGED int      common::nspecies;
 amrex::Vector<amrex::Real> common::molmass;
 amrex::Vector<amrex::Real> common::rhobar;
 amrex::Vector<amrex::Real> common::diameter;
@@ -103,8 +103,8 @@ int                        common::struct_fact_int;
 int                        common::radialdist_int;
 int                        common::cartdist_int;
 int                        common::n_steps_skip;
-amrex::Real                common::binSize;
-amrex::Real                common::searchDist;
+AMREX_GPU_MANAGED amrex::Real common::binSize;
+AMREX_GPU_MANAGED amrex::Real common::searchDist;
 int                        common::project_dir;
 amrex::Vector<int>         common::max_grid_projection;
 int                        common::histogram_unit;
@@ -129,7 +129,7 @@ int                        common::poisson_bottom_verbose;
 int                        common::poisson_max_iter;
 
 amrex::Real                common::poisson_rel_tol;
-amrex::Real                common::permittivity;
+AMREX_GPU_MANAGED amrex::Real common::permittivity;
 amrex::Real                common::cut_off;
 amrex::Real                common::rmin;
 
@@ -151,7 +151,7 @@ int	                   common::zero_net_force;
 
 int                        common::crange;
 
-int                        common::images;
+AMREX_GPU_MANAGED int      common::images;
 amrex::Vector<amrex::Real> common::eamp;
 amrex::Vector<amrex::Real> common::efreq;
 amrex::Vector<amrex::Real> common::ephase;
