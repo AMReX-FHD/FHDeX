@@ -27,10 +27,10 @@ contains
       integer i,j,k,l, cells, ti, jc, kc, counter
       double precision stepsminusone, stepsinv, densitymeaninv, fracvec(nspecies), massvec(nspecies), cv
 
-      stepsminusone = steps - 1
-      stepsinv = 1d0/steps
+      stepsminusone = steps - 1.d0
+      stepsinv = 1.d0/steps
 
-      totalmass = 0  
+      totalmass = 0.d0  
 
       do k = lo(3), hi(3)
         do j = lo(2), hi(2)
@@ -162,8 +162,8 @@ contains
       double precision deltemp, delpdelrho, delrhoS, delrhoSstar,delpxS, delpyS, delpzS, cvinvS, cvinvSstar, delES, delESstar, qmeanS, qmeanSstar
       double precision delgS, delgSstar, delpxSstar, delpySstar, delpzSstar, deltempS, deltempSstar, densitymeaninvS, densitymeaninvSstar
 
-      stepsminusone = steps - 1
-      stepsinv = 1d0/steps
+      stepsminusone = steps - 1.d0
+      stepsinv = 1.d0/steps
 
 
       !print *, "STATS!"
@@ -258,14 +258,15 @@ contains
         do j = lo(2), hi(2)
           do i = lo(1), hi(1)
 
-          cv = 0
+          cv = 0.d0
           do l=1,nspecies
             cv = cv + hcv(l)*cumeans(i,j,k,5+l)/cumeans(i,j,k,1)
           enddo
 
-          cvinv = 1.0/cv
-          cvinvS = 1.0/slices(i,j,k,17)
-          cvinvSstar = 1.0/miscvals(13)
+          qmean = cv*primmeans(i,j,k,5)-0.5d0*(primmeans(i,j,k,2)**2 + primmeans(i,j,k,3)**2 + primmeans(i,j,k,4)**2)
+          cvinv = 1.0d0/cv
+          cvinvS = 1.0d0/slices(i,j,k,17)
+          cvinvSstar = 1.0d0/miscvals(13)
 
           !Vars
           qmean = cv*primmeans(i,j,k,5)-0.5*(primmeans(i,j,k,2)**2 + primmeans(i,j,k,3)**2 + primmeans(i,j,k,4)**2)
