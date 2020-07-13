@@ -938,4 +938,16 @@ void GetEnergy ( Real& energy,
 
     energy = e0 + temp*cvmix;    
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnthalpies (const Real& T,
+                    GpuArray<Real,MAX_SPECIES>& hk,
+                    const GpuArray<Real,MAX_SPECIES>& hcp,
+                    const int nspecies)
+{
+    for (int i=0; i<nspecies; ++i) {
+        hk[i] = hcp[i]*T;
+    }
+}
+
 #endif
