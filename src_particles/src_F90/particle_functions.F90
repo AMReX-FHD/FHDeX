@@ -346,7 +346,7 @@ contains
     ! so that we only reference the p3m radius once (assuming it's the same forall particles)
     p3m_radius = particles(1)%p3m_radius
 
-    ee = 1.d0/(permittivity*4*3.142) 
+    ee = 1.d0/(permittivity*4*3.141592653589793238) 
     dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
 
 
@@ -427,6 +427,7 @@ contains
              !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
+
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
 
           else if ((bc_es_lo(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
@@ -498,6 +499,7 @@ contains
              ! Do local (short range) coulomb interaction within coulombRadiusFactor
 !!!!!!!!!!!!!!!!!!!!!!!!!!
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
+
              ! print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
              !print *, "particle ", i, " force ", particles(i)%force, particles(i)%pos, particles(nl(j))%pos
@@ -511,6 +513,8 @@ contains
                 !print *, "calling with ", r, (particles(i)%p3m_radius)
 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
+
+                !print *, correction_force_mag
 
              ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
              particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv

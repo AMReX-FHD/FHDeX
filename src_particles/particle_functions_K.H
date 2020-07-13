@@ -306,7 +306,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
     auto nbor_data = neighbor_list.data();
     FhdParticleContainer::ParticleType* pstruct = aos().dataPtr();
 
-    Real ee = 1.0/(common::permittivity*4*3.142);
+    Real ee = 1.0/(common::permittivity*4*3.141592653589793238);
     Real dx2_inv = 1.0/(dx[0]*dx[0]); // assumes isotropic cells
 
     // clearly we don't want to do this every time...
@@ -450,6 +450,8 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
+
+                //Print() << correction_force_mag << std::endl;
 
                 // If part near wall, check if NL part also near wall
                 if (near_wall_below)
