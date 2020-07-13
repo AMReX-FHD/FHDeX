@@ -98,6 +98,10 @@ add_library(
     ../../../src_rng/MultiFabFillRandom.cpp
     ../../../src_rng/bl_random_c.cpp
 
+    ../../../src_rng/src_F90/bl_random.F90
+    ../../../src_rng/src_F90/multifab_fill_random.F90
+    ../../../src_rng/src_F90/rng_functions.F90
+
     ../../../src_gmres/ApplyMatrix.cpp
     ../../../src_gmres/GMRES.cpp
     ../../../src_gmres/MacProj.cpp
