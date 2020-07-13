@@ -292,7 +292,7 @@ amrex::Gpu::DeviceVector<T> getDeviceVector (const amrex::Vector<T>& vec)
     return dvec;
 }
 
-void compute_p3m_sr_correction_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
+void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                                    amrex::NeighborList<FhdParticleContainer::ParticleType>& neighbor_list,
                                    const amrex::Real* dxp, amrex::Real& rcount)
 {
@@ -553,7 +553,7 @@ void compute_p3m_sr_correction_nl (FhdParticleContainer::AoS& aos, int Np, int N
     rcount = std::min(rcount, rcount_d.dataValue());    
 }
 
-void compute_forces_nl (FhdParticleContainer::AoS& aos, int Np, int Nn,
+void compute_forces_nl_gpu (FhdParticleContainer::AoS& aos, int Np, int Nn,
                         amrex::NeighborList<FhdParticleContainer::ParticleType>& neighbor_list,
                         amrex::Real& rcount)
 {

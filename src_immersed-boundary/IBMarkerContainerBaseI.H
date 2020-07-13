@@ -592,6 +592,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::SpreadKernelGpu(const AoS& ao
 
     const auto Np = aos.numParticles();
     const auto pstruct = aos().dataPtr();
+//    const int pk = pkernel_fluid;
     int ng = *nghost;
     
     AMREX_FOR_1D( Np, ip,

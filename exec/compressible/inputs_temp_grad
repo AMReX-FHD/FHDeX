@@ -27,11 +27,11 @@
 
   ! Controls for number of steps between actions
 
-  max_step = 1000000
-  plot_int = 100
+  max_step = 100000000
+  plot_int = 10000
   struct_fact_int = -1
-  n_steps_skip = 5
-  chk_int = -1
+  n_steps_skip = 100000
+  chk_int = 100000
   restart = -1
 
   ! Multispecies toggle
