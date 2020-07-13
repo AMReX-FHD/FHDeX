@@ -167,6 +167,6 @@ install(
     PUBLIC_HEADER DESTINATION  include
     )
 
-install(
-    DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION include
-    )
+# install(
+#     DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION include
+#     )
