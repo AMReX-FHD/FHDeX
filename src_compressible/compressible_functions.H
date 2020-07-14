@@ -427,7 +427,7 @@ void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
         for (int j=0; j<nspecies; ++j) {
             sum1 = a[i*nspecies+j];
 
-            for (int k=i-1; i>=0; --k) {
+            for (int k=i-1; k>=0; --k) {
                 sum1 = sum1 - a[i*nspecies+k]*a[j*nspecies+k];
             }
 
