@@ -122,22 +122,22 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                 if (n_cells_z > 1) {
 
                     // Corner viscosity coefficients in 3D
-                    Real muzepp = 0.25*(eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) +
-                                        eta(i,j+1,k)*prim(i,j+1,k,5) + eta(i-1,j+1,k)*prim(i-1,j+1,k,5) +
-                                        eta(i,j,k+1)*prim(i,j,k+1,5) + eta(i-1,j,k+1)*prim(i-1,j,k+1,5) +
-                                        eta(i,j+1,k+1)*prim(i,j+1,k+1,5) + eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,5) )/3.;
-                    Real muzemp = 0.25*(eta(i,j-1,k)*prim(i,j-1,k,5) + eta(i-1,j-1,k)*prim(i-1,j-1,k,5) +
-                                        eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) +
-                                        eta(i,j-1,k+1)*prim(i,j-1,k+1,5) + eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,5) +
-                                        eta(i,j,k+1)*prim(i,j,k+1,5) + eta(i-1,j,k+1)*prim(i-1,j,k+1,5) )/3.;
-                    Real muzepm = 0.25*(eta(i,j,k-1)*prim(i,j,k-1,5) + eta(i-1,j,k-1)*prim(i-1,j,k-1,5) +
-                                        eta(i,j+1,k-1)*prim(i,j+1,k-1,5) + eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,5) +
-                                        eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) +
-                                        eta(i,j+1,k)*prim(i,j+1,k,5) + eta(i-1,j+1,k)*prim(i-1,j+1,k,5) )/3.;
-                    Real muzemm = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,5) + eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,5) +
-                                        eta(i,j,k-1)*prim(i,j,k-1,5) + eta(i-1,j,k-1)*prim(i-1,j,k-1,5) +
-                                        eta(i,j-1,k)*prim(i,j-1,k,5) + eta(i-1,j-1,k)*prim(i-1,j-1,k,5) +
-                                        eta(i,j,k)*prim(i,j,k,5) + eta(i-1,j,k)*prim(i-1,j,k,5) )/3.;
+                    Real muzepp = 0.25*(eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
+                                        eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
+                                        eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) +
+                                        eta(i,j+1,k+1)*prim(i,j+1,k+1,4) + eta(i-1,j+1,k+1)*prim(i-1,j+1,k+1,4) )/3.;
+                    Real muzemp = 0.25*(eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
+                                        eta(i,j-1,k+1)*prim(i,j-1,k+1,4) + eta(i-1,j-1,k+1)*prim(i-1,j-1,k+1,4) +
+                                        eta(i,j,k+1)*prim(i,j,k+1,4) + eta(i-1,j,k+1)*prim(i-1,j,k+1,4) )/3.;
+                    Real muzepm = 0.25*(eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                        eta(i,j+1,k-1)*prim(i,j+1,k-1,4) + eta(i-1,j+1,k-1)*prim(i-1,j+1,k-1,4) +
+                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) +
+                                        eta(i,j+1,k)*prim(i,j+1,k,4) + eta(i-1,j+1,k)*prim(i-1,j+1,k,4) )/3.;
+                    Real muzemm = 0.25*(eta(i,j-1,k-1)*prim(i,j-1,k-1,4) + eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) +
+                                        eta(i,j,k-1)*prim(i,j,k-1,4) + eta(i-1,j,k-1)*prim(i-1,j,k-1,4) +
+                                        eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
+                                        eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
 
                     if (std::abs(visc_type_gpu) == 3) {
 
@@ -231,13 +231,14 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         MWmix = MWmix + 0.5*(yy[ns]+yyp[ns])/molmass_gpu[ns];
 
                         for (int ll=0; ll<nspecies_gpu; ++ll) {
-                            DijY_edge[ns*nspecies_gpu+ll] = 0.5*(Dij(i-1,j,k,ns*nspecies_gpu+ll)*yy[ll] +
-                                                                 Dij(i,j,k,ns*nspecies_gpu+ll)*yyp[ll] +
-                                                                (Dij(i-1,j,k,ll*nspecies_gpu+ns)*yy[ns] +
-                                                                 Dij(i,j,k,ll*nspecies_gpu+ns)*yyp[ns] ));
+                            DijY_edge[ns*nspecies_gpu+ll] = 0.5*(Dij(i-1,j,k,ll*nspecies_gpu+ns)*yy[ll] +
+                                                                 Dij(i,j,k,ll*nspecies_gpu+ns)*yyp[ll] +
+                                                                (Dij(i-1,j,k,ns*nspecies_gpu+ll)*yy[ns] +
+                                                                 Dij(i,j,k,ns*nspecies_gpu+ll)*yyp[ns] ));
+
                         }
                     }
-
+                    
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
                         if (std::abs(yy[ns]) + std::abs(yyp[ns]) <= 1.e-12) {
                             for (int n=0; n<nspecies_gpu; ++n) {
@@ -252,7 +253,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     CholeskyDecomp(DijY_edge,nspecies_gpu,sqD);
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        for (int ll=0; ll<ns; ++ll) {
+                        for (int ll=0; ll<=ns; ++ll) {
                             fweights[5+ll]=sqrt(k_B_gpu*MWmix*volinv/(Runiv_gpu*dt))*sqD[ns*nspecies_gpu+ll];
                             weiner[5+ns] = weiner[5+ns] + fweights[5+ll]*ranfluxx(i,j,k,5+ll);
                         }
@@ -267,7 +268,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                         soret = soret + (hk[ns] + Runiv_gpu*meanT/molmass_gpu[ns]
                                          *0.5*(chi(i-1,j,k,ns)+chi(i,j,k,ns)))*weiner[5+ns];
                     }
-                        fluxx(i,j,k,4) = fluxx(i,j,k,4) +  soret;
+                    fluxx(i,j,k,4) = fluxx(i,j,k,4) + soret;
                 }
 
             },
