@@ -248,7 +248,7 @@ contains
 #endif
 
 !!!!!!!!!!!!!!!!!!! y-flux !!!!!!!!!!!!!!!!!!!
-
+#if 0
     do k = lo(3),hi(3)
     do j = lo(2),hi(2)+1
     do i = lo(1),hi(1)
@@ -432,7 +432,7 @@ contains
     end do
     end do
     end do
-
+#endif
     if(n_cells(3).gt.1) then
 
 !!!!!!!!!!!!!!!!!!! z-flux !!!!!!!!!!!!!!!!!!!
