@@ -858,7 +858,7 @@ void main_driver(const char* argv)
 
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
-            particles.computeForcesNL(charge, RealCenteredCoords, dxp);
+            particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
         }
 
         if (es_tog==1 || es_tog==3) {
@@ -1078,7 +1078,7 @@ void main_driver(const char* argv)
         
     }
     ///////////////////////////////////////////
-
+        //test change
     // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

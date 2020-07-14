@@ -266,6 +266,53 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
                 amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
                                         neighbor_list[lev][index].dataPtr(), &size, &rcount,
+                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx));         }
+    }
+
+    if(sr_tog==1) 
+    {
+            ParallelDescriptor::ReduceRealSum(rcount);
+
+            Print() << rcount/2 << " close range interactions.\n";
+    }
+}
+
+
+void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
+
+    BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
+
+    Real rcount = 0;
+    const int lev = 0;
+   
+    buildNeighborList(CHECK_PAIR{});
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+   for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
+   {     
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS& particles = pti.GetArrayOfStructs();
+        int Np = pti.numParticles();
+        int Nn = pti.numNeighborParticles();
+        int size = neighbor_list[lev][index].size();
+
+        const Box& tile_box  = pti.tilebox();
+
+        if (sr_tog==1)
+        {
+            compute_forces_nl_gpu(particles, Np, Nn,
+                              m_neighbor_list[lev][index], rcount);            
+        }
+        if (es_tog==3)
+        {
+//            compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
+//                                         m_neighbor_list[lev][index], dx, rcount);
+                amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
+                                        neighbors[lev][index].dataPtr(), &Nn,
+                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
                                         BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx)); 
         }
     }

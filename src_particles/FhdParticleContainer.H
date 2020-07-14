@@ -202,6 +202,8 @@ public:
 
     void computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
+    void computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx);
+
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
     void MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
