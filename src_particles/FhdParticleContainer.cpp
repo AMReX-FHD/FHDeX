@@ -308,12 +308,9 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
         }
         if (es_tog==3)
         {
-//            compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
-//                                        m_neighbor_list[lev][index], dx, rcount);
-                amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
-                                        neighbors[lev][index].dataPtr(), &Nn,
-                                        neighbor_list[lev][index].dataPtr(), &size, &rcount,
-                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx)); 
+            compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
+                                        m_neighbor_list[lev][index], dx, rcount);
+
         }
     }
 
