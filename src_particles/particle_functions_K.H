@@ -190,6 +190,8 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
     r_cell_frac = r_norm/0.1-r_cell;
     r_cell_frac = r_cell_frac*0.1;   // for use in point-slope formula below
 
+    //Print() << "RCELLFRAC: " << r_cell_frac << ", " << r_norm << "\n";
+
     if (pkernel_es == 6)
     {
         // do linear interpolation of force between vals(i+1) and val(i) 
@@ -203,6 +205,8 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
         m = (vals4[r_cell+1]-vals4[r_cell])/(points4[r_cell+1]-points4[r_cell]);
         
         mag  = m*r_cell_frac + vals4[r_cell];
+
+        //Print() << "MAG: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
     }
     else
     {
@@ -451,7 +455,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
 
-                //Print() << correction_force_mag << std::endl;
+                Print() << scientific << setprecision(15) << correction_force_mag << std::endl;
 
                 // If part near wall, check if NL part also near wall
                 if (near_wall_below)

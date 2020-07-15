@@ -248,9 +248,11 @@ contains
     ! Divison/multiplication by 0.1 below is bc the spacing in the table above is 0.1
     r_norm = r/dx(1)                ! separation dist in units of dx=dy=dz
     r_cell = floor(r_norm/0.1)      ! scaling by 10 allows r_cell to index the points/val arrays above 
+    r_cell_frac = r_norm/0.1-r_cell !
     r_cell = r_cell + 1             ! shift simply bc points/val array indices begin at 1, but first val=0.0
-    r_cell_frac = r_norm/0.1-r_cell !  
     r_cell_frac = r_cell_frac*0.1   ! for use in point-slope formula below
+
+    !print *, "RCELLFRAC: ", r_cell_frac, r_norm
     !print *, "r: ", r_cell_frac
     !print *, "cr: ", r_cell, r
     !print *, "r_cell_frac: ", r_cell_frac
@@ -267,6 +269,9 @@ contains
        m = (vals4(r_cell+1)-vals4(r_cell))/(points4(r_cell+1)-points4(r_cell))
 
        mag  = m*r_cell_frac + vals4(r_cell)
+
+        !print *, "MAG: ", m, r_cell_frac, vals4(r_cell), r_cell
+
     else
        print*, "P3M implemented only for pkernel 4 and 6!"
        ! throw error
@@ -514,7 +519,7 @@ contains
 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
 
-                !print *, correction_force_mag
+             print *, correction_force_mag
 
              ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
              particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv

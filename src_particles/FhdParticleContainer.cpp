@@ -309,7 +309,7 @@ void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const Mult
         if (es_tog==3)
         {
 //            compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
-//                                         m_neighbor_list[lev][index], dx, rcount);
+//                                        m_neighbor_list[lev][index], dx, rcount);
                 amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
                                         neighbor_list[lev][index].dataPtr(), &size, &rcount,

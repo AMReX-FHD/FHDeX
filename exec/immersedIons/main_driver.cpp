@@ -820,8 +820,8 @@ void main_driver(const char* argv)
 
         if(istep == 1)
         {
-            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.45);
-            particles.SetPosition(0, 2, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.55);
+            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.49);
+            particles.SetPosition(0, 2, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.51);
            
         }
 
@@ -1048,7 +1048,7 @@ void main_driver(const char* argv)
                             potential, potentialM, potentialV);
         }
 
-        particles.PrintParticles();
+        //particles.PrintParticles();
 
         // timer for time step
         Real time2 = ParallelDescriptor::second() - time1;
