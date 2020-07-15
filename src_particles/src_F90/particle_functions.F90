@@ -270,7 +270,7 @@ contains
 
        mag  = m*r_cell_frac + vals4(r_cell)
 
-        !print *, "MAG: ", m, r_cell_frac, vals4(r_cell), r_cell
+        print *, "MAG: ", m, r_cell_frac, vals4(r_cell), r_cell
 
     else
        print*, "P3M implemented only for pkernel 4 and 6!"
@@ -519,7 +519,7 @@ contains
 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
 
-             print *, correction_force_mag
+             !print *, correction_force_mag, ee, particles(i)%q, dx2_inv
 
              ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
              particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv

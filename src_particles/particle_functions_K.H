@@ -163,7 +163,7 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
          5.6, 5.7, 5.8, 5.9, 6., 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9};
 
     // this is force per dx**2
-    constexpr Real vals4[] =
+    Real vals4[] =
         {0., 0.0191993, 0.0384104, 0.0561438, 0.0745141, 0.0914394, 0.106869,
          0.121719, 0.134211, 0.145262, 0.154958, 0.162921, 0.168841, 0.173264,
          0.176417, 0.17854, 0.177695, 0.175969, 0.174664, 0.17083, 0.165755,
@@ -173,7 +173,7 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
          0.0561682, 0.0539003, 0.0511791, 0.0492405, 0.0470903, 0.0453286, 0.043644, 0.0417381};
 
     // these are in fractions of cell size dx
-    constexpr Real points4[] =
+    Real points4[] =
         {0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3,
          1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7,
          2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1,
@@ -206,7 +206,7 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
         
         mag  = m*r_cell_frac + vals4[r_cell];
 
-        //Print() << "MAG: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
+        Print()  << scientific << setprecision(15) << "MAG: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
     }
     else
     {
@@ -455,7 +455,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
 
-                Print() << scientific << setprecision(15) << correction_force_mag << std::endl;
+                //Print() << scientific << setprecision(15) << correction_force_mag << ", " << r << ", " << dx[0] << std::endl;
 
                 // If part near wall, check if NL part also near wall
                 if (near_wall_below)
