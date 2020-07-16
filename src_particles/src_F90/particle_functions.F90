@@ -2174,7 +2174,7 @@ contains
     part%force = part%force + part%vel*part%q
 
 
-    print *, "FORCE: ", part%force
+    !print *, "FORCE: ", part%force
     part%vel = uloc
 
   end subroutine emf

@@ -801,8 +801,6 @@ void emf_gpu (FhdParticleContainer::AoS& aos, F f,
 
         //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
         p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
-
-        Print() << "FORCE: " << p.rdata(FHD_realData::forcez) << "\n";
        
     });
     
@@ -839,6 +837,8 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
     GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
     GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
 
+    Real volinv = 1.0/(dx_in[0]*dx_in[1]*dx_in[2]);
+
 
     const auto Np = aos.numParticles();
     const auto pstruct = aos().dataPtr();
@@ -858,13 +858,21 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
     {
         FhdParticleContainer::ParticleType& p = pstruct[ip];
 
-        Real forcex = p.rdata(FHD_realData::q)/permittivity;
+        Real forcex = p.rdata(FHD_realData::forcex)*volinv;
+        Real forcey = p.rdata(FHD_realData::forcey)*volinv;
+        Real forcez = p.rdata(FHD_realData::forcez)*volinv;
         
         Real w[3][2*ks];
         int indices[3][2*ks];
         
         get_weights(p, f, sourcexflag, w, indices, plo, dx, dxi);
-        //spread_op(sourcexarr, f, w, indices, qm*volinv);
+        spread_op(sourcexarr, f, w, indices, forcex);
+
+        get_weights(p, f, sourceyflag, w, indices, plo, dx, dxi);
+        spread_op(sourceyarr, f, w, indices, forcey);
+
+        get_weights(p, f, sourcezflag, w, indices, plo, dx, dxi);
+        spread_op(sourcezarr, f, w, indices, forcez);
     });
     
 }

@@ -569,12 +569,10 @@ void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, con
                       efield[0][pti], efield[1][pti], efield[2][pti],
                       ZFILL(plo), ZFILL(dxE));
         
-//        spread_ions_fhd_gpu(particles,
-//                         umac[0][pti], umac[1][pti], umac[2][pti],
-//                         efield[0][pti], efield[1][pti], efield[2][pti], charge[pti],
-//                         sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), ZFILL(geomF.ProbLo()),
-//                         ZFILL(dxFluid), ZFILL(dxE));
+        spread_ions_fhd_gpu(particles,                         
+                         sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+                         ZFILL(plo),
+                         ZFILL(dxFluid));
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
