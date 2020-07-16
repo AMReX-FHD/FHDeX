@@ -530,6 +530,73 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 
 }
 
+void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                      const MultiFab& charge,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                      const MultiFab& cellCenters,
+                                      std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                      std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                      const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+{
+    BL_PROFILE_VAR("SpreadIons()",SpreadIons);
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+    double potential = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+        
+        spread_ions_fhd_gpu(particles,
+                         umac[0][pti], umac[1][pti], umac[2][pti],
+                         efield[0][pti], efield[1][pti], efield[2][pti], charge[pti],
+                         sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+                         ZFILL(plo), ZFILL(phi), ZFILL(dx), ZFILL(geomF.ProbLo()),
+                         ZFILL(dxFluid), ZFILL(dxE));
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MultiFabPhysBCDomainStress(sourceTemp[i], geomF, i);
+        MultiFabPhysBCMacStress(sourceTemp[i], geomF, i);
+    }
+        
+    sourceTemp[0].SumBoundary(geomF.periodicity());
+    sourceTemp[1].SumBoundary(geomF.periodicity());
+#if (AMREX_SPACEDIM == 3)
+    sourceTemp[2].SumBoundary(geomF.periodicity());
+#endif
+
+    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+#if (AMREX_SPACEDIM == 3)
+    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+#endif
+
+    source[0].FillBoundary(geomF.periodicity());
+    source[1].FillBoundary(geomF.periodicity());
+#if (AMREX_SPACEDIM == 3)
+    source[2].FillBoundary(geomF.periodicity());
+#endif
+
+}
+
 //void FhdParticleContainer::SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, const int length, const int step, const species* particleInfo)
 //{
 //    
