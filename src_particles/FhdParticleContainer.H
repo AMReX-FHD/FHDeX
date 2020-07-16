@@ -223,6 +223,15 @@ public:
                     std::array<MultiFab, AMREX_SPACEDIM>& source,
                     std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
+
+    void SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                    const MultiFab& charge,
+                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                    const MultiFab& cellCenters,
+                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
     
     //void SyncMembrane(double* spec3xPos, double* spec3yPos, double* spec3zPos, double* spec3xForce, double* spec3yForce, double* spec3zForce, int length, int step, const species* particleInfo);
 
