@@ -18,6 +18,9 @@ using namespace amrex;
 // copy contents of compressible_params_module to C++ compressible namespace
 void InitializeCompressibleNamespace();
 
+void InitConsVar(MultiFab& cons, const MultiFab& prim,
+                 const amrex::Geometry geom);
+
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
 		   const MultiFab& chi, const MultiFab& D,

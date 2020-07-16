@@ -470,13 +470,7 @@ void main_driver(const char* argv)
 
     // initialize conserved variables
     if (prob_type > 1) {
-        for ( MFIter mfi(cu); mfi.isValid(); ++mfi ) {
-            const Box& bx = mfi.validbox();
-            init_consvar(BL_TO_FORTRAN_BOX(bx),
-                         BL_TO_FORTRAN_ANYD(cu[mfi]),
-                         BL_TO_FORTRAN_ANYD(prim[mfi]),
-                         dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-        }
+        InitConsVar(cu,prim,geom);
     }
 
     statsCount = 1;
