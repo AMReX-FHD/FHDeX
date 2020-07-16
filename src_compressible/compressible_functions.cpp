@@ -47,6 +47,13 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
     for (int n=0; n<nspecies; ++n) {
         grav_gpu[n] = grav[n];
     }
+    GpuArray<Real,MAX_SPECIES> bc_Yk_y_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Yk_y_hi_gpu;
+    
+    for (int n=0; n<nspecies; ++n) {
+        bc_Yk_y_lo_gpu[n] = bc_Yk[1 + n*LOHI*AMREX_SPACEDIM];
+        bc_Yk_y_hi_gpu[n] = bc_Yk[1 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
+    }
 
     // local variables
     Real mach = 0.3;
@@ -124,11 +131,16 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                                                                        pu(i,j,k,2)*pu(i,j,k,2) +
                                                                        pu(i,j,k,3)*pu(i,j,k,3));
             }
-#if 0
 
+#if 0
             else if (prob_type_gpu == 3) { // diffusion barrier
 
-                do l = 1,nspecies
+                for (int l=0; l<nspecies_gpu; ++l) {
+
+
+
+                    
+                    
            Ygrad = (bc_Yk(2,2,l) - bc_Yk(2,1,l))/(realhi(2) - reallo(2))
            massvec(l) = Ygrad*pos(2) + bc_Yk(2,1,l)
            cu(i,j,k,5+l) = cu(i,j,k,1)*massvec(l)
@@ -186,9 +198,6 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
 #endif
               
               });
-    }
-
-
 /*    
     // initialize conserved variables
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
@@ -199,5 +208,6 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                      dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
     }
 */
+    } // end MFIter
 
 }
