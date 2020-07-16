@@ -7,9 +7,8 @@ module flux_module
                                      bc_mass_lo, bc_mass_hi, bc_therm_lo, bc_therm_hi, &
                                      bc_vel_lo, bc_vel_hi
   use conv_module, only : get_temperature, get_pressure_gas, get_energy, &
-                          get_enthalpies, get_temperature_gas, get_density_gas, &
+                          get_density_gas, &
                           get_energy_gas, get_hc_gas
-  use multispec_module, only : cholesky_decomp
   implicit none
 
   private
