@@ -532,7 +532,7 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 
 void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
-                                      const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                      std::array<MultiFab, AMREX_SPACEDIM>& efield,
                                       const MultiFab& charge,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                                       const MultiFab& cellCenters,
@@ -563,13 +563,18 @@ void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, con
         auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
         auto& particles = particle_tile.GetArrayOfStructs();
         const int np = particles.numParticles();
+
+
+        emf_gpu(particles,
+                      efield[0][pti], efield[1][pti], efield[2][pti],
+                      ZFILL(plo), ZFILL(dxE));
         
-        spread_ions_fhd_gpu(particles,
-                         umac[0][pti], umac[1][pti], umac[2][pti],
-                         efield[0][pti], efield[1][pti], efield[2][pti], charge[pti],
-                         sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
-                         ZFILL(plo), ZFILL(phi), ZFILL(dx), ZFILL(geomF.ProbLo()),
-                         ZFILL(dxFluid), ZFILL(dxE));
+//        spread_ions_fhd_gpu(particles,
+//                         umac[0][pti], umac[1][pti], umac[2][pti],
+//                         efield[0][pti], efield[1][pti], efield[2][pti], charge[pti],
+//                         sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+//                         ZFILL(plo), ZFILL(phi), ZFILL(dx), ZFILL(geomF.ProbLo()),
+//                         ZFILL(dxFluid), ZFILL(dxE));
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {

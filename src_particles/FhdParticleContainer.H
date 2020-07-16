@@ -225,7 +225,7 @@ public:
                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
 
     void SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
-                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, std::array<MultiFab, AMREX_SPACEDIM>& efield,
                     const MultiFab& charge,
                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                     const MultiFab& cellCenters,

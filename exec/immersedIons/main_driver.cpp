@@ -820,8 +820,8 @@ void main_driver(const char* argv)
 
         if(istep == 1)
         {
-            //particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.49);
-            //particles.SetPosition(0, 2, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.51);
+            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.49);
+            particles.SetPosition(0, 2, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.51);
            
         }
 
@@ -872,7 +872,7 @@ void main_driver(const char* argv)
         esSolve(potential, charge, efieldCC, external, geomP);
 
         // compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
+        particles.SpreadIonsGPU(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
                              paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         //particles.BuildCorrectionTable(dxp,1);

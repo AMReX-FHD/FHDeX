@@ -657,11 +657,12 @@ void spread_op (amrex::Array4<amrex::Real> const& arr, F f,
 
 template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void inter_op (amrex::Array4<amrex::Real> const& arr, F f,
-               amrex::Real w[3][2*F::ks], int indices[3][2*F::ks],
-               FhdParticleContainer::ParticleType& p, int pcomp)
+Real inter_op (amrex::Array4<amrex::Real> const& arr, F f,
+               amrex::Real w[3][2*F::ks], int indices[3][2*F::ks])
 {
     constexpr int ks = F::ks;
+
+    Real output = 0;
 
     for (int k = 0 ; k < 2*ks; ++k) {
         for (int j = 0 ; j < 2*ks; ++j) {
@@ -669,10 +670,12 @@ void inter_op (amrex::Array4<amrex::Real> const& arr, F f,
                 int ii = indices[0][i];
                 int jj = indices[1][j];
                 int kk = indices[2][k];
-                p.rdata(pcomp) += w[0][i]*w[1][j]*w[2][k]*arr(ii, jj, kk);
+                output += w[0][i]*w[1][j]*w[2][k]*arr(ii, jj, kk);
             }
         }
-    }    
+    }
+
+    return output; 
 }
 
 //template <typename F>
@@ -761,57 +764,88 @@ void collect_charge_gpu (FhdParticleContainer::AoS& aos, FArrayBox& charge,
 }
 
 template <typename F>
-void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
-                      const FArrayBox& ux, const FArrayBox& uy, const FArrayBox& uz,
-                      const FArrayBox& Ex, const FArrayBox& Ey, const FArrayBox& Ez,
-                      const FArrayBox& charge,
-                      FArrayBox& sourcex, FArrayBox& sourcey, FArrayBox& sourcez,
-                      const amrex::Real* plo_in, const amrex::Real* phi_in,
-                      const amrex::Real* dx_in, const amrex::Real* plof_in,
-                      const amrex::Real* dxf_in, const amrex::Real* dxE_in)
+void emf_gpu (FhdParticleContainer::AoS& aos, F f,
+                      FArrayBox& Ex, FArrayBox& Ey, FArrayBox& Ez,
+                      const amrex::Real* plo_in, const amrex::Real* dx_in)
 {
     GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
-    GpuArray<Real, 3> phi = {phi_in[0], phi_in[1], phi_in[2]};
-
-    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
-    GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
-
-    GpuArray<Real, 3> plof = {plof_in[0], plof_in[1], plof_in[2]};
-
-    GpuArray<Real, 3> dxf  = {dxf_in[0],  dxf_in[1],  dxf_in[2] };    
-    GpuArray<Real, 3> dxfi = {1.0/dxf_in[0],  1.0/dxf_in[1],  1.0/dxf_in[2] };
-
-    GpuArray<Real, 3> dxE  = {dxE_in[0],  dxE_in[1],  dxE_in[2] };    
-    GpuArray<Real, 3> dxEi = {1.0/dxE_in[0],  1.0/dxE_in[1],  1.0/dxE_in[2] };
-
-    GpuArray<Real, 3> domsize = {phi[0]-plo[0], phi[0]-plo[1], phi[2]-plo[2]};
+    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };
+    GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };    
 
     const auto Np = aos.numParticles();
     const auto pstruct = aos().dataPtr();
-
-    auto uxarr = ux.array();
-    auto uyarr = uy.array();
-    auto uzarr = uz.array();
 
     auto Exarr = Ex.array();
     auto Eyarr = Ey.array();
     auto Ezarr = Ez.array();
 
-    auto chargearr = charge.array();
-
-    auto sourcexarr = sourcex.array();
-    auto sourceyarr = sourcey.array();
-    auto sourcezarr = sourcez.array();
-    
-    const IntVect uxflag = ux.box().type();
-    const IntVect uyflag = uy.box().type();
-    const IntVect uzflag = uz.box().type();
-
     const IntVect Exflag = Ex.box().type();
     const IntVect Eyflag = Ey.box().type();
     const IntVect Ezflag = Ez.box().type();
 
-    const IntVect chargeflag = charge.box().type();
+    constexpr int ks = F::ks;
+       
+    amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
+    {
+        FhdParticleContainer::ParticleType& p = pstruct[ip];
+        
+        Real w[3][2*ks];
+        int indices[3][2*ks];
+        
+        //E field is cell centered so we can use the same weights/indicies for each component
+        get_weights(p, f, Exflag, w, indices, plo, dx, dxi);
+        p.rdata(FHD_realData::forcex) += p.rdata(FHD_realData::q)*inter_op(Exarr, f, w, indices);
+
+        //get_weights(p, f, Eyflag, w, indices, plo, dx, dxi);
+        p.rdata(FHD_realData::forcey) += p.rdata(FHD_realData::q)*inter_op(Eyarr, f, w, indices);
+
+        //get_weights(p, f, Ezflag, w, indices, plo, dx, dxi);
+        p.rdata(FHD_realData::forcez) += p.rdata(FHD_realData::q)*inter_op(Ezarr, f, w, indices);
+
+        Print() << "FORCE: " << p.rdata(FHD_realData::forcez) << "\n";
+       
+    });
+    
+}
+
+void emf_gpu(FhdParticleContainer::AoS& aos,
+                      FArrayBox& Ex, FArrayBox& Ey, FArrayBox& Ez,
+                      const amrex::Real* plo_in, const amrex::Real* dx_in)
+{
+    if (common::pkernel_es == 3)
+    {
+        emf_gpu(aos, Kernel4P(), Ex, Ey, Ez, plo_in, dx_in);
+    }
+    else if (common::pkernel_es == 4)
+    {
+        emf_gpu(aos, Kernel4P(), Ex, Ey, Ez, plo_in, dx_in);
+    }
+    else if (common::pkernel_es == 6)
+    {
+        emf_gpu(aos, Kernel6P(), Ex, Ey, Ez, plo_in, dx_in);
+    }
+}
+
+
+template <typename F>
+void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
+                      FArrayBox& sourcex, FArrayBox& sourcey, FArrayBox& sourcez,
+                      const amrex::Real* plo_in,
+                      const amrex::Real* dx_in)
+{
+    GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
+
+
+    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
+    GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
+
+
+    const auto Np = aos.numParticles();
+    const auto pstruct = aos().dataPtr();
+
+    auto sourcexarr = sourcex.array();
+    auto sourceyarr = sourcey.array();
+    auto sourcezarr = sourcez.array();
 
     const IntVect sourcexflag = sourcex.box().type();
     const IntVect sourceyflag = sourcey.box().type();
@@ -836,133 +870,21 @@ void spread_ions_fhd_gpu (FhdParticleContainer::AoS& aos, F f,
 }
 
 void spread_ions_fhd_gpu(FhdParticleContainer::AoS& aos,
-                      const FArrayBox& ux, const FArrayBox& uy, const FArrayBox& uz,
-                      const FArrayBox& Ex, const FArrayBox& Ey, const FArrayBox& Ez,
-                      const FArrayBox& charge,
                       FArrayBox& sourcex, FArrayBox& sourcey, FArrayBox& sourcez,
-                      const amrex::Real* plo, const amrex::Real* phi, const amrex::Real* dx,
-                      const amrex::Real* plof, const amrex::Real* dxf, const amrex::Real* dxE)
+                      const amrex::Real* plo_in,
+                      const amrex::Real* dx_in)
 {
     if (common::pkernel_es == 3)
     {
-        spread_ions_fhd_gpu(aos, Kernel4P(), ux, uy, uz, Ex, Ey, Ez,
-                        charge, sourcex, sourcey, sourcez,
-                        plo, phi, dx, plof, dxf, dxE);
+        spread_ions_fhd_gpu(aos, Kernel4P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
     else if (common::pkernel_es == 4)
     {
-        spread_ions_fhd_gpu(aos, Kernel4P(), ux, uy, uz, Ex, Ey, Ez,
-                        charge, sourcex, sourcey, sourcez,
-                        plo, phi, dx, plof, dxf, dxE);
+        spread_ions_fhd_gpu(aos, Kernel4P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
     else if (common::pkernel_es == 6)
     {
-        spread_ions_fhd_gpu(aos, Kernel6P(), ux, uy, uz, Ex, Ey, Ez,
-                        charge, sourcex, sourcey, sourcez,
-                        plo, phi, dx, plof, dxf, dxE);
-    }
-}
-
-template <typename F>
-void emf_gpu (FhdParticleContainer::AoS& aos, F f,
-                      const FArrayBox& ux, const FArrayBox& uy, const FArrayBox& uz,
-                      const FArrayBox& Ex, const FArrayBox& Ey, const FArrayBox& Ez,
-                      const FArrayBox& charge,
-                      FArrayBox& sourcex, FArrayBox& sourcey, FArrayBox& sourcez,
-                      const amrex::Real* plo_in, const amrex::Real* phi_in,
-                      const amrex::Real* dx_in, const amrex::Real* plof_in,
-                      const amrex::Real* dxf_in, const amrex::Real* dxE_in)
-{
-    GpuArray<Real, 3> plo = {plo_in[0], plo_in[1], plo_in[2]};
-    GpuArray<Real, 3> phi = {phi_in[0], phi_in[1], phi_in[2]};
-
-    GpuArray<Real, 3> dx  = {dx_in[0],  dx_in[1],  dx_in[2] };    
-    GpuArray<Real, 3> dxi = {1.0/dx_in[0],  1.0/dx_in[1],  1.0/dx_in[2] };
-
-    GpuArray<Real, 3> plof = {plof_in[0], plof_in[1], plof_in[2]};
-
-    GpuArray<Real, 3> dxf  = {dxf_in[0],  dxf_in[1],  dxf_in[2] };    
-    GpuArray<Real, 3> dxfi = {1.0/dxf_in[0],  1.0/dxf_in[1],  1.0/dxf_in[2] };
-
-    GpuArray<Real, 3> dxE  = {dxE_in[0],  dxE_in[1],  dxE_in[2] };    
-    GpuArray<Real, 3> dxEi = {1.0/dxE_in[0],  1.0/dxE_in[1],  1.0/dxE_in[2] };
-
-    GpuArray<Real, 3> domsize = {phi[0]-plo[0], phi[0]-plo[1], phi[2]-plo[2]};
-
-    const auto Np = aos.numParticles();
-    const auto pstruct = aos().dataPtr();
-
-    auto uxarr = ux.array();
-    auto uyarr = uy.array();
-    auto uzarr = uz.array();
-
-    auto Exarr = Ex.array();
-    auto Eyarr = Ey.array();
-    auto Ezarr = Ez.array();
-
-    auto chargearr = charge.array();
-
-    auto sourcexarr = sourcex.array();
-    auto sourceyarr = sourcey.array();
-    auto sourcezarr = sourcez.array();
-    
-    const IntVect uxflag = ux.box().type();
-    const IntVect uyflag = uy.box().type();
-    const IntVect uzflag = uz.box().type();
-
-    const IntVect Exflag = Ex.box().type();
-    const IntVect Eyflag = Ey.box().type();
-    const IntVect Ezflag = Ez.box().type();
-
-    const IntVect chargeflag = charge.box().type();
-
-    const IntVect sourcexflag = sourcex.box().type();
-    const IntVect sourceyflag = sourcey.box().type();
-    const IntVect sourcezflag = sourcez.box().type();
-
-
-    constexpr int ks = F::ks;
-       
-    amrex::ParallelFor(Np, [=] AMREX_GPU_HOST_DEVICE (int ip) noexcept
-    {
-        FhdParticleContainer::ParticleType& p = pstruct[ip];
-
-        Real forcex = p.rdata(FHD_realData::q)/permittivity;
-        
-        Real w[3][2*ks];
-        int indices[3][2*ks];
-        
-        get_weights(p, f, sourcexflag, w, indices, plo, dx, dxi);
-        //spread_op(sourcexarr, f, w, indices, qm*volinv);
-    });
-    
-}
-
-void emf_gpu(FhdParticleContainer::AoS& aos,
-                      const FArrayBox& ux, const FArrayBox& uy, const FArrayBox& uz,
-                      const FArrayBox& Ex, const FArrayBox& Ey, const FArrayBox& Ez,
-                      const FArrayBox& charge,
-                      FArrayBox& sourcex, FArrayBox& sourcey, FArrayBox& sourcez,
-                      const amrex::Real* plo, const amrex::Real* phi, const amrex::Real* dx,
-                      const amrex::Real* plof, const amrex::Real* dxf, const amrex::Real* dxE)
-{
-    if (common::pkernel_es == 3)
-    {
-        emf_gpu(aos, Kernel4P(), ux, uy, uz, Ex, Ey, Ez,
-                        charge, sourcex, sourcey, sourcez,
-                        plo, phi, dx, plof, dxf, dxE);
-    }
-    else if (common::pkernel_es == 4)
-    {
-        emf_gpu(aos, Kernel4P(), ux, uy, uz, Ex, Ey, Ez,
-                        charge, sourcex, sourcey, sourcez,
-                        plo, phi, dx, plof, dxf, dxE);
-    }
-    else if (common::pkernel_es == 6)
-    {
-        emf_gpu(aos, Kernel6P(), ux, uy, uz, Ex, Ey, Ez,
-                        charge, sourcex, sourcey, sourcez,
-                        plo, phi, dx, plof, dxf, dxE);
+        spread_ions_fhd_gpu(aos, Kernel6P(), sourcex, sourcey, sourcez, plo_in, dx_in);
     }
 }
 
