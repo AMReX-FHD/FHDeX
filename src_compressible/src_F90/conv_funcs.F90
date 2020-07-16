@@ -8,8 +8,8 @@ module conv_module
   private
 
   public :: get_temperature, get_density, get_energy, get_molfrac, &
-       get_massfrac, get_enthalpies, get_hc_gas, get_pressure_gas, get_density_gas, &
-       get_temperature_gas, get_energy_gas
+       get_massfrac, get_hc_gas, get_pressure_gas, get_density_gas, &
+       get_energy_gas
 
 contains
 
@@ -110,22 +110,6 @@ contains
 
   end subroutine get_massfrac
 
-  subroutine get_enthalpies(T, hk) bind(C,name="get_enthalpies")
-
-    real(amrex_real), intent(inout) :: hk(1:nspecies)
-    real(amrex_real), intent(in   ) :: T
-
-    integer :: ns
-
-    !! FIXME: should have enthalpy reference eventually
-
-    do ns = 1, nspecies 
-       ! hk(ns) = h0ref(ns) + hcp(ns)*T
-       hk(ns) = 0.0 + hcp(ns)*T
-    enddo
-
-  end subroutine get_enthalpies
-
   subroutine get_pressure_gas(pressure, fracvec, density, temp)  bind(C,name="get_pressure_gas")    
 
     real(amrex_real), intent(in   ) :: temp, fracvec(nspecies), density
@@ -155,25 +139,6 @@ contains
     stop
 
   end subroutine get_energy_gas
-
-  subroutine get_temperature_gas(pressure, fracvec, density, temp)  bind(C,name="get_temperature_gas")    
-
-    real(amrex_real), intent(in   ) :: pressure, fracvec(nspecies), density
-    real(amrex_real), intent(inout) :: temp
-
-    integer :: i
-    real(amrex_real) :: avm
-
-    avm = 0.0d0
-
-    do i = 1, nspecies
-       avm = avm + fracvec(i)*molmass(i)
-
-    enddo
-
-    temp = avm*pressure/(runiv*density)
-
-  end subroutine get_temperature_gas
 
   subroutine get_density_gas(pressure, density, temp)  bind(C,name="get_density_gas")    
 
