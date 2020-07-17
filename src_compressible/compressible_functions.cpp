@@ -34,6 +34,9 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
     int nspecies_gpu = nspecies;
     Real Runiv_gpu = Runiv;
     int prob_type_gpu = prob_type;
+    Real t_lo_y = t_lo[1];
+    Real t_hi_y = t_hi[1];
+    Real rho0_gpu = rho0;
 
     GpuArray<Real,MAX_SPECIES> molmass_gpu;
     for (int n=0; n<nspecies; ++n) {
@@ -47,10 +50,14 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
     for (int n=0; n<nspecies; ++n) {
         grav_gpu[n] = grav[n];
     }
+    GpuArray<Real,MAX_SPECIES> bc_Yk_x_lo_gpu;
+    GpuArray<Real,MAX_SPECIES> bc_Yk_x_hi_gpu;
     GpuArray<Real,MAX_SPECIES> bc_Yk_y_lo_gpu;
     GpuArray<Real,MAX_SPECIES> bc_Yk_y_hi_gpu;
-    
+
     for (int n=0; n<nspecies; ++n) {
+        bc_Yk_x_lo_gpu[n] = bc_Yk[n*LOHI*AMREX_SPACEDIM];
+        bc_Yk_x_hi_gpu[n] = bc_Yk[AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
         bc_Yk_y_lo_gpu[n] = bc_Yk[1 + n*LOHI*AMREX_SPACEDIM];
         bc_Yk_y_hi_gpu[n] = bc_Yk[1 + AMREX_SPACEDIM + n*LOHI*AMREX_SPACEDIM];
     }
@@ -63,7 +70,6 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
     Real pi = acos(-1.);
     Real Lf = realhi[0] - reallo[0];
 
-#if 1
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
         const Array4<const Real> pu = prim.array(mfi);
         const Array4<      Real> cu = cons.array(mfi);
@@ -161,50 +167,39 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                                                      cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
                 cu(i,j,k,5) = cu(i,j,k,0);
                 cu(i,j,k,6) = 0.;
-            }
-#if 0
-     elseif (prob_type_gpu .eq. 5) then ! Taylor Green Vortex
+                
+            } else if (prob_type_gpu == 5) { // Taylor Green Vortex
 
-       
-
-        cu(i,j,k,1) = rho0
-        cu(i,j,k,2) = 0
-        cu(i,j,k,3) = 0
-        cu(i,j,k,4) = 0
-        if((prob_lo(2) + itVec(2)) < hy) then
-          massvec = bc_Yk(1,1,1:2)
-          call get_energy(intEnergy, massvec, t_lo(2));
-          cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
-          cu(i,j,k,6) = cu(i,j,k,1)*bc_Yk(1,1,1)
-          cu(i,j,k,7) = cu(i,j,k,1)*bc_Yk(1,1,2)
-        elseif((prob_lo(2) + itVec(2)) < 2*hy) then
-          massvec = bc_Yk(1,2,1:2)
-          call get_energy(intEnergy, massvec, t_hi(2));
-          cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
-          cu(i,j,k,6) = cu(i,j,k,1)*bc_Yk(1,2,1)
-          cu(i,j,k,7) = cu(i,j,k,1)*bc_Yk(1,2,2)
-        else
-          massvec = bc_Yk(1,1,1:2)
-          call get_energy(intEnergy, massvec, t_lo(2));
-          cu(i,j,k,5) = cu(i,j,k,1)*intEnergy
-          cu(i,j,k,6) = cu(i,j,k,1)*bc_Yk(1,1,1)
-          cu(i,j,k,7) = cu(i,j,k,1)*bc_Yk(1,1,2)
-        endif
-      endif
-#endif
-              
-              });
+                Real intEnergy;
+                
+                cu(i,j,k,0) = rho0_gpu;
+                cu(i,j,k,1) = 0;
+                cu(i,j,k,2) = 0;
+                cu(i,j,k,3) = 0;
+                if((prob_lo[1] + itVec[1]) < hy) {
+                    massvec[0] = bc_Yk_x_lo_gpu[0];
+                    massvec[1] = bc_Yk_x_lo_gpu[1];
+                    GetEnergy(intEnergy, massvec, t_lo_y, hcv_gpu, nspecies_gpu);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
+                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[0];
+                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[1];
+                } else if ((prob_lo[1] + itVec[1]) < 2*hy) {
+                    massvec[0] = bc_Yk_x_hi_gpu[0];
+                    massvec[1] = bc_Yk_x_hi_gpu[1];
+                    GetEnergy(intEnergy, massvec, t_hi_y, hcv_gpu, nspecies_gpu);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
+                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_hi_gpu[0];
+                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_hi_gpu[1];
+                } else {
+                    massvec[0] = bc_Yk_x_lo_gpu[0];
+                    massvec[1] = bc_Yk_x_lo_gpu[1];
+                    GetEnergy(intEnergy, massvec, t_lo_y, hcv_gpu, nspecies_gpu);
+                    cu(i,j,k,4) = cu(i,j,k,0)*intEnergy;
+                    cu(i,j,k,5) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[0];
+                    cu(i,j,k,6) = cu(i,j,k,0)*bc_Yk_x_lo_gpu[1];
+                }
+            } // prob_type
+        });
     } // end MFIter
-
-#else
-    // initialize conserved variables
-    for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
-        const Box& bx = mfi.validbox();
-        init_consvar(BL_TO_FORTRAN_BOX(bx),
-                     BL_TO_FORTRAN_ANYD(cons[mfi]),
-                     BL_TO_FORTRAN_ANYD(prim[mfi]),
-                     dx_host, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-    }
-#endif
 
 }

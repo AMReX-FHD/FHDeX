@@ -96,12 +96,6 @@ extern "C"
                         const amrex::Real* dx,
                         const amrex::Real* dt);
 
-    void init_consvar(const int* lo, const int* hi, 
-                      const amrex_real* cu, const int* culo, const int* cuhi,
-                      const amrex_real* pu, const int* pulo, const int* puhi,
-                      const amrex_real* dx, 
-                      const amrex_real* reallo, const amrex_real* realhi);
-    
 #ifdef __cplusplus
 }
 #endif
