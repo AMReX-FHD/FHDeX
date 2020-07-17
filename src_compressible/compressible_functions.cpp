@@ -61,7 +61,9 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
 
     Real hy = ( prob_hi[1] - prob_lo[1] ) / 3.;
     Real pi = acos(-1.);
-    
+    Real Lf = realhi[0] - reallo[0];
+
+#if 1
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
         const Array4<const Real> pu = prim.array(mfi);
         const Array4<      Real> cu = cons.array(mfi);
@@ -130,43 +132,37 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
                 cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
                                                                        pu(i,j,k,2)*pu(i,j,k,2) +
                                                                        pu(i,j,k,3)*pu(i,j,k,3));
-            }
-
-#if 0
-            else if (prob_type_gpu == 3) { // diffusion barrier
+            } else if (prob_type_gpu == 3) { // diffusion barrier
 
                 for (int l=0; l<nspecies_gpu; ++l) {
+                    Real Ygrad = (bc_Yk_y_hi_gpu[l] - bc_Yk_y_lo_gpu[l])/(realhi[1] - reallo[1]);
+                    massvec[l] = Ygrad*pos[1] + bc_Yk_y_lo_gpu[l];
+                    cu(i,j,k,5+l) = cu(i,j,k,0)*massvec[l];
+                }
 
+                Real intEnergy;
+                GetEnergy(intEnergy, massvec, pu(i,j,k,4), hcv_gpu, nspecies_gpu);
+                cu(i,j,k,4) = cu(i,j,k,0)*intEnergy + 0.5*cu(i,j,k,0)*(pu(i,j,k,1)*pu(i,j,k,1) +
+                                                                       pu(i,j,k,2)*pu(i,j,k,2) +
+                                                                       pu(i,j,k,3)*pu(i,j,k,3));
+            } else if (prob_type_gpu == 4) { // Taylor Green Vortex
 
+                Real x=itVec[0];
+                Real y=itVec[1];
+                Real z=itVec[2];
 
-                    
-                    
-           Ygrad = (bc_Yk(2,2,l) - bc_Yk(2,1,l))/(realhi(2) - reallo(2))
-           massvec(l) = Ygrad*pos(2) + bc_Yk(2,1,l)
-           cu(i,j,k,5+l) = cu(i,j,k,1)*massvec(l)
-        enddo
-
-        call get_energy(intEnergy, massvec, pu(i,j,k,5))
-        cu(i,j,k,5) = cu(i,j,k,1)*intEnergy + 0.5*cu(i,j,k,1)*(pu(i,j,k,2)**2 + &
-             pu(i,j,k,3)**2 + pu(i,j,k,4)**2)
-
-     elseif (prob_type_gpu .eq. 4) then ! Taylor Green Vortex
-
-        x=itVec(1)
-        y=itVec(2)
-        z=itVec(3)
-
-        cu(i,j,k,1) = 1.784e-3
-        cu(i,j,k,2) =  velscale*cu(i,j,k,1)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf)
-        cu(i,j,k,3) = -velscale*cu(i,j,k,1)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf)
-        cu(i,j,k,4) = 0.
-        pres = 1.01325d6+cu(i,j,k,1)*velscale**2*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.)
-        cu(i,j,k,5) = pres/(5./3.-1.) + 0.5*(cu(i,j,k,2)**2 + &
-             cu(i,j,k,3)**2 + cu(i,j,k,4)**2) / cu(i,j,k,1)
-        cu(i,j,k,6) = cu(i,j,k,1)
-        cu(i,j,k,7) = 0.
-        
-
+                cu(i,j,k,0) = 1.784e-3;
+                cu(i,j,k,1) =  velscale*cu(i,j,k,0)*sin(2.*pi*x/Lf)*cos(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
+                cu(i,j,k,2) = -velscale*cu(i,j,k,0)*cos(2.*pi*x/Lf)*sin(2.*pi*y/Lf)*cos(2.*pi*z/Lf);
+                cu(i,j,k,3) = 0.;
+                Real pres = 1.01325e6+cu(i,j,k,0)*velscale*velscale*cos(2.*pi*x/Lf)*cos(4.*pi*y/Lf)*(cos(4.*pi*z/Lf)+2.);
+                cu(i,j,k,4) = pres/(5./3.-1.) + 0.5*(cu(i,j,k,1)*cu(i,j,k,1) +
+                                                     cu(i,j,k,2)*cu(i,j,k,2) +
+                                                     cu(i,j,k,3)*cu(i,j,k,3)) / cu(i,j,k,0);
+                cu(i,j,k,5) = cu(i,j,k,0);
+                cu(i,j,k,6) = 0.;
+            }
+#if 0
      elseif (prob_type_gpu .eq. 5) then ! Taylor Green Vortex
 
        
@@ -198,16 +194,17 @@ void InitConsVar(MultiFab& cons, const MultiFab& prim,
 #endif
               
               });
-/*    
+    } // end MFIter
+
+#else
     // initialize conserved variables
     for ( MFIter mfi(cons); mfi.isValid(); ++mfi ) {
         const Box& bx = mfi.validbox();
         init_consvar(BL_TO_FORTRAN_BOX(bx),
                      BL_TO_FORTRAN_ANYD(cons[mfi]),
                      BL_TO_FORTRAN_ANYD(prim[mfi]),
-                     dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
+                     dx_host, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
     }
-*/
-    } // end MFIter
+#endif
 
 }
