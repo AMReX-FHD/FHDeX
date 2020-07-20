@@ -16,7 +16,6 @@
 using namespace amrex;
 
 
-
 template <int NStructReal, int NStructInt>
 class IBMarIterBase
     : public ParIter<NStructReal, NStructInt, 0, 0>

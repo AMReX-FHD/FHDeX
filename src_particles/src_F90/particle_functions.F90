@@ -231,13 +231,13 @@ contains
          4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 5., 5.1, 5.2, 5.3, 5.4, 5.5, &
          5.6, 5.7, 5.8, 5.9, 6., 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9/)
 
-    vals4 =(/0., 0.0191993, 0.0384104, 0.0561438, 0.0745141, 0.0914394, 0.106869, &
-            0.121719, 0.134211, 0.145262, 0.154958, 0.162921, 0.168841, 0.173264, &
-            0.176417, 0.17854, 0.177695, 0.175969, 0.174664, 0.17083, 0.165755, &
-            0.162663, 0.156037, 0.148626, 0.144648, 0.1381, 0.131473, 0.12615, &
-            0.120057, 0.112581, 0.106808, 0.100863, 0.0947845, 0.0905315, 0.0856055, &
-            0.0818209, 0.0768459, 0.0728331, 0.0694836, 0.0650267, 0.0627171, 0.0591556, &
-            0.0561682, 0.0539003, 0.0511791, 0.0492405, 0.0470903, 0.0453286, 0.043644, 0.0417381/)
+    vals4 =(/0._16, 0.0191993_16, 0.0384104_16, 0.0561438_16, 0.0745141_16, 0.0914394_16, 0.106869_16, &
+            0.121719_16, 0.134211_16, 0.145262_16, 0.154958_16, 0.162921_16, 0.168841_16, 0.173264_16, &
+            0.176417_16, 0.17854_16, 0.177695_16, 0.175969_16, 0.174664_16, 0.17083_16, 0.165755_16, &
+            0.162663_16, 0.156037_16, 0.148626_16, 0.144648_16, 0.1381_16, 0.131473_16, 0.12615_16, &
+            0.120057_16, 0.112581_16, 0.106808_16, 0.100863_16, 0.0947845_16, 0.0905315_16, 0.0856055_16, &
+            0.0818209_16, 0.0768459_16, 0.0728331_16, 0.0694836_16, 0.0650267_16, 0.0627171_16, 0.0591556_16, &
+            0.0561682_16, 0.0539003_16, 0.0511791_16, 0.0492405_16, 0.0470903_16, 0.0453286_16, 0.043644_16, 0.0417381_16/)
 
     ! these are fractions of cell size dx
     points4 =(/0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, &
@@ -245,12 +245,16 @@ contains
               2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1, &
               4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9/)
 
+    !test = (/0.1_16,0.2_16,0.3_16,0.4_16/)
+
     ! Divison/multiplication by 0.1 below is bc the spacing in the table above is 0.1
     r_norm = r/dx(1)                ! separation dist in units of dx=dy=dz
-    r_cell = floor(r_norm/0.1)      ! scaling by 10 allows r_cell to index the points/val arrays above 
+    r_cell = floor(r_norm/0.1)     ! scaling by 10 allows r_cell to index the points/val arrays above 
+    r_cell_frac = r_norm/0.1d0-r_cell !
     r_cell = r_cell + 1             ! shift simply bc points/val array indices begin at 1, but first val=0.0
-    r_cell_frac = r_norm/0.1-r_cell !  
-    r_cell_frac = r_cell_frac*0.1   ! for use in point-slope formula below
+    r_cell_frac = r_cell_frac*0.1d0   ! for use in point-slope formula below
+
+    !print *, "RCELLFRAC: ", r_cell_frac, r_norm
     !print *, "r: ", r_cell_frac
     !print *, "cr: ", r_cell, r
     !print *, "r_cell_frac: ", r_cell_frac
@@ -267,6 +271,9 @@ contains
        m = (vals4(r_cell+1)-vals4(r_cell))/(points4(r_cell+1)-points4(r_cell))
 
        mag  = m*r_cell_frac + vals4(r_cell)
+
+        print *, "MAG: ", m, r_cell_frac, vals4(r_cell), r_cell
+
     else
        print*, "P3M implemented only for pkernel 4 and 6!"
        ! throw error
@@ -346,7 +353,7 @@ contains
     ! so that we only reference the p3m radius once (assuming it's the same forall particles)
     p3m_radius = particles(1)%p3m_radius
 
-    ee = 1.d0/(permittivity*4*3.142) 
+    ee = 1.d0/(permittivity*4*3.141592653589793238_16) 
     dx2_inv = 1.d0/(dx(1)*dx(1)) ! assumes isotropic cells
 
 
@@ -427,6 +434,7 @@ contains
              !print*, 'coulomb interaction w self image: ', ee*(dr/r)*particles(i)%q*(-1.d0*particles(i)%q)/r2
              ! p3m 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
+
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
 
           else if ((bc_es_lo(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
@@ -498,6 +506,7 @@ contains
              ! Do local (short range) coulomb interaction within coulombRadiusFactor
 !!!!!!!!!!!!!!!!!!!!!!!!!!
              particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
+
              ! print*, 'Coulomb interction with NL part: ', ee*(dr/r)*particles(i)%q*particles(nl(j))%q/r2
 
              !print *, "particle ", i, " force ", particles(i)%force, particles(i)%pos, particles(nl(j))%pos
@@ -511,6 +520,8 @@ contains
                 !print *, "calling with ", r, (particles(i)%p3m_radius)
 
              call compute_p3m_force_mag(r, correction_force_mag, dx)
+
+             !print *, correction_force_mag, ee, particles(i)%q, dx2_inv
 
              ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
              particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv
@@ -2163,7 +2174,7 @@ contains
     part%force = part%force + part%vel*part%q
 
 
-    !print *, part%force
+    !print *, "FORCE: ", part%force
     part%vel = uloc
 
   end subroutine emf

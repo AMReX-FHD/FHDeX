@@ -39,8 +39,6 @@ void InitializeCommonNamespace() {
                      nodal_flag_edge[2][i] = nodal_flag_yz[i];);
     }
 
-    prob_lo.resize(AMREX_SPACEDIM);
-    prob_hi.resize(AMREX_SPACEDIM);
     n_cells.resize(AMREX_SPACEDIM);
     max_grid_size.resize(AMREX_SPACEDIM);
     max_particle_tile_size.resize(AMREX_SPACEDIM);
@@ -105,7 +103,7 @@ void InitializeCommonNamespace() {
     char temp_plot_base_name[128];
     char temp_chk_base_name[128];
 
-    initialize_common_namespace(prob_lo.dataPtr(), prob_hi.dataPtr(), n_cells.dataPtr(),
+    initialize_common_namespace(prob_lo.begin(), prob_hi.begin(), n_cells.dataPtr(),
                                 max_grid_size.dataPtr(), max_particle_tile_size.dataPtr(), &cell_depth, ngc.getVect(),
                                 &nvars, &nprimvars,
                                 &membrane_cell, &cross_cell, &transmission,

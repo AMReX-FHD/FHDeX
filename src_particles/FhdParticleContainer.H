@@ -202,6 +202,8 @@ public:
 
     void computeForcesNL(const MultiFab& charge, const MultiFab& coords, const Real* dx);
 
+    void computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx);
+
     void MoveParticlesDSMC(const Real dt, const paramPlane* paramPlaneList, const int paramPlaneCount,Real time, int* flux);
 
     void MoveIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
@@ -215,6 +217,15 @@ public:
 
     void SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                     const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                    const MultiFab& charge,
+                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                    const MultiFab& cellCenters,
+                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw);
+
+    void SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, std::array<MultiFab, AMREX_SPACEDIM>& efield,
                     const MultiFab& charge,
                     const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
                     const MultiFab& cellCenters,

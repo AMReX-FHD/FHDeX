@@ -266,7 +266,51 @@ void FhdParticleContainer::computeForcesNL(const MultiFab& charge, const MultiFa
                 amrex_compute_p3m_sr_correction_nl(particles.data(), &Np, 
                                         neighbors[lev][index].dataPtr(), &Nn,
                                         neighbor_list[lev][index].dataPtr(), &size, &rcount,
-                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx)); 
+                                        BL_TO_FORTRAN_3D(charge[pti]),BL_TO_FORTRAN_3D(coords[pti]), ARLIM_3D(tile_box.loVect()), ARLIM_3D(tile_box.hiVect()), ZFILL(dx));         }
+    }
+
+    if(sr_tog==1) 
+    {
+            ParallelDescriptor::ReduceRealSum(rcount);
+
+            Print() << rcount/2 << " close range interactions.\n";
+    }
+}
+
+
+void FhdParticleContainer::computeForcesNLGPU(const MultiFab& charge, const MultiFab& coords, const Real* dx) {
+
+    BL_PROFILE_VAR("computeForcesNL()",computeForcesNL);
+
+    Real rcount = 0;
+    const int lev = 0;
+   
+    buildNeighborList(CHECK_PAIR{});
+    
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+   for (FhdParIter pti(*this, lev, MFItInfo().SetDynamic(false)); pti.isValid(); ++pti)
+   {     
+        PairIndex index(pti.index(), pti.LocalTileIndex());
+        AoS& particles = pti.GetArrayOfStructs();
+        int Np = pti.numParticles();
+        int Nn = pti.numNeighborParticles();
+        int size = neighbor_list[lev][index].size();
+
+        const Box& tile_box  = pti.tilebox();
+
+        if (sr_tog==1)
+        {
+            compute_forces_nl_gpu(particles, Np, Nn,
+                              m_neighbor_list[lev][index], rcount);            
+        }
+        if (es_tog==3)
+        {
+            compute_p3m_sr_correction_nl_gpu(particles, Np, Nn,
+                                        m_neighbor_list[lev][index], dx, rcount);
+
         }
     }
 
@@ -459,6 +503,76 @@ void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const 
 #endif
                          , paramPlaneList, &paramPlaneCount, &potential, &sw
                          );
+    }
+
+    for (int i=0; i<AMREX_SPACEDIM; ++i) {
+        MultiFabPhysBCDomainStress(sourceTemp[i], geomF, i);
+        MultiFabPhysBCMacStress(sourceTemp[i], geomF, i);
+    }
+        
+    sourceTemp[0].SumBoundary(geomF.periodicity());
+    sourceTemp[1].SumBoundary(geomF.periodicity());
+#if (AMREX_SPACEDIM == 3)
+    sourceTemp[2].SumBoundary(geomF.periodicity());
+#endif
+
+    MultiFab::Add(source[0],sourceTemp[0],0,0,source[0].nComp(),source[0].nGrow());
+    MultiFab::Add(source[1],sourceTemp[1],0,0,source[1].nComp(),source[1].nGrow());
+#if (AMREX_SPACEDIM == 3)
+    MultiFab::Add(source[2],sourceTemp[2],0,0,source[2].nComp(),source[2].nGrow());
+#endif
+
+    source[0].FillBoundary(geomF.periodicity());
+    source[1].FillBoundary(geomF.periodicity());
+#if (AMREX_SPACEDIM == 3)
+    source[2].FillBoundary(geomF.periodicity());
+#endif
+
+}
+
+void FhdParticleContainer::SpreadIonsGPU(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& umac,
+                                      std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                      const MultiFab& charge,
+                                      const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                      const MultiFab& cellCenters,
+                                      std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                      std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                      const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+{
+    BL_PROFILE_VAR("SpreadIons()",SpreadIons);
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+    double potential = 0;
+
+#ifdef _OPENMP
+#pragma omp parallel
+#endif
+
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+        
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+
+
+        emf_gpu(particles,
+                      efield[0][pti], efield[1][pti], efield[2][pti],
+                      ZFILL(plo), ZFILL(dxE));
+        
+        spread_ions_fhd_gpu(particles,                         
+                         sourceTemp[0][pti], sourceTemp[1][pti], sourceTemp[2][pti],
+                         ZFILL(plo),
+                         ZFILL(dxFluid));
     }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i) {

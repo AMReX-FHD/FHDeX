@@ -818,11 +818,12 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-//        if(istep == 1)
-//        {
-//            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]/64.0);
-//           
-//        }
+        if(istep == 1)
+        {
+            //particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.49);
+            //particles.SetPosition(0, 2, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.51);
+           
+        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -858,7 +859,7 @@ void main_driver(const char* argv)
 
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
-            particles.computeForcesNL(charge, RealCenteredCoords, dxp);
+            particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
         }
 
         if (es_tog==1 || es_tog==3) {
@@ -871,7 +872,7 @@ void main_driver(const char* argv)
         esSolve(potential, charge, efieldCC, external, geomP);
 
         // compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
+        particles.SpreadIonsGPU(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
                              paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         //particles.BuildCorrectionTable(dxp,1);
@@ -1078,7 +1079,7 @@ void main_driver(const char* argv)
         
     }
     ///////////////////////////////////////////
-
+        //test change
     // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);
