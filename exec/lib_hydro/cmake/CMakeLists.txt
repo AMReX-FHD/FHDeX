@@ -12,7 +12,6 @@ find_package(AMReX)
 #
 
 set(CMAKE_CXX_FLAGS
-    "-DAMREX_GIT_VERSION=\"20.07-38-g5f226adedebe\""
     "-DAMREX_USE_MPI"
     "-DBL_USE_MPI"
     "-DAMREX_USE_OMP"
@@ -28,11 +27,25 @@ set(CMAKE_CXX_FLAGS
     "-DAMREX_PARTICLES"
     "-O3 -DNDEBUG  -fopenmp -Werror=return-type"
     )
+
+if(APPLE)
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS}"
+        "-DAMREX_Darwin"
+        "-DBL_Darwin"
+        )
+elseif(UNIX)
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS}"
+        "-DAMREX_Linux"
+        "-DBL_Linux"
+        )
+endif(APPLE)
+
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 message(" *** CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}")
 
 set(CMAKE_Fortran_FLAGS
-    "-DAMREX_GIT_VERSION=\"20.07-38-g5f226adedebe\""
     "-DAMREX_USE_MPI"
     "-DBL_USE_MPI"
     "-DAMREX_USE_OMP"
@@ -40,7 +53,6 @@ set(CMAKE_Fortran_FLAGS
     "-DAMREX_SPACEDIM=3"
     "-DBL_SPACEDIM=3"
     "-DAMREX_Darwin"
-    "-DBL_Darwin"
     "-DBL_LANG_FORT"
     "-DAMREX_LANG_FORT"
     "-DBL_FORT_USE_UNDERSCORE"
@@ -50,6 +62,19 @@ set(CMAKE_Fortran_FLAGS
     "-DAMREX_PARTICLES"
     "-O3 -DNDEBUG -O3  -fopenmp -fimplicit-none -ffixed-line-length-none -ffree-line-length-none"
     )
+
+if(APPLE)
+    set(CMAKE_Fortran_FLAGS
+        "${CMAKE_Fortran_FLAGS}"
+        "-DBL_Darwin"
+        )
+elseif(UNIX)
+    set(CMAKE_Fortran_FLAGS
+        "${CMAKE_Fortran_FLAGS}"
+        "-DBL_Linux"
+        )
+endif(APPLE)
+
 string(REPLACE ";" " " CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
 message(" *** CMAKE_Fortran_FLAGS=${CMAKE_Fortran_FLAGS}")
 
@@ -63,6 +88,8 @@ include_directories(
     ../../../src_gmres/src_F90
     ../../../src_hydro
     ../../../src_hydro/src_F90
+    ../../../src_immersed-boundary
+    ../../../src_immersed-boundary/src_F90
     )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/modules)
@@ -124,6 +151,18 @@ add_library(
     ../../../src_hydro/advance.cpp
 
     ../../../src_hydro/src_F90/hydro_bounds_mod.F90
+
+    ../../../src_immersed-boundary/IBCore.cpp
+    ../../../src_immersed-boundary/IBMarkerContainer.cpp
+    ../../../src_immersed-boundary/IBMultiBlobContainer.cpp
+    ../../../src_immersed-boundary/IBParticleContainer.cpp
+    ../../../src_immersed-boundary/ib_functions.cpp
+
+    ../../../src_immersed-boundary/src_F90/constant_mod.F90
+    ../../../src_immersed-boundary/src_F90/ib_fort_utils.F90
+    ../../../src_immersed-boundary/src_F90/immbdy_namelist.F90
+    ../../../src_immersed-boundary/src_F90/param_mod.F90
+    ../../../src_immersed-boundary/src_F90/set_particle_properties.F90
     )
 
 target_link_libraries(
@@ -155,6 +194,20 @@ set(HEADERS
     ../../../src_hydro/StochMomFlux.H
     ../../../src_hydro/hydro_functions.H
     ../../../src_hydro/hydro_functions_F.H
+
+    ../../../src_immersed-boundary/IBCore.H
+    ../../../src_immersed-boundary/IBMarkerContainer.H
+    ../../../src_immersed-boundary/IBMarkerContainerBase.H
+    ../../../src_immersed-boundary/IBMarkerContainerBaseI.H
+    ../../../src_immersed-boundary/IBMultiBlobContainer.H
+    ../../../src_immersed-boundary/IBParticleContainer.H
+    ../../../src_immersed-boundary/IBParticleInfo.H
+    ../../../src_immersed-boundary/MFUtil.H
+    ../../../src_immersed-boundary/ib_functions.H
+    ../../../src_immersed-boundary/ib_functions_F.H
+    ../../../src_immersed-boundary/immbdy_namespace.H
+    ../../../src_immersed-boundary/immbdy_namespace_declarations.H
+    ../../../src_immersed-boundary/kernel_functions_K.H
     )
 
 message("HEADERS = ${HEADERS}")
