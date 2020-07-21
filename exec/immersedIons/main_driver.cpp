@@ -818,12 +818,12 @@ void main_driver(const char* argv)
         // timer for time step
         Real time1 = ParallelDescriptor::second();
 
-        if(istep == 1)
-        {
-            //particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.49);
-            //particles.SetPosition(0, 2, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]*0.51);
-           
-        }
+//        if(istep == 1)
+//        {
+//            particles.SetPosition(0, 1, prob_hi[0]*0.48, prob_hi[1]*0.01, prob_hi[2]*0.48);
+//            particles.SetPosition(0, 2, prob_hi[0]*0.49, prob_hi[1]*0.01, prob_hi[2]*0.49);
+//           
+//        }
 
     
         //Most of these functions are sensitive to the order of execution. We can fix this, but for now leave them in this order.
@@ -840,8 +840,8 @@ void main_driver(const char* argv)
             // Apply RFD force to fluid
             particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             particles.ResetMarkers(0);
-            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
-            //                source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
+//            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+//                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero

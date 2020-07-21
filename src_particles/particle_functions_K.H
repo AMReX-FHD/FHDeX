@@ -206,7 +206,7 @@ amrex::Real compute_p3m_force_mag (amrex::Real r, amrex::Real dx, amrex::Real dy
         
         mag  = m*r_cell_frac + vals4[r_cell];
 
-        //Print()  << scientific << setprecision(15) << "MAG: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
+        //Print()  << scientific << setprecision(15) << "MAGGPU: " << m << ", " << r_cell_frac << ", " << vals4[r_cell] << ", " << r_cell << "\n";
     }
     else
     {
@@ -324,6 +324,11 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
+        if(p1.id() == 1)
+        {
+            Print() << "Pre: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+        }
+
         Real r = 0.0;
         Real r2 = 0.0;
         RealVect dr(0., 0., 0.);
@@ -366,6 +371,10 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q)*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q)*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q)*correction_force_mag*dx2_inv;
+
+                //Print() << "Below!\n";
+
+                //Print() << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
             }
             else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
             {
@@ -388,6 +397,11 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
         if (near_wall_above)
         {
             RealVect im_charge_pos = calc_im_charge_loc(p1, 2);
+
+            if(p1.id() == 1)
+            {
+                Print() << "Wall pre: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+            }
 
             // compute sep vector btwn charge and its image
             dr[0] = p1.pos(0) - im_charge_pos[0];
@@ -428,6 +442,11 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
             }
+
+            if(p1.id() == 1)
+            {
+                Print() << "Wall post: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+            }
         }
 
         // loop through neighbor list
@@ -457,6 +476,12 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
 
                 //Print() << scientific << setprecision(15) << correction_force_mag << ", " << r << ", " << dx[0] << std::endl;
 
+            if(p1.id() == 1)
+            {
+                Print() << "NL1 post: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+                Print() << "Pos: " << setprecision(17) << p1.pos(0) << ", " << p1.pos(1) << ", " << p1.pos(2) << ", " << near_wall_above <<"\n";
+            }
+
                 // If part near wall, check if NL part also near wall
                 if (near_wall_below)
                 {
@@ -477,17 +502,28 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                         if ((p_bc_es_lo_d[1] == 1) and (r < p3m_radius))
                         {
                             // hom. dirichlet--image charge opposite that of particle
-                
+
+                            //Print() << "Pre force: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+
                             // coloumb
                             p1.rdata(FHD_realData::forcex) += ee*(dr[0]/r)*q*(-q2)/r2;
                             p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*(-q2)/r2;
                             p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*(-q2)/r2;
+
+                           // Print() << "Coulomb: " << setprecision(17) << ee*(dr[0]/r)*q*(-q2)/r2 << ", " << ee*(dr[1]/r)*q*(-q2)/r2 << ", " << ee*(dr[2]/r)*q*(-q2)/r2 << "\n";
 
                             // p3m
                             Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
                             p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+
+            if(p1.id() == 1)
+            {
+                Print() << "NL2 post: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+            }
+
+                            //Print() << "Below: " << p1.id() << ": " << setprecision(17) << correction_force_mag << ", " << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
                         }
                         else if ((p_bc_es_lo_d[1] == 2) and (r < p3m_radius))
                         {
@@ -505,7 +541,10 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
                         }
                     }
+                }
 
+               if (near_wall_above)
+               {
                     int near_wall_above_nl_part = near_wall_check(p2, 2);
                     if (near_wall_above_nl_part)
                     {
@@ -534,6 +573,13 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*(-q2)*correction_force_mag*dx2_inv;
                             p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*(-q2)*correction_force_mag*dx2_inv;
+
+            if(p1.id() == 1)
+            {
+                Print() << "NL2b post: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
+            }
+
+                           // Print() << "Above: " << p1.id() << ": " << setprecision(15) << correction_force_mag << "\n";
                         }
                         else if ((p_bc_es_hi_d[1] == 2) and (r < p3m_radius))
                         {
@@ -553,6 +599,10 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                     }
                 }                
             }
+        }
+        if(p1.id() == 1)
+        {
+            Print() << "Post: " << setprecision(17) << p1.rdata(FHD_realData::forcex) << ", " << p1.rdata(FHD_realData::forcey) << ", " << p1.rdata(FHD_realData::forcez) << "\n";
         }
     });
 
