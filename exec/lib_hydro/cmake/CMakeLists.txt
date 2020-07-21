@@ -88,6 +88,8 @@ include_directories(
     ../../../src_gmres/src_F90
     ../../../src_hydro
     ../../../src_hydro/src_F90
+    ../../../src_immersed-boundary
+    ../../../src_immersed-boundary/src_F90
     )
 
 set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_INSTALL_PREFIX}/modules)
@@ -149,6 +151,18 @@ add_library(
     ../../../src_hydro/advance.cpp
 
     ../../../src_hydro/src_F90/hydro_bounds_mod.F90
+
+    ../../../src_immersed-boundary/IBCore.cpp
+    ../../../src_immersed-boundary/IBMarkerContainer.cpp
+    ../../../src_immersed-boundary/IBMultiBlobContainer.cpp
+    ../../../src_immersed-boundary/IBParticleContainer.cpp
+    ../../../src_immersed-boundary/ib_functions.cpp
+
+    ../../../src_immersed-boundary/src_F90/constant_mod.F90
+    ../../../src_immersed-boundary/src_F90/ib_fort_utils.F90
+    ../../../src_immersed-boundary/src_F90/immbdy_namelist.F90
+    ../../../src_immersed-boundary/src_F90/param_mod.F90
+    ../../../src_immersed-boundary/src_F90/set_particle_properties.F90
     )
 
 target_link_libraries(
@@ -180,6 +194,20 @@ set(HEADERS
     ../../../src_hydro/StochMomFlux.H
     ../../../src_hydro/hydro_functions.H
     ../../../src_hydro/hydro_functions_F.H
+
+    ../../../src_immersed-boundary/IBCore.H
+    ../../../src_immersed-boundary/IBMarkerContainer.H
+    ../../../src_immersed-boundary/IBMarkerContainerBase.H
+    ../../../src_immersed-boundary/IBMarkerContainerBaseI.H
+    ../../../src_immersed-boundary/IBMultiBlobContainer.H
+    ../../../src_immersed-boundary/IBParticleContainer.H
+    ../../../src_immersed-boundary/IBParticleInfo.H
+    ../../../src_immersed-boundary/MFUtil.H
+    ../../../src_immersed-boundary/ib_functions.H
+    ../../../src_immersed-boundary/ib_functions_F.H
+    ../../../src_immersed-boundary/immbdy_namespace.H
+    ../../../src_immersed-boundary/immbdy_namespace_declarations.H
+    ../../../src_immersed-boundary/kernel_functions_K.H
     )
 
 message("HEADERS = ${HEADERS}")
