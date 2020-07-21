@@ -317,6 +317,8 @@ extern "C"
 
    void user_force_calc_destroy();
 
+   void find_intersect(void* part, amrex_real* runtime, paramPlane* paramplanes, int* ns, int* intsurf, amrex_real* inttime, int* intside, amrex_real* phi, amrex_real* plo);
+
 
 #ifdef __cplusplus
 }

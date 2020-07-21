@@ -518,7 +518,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
                 while(runtime > 0)
                 {
-                    find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    find_intersect(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
                     
                     for (int d=0; d<AMREX_SPACEDIM; ++d)
                     {
