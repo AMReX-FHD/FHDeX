@@ -390,10 +390,6 @@ contains
        near_wall_below = 0 ! reset for each particle
        near_wall_above = 0 ! reset for each particle
 
-       if(particles(i)%id .eq. 1) then
-                print *, "Pre: ", particles(i)%force
-       endif
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!
        ! Peform correction in the presence of walls. 
        ! 
@@ -412,11 +408,6 @@ contains
           call near_wall_check(particles(i), 2, near_wall_above)
        endif
        ! print*, 'near wall below: ',   near_wall_below
-
-
-       if(particles(i)%id .eq. 1) then
-               print*, 'Walls: ',  near_wall_above,  near_wall_below
-       endif
 
        ! image charge interactions for wall below
        if (near_wall_below.eq.1) then
@@ -468,9 +459,6 @@ contains
           r2 = dot_product(dr,dr) 
           r = sqrt(r2)                    ! separation dist
 
-               if(particles(i)%id .eq. 1) then
-                        print *, "Wall pre: ", particles(i)%force
-               endif
 
           ! perform coulomb and p3m interaction with image charge
           if ((bc_es_hi(2) .eq. 1) .and. (r .lt. (particles(i)%p3m_radius))) then                      ! hom. dirichlet--image charge opposite that of particle
@@ -489,10 +477,6 @@ contains
              call compute_p3m_force_mag(r, correction_force_mag, dx)
              particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(i)%q)*(dr/r)*correction_force_mag*dx2_inv
           endif
-
-               if(particles(i)%id .eq. 1) then
-                        print *, "Wall post: ", particles(i)%force
-               endif
 
        endif
 
@@ -541,10 +525,6 @@ contains
              ! force correction is negative: F_tot_electrostatic = F_sr_coulomb + F_poisson - F_correction
              particles(i)%force = particles(i)%force - ee*particles(i)%q*particles(nl(j))%q*(dr/r)*correction_force_mag*dx2_inv
 
-               if(particles(i)%id .eq. 1) then
-                        print *, "NL1 post: ", particles(i)%force
-               endif
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!
              ! If part near wall, check if NL part also near wall
 !!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -576,10 +556,6 @@ contains
                       call compute_p3m_force_mag(r, correction_force_mag, dx)
                       particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
 
-               if(particles(i)%id .eq. 1) then
-                        print *, "NL2 post: ", particles(i)%force
-               endif
-
                       !print *, "Below: ", particles(i)%id, correction_force_mag, particles(i)%force
 
                    else if ((bc_es_lo(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
@@ -596,11 +572,6 @@ contains
 
                 endif
              endif
-
-               if(particles(i)%id .eq. 1) then
-                        print *, "WALL: ", particles(i)%pos, near_wall_above
-               endif
-
 
              if (near_wall_above.eq.1) then
                 call near_wall_check(particles(nl(j)), 2, near_wall_above_NL_part)
@@ -627,9 +598,6 @@ contains
                       call compute_p3m_force_mag(r, correction_force_mag, dx)
                       particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
 
-               if(particles(i)%id .eq. 1) then
-                        print *, "NL2b post: ", particles(i)%force
-               endif
                    else if ((bc_es_hi(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
 
                       ! coulomb
@@ -650,11 +618,6 @@ contains
 
 
        end do
-
-       if(particles(i)%id .eq. 1) then
-                print *, "Post: ", particles(i)%force
-       endif
-       !print *, "particle ", i, " force after p3m     ", particles(i)%force
 
        index = index + nneighbors
 
