@@ -101,7 +101,8 @@ module cell_sorted_particle_module
 
 contains
   
-  subroutine remove_particle_from_cell(cell_parts, cell_np, new_np, i)
+  subroutine remove_particle_from_cell(cell_parts, cell_np, new_np, i) &
+                             bind(c,name="remove_particle_from_cell")
     
     use iso_c_binding, only: c_int
     

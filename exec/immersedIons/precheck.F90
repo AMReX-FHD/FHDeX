@@ -12,7 +12,7 @@ contains
 
     use iso_c_binding, only: c_int
     use cell_sorted_particle_module, only: particle_t
-    use paramplane_module, only: paramplane_t
+    use paramplane_type_module, only: paramplane_t
 
     type(particle_t), intent(inout) :: part
     type(paramplane_t), intent(in), target :: paramplanes(ns)

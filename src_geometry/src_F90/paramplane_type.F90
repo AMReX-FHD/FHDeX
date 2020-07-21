@@ -1,4 +1,4 @@
-module paramplane_module
+module paramplane_type_module
   use amrex_fort_module, only: amrex_real, amrex_particle_real
   use iso_c_binding ,    only: c_int
 
@@ -118,4 +118,4 @@ module paramplane_module
 
   end type paramplane_t
 
-end module paramplane_module
+end module paramplane_type_module

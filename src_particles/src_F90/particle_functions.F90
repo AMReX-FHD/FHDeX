@@ -5,7 +5,7 @@ module particle_functions_module
   use cell_sorted_particle_module, only : particle_t, remove_particle_from_cell
   use species_type_module, only: species_t
   use rng_functions_module
-  use paramplane_module
+  use paramplane_type_module
   use common_namelist_module, only: k_B, T_init, permittivity, eepsilon, images, pkernel_es, &
                                     prob_lo, prob_hi, bc_es_lo, bc_es_hi, rmin, p_int_tog, &
                                     fixed_dt, graphene_tog, mass, particle_n0, particle_neff, &
