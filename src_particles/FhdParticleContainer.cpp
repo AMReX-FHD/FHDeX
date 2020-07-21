@@ -438,6 +438,435 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
     
 }
 
+
+void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& umac, const std::array<MultiFab, AMREX_SPACEDIM>& efield,
+                                    const std::array<MultiFab, AMREX_SPACEDIM>& RealFaceCoords,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& source,
+                                    std::array<MultiFab, AMREX_SPACEDIM>& sourceTemp,
+                                    const MultiFab& mobility,
+                                    const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
+{
+    BL_PROFILE_VAR("MoveIons()",MoveIons);
+    
+    UpdateCellVectors();
+
+    const int lev = 0;
+    const Real* dx = Geom(lev).CellSize();
+    const Real* plo = Geom(lev).ProbLo();
+    const Real* phi = Geom(lev).ProbHi();
+
+    Real* domsize;
+
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    {
+        domsize[d] = phi[d]-plo[d];
+    }
+
+    double kinetic = 0;
+
+    int        np_tile = 0 ,       np_proc = 0 ; // particle count
+    Real rejected_tile = 0., rejected_proc = 0.; // rejected moves in midpoint scheme
+    Real    moves_tile = 0.,    moves_proc = 0.; // total moves in midpoint scheme
+    Real maxspeed_tile = 0., maxspeed_proc = 0.; // max speed
+    Real  maxdist_tile = 0.,  maxdist_proc = 0.; // max displacement (fraction of radius)
+    Real diffinst_tile = 0., diffinst_proc = 0.; // average diffusion coefficient
+
+    Real adj = 0.99999;
+    Real adjalt = 2.0*(1.0-0.99999);
+    Real runtime, inttime;
+    int intsurf, intside, push;
+    int midpoint = 0;
+    Real posAlt[3];
+
+
+    InterpolateMarkers(0, dx, umac, RealFaceCoords);
+
+
+    if(move_tog == 2)
+    {
+        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+            TileIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = this->GetParticles(lev).at(index).numParticles();
+
+            Real posOld[3];
+            Real velOld[3];
+
+            for (int i = 0; i < np; ++ i) {
+                ParticleType & part = particles[i];
+
+
+//                for (int d=0; d<AMREX_SPACEDIM; ++d)
+//                {
+//                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
+//                    //part.pos(d) += dt * part.rdata(FHD_realData::velx + d);
+//                }
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    velOld[d] = part.rdata(FHD_realData::velx + d);
+                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
+                }
+
+                runtime = 0.5*dt;
+                inttime = 0;
+                midpoint = 0;
+
+
+                while(runtime > 0)
+                {
+                    find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                    
+                    for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    {
+                        posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                    }
+                    for (int d=0; d<AMREX_SPACEDIM; ++d)
+                    {
+                        part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    }
+
+                    if(intsurf > 0)
+                    {
+
+                        const paramPlane& surf = paramPlaneList[intsurf];
+
+                        if(surf.periodicity == 0)
+                        {
+                           Real dummy;
+                           app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+
+                           runtime = runtime - inttime;
+
+                        }else
+                        {
+                          runtime = runtime - inttime;
+
+                          for (int d=0; d<AMREX_SPACEDIM; ++d)
+                          {
+         
+                            part.pos(d) += runtime * part.rdata(FHD_realData::velx + d);
+                          }
+                          runtime = 0;
+
+                        }
+
+                    }else
+                    {
+                       runtime = 0;
+
+                    }
+
+
+                }
+
+            
+
+            }
+        }
+        //Need to add midpoint rejecting feature here.
+        InterpolateMarkers(0, dx, umac, RealFaceCoords);
+
+        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+            TileIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = this->GetParticles(lev).at(index).numParticles();
+
+            for (int i = 0; i < np; ++ i) {
+                ParticleType & part = particles[i];
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {                   
+                    part.pos(d) = part.rdata(FHD_realData::pred_posx + d);
+                }
+
+            }
+        }
+    }
+
+
+    if(dry_move_tog == 1)
+    {
+        for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+            TileIndex index(pti.index(), pti.LocalTileIndex());
+
+            AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+            long np = this->GetParticles(lev).at(index).numParticles();
+
+            for (int i = 0; i < np; ++ i) {
+                ParticleType & part = particles[i];
+
+                Real mb[3];
+                Real dry_terms[3];
+
+                get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
+                dry(&dt,&part,dry_terms, mb);
+
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {                   
+                    part.rdata(FHD_realData::velx + d) += dry_terms[d];
+                }
+
+            }
+        }
+    }
+
+
+    Real maxspeed = 0;
+    Real maxdist = 0;
+    Real totaldist, diffest;
+    Real diffinst = 0;
+    int moves = 0;
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        for (int i = 0; i < np; ++ i) {
+            ParticleType & part = particles[i];
+
+            Real mb[3];
+            Real dry_terms[3];
+
+            get_explicit_mobility(mb, &part, ZFILL(plo), ZFILL(phi));
+            dry(&dt,&part,dry_terms, mb);
+
+            Real speed = 0;
+
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {                   
+                speed += part.rdata(FHD_realData::velx + d)*part.rdata(FHD_realData::velx + d);
+            }
+
+            if(speed > maxspeed)
+            {
+                maxspeed = speed;
+            }
+
+            moves++;
+
+            runtime = dt;
+
+            Real thisMove[3] = {0,0,0};
+
+            while(runtime > 0)
+            {
+                find_inter(&part, &runtime, paramPlaneList, &paramPlaneCount, &intsurf, &inttime, &intside, ZFILL(plo), ZFILL(phi));
+                
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    posAlt[d] = inttime * part.rdata(FHD_realData::velx + d)*adjalt;
+                }
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    part.rdata(FHD_realData::ax +d ) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    thisMove[d] += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                }
+                runtime = runtime - inttime;
+                if(intsurf > 0)
+                {
+
+                    const paramPlane& surf = paramPlaneList[intsurf];
+
+                    Real dummy;
+                    app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
+
+                    if(push == 1)
+                    {
+                        for (int d=0; d<AMREX_SPACEDIM; ++d)
+                        {
+                            part.pos(d) += part.pos(d) + posAlt[d];
+                            part.rdata(FHD_realData::ax + d) += part.pos(d) + posAlt[d];
+                            thisMove[d] += part.pos(d) + posAlt[d];
+                        }
+                    }
+                }
+
+            }
+
+            Real dist = sqrt(thisMove[0]*thisMove[0] + thisMove[0]*thisMove[0] + thisMove[0]*thisMove[0]);
+            totaldist = sqrt(part.rdata(FHD_realData::ax)*part.rdata(FHD_realData::ax) + part.rdata(FHD_realData::ay)*part.rdata(FHD_realData::ay) + part.rdata(FHD_realData::az)*part.rdata(FHD_realData::az));
+
+            if(dist > maxdist)
+            {
+                maxdist = dist;
+            }
+
+            part.rdata(FHD_realData::travelTime) += dt;
+
+            diffest = totaldist/(6.0*part.rdata(FHD_realData::travelTime));
+
+            diffinst += diffest;
+
+        }
+    }
+
+
+    Real dxinv = 1.0/dx[1];
+
+    for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
+
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        const int grid_id = pti.index();
+
+        AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
+        long np = this->GetParticles(lev).at(index).numParticles();
+
+        int ilo = m_vector_ptrs[grid_id].loVect()[0];
+        int ihi = m_vector_ptrs[grid_id].hiVect()[0];
+
+        int jlo = m_vector_ptrs[grid_id].loVect()[1];
+        int jhi = m_vector_ptrs[grid_id].hiVect()[1];
+
+        int klo = m_vector_ptrs[grid_id].loVect()[2];
+        int khi = m_vector_ptrs[grid_id].hiVect()[2];
+
+        int** cell_part_ids = m_vector_ptrs[grid_id].dataPtr();
+        int* cell_part_cnt = m_vector_size[grid_id].dataPtr();
+
+        for(int i=ilo;i<ihi;i++)
+        {
+        for(int j=jlo;i<jhi;j++)
+        {
+        for(int k=klo;i<khi;k++)
+        {
+            //int* cell_parts = cell_part_ids[i][j][k];
+
+            //int* cell_parts= m_vector_ptrs[grid_id].dataPtr()[i,j,k];
+            int cell_np = cell_part_cnt[i,j,k];
+            int* cell_parts= cell_part_ids[i,j,k];
+
+            int new_np = cell_np;
+
+            int p = 1;
+
+            while(p <= new_np)
+            {
+                ParticleType & part = particles[cell_parts[p-1]];
+
+                int ni[3];
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+                    ni[d] = (int)floor((part.pos(d)-plo[d])/dxinv);
+                }
+
+                if((ni[0] != i) || (ni[1] != j) || (ni[2] != k))
+                {
+                    part.rdata(FHD_intData::sorted) = 0;
+                    remove_particle_from_cell(cell_parts, &cell_np, &new_np, &p);
+                }else
+                {
+                    p = p+1;
+                }
+            }
+
+            cell_part_cnt[i,j,k] = new_np;
+
+        }
+        }
+        }
+
+    }
+
+
+
+//#ifdef _OPENMP
+//#pragma omp parallel
+//#endif
+
+//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+//    {
+//        const int grid_id = pti.index();
+//        const int tile_id = pti.LocalTileIndex();
+//        const Box& tile_box  = pti.tilebox();
+//        
+//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+//        auto& particles = particle_tile.GetArrayOfStructs();
+//        np_tile = particles.numParticles();
+
+//        move_ions_fhd(particles.data(), &np_tile,
+//                      &rejected_tile, &moves_tile, &maxspeed_tile,
+//                      &maxdist_tile, &diffinst_tile,
+//                      ARLIM_3D(tile_box.loVect()),
+//                      ARLIM_3D(tile_box.hiVect()),
+//                      m_vector_ptrs[grid_id].dataPtr(),
+//                      m_vector_size[grid_id].dataPtr(),
+//                      ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
+//                      ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
+//                      ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt,
+//                      ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
+//                      BL_TO_FORTRAN_3D(umac[0][pti]),
+//                      BL_TO_FORTRAN_3D(umac[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                      BL_TO_FORTRAN_3D(umac[2][pti]),
+//#endif
+//                      BL_TO_FORTRAN_3D(efield[0][pti]),
+//                      BL_TO_FORTRAN_3D(efield[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                      BL_TO_FORTRAN_3D(efield[2][pti]),
+//#endif
+//                      BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
+//                      BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                      BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
+//#endif
+//                      BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
+//                      BL_TO_FORTRAN_3D(sourceTemp[1][pti]),
+//#if (AMREX_SPACEDIM == 3)
+//                      BL_TO_FORTRAN_3D(sourceTemp[2][pti]),
+//#endif
+//                      BL_TO_FORTRAN_3D(mobility[pti]),
+//                      paramPlaneList, &paramPlaneCount, &kinetic, &sw
+//            );
+
+        // gather statistics
+//        np_proc       += np_tile;
+//        rejected_proc += rejected_tile;
+//        moves_proc    += moves_tile;
+//        maxspeed_proc = std::max(maxspeed_proc, maxspeed_tile);
+//        maxdist_proc  = std::max(maxdist_proc, maxdist_tile);
+//        diffinst_proc += diffinst_tile;
+
+//        // resize particle vectors after call to move_particles
+//        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+//        {
+//            const auto new_size = m_vector_size[grid_id](iv);
+//            long imap = tile_box.index(iv);
+//            auto& pvec = m_cell_vectors[grid_id][imap];
+//            pvec.resize(new_size);
+//        }
+//    }
+
+    // gather statistics
+    ParallelDescriptor::ReduceIntSum(np_proc);
+    ParallelDescriptor::ReduceRealSum(rejected_proc);
+    ParallelDescriptor::ReduceRealSum(moves_proc);
+    ParallelDescriptor::ReduceRealMax(maxspeed_proc);
+    ParallelDescriptor::ReduceRealMax(maxdist_proc);
+    ParallelDescriptor::ReduceRealSum(diffinst_proc);
+
+    // write out global diagnostics
+    if (ParallelDescriptor::IOProcessor()) {
+        Print() << "I see " << np_proc << " particles\n";
+        if (move_tog == 2) {
+            Print() << "Fraction of midpoint moves rejected: " << rejected_proc/moves_proc << "\n";
+        }
+        Print() <<"Maximum observed speed: " << sqrt(maxspeed_proc) << "\n";
+        Print() <<"Maximum observed displacement (fraction of radius): " << maxdist_proc << "\n";
+        Print() <<"Average diffusion coefficient: " << diffinst_proc/np_proc << "\n";
+    }
+    
+}
+
 void FhdParticleContainer::SpreadIons(const Real dt, const Real* dxFluid, const Real* dxE, const Geometry geomF,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& umac,
                                       const std::array<MultiFab, AMREX_SPACEDIM>& efield,
