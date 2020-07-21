@@ -324,6 +324,8 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
     {
         FhdParticleContainer::ParticleType& p1 = pstruct[i];
 
+        //
+
         Real r = 0.0;
         Real r2 = 0.0;
         RealVect dr(0., 0., 0.);
@@ -431,6 +433,7 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                 p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q*correction_force_mag*dx2_inv;
                 p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q*correction_force_mag*dx2_inv;
+
             }
 
         }
@@ -560,15 +563,24 @@ void compute_p3m_sr_correction_nl_gpu (FhdParticleContainer::AoS& aos, int Np, i
                             p1.rdata(FHD_realData::forcey) += ee*(dr[1]/r)*q*q2/r2;
                             p1.rdata(FHD_realData::forcez) += ee*(dr[2]/r)*q*q2/r2;
 
+
                             // p3m
                             Real correction_force_mag = compute_p3m_force_mag(r, dx[0], dx[1], dx[2]);
-                            p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*2*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*2*correction_force_mag*dx2_inv;
-                            p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*2*correction_force_mag*dx2_inv;
+                            p1.rdata(FHD_realData::forcex) -= ee*(dr[0]/r)*q*q2*correction_force_mag*dx2_inv;
+                            p1.rdata(FHD_realData::forcey) -= ee*(dr[1]/r)*q*q2*correction_force_mag*dx2_inv;
+                            p1.rdata(FHD_realData::forcez) -= ee*(dr[2]/r)*q*q2*correction_force_mag*dx2_inv;
+
+
                         }
                     }
                 }                
             }
+
+
+        }
+        if( p1.id() ==  1)
+        {
+            Print() << setprecision(15)  << p1.rdata(FHD_realData::forcex) << ", "<< p1.rdata(FHD_realData::forcey) << ", "<< p1.rdata(FHD_realData::forcez) << "\n";
         }
     });
 

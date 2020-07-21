@@ -599,13 +599,15 @@ contains
                       particles(i)%force = particles(i)%force - ee*particles(i)%q*(-1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
 
                    else if ((bc_es_hi(2) .eq. 2) .and. (r .lt. (particles(i)%p3m_radius))) then                 ! hom. neumann  --image charge equal that of particle
-
+                      !print *, "Pre ", particles(i)%force
                       ! coulomb
                       particles(i)%force = particles(i)%force + ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
                       !print*, 'Coulomb interaction w NL im part: ', ee*(dr/r)*particles(i)%q*(1.d0*particles(nl(j))%q)/r2
                       ! p3m 
                       call compute_p3m_force_mag(r, correction_force_mag, dx)
                       particles(i)%force = particles(i)%force - ee*particles(i)%q*(1.d0*particles(nl(j))%q)*(dr/r)*correction_force_mag*dx2_inv
+
+                      !print *, "Post ", correction_force_mag, particles(i)%force, dr, r
 
                    endif
                 endif
@@ -620,6 +622,8 @@ contains
        end do
 
        index = index + nneighbors
+
+        !print *, particles(i)%id, particles(i)%force
 
 
     end do
@@ -2337,6 +2341,8 @@ contains
              do while (p <= new_np)
 
                 part => particles(cell_parts(p))
+
+                !print *, "Moving", part%id
  
                 !Get peskin kernel weights. Weights are stored in 'weights', indicies contains the indicies to which the weights are applied.
 
@@ -2360,6 +2366,8 @@ contains
                      velz, velzlo, velzhi, &
 #endif
                      part, ks, dxf, boundflag, midpoint, rejected)
+
+                !print *, "Vel", part%vel
 
                 if(move_tog .eq. 2) then !mid point time stepping - First step 1/2 a time step then interpolate velocity field
 
