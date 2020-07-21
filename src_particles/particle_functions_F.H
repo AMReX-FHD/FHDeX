@@ -317,7 +317,11 @@ extern "C"
 
    void user_force_calc_destroy();
 
-   void find_intersect(void* part, amrex_real* runtime, paramPlane* paramplanes, int* ns, int* intsurf, amrex_real* inttime, int* intside, amrex_real* phi, amrex_real* plo);
+   void get_explicit_mobility(amrex_real* mob, void* part, const amrex_real* plo, const amrex_real* phi);
+
+   void dry(const amrex_real*dt,void* part,amrex_real* dry_terms, amrex_real* mb);
+
+   void remove_particle_from_cell(int* cell_parts, int * cell_np, int* new_np, int* i);
 
 
 #ifdef __cplusplus

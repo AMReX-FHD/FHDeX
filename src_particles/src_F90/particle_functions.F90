@@ -1239,7 +1239,8 @@ contains
 
 
  ! extra diffusion term when 
-  subroutine dry(dt,part,dry_terms, mb)
+  subroutine dry(dt,part,dry_terms, mb) &
+                           bind(c,name="dry")
 
     type(particle_t), intent(inout) :: part 
     double precision, intent(inout) :: dry_terms(3)
@@ -3201,7 +3202,8 @@ contains
 
   end subroutine get_mobility_diff
 
-  subroutine get_explicit_mobility(mob, part, plo, phi)
+  subroutine get_explicit_mobility(mob, part, plo, phi) &
+                           bind(c,name="get_explicit_mobility")
 
     real(amrex_real),intent(in   ) :: plo(3), phi(3)
     real(amrex_real),intent(inout) :: mob(3)

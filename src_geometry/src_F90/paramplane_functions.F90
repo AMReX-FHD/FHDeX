@@ -99,7 +99,7 @@
     
     use iso_c_binding, only: c_int
     use cell_sorted_particle_module, only: particle_t
-    use paramplane_module
+    use paramplane_type_module
     use precheck_module
     
     implicit none
@@ -195,12 +195,112 @@
         
   end subroutine find_intersect
 
+  subroutine find_inter(part, delt, paramplanes, ns, intsurf, inttime, intside, phi, plo)bind(c,name="find_inter")
+    
+    use iso_c_binding, only: c_int
+    use cell_sorted_particle_module, only: particle_t
+    use paramplane_type_module
+    use precheck_module
+    
+    implicit none
+
+    type(particle_t), intent(inout) :: part
+    type(paramplane_t), intent(in), target :: paramplanes(ns)
+    real(amrex_real), intent(in) :: delt, phi(3), plo(3)
+    real(amrex_real), intent(inout) :: inttime
+    integer(c_int), intent(inout) :: intsurf, intside
+    integer(c_int), intent(in) :: ns
+
+    integer :: s, flag
+    real(amrex_real) denominv, uval, vval, tval, dotprod
+    type(paramplane_t), pointer :: surf
+
+    inttime = delt
+    intsurf = -1
+
+    flag = 0    
+    call precheck(part, paramplanes, ns, delt, flag, phi, plo)
+
+    
+#if (BL_SPACEDIM == 3)
+
+    if(flag .eq. 0) then
+
+      do s = 1, ns
+
+        surf => paramplanes(s)
+
+
+        denominv = 1d0/(part%vel(3)*surf%uy*surf%vx - part%vel(2)*surf%uz*surf%vx - part%vel(3)*surf%ux*surf%vy + part%vel(1)*surf%uz*surf%vy + part%vel(2)*surf%ux*surf%vz - part%vel(1)*surf%uy*surf%vz)
+
+        uval = (part%vel(3)*part%pos(2)*surf%vx - part%vel(2)*part%pos(3)*surf%vx - part%vel(3)*surf%y0*surf%vx + part%vel(2)*surf%z0*surf%vx - part%vel(3)*part%pos(1)*surf%vy + part%vel(1)*part%pos(3)*surf%vy + part%vel(3)*surf%x0*surf%vy - part%vel(1)*surf%z0*surf%vy + part%vel(2)*part%pos(1)*surf%vz - part%vel(1)*part%pos(2)*surf%vz -  part%vel(2)*surf%x0*surf%vz + part%vel(1)*surf%y0*surf%vz)*denominv
+
+        vval = (-part%vel(3)*part%pos(2)*surf%ux + part%vel(2)*part%pos(3)*surf%ux + part%vel(3)*surf%y0*surf%ux - part%vel(2)*surf%z0*surf%ux + part%vel(3)*part%pos(1)*surf%uy - part%vel(1)*part%pos(3)*surf%uy - part%vel(3)*surf%x0*surf%uy + part%vel(1)*surf%z0*surf%uy - part%vel(2)*part%pos(1)*surf%uz + part%vel(1)*part%pos(2)*surf%uz + part%vel(2)*surf%x0*surf%uz - part%vel(1)*surf%y0*surf%uz)*denominv
+
+        tval = (-part%pos(3)*surf%uy*surf%vx + surf%z0*surf%uy*surf%vx + part%pos(2)*surf%uz*surf%vx - surf%y0*surf%uz*surf%vx + part%pos(3)*surf%ux*surf%vy - surf%z0*surf%ux*surf%vy - part%pos(1)*surf%uz*surf%vy + surf%x0*surf%uz*surf%vy - part%pos(2)*surf%ux*surf%vz + surf%y0*surf%ux*surf%vz + part%pos(1)*surf%uy*surf%vz - surf%x0*surf%uy*surf%vz)*denominv
+
+
+        if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.   ((vval .gt. 0) .and. (vval .lt. surf%vtop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))   ) then
+
+          inttime = tval
+          intsurf = s
+
+          dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny + part%vel(3)*surf%lnz
+
+          if (dotprod .gt. 0) then
+            intside = 1 !1 for rhs
+          else
+            intside = 0 !0 for lhs
+          endif
+
+          !print *, "Intersection! Intsurf: ", intsurf, ". Intside: ", intside, ". tval: ", tval
+
+        endif
+      enddo
+    endif
+
+#endif
+
+#if (BL_SPACEDIM == 2)
+
+    do s = 1, ns
+
+      surf => paramplanes(s)
+
+      denominv = 1d0/(part%vel(2)*surf%ux - part%vel(1)*surf%uy)
+
+      tval = (-part%pos(2)*surf%ux + surf%y0*surf%ux + part%pos(1)*surf%uy - surf%x0*surf%uy)*denominv
+
+      uval = (part%vel(2)*part%pos(1) - part%vel(1)*part%pos(2) - part%vel(2)*surf%x0 + part%vel(1)*surf%y0)*denominv
+
+      if(  ((uval .gt. 0) .and. (uval .lt. surf%utop))    .and.     ((tval .gt. 0) .and. (tval .lt. inttime))  ) then
+
+        inttime = tval
+        intsurf = s
+
+        dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny
+
+        if (dotprod .gt. 0) then
+          intside = 1 !1 for rhs
+        else
+          intside = 0 !0 for lhs
+        endif
+
+      endif
+
+    enddo
+
+#endif
+    !surf%coltime=tval
+        
+  end subroutine find_inter
+
   subroutine apply_bc(surf, part, intside, domsize, push, time, inttime)
     
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
-    use paramplane_module
+    use paramplane_type_module
     use rng_functions_module
     use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog
     
@@ -417,11 +517,233 @@
         
  end subroutine apply_bc
 
+  subroutine app_bc(surf, part, intside, domsize, push, time, inttime)bind(c,name="app_bc")
+    
+    use iso_c_binding, only: c_int
+    use amrex_fort_module, only: amrex_real, amrex_particle_real
+    use cell_sorted_particle_module, only: particle_t
+    use paramplane_type_module
+    use rng_functions_module
+    use common_namelist_module, only: prob_hi, fixed_dt, graphene_tog
+    
+    implicit none
+
+    integer(c_int),   intent(in) :: intside
+    integer(c_int),   intent(inout) :: push
+    double precision, intent(in) :: domsize(3)
+    type(paramplane_t),  intent(inout) :: surf
+    type(particle_t), intent(inout) :: part
+
+    real(amrex_real) dotprod, srt, time, inttime
+    real(amrex_real) :: normvel(3), j(3), oldvel(3)
+
+    if(surf%boundary .eq. 6)then
+       oldvel=part%vel
+       !write(*,*) "old", oldvel(3)
+     !  print*, part%id, part%vel(3)
+    endif
+    
+    if(intside .eq. 1) then
+   
+      if(get_uniform_func() > surf%porosityright) then
+
+        push = 0
+
+        surf%fxright = surf%fxright + part%mass*part%vel(1)
+        surf%fyright = surf%fyright + part%mass*part%vel(2)
+        surf%fzright = surf%fzright + part%mass*part%vel(3)
+
+        if(get_uniform_func() < surf%specularityright) then
+
+#if (BL_SPACEDIM == 2)
+          dotprod = part%vel(1)*surf%rnx + part%vel(2)*surf%rny
+#endif
+#if (BL_SPACEDIM == 3)
+          dotprod = part%vel(1)*surf%rnx + part%vel(2)*surf%rny + part%vel(3)*surf%rnz
+#endif
+          part%vel(1) = -2d0*dotprod*surf%rnx + part%vel(1)
+          part%vel(2) = -2d0*dotprod*surf%rny + part%vel(2)
+#if (BL_SPACEDIM == 3)
+          part%vel(3) = -2d0*dotprod*surf%rnz + part%vel(3)
+#endif
+        else
+          
+          srt = sqrt(part%r*surf%temperatureright)
+
+#if (BL_SPACEDIM == 3)
+          part%vel(1) = srt*get_particle_normal_func()
+          part%vel(2) = srt*get_particle_normal_func()
+          part%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+        
+          call rotation(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
+#endif
+
+#if (BL_SPACEDIM == 2)
+          part%vel(1) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+          part%vel(2) = srt*get_particle_normal_func()
+          part%vel(3) = srt*get_particle_normal_func()
+
+          call rotation(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2))
+#endif
+
+
+        endif
+      elseif(get_uniform_func() < surf%periodicity) then
+
+        push = 0
+
+        if(surf%boundary .eq. 1) then
+
+          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
+
+        elseif(surf%boundary .eq. 2) then
+
+          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
+
+        elseif(surf%boundary .eq. 3) then
+
+          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
+
+        elseif(surf%boundary .eq. 4) then
+
+          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
+
+#if (BL_SPACEDIM == 3)
+
+        elseif(surf%boundary .eq. 5) then
+
+          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
+
+        elseif(surf%boundary .eq. 6) then
+
+          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
+#endif
+
+        endif
+      else
+
+        push = 1
+
+        if(get_uniform_func() > surf%momentumright) then
+
+#if (BL_SPACEDIM == 3)
+          call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
+          !print *, "Scattering!"
+#endif
+#if (BL_SPACEDIM == 2)
+          call randomhemisphere(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2), part%vel(3))
+#endif
+
+        endif
+
+      endif
+
+    else
+
+      if(get_uniform_func() > surf%porosityleft) then
+
+        push = 0
+
+        surf%fxleft = surf%fxleft + part%mass*part%vel(1)
+        surf%fyleft = surf%fyleft + part%mass*part%vel(1)
+        surf%fzleft = surf%fzleft + part%mass*part%vel(1)
+
+        if(get_uniform_func() < surf%specularityleft) then
+
+#if (BL_SPACEDIM == 2)
+          dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny
+#endif
+#if (BL_SPACEDIM == 3)
+          dotprod = part%vel(1)*surf%lnx + part%vel(2)*surf%lny + part%vel(3)*surf%lnz
+#endif
+          !print *, "dot left: ", dotprod
+          part%vel(1) = -2d0*dotprod*surf%lnx + part%vel(1)
+          part%vel(2) = -2d0*dotprod*surf%lny + part%vel(2)
+#if (BL_SPACEDIM == 3)
+          part%vel(3) = -2d0*dotprod*surf%lnz + part%vel(3)
+#endif
+        else
+          
+          srt = sqrt(part%r*surf%temperatureleft)
+
+#if (BL_SPACEDIM == 3)
+          part%vel(1) = srt*get_particle_normal_func()
+          part%vel(2) = srt*get_particle_normal_func()
+          part%vel(3) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+
+          call rotation(surf%costhetaleft, surf%sinthetaleft, surf%cosphileft, surf%sinphileft, part%vel(1), part%vel(2), part%vel(3))
+#endif
+#if (BL_SPACEDIM == 2)
+          part%vel(1) = 1.414213562*srt*sqrt(-log(get_uniform_func()))
+          part%vel(2) = srt*get_particle_normal_func()
+          part%vel(3) = srt*get_particle_normal_func()
+
+          call rotation(surf%costhetaleft, surf%sinthetaleft, part%vel(1), part%vel(2))
+#endif
+       
+        endif
+      elseif(get_uniform_func() < surf%periodicity) then
+
+        push = 0
+
+        if(surf%boundary .eq. 1) then
+
+          part%pos(1) = part%pos(1) + 0.9999999*domsize(1)
+
+        elseif(surf%boundary .eq. 2) then
+
+          part%pos(1) = part%pos(1) - 0.9999999*domsize(1)
+
+        elseif(surf%boundary .eq. 3) then
+
+          part%pos(2) = part%pos(2) + 0.9999999*domsize(2)
+
+        elseif(surf%boundary .eq. 4) then
+
+          part%pos(2) = part%pos(2) - 0.9999999*domsize(2)
+
+#if (BL_SPACEDIM == 3)
+        elseif(surf%boundary .eq. 5) then
+
+          part%pos(3) = part%pos(3) + 0.9999999*domsize(3)
+
+        elseif(surf%boundary .eq. 6) then
+
+          part%pos(3) = part%pos(3) - 0.9999999*domsize(3)
+#endif
+        endif
+
+      else
+        push = 1      
+
+        if(get_uniform_func() > surf%momentumleft) then
+#if (BL_SPACEDIM == 3)
+          call randomhemisphere(surf%costhetaright, surf%sinthetaright, surf%cosphiright, surf%sinphiright, part%vel(1), part%vel(2), part%vel(3))
+#endif
+#if (BL_SPACEDIM == 2)
+          call randomhemisphere(surf%costhetaright, surf%sinthetaright, part%vel(1), part%vel(2), part%vel(3))
+#endif
+
+        endif
+
+      endif
+  
+   endif
+   if(graphene_tog .eq. 1) then
+      if(surf%boundary .eq. 6) then
+
+      !print *, "new: ", part%vel(3)
+      call surf_velocity(surf, part, time, oldvel, inttime)
+   endif
+   endif
+        
+ end subroutine app_bc
+
  subroutine laser(surf, time)
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
-    use paramplane_module
+    use paramplane_type_module
     use rng_functions_module
      use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0, max_step, domega
     
@@ -455,7 +777,7 @@
     use iso_c_binding, only: c_int
     use amrex_fort_module, only: amrex_real, amrex_particle_real
     use cell_sorted_particle_module, only: particle_t
-    use paramplane_module
+    use paramplane_type_module
     use rng_functions_module
      use common_namelist_module, only: prob_hi, fixed_dt, mass, k_b, particle_count, prob_lo, t_init, particle_n0
     
@@ -525,7 +847,7 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
  use iso_c_binding, only: c_int
  use amrex_fort_module, only: amrex_real, amrex_particle_real
  use cell_sorted_particle_module, only: particle_t
- use paramplane_module
+ use paramplane_type_module
  use rng_functions_module
  use common_namelist_module, only: prob_hi, fixed_dt, particle_neff
  
@@ -635,5 +957,4 @@ subroutine surf_velocity(surf, part, time, oldvel, inttime)
     ! write(*,*) prefact*p*bessel_jn(0, lambda)*(surf%a0graph*sin(omega*t)+surf%b0graph*cos(omega*t))
    !  endif
   end subroutine surf_velocity
-
 
