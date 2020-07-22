@@ -36,7 +36,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   AppLattice(spk,narg,arg)
 {
   ninteger = 12; // type, element, ac1, ac2, ac3, ac4, ac5, dc1, dc2, dc3, dc4, dc5  (number changes due to ads/des)
-  ndouble = 6;	// density1, density2, density3, density4, density5 (number densities in gas phase), temp (local temperature)
+  ndouble = 6;  // density1, density2, density3, density4, density5 (number densities in gas phase), temp (local temperature)
   delpropensity = 1;
   delevent = 1;
   allow_kmc = 1;
@@ -57,7 +57,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
 
   none = ntwo = nthree = nads = ndes = 0;
   srate = drate = trate = adsrate = desrate = NULL;
-  spropensity = dpropensity = tpropensity = despropensity = NULL;	// no adspropensity
+  spropensity = dpropensity = tpropensity = despropensity = NULL;   // no adspropensity
   stype = sinput = soutput = NULL;
   dtype = dinput = doutput = NULL;
   ttype = tinput = toutput = NULL;
@@ -66,6 +66,7 @@ AppSurfchemtest::AppSurfchemtest(SPPARKS *spk, int narg, char **arg) :
   scount = dcount = tcount = adscount = descount = NULL;
 
   mui_fhd_lattice_size_x = mui_fhd_lattice_size_y = -1.;
+  mui_kmc_lattice_offset_x = mui_kmc_lattice_offset_y = 0.;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -252,7 +253,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
 
       nthree++;
 
-    } else if (rstyle == 4) {	// adsorption
+    } else if (rstyle == 4) {   // adsorption
       if (narg != 5) error->all(FLERR,"Illegal event command");
 
       if (strcmp(arg[1],"siteA") == 0) adstype[nads] = SITEA;
@@ -287,7 +288,7 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
 
       nads++;
       
-    } else if (rstyle == 5) {	// desorption
+    } else if (rstyle == 5) {   // desorption
       if (narg != 5) error->all(FLERR,"Illegal event command");
 
       if (strcmp(arg[1],"siteA") == 0) destype[ndes] = SITEA;
@@ -333,6 +334,10 @@ void AppSurfchemtest::input_app(char *command, int narg, char **arg)
     if (narg != 2) error->all(FLERR,"Illegal mul_fhd_lattice_size command");
     mui_fhd_lattice_size_x = atof(arg[0]);
     mui_fhd_lattice_size_y = atof(arg[1]);
+  } else if (strcmp(command,"mui_kmc_lattice_offset") == 0) {
+    if (narg != 2) error->all(FLERR,"Illegal mui_kmc_lattice_offset command");
+    mui_kmc_lattice_offset_x = atof(arg[0]);
+    mui_kmc_lattice_offset_y = atof(arg[1]);
   } else error->all(FLERR,"Unrecognized command");
 }
 
@@ -502,11 +507,11 @@ double AppSurfchemtest::site_propensity(int i)
       if (jj == kk) continue;
       k = neighbor[i][kk];
       for (m = 0; m < nthree; m++) {
-	if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
-	if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
-	if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
-	add_event(i,3,m,tpropensity[m],j,k);
-	proball += tpropensity[m];
+    if (type[i] != ttype[m][0] || element[i] != tinput[m][0]) continue;
+    if (type[j] != ttype[m][1] || element[j] != tinput[m][1]) continue;
+    if (type[k] != ttype[m][2] || element[k] != tinput[m][2]) continue;
+    add_event(i,3,m,tpropensity[m],j,k);
+    proball += tpropensity[m];
       }
     }
   }
@@ -674,7 +679,7 @@ void AppSurfchemtest::clear_events(int i)
 ------------------------------------------------------------------------- */
 
 void AppSurfchemtest::add_event(int i, int rstyle, int which, double propensity,
-			  int jpartner, int kpartner)
+              int jpartner, int kpartner)
 {
   // grow event list and setup free list
 
@@ -761,88 +766,88 @@ void AppSurfchemtest::mui_push(int narg, char **arg)
 
   for (int k=1;k<narg;k++)
   {
-    if (strcmp(arg[k],"type") == 0) {			// i1
+    if (strcmp(arg[k],"type") == 0) {           // i1
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_type",{xyz[i][0],xyz[i][1]},type[i]);
+        spk->uniface->push("CH_type",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},type[i]);
       }
-    } else if (strcmp(arg[k],"element") == 0) {		// i2
+    } else if (strcmp(arg[k],"element") == 0) { // i2
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_element",{xyz[i][0],xyz[i][1]},element[i]);
+        spk->uniface->push("CH_element",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},element[i]);
       }
     }
-    else if (strcmp(arg[k],"ac1") == 0) {		// i3
+    else if (strcmp(arg[k],"ac1") == 0) {       // i3
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_ac1",{xyz[i][0],xyz[i][1]},ac1[i]);
+        spk->uniface->push("CH_ac1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},ac1[i]);
         ac1[i] = 0;
       }
-    } else if (strcmp(arg[k],"ac2") == 0) {		// i4
+    } else if (strcmp(arg[k],"ac2") == 0) {     // i4
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_ac2",{xyz[i][0],xyz[i][1]},ac2[i]);
+        spk->uniface->push("CH_ac2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},ac2[i]);
         ac2[i] = 0;
       }
-    } else if (strcmp(arg[k],"ac3") == 0) {		// i5
+    } else if (strcmp(arg[k],"ac3") == 0) {     // i5
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_ac3",{xyz[i][0],xyz[i][1]},ac3[i]);
+        spk->uniface->push("CH_ac3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},ac3[i]);
         ac3[i] = 0;
       }
-    } else if (strcmp(arg[k],"ac4") == 0) {		// i6
+    } else if (strcmp(arg[k],"ac4") == 0) {     // i6
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_ac4",{xyz[i][0],xyz[i][1]},ac4[i]);
+        spk->uniface->push("CH_ac4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},ac4[i]);
         ac4[i] = 0;
       }
-    } else if (strcmp(arg[k],"ac5") == 0) {		// i7
+    } else if (strcmp(arg[k],"ac5") == 0) {     // i7
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_ac5",{xyz[i][0],xyz[i][1]},ac5[i]);
+        spk->uniface->push("CH_ac5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},ac5[i]);
         ac5[i] = 0;
       }
-    } else if (strcmp(arg[k],"dc1") == 0) {		// i8
+    } else if (strcmp(arg[k],"dc1") == 0) {     // i8
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_dc1",{xyz[i][0],xyz[i][1]},dc1[i]);
+        spk->uniface->push("CH_dc1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc1[i]);
         dc1[i] = 0;
       }
-    } else if (strcmp(arg[k],"dc2") == 0) {		// i9
+    } else if (strcmp(arg[k],"dc2") == 0) {     // i9
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_dc2",{xyz[i][0],xyz[i][1]},dc2[i]);
+        spk->uniface->push("CH_dc2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc2[i]);
         dc2[i] = 0;
       }
-    } else if (strcmp(arg[k],"dc3") == 0) {		// i10
+    } else if (strcmp(arg[k],"dc3") == 0) {     // i10
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_dc3",{xyz[i][0],xyz[i][1]},dc3[i]);
+        spk->uniface->push("CH_dc3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc3[i]);
         dc3[i] = 0;
       }
-    } else if (strcmp(arg[k],"dc4") == 0) {		// i11
+    } else if (strcmp(arg[k],"dc4") == 0) {     // i11
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_dc4",{xyz[i][0],xyz[i][1]},dc4[i]);
+        spk->uniface->push("CH_dc4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc4[i]);
         dc4[i] = 0;
       }
-    } else if (strcmp(arg[k],"dc5") == 0) {		// i12
+    } else if (strcmp(arg[k],"dc5") == 0) {     // i12
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_dc5",{xyz[i][0],xyz[i][1]},dc5[i]);
+        spk->uniface->push("CH_dc5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},dc5[i]);
         dc5[i] = 0;
       }
-    } else if (strcmp(arg[k],"density1") == 0) {	// d1
+    } else if (strcmp(arg[k],"density1") == 0) {    // d1
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density1",{xyz[i][0],xyz[i][1]},density1[i]);
+        spk->uniface->push("CH_density1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density1[i]);
       }
-    } else if (strcmp(arg[k],"density2") == 0) {	// d2
+    } else if (strcmp(arg[k],"density2") == 0) {    // d2
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density2",{xyz[i][0],xyz[i][1]},density2[i]);
+        spk->uniface->push("CH_density2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density2[i]);
       }
-    } else if (strcmp(arg[k],"density3") == 0) {	// d3
+    } else if (strcmp(arg[k],"density3") == 0) {    // d3
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density3",{xyz[i][0],xyz[i][1]},density3[i]);
+        spk->uniface->push("CH_density3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density3[i]);
       }
-    } else if (strcmp(arg[k],"density4") == 0) {	// d4
+    } else if (strcmp(arg[k],"density4") == 0) {    // d4
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density4",{xyz[i][0],xyz[i][1]},density4[i]);
+        spk->uniface->push("CH_density4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density4[i]);
       }
-    } else if (strcmp(arg[k],"density5") == 0) {	// d5
+    } else if (strcmp(arg[k],"density5") == 0) {    // d5
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_density5",{xyz[i][0],xyz[i][1]},density5[i]);
+        spk->uniface->push("CH_density5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},density5[i]);
       }
-    } else if (strcmp(arg[k],"temp") == 0) {	// d6
+    } else if (strcmp(arg[k],"temp") == 0) {        // d6
       for (int i=0;i<nlocal;i++) {
-        spk->uniface->push("CH_temp",{xyz[i][0],xyz[i][1]},temp[i]);
+        spk->uniface->push("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},temp[i]);
       }
     } else {
       error->all(FLERR,"Illegal mui_push command");
@@ -869,29 +874,29 @@ void AppSurfchemtest::mui_fetch(int narg, char **arg)
 
   for (int k=1;k<narg;k++)
   {
-    if (strcmp(arg[k],"density1") == 0) {		// d1
+    if (strcmp(arg[k],"density1") == 0) {           // d1
       for (int i=0;i<nlocal;i++) {
-        density1[i] = spk->uniface->fetch("CH_density1",{xyz[i][0],xyz[i][1]},timestamp,s,t);
+        density1[i] = spk->uniface->fetch("CH_density1",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density2") == 0) {	// d2
+    } else if (strcmp(arg[k],"density2") == 0) {    // d2
       for (int i=0;i<nlocal;i++) {
-        density2[i] = spk->uniface->fetch("CH_density2",{xyz[i][0],xyz[i][1]},timestamp,s,t);
+        density2[i] = spk->uniface->fetch("CH_density2",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density3") == 0) {	// d3
+    } else if (strcmp(arg[k],"density3") == 0) {    // d3
       for (int i=0;i<nlocal;i++) {
-        density3[i] = spk->uniface->fetch("CH_density3",{xyz[i][0],xyz[i][1]},timestamp,s,t);
+        density3[i] = spk->uniface->fetch("CH_density3",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density4") == 0) {	// d4
+    } else if (strcmp(arg[k],"density4") == 0) {    // d4
       for (int i=0;i<nlocal;i++) {
-        density4[i] = spk->uniface->fetch("CH_density4",{xyz[i][0],xyz[i][1]},timestamp,s,t);
+        density4[i] = spk->uniface->fetch("CH_density4",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"density5") == 0) {	// d5
+    } else if (strcmp(arg[k],"density5") == 0) {    // d5
       for (int i=0;i<nlocal;i++) {
-        density5[i] = spk->uniface->fetch("CH_density5",{xyz[i][0],xyz[i][1]},timestamp,s,t);
+        density5[i] = spk->uniface->fetch("CH_density5",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
-    } else if (strcmp(arg[k],"temp") == 0) {	// d6
+    } else if (strcmp(arg[k],"temp") == 0) {        // d6
       for (int i=0;i<nlocal;i++) {
-        temp[i] = spk->uniface->fetch("CH_temp",{xyz[i][0],xyz[i][1]},timestamp,s,t);
+        temp[i] = spk->uniface->fetch("CH_temp",{xyz[i][0]+mui_kmc_lattice_offset_x,xyz[i][1]+mui_kmc_lattice_offset_y},timestamp,s,t);
       }
     } else {
       error->all(FLERR,"Illegal mui_fetch command");
