@@ -42,7 +42,8 @@ enum{DUMMY,IARRAY,DARRAY};
 
 #define DELTALOCAL 10000
 #define DELTABUF 10000
-#define EPSILON 0.0001
+//#define EPSILON 0.0001
+#define EPSILON 1.e-10
 
 /* ---------------------------------------------------------------------- */
 
