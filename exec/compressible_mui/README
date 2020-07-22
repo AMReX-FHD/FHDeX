@@ -1,0 +1,6 @@
+To compile SPPARKS (KMC codes): 
+- cd SPPARKS_MUI/
+- make mui
+
+To comple FHD codes:
+- make
