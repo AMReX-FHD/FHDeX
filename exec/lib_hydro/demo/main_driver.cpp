@@ -269,6 +269,9 @@ void main_driver(const char * argv) {
     // Make sure that the nghost (last argument) is big enough!
     IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
+    int ib_lev = 0;
+
+
     Vector<RealVect> marker_positions(1);
     marker_positions[0] = RealVect{0.5,  0.5, 0.5};
 
@@ -276,10 +279,10 @@ void main_driver(const char * argv) {
     marker_radii[0] = {0.02};
 
     int ib_label = 0; //need to fix for multiple dumbbells
-    ib_mc.InitList(0, marker_radii, marker_positions, ib_label);
+    ib_mc.InitList(ib_lev, marker_radii, marker_positions, ib_label);
 
     ib_mc.fillNeighbors();
-    ib_mc.PrintMarkerData(0);
+    ib_mc.PrintMarkerData(ib_lev);
 
 
     //___________________________________________________________________________
@@ -329,16 +332,36 @@ void main_driver(const char * argv) {
 
     //___________________________________________________________________________
     // Spread forces to RHS
-    std::array<MultiFab, AMREX_SPACEDIM> sourceTerms;
+    std::array<MultiFab, AMREX_SPACEDIM> source_terms;
     for (int d=0; d<AMREX_SPACEDIM; ++d){
-        sourceTerms[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
-        sourceTerms[d].setVal(0.);
+        source_terms[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        source_terms[d].setVal(0.);
     }
 
+
+    RealVect f_0 = RealVect{1.0, 0.0, 0.0};
+
+
+    for (IBMarIter pti(ib_mc, ib_lev); pti.isValid(); ++pti) {
+
+        // Get marker data (local to current thread)
+        TileIndex index(pti.index(), pti.LocalTileIndex());
+        AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
+        long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
+
+        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
+
+            ParticleType & mark = markers[m_index.first];
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+                mark.rdata(IBMReal::forcex + d) = f_0[d];
+        }
+    }
+ 
+
     // Spread to the `fc_force` multifab
-    ib_mc.SpreadMarkers(0, sourceTerms);
+    ib_mc.SpreadMarkers(0, source_terms);
     for (int d=0; d<AMREX_SPACEDIM; ++d)
-        sourceTerms[d].SumBoundary(geom.periodicity());
+        source_terms[d].SumBoundary(geom.periodicity());
 
 
     Real step_strt_time = ParallelDescriptor::second();
@@ -357,8 +380,8 @@ void main_driver(const char * argv) {
 
 
     advanceStokes(
-            umac, pres,             /* LHS */
-            mfluxdiv, sourceTerms,  /* RHS */
+            umac, pres,              /* LHS */
+            mfluxdiv, source_terms,  /* RHS */
             alpha_fc, beta, gamma, beta_ed, geom, dt
         );
 
