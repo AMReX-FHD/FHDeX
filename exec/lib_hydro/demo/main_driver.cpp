@@ -1,13 +1,8 @@
 #include "main_driver.H"
-#include "main_driver_F.H"
 
 #include "hydro_functions.H"
-#include "rng_functions_F.H"
 
-//#include "analysis_functions_F.H"
 #include "StochMomFlux.H"
-// #include "StructFact.H"
-
 
 #include "common_functions.H"
 
@@ -21,6 +16,8 @@
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_MultiFabUtil.H>
+
+#include <IBMarkerContainer.H>
 
 
 using namespace amrex;
@@ -57,7 +54,6 @@ inline void setVal(std::array< MultiFab, AMREX_SPACEDIM > & mf_in,
 
 // argv contains the name of the inputs file entered at the command line
 void main_driver(const char * argv) {
-
     BL_PROFILE_VAR("main_driver()",main_driver);
 
 
@@ -89,19 +85,20 @@ void main_driver(const char * argv) {
     //___________________________________________________________________________
     // Set boundary conditions
 
-    // is the problem periodic?
-    Vector<int> is_periodic(AMREX_SPACEDIM,0);  // set to 0 (not periodic) by default
+    // is the problem periodic? set to 0 (not periodic) by default
+    Vector<int> is_periodic(AMREX_SPACEDIM, 0);
     for (int i=0; i<AMREX_SPACEDIM; ++i)
         if (bc_vel_lo[i] <= -1 && bc_vel_hi[i] <= -1)
             is_periodic[i] = 1;
+
 
     //___________________________________________________________________________
     // Make BoxArray, DistributionMapping, and Geometry
     BoxArray ba;
     Geometry geom;
     {
-        IntVect dom_lo(AMREX_D_DECL(             0,              0,              0));
-        IntVect dom_hi(AMREX_D_DECL(n_cells[0] - 1, n_cells[1] - 1, n_cells[2] - 1));
+        IntVect dom_lo(AMREX_D_DECL(           0,            0,            0));
+        IntVect dom_hi(AMREX_D_DECL(n_cells[0]-1, n_cells[1]-1, n_cells[2]-1));
         Box domain(dom_lo, dom_hi);
 
         // Initialize the boxarray "ba" from the single box "bx"
@@ -153,8 +150,10 @@ void main_driver(const char * argv) {
     generalSeed  += proc;
 
     // initialize rngs
-    rng_initialize( & fhdSeed, & particleSeed, & selectorSeed,
-                    & thetaSeed, & phiSeed, & generalSeed);
+    rng_initialize(
+            & fhdSeed, & particleSeed, & selectorSeed, & thetaSeed, & phiSeed,
+            & generalSeed
+        );
 
 
 
@@ -172,7 +171,6 @@ void main_driver(const char * argv) {
     rho.setVal(1.);
 
     // alpha_fc is face-centered
-    Real theta_alpha = 1.;
     std::array< MultiFab, AMREX_SPACEDIM > alpha_fc;
     defineFC(alpha_fc, ba, dmap, 1);
     setVal(alpha_fc, dtinv);
@@ -237,22 +235,13 @@ void main_driver(const char * argv) {
     // Define random fluxes mflux (momentum-flux) divergence, staggered in x,y,z
 
     // mfluxdiv predictor multifabs
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_predict;
-    defineFC(mfluxdiv_predict, ba, dmap, 1);
-    setVal(mfluxdiv_predict, 0.);
-
-    // mfluxdiv corrector multifabs
-    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv_correct;
-    defineFC(mfluxdiv_correct, ba, dmap, 1);
-    setVal(mfluxdiv_correct, 0.);
+    std::array< MultiFab, AMREX_SPACEDIM >  mfluxdiv;
+    defineFC(mfluxdiv, ba, dmap, 1);
+    setVal(mfluxdiv, 0.);
 
     Vector< amrex::Real > weights;
     // weights = {std::sqrt(0.5), std::sqrt(0.5)};
     weights = {1.0};
-
-    // tracer
-    MultiFab tracer(ba, dmap, 1,1);
-    tracer.setVal(0.);
 
 
     //___________________________________________________________________________
@@ -267,45 +256,6 @@ void main_driver(const char * argv) {
     defineFC(umac, ba, dmap, 1);
     setVal(umac, 0.);
 
-    std::array< MultiFab, AMREX_SPACEDIM > umacNew;
-    defineFC(umacNew, ba, dmap, 1);
-    setVal(umacNew, 0.);
-
-
-    //___________________________________________________________________________
-    // Define structure factor:
-
-    Vector< std::string > var_names;
-    var_names.resize(AMREX_SPACEDIM);
-    int cnt = 0;
-    std::string x;
-    for (int d=0; d<var_names.size(); d++) {
-        x = "vel";
-        x += (120+d);
-        var_names[cnt++] = x;
-    }
-
-    MultiFab struct_in_cc;
-    struct_in_cc.define(ba, dmap, AMREX_SPACEDIM, 0);
-
-    amrex::Vector< int > s_pairA(AMREX_SPACEDIM);
-    amrex::Vector< int > s_pairB(AMREX_SPACEDIM);
-
-    // Select which variable pairs to include in structure factor:
-    s_pairA[0] = 0;
-    s_pairB[0] = 0;
-    //
-    s_pairA[1] = 1;
-    s_pairB[1] = 1;
-    //
-#if (AMREX_SPACEDIM == 3)
-    s_pairA[2] = 2;
-    s_pairB[2] = 2;
-#endif
-
-    // StructFact structFact(ba, dmap, var_names);
-    // StructFact structFact(ba, dmap, var_names, s_pairA, s_pairB);
-
 
 
     /****************************************************************************
@@ -314,34 +264,22 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
-    // //___________________________________________________________________________
-    // // Initialize velocities (fluid and tracers)
+    //___________________________________________________________________________
+    // Initialize immers boundary markers (they will be the force sources)
+    // Make sure that the nghost (last argument) is big enough!
+    IBMarkerContainer ib_mc(geom, dmap, ba, 10);
 
-    // const RealBox& realDomain = geom.ProbDomain();
-    // int dm;
+    Vector<RealVect> marker_positions(1);
+    marker_positions[0] = RealVect{0.5,  0.5, 0.5};
 
-    // for ( MFIter mfi(beta); mfi.isValid(); ++mfi ) {
-    //     const Box& bx = mfi.validbox();
+    Vector<Real> marker_radii(1);
+    marker_radii[0] = {0.02};
 
-    //     AMREX_D_TERM(dm=0; init_vel(BL_TO_FORTRAN_BOX(bx),
-    //                                 BL_TO_FORTRAN_ANYD(umac[0][mfi]), geom.CellSize(),
-    //                                 geom.ProbLo(), geom.ProbHi() ,&dm,
-    //                                 ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-    //                  dm=1; init_vel(BL_TO_FORTRAN_BOX(bx),
-    //                                 BL_TO_FORTRAN_ANYD(umac[1][mfi]), geom.CellSize(),
-    //                                 geom.ProbLo(), geom.ProbHi() ,&dm,
-    //                                 ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));,
-    //                  dm=2; init_vel(BL_TO_FORTRAN_BOX(bx),
-    //                                 BL_TO_FORTRAN_ANYD(umac[2][mfi]), geom.CellSize(),
-    //                                 geom.ProbLo(), geom.ProbHi() ,&dm,
-    //                                 ZFILL(realDomain.lo()), ZFILL(realDomain.hi())););
+    int ib_label = 0; //need to fix for multiple dumbbells
+    ib_mc.InitList(0, marker_radii, marker_positions, ib_label);
 
-    //     // initialize tracer
-    //     init_s_vel(BL_TO_FORTRAN_BOX(bx),
-    //                BL_TO_FORTRAN_ANYD(tracer[mfi]),
-    //                dx, ZFILL(realDomain.lo()), ZFILL(realDomain.hi()));
-
-    // }
+    ib_mc.fillNeighbors();
+    ib_mc.PrintMarkerData(0);
 
 
     //___________________________________________________________________________
@@ -372,13 +310,13 @@ void main_driver(const char * argv) {
     macrhs.setVal(0.);
     MacProj_hydro(umac, rho, geom, true); // from MacProj_hydro.cpp
 
-    // initial guess for new solution
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        MultiFab::Copy(umacNew[d], umac[d], 0, 0, 1, 1);
-
-
     int step = 0;
     Real time = 0.;
+
+
+    //___________________________________________________________________________
+    // Write out initial state
+    WritePlotFile(step, time, geom, umac, pres, ib_mc);
 
 
 
@@ -388,53 +326,57 @@ void main_driver(const char * argv) {
      *                                                                          *
      ***************************************************************************/
 
-    for(step = 1; step <= max_step; ++step) {
 
-        Real step_strt_time = ParallelDescriptor::second();
-
-        // if(variance_coef_mom != 0.0) {
-
-        //     //___________________________________________________________________
-        //     // Fill stochastic terms
-
-        //     sMflux.fillMomStochastic();
-
-        //     // Compute stochastic force terms (and apply to mfluxdiv_*)
-        //     sMflux.StochMomFluxDiv(mfluxdiv_predict, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        //     sMflux.StochMomFluxDiv(mfluxdiv_correct, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
-        // }
-
-        //___________________________________________________________________
-        // Advance umac
-        // advance(umac, umacNew, pres, tracer, ib_mc, mfluxdiv_predict, mfluxdiv_correct,
-        //         alpha_fc, beta, gamma, beta_ed, geom, dt);
-
-
-
-        //_______________________________________________________________________
-        // Update structure factor
-
-        if (step > n_steps_skip && struct_fact_int > 0 && (step-n_steps_skip-1)%struct_fact_int == 0) {
-            for(int d=0; d<AMREX_SPACEDIM; d++) {
-                ShiftFaceToCC(umac[d], 0, struct_in_cc, d, 1);
-            }
-            // structFact.FortStructure(struct_in_cc,geom);
-        }
-
-        Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
-        ParallelDescriptor::ReduceRealMax(step_stop_time);
-
-        amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
-
-        time = time + dt;
-
+    //___________________________________________________________________________
+    // Spread forces to RHS
+    std::array<MultiFab, AMREX_SPACEDIM> sourceTerms;
+    for (int d=0; d<AMREX_SPACEDIM; ++d){
+        sourceTerms[d].define(convert(ba, nodal_flag_dir[d]), dmap, 1, 6);
+        sourceTerms[d].setVal(0.);
     }
 
+    // Spread to the `fc_force` multifab
+    ib_mc.SpreadMarkers(0, sourceTerms);
+    for (int d=0; d<AMREX_SPACEDIM; ++d)
+        sourceTerms[d].SumBoundary(geom.periodicity());
 
-    // Call the timer again and compute the maximum difference between the start
-    // time and stop time over all processors
-    Real stop_time = ParallelDescriptor::second() - strt_time;
-    ParallelDescriptor::ReduceRealMax(stop_time);
-    amrex::Print() << "Run time = " << stop_time << std::endl;
 
+    Real step_strt_time = ParallelDescriptor::second();
+
+    // if(variance_coef_mom != 0.0) {
+
+    //     //___________________________________________________________________
+    //     // Fill stochastic terms
+
+    //     sMflux.fillMomStochastic();
+
+    //     // Compute stochastic force terms (and apply to mfluxdiv_*)
+    //     sMflux.StochMomFluxDiv(mfluxdiv_predict, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+    //     sMflux.StochMomFluxDiv(mfluxdiv_correct, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
+    // }
+
+
+    advanceStokes(
+            umac, pres,             /* LHS */
+            mfluxdiv, sourceTerms,  /* RHS */
+            alpha_fc, beta, gamma, beta_ed, geom, dt
+        );
+
+    Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
+    ParallelDescriptor::ReduceRealMax(step_stop_time);
+
+    amrex::Print() << "Advanced step " << step << " in " << step_stop_time << " seconds\n";
+
+    time = time + dt;
+    step ++;
+
+    // write out umac & pres to a plotfile
+    WritePlotFile(step, time, geom, umac, pres, ib_mc);
+
+
+    // // Call the timer again and compute the maximum difference between the start
+    // // time and stop time over all processors
+    // Real stop_time = ParallelDescriptor::second() - strt_time;
+    // ParallelDescriptor::ReduceRealMax(stop_time);
+    // amrex::Print() << "Run time = " << stop_time << std::endl;
 }
