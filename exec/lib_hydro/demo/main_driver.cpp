@@ -298,20 +298,20 @@ void main_driver(const char * argv) {
     }
 
 
-    //___________________________________________________________________________
-    // Add random momentum fluctuations
+    // //___________________________________________________________________________
+    // // Add random momentum fluctuations
 
-    // Declare object of StochMomFlux class
-    //StochMomFlux sMflux (ba, dmap, geom, n_rngs);
+    // // Declare object of StochMomFlux class
+    // //StochMomFlux sMflux (ba, dmap, geom, n_rngs);
 
-    // Add initial equilibrium fluctuations
-    addMomFluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
+    // // Add initial equilibrium fluctuations
+    // addMomFluctuations(umac, rho, temp_cc, initial_variance_mom, geom);
 
-    // Project umac onto divergence free field
-    MultiFab macphi(ba,dmap, 1, 1);
-    MultiFab macrhs(ba,dmap, 1, 1);
-    macrhs.setVal(0.);
-    MacProj_hydro(umac, rho, geom, true); // from MacProj_hydro.cpp
+    // // Project umac onto divergence free field
+    // MultiFab macphi(ba,dmap, 1, 1);
+    // MultiFab macrhs(ba,dmap, 1, 1);
+    // macrhs.setVal(0.);
+    // MacProj_hydro(umac, rho, geom, true); // from MacProj_hydro.cpp
 
     int step = 0;
     Real time = 0.;
@@ -349,9 +349,8 @@ void main_driver(const char * argv) {
         AoS & markers = ib_mc.GetParticles(ib_lev).at(index).GetArrayOfStructs();
         long np = ib_mc.GetParticles(ib_lev).at(index).numParticles();
 
-        for (MarkerListIndex m_index(0, 0); m_index.first<np; ++m_index.first) {
-
-            ParticleType & mark = markers[m_index.first];
+        for (int i =0; i<np; ++i) {
+            ParticleType & mark = markers[i];
             for (int d=0; d<AMREX_SPACEDIM; ++d)
                 mark.rdata(IBMReal::forcex + d) = f_0[d];
         }
@@ -378,12 +377,15 @@ void main_driver(const char * argv) {
     //     sMflux.StochMomFluxDiv(mfluxdiv_correct, 0, eta_cc, eta_ed, temp_cc, temp_ed, weights, dt);
     // }
 
+    // Example of overwriting the settings from inputs file
+    gmres::gmres_abs_tol = 1e-3;
 
     advanceStokes(
             umac, pres,              /* LHS */
             mfluxdiv, source_terms,  /* RHS */
             alpha_fc, beta, gamma, beta_ed, geom, dt
         );
+
 
     Real step_stop_time = ParallelDescriptor::second() - step_strt_time;
     ParallelDescriptor::ReduceRealMax(step_stop_time);
