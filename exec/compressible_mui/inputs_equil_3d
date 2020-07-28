@@ -20,7 +20,7 @@
 
   ! Controls for number of steps between actions
 
-  max_step = 100
+  max_step = 10000
   plot_int = 0
 
   ! Multispecies toggle

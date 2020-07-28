@@ -86,7 +86,7 @@ rcol_site = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*lat_const**2
 print "- collision rate (onto a site) = %e" % rcol_site
 
 ads_prob = 0.1
-eq_cov = 0.4
+eq_cov = 0.1
 rads = ads_prob*rcol_site
 rdes = (1-eq_cov)/eq_cov*rads
 print "- conversion probability (collision->adsorption) = %f" % ads_prob 
@@ -108,7 +108,7 @@ rcol_site = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*lat_const**2
 print "- collision rate (onto a site) = %e" % rcol_site
 
 ads_prob = 0.1
-eq_cov = 0.5
+eq_cov = 0.2
 rads = ads_prob*rcol_site
 rdes = (1-eq_cov)/eq_cov*rads
 print "- conversion probability (collision->adsorption) = %f" % ads_prob 
@@ -117,4 +117,48 @@ print "- r_ads = %e" % rads
 print "- r_des = %e" % rdes
 
 cads = rads/n2
+print "- c_ads = %e" % cads
+
+##########
+
+print "*** spec3 ***"
+rcol = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*dx**2
+print "- collision rate (onto dx^2) = %e" % rcol
+print "- number of collisions during dt onto dx^2 = %e\n" % (rcol*dt)
+
+rcol_site = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*lat_const**2
+print "- collision rate (onto a site) = %e" % rcol_site
+
+ads_prob = 0.1
+eq_cov = 0.3
+rads = ads_prob*rcol_site
+rdes = (1-eq_cov)/eq_cov*rads
+print "- conversion probability (collision->adsorption) = %f" % ads_prob 
+print "- equilibrium coverage (for single component) = %f" % eq_cov 
+print "- r_ads = %e" % rads 
+print "- r_des = %e" % rdes
+
+cads = rads/n3
+print "- c_ads = %e" % cads
+
+##########
+
+print "*** spec4 ***"
+rcol = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*dx**2
+print "- collision rate (onto dx^2) = %e" % rcol
+print "- number of collisions during dt onto dx^2 = %e\n" % (rcol*dt)
+
+rcol_site = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*lat_const**2
+print "- collision rate (onto a site) = %e" % rcol_site
+
+ads_prob = 0.1
+eq_cov = 0.1
+rads = ads_prob*rcol_site
+rdes = (1-eq_cov)/eq_cov*rads
+print "- conversion probability (collision->adsorption) = %f" % ads_prob 
+print "- equilibrium coverage (for single component) = %f" % eq_cov 
+print "- r_ads = %e" % rads 
+print "- r_des = %e" % rdes
+
+cads = rads/n4
 print "- c_ads = %e" % cads

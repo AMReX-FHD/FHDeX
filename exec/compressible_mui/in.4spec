@@ -32,24 +32,28 @@ set         i1 value 1                  # all siteA
 set         i2 value 0                  # all vac
 
 event       4 siteA vac   2.015564e-09 spec1     # adsorption of spec1
-event       5 siteA spec1 5.493587e+10 vac       # desorption of spec1
+event       5 siteA spec1 3.296152e+11 vac       # desorption of spec1
 event       4 siteA vac   8.976568e-10 spec2     # adsorption of spec2
-event       5 siteA spec2 3.235236e+09 vac       # desorption of spec2
+event       5 siteA spec2 1.294095e+10 vac       # desorption of spec2
+event       4 siteA vac   6.379993e-10 spec3     # adsorption of spec3
+event       5 siteA spec3 2.710268e+09 vac       # desorption of spec3
+event       4 siteA vac   4.404998e-10 spec4     # adsorption of spec4
+event       5 siteA spec4 3.440761e+09 vac       # desorption of spec4
 
 variable    Trun   equal 1.e-12 
-variable    Tstat  equal 1.e-12 
+variable    Tstat  equal 1.e-12
 variable    Timage equal 1.e-12
 
 stats       ${Tstat}
-diag_style  surfchemtest stats yes list spec1 spec2 vac A1 D1
+diag_style  surfchemtest stats yes list spec1 spec2 spec3 spec4 vac A1 D1
 
-dump        3 image ${Timage} dump.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam 6e-7 shape cube view 0 0 box no 0 size 1000 1000
-dump_modify 3 scolor 0 gray scolor 1 red scolor 2 green pad 3
+# dump        3 image ${Timage} dump.*.jpg i2 site shape cube crange 0 2 drange 1 4 sdiam 6e-7 shape cube view 0 0 box no 0 size 1000 1000
+# dump_modify 3 scolor 0 gray scolor 1 red scolor 2 green pad 3
 
-variable ts loop 100
+variable ts loop 10000
 label ts_loop
-    mui_fetch   ${ts} density1 density2 temp
+    mui_fetch   ${ts} density1 density2 density3 density4 temp
     run ${Trun}
-    mui_push    ${ts} ac1 dc1 ac2 dc2
+    mui_push    ${ts} ac1 dc1 ac2 dc2 ac3 dc3 ac4 dc4
 next ts 
 jump in.4spec ts_loop
