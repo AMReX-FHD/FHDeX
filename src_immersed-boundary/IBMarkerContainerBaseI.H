@@ -804,15 +804,19 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateMarkersGpu(
 
         Box tile_box = enclosedCells(f_in[0][pti].box());
 
-        std::array<      FArrayBox *, AMREX_SPACEDIM> f_in_fab;
-        std::array<      FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_in_fab;
+        std::array<const FArrayBox *, AMREX_SPACEDIM> f_weights_fab;
         std::array<const FArrayBox *, AMREX_SPACEDIM> coords_fab;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             f_in_fab[d]     = & f_in[d][pti];
             f_weights_fab[d] = & f_weights[d][pti];
             coords_fab[d]    = & coords[d][pti];
         }
+
+        //Print() << "Here1!\n";
         InterpolateKernelGpu(particles, tile_box, f_in_fab, f_weights_fab, coords_fab, dx, 0, check);
+
+        //Print() << "Here2!\n";
     }
 
     if (check)
@@ -1069,7 +1073,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
          const int* nghost,
          int& check)  
 {
-
     // timer for profiling
     BL_PROFILE_VAR("InterpolateKernelGpu()",InterpolateKernelGpu);
 
@@ -1088,7 +1091,6 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
 
     GpuArray<int, 3> bx_lo = {bx.loVect()[0], bx.loVect()[1], bx.loVect()[2]};
     GpuArray<int, 3> bx_hi = {bx.hiVect()[0], bx.hiVect()[1], bx.hiVect()[2]};
-
     Array4<const Real> const& fin_x = f_in[0]->array();
     Array4<const Real> const& fin_y = f_in[1]->array();
     Array4<const Real> const& fin_z = f_in[2]->array();
@@ -1101,7 +1103,7 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
 
     const auto Np = aos.numParticles();
     const auto pstruct = aos().dataPtr();
-    int ng = *nghost;
+    int ng = nghost[0];
 
     AMREX_FOR_1D( Np, ip,
     {
@@ -1124,33 +1126,33 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
             gs = 4;
         }
 
-        if (ng == 0)
-        {
-            int loc = static_cast<int>(p.pos(0) * invdx[0] - gs);
-            lo_dim[0] = (loc >= bx_lo[0]) ? loc : bx_lo[0];
-            if (loc<bx_lo[0]) checkg[0] = 1;
+//        if (ng == 0) //this condition isn't in the Fortan version? -DRL
+//        {
+//            int loc = static_cast<int>(p.pos(0) * invdx[0] - gs);
+//            lo_dim[0] = (loc >= bx_lo[0]) ? loc : bx_lo[0];
+//            if (loc<bx_lo[0]) checkg[0] = 1;
 
-            loc = static_cast<int>(p.pos(0) * invdx[0] + gs);
-            hi_dim[0] = (loc <= bx_hi[0]) ? loc : bx_hi[0];
-            if (loc>bx_hi[0]) checkg[0] = 1;
+//            loc = static_cast<int>(p.pos(0) * invdx[0] + gs);
+//            hi_dim[0] = (loc <= bx_hi[0]) ? loc : bx_hi[0];
+//            if (loc>bx_hi[0]) checkg[0] = 1;
 
-            loc = static_cast<int>(p.pos(1) * invdx[1] - gs);
-            lo_dim[1] = (loc >= bx_lo[1]) ? loc : bx_lo[1];
-            if (loc<bx_lo[1]) checkg[0] = 1;
+//            loc = static_cast<int>(p.pos(1) * invdx[1] - gs);
+//            lo_dim[1] = (loc >= bx_lo[1]) ? loc : bx_lo[1];
+//            if (loc<bx_lo[1]) checkg[0] = 1;
 
-            loc = static_cast<int>(p.pos(1) * invdx[1] + gs);
-            hi_dim[1] = (loc <= bx_hi[1]) ? loc : bx_hi[1];
-            if (loc>bx_hi[1]) checkg[0] = 1;
+//            loc = static_cast<int>(p.pos(1) * invdx[1] + gs);
+//            hi_dim[1] = (loc <= bx_hi[1]) ? loc : bx_hi[1];
+//            if (loc>bx_hi[1]) checkg[0] = 1;
 
-            loc = static_cast<int>(p.pos(2) * invdx[2] - gs);
-            lo_dim[2] = (loc >= bx_lo[2]) ? loc : bx_lo[2];
-            if (loc<bx_lo[2]) checkg[0] = 1;
+//            loc = static_cast<int>(p.pos(2) * invdx[2] - gs);
+//            lo_dim[2] = (loc >= bx_lo[2]) ? loc : bx_lo[2];
+//            if (loc<bx_lo[2]) checkg[0] = 1;
 
-            loc = static_cast<int>(p.pos(2) * invdx[2] + gs);
-            hi_dim[2] = (loc <= bx_hi[2]) ? loc : bx_hi[2];
-            if (loc>bx_hi[2]) checkg[0] = 1;
-        }
-        else
+//            loc = static_cast<int>(p.pos(2) * invdx[2] + gs);
+//            hi_dim[2] = (loc <= bx_hi[2]) ? loc : bx_hi[2];
+//            if (loc>bx_hi[2]) checkg[0] = 1;
+//        }
+//        else
         {
             lo_dim[0] = static_cast<int>(p.pos(0) * invdx[0] - gs);
             if (lo_dim[0]<bx_lo[0]) checkg[0] = 1;
@@ -1166,10 +1168,14 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
             if (hi_dim[2]>bx_hi[2]) checkg[0] = 1;
         }
 
+       // Print() << "Dims: " << lo_dim[0] << ", " << lo_dim[1] << ", " << lo_dim[2] << ", "  << hi_dim[0] << ", "  << hi_dim[1] << ", "  << hi_dim[2] << "\n";
+
+        double wSum = 0;
         // x-components
         for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {
             for (int j = lo_dim[1] ; j < hi_dim[1]; ++j) {
                 for (int i = lo_dim[0] ; i < hi_dim[0]+1; ++i) {
+
                   Real pos_grid[3];
                   pos_grid[0]=(p.pos(0)-coords_x(i,j,k,0))*invdx[0];
                   pos_grid[1]=(p.pos(1)-coords_x(i,j,k,1))*invdx[1];
@@ -1201,11 +1207,15 @@ void IBMarkerContainerBase<StructReal, StructInt>::InterpolateKernelGpu(AoS& aos
                   {
                      wfrac = 1.0;
                   }
-                 
-                  p.rdata(StructReal::velx + 0) += fin_x(i,j,k)*wfrac*weight; 
+                  
+                  wSum += weight;
+                  p.rdata(StructReal::velx + 0) += fin_x(i,j,k)*wfrac*weight;
+
+                 // Print() << i << ", " << j << ", " << k << ", " << coords_x(i,j,k,0) << ", "<< coords_x(i,j,k,1) << ", "<< coords_x(i,j,k,2) << ", " << fin_x(i,j,k) << ", " << weight << "\n";
                 }
             }
         }
+//        Print() << "Total weight: " << wSum << "\n";
 
         // y-components
         for (int k = lo_dim[2] ; k < hi_dim[2]; ++k) {

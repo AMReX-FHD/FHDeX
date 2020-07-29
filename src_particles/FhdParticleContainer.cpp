@@ -448,7 +448,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                                     const paramPlane* paramPlaneList, const int paramPlaneCount, int sw)
 {
     BL_PROFILE_VAR("MoveIons()",MoveIons);
-    
+
     UpdateCellVectors();
 
     const int lev = 0;
@@ -456,7 +456,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
     const Real* plo = Geom(lev).ProbLo();
     const Real* phi = Geom(lev).ProbHi();
 
-    Real* domsize;
+    Real domsize[3];
 
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
@@ -480,7 +480,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
     Real posAlt[3];
 
 
-    InterpolateMarkers(0, dx, umac, RealFaceCoords);
+    InterpolateMarkersGpu(0, dx, umac, RealFaceCoords);
 
 
     if(move_tog == 2)
@@ -504,6 +504,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 //                    part.rdata(FHD_realData::pred_posx + d) = part.pos(d);
 //                    //part.pos(d) += dt * part.rdata(FHD_realData::velx + d);
 //                }
+
 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
@@ -532,7 +533,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                     if(intsurf > 0)
                     {
 
-                        const paramPlane& surf = paramPlaneList[intsurf];
+                        const paramPlane& surf = paramPlaneList[intsurf-1];
 
                         if(surf.periodicity == 0)
                         {
@@ -563,13 +564,23 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
                 }
 
+                for (int d=0; d<AMREX_SPACEDIM; ++d)
+                {
+
+                  part.rdata(FHD_realData::velx + d) = 0;
+                }
+
             
-
+             
             }
+                
         }
-        //Need to add midpoint rejecting feature here.
-        InterpolateMarkers(0, dx, umac, RealFaceCoords);
 
+
+ 
+        //Need to add midpoint rejecting feature here.
+        InterpolateMarkersGpu(0, dx, umac, RealFaceCoords);
+ 
         for (MyIBMarIter pti(* this, lev); pti.isValid(); ++pti) {
 
             TileIndex index(pti.index(), pti.LocalTileIndex());
@@ -585,10 +596,11 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                     part.pos(d) = part.rdata(FHD_realData::pred_posx + d);
                 }
 
+
+
             }
         }
     }
-
 
     if(dry_move_tog == 1)
     {
@@ -612,11 +624,11 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 {                   
                     part.rdata(FHD_realData::velx + d) += dry_terms[d];
                 }
+//Print() << "Adding " << dry_terms[0] << "\n";
 
             }
         }
     }
-
 
     Real maxspeed = 0;
     Real maxdist = 0;
@@ -717,9 +729,12 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
         TileIndex index(pti.index(), pti.LocalTileIndex());
         const int grid_id = pti.index();
+        const Box& tile_box  = pti.tilebox();
 
         AoS & particles = this->GetParticles(lev).at(index).GetArrayOfStructs();
         long np = this->GetParticles(lev).at(index).numParticles();
+
+        //long imap = tile_box.index(iv);
 
         int ilo = m_vector_ptrs[grid_id].loVect()[0];
         int ihi = m_vector_ptrs[grid_id].hiVect()[0];
@@ -733,13 +748,17 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
         int** cell_part_ids = m_vector_ptrs[grid_id].dataPtr();
         int* cell_part_cnt = m_vector_size[grid_id].dataPtr();
 
-        for(int i=ilo;i<ihi;i++)
+        //Print() << "Bounds: " << klo << ", " << khi << std::endl;
+
+        for(int i=ilo;i<=ihi;i++)
         {
-        for(int j=jlo;i<jhi;j++)
+        for(int j=jlo;j<=jhi;j++)
         {
-        for(int k=klo;i<khi;k++)
+        for(int k=klo;k<=khi;k++)
         {
             //int* cell_parts = cell_part_ids[i][j][k];
+
+      //          Print() << "cell " << k << " of " << klo << ", " <<khi << "\n";
 
             //int* cell_parts= m_vector_ptrs[grid_id].dataPtr()[i,j,k];
             int cell_np = cell_part_cnt[i,j,k];
@@ -749,11 +768,16 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
             int p = 1;
 
+//Print() << "cell " << i << ", " << j << ", " << k << ". Particle " << p << " of " << new_np << "\n";
+//Print() << "cell " << i << ", " << j << ", " << k << " of " << p << " of " << ihi << ", " << jhi << ", " << khi << "\n";
+
             while(p <= new_np)
             {
                 ParticleType & part = particles[cell_parts[p-1]];
 
                 int ni[3];
+
+                
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
                     ni[d] = (int)floor((part.pos(d)-plo[d])/dxinv);
@@ -769,82 +793,66 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 }
             }
 
+//Print() << "Here7\n";
+
             cell_part_cnt[i,j,k] = new_np;
 
         }
         }
         }
 
+
+
+
+    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
+    {
+        const int grid_id = pti.index();
+        const int tile_id = pti.LocalTileIndex();
+        const Box& tile_box  = pti.tilebox();
+
+        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
+        auto& particles = particle_tile.GetArrayOfStructs();
+        const int np = particles.numParticles();
+        for(int pindex = 0; pindex < np; ++pindex)
+        {
+	    ParticleType& p = particles[pindex];
+	    if (p.idata(FHD_intData::sorted)) continue;
+            const IntVect& iv = this->Index(p, lev);
+            p.idata(FHD_intData::sorted) = 1;
+            p.idata(FHD_intData::i) = iv[0];
+            p.idata(FHD_intData::j) = iv[1];
+            p.idata(FHD_intData::k) = iv[2];
+
+            long imap = tile_box.index(iv);
+            // note - use 1-based indexing for convenience with Fortran
+            m_cell_vectors[pti.index()][imap].push_back(pindex + 1);
+        }
     }
 
 
 
-//#ifdef _OPENMP
-//#pragma omp parallel
-//#endif
-
-//    for (FhdParIter pti(*this, lev); pti.isValid(); ++pti)
-//    {
-//        const int grid_id = pti.index();
-//        const int tile_id = pti.LocalTileIndex();
-//        const Box& tile_box  = pti.tilebox();
-//        
-//        auto& particle_tile = GetParticles(lev)[std::make_pair(grid_id,tile_id)];
-//        auto& particles = particle_tile.GetArrayOfStructs();
-//        np_tile = particles.numParticles();
-
-//        move_ions_fhd(particles.data(), &np_tile,
-//                      &rejected_tile, &moves_tile, &maxspeed_tile,
-//                      &maxdist_tile, &diffinst_tile,
-//                      ARLIM_3D(tile_box.loVect()),
-//                      ARLIM_3D(tile_box.hiVect()),
-//                      m_vector_ptrs[grid_id].dataPtr(),
-//                      m_vector_size[grid_id].dataPtr(),
-//                      ARLIM_3D(m_vector_ptrs[grid_id].loVect()),
-//                      ARLIM_3D(m_vector_ptrs[grid_id].hiVect()),
-//                      ZFILL(plo), ZFILL(phi), ZFILL(dx), &dt,
-//                      ZFILL(geomF.ProbLo()), ZFILL(dxFluid), ZFILL(dxE),
-//                      BL_TO_FORTRAN_3D(umac[0][pti]),
-//                      BL_TO_FORTRAN_3D(umac[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                      BL_TO_FORTRAN_3D(umac[2][pti]),
-//#endif
-//                      BL_TO_FORTRAN_3D(efield[0][pti]),
-//                      BL_TO_FORTRAN_3D(efield[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                      BL_TO_FORTRAN_3D(efield[2][pti]),
-//#endif
-//                      BL_TO_FORTRAN_3D(RealFaceCoords[0][pti]),
-//                      BL_TO_FORTRAN_3D(RealFaceCoords[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                      BL_TO_FORTRAN_3D(RealFaceCoords[2][pti]),
-//#endif
-//                      BL_TO_FORTRAN_3D(sourceTemp[0][pti]),
-//                      BL_TO_FORTRAN_3D(sourceTemp[1][pti]),
-//#if (AMREX_SPACEDIM == 3)
-//                      BL_TO_FORTRAN_3D(sourceTemp[2][pti]),
-//#endif
-//                      BL_TO_FORTRAN_3D(mobility[pti]),
-//                      paramPlaneList, &paramPlaneCount, &kinetic, &sw
-//            );
 
         // gather statistics
-//        np_proc       += np_tile;
-//        rejected_proc += rejected_tile;
-//        moves_proc    += moves_tile;
-//        maxspeed_proc = std::max(maxspeed_proc, maxspeed_tile);
-//        maxdist_proc  = std::max(maxdist_proc, maxdist_tile);
-//        diffinst_proc += diffinst_tile;
+        np_proc       += np_tile;
+        rejected_proc += rejected_tile;
+        moves_proc    += moves_tile;
+        maxspeed_proc = std::max(maxspeed_proc, maxspeed_tile);
+        maxdist_proc  = std::max(maxdist_proc, maxdist_tile);
+        diffinst_proc += diffinst_tile;
 
-//        // resize particle vectors after call to move_particles
-//        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
-//        {
-//            const auto new_size = m_vector_size[grid_id](iv);
-//            long imap = tile_box.index(iv);
-//            auto& pvec = m_cell_vectors[grid_id][imap];
-//            pvec.resize(new_size);
-//        }
-//    }
+        // resize particle vectors after call to move_particles
+        for (IntVect iv = tile_box.smallEnd(); iv <= tile_box.bigEnd(); tile_box.next(iv))
+        {
+            const auto new_size = m_vector_size[grid_id](iv);
+            long imap = tile_box.index(iv);
+            auto& pvec = m_cell_vectors[grid_id][imap];
+            pvec.resize(new_size);
+        }
+    }
+
+
+
+
 
     // gather statistics
     ParallelDescriptor::ReduceIntSum(np_proc);
