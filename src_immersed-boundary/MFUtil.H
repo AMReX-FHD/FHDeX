@@ -50,8 +50,8 @@ namespace IBMFUtil {
 #pragma omp parallel
 #endif
         for(MFIter mfi(mf_in, true); mfi.isValid(); ++ mfi) {
-            const IArrayBox & in_tile  =      mf_in[mfi];
-                  FArrayBox & out_tile = (* mf_out)[mfi];
+            const auto & in_tile  =      mf_in[mfi];
+                  auto & out_tile = (* mf_out)[mfi];
 
             for(BoxIterator bit(mfi.growntilebox()); bit.ok(); ++ bit) {
 
