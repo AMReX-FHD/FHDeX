@@ -59,17 +59,19 @@ m2 = M2/Navo
 m3 = M3/Navo
 m4 = M4/Navo
 
-print "- total number density = %e" % ntot 
-print "- number density of spec1 = %e" % n1
-print "- number density of spec2 = %e" % n2
-print "- number density of spec3 = %e" % n3
-print "- number density of spec4 = %e\n" % n4
+print "- total number density = %.3e" % ntot
+print "- number density of spec1 = %.3e" % n1
+print "- number density of spec2 = %.3e" % n2
+print "- number density of spec3 = %.3e" % n3
+print "- number density of spec4 = %.3e\n" % n4
 
 ##########
 
 dx = 8.e-6
 dt = 1.e-12
+dV = dx**3
 print "- dx (FHD) = %e" % dx
+print "- dV (FHD) = %e" % dV
 print "- dt (FHD) = %e" % dt
 
 lat_const = dx/10
@@ -77,88 +79,100 @@ print "- lattice constant = %e\n" % lat_const
 
 ##########
 
-print "*** spec1 ***"
-rcol = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*dx**2
-print "- collision rate (onto dx^2) = %e" % rcol
-print "- number of collisions during dt onto dx^2 = %e\n" % (rcol*dt)
+Ntot = ntot*dV
+N1 = n1*dV
+N2 = n2*dV
+N3 = n3*dV
+N4 = n4*dV
 
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*lat_const**2
-print "- collision rate (onto a site) = %e" % rcol_site
+print "- total number of gas molecules in dV = %.3e" % Ntot
+print "- number of gas molecules of spec1 in dV = %.3e" % N1
+print "- number of gas molecules of spec2 in dV = %.3e" % N2
+print "- number of gas molecules of spec3 in dV = %.3e" % N3
+print "- number of gas molecules of spec4 in dV = %.3e\n" % N4
+
+
+##########
+
+Ncol1 = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*dx**2*dt
+Ncol2 = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*dx**2*dt
+Ncol3 = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*dx**2*dt
+Ncol4 = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*dx**2*dt
+
+print "- number of collisions by gas molecules of spec1 per dx^2 per dt = %.3e" % Ncol1
+print "- number of collisions by gas molecules of spec2 per dx^2 per dt = %.3e" % Ncol2
+print "- number of collisions by gas molecules of spec3 per dx^2 per dt = %.3e" % Ncol3
+print "- number of collisions by gas molecules of spec4 per dx^2 per dt = %.3e\n" % Ncol4
+
+##########
+
+lat_const = dx/10
+print "- lattice constant = %e\n" % lat_const
+
+##########
 
 ads_prob = 0.1
 eq_cov = 0.1
+rcol_site = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*lat_const**2
 rads = ads_prob*rcol_site
 rdes = (1-eq_cov)/eq_cov*rads
+cads = rads/n1
+
+print "*** spec1 ***"
+print "- collision rate onto a site = %e" % rcol_site
 print "- conversion probability (collision->adsorption) = %f" % ads_prob 
 print "- equilibrium coverage (for single component) = %f" % eq_cov 
 print "- r_ads = %e" % rads 
 print "- r_des = %e" % rdes
-
-cads = rads/n1
 print "- c_ads = %e\n" % cads
 
 ##########
 
-print "*** spec2 ***"
-rcol = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*dx**2
-print "- collision rate (onto dx^2) = %e" % rcol
-print "- number of collisions during dt onto dx^2 = %e\n" % (rcol*dt)
-
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*lat_const**2
-print "- collision rate (onto a site) = %e" % rcol_site
-
-ads_prob = 0.1
-eq_cov = 0.2
-rads = ads_prob*rcol_site
-rdes = (1-eq_cov)/eq_cov*rads
-print "- conversion probability (collision->adsorption) = %f" % ads_prob 
-print "- equilibrium coverage (for single component) = %f" % eq_cov 
-print "- r_ads = %e" % rads 
-print "- r_des = %e" % rdes
-
-cads = rads/n2
-print "- c_ads = %e" % cads
-
-##########
-
-print "*** spec3 ***"
-rcol = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*dx**2
-print "- collision rate (onto dx^2) = %e" % rcol
-print "- number of collisions during dt onto dx^2 = %e\n" % (rcol*dt)
-
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*lat_const**2
-print "- collision rate (onto a site) = %e" % rcol_site
-
-ads_prob = 0.1
-eq_cov = 0.3
-rads = ads_prob*rcol_site
-rdes = (1-eq_cov)/eq_cov*rads
-print "- conversion probability (collision->adsorption) = %f" % ads_prob 
-print "- equilibrium coverage (for single component) = %f" % eq_cov 
-print "- r_ads = %e" % rads 
-print "- r_des = %e" % rdes
-
-cads = rads/n3
-print "- c_ads = %e" % cads
-
-##########
-
-print "*** spec4 ***"
-rcol = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*dx**2
-print "- collision rate (onto dx^2) = %e" % rcol
-print "- number of collisions during dt onto dx^2 = %e\n" % (rcol*dt)
-
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*lat_const**2
-print "- collision rate (onto a site) = %e" % rcol_site
-
 ads_prob = 0.1
 eq_cov = 0.1
+rcol_site = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*lat_const**2
 rads = ads_prob*rcol_site
 rdes = (1-eq_cov)/eq_cov*rads
+cads = rads/n2
+
+print "*** spec2 ***"
+print "- collision rate onto a site = %e" % rcol_site
 print "- conversion probability (collision->adsorption) = %f" % ads_prob 
 print "- equilibrium coverage (for single component) = %f" % eq_cov 
 print "- r_ads = %e" % rads 
 print "- r_des = %e" % rdes
+print "- c_ads = %e\n" % cads
 
+##########
+
+ads_prob = 0.1
+eq_cov = 0.05
+rcol_site = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*lat_const**2
+rads = ads_prob*rcol_site
+rdes = (1-eq_cov)/eq_cov*rads
+cads = rads/n3
+
+print "*** spec3 ***"
+print "- collision rate (onto a site) = %e" % rcol_site
+print "- conversion probability (collision->adsorption) = %f" % ads_prob 
+print "- equilibrium coverage (for single component) = %f" % eq_cov 
+print "- r_ads = %e" % rads 
+print "- r_des = %e" % rdes
+print "- c_ads = %e\n" % cads
+
+##########
+
+ads_prob = 0.1
+eq_cov = 0.05
+rcol_site = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*lat_const**2
+rads = ads_prob*rcol_site
+rdes = (1-eq_cov)/eq_cov*rads
 cads = rads/n4
-print "- c_ads = %e" % cads
+
+print "*** spec4 ***"
+print "- collision rate (onto a site) = %e" % rcol_site
+print "- conversion probability (collision->adsorption) = %f" % ads_prob 
+print "- equilibrium coverage (for single component) = %f" % eq_cov 
+print "- r_ads = %e" % rads 
+print "- r_des = %e" % rdes
+print "- c_ads = %e\n" % cads
