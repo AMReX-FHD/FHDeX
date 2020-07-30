@@ -537,7 +537,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
                         if(surf.periodicity == 0)
                         {
-                           Real dummy;
+                           Real dummy = 1;
                            app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
 
                            runtime = runtime - inttime;
@@ -626,6 +626,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 }
 //Print() << "Adding " << dry_terms[0] << "\n";
 
+
             }
         }
     }
@@ -686,10 +687,9 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 runtime = runtime - inttime;
                 if(intsurf > 0)
                 {
+                    const paramPlane& surf = paramPlaneList[intsurf-1];
 
-                    const paramPlane& surf = paramPlaneList[intsurf];
-
-                    Real dummy;
+                    Real dummy = 1;
                     app_bc(&surf, &part, &intside, domsize, &push, &dummy, &dummy);
 
                     if(push == 1)
@@ -705,6 +705,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
             }
 
+Print() << part.id() << "vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
+
             Real dist = sqrt(thisMove[0]*thisMove[0] + thisMove[0]*thisMove[0] + thisMove[0]*thisMove[0]);
             totaldist = sqrt(part.rdata(FHD_realData::ax)*part.rdata(FHD_realData::ax) + part.rdata(FHD_realData::ay)*part.rdata(FHD_realData::ay) + part.rdata(FHD_realData::az)*part.rdata(FHD_realData::az));
 
@@ -718,6 +720,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
             diffest = totaldist/(6.0*part.rdata(FHD_realData::travelTime));
 
             diffinst += diffest;
+
+
 
         }
     }

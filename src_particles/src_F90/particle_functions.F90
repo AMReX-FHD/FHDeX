@@ -1252,9 +1252,9 @@ contains
     call get_particle_normal(normalrand(2))
     call get_particle_normal(normalrand(3))
 
-!    normalrand(1) = 0.5
-!    normalrand(2) = 0.5
-!    normalrand(3) = 0.5
+    normalrand(1) = 0.5
+    normalrand(2) = 0.5
+    normalrand(3) = 0.5
 
     !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
     std(1) = sqrt(2.0*mb(1)*part%dry_diff)
@@ -2501,8 +2501,6 @@ contains
 
                 !print *, "adding", dry_terms(1), mb
 
-                print *, part%id, "Vel", part%vel(1), "Pos", part%pos(1)
-
                 speed = part%vel(1)**2 + part%vel(2)**2 + part%vel(3)**2              
 
                 if(speed .gt. maxspeed) then
@@ -2533,9 +2531,8 @@ contains
 
                       surf => paramplanes(intsurf)
 
-                      !print *, "Intersecting ", intsurf, part%pos
-
                       call apply_bc(surf, part, intside, domsize, push, 1, 1)
+
 
                       if(push .eq. 1) then
 
@@ -2549,6 +2546,8 @@ contains
                    endif
 
                 end do
+
+                print *, part%id, "pre Vel", part%vel(1), "Pos", part%pos(1)
 
 !!!!!!!!!! Mean square displacement measurer.
 
