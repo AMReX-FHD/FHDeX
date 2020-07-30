@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# (pseudo) kmc executable
+# pseudo-kmc executable
 exec1=./pseudo_kmc.bin
 if [ ! -f $exec1 ]
 then
-  echo "ERROR: spparks executable $exec1 not found"
+  echo "ERROR: pseudo-kmc executable $exec1 not found"
   echo "ERROR: run ./compile.sh"
   exit
 fi
