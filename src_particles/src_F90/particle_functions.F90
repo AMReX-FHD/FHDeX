@@ -1252,9 +1252,9 @@ contains
     call get_particle_normal(normalrand(2))
     call get_particle_normal(normalrand(3))
 
-    normalrand(1) = 0.5
-    normalrand(2) = 0.5
-    normalrand(3) = 0.5
+!    normalrand(1) = 0.5
+!    normalrand(2) = 0.5
+!    normalrand(3) = 0.5
 
     !std = sqrt(part%dry_diff*k_B*2d0*t_init(1))
     std(1) = sqrt(2.0*mb(1)*part%dry_diff)
@@ -2547,7 +2547,7 @@ contains
 
                 end do
 
-                print *, part%id, "pre Vel", part%vel(1), "Pos", part%pos(1)
+               ! print *, part%id, "pre Vel", part%vel(1), "Pos", part%pos(1)
 
 !!!!!!!!!! Mean square displacement measurer.
 

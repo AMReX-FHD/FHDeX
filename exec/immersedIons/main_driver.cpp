@@ -917,9 +917,10 @@ void main_driver(const char* argv)
                 particles.MeanSqrCalc(0, 0);
             }
 
-			particles.clearNeighbors();
-            particles.Redistribute();
-            particles.ReBin();
+            //particles.clearNeighbors();
+            //particles.Redistribute();
+            //particles.ReBin();
+
             Print() << "Finish move.\n";
         }
 
