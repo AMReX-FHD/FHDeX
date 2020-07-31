@@ -673,7 +673,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
             runtime = dt;
 
-            Real thisMove[3] = {0,0,0};
+            //Real thisMove[3] = {0,0,0};
 
             while(runtime > 0)
             {
@@ -686,8 +686,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
                     part.pos(d) += inttime * part.rdata(FHD_realData::velx + d)*adj;
-                    part.rdata(FHD_realData::ax +d ) += inttime * part.rdata(FHD_realData::velx + d)*adj;
-                    thisMove[d] += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    //part.rdata(FHD_realData::ax +d ) += inttime * part.rdata(FHD_realData::velx + d)*adj;
+                    //thisMove[d] += inttime * part.rdata(FHD_realData::velx + d)*adj;
                 }
                 runtime = runtime - inttime;
                 if(intsurf > 0)
@@ -702,20 +702,26 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                         for (int d=0; d<AMREX_SPACEDIM; ++d)
                         {
                             part.pos(d) += part.pos(d) + posAlt[d];
-                            part.rdata(FHD_realData::ax + d) += part.pos(d) + posAlt[d];
-                            thisMove[d] += part.pos(d) + posAlt[d];
+                            //part.rdata(FHD_realData::ax + d) += part.pos(d) + posAlt[d];
+                            //thisMove[d] += part.pos(d) + posAlt[d];
                         }
                     }
                 }
 
             }
 
-//Print() << part.id() << "vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
+            for (int d=0; d<AMREX_SPACEDIM; ++d)
+            {
+                part.rdata(FHD_realData::ax + d) += part.rdata(FHD_realData::velx + d)*dt;
+            }
 
-            Real dist = sqrt(thisMove[0]*thisMove[0] + thisMove[0]*thisMove[0] + thisMove[0]*thisMove[0]);
+   // Print() << part.id() << " vel: " << setprecision(15) << part.rdata(FHD_realData::velx) << " pos: " << part.pos(0) << "\n";
+
+            Real dist = dt*sqrt(part.rdata(FHD_realData::velx)*part.rdata(FHD_realData::velx) + part.rdata(FHD_realData::vely)*part.rdata(FHD_realData::vely) + part.rdata(FHD_realData::velz)*part.rdata(FHD_realData::velz))/part.rdata(FHD_realData::radius);;
+
             totaldist = sqrt(part.rdata(FHD_realData::ax)*part.rdata(FHD_realData::ax) + part.rdata(FHD_realData::ay)*part.rdata(FHD_realData::ay) + part.rdata(FHD_realData::az)*part.rdata(FHD_realData::az));
 
-            if(totaldist > maxdist)
+            if(dist > maxdist)
             {
                 maxdist = dist;
             }
