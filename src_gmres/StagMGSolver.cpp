@@ -680,7 +680,7 @@ int StagMGSolver::ComputeNlevsMG(const BoxArray& ba) {
                 nlevs_mg = rdir;
             }
             else {
-                nlevs_mg = std::min(rdir,nlevs_mg);
+                nlevs_mg = amrex::min(rdir,nlevs_mg);
             }
         }
     }

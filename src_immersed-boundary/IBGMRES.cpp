@@ -348,13 +348,13 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         } else if (total_iter >= gmres_min_iter) {
             // other options
-            if(norm_resid <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid)) {
+            if(norm_resid <= gmres_rel_tol*amrex::min(norm_pre_b, norm_init_resid)) {
                 if (gmres_verbose >= 2) {
                     Print() << "GMRES converged: Outer = " << outer_iter << ",  Inner = " << i
                             << " Total=" << total_iter << std::endl;
                 }
 
-                if (norm_resid_Stokes >= 10*gmres_rel_tol*std::min(norm_b, norm_init_Stokes)) {
+                if (norm_resid_Stokes >= 10*gmres_rel_tol*amrex::min(norm_b, norm_init_Stokes)) {
                     Print() << "GMRES.cpp: Warning: gmres may not have converged: |r|/|b|= "
                             << norm_resid_Stokes/norm_b << " |r|/|r0|="
                             << norm_resid_Stokes/norm_init_Stokes << std::endl;
@@ -547,7 +547,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             if (total_iter >= gmres_max_iter) {
                 break; // exit InnerLoop
             } else if (total_iter >= gmres_min_iter) {
-                if ((norm_resid_est <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid))
+                if ((norm_resid_est <= gmres_rel_tol*amrex::min(norm_pre_b, norm_init_resid))
                     || (norm_resid_est <= gmres_abs_tol)) {
                     break; // exit InnerLoop
                 }

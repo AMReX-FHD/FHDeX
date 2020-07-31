@@ -617,17 +617,17 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
 
     if (nghost == 0){
         int loc = amrex::Math::floor(pos[0] * invdx[0] - gs);
-        ilo = std::max(bx.loVect()[0], loc);
+        ilo = amrex::max(bx.loVect()[0], loc);
         loc = amrex::Math::floor(pos[0] * invdx[0] + gs);
-        ihi = std::max(bx.hiVect()[0], loc);
+        ihi = amrex::max(bx.hiVect()[0], loc);
         loc = amrex::Math::floor(pos[1] * invdx[1] - gs);
-        jlo = std::max(bx.loVect()[1], loc);
+        jlo = amrex::max(bx.loVect()[1], loc);
         loc = amrex::Math::floor(pos[1] * invdx[1] + gs);
-        jhi = std::max(bx.hiVect()[1], loc);
+        jhi = amrex::max(bx.hiVect()[1], loc);
         loc = amrex::Math::floor(pos[2] * invdx[2] - gs);
-        klo = std::max(bx.loVect()[2], loc);
+        klo = amrex::max(bx.loVect()[2], loc);
         loc = amrex::Math::floor(pos[2] * invdx[2] + gs);
-        khi = std::max(bx.hiVect()[2], loc);
+        khi = amrex::max(bx.hiVect()[2], loc);
     }else{
         ilo = amrex::Math::floor(pos[0] * invdx[0] - gs);
         ihi = amrex::Math::floor(pos[0] * invdx[0] + gs);
@@ -1166,7 +1166,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
             )
         };
     // Find max inv_dx (in case we have an anisotropic grid)
-    Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
+    Real mx_inv_dx = * amrex::max_element(inv_dx.begin(), inv_dx.end());
 
     amrex::AllPrintToFile("ib_particle_data") << "Particles on each box:" << std::endl;
 

@@ -403,8 +403,8 @@ void FhdParticleContainer::MoveIons(const Real dt, const Real* dxFluid, const Re
         np_proc       += np_tile;
         rejected_proc += rejected_tile;
         moves_proc    += moves_tile;
-        maxspeed_proc = std::max(maxspeed_proc, maxspeed_tile);
-        maxdist_proc  = std::max(maxdist_proc, maxdist_tile);
+        maxspeed_proc = amrex::max(maxspeed_proc, maxspeed_tile);
+        maxdist_proc  = amrex::max(maxdist_proc, maxdist_tile);
         diffinst_proc += diffinst_tile;
 
         // resize particle vectors after call to move_particles
@@ -730,8 +730,8 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
 
         }
 
-        maxspeed_proc = std::max(maxspeed_proc, maxspeed);
-        maxdist_proc  = std::max(maxdist_proc, maxdist);
+        maxspeed_proc = amrex::max(maxspeed_proc, maxspeed);
+        maxdist_proc  = amrex::max(maxdist_proc, maxdist);
         diffinst_proc += diffinst;
     }
 

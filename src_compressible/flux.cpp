@@ -213,8 +213,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        yy[ns] = std::max(0.,std::min(1.,prim(i-1,j,k,6+ns)));
-                        yyp[ns] = std::max(0.,std::min(1.,prim(i,j,k,6+ns)));
+                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i-1,j,k,6+ns)));
+                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                     }
 
                     Real sumy = 0.;
@@ -406,8 +406,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        yy[ns] = std::max(0.,std::min(1.,prim(i,j-1,k,6+ns)));
-                        yyp[ns] = std::max(0.,std::min(1.,prim(i,j,k,6+ns)));
+                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j-1,k,6+ns)));
+                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                     }
 
                     Real sumy = 0.;
@@ -574,8 +574,8 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        yy[ns] = std::max(0.,std::min(1.,prim(i,j,k-1,6+ns)));
-                        yyp[ns] = std::max(0.,std::min(1.,prim(i,j,k,6+ns)));
+                        yy[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k-1,6+ns)));
+                        yyp[ns] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+ns)));
                     }
 
                     Real sumy = 0.;
