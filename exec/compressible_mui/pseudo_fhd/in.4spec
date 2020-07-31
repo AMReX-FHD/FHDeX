@@ -26,7 +26,7 @@ mui_kmc_lattice_offset ${lat_const2} ${lat_const2}
 # i3 - i7:  ac1-ac5 = number of adsorption events of the species at the site
 # i8 - i12: dc1-dc5 = number of desoprtion events of the species at the site
 # d1 - d5:  density1-5 = number density of the fluid cell right above the site 
-# d6:       temperature 
+# d6:       temperature
 
 set         i1 value 1                  # all siteA 
 set         i2 value 0                  # all vac
@@ -52,7 +52,7 @@ diag_style  surfchemtest stats yes list vac spec1 spec2 spec3 spec4
 
 variable    nstep equal 1000
 
-variable ts loop ${nstep} 
+variable ts loop ${nstep}
 label ts_loop
     mui_fetch   ${ts} density1 density2 density3 density4 temp
     run ${Trun}
