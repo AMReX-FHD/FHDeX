@@ -341,7 +341,7 @@ void main_driver(const char * argv) {
     // Find the optimal number of ghost cells for the IBMarkerContainer
     Real min_dx = dx[0];
     for (int d=1; d<AMREX_SPACEDIM; ++d)
-	    min_dx = std::min(min_dx, dx[d]);
+	    min_dx = amrex::min(min_dx, dx[d]);
 
     // min of 4 is a HACK: something large enough but not too large
     int ib_nghost = 4;
@@ -354,7 +354,7 @@ void main_driver(const char * argv) {
         Real l_link = L/(N-1);
 
         int min_nghost = 4*l_link/min_dx;
-        ib_nghost      = std::max(ib_nghost, min_nghost);
+        ib_nghost      = amrex::max(ib_nghost, min_nghost);
     }
 
     Print() << "Initializing IBMarkerContainer with "

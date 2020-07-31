@@ -237,13 +237,13 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
 
         } else if (total_iter >= gmres_min_iter) {
             // other options
-            if(norm_resid <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid)) {
+            if(norm_resid <= gmres_rel_tol*amrex::min(norm_pre_b, norm_init_resid)) {
                 if (gmres_verbose >= 2) {
                     Print() << "GMRES converged: Outer = " << outer_iter << ",  Inner = " << i
                             << " Total=" << total_iter << std::endl;
                 }
 
-                if (norm_resid_Stokes >= 10*gmres_rel_tol*std::min(norm_b, norm_init_Stokes)) {
+                if (norm_resid_Stokes >= 10*gmres_rel_tol*amrex::min(norm_b, norm_init_Stokes)) {
                     Print() << "GMRES.cpp: Warning: gmres may not have converged: |r|/|b|= "
                             << norm_resid_Stokes/norm_b << " |r|/|r0|="
                             << norm_resid_Stokes/norm_init_Stokes << std::endl;
@@ -380,7 +380,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
             //___________________________________________________________________
             // solve least square problem
             LeastSquares(i, H, cs, sn, s);
-            norm_resid_est = std::abs(s[i+1]);
+            norm_resid_est = amrex::Math::abs(s[i+1]);
 
 
             //___________________________________________________________________
@@ -397,7 +397,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
             if (total_iter >= gmres_max_iter) {
                 break; // exit InnerLoop
             } else if (total_iter >= gmres_min_iter) {
-                if ((norm_resid_est <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid))
+                if ((norm_resid_est <= gmres_rel_tol*amrex::min(norm_pre_b, norm_init_resid))
                     || (norm_resid_est <= gmres_abs_tol)) {
                     break; // exit InnerLoop
                 }
@@ -505,7 +505,7 @@ void RotMat(Real a, Real b,
         cs = 1.;
         sn = 0.;
     }
-    else if (std::abs(b) > std::abs(a)) {
+    else if (amrex::Math::abs(b) > amrex::Math::abs(a)) {
         temp = a/b;
         sn = 1./sqrt(1.+temp*temp);
         cs = temp*sn;

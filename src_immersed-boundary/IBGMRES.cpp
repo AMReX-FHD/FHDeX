@@ -348,13 +348,13 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
 
         } else if (total_iter >= gmres_min_iter) {
             // other options
-            if(norm_resid <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid)) {
+            if(norm_resid <= gmres_rel_tol*amrex::min(norm_pre_b, norm_init_resid)) {
                 if (gmres_verbose >= 2) {
                     Print() << "GMRES converged: Outer = " << outer_iter << ",  Inner = " << i
                             << " Total=" << total_iter << std::endl;
                 }
 
-                if (norm_resid_Stokes >= 10*gmres_rel_tol*std::min(norm_b, norm_init_Stokes)) {
+                if (norm_resid_Stokes >= 10*gmres_rel_tol*amrex::min(norm_b, norm_init_Stokes)) {
                     Print() << "GMRES.cpp: Warning: gmres may not have converged: |r|/|b|= "
                             << norm_resid_Stokes/norm_b << " |r|/|r0|="
                             << norm_resid_Stokes/norm_init_Stokes << std::endl;
@@ -521,7 +521,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             //___________________________________________________________________
             // solve least square problem
             LeastSquares(i, H, cs, sn, s);
-            norm_resid_est = std::abs(s[i+1]);
+            norm_resid_est = amrex::Math::abs(s[i+1]);
 
 
             //___________________________________________________________________
@@ -547,7 +547,7 @@ void IBGMRES(std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & b_p,
             if (total_iter >= gmres_max_iter) {
                 break; // exit InnerLoop
             } else if (total_iter >= gmres_min_iter) {
-                if ((norm_resid_est <= gmres_rel_tol*std::min(norm_pre_b, norm_init_resid))
+                if ((norm_resid_est <= gmres_rel_tol*amrex::min(norm_pre_b, norm_init_resid))
                     || (norm_resid_est <= gmres_abs_tol)) {
                     break; // exit InnerLoop
                 }
@@ -703,7 +703,7 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
     // 6 = upper triangular + viscosity-based BFBt Schur complement (from Georg Stadler)
 
     // projection preconditioner
-    if (std::abs(precon_type) == 1) {
+    if (amrex::Math::abs(precon_type) == 1) {
 
         //_______________________________________________________________________
         // Temporary arrays
@@ -1024,15 +1024,15 @@ void IBMPrecon(const std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab 
                 CCApplyNegLap(phi, x_p, alphainv_fc, geom);
             }
 
-            if ( std::abs(visc_type) == 1 || std::abs(visc_type) == 2) {
+            if ( amrex::Math::abs(visc_type) == 1 || amrex::Math::abs(visc_type) == 2) {
                 // multiply x_p by beta; x_p = -beta L_alpha Phi
                 MultiFab::Multiply(x_p, beta, 0, 0, 1, 0);
 
-                if (std::abs(visc_type) == 2) {
+                if (amrex::Math::abs(visc_type) == 2) {
                     // multiply by c=2; x_p = -2*beta L_alpha Phi
                     x_p.mult(2., 0, 1, 0);
                 }
-            } else if (std::abs(visc_type) == 3) {
+            } else if (amrex::Math::abs(visc_type) == 3) {
 
                 // multiply x_p by gamma, use mac_rhs a temparary to save x_p
                 MultiFab::Copy(mac_rhs, x_p, 0, 0, 1, 0);

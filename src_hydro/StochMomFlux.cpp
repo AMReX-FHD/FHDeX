@@ -30,7 +30,7 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
 
     // Here we store all the random number stages at all spatial locations
     for (int i=0; i<n_rngs; ++i) {
-        mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, std::max(1,filtering_width));
+        mflux_cc[i].define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(1,filtering_width));
         mflux_cc[i].setVal(0.);
 #if (AMREX_SPACEDIM == 2)
         mflux_ed[i][0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
@@ -45,7 +45,7 @@ StochMomFlux::StochMomFlux(BoxArray ba_in, DistributionMapping dmap_in, Geometry
     }
 
     // Temporary storage for linear combinations of random number stages
-    mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, std::max(1,filtering_width));
+    mflux_cc_weighted.define(ba_in, dmap_in, AMREX_SPACEDIM, amrex::max(1,filtering_width));
     mflux_cc_weighted.setVal(0.);
 #if (AMREX_SPACEDIM == 2)
     mflux_ed_weighted[0].define(convert(ba_in,nodal_flag), dmap_in, ncomp_ed, filtering_width);
@@ -107,7 +107,7 @@ void StochMomFlux::weightMomflux(Vector< amrex::Real > weights) {
     }
 
     for (int i=0; i<n_rngs; ++i) {
-        MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, AMREX_SPACEDIM, std::max(1,filtering_width));
+        MultiFab::Saxpy(mflux_cc_weighted, weights[i], mflux_cc[i], 0, 0, AMREX_SPACEDIM, amrex::max(1,filtering_width));
         for (int d=0; d<NUM_EDGE; ++d) {
             MultiFab::Saxpy(mflux_ed_weighted[d], weights[i], mflux_ed[i][d], 0, 0, ncomp_ed, filtering_width);
         }
