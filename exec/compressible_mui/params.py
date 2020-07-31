@@ -1,4 +1,5 @@
 import math
+import numpy as np
 
 # cgs units
 
@@ -111,68 +112,98 @@ print "- lattice constant = %e\n" % lat_const
 
 ##########
 
-ads_prob = 0.1
-eq_cov = 0.1
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*lat_const**2
-rads = ads_prob*rcol_site
-rdes = (1-eq_cov)/eq_cov*rads
-cads = rads/n1
+ads_prob1 = 0.1
+eq_cov1 = 0.1
+rcol_site1 = math.sqrt(0.5*kB*temp/math.pi/m1)*n1*lat_const**2
+rads1 = ads_prob1*rcol_site1
+rdes1 = (1-eq_cov1)/eq_cov1*rads1
+cads1 = rads1/n1
 
 print "*** spec1 ***"
-print "- collision rate onto a site = %e" % rcol_site
-print "- conversion probability (collision->adsorption) = %f" % ads_prob 
-print "- equilibrium coverage (for single component) = %f" % eq_cov 
-print "- r_ads = %e" % rads 
-print "- r_des = %e" % rdes
-print "- c_ads = %e\n" % cads
+print "- collision rate onto a site = %e" % rcol_site1
+print "- conversion probability (collision->adsorption) = %f" % ads_prob1
+print "- equilibrium coverage (for single component) = %f" % eq_cov1
+print "- r_ads1 = %e" % rads1
+print "- r_des1 = %e" % rdes1
+print "- c_ads1 = %e\n" % cads1
 
 ##########
 
-ads_prob = 0.1
-eq_cov = 0.1
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*lat_const**2
-rads = ads_prob*rcol_site
-rdes = (1-eq_cov)/eq_cov*rads
-cads = rads/n2
+ads_prob2 = 0.1
+eq_cov2 = 0.1
+rcol_site2 = math.sqrt(0.5*kB*temp/math.pi/m2)*n2*lat_const**2
+rads2 = ads_prob2*rcol_site2
+rdes2 = (1-eq_cov2)/eq_cov2*rads2
+cads2 = rads2/n2
 
 print "*** spec2 ***"
-print "- collision rate onto a site = %e" % rcol_site
-print "- conversion probability (collision->adsorption) = %f" % ads_prob 
-print "- equilibrium coverage (for single component) = %f" % eq_cov 
-print "- r_ads = %e" % rads 
-print "- r_des = %e" % rdes
-print "- c_ads = %e\n" % cads
+print "- collision rate onto a site = %e" % rcol_site2
+print "- conversion probability (collision->adsorption) = %f" % ads_prob2
+print "- equilibrium coverage (for single component) = %f" % eq_cov2
+print "- r_ads2 = %e" % rads2
+print "- r_des2 = %e" % rdes2
+print "- c_ads2 = %e\n" % cads2
 
 ##########
 
-ads_prob = 0.1
-eq_cov = 0.05
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*lat_const**2
-rads = ads_prob*rcol_site
-rdes = (1-eq_cov)/eq_cov*rads
-cads = rads/n3
+ads_prob3 = 0.1
+eq_cov3 = 0.05
+rcol_site3 = math.sqrt(0.5*kB*temp/math.pi/m3)*n3*lat_const**2
+rads3 = ads_prob3*rcol_site3
+rdes3 = (1-eq_cov3)/eq_cov3*rads3
+cads3 = rads3/n3
 
 print "*** spec3 ***"
-print "- collision rate (onto a site) = %e" % rcol_site
-print "- conversion probability (collision->adsorption) = %f" % ads_prob 
-print "- equilibrium coverage (for single component) = %f" % eq_cov 
-print "- r_ads = %e" % rads 
-print "- r_des = %e" % rdes
-print "- c_ads = %e\n" % cads
+print "- collision rate (onto a site) = %e" % rcol_site3
+print "- conversion probability (collision->adsorption) = %f" % ads_prob3
+print "- equilibrium coverage (for single component) = %f" % eq_cov3
+print "- r_ads3 = %e" % rads3
+print "- r_des3 = %e" % rdes3
+print "- c_ads3 = %e\n" % cads3
 
 ##########
 
-ads_prob = 0.1
-eq_cov = 0.05
-rcol_site = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*lat_const**2
-rads = ads_prob*rcol_site
-rdes = (1-eq_cov)/eq_cov*rads
-cads = rads/n4
+ads_prob4 = 0.1
+eq_cov4 = 0.05
+rcol_site4 = math.sqrt(0.5*kB*temp/math.pi/m4)*n4*lat_const**2
+rads4 = ads_prob4*rcol_site4
+rdes4 = (1-eq_cov4)/eq_cov4*rads4
+cads4 = rads4/n4
 
 print "*** spec4 ***"
-print "- collision rate (onto a site) = %e" % rcol_site
-print "- conversion probability (collision->adsorption) = %f" % ads_prob 
-print "- equilibrium coverage (for single component) = %f" % eq_cov 
-print "- r_ads = %e" % rads 
-print "- r_des = %e" % rdes
-print "- c_ads = %e\n" % cads
+print "- collision rate (onto a site) = %e" % rcol_site4
+print "- conversion probability (collision->adsorption) = %f" % ads_prob4
+print "- equilibrium coverage (for single component) = %f" % eq_cov4
+print "- r_ads = %e" % rads4
+print "- r_des = %e" % rdes4
+print "- c_ads = %e\n" % cads4
+
+##########
+
+A = np.array([[rdes1+cads1*n1,cads1*n1,cads1*n1,cads1*n1],[cads2*n2,rdes2+cads2*n2,cads2*n2,cads2*n2],[cads3*n3,cads3*n3,rdes3+cads3*n3,cads3*n3],[cads4*n4,cads4*n4,cads4*n4,rdes4+cads4*n4]])
+b = np.array([cads1*n1,cads2*n2,cads3*n3,cads4*n4])
+x = np.linalg.solve(A,b)
+
+print A
+print b
+print x
+print 
+
+nsite = 40*40
+vac = 1-sum(x)
+p = np.append(vac,x)
+
+mean = nsite*p
+var = nsite*np.multiply(p,1-p) 
+
+cads = np.array([cads1,cads2,cads3,cads4])
+rdes = np.array([rdes1,rdes2,rdes3,rdes4])
+print "cads: ", cads 
+print "rdes: ", rdes 
+print 
+
+print "number of sites: %d" % nsite
+print "p    (vac,spec1,spec2,spec3,spec4): ", p
+print "mean (vac,spec1,spec2,spec3,spec4): ", mean
+print "var  (vac,spec1,spec2,spec3,spec4): ", var
+print 
