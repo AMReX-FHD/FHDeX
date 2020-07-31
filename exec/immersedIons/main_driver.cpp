@@ -437,9 +437,9 @@ void main_driver(const char* argv)
         }
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
-            ionParticle[i].total = (int)ceil(particle_n0[i]*domainVol/particle_neff);
+            ionParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*domainVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
-            ionParticle[i].ppb = (int)ceil((double)ionParticle[i].total/(double)ba.size());
+            ionParticle[i].ppb = (int)amrex::Math::ceil((double)ionParticle[i].total/(double)ba.size());
             //ionParticle[i].total = ionParticle[i].ppb*ba.size();
             ionParticle[i].n0 = ionParticle[i].total/domainVol;
 
@@ -820,7 +820,8 @@ void main_driver(const char* argv)
 
 //        if(istep == 1)
 //        {
-//            particles.SetPosition(0, 1, prob_hi[0]/2.0, prob_hi[1]/2.0, prob_hi[2]/64.0);
+//            particles.SetPosition(0, 1, prob_hi[0]*0.48, prob_hi[1]*0.01, prob_hi[2]*0.48);
+//            particles.SetPosition(0, 2, prob_hi[0]*0.49, prob_hi[1]*0.01, prob_hi[2]*0.49);
 //           
 //        }
 
@@ -839,8 +840,8 @@ void main_driver(const char* argv)
             // Apply RFD force to fluid
             particles.RFD(0, dx, sourceTemp, RealFaceCoords);
             particles.ResetMarkers(0);
-            //particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
-            //                source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
+//            particles.DoRFD(dt, dx, dxp, geom, umac, efieldCC, RealFaceCoords, RealCenteredCoords,
+//                            source, sourceTemp, paramPlaneList, paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
         }
         else {
             // set velx/y/z and forcex/y/z for each particle to zero
@@ -858,12 +859,12 @@ void main_driver(const char* argv)
 
             // compute short range forces (if sr_tog=1)
             // compute P3M short range correction (if es_tog=3)
-            particles.computeForcesNL(charge, RealCenteredCoords, dxp);
+            particles.computeForcesNLGPU(charge, RealCenteredCoords, dxp);
         }
 
         if (es_tog==1 || es_tog==3) {
             // spreads charge density from ions onto multifab 'charge'.
-            particles.collectFields(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
+            particles.collectFieldsGPU(dt, dxp, RealCenteredCoords, geomP, charge, chargeTemp, massFrac, massFracTemp);
         }
         
         // do Poisson solve using 'charge' for RHS, and put potential in 'potential'.
@@ -871,7 +872,7 @@ void main_driver(const char* argv)
         esSolve(potential, charge, efieldCC, external, geomP);
 
         // compute other forces and spread to grid
-        particles.SpreadIons(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
+        particles.SpreadIonsGPU(dt, dx, dxp, geom, umac, efieldCC, charge, RealFaceCoords, RealCenteredCoords, source, sourceTemp, paramPlaneList,
                              paramPlaneCount, 3 /*this number currently does nothing, but we will use it later*/);
 
         //particles.BuildCorrectionTable(dxp,1);
@@ -916,9 +917,10 @@ void main_driver(const char* argv)
                 particles.MeanSqrCalc(0, 0);
             }
 
-			particles.clearNeighbors();
-            particles.Redistribute();
-            particles.ReBin();
+            //particles.clearNeighbors();
+            //particles.Redistribute();
+            //particles.ReBin();
+
             Print() << "Finish move.\n";
         }
 
@@ -998,8 +1000,8 @@ void main_driver(const char* argv)
 	// Update structure factor
 #ifndef AMREX_USE_CUDA
         if (struct_fact_int > 0 &&
-            istep > std::abs(n_steps_skip) &&
-            (istep-std::abs(n_steps_skip)-1)%struct_fact_int == 0) {
+            istep > amrex::Math::abs(n_steps_skip) &&
+            (istep-amrex::Math::abs(n_steps_skip)-1)%struct_fact_int == 0) {
 
             // charge
             MultiFab::Copy(struct_cc_charge, charge, 0, 0, nvar_sf_charge, 0);
@@ -1078,7 +1080,7 @@ void main_driver(const char* argv)
         
     }
     ///////////////////////////////////////////
-
+        //test change
     // timer for total simulation time
     Real stop_time = ParallelDescriptor::second() - strt_time;
     ParallelDescriptor::ReduceRealMax(stop_time);

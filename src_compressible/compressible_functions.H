@@ -18,6 +18,9 @@ using namespace amrex;
 // copy contents of compressible_params_module to C++ compressible namespace
 void InitializeCompressibleNamespace();
 
+void InitConsVar(MultiFab& cons, const MultiFab& prim,
+                 const amrex::Geometry geom);
+
 void calculateFlux(const MultiFab& cons, const MultiFab& prim,
                    const MultiFab& eta, const MultiFab& zeta, const MultiFab& kappa,
 		   const MultiFab& chi, const MultiFab& D,
@@ -136,8 +139,7 @@ void GetMolfrac ( int i, int j, int k,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetTemperature ( int i, int j, int k,
-                      Real const energy,
+void GetTemperature ( Real const energy,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real& temp,
                       int const nspecies,
@@ -154,8 +156,7 @@ void GetTemperature ( int i, int j, int k,
 };
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void GetPressureGas ( int i, int j, int k,
-                      Real& pressure,
+void GetPressureGas ( Real& pressure,
                       const GpuArray<Real,MAX_SPECIES>& Yk,
                       Real const density,
                       Real const temp,
@@ -412,6 +413,58 @@ void Solvenp ( int const neq,
         b[j-1]=b[j-1]/a[(j-1)*ndim+j-1];
     }
 }
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void CholeskyDecomp( GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& a,
+                     int const nspecies,
+                     GpuArray<Real,MAX_SPECIES*MAX_SPECIES>& sqda)
+{
+    GpuArray<Real,MAX_SPECIES> p;
+    
+    Real sum1 = 0.;
+    int ising;
+
+    for (int i=0; i<nspecies; ++i) {
+        ising = 0;
+
+        for (int j=0; j<nspecies; ++j) {
+            sum1 = a[i*nspecies+j];
+
+            for (int k=i-1; k>=0; --k) {
+                sum1 = sum1 - a[i*nspecies+k]*a[j*nspecies+k];
+            }
+
+            if (i == j) {
+                if (sum1 <= 0.) {
+                    p[i] = 0.;
+                    ising = 1;
+                } else {
+                    p[i] = sqrt(sum1);
+                }
+            }
+            if (ising == 0) {
+                a[j*nspecies+i] = sum1/p[i];
+            } else {
+                a[j*nspecies+i] = 0.;
+            }
+        }
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=0; j<nspecies; ++j) {
+            sqda[i*nspecies+j] = 0.;
+        }
+    }
+
+    for (int i=0; i<nspecies; ++i) {
+        for (int j=i-1; j>=0; --j) {
+            sqda[i*nspecies+j] = a[i*nspecies+j];
+        }
+        sqda[i*nspecies+i] = p[i];
+    }
+    
+}
+
 
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -921,6 +974,35 @@ void IdealMixtureTransport ( int iloc, int jloc, int kloc,
     ThermalDiff(iloc,jloc,kloc,sigma11,a_ij1,a_ij2,alphabar,xxtr,sqrtT,molecular_mass,
                 chitil,nspecies);
     // chitil = 0.0d0
-};
-                      
+}
+
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnergy ( Real& energy,
+                 const GpuArray<Real,MAX_SPECIES>& massvec,
+                 const Real temp,
+                 const GpuArray<Real,MAX_SPECIES>& hcv,
+                 const int nspecies)
+{
+    Real cvmix = 0.;
+    Real e0 = 0.;
+
+    for (int i=0; i<nspecies; ++i) {
+        cvmix += massvec[i]*hcv[i];
+    }
+
+    energy = e0 + temp*cvmix;    
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void GetEnthalpies (const Real& T,
+                    GpuArray<Real,MAX_SPECIES>& hk,
+                    const GpuArray<Real,MAX_SPECIES>& hcp,
+                    const int nspecies)
+{
+    for (int i=0; i<nspecies; ++i) {
+        hk[i] = hcp[i]*T;
+    }
+}
+
 #endif

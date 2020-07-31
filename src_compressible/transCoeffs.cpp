@@ -58,7 +58,7 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
             
             Real sumYk = 0.;
             for (int n=0; n<nspecies_gpu; ++n) {
-                Yk_fixed[n] = std::max(0.,std::min(1.,prim(i,j,k,6+n)));
+                Yk_fixed[n] = amrex::max(0.,amrex::min(1.,prim(i,j,k,6+n)));
                 sumYk += Yk_fixed[n];
             }
 
@@ -84,18 +84,4 @@ void calculateTransportCoeffs(const MultiFab& prim_in,
 
         });
     }
-
-    /*
-    // Loop over boxes
-    for ( MFIter mfi(prim); mfi.isValid(); ++mfi) {
-        
-        const Box& bx = mfi.validbox();
-
-        trans_coeffs(ARLIM_3D(bx.loVect()), ARLIM_3D(bx.hiVect()),  
-	 	     prim[mfi].dataPtr(),  
-                     eta[mfi].dataPtr(),  
-                     zeta[mfi].dataPtr(),  
-                     kappa[mfi].dataPtr());
-    }
-    */
 }

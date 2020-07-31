@@ -47,7 +47,7 @@ void addMomFluctuations_stag(std::array< MultiFab, AMREX_SPACEDIM >& m_old,
     Real dVol = (AMREX_SPACEDIM==2) ? dx[0]*dx[1]*cell_depth : dx[0]*dx[1]*dx[2];
 
     // Initialize variances
-    Real variance_mom = std::abs(variance)*k_B/dVol;
+    Real variance_mom = amrex::Math::abs(variance)*k_B/dVol;
 
     std::array<MultiFab, AMREX_SPACEDIM> variance_mfab;
     for (int d=0; d<AMREX_SPACEDIM; ++d) {

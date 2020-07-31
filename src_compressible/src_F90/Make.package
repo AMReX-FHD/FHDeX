@@ -1,10 +1,7 @@
 F90EXE_sources += flux_funcs.F90
-F90EXE_sources += trans_funcs.F90
 F90EXE_sources += conv_funcs.F90
-F90EXE_sources += multispec_funcs.F90
 F90EXE_sources += bound_funcs.F90
 F90EXE_sources += stats_funcs.F90
 F90EXE_sources += membrane_funcs.F90
-F90EXE_sources += init_consvar.F90
 
 F90EXE_sources += compressible_namelist.F90

@@ -25,51 +25,6 @@ extern "C"
 ///////////////////////////
 // in diff_flux.F90
 
-    void diff_flux(const int* lo, const int* hi,
-                   const amrex::Real* cons,
-                   const amrex::Real* prim,
-                   const amrex::Real* eta,
-                   const amrex::Real* zeta,
-                   const amrex::Real* kappa,
-                   const amrex::Real* chi,
-                   const amrex::Real* Dij,
-                   amrex::Real* xflux,
-                   amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-                   amrex::Real* zflux,
-#endif
-                   amrex::Real* cornux,
-                   amrex::Real* cornvx,
-                   amrex::Real* cornwx,
-                   amrex::Real* cornuy,
-                   amrex::Real* cornvy,
-                   amrex::Real* cornwy,
-                   amrex::Real* cornuz,
-                   amrex::Real* cornvz,
-                   amrex::Real* cornwz,
-                   amrex::Real* visccorn,
-                   const amrex::Real* dx);
-
-    void hyp_flux_prim(const int* lo, const int* hi,
-		       const amrex::Real* cons,
-		       const amrex::Real* prim,
-		       amrex::Real* xflux,
-		       amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-		       amrex::Real* zflux,
-#endif
-		       const amrex::Real* dx);
-
-    void hyp_flux_cons(const int* lo, const int* hi,
-		       const amrex::Real* cons,
-		       const amrex::Real* prim,
-		       amrex::Real* xflux,
-		       amrex::Real* yfluz,
-#if (AMREX_SPACEDIM == 3)
-		       amrex::Real* zflux,
-#endif
-		       const amrex::Real* dx);
-
     void stoch_flux(const int* lo, const int* hi,
 		    const amrex::Real* cons,
 		    const amrex::Real* prim,
@@ -107,8 +62,6 @@ extern "C"
 
     void get_energy(amrex::Real* energy, amrex::Real* massvec, const amrex::Real* temp);
 
-    void get_density_gas(amrex::Real* pressure,amrex::Real* density, amrex::Real* temp);
-
     void get_hc_gas();
 
     void evaluate_means(const int* lo, const int* hi, const amrex::Real* cu, amrex::Real* cumeans,
@@ -143,12 +96,6 @@ extern "C"
                         const amrex::Real* dx,
                         const amrex::Real* dt);
 
-    void init_consvar(const int* lo, const int* hi, 
-                      const amrex_real* cu, const int* culo, const int* cuhi,
-                      const amrex_real* pu, const int* pulo, const int* puhi,
-                      const amrex_real* dx, 
-                      const amrex_real* reallo, const amrex_real* realhi);
-    
 #ifdef __cplusplus
 }
 #endif

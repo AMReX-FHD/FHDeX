@@ -524,7 +524,7 @@ Real kernel_3p(Real r_in)
  
     //initialize r
     r = r_in;
-    r1 = std::abs(r_in);
+    r1 = amrex::Math::abs(r_in);
     r2 = r1*r1;
 
     if (r1 <= 0.5){
@@ -537,58 +537,6 @@ Real kernel_3p(Real r_in)
     return kernel_3p;
 }
 
-
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-Real beta(Real r)
-{
-    Real beta;
-    Real K = 59.0/60 - std::sqrt(29.0)/20.0;
-
-    //pre-computed ratios
-    Real a = 9.0/4.0;
-    Real b = 3.0/2.0;
-    Real c = 22.0/3.0;
-    Real d = 7.0/3.0;
-
-    //NOTE: mistake in the paper: b*(K+r**2)*r -> b*(K+r**2)
-    //beta = a - b*(K+r**2)*r + (c-7*K)*r - d*r**3
-    beta = a - b*(K+(r*r)) + (c-7.0*K)*r - d*(r*r*r);
-
-    return beta;
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-Real gamma(Real r)
-{
-    Real gamma;
-    Real K = 59.0/60 - std::sqrt(29.0)/20.0;
-
-    //pre-computed ratios
-    Real a = 11.0/32.0;
-    Real b = 3.0/32.0;
-    Real c = 1.0/72.0;
-    Real d = 1.0/18.0;
-
-    gamma = - a*r*r + b*(2*K+(r*r))*(r*r) + c*std::pow(((3*K-1)*r+(r*r*r)),2) + d*std::pow(((4-3*K)*r-(r*r*r)),2);
-
-    return gamma;
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_INLINE
-Real phi1(Real r)
-{
-    Real phi1;
-    Real K = 59.0/60 - std::sqrt(29.0)/20.0;
-    Real sgn = (3.0/2 - K)/std::abs(3.0/2 - K);
-
-    //pre-computed ratios
-    Real alpha = 28.0;
-    Real inv_alpha = 1.0/(2.0*alpha);
-
-    phi1 = inv_alpha*( -beta(r) + sgn * std::sqrt(beta(r)*beta(r) - 4*alpha*gamma(r)) );
-
-    return phi1;
-}
 
 
 AMREX_GPU_HOST_DEVICE AMREX_INLINE
@@ -604,7 +552,7 @@ Real kernel_6p(Real r_in)
 
     //internal parameters
     Real K = 59.0/60 - std::sqrt(29.0)/20.0;
-    Real sgn = (3.0/2 - K)/std::abs(3.0/2 - K);
+    Real sgn = (3.0/2 - K)/amrex::Math::abs(3.0/2 - K);
 
     //pre-computed ratios
     Real inv16 = 1.0/16.0;
@@ -668,25 +616,25 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
         invvol *= invdx[i]; 
 
     if (nghost == 0){
-        int loc = floor(pos[0] * invdx[0] - gs);
-        ilo = std::max(bx.loVect()[0], loc);
-        loc = floor(pos[0] * invdx[0] + gs);
-        ihi = std::max(bx.hiVect()[0], loc);
-        loc = floor(pos[1] * invdx[1] - gs);
-        jlo = std::max(bx.loVect()[1], loc);
-        loc = floor(pos[1] * invdx[1] + gs);
-        jhi = std::max(bx.hiVect()[1], loc);
-        loc = floor(pos[2] * invdx[2] - gs);
-        klo = std::max(bx.loVect()[2], loc);
-        loc = floor(pos[2] * invdx[2] + gs);
-        khi = std::max(bx.hiVect()[2], loc);
+        int loc = amrex::Math::floor(pos[0] * invdx[0] - gs);
+        ilo = amrex::max(bx.loVect()[0], loc);
+        loc = amrex::Math::floor(pos[0] * invdx[0] + gs);
+        ihi = amrex::max(bx.hiVect()[0], loc);
+        loc = amrex::Math::floor(pos[1] * invdx[1] - gs);
+        jlo = amrex::max(bx.loVect()[1], loc);
+        loc = amrex::Math::floor(pos[1] * invdx[1] + gs);
+        jhi = amrex::max(bx.hiVect()[1], loc);
+        loc = amrex::Math::floor(pos[2] * invdx[2] - gs);
+        klo = amrex::max(bx.loVect()[2], loc);
+        loc = amrex::Math::floor(pos[2] * invdx[2] + gs);
+        khi = amrex::max(bx.hiVect()[2], loc);
     }else{
-        ilo = floor(pos[0] * invdx[0] - gs);
-        ihi = floor(pos[0] * invdx[0] + gs);
-        jlo = floor(pos[1] * invdx[1] - gs);
-        jhi = floor(pos[1] * invdx[1] + gs);
-        klo = floor(pos[2] * invdx[2] - gs);
-        khi = floor(pos[2] * invdx[2] + gs); 
+        ilo = amrex::Math::floor(pos[0] * invdx[0] - gs);
+        ihi = amrex::Math::floor(pos[0] * invdx[0] + gs);
+        jlo = amrex::Math::floor(pos[1] * invdx[1] - gs);
+        jhi = amrex::Math::floor(pos[1] * invdx[1] + gs);
+        klo = amrex::Math::floor(pos[2] * invdx[2] - gs);
+        khi = amrex::Math::floor(pos[2] * invdx[2] + gs); 
     }
 
     IntVect scalx_lo(ilo,jlo,klo);
@@ -1218,7 +1166,7 @@ void IBParticleContainer::PrintParticleData(int lev) {
             )
         };
     // Find max inv_dx (in case we have an anisotropic grid)
-    Real mx_inv_dx = * std::max_element(inv_dx.begin(), inv_dx.end());
+    Real mx_inv_dx = * amrex::max_element(inv_dx.begin(), inv_dx.end());
 
     amrex::AllPrintToFile("ib_particle_data") << "Particles on each box:" << std::endl;
 

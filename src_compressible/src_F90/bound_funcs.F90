@@ -7,7 +7,6 @@ module bound_module
                                      bc_therm_hi, bc_vel_lo, bc_vel_hi
   use compressible_namelist_module, only : bc_Yk, bc_Xk
   use conv_module
-  use trans_module
 
   implicit none
 

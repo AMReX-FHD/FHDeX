@@ -69,7 +69,13 @@ all_dry = 0   ! set this to 1, and fluid_tog=0 for a dry simulation (use L=2e-6)
   mass = 3.82e-23 5.89e-23
   diameter = -2.488e-8 -2.488e-8 
   qval = 1.6e-19 -1.6e-19
-  diff = 1.17e-05 1.33e-05
+
+  ! these are the values we used in DISCOS 1 - not real saltwater!
+  ! diff = 1.17e-05 1.33e-05
+
+  ! there are the values from the Peraud 2016 paper - saltwater!
+  diff = 1.33e-05 2.03e-05
+
   ! If diameter is negative, this value will be used. If diameter is positive, it will be ignored.
   ! This is the total wet+dry diffusion. The wet component arises from the grid size and peskin kernel,
   ! the dry component is set to recover the value entered here.

@@ -267,7 +267,7 @@ void main_driver(const char* argv)
 
         if(particle_count[i] >= 0) {
             // adjust number of particles up so there is the same number per box            
-            dsmcParticle[i].ppb = (int)ceil((double)particle_count[i]/(double)ba.size());
+            dsmcParticle[i].ppb = (int)amrex::Math::ceil((double)particle_count[i]/(double)ba.size());
             dsmcParticle[i].total = dsmcParticle[i].ppb*ba.size();
             dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
 
@@ -275,9 +275,9 @@ void main_driver(const char* argv)
         }
         else {
             // if particle count is negative, we instead compute the number of particles based on particle density and particle_neff
-            dsmcParticle[i].total = (int)ceil(particle_n0[i]*effectiveVol/particle_neff);
+            dsmcParticle[i].total = (int)amrex::Math::ceil(particle_n0[i]*effectiveVol/particle_neff);
             // adjust number of particles up so there is the same number per box  
-            dsmcParticle[i].ppb = (int)ceil((double)dsmcParticle[i].total/(double)ba.size());
+            dsmcParticle[i].ppb = (int)amrex::Math::ceil((double)dsmcParticle[i].total/(double)ba.size());
             dsmcParticle[i].total = dsmcParticle[i].ppb*ba.size();
             dsmcParticle[i].n0 = dsmcParticle[i].total/effectiveVol;
 

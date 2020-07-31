@@ -311,7 +311,7 @@ void AdvanceTimestepInertial(std::array< MultiFab, AMREX_SPACEDIM >& umac,
     // for the corrector gmres solve we want the stopping criteria based on the
     // norm of the preconditioned rhs from the predictor gmres solve.  otherwise
     // for cases where du in the corrector should be small the gmres stalls
-    gmres_abs_tol = std::max(gmres_abs_tol_in, norm_pre_rhs*gmres_rel_tol);
+    gmres_abs_tol = amrex::max(gmres_abs_tol_in, norm_pre_rhs*gmres_rel_tol);
 
     // restore eta and kappa
     eta.mult  (2.,0,1,1);

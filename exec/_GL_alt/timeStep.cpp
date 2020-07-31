@@ -261,7 +261,7 @@ void Run_Steps(MultiFab& phi, MultiFab& phin, MultiFab& rannums, const amrex::Ge
         amrex::Print() << "median of Phi in umbrella is " << median << "\n";
         for(j=0;j<L;j++)
         {
-            Avg_collect[j]=std::abs(Avg_collect[j]-median) ;// compute the distance from the median for each data point
+            Avg_collect[j]=amrex::Math::abs(Avg_collect[j]-median) ;// compute the distance from the median for each data point
         }
         std::sort(Avg_collect, Avg_collect+L); // Sort the distances from the median--the "median absolute deviation"
         MAD=Avg_collect[L/2]; //The median of all such distances is the measure of spread used--the "median absolute deviation"
