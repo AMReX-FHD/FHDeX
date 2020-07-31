@@ -524,7 +524,7 @@ Real kernel_3p(Real r_in)
  
     //initialize r
     r = r_in;
-    r1 = std::abs(r_in);
+    r1 = amrex::Math::abs(r_in);
     r2 = r1*r1;
 
     if (r1 <= 0.5){
@@ -552,7 +552,7 @@ Real kernel_6p(Real r_in)
 
     //internal parameters
     Real K = 59.0/60 - std::sqrt(29.0)/20.0;
-    Real sgn = (3.0/2 - K)/std::abs(3.0/2 - K);
+    Real sgn = (3.0/2 - K)/amrex::Math::abs(3.0/2 - K);
 
     //pre-computed ratios
     Real inv16 = 1.0/16.0;
@@ -616,25 +616,25 @@ void IBParticleContainer::SpreadKernel(const Box& bx, std::array<MultiFab, AMREX
         invvol *= invdx[i]; 
 
     if (nghost == 0){
-        int loc = floor(pos[0] * invdx[0] - gs);
+        int loc = amrex::Math::floor(pos[0] * invdx[0] - gs);
         ilo = std::max(bx.loVect()[0], loc);
-        loc = floor(pos[0] * invdx[0] + gs);
+        loc = amrex::Math::floor(pos[0] * invdx[0] + gs);
         ihi = std::max(bx.hiVect()[0], loc);
-        loc = floor(pos[1] * invdx[1] - gs);
+        loc = amrex::Math::floor(pos[1] * invdx[1] - gs);
         jlo = std::max(bx.loVect()[1], loc);
-        loc = floor(pos[1] * invdx[1] + gs);
+        loc = amrex::Math::floor(pos[1] * invdx[1] + gs);
         jhi = std::max(bx.hiVect()[1], loc);
-        loc = floor(pos[2] * invdx[2] - gs);
+        loc = amrex::Math::floor(pos[2] * invdx[2] - gs);
         klo = std::max(bx.loVect()[2], loc);
-        loc = floor(pos[2] * invdx[2] + gs);
+        loc = amrex::Math::floor(pos[2] * invdx[2] + gs);
         khi = std::max(bx.hiVect()[2], loc);
     }else{
-        ilo = floor(pos[0] * invdx[0] - gs);
-        ihi = floor(pos[0] * invdx[0] + gs);
-        jlo = floor(pos[1] * invdx[1] - gs);
-        jhi = floor(pos[1] * invdx[1] + gs);
-        klo = floor(pos[2] * invdx[2] - gs);
-        khi = floor(pos[2] * invdx[2] + gs); 
+        ilo = amrex::Math::floor(pos[0] * invdx[0] - gs);
+        ihi = amrex::Math::floor(pos[0] * invdx[0] + gs);
+        jlo = amrex::Math::floor(pos[1] * invdx[1] - gs);
+        jhi = amrex::Math::floor(pos[1] * invdx[1] + gs);
+        klo = amrex::Math::floor(pos[2] * invdx[2] - gs);
+        khi = amrex::Math::floor(pos[2] * invdx[2] + gs); 
     }
 
     IntVect scalx_lo(ilo,jlo,klo);

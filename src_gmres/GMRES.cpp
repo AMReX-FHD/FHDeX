@@ -380,7 +380,7 @@ void GMRES::Solve (std::array<MultiFab, AMREX_SPACEDIM> & b_u, const MultiFab & 
             //___________________________________________________________________
             // solve least square problem
             LeastSquares(i, H, cs, sn, s);
-            norm_resid_est = std::abs(s[i+1]);
+            norm_resid_est = amrex::Math::abs(s[i+1]);
 
 
             //___________________________________________________________________
@@ -505,7 +505,7 @@ void RotMat(Real a, Real b,
         cs = 1.;
         sn = 0.;
     }
-    else if (std::abs(b) > std::abs(a)) {
+    else if (amrex::Math::abs(b) > amrex::Math::abs(a)) {
         temp = a/b;
         sn = 1./sqrt(1.+temp*temp);
         cs = temp*sn;

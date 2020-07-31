@@ -99,9 +99,9 @@ void StagMGSolver::Define(const BoxArray& ba_in,
 
 
 // solve "(theta*alpha*I - L) phi = rhs" using multigrid with Gauss-Seidel relaxation
-// if std::abs(visc_type) = 1, L = div beta grad
-// if std::abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
-// if std::abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
+// if amrex::Math::abs(visc_type) = 1, L = div beta grad
+// if amrex::Math::abs(visc_type) = 2, L = div [ beta (grad + grad^T) ]
+// if amrex::Math::abs(visc_type) = 3, L = div [ beta (grad + grad^T) + I (gamma - (2/3)*beta) div ]
 // if visc_type > 1 we assume constant coefficients
 // if visc_type < 1 we assume variable coefficients
 // beta_cc, and gamma_cc are cell-centered

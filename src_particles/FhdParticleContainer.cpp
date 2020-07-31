@@ -62,7 +62,7 @@ FhdParticleContainer::FhdParticleContainer(const Geometry & geom,
     if (radialdist_int > 0 || cartdist_int > 0) {
 
         // create enough bins to look within a sphere with radius equal to "half" of the domain
-        totalBins = (int)floor((searchDist)/((double)binSize)) - 1;
+        totalBins = (int)amrex::Math::floor((searchDist)/((double)binSize)) - 1;
 
         Print() << "Bin size for pair correlation function: " << binSize << std::endl;
         Print() << "Number of pair correlation bins: " << totalBins << std::endl;
@@ -793,7 +793,7 @@ void FhdParticleContainer::MoveIonsGPU1(const Real dt, const Real* dxFluid, cons
                 
                 for (int d=0; d<AMREX_SPACEDIM; ++d)
                 {
-                    ni[d] = (int)floor((part.pos(d)-plo[d])/dxinv);
+                    ni[d] = (int)amrex::Math::floor((part.pos(d)-plo[d])/dxinv);
                 }
 
                 if((ni[0] != i) || (ni[1] != j) || (ni[2] != k))
@@ -1251,7 +1251,7 @@ void FhdParticleContainer::RadialDistribution(long totalParticles, const int ste
                     // if particles are close enough, increment the bin
                     if(rad < totalDist && rad > 0.) {
 
-                        bin = (int)floor(rad/binSize);
+                        bin = (int)amrex::Math::floor(rad/binSize);
                         radDist[bin]++;
                             
                         if (part.rdata(FHD_realData::q) > 0) {
@@ -1508,9 +1508,9 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                 for(int kk = kklo; kk <= kkhi; kk++)
                 {
                     // get distance between particles
-                    dx = std::abs(part.pos(0)-posx[j] - ii*domx);
-                    dy = std::abs(part.pos(1)-posy[j] - jj*domy);
-                    dz = std::abs(part.pos(2)-posz[j] - kk*domz);
+                    dx = amrex::Math::abs(part.pos(0)-posx[j] - ii*domx);
+                    dy = amrex::Math::abs(part.pos(1)-posy[j] - jj*domy);
+                    dz = amrex::Math::abs(part.pos(2)-posz[j] - kk*domz);
 
                     dist = sqrt(dx*dx + dy*dy + dz*dz);
 
@@ -1518,7 +1518,7 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                     if (dist > 0.) {
                         if(dx < totalDist && dy < searchDist && dz < searchDist) {
                             
-                            bin = (int)floor(dx/binSize);
+                            bin = (int)amrex::Math::floor(dx/binSize);
                             XDist[bin]++;
                             
                             if (part.rdata(FHD_realData::q) > 0) {
@@ -1541,7 +1541,7 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                         }
                         if(dy < totalDist && dx < searchDist && dz < searchDist) {
                             
-                            bin = (int)floor(dy/binSize);
+                            bin = (int)amrex::Math::floor(dy/binSize);
                             YDist[bin]++;
                             
                             if (part.rdata(FHD_realData::q) > 0) {
@@ -1564,7 +1564,7 @@ void FhdParticleContainer::CartesianDistribution(long totalParticles, const int 
                         }
                         if(dz < totalDist && dx < searchDist && dy < searchDist) {
                             
-                            bin = (int)floor(dz/binSize);                            
+                            bin = (int)amrex::Math::floor(dz/binSize);                            
                             ZDist[bin]++;
                             
                             if (part.rdata(FHD_realData::q) > 0) {

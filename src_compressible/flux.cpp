@@ -142,7 +142,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i,j-1,k)*prim(i,j-1,k,4) + eta(i-1,j-1,k)*prim(i-1,j-1,k,4) +
                                         eta(i,j,k)*prim(i,j,k,4) + eta(i-1,j,k)*prim(i-1,j,k,4) )/3.;
 
-                    if (std::abs(visc_type_gpu) == 3) {
+                    if (amrex::Math::abs(visc_type_gpu) == 3) {
 
                         muzepp = muzepp + 0.25*(zeta(i,j,k)*prim(i,j,k,4) + zeta(i-1,j,k)*prim(i-1,j,k,4) +
                                                 zeta(i,j+1,k)*prim(i,j+1,k,4) + zeta(i-1,j+1,k)*prim(i-1,j+1,k,4) +
@@ -246,7 +246,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                     
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        if (std::abs(yy[ns]) + std::abs(yyp[ns]) <= 1.e-12) {
+                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
                             for (int n=0; n<nspecies_gpu; ++n) {
                                 DijY_edge[ns*nspecies_gpu+n]=0.;
                                 DijY_edge[n*nspecies_gpu+ns]=0.;
@@ -334,7 +334,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j,k)*prim(i-1,j,k,4) + eta(i,j,k)*prim(i,j,k,4) +
                                         eta(i-1,j-1,k)*prim(i-1,j-1,k,4) + eta(i,j-1,k)*prim(i,j-1,k,4) )/3.;
 
-                    if (std::abs(visc_type_gpu) == 3) {
+                    if (amrex::Math::abs(visc_type_gpu) == 3) {
 
                         muzepp = muzepp + 0.25*(zeta(i+1,j-1,k)*prim(i+1,j-1,k,4) + zeta(i,j-1,k)*prim(i,j-1,k,4) +
                                                 zeta(i+1,j,k)*prim(i+1,j,k,4) + zeta(i,j,k)*prim(i,j,k,4) +
@@ -439,7 +439,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                     }
                     
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        if (std::abs(yy[ns]) + std::abs(yyp[ns]) <= 1.e-12) {
+                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
                             for (int n=0; n<nspecies_gpu; ++n) {
                                 DijY_edge[ns*nspecies_gpu+n]=0.;
                                 DijY_edge[n*nspecies_gpu+ns]=0.;
@@ -525,7 +525,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                         eta(i-1,j-1,k-1)*prim(i-1,j-1,k-1,4) + eta(i,j-1,k-1)*prim(i,j-1,k-1,4) +
                                         eta(i-1,j,k-1)*prim(i-1,j,k-1,4) + eta(i,j,k-1)*prim(i,j,k-1,4) )/3.;
 
-                    if (std::abs(visc_type_gpu) == 3) {
+                    if (amrex::Math::abs(visc_type_gpu) == 3) {
 
                         muzepp = muzepp+ 0.25*(zeta(i+1,j,k-1)*prim(i+1,j,k-1,4) + zeta(i,j,k-1)*prim(i,j,k-1,4) +
                                                zeta(i+1,j+1,k-1)*prim(i+1,j+1,k-1,4) + zeta(i,j+1,k-1)*prim(i,j+1,k-1,4) +
@@ -608,7 +608,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
 
 
                     for (int ns=0; ns<nspecies_gpu; ++ns) {
-                        if (std::abs(yy[ns]) + std::abs(yyp[ns]) <= 1.e-12) {
+                        if (amrex::Math::abs(yy[ns]) + amrex::Math::abs(yyp[ns]) <= 1.e-12) {
                             for (int n=0; n<nspecies_gpu; ++n) {
                                 DijY_edge[ns*nspecies_gpu+n]=0.;
                                 DijY_edge[n*nspecies_gpu+ns]=0.;
@@ -934,7 +934,7 @@ void calculateFlux(const MultiFab& cons_in, const MultiFab& prim_in,
                                + eta(i,j-1,k) + eta(i-1,j-1,k) + eta(i,j,k) + eta(i-1,j,k));
 
             Real zetaxp;
-            if (std::abs(visc_type_gpu) == 3) {
+            if (amrex::Math::abs(visc_type_gpu) == 3) {
                 zetaxp = 0.125*(zeta(i,j-1,k-1) + zeta(i-1,j-1,k-1) + zeta(i,j,k-1) + zeta(i-1,j,k-1)+
                                 zeta(i,j-1,k) + zeta(i-1,j-1,k) + zeta(i,j,k) + zeta(i-1,j,k));
             } else {
