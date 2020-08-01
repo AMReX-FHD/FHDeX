@@ -266,7 +266,7 @@ contains
           qmean = cv*primmeans(i,j,k,5)-0.5d0*(primmeans(i,j,k,2)**2 + primmeans(i,j,k,3)**2 + primmeans(i,j,k,4)**2)
           cvinv = 1.0d0/cv
           cvinvS = 1.0d0/slices(i,j,k,17)
-          cvinvSstar = 1.0d0/miscval(s13)
+          cvinvSstar = 1.0d0/miscvals(13)
 
           !Vars
           qmean = cv*primmeans(i,j,k,5)-0.5*(primmeans(i,j,k,2)**2 + primmeans(i,j,k,3)**2 + primmeans(i,j,k,4)**2)
