@@ -144,7 +144,7 @@ c   set up stuff to gather statistics
 
       do 200 n=1,nstep
 
-      if(n.gt.ntherm)dorand = 0.d0
+c     if(n.gt.ntherm)dorand = 0.d0
 
          if(iper.eq.0)then
             jstart = 2
